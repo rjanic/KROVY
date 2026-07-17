@@ -1,0 +1,34 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AcKrovy.Core", "src\AcKrovy.Core\AcKrovy.Core.csproj", "{20E1D2BF-0A7A-483A-A8EB-C64DDA7F215B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AcKrovy.AutoCAD", "src\AcKrovy.AutoCAD\AcKrovy.AutoCAD.csproj", "{90717643-0A7C-4DEF-AE4B-6E7D10C4426A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AcKrovy.Core.Tests", "src\AcKrovy.Core.Tests\AcKrovy.Core.Tests.csproj", "{28C1960D-D49D-4ADF-9C88-59E8ABD3A266}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{20E1D2BF-0A7A-483A-A8EB-C64DDA7F215B}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{20E1D2BF-0A7A-483A-A8EB-C64DDA7F215B}.Debug|x64.Build.0 = Debug|Any CPU
+		{20E1D2BF-0A7A-483A-A8EB-C64DDA7F215B}.Release|x64.ActiveCfg = Release|Any CPU
+		{20E1D2BF-0A7A-483A-A8EB-C64DDA7F215B}.Release|x64.Build.0 = Release|Any CPU
+		{90717643-0A7C-4DEF-AE4B-6E7D10C4426A}.Debug|x64.ActiveCfg = Debug|x64
+		{90717643-0A7C-4DEF-AE4B-6E7D10C4426A}.Debug|x64.Build.0 = Debug|x64
+		{90717643-0A7C-4DEF-AE4B-6E7D10C4426A}.Release|x64.ActiveCfg = Release|x64
+		{90717643-0A7C-4DEF-AE4B-6E7D10C4426A}.Release|x64.Build.0 = Release|x64
+		{28C1960D-D49D-4ADF-9C88-59E8ABD3A266}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{28C1960D-D49D-4ADF-9C88-59E8ABD3A266}.Debug|x64.Build.0 = Debug|Any CPU
+		{28C1960D-D49D-4ADF-9C88-59E8ABD3A266}.Release|x64.ActiveCfg = Release|Any CPU
+		{28C1960D-D49D-4ADF-9C88-59E8ABD3A266}.Release|x64.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

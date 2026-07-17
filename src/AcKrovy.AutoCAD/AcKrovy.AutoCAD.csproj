@@ -1,0 +1,57 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!-- AutoCAD 2027 používa .NET 10. Legacy/2025-2026 buildy budú samostatné adaptéry. -->
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <!-- Klasický plávajúci/dokovateľný panel je WinForms Control hostovaný v PaletteSet. -->
+    <UseWindowsForms>true</UseWindowsForms>
+    <PlatformTarget>x64</PlatformTarget>
+    <Platforms>x64</Platforms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <AssemblyName>AcKrovy.AutoCAD</AssemblyName>
+    <RootNamespace>AcKrovy.AutoCAD</RootNamespace>
+    <AutoCadInstallDir Condition="'$(AutoCadInstallDir)' == ''">C:\Program Files\Autodesk\AutoCAD 2027</AutoCadInstallDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AcKrovy.Core\AcKrovy.Core.csproj" />
+  </ItemGroup>
+
+  <!-- DLL sa referencujú z lokálnej inštalácie AutoCADu. Do balíka sa nekopírujú. -->
+  <ItemGroup>
+    <Reference Include="AcCoreMgd">
+      <HintPath>$(AutoCadInstallDir)\AcCoreMgd.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="AcDbMgd">
+      <HintPath>$(AutoCadInstallDir)\AcDbMgd.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="AcMgd">
+      <HintPath>$(AutoCadInstallDir)\AcMgd.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <!-- AdWindows.dll obsahuje Autodesk.Windows.ComponentManager a Ribbon UI API. -->
+    <Reference Include="AdWindows">
+      <HintPath>$(AutoCadInstallDir)\AdWindows.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <!-- Ikony sú vedľa DLL aj po NETLOAD. -->
+  <ItemGroup>
+    <Content Include="Resources\Icons\*.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <Target Name="ValidateAutoCadReferences" BeforeTargets="ResolveReferences">
+    <Error Condition="!Exists('$(AutoCadInstallDir)\AcMgd.dll')"
+           Text="AutoCAD .NET DLL sa nenašli. Nastav AutoCadInstallDir v AcKrovy.AutoCAD.csproj na priečinok svojej inštalácie AutoCADu." />
+    <Error Condition="!Exists('$(AutoCadInstallDir)\AdWindows.dll')"
+           Text="AdWindows.dll sa nenašla. Over AutoCadInstallDir v AcKrovy.AutoCAD.csproj." />
+  </Target>
+</Project>

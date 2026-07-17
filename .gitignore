@@ -1,0 +1,13 @@
+.vs/
+**/bin/
+**/obj/
+TestResults/
+artifacts/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.cache
+*.dll
+*.pdb
+*.zip

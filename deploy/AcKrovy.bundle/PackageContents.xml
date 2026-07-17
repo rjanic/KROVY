@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ApplicationPackage SchemaVersion="1.0"
+                    Name="ACAD KROVY"
+                    Description="2D výkaz krovu, dĺžky a kubatúry"
+                    AppVersion="0.1.0"
+                    ProductCode="ACADKROVY">
+  <CompanyDetails Name="decorair" Url="https://soft.decorair.com" />
+  <Components Description="ACAD KROVY plug-in">
+    <RuntimeRequirements OS="Win64" Platform="AutoCAD*" SeriesMin="R25.0" SeriesMax="R25.1" />
+    <ComponentEntry AppName="ACADKROVY"
+                    ModuleName="./Contents/Windows/AcKrovy.AutoCAD.dll"
+                    AppType="ManagedPlugin"
+                    LoadOnAutoCADStartup="True" />
+  </Components>
+</ApplicationPackage>
