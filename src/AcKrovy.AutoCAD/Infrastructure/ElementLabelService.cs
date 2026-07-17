@@ -75,7 +75,13 @@ internal static class ElementLabelService
     public static ElementLabelUpdateResult UpdateAll(Database database, Editor editor)
     {
         using var transaction = database.TransactionManager.StartTransaction();
-        var result = Update(database, transaction, editor, DrawingScanner.FindAllTimberElements(database, transaction));
+        var metadataStore = new AutoCadTimberElementMetadataStore(transaction);
+        var result = Update(
+            database,
+            transaction,
+            editor,
+            DrawingScanner.FindAllTimberElements(database, transaction, metadataStore),
+            metadataStore);
         transaction.Commit();
         return result;
     }
@@ -86,7 +92,8 @@ internal static class ElementLabelService
         IReadOnlyList<ObjectId> ids)
     {
         using var transaction = database.TransactionManager.StartTransaction();
-        var result = Update(database, transaction, editor, ids);
+        var metadataStore = new AutoCadTimberElementMetadataStore(transaction);
+        var result = Update(database, transaction, editor, ids, metadataStore);
         transaction.Commit();
         return result;
     }
@@ -108,7 +115,8 @@ internal static class ElementLabelService
         Database database,
         Transaction transaction,
         Editor editor,
-        IReadOnlyList<ObjectId> ids)
+        IReadOnlyList<ObjectId> ids,
+        AutoCadTimberElementMetadataStore metadataStore)
     {
         var created = 0;
         var updated = 0;
@@ -120,7 +128,7 @@ internal static class ElementLabelService
             {
                 if (transaction.GetObject(id, OpenMode.ForRead) is not Entity entity ||
                     !AutoCadEntityHelpers.IsSupportedTimberGeometry(entity) ||
-                    !ElementDataStore.TryRead(entity, transaction, out var data) ||
+                    !metadataStore.TryRead(entity, out var data) ||
                     data is null)
                 {
                     skipped++;

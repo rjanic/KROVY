@@ -189,10 +189,11 @@ public sealed class AcKrovyCommands
         }
 
         using var readTransaction = document.Database.TransactionManager.StartTransaction();
+        var readMetadataStore = new AutoCadTimberElementMetadataStore(readTransaction);
         var firstData = ids
             .Select(id => readTransaction.GetObject(id, OpenMode.ForRead) as Entity)
             .Where(entity => entity is not null)
-            .Select(entity => ElementDataStore.TryRead(entity!, readTransaction, out var data) ? data : null)
+            .Select(entity => readMetadataStore.TryRead(entity!, out var data) ? data : null)
             .FirstOrDefault(data => data is not null);
         readTransaction.Commit();
 
@@ -210,6 +211,7 @@ public sealed class AcKrovyCommands
 
         var layerProfile = ElementLayerProfileStore.Load();
         using var transaction = document.Database.TransactionManager.StartTransaction();
+        var metadataStore = new AutoCadTimberElementMetadataStore(transaction);
         var changed = 0;
         var skipped = 0;
 
@@ -217,7 +219,7 @@ public sealed class AcKrovyCommands
         {
             if (transaction.GetObject(id, OpenMode.ForWrite) is not Entity entity ||
                 !AutoCadEntityHelpers.IsSupportedTimberGeometry(entity) ||
-                !ElementDataStore.TryRead(entity, transaction, out var original) ||
+                !metadataStore.TryRead(entity, out var original) ||
                 original is null)
             {
                 skipped++;
@@ -225,7 +227,7 @@ public sealed class AcKrovyCommands
             }
 
             var merged = TimberElementPatcher.Apply(original, dialog.Patch);
-            ElementDataStore.Write(entity, transaction, merged);
+            metadataStore.Write(entity, merged);
             TimberLayerService.ApplyToEntity(document.Database, transaction, entity, merged.ElementType, layerProfile);
             ElementLabelService.UpsertForElement(document.Database, transaction, entity, merged);
             changed++;
@@ -247,8 +249,9 @@ public sealed class AcKrovyCommands
         }
 
         using var transaction = document.Database.TransactionManager.StartTransaction();
+        var metadataStore = new AutoCadTimberElementMetadataStore(transaction);
         if (transaction.GetObject(result.ObjectId, OpenMode.ForRead) is not Entity entity ||
-            !AutoCadEntityReader.TryReadTimberElement(entity, transaction, out var snapshot) ||
+            !AutoCadEntityReader.TryReadTimberElement(entity, metadataStore, out var snapshot) ||
             snapshot is null)
         {
             editor.WriteMessage("\nTento objekt nemá údaje ACAD KROVY.");
@@ -280,7 +283,8 @@ public sealed class AcKrovyCommands
     {
         var document = ActiveDocument();
         using var transaction = document.Database.TransactionManager.StartTransaction();
-        var ids = DrawingScanner.FindAllTimberElements(document.Database, transaction);
+        var metadataStore = new AutoCadTimberElementMetadataStore(transaction);
+        var ids = DrawingScanner.FindAllTimberElements(document.Database, transaction, metadataStore);
         transaction.Commit();
         InsertReport(document, ids);
     }
@@ -291,13 +295,14 @@ public sealed class AcKrovyCommands
         var document = ActiveDocument();
         var editor = document.Editor;
         using var transaction = document.Database.TransactionManager.StartTransaction();
+        var metadataStore = new AutoCadTimberElementMetadataStore(transaction);
         var checkedCount = 0;
         var errors = 0;
 
-        foreach (var id in DrawingScanner.FindAllTimberElements(document.Database, transaction))
+        foreach (var id in DrawingScanner.FindAllTimberElements(document.Database, transaction, metadataStore))
         {
             if (transaction.GetObject(id, OpenMode.ForRead) is not Entity entity ||
-                !AutoCadEntityReader.TryReadTimberElement(entity, transaction, out var snapshot) ||
+                !AutoCadEntityReader.TryReadTimberElement(entity, metadataStore, out var snapshot) ||
                 snapshot is null)
             {
                 continue;
@@ -347,6 +352,7 @@ public sealed class AcKrovyCommands
 
         var layerProfile = ElementLayerProfileStore.Load();
         using var transaction = document.Database.TransactionManager.StartTransaction();
+        var metadataStore = new AutoCadTimberElementMetadataStore(transaction);
         var assigned = 0;
         var skipped = 0;
         var nextNumberByType = new Dictionary<TimberElementType, int>();
@@ -359,7 +365,7 @@ public sealed class AcKrovyCommands
                 continue;
             }
 
-            var original = ElementDataStore.TryRead(entity, transaction, out var existing) && existing is not null
+            var original = metadataStore.TryRead(entity, out var existing) && existing is not null
                 ? existing
                 : new TimberElementData();
 
@@ -375,7 +381,7 @@ public sealed class AcKrovyCommands
                 nextNumberByType[merged.ElementType] = number + 1;
             }
 
-            ElementDataStore.Write(entity, transaction, merged);
+            metadataStore.Write(entity, merged);
             TimberLayerService.ApplyToEntity(document.Database, transaction, entity, merged.ElementType, layerProfile);
             ElementLabelService.UpsertForElement(document.Database, transaction, entity, merged);
             assigned++;
@@ -389,16 +395,17 @@ public sealed class AcKrovyCommands
     {
         var editor = document.Editor;
         using var transaction = document.Database.TransactionManager.StartTransaction();
+        var metadataStore = new AutoCadTimberElementMetadataStore(transaction);
         var updated = 0;
         var skipped = 0;
 
-        foreach (var id in DrawingScanner.FindAllTimberElements(document.Database, transaction))
+        foreach (var id in DrawingScanner.FindAllTimberElements(document.Database, transaction, metadataStore))
         {
             try
             {
                 if (transaction.GetObject(id, OpenMode.ForWrite) is not Entity entity ||
                     !AutoCadEntityHelpers.IsSupportedTimberGeometry(entity) ||
-                    !ElementDataStore.TryRead(entity, transaction, out var data) ||
+                    !metadataStore.TryRead(entity, out var data) ||
                     data is null)
                 {
                     skipped++;
@@ -443,13 +450,14 @@ public sealed class AcKrovyCommands
         }
 
         using var transaction = document.Database.TransactionManager.StartTransaction();
+        var metadataStore = new AutoCadTimberElementMetadataStore(transaction);
         var measurements = new List<TimberElementMeasurement>();
         var skipped = 0;
 
         foreach (var id in ids)
         {
             if (transaction.GetObject(id, OpenMode.ForRead) is not Entity entity ||
-                !AutoCadEntityReader.TryReadTimberElement(entity, transaction, out var snapshot) ||
+                !AutoCadEntityReader.TryReadTimberElement(entity, metadataStore, out var snapshot) ||
                 snapshot is null)
             {
                 skipped++;
