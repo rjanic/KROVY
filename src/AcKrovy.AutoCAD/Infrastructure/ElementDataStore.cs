@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using AcKrovy.Core.Models;
+using AcKrovy.Core.Services;
 using Autodesk.AutoCAD.DatabaseServices;
 
 namespace AcKrovy.AutoCAD.Infrastructure;
@@ -58,7 +59,8 @@ internal static class ElementDataStore
 
         EnsureRegAppRegistered(entity.Database, transaction);
 
-        var json = JsonSerializer.Serialize(data, JsonOptions);
+        var normalizedData = TimberElementDataVersioning.Normalize(data);
+        var json = JsonSerializer.Serialize(normalizedData, JsonOptions);
         var jsonByteCount = Encoding.UTF8.GetByteCount(json);
         if (jsonByteCount > MaxPortableJsonBytes)
         {
@@ -211,7 +213,13 @@ internal static class ElementDataStore
         try
         {
             data = JsonSerializer.Deserialize<TimberElementData>(json, JsonOptions);
-            return data is not null;
+            if (data is null)
+            {
+                return false;
+            }
+
+            data = TimberElementDataVersioning.Normalize(data);
+            return true;
         }
         catch (JsonException)
         {
