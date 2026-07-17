@@ -6,7 +6,7 @@ namespace AcKrovy.Core.Models;
 /// </summary>
 public sealed record TimberElementData
 {
-    public int SchemaVersion { get; init; } = 1;
+    public int SchemaVersion { get; init; } = TimberElementDataSchema.CurrentVersion;
     public string ElementId { get; init; } = string.Empty;
     public TimberElementType ElementType { get; init; } = TimberElementType.Rafter;
     public double WidthMm { get; init; } = 80;
