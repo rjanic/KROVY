@@ -1,16 +1,15 @@
 using AcKrovy.Core.Models;
 
-namespace AcKrovy.AutoCAD.Settings;
+namespace AcKrovy.Cad.Abstractions.Layers;
 
 /// <summary>
 /// Používateľské pravidlá, ktoré určujú, na akú hladinu a farbu sa zaradí
-/// inteligentný prvok ACAD KROVY. Nastavenia sa ukladajú lokálne pre Windows
-/// účet; samotná hladina a jej farba sa vytvárajú/prenášajú priamo do DWG.
+/// inteligentný prvok ACAD KROVY.
 /// </summary>
-internal sealed class ElementLayerProfile
+public sealed class ElementLayerProfile
 {
     public int Version { get; set; } = 1;
-    public List<ElementLayerStyle> Styles { get; set; } = [];
+    public List<ElementLayerStyle> Styles { get; set; } = new();
 
     public ElementLayerStyle GetStyle(TimberElementType type)
     {
@@ -30,18 +29,20 @@ internal sealed class ElementLayerProfile
         {
             Version = Version <= 0 ? 1 : Version,
             Styles = Enum
-                .GetValues<TimberElementType>()
+                .GetValues(typeof(TimberElementType))
+                .Cast<TimberElementType>()
                 .Select(type =>
                 {
                     var fallback = defaults.GetStyle(type);
                     var stored = Styles.FirstOrDefault(style => style.ElementType == type);
+                    var layerName = stored?.LayerName;
 
                     return new ElementLayerStyle
                     {
                         ElementType = type,
-                        LayerName = string.IsNullOrWhiteSpace(stored?.LayerName)
+                        LayerName = string.IsNullOrWhiteSpace(layerName)
                             ? fallback.LayerName
-                            : stored.LayerName.Trim(),
+                            : layerName!.Trim(),
                         ColorIndex = stored is { ColorIndex: >= 1 and <= 255 }
                             ? stored.ColorIndex
                             : fallback.ColorIndex,
@@ -53,20 +54,20 @@ internal sealed class ElementLayerProfile
 
     public static ElementLayerProfile CreateDefault() => new()
     {
-        Styles =
-        [
-            new ElementLayerStyle(TimberElementType.Rafter, "KROKVA", 2),
-            new ElementLayerStyle(TimberElementType.WallPlate, "POMURNICA", 30),
-            new ElementLayerStyle(TimberElementType.Purlin, "VAZNICA", 4),
-            new ElementLayerStyle(TimberElementType.Post, "STLPIK", 3),
-            new ElementLayerStyle(TimberElementType.CollarTie, "KLIESTINA", 5),
-            new ElementLayerStyle(TimberElementType.Brace, "VZPERA", 1),
-            new ElementLayerStyle(TimberElementType.TieBeam, "VAZNY_TRAM", 6),
-        ],
+        Styles = new List<ElementLayerStyle>
+        {
+            new(TimberElementType.Rafter, "KROKVA", 2),
+            new(TimberElementType.WallPlate, "POMURNICA", 30),
+            new(TimberElementType.Purlin, "VAZNICA", 4),
+            new(TimberElementType.Post, "STLPIK", 3),
+            new(TimberElementType.CollarTie, "KLIESTINA", 5),
+            new(TimberElementType.Brace, "VZPERA", 1),
+            new(TimberElementType.TieBeam, "VAZNY_TRAM", 6),
+        },
     };
 }
 
-internal sealed class ElementLayerStyle
+public sealed class ElementLayerStyle
 {
     public ElementLayerStyle()
     {

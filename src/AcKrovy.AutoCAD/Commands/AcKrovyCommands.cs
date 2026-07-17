@@ -3,6 +3,7 @@ using AcKrovy.AutoCAD.Ribbon;
 using AcKrovy.AutoCAD.ClassicToolbar;
 using AcKrovy.AutoCAD.Settings;
 using AcKrovy.AutoCAD.UI;
+using AcKrovy.Cad.Abstractions.Layers;
 using AcKrovy.Core.Models;
 using AcKrovy.Core.Services;
 using Autodesk.AutoCAD.ApplicationServices;
@@ -212,6 +213,7 @@ public sealed class AcKrovyCommands
         var layerProfile = ElementLayerProfileStore.Load();
         using var transaction = document.Database.TransactionManager.StartTransaction();
         var metadataStore = new AutoCadTimberElementMetadataStore(transaction);
+        var layerService = new AutoCadTimberLayerService(document.Database, transaction);
         var changed = 0;
         var skipped = 0;
 
@@ -228,7 +230,7 @@ public sealed class AcKrovyCommands
 
             var merged = TimberElementPatcher.Apply(original, dialog.Patch);
             metadataStore.Write(entity, merged);
-            TimberLayerService.ApplyToEntity(document.Database, transaction, entity, merged.ElementType, layerProfile);
+            layerService.ApplyLayerForTimberType(entity, merged.ElementType, layerProfile);
             ElementLabelService.UpsertForElement(document.Database, transaction, entity, merged);
             changed++;
         }
@@ -353,6 +355,7 @@ public sealed class AcKrovyCommands
         var layerProfile = ElementLayerProfileStore.Load();
         using var transaction = document.Database.TransactionManager.StartTransaction();
         var metadataStore = new AutoCadTimberElementMetadataStore(transaction);
+        var layerService = new AutoCadTimberLayerService(document.Database, transaction);
         var assigned = 0;
         var skipped = 0;
         var nextNumberByType = new Dictionary<TimberElementType, int>();
@@ -382,7 +385,7 @@ public sealed class AcKrovyCommands
             }
 
             metadataStore.Write(entity, merged);
-            TimberLayerService.ApplyToEntity(document.Database, transaction, entity, merged.ElementType, layerProfile);
+            layerService.ApplyLayerForTimberType(entity, merged.ElementType, layerProfile);
             ElementLabelService.UpsertForElement(document.Database, transaction, entity, merged);
             assigned++;
         }
@@ -396,6 +399,7 @@ public sealed class AcKrovyCommands
         var editor = document.Editor;
         using var transaction = document.Database.TransactionManager.StartTransaction();
         var metadataStore = new AutoCadTimberElementMetadataStore(transaction);
+        var layerService = new AutoCadTimberLayerService(document.Database, transaction);
         var updated = 0;
         var skipped = 0;
 
@@ -412,7 +416,7 @@ public sealed class AcKrovyCommands
                     continue;
                 }
 
-                TimberLayerService.ApplyToEntity(document.Database, transaction, entity, data.ElementType, profile);
+                layerService.ApplyLayerForTimberType(entity, data.ElementType, profile);
                 updated++;
             }
             catch (System.Exception ex)

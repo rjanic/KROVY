@@ -17,6 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\AcKrovy.Cad.Abstractions\AcKrovy.Cad.Abstractions.csproj" />
     <ProjectReference Include="..\AcKrovy.Core\AcKrovy.Core.csproj" />
   </ItemGroup>
 </Project>
