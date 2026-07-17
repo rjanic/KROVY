@@ -12,11 +12,12 @@ internal static class ElementNumberingService
         var prefix = TimberElementLabels.Prefix(type);
         var pattern = new Regex($"^{Regex.Escape(prefix)}(?<number>\\d+)$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
         var highest = 0;
+        var metadataStore = new AutoCadTimberElementMetadataStore(transaction);
 
-        foreach (var id in DrawingScanner.FindAllTimberElements(database, transaction))
+        foreach (var id in DrawingScanner.FindAllTimberElements(database, transaction, metadataStore))
         {
             if (transaction.GetObject(id, OpenMode.ForRead) is not Entity entity ||
-                !ElementDataStore.TryRead(entity, transaction, out var existing) ||
+                !metadataStore.TryRead(entity, out var existing) ||
                 existing is null || existing.ElementType != type)
             {
                 continue;

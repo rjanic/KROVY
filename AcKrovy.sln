@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AcKrovy.AutoCAD", "src\AcKr
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AcKrovy.Core.Tests", "src\AcKrovy.Core.Tests\AcKrovy.Core.Tests.csproj", "{28C1960D-D49D-4ADF-9C88-59E8ABD3A266}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AcKrovy.Cad.Abstractions", "src\AcKrovy.Cad.Abstractions\AcKrovy.Cad.Abstractions.csproj", "{A0A76443-7745-4C40-A764-191928734BB0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -27,6 +29,10 @@ Global
 		{28C1960D-D49D-4ADF-9C88-59E8ABD3A266}.Debug|x64.Build.0 = Debug|Any CPU
 		{28C1960D-D49D-4ADF-9C88-59E8ABD3A266}.Release|x64.ActiveCfg = Release|Any CPU
 		{28C1960D-D49D-4ADF-9C88-59E8ABD3A266}.Release|x64.Build.0 = Release|Any CPU
+		{A0A76443-7745-4C40-A764-191928734BB0}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{A0A76443-7745-4C40-A764-191928734BB0}.Debug|x64.Build.0 = Debug|Any CPU
+		{A0A76443-7745-4C40-A764-191928734BB0}.Release|x64.ActiveCfg = Release|Any CPU
+		{A0A76443-7745-4C40-A764-191928734BB0}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

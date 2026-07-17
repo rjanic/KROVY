@@ -1,3 +1,4 @@
+using AcKrovy.Cad.Abstractions.Metadata;
 using AcKrovy.Core.Models;
 using Autodesk.AutoCAD.DatabaseServices;
 
@@ -5,7 +6,10 @@ namespace AcKrovy.AutoCAD.Infrastructure;
 
 internal static class DrawingScanner
 {
-    public static IReadOnlyList<ObjectId> FindAllTimberElements(Database database, Transaction transaction)
+    public static IReadOnlyList<ObjectId> FindAllTimberElements(
+        Database database,
+        Transaction transaction,
+        ITimberElementMetadataStore<Entity> metadataStore)
     {
         var result = new List<ObjectId>();
         var blockTable = (BlockTable)transaction.GetObject(database.BlockTableId, OpenMode.ForRead);
@@ -23,7 +27,7 @@ internal static class DrawingScanner
                 continue;
             }
 
-            if (ElementDataStore.TryRead(entity, transaction, out TimberElementData? _))
+            if (metadataStore.TryRead(entity, out TimberElementData? _))
             {
                 result.Add(id);
             }

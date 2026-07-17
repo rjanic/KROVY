@@ -1,3 +1,4 @@
+using AcKrovy.Cad.Abstractions.Metadata;
 using AcKrovy.Core.Models;
 using Autodesk.AutoCAD.DatabaseServices;
 
@@ -7,7 +8,7 @@ internal static class AutoCadEntityReader
 {
     public static bool TryReadTimberElement(
         Entity entity,
-        Transaction transaction,
+        ITimberElementMetadataStore<Entity> metadataStore,
         out TimberElementSnapshot? snapshot)
     {
         snapshot = null;
@@ -17,7 +18,7 @@ internal static class AutoCadEntityReader
             return false;
         }
 
-        if (!ElementDataStore.TryRead(entity, transaction, out var data) || data is null)
+        if (!metadataStore.TryRead(entity, out var data) || data is null)
         {
             return false;
         }
