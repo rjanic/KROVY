@@ -112,9 +112,55 @@ public sealed class TimberElementItemNumberingTests
         Assert.Equal(new[] { "W5", "W5", "W8" }, result.Select(x => x.ElementId));
     }
 
+    [Fact]
+    public void AssignElementIds_SameRoundedCuttingLengthSharesItemIdentity()
+    {
+        var first = CalculatedMeasurement("K1", TimberElementType.Rafter, 11021, 0);
+        var second = CalculatedMeasurement("K1", TimberElementType.Rafter, 11085, 0);
+
+        var result = Assign(first, second);
+
+        Assert.Equal(11100, first.CuttingLengthMm);
+        Assert.Equal(11100, second.CuttingLengthMm);
+        Assert.Equal(new[] { "K1", "K1" }, result.Select(x => x.ElementId));
+    }
+
+    [Fact]
+    public void AssignElementIds_DifferentRoundedCuttingLengthCreatesDifferentItemIdentity()
+    {
+        var first = CalculatedMeasurement("K1", TimberElementType.Rafter, 11100, 0);
+        var second = CalculatedMeasurement("K1", TimberElementType.Rafter, 11101, 0);
+
+        var result = Assign(first, second);
+
+        Assert.Equal(11100, first.CuttingLengthMm);
+        Assert.Equal(11200, second.CuttingLengthMm);
+        Assert.Equal(new[] { "K1", "K2" }, result.Select(x => x.ElementId));
+    }
+
     private static IReadOnlyList<TimberElementItemAssignment> Assign(
         params TimberElementMeasurement[] measurements) =>
         TimberElementItemNumbering.AssignElementIds(measurements);
+
+    private static TimberElementMeasurement CalculatedMeasurement(
+        string elementId,
+        TimberElementType type,
+        double planLengthMm,
+        double cuttingAllowanceMm)
+    {
+        var data = new TimberElementData
+        {
+            ElementId = elementId,
+            ElementType = type,
+            WidthMm = 80,
+            HeightMm = 160,
+            Material = "Smrek C24",
+            CuttingAllowanceMm = cuttingAllowanceMm,
+            LengthCalculationMode = LengthCalculationMode.PlanLength,
+        };
+
+        return TimberCalculator.Measure(data, planLengthMm);
+    }
 
     private static TimberElementMeasurement Measurement(
         string elementId,

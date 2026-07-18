@@ -66,6 +66,75 @@ public sealed class TimberCalculatorTests
         Assert.Equal(1060, measurement.CuttingLengthMm);
     }
 
+    [Theory]
+    [InlineData(4800, 4800)]
+    [InlineData(4801, 4900)]
+    [InlineData(4899, 4900)]
+    [InlineData(4900, 4900)]
+    [InlineData(4901, 5000)]
+    public void Measure_RoundsCuttingLengthUpToHundredMillimeters(double planLengthMm, double expectedCuttingLengthMm)
+    {
+        var data = new TimberElementData
+        {
+            LengthCalculationMode = LengthCalculationMode.PlanLength,
+            WidthMm = 100,
+            HeightMm = 100,
+            CuttingAllowanceMm = 0,
+        };
+
+        var measurement = TimberCalculator.Measure(data, planLengthMm);
+
+        Assert.Equal(expectedCuttingLengthMm, measurement.CuttingLengthMm);
+    }
+
+    [Fact]
+    public void Measure_AddsCuttingAllowanceBeforeHundredMillimeterRounding()
+    {
+        var data = new TimberElementData
+        {
+            LengthCalculationMode = LengthCalculationMode.PlanLength,
+            WidthMm = 100,
+            HeightMm = 100,
+            CuttingAllowanceMm = 85,
+        };
+
+        var measurement = TimberCalculator.Measure(data, planLengthMm: 11000);
+
+        Assert.Equal(11100, measurement.CuttingLengthMm);
+    }
+
+    [Fact]
+    public void Measure_AllowsZeroCuttingAllowance()
+    {
+        var data = new TimberElementData
+        {
+            LengthCalculationMode = LengthCalculationMode.PlanLength,
+            WidthMm = 100,
+            HeightMm = 100,
+            CuttingAllowanceMm = 0,
+        };
+
+        var measurement = TimberCalculator.Measure(data, planLengthMm: 11001);
+
+        Assert.Equal(11100, measurement.CuttingLengthMm);
+    }
+
+    [Fact]
+    public void Measure_TreatsNegativeCuttingAllowanceAsZero()
+    {
+        var data = new TimberElementData
+        {
+            LengthCalculationMode = LengthCalculationMode.PlanLength,
+            WidthMm = 100,
+            HeightMm = 100,
+            CuttingAllowanceMm = -500,
+        };
+
+        var measurement = TimberCalculator.Measure(data, planLengthMm: 11001);
+
+        Assert.Equal(11100, measurement.CuttingLengthMm);
+    }
+
     [Fact]
     public void CalculateActualLength_UsesManualLengthWhenPositive()
     {

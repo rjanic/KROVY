@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using WpfMessageBox = System.Windows.MessageBox;
@@ -16,47 +17,70 @@ namespace AcKrovy.AutoCAD.UI;
 
 public partial class LayerSettingsWindow : Window
 {
+    private static readonly CultureInfo SlovakCulture = CultureInfo.GetCultureInfo("sk-SK");
+
     public ObservableCollection<LayerSettingsRow> Rows { get; } = [];
+    public ObservableCollection<ElementDefaultSettingsRow> DefaultRows { get; } = [];
     public IReadOnlyList<LayerColorOption> ColorOptions { get; } = LayerColorOption.CreateDefaults();
 
     internal ElementLayerProfile? Profile { get; private set; }
+    internal TimberElementDefaultProfile? DefaultProfile { get; private set; }
     internal bool ApplyToExistingElements { get; private set; }
+    internal CuttingAllowanceApplyMode CuttingAllowanceApplyMode { get; private set; }
 
-    internal LayerSettingsWindow(ElementLayerProfile profile)
+    internal LayerSettingsWindow(ElementLayerProfile profile, TimberElementDefaultProfile defaultProfile)
     {
         InitializeComponent();
         DataContext = this;
         ReplaceRows(profile.Normalize());
+        ReplaceDefaultRows(defaultProfile.Normalize());
         StylesDataGrid.ItemsSource = Rows;
+        DefaultsDataGrid.ItemsSource = DefaultRows;
     }
 
     private void RestoreDefaults_Click(object sender, RoutedEventArgs e)
     {
         ReplaceRows(ElementLayerProfile.CreateDefault());
+        ReplaceDefaultRows(TimberElementDefaultProfile.CreateDefault());
     }
 
     private void Save_Click(object sender, RoutedEventArgs e)
     {
-        Save(applyToExistingElements: false);
+        Save(applyToExistingElements: false, CuttingAllowanceApplyMode.NewElementsOnly);
     }
 
     private void SaveAndApply_Click(object sender, RoutedEventArgs e)
     {
-        Save(applyToExistingElements: true);
+        Save(applyToExistingElements: true, CuttingAllowanceApplyMode.AllElements);
     }
 
-    private void Save(bool applyToExistingElements)
+    private void SaveAndApplySelected_Click(object sender, RoutedEventArgs e)
+    {
+        Save(applyToExistingElements: true, CuttingAllowanceApplyMode.SelectedElements);
+    }
+
+    private void SaveNewElementsOnly_Click(object sender, RoutedEventArgs e)
+    {
+        Save(applyToExistingElements: false, CuttingAllowanceApplyMode.NewElementsOnly);
+    }
+
+    private void Save(bool applyToExistingElements, CuttingAllowanceApplyMode cuttingAllowanceApplyMode)
     {
         StylesDataGrid.CommitEdit();
         StylesDataGrid.CommitEdit();
+        DefaultsDataGrid.CommitEdit();
+        DefaultsDataGrid.CommitEdit();
 
-        if (!TryBuildProfile(out var profile))
+        if (!TryBuildProfile(out var profile) ||
+            !TryBuildDefaultProfile(out var defaultProfile))
         {
             return;
         }
 
         Profile = profile;
+        DefaultProfile = defaultProfile;
         ApplyToExistingElements = applyToExistingElements;
+        CuttingAllowanceApplyMode = cuttingAllowanceApplyMode;
         DialogResult = true;
     }
 
@@ -99,6 +123,33 @@ public partial class LayerSettingsWindow : Window
         return true;
     }
 
+    private bool TryBuildDefaultProfile(out TimberElementDefaultProfile profile)
+    {
+        var styles = new List<TimberElementDefaultStyle>();
+
+        foreach (var row in DefaultRows)
+        {
+            if (!TryReadNonNegativeNumber(row.CuttingAllowanceMmText, out var cuttingAllowanceMm))
+            {
+                WpfMessageBox.Show(
+                    $"{row.ElementLabel}: prídavok na rez musí byť nezáporné číslo v milimetroch.",
+                    "ACAD KROVY",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                profile = TimberElementDefaultProfile.CreateDefault();
+                return false;
+            }
+
+            styles.Add(new TimberElementDefaultStyle(row.ElementType, cuttingAllowanceMm));
+        }
+
+        profile = new TimberElementDefaultProfile
+        {
+            Styles = styles,
+        }.Normalize();
+        return true;
+    }
+
     private void ReplaceRows(ElementLayerProfile profile)
     {
         Rows.Clear();
@@ -111,7 +162,41 @@ public partial class LayerSettingsWindow : Window
         }
     }
 
+    private void ReplaceDefaultRows(TimberElementDefaultProfile profile)
+    {
+        DefaultRows.Clear();
+        foreach (var type in Enum.GetValues<TimberElementType>())
+        {
+            DefaultRows.Add(new ElementDefaultSettingsRow(
+                type,
+                TimberElementLabels.ToSlovak(type),
+                Format(profile.GetCuttingAllowanceMm(type))));
+        }
+    }
+
+    private static bool TryReadNonNegativeNumber(string raw, out double value)
+    {
+        if (double.TryParse(raw, NumberStyles.Float, SlovakCulture, out value) ||
+            double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out value))
+        {
+            return !double.IsNaN(value) && !double.IsInfinity(value) && value >= 0;
+        }
+
+        value = 0;
+        return false;
+    }
+
+    private static string Format(double value) =>
+        value.ToString("0.###", SlovakCulture);
+
     private void Cancel_Click(object sender, RoutedEventArgs e) => DialogResult = false;
+}
+
+internal enum CuttingAllowanceApplyMode
+{
+    NewElementsOnly,
+    SelectedElements,
+    AllElements,
 }
 
 public sealed class LayerSettingsRow : INotifyPropertyChanged
@@ -156,6 +241,41 @@ public sealed class LayerSettingsRow : INotifyPropertyChanged
             }
 
             _selectedColor = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+}
+
+public sealed class ElementDefaultSettingsRow : INotifyPropertyChanged
+{
+    private string _cuttingAllowanceMmText;
+
+    public ElementDefaultSettingsRow(TimberElementType elementType, string elementLabel, string cuttingAllowanceMmText)
+    {
+        ElementType = elementType;
+        ElementLabel = elementLabel;
+        _cuttingAllowanceMmText = cuttingAllowanceMmText;
+    }
+
+    public TimberElementType ElementType { get; }
+    public string ElementLabel { get; }
+
+    public string CuttingAllowanceMmText
+    {
+        get => _cuttingAllowanceMmText;
+        set
+        {
+            if (_cuttingAllowanceMmText == value)
+            {
+                return;
+            }
+
+            _cuttingAllowanceMmText = value;
             OnPropertyChanged();
         }
     }

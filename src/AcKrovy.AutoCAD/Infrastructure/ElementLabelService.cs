@@ -3,6 +3,7 @@ using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Geometry;
 using AcColor = Autodesk.AutoCAD.Colors.Color;
+using AcKrovy.AutoCAD.Settings;
 using AcKrovy.Core.Models;
 using AcKrovy.Core.Services;
 
@@ -118,6 +119,20 @@ internal static class ElementLabelService
         return true;
     }
 
+    internal static IReadOnlyList<TimberElementLabelCandidate> ReadLabelCandidates(
+        Database database,
+        Transaction transaction)
+    {
+        return ReadLabels(database, transaction)
+            .Select(label => new TimberElementLabelCandidate
+            {
+                LabelKey = label.Id.ToString(),
+                ElementId = label.Data.ElementId,
+                SourceHandle = label.Data.SourceHandle,
+            })
+            .ToList();
+    }
+
     private static ElementLabelUpdateResult Update(
         Database database,
         Transaction transaction,
@@ -129,6 +144,12 @@ internal static class ElementLabelService
         var updated = 0;
         var skipped = 0;
         var distinctIds = ids.Distinct().ToList();
+        TimberElementCopyInitializationService.InitializeLocalCopies(
+            database,
+            transaction,
+            metadataStore,
+            distinctIds,
+            TimberElementDefaultProfileStore.Load());
         var previousElementIdById = ReadElementIds(transaction, metadataStore, distinctIds);
         var synchronizedDataById = TimberElementItemIdentityService.SynchronizeElementIds(
             database,
@@ -197,23 +218,7 @@ internal static class ElementLabelService
         out IReadOnlyList<ObjectId> obsoleteLabelIds)
     {
         obsoleteLabelIds = Array.Empty<ObjectId>();
-        var labels = new List<(ObjectId Id, ElementLabelData Data)>();
-        var blockTable = (BlockTable)transaction.GetObject(database.BlockTableId, OpenMode.ForRead);
-        var modelSpace = (BlockTableRecord)transaction.GetObject(
-            blockTable[BlockTableRecord.ModelSpace],
-            OpenMode.ForRead);
-
-        foreach (ObjectId id in modelSpace)
-        {
-            if (transaction.GetObject(id, OpenMode.ForRead) is not MText text ||
-                !ElementLabelStore.TryRead(text, out var data) ||
-                data is null)
-            {
-                continue;
-            }
-
-            labels.Add((id, data));
-        }
+        var labels = ReadLabels(database, transaction);
 
         var labelKeys = labels.ToDictionary(label => label.Id.ToString(), label => label.Id);
         var selection = TimberElementLabelMatchRules.SelectLabelForUpsert(
@@ -239,6 +244,31 @@ internal static class ElementLabelService
         return selection.LabelKeyToUpdate is not null && labelKeys.TryGetValue(selection.LabelKeyToUpdate, out var labelId)
             ? labelId
             : ObjectId.Null;
+    }
+
+    private static IReadOnlyList<(ObjectId Id, ElementLabelData Data)> ReadLabels(
+        Database database,
+        Transaction transaction)
+    {
+        var labels = new List<(ObjectId Id, ElementLabelData Data)>();
+        var blockTable = (BlockTable)transaction.GetObject(database.BlockTableId, OpenMode.ForRead);
+        var modelSpace = (BlockTableRecord)transaction.GetObject(
+            blockTable[BlockTableRecord.ModelSpace],
+            OpenMode.ForRead);
+
+        foreach (ObjectId id in modelSpace)
+        {
+            if (transaction.GetObject(id, OpenMode.ForRead) is not MText text ||
+                !ElementLabelStore.TryRead(text, out var data) ||
+                data is null)
+            {
+                continue;
+            }
+
+            labels.Add((id, data));
+        }
+
+        return labels;
     }
 
     private static void DeleteObsoleteLabels(

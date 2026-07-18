@@ -9,13 +9,14 @@ namespace AcKrovy.Core.Services;
 /// </summary>
 public static class TimberElementDefaults
 {
-    public static TimberElementData For(TimberElementType type)
+    public static TimberElementData For(TimberElementType type, TimberElementDefaultProfile? profile = null)
     {
+        var defaults = (profile ?? TimberElementDefaultProfile.CreateDefault()).Normalize();
         var common = new TimberElementData
         {
             ElementType = type,
             RoofPlaneId = "R1",
-            CuttingAllowanceMm = 100,
+            CuttingAllowanceMm = defaults.GetCuttingAllowanceMm(type),
             Material = "Smrek C24",
             LengthCalculationMode = LengthCalculationMode.AutoByElementType,
         };

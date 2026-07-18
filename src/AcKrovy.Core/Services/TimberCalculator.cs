@@ -5,7 +5,12 @@ namespace AcKrovy.Core.Services;
 /// <summary>Výpočty dĺžok a objemov. Nezávislé od AutoCADu, preto sa dajú testovať samostatne.</summary>
 public static class TimberCalculator
 {
-    public static TimberElementMeasurement Measure(TimberElementData data, double planLengthMm, double roundingIncrementMm = 10)
+    public const double CuttingLengthRoundingIncrementMm = 100d;
+
+    public static TimberElementMeasurement Measure(
+        TimberElementData data,
+        double planLengthMm,
+        double roundingIncrementMm = CuttingLengthRoundingIncrementMm)
     {
         ValidateDimension(data.WidthMm, nameof(data.WidthMm));
         ValidateDimension(data.HeightMm, nameof(data.HeightMm));

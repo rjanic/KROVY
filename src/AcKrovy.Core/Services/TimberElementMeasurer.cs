@@ -4,7 +4,9 @@ namespace AcKrovy.Core.Services;
 
 public static class TimberElementMeasurer
 {
-    public static TimberElementMeasurement Measure(TimberElementSnapshot snapshot, double roundingIncrementMm = 10)
+    public static TimberElementMeasurement Measure(
+        TimberElementSnapshot snapshot,
+        double roundingIncrementMm = TimberCalculator.CuttingLengthRoundingIncrementMm)
     {
         if (snapshot is null)
         {
@@ -16,7 +18,7 @@ public static class TimberElementMeasurer
 
     public static IReadOnlyList<TimberElementMeasurement> MeasureAll(
         IEnumerable<TimberElementSnapshot> snapshots,
-        double roundingIncrementMm = 10)
+        double roundingIncrementMm = TimberCalculator.CuttingLengthRoundingIncrementMm)
     {
         if (snapshots is null)
         {

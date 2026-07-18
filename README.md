@@ -2,21 +2,23 @@
 
 Základ pre AutoCAD doplnok na **2D výkaz krovu**. Čiara alebo polyline predstavuje jeden drevený prvok. K objektu sa do DWG uloží typ, prierez, sklon, prídavok na rezanie, materiál a označenie. Z vybraných alebo všetkých označených prvkov doplnok vytvorí výkaz s počtom, dĺžkami a kubatúrou.
 
-> Stav: **0.1.0 – vývojová kostra**. Pripravené pre AutoCAD 2025 alebo 2026 na Windows. Neobsahuje statické posúdenie a v tejto fáze podporuje len základný prepočet dĺžky podľa jedného zadaného sklonu.
+> Stav: **0.7.0 – Manufacturing Length & Allowance Foundation**. Hlavná vývojová platforma je AutoCAD 2027 na Windows. Verzia obsahuje prenosné XData metadáta, automatické popisy, používateľské nastavenia hladín a nastaviteľné výrobné prídavky podľa typu prvku.
 
 ## Čo už kostra obsahuje
 
-- C# / .NET 8 riešenie rozdelené na výpočtové jadro a AutoCAD doplnok.
-- Údaje uložené priamo pri čiare/polyline v jej **Extension Dictionary** ako `Xrecord`.
+- C# riešenie rozdelené na CAD-nezávislé výpočtové jadro, CAD abstrakcie a AutoCAD doplnok.
+- Údaje uložené priamo pri čiare/polyline v prenosnom **XData** formáte; legacy `Xrecord` údaje sa stále vedia spätne načítať.
 - Príkaz `AK_ASSIGN` na priradenie dát viacerým čiaram naraz.
 - Príkaz `AK_EDIT` na hromadnú úpravu šírky, výšky, sklonu, prídavku, materiálu a typu.
 - Príkaz `AK_REPORT` na výkaz z aktuálneho výberu.
 - Príkaz `AK_REPORTALL` na výkaz všetkých prvkov v modelovom priestore.
 - Príkaz `AK_INSPECT` na vypísanie údajov pri jednom prvku.
 - Príkaz `AK_RECALC` na kontrolný prepočet všetkých prvkov.
+- Príkaz `AK_SETTINGS` na používateľské nastavenia hladín, farieb a predvolených výrobných prídavkov.
+- Automatické MText popisy prvkov s väzbou cez `SourceHandle`.
 - Výsledný AutoCAD `Table` so stĺpcami: typ, materiál, šírka, výška, dĺžka kusu, počet, celková dĺžka, kubatúra.
 
-## Dôležité pravidlo výpočtu v 0.1.0
+## Dôležité pravidlo výpočtu v 0.7.0
 
 Pre krokvy a vzpery je čiara chápaná ako **vodorovná projekcia v smere spádu strechy**:
 
@@ -26,6 +28,14 @@ skutočná dĺžka = pôdorysná dĺžka / cos(sklon)
 
 Pre pomúrnice, väznice, klieštiny a väzné trámy sa používa pôdorysná dĺžka. Stĺpik zatiaľ používa ručne zadanú dĺžku, ak ju nastavíš; inak dĺžku čiary.
 
+Rezná dĺžka sa počíta centrálne v Core:
+
+```text
+CuttingLengthMm = RoundUp(ActualLengthMm + Max(0, CuttingAllowanceMm), 100)
+```
+
+Výsledok sa vždy zaokrúhľuje nahor na 100 mm. Predvolené výrobné prídavky sú nastaviteľné podľa typu prvku v `AK_SETTINGS` a ukladajú sa pre aktuálny účet Windows do `%APPDATA%\ACAD_KROVY\timber-element-default-profile.json`.
+
 Nárožné krokvy, úžľabia, rôzne strešné roviny a skutočné 3D smerové výpočty patria do modulu **Strešné roviny 2D/3D**, ktorý sa doplní neskôr. Tento základ ich architektúru už predpokladá cez pole `RoofPlaneId`.
 
 ## Predpoklady
@@ -33,10 +43,10 @@ Nárožné krokvy, úžľabia, rôzne strešné roviny a skutočné 3D smerové 
 - Windows 10 alebo 11, 64-bit.
 - Plný **AutoCAD**, nie AutoCAD LT. AutoCAD LT nepodporuje vlastné .NET plug-iny.
 - Visual Studio 2022 s pracovným zaťažením **.NET desktop development**.
-- .NET SDK 8.
-- AutoCAD 2025 alebo 2026 nainštalovaný na počítači, kde sa bude doplnok kompilovať a skúšať.
+- .NET SDK kompatibilné s riešením.
+- AutoCAD 2027 nainštalovaný na počítači, kde sa bude doplnok kompilovať a skúšať.
 
-AutoCAD 2025 aj 2026 podporujú Managed .NET API na .NET 8. API DLL sa berú z lokálnej inštalácie AutoCADu, preto nie sú vložené v projekte ani v repozitári.
+AutoCAD API DLL sa berú z lokálnej inštalácie AutoCADu, preto nie sú vložené v projekte ani v repozitári.
 
 ## Otvorenie vo Visual Studiu
 
@@ -44,7 +54,7 @@ AutoCAD 2025 aj 2026 podporujú Managed .NET API na .NET 8. API DLL sa berú z l
 2. Uprav cestu `AutoCadInstallDir` v `src/AcKrovy.AutoCAD/AcKrovy.AutoCAD.csproj` podľa nainštalovanej verzie:
 
 ```xml
-<AutoCadInstallDir>C:\Program Files\Autodesk\AutoCAD 2026</AutoCadInstallDir>
+<AutoCadInstallDir>C:\Program Files\Autodesk\AutoCAD 2027</AutoCadInstallDir>
 ```
 
 3. Nastav konfiguráciu `Debug | x64`.
@@ -58,7 +68,7 @@ NETLOAD
 6. Vyber vytvorený súbor:
 
 ```text
-src\AcKrovy.AutoCAD\bin\x64\Debug\net8.0-windows\AcKrovy.AutoCAD.dll
+src\AcKrovy.AutoCAD\bin\x64\Debug\net10.0-windows\AcKrovy.AutoCAD.dll
 ```
 
 7. Zadaj príkaz:
@@ -92,6 +102,17 @@ AK_HELP
 | `AK_REPORT` | Vloží výkaz z aktuálne vybraných inteligentných prvkov. |
 | `AK_REPORTALL` | Vloží výkaz zo všetkých inteligentných prvkov v modelovom priestore. |
 | `AK_RECALC` | Overí a vypíše prepočet všetkých prvkov. |
+| `AK_SETTINGS` | Nastaví hladiny, farby a predvolené výrobné prídavky podľa typu prvku. |
+
+## v0.7.0 Manufacturing Length & Allowance Foundation
+
+- Nastaviteľné predvolené výrobné prídavky podľa typu prvku.
+- Rezná dĺžka zaokrúhlená vždy nahor na 100 mm.
+- Tri režimy v `AK_SETTINGS`: aplikovať na všetky, aplikovať na výber, uložiť iba pre nové prvky.
+- Bezpečné aplikovanie defaultov na existujúce vybrané alebo všetky inteligentné prvky.
+- COPY/COPYCLIP kópia sa pri synchronizačnom flow inicializuje ako nový fyzický prvok.
+- WBLOCK/import workflow je chránený pred nechceným hromadným prepisom prídavkov.
+- Výpočet a aplikovanie výrobných prídavkov sú centralizované v Core bez AutoCAD závislostí.
 
 ## Štruktúra
 

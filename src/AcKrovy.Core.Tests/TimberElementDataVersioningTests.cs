@@ -134,6 +134,32 @@ public sealed class TimberElementDataVersioningTests
     }
 
     [Fact]
+    public void Deserialize_OldJsonWithoutCuttingAllowance_UsesFactoryFallback()
+    {
+        const string json = """
+            {
+              "SchemaVersion": 1,
+              "ElementId": "K9",
+              "ElementType": "Rafter",
+              "WidthMm": 90,
+              "HeightMm": 170,
+              "SlopeDegrees": 37,
+              "RoofPlaneId": "R3",
+              "LengthCalculationMode": "SlopeCorrected",
+              "ManualLengthMm": null,
+              "Material": "Smrek C24",
+              "Note": "bez prídavku"
+            }
+            """;
+
+        var data = JsonSerializer.Deserialize<TimberElementData>(json, JsonOptions);
+
+        Assert.NotNull(data);
+        var normalized = TimberElementDataVersioning.Normalize(data!);
+        Assert.Equal(TimberElementDefaultProfile.FactoryCuttingAllowanceMm, normalized.CuttingAllowanceMm);
+    }
+
+    [Fact]
     public void Serialize_NewJson_IncludesVersionOne()
     {
         var data = Sample();

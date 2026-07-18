@@ -13,7 +13,7 @@ public sealed record TimberElementData
     public double HeightMm { get; init; } = 160;
     public double SlopeDegrees { get; init; } = 35;
     public string RoofPlaneId { get; init; } = "R1";
-    public double CuttingAllowanceMm { get; init; } = 100;
+    public double CuttingAllowanceMm { get; init; } = TimberElementDefaultProfile.FactoryCuttingAllowanceMm;
     public LengthCalculationMode LengthCalculationMode { get; init; } = LengthCalculationMode.AutoByElementType;
     public double? ManualLengthMm { get; init; }
     public string Material { get; init; } = "Smrek C24";

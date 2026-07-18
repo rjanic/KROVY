@@ -26,7 +26,7 @@ public sealed class AcKrovyCommands
     {
         var editor = ActiveEditor();
         editor.WriteMessage(
-            "\nACAD KROVY 0.6.0"
+            "\nACAD KROVY 0.7.0"
             + "\n\nPRVKY KROVU"
             + "\n  AK_KROKVA      – rýchlo priradí typ Krokva"
             + "\n  AK_POMURNICA   – rýchlo priradí typ Pomúrnica"
@@ -95,8 +95,10 @@ public sealed class AcKrovyCommands
     {
         var document = ActiveDocument();
         var editor = document.Editor;
-        var dialog = new LayerSettingsWindow(ElementLayerProfileStore.Load());
-        if (AcApp.ShowModalWindow(dialog) != true || dialog.Profile is null)
+        var dialog = new LayerSettingsWindow(
+            ElementLayerProfileStore.Load(),
+            TimberElementDefaultProfileStore.Load());
+        if (AcApp.ShowModalWindow(dialog) != true || dialog.Profile is null || dialog.DefaultProfile is null)
         {
             return;
         }
@@ -104,17 +106,37 @@ public sealed class AcKrovyCommands
         try
         {
             ElementLayerProfileStore.Save(dialog.Profile);
+            TimberElementDefaultProfileStore.Save(dialog.DefaultProfile);
         }
         catch (System.Exception ex)
         {
-            editor.WriteMessage($"\nACAD KROVY: nepodarilo sa uložiť nastavenia hladín: {ex.Message}");
+            editor.WriteMessage($"\nACAD KROVY: nepodarilo sa uložiť nastavenia: {ex.Message}");
             return;
         }
 
-        editor.WriteMessage("\nACAD KROVY: nastavenia hladín boli uložené.");
-        if (dialog.ApplyToExistingElements)
+        editor.WriteMessage("\nACAD KROVY: nastavenia boli uložené.");
+        switch (dialog.CuttingAllowanceApplyMode)
         {
-            ApplyLayersToExistingElements(document, dialog.Profile);
+            case CuttingAllowanceApplyMode.AllElements:
+                ApplySettingsToExistingElements(document, dialog.Profile, dialog.DefaultProfile, null);
+                break;
+            case CuttingAllowanceApplyMode.SelectedElements:
+                var ids = PromptForEntities(editor, "\nOznač prvky, na ktoré chceš aplikovať nové výrobné prídavky: ");
+                if (ids.Count == 0)
+                {
+                    editor.WriteMessage("\nACAD KROVY: výber bol zrušený, existujúce prvky neboli zmenené.");
+                    return;
+                }
+
+                ApplySettingsToExistingElements(document, dialog.Profile, dialog.DefaultProfile, ids);
+                break;
+            case CuttingAllowanceApplyMode.NewElementsOnly:
+                if (dialog.ApplyToExistingElements)
+                {
+                    ApplyLayersToExistingElements(document, dialog.Profile);
+                }
+
+                break;
         }
     }
 
@@ -348,10 +370,11 @@ public sealed class AcKrovyCommands
         }
 
         // Prednastavenie je iba štartovacia hodnota. V dialógu ho tesár/projektant vždy môže prepísať.
+        var defaultProfile = TimberElementDefaultProfileStore.Load();
         var seedData = presetType is { } elementType
-            ? TimberElementDefaults.For(elementType)
-            : new TimberElementData();
-        var dialog = new ElementEditWindow(seedData, isNewAssignment: true);
+            ? TimberElementDefaults.For(elementType, defaultProfile)
+            : TimberElementDefaults.For(TimberElementType.Rafter, defaultProfile);
+        var dialog = new ElementEditWindow(seedData, isNewAssignment: true, defaultProfile);
         if (AcApp.ShowModalWindow(dialog) != true || dialog.Patch is null)
         {
             return;
@@ -374,11 +397,15 @@ public sealed class AcKrovyCommands
                 continue;
             }
 
-            var original = metadataStore.TryRead(entity, out var existing) && existing is not null
-                ? existing
-                : new TimberElementData();
+            var hadExistingData = metadataStore.TryRead(entity, out var existing) && existing is not null;
+            var original = hadExistingData
+                ? existing!
+                : TimberElementDefaults.For(dialog.SelectedElementType ?? seedData.ElementType, defaultProfile);
 
-            var merged = TimberElementPatcher.Apply(original, dialog.Patch);
+            var patch = hadExistingData && !dialog.CuttingAllowanceWasEdited
+                ? dialog.Patch with { CuttingAllowanceMm = null }
+                : dialog.Patch;
+            var merged = TimberElementPatcher.Apply(original, patch);
             previousElementIdById[id] = original.ElementId;
             metadataStore.Write(entity, merged);
             layerService.ApplyLayerForTimberType(entity, merged.ElementType, layerProfile);
@@ -452,6 +479,63 @@ public sealed class AcKrovyCommands
 
         transaction.Commit();
         editor.WriteMessage($"\nACAD KROVY: prvky presunuté na hladiny: {updated}. Preskočené: {skipped}.");
+    }
+
+    private static void ApplySettingsToExistingElements(
+        Document document,
+        ElementLayerProfile layerProfile,
+        TimberElementDefaultProfile defaultProfile,
+        IReadOnlyList<ObjectId>? targetIds)
+    {
+        var editor = document.Editor;
+        using var transaction = document.Database.TransactionManager.StartTransaction();
+        var metadataStore = new AutoCadTimberElementMetadataStore(transaction);
+        var layerService = new AutoCadTimberLayerService(document.Database, transaction);
+        var ids = targetIds is null
+            ? DrawingScanner.FindAllTimberElements(document.Database, transaction, metadataStore)
+            : targetIds.Distinct().ToList();
+        var updated = 0;
+        var skipped = 0;
+        var changedIds = new List<ObjectId>();
+        var previousElementIdById = new Dictionary<ObjectId, string>();
+
+        foreach (var id in ids)
+        {
+            try
+            {
+                if (transaction.GetObject(id, OpenMode.ForWrite) is not Entity entity ||
+                    !AutoCadEntityHelpers.IsSupportedTimberGeometry(entity) ||
+                    !metadataStore.TryRead(entity, out var data) ||
+                    data is null)
+                {
+                    skipped++;
+                    continue;
+                }
+
+                var updatedData = TimberElementDefaultApplicator.ApplyCuttingAllowance(data, defaultProfile);
+                previousElementIdById[id] = data.ElementId;
+                metadataStore.Write(entity, updatedData);
+                layerService.ApplyLayerForTimberType(entity, updatedData.ElementType, layerProfile);
+                changedIds.Add(id);
+                updated++;
+            }
+            catch (System.Exception ex)
+            {
+                skipped++;
+                editor.WriteMessage($"\nPreskočený prvok pri aplikovaní nastavení: {ex.Message}");
+            }
+        }
+
+        UpdateLabelsForChangedEntities(
+            document.Database,
+            transaction,
+            metadataStore,
+            changedIds,
+            previousElementIdById);
+
+        transaction.Commit();
+        editor.WriteMessage(
+            $"\nACAD KROVY: výrobné prídavky aplikované na {updated} prvkov. Preskočené: {skipped}.");
     }
 
     private static void SetLabelsVisibility(bool visible)

@@ -95,7 +95,7 @@ public sealed class TimberElementMeasurerTests
 
         Assert.Equal(1000, measurement.PlanLengthMm);
         Assert.Equal(2800, measurement.ActualLengthMm);
-        Assert.Equal(2850, measurement.CuttingLengthMm);
+        Assert.Equal(2900, measurement.CuttingLengthMm);
     }
 
     [Fact]
@@ -136,7 +136,7 @@ public sealed class TimberElementMeasurerTests
         Assert.Equal(snapshot.Data, measurement.Data);
         Assert.Equal(1234, measurement.PlanLengthMm);
         Assert.Equal(1234, measurement.ActualLengthMm);
-        Assert.Equal(1340, measurement.CuttingLengthMm);
+        Assert.Equal(1400, measurement.CuttingLengthMm);
     }
 
     private static TimberElementSnapshot Snapshot(LengthCalculationMode mode, double planLengthMm) =>

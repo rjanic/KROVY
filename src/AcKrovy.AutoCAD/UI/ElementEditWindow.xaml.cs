@@ -10,12 +10,23 @@ namespace AcKrovy.AutoCAD.UI;
 public partial class ElementEditWindow : Window
 {
     private static readonly CultureInfo SlovakCulture = CultureInfo.GetCultureInfo("sk-SK");
+    private readonly TimberElementDefaultProfile _defaultProfile;
+    private readonly bool _isNewAssignment;
+    private bool _isInitializing;
 
     internal TimberElementPatch? Patch { get; private set; }
+    internal TimberElementType? SelectedElementType => (ElementTypeComboBox.SelectedItem as ElementTypeOption)?.Value;
+    internal bool CuttingAllowanceWasEdited { get; private set; }
 
-    public ElementEditWindow(TimberElementData? seedData, bool isNewAssignment)
+    public ElementEditWindow(
+        TimberElementData? seedData,
+        bool isNewAssignment,
+        TimberElementDefaultProfile? defaultProfile = null)
     {
         InitializeComponent();
+        _isInitializing = true;
+        _isNewAssignment = isNewAssignment;
+        _defaultProfile = (defaultProfile ?? TimberElementDefaultProfile.CreateDefault()).Normalize();
 
         ElementTypeComboBox.ItemsSource = Enum
             .GetValues<TimberElementType>()
@@ -54,6 +65,31 @@ public partial class ElementEditWindow : Window
         ChangeLengthModeCheckBox.IsChecked = isNewAssignment;
         ChangeManualLengthCheckBox.IsChecked = isNewAssignment;
         ChangeMaterialCheckBox.IsChecked = isNewAssignment;
+
+        ElementTypeComboBox.SelectionChanged += (_, _) => UpdateAllowanceForSelectedType();
+        AllowanceTextBox.TextChanged += (_, _) =>
+        {
+            if (!_isInitializing)
+            {
+                CuttingAllowanceWasEdited = true;
+            }
+        };
+        _isInitializing = false;
+    }
+
+    private void UpdateAllowanceForSelectedType()
+    {
+        if (!_isNewAssignment ||
+            CuttingAllowanceWasEdited ||
+            ChangeAllowanceCheckBox.IsChecked != true ||
+            SelectedElementType is not { } type)
+        {
+            return;
+        }
+
+        _isInitializing = true;
+        AllowanceTextBox.Text = Format(_defaultProfile.GetCuttingAllowanceMm(type));
+        _isInitializing = false;
     }
 
     private void Save_Click(object sender, RoutedEventArgs e)
