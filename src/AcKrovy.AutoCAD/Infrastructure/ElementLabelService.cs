@@ -20,14 +20,14 @@ internal static class ElementLabelService
 
     private const short LabelLayerColorIndex = 8;
     private const double DefaultTextHeightMm = 180d;
-    private const double MinimumOffsetMm = 180d;
-    private const double MaximumOffsetMm = 600d;
+    private const double LabelOffsetMm = 180d;
 
     public static bool UpsertForElement(
         Database database,
         Transaction transaction,
         Entity sourceEntity,
-        TimberElementData data)
+        TimberElementData data,
+        string? previousElementId = null)
     {
         ArgumentNullException.ThrowIfNull(database);
         ArgumentNullException.ThrowIfNull(transaction);
@@ -40,10 +40,16 @@ internal static class ElementLabelService
         }
 
         var measurement = TimberCalculator.Measure(data, AutoCadEntityHelpers.GetPlanLengthMm(sourceEntity));
-        var placement = CalculatePlacement(sourceEntity, measurement.PlanLengthMm);
+        var placement = CalculatePlacement(sourceEntity);
         var labelText = CreateContents(data, measurement);
         var sourceHandle = sourceEntity.Handle.ToString();
-        var existingLabelId = FindExistingLabelId(database, transaction, data.ElementId, sourceHandle);
+        var existingLabelId = FindExistingLabelId(
+            database,
+            transaction,
+            data.ElementId,
+            sourceHandle,
+            previousElementId,
+            out var obsoleteLabelIds);
         var isCreated = existingLabelId.IsNull;
 
         MText label;
@@ -68,6 +74,7 @@ internal static class ElementLabelService
             ElementId = data.ElementId,
             SourceHandle = sourceHandle,
         });
+        DeleteObsoleteLabels(transaction, obsoleteLabelIds, label.ObjectId);
 
         return isCreated;
     }
@@ -121,21 +128,28 @@ internal static class ElementLabelService
         var created = 0;
         var updated = 0;
         var skipped = 0;
+        var distinctIds = ids.Distinct().ToList();
+        var previousElementIdById = ReadElementIds(transaction, metadataStore, distinctIds);
+        var synchronizedDataById = TimberElementItemIdentityService.SynchronizeElementIds(
+            database,
+            transaction,
+            metadataStore,
+            distinctIds);
 
-        foreach (var id in ids.Distinct())
+        foreach (var id in distinctIds)
         {
             try
             {
                 if (transaction.GetObject(id, OpenMode.ForRead) is not Entity entity ||
                     !AutoCadEntityHelpers.IsSupportedTimberGeometry(entity) ||
-                    !metadataStore.TryRead(entity, out var data) ||
-                    data is null)
+                    !synchronizedDataById.TryGetValue(id, out var data))
                 {
                     skipped++;
                     continue;
                 }
 
-                if (UpsertForElement(database, transaction, entity, data))
+                previousElementIdById.TryGetValue(id, out var previousElementId);
+                if (UpsertForElement(database, transaction, entity, data, previousElementId))
                 {
                     created++;
                 }
@@ -154,13 +168,36 @@ internal static class ElementLabelService
         return new ElementLabelUpdateResult(created, updated, skipped);
     }
 
+    private static IReadOnlyDictionary<ObjectId, string> ReadElementIds(
+        Transaction transaction,
+        AutoCadTimberElementMetadataStore metadataStore,
+        IReadOnlyList<ObjectId> ids)
+    {
+        var result = new Dictionary<ObjectId, string>();
+
+        foreach (var id in ids)
+        {
+            if (transaction.GetObject(id, OpenMode.ForRead) is Entity entity &&
+                metadataStore.TryRead(entity, out var data) &&
+                data is not null)
+            {
+                result[id] = data.ElementId;
+            }
+        }
+
+        return result;
+    }
+
     private static ObjectId FindExistingLabelId(
         Database database,
         Transaction transaction,
         string elementId,
-        string sourceHandle)
+        string sourceHandle,
+        string? previousElementId,
+        out IReadOnlyList<ObjectId> obsoleteLabelIds)
     {
-        var candidates = new List<(ObjectId Id, ElementLabelData Data)>();
+        obsoleteLabelIds = Array.Empty<ObjectId>();
+        var labels = new List<(ObjectId Id, ElementLabelData Data)>();
         var blockTable = (BlockTable)transaction.GetObject(database.BlockTableId, OpenMode.ForRead);
         var modelSpace = (BlockTableRecord)transaction.GetObject(
             blockTable[BlockTableRecord.ModelSpace],
@@ -170,25 +207,85 @@ internal static class ElementLabelService
         {
             if (transaction.GetObject(id, OpenMode.ForRead) is not MText text ||
                 !ElementLabelStore.TryRead(text, out var data) ||
+                data is null)
+            {
+                continue;
+            }
+
+            labels.Add((id, data));
+        }
+
+        var labelKeys = labels.ToDictionary(label => label.Id.ToString(), label => label.Id);
+        var selection = TimberElementLabelMatchRules.SelectLabelForUpsert(
+            sourceHandle,
+            elementId,
+            previousElementId,
+            labels
+                .Select(label => new TimberElementLabelCandidate
+                {
+                    LabelKey = label.Id.ToString(),
+                    ElementId = label.Data.ElementId,
+                    SourceHandle = label.Data.SourceHandle,
+                })
+                .ToList(),
+            CountTimberElementsWithElementId(database, transaction, elementId),
+            CountTimberElementsWithElementId(database, transaction, previousElementId));
+
+        obsoleteLabelIds = selection.LabelKeysToDelete
+            .Where(labelKeys.ContainsKey)
+            .Select(labelKey => labelKeys[labelKey])
+            .ToList();
+
+        return selection.LabelKeyToUpdate is not null && labelKeys.TryGetValue(selection.LabelKeyToUpdate, out var labelId)
+            ? labelId
+            : ObjectId.Null;
+    }
+
+    private static void DeleteObsoleteLabels(
+        Transaction transaction,
+        IReadOnlyList<ObjectId> obsoleteLabelIds,
+        ObjectId selectedLabelId)
+    {
+        foreach (var id in obsoleteLabelIds.Distinct())
+        {
+            if (id == selectedLabelId ||
+                transaction.GetObject(id, OpenMode.ForWrite, false) is not MText label ||
+                !ElementLabelStore.TryRead(label, out _))
+            {
+                continue;
+            }
+
+            label.Erase();
+        }
+    }
+
+    private static int CountTimberElementsWithElementId(
+        Database database,
+        Transaction transaction,
+        string? elementId)
+    {
+        if (string.IsNullOrWhiteSpace(elementId))
+        {
+            return 0;
+        }
+
+        var count = 0;
+        var metadataStore = new AutoCadTimberElementMetadataStore(transaction);
+
+        foreach (var id in DrawingScanner.FindAllTimberElements(database, transaction, metadataStore))
+        {
+            if (transaction.GetObject(id, OpenMode.ForRead) is not Entity entity ||
+                !metadataStore.TryRead(entity, out var data) ||
                 data is null ||
                 !string.Equals(data.ElementId, elementId, StringComparison.OrdinalIgnoreCase))
             {
                 continue;
             }
 
-            candidates.Add((id, data));
+            count++;
         }
 
-        var exact = candidates.FirstOrDefault(candidate =>
-            string.Equals(candidate.Data.SourceHandle, sourceHandle, StringComparison.OrdinalIgnoreCase));
-        if (!exact.Id.IsNull)
-        {
-            return exact.Id;
-        }
-
-        // WBLOCK/COPY prenáša XData so starým Handle. Ak je v novom DWG len
-        // jeden štítok s daným ElementId, bezpečne ho znovu pripájame k novému objektu.
-        return candidates.Count == 1 ? candidates[0].Id : ObjectId.Null;
+        return count;
     }
 
     private static void ApplyLabelAppearance(
@@ -229,7 +326,7 @@ internal static class ElementLabelService
         return layer.ObjectId;
     }
 
-    private static LabelPlacement CalculatePlacement(Entity sourceEntity, double planLengthMm)
+    private static LabelPlacement CalculatePlacement(Entity sourceEntity)
     {
         var (start, end, midpoint) = sourceEntity switch
         {
@@ -247,21 +344,17 @@ internal static class ElementLabelService
             _ => throw new NotSupportedException("Popis možno vytvoriť iba pre LINE alebo LWPOLYLINE."),
         };
 
-        var chord = end - start;
-        var planarLength = Math.Sqrt(chord.X * chord.X + chord.Y * chord.Y);
-        var rotation = planarLength < 0.001d ? 0d : Math.Atan2(chord.Y, chord.X);
+        var placement = TimberElementLabelPlacementCalculator.Calculate(
+            start.X,
+            start.Y,
+            end.X,
+            end.Y,
+            midpoint.X,
+            midpoint.Y,
+            LabelOffsetMm);
+        var location = new Point3d(placement.X, placement.Y, midpoint.Z);
 
-        // Text sa nikdy nenechá otočiť hlavou nadol.
-        if (rotation > Math.PI / 2d || rotation <= -Math.PI / 2d)
-        {
-            rotation += Math.PI;
-        }
-
-        var offset = Math.Clamp(planLengthMm * 0.03d, MinimumOffsetMm, MaximumOffsetMm);
-        var normal = new Vector3d(-Math.Sin(rotation), Math.Cos(rotation), 0d);
-        var location = midpoint + normal * offset;
-
-        return new LabelPlacement(location, rotation);
+        return new LabelPlacement(location, placement.RotationRadians);
     }
 
     private static string CreateContents(TimberElementData data, TimberElementMeasurement measurement) =>
