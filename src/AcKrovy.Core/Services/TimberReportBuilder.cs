@@ -10,14 +10,7 @@ public static class TimberReportBuilder
         var materialized = measurements.ToList();
 
         var lines = materialized
-            .GroupBy(x => new
-            {
-                x.Data.ElementType,
-                x.Data.Material,
-                x.Data.WidthMm,
-                x.Data.HeightMm,
-                x.CuttingLengthMm,
-            })
+            .GroupBy(TimberElementSignature.FromMeasurement)
             .OrderBy(x => x.Key.ElementType)
             .ThenBy(x => x.Key.WidthMm)
             .ThenBy(x => x.Key.HeightMm)

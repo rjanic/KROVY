@@ -7,6 +7,7 @@ using MediaBrush = System.Windows.Media.Brush;
 using MediaColor = System.Windows.Media.Color;
 using MediaColorConverter = System.Windows.Media.ColorConverter;
 using MediaSolidColorBrush = System.Windows.Media.SolidColorBrush;
+using AcKrovy.Cad.Abstractions.Layers;
 using AcKrovy.AutoCAD.Settings;
 using AcKrovy.Core.Models;
 using AcKrovy.Core.Services;
