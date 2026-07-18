@@ -17,11 +17,13 @@ public partial class ElementEditWindow : Window
     internal TimberElementPatch? Patch { get; private set; }
     internal TimberElementType? SelectedElementType => (ElementTypeComboBox.SelectedItem as ElementTypeOption)?.Value;
     internal bool CuttingAllowanceWasEdited { get; private set; }
+    internal bool UseDefaultCuttingAllowanceByType { get; private set; }
 
     public ElementEditWindow(
         TimberElementData? seedData,
         bool isNewAssignment,
-        TimberElementDefaultProfile? defaultProfile = null)
+        TimberElementDefaultProfile? defaultProfile = null,
+        bool cuttingAllowanceIsMixed = false)
     {
         InitializeComponent();
         _isInitializing = true;
@@ -50,7 +52,13 @@ public partial class ElementEditWindow : Window
         HeightTextBox.Text = Format(data.HeightMm);
         SlopeTextBox.Text = Format(data.SlopeDegrees);
         RoofPlaneTextBox.Text = data.RoofPlaneId;
-        AllowanceTextBox.Text = Format(data.CuttingAllowanceMm);
+        AllowanceTextBox.Text = cuttingAllowanceIsMixed
+            ? string.Empty
+            : Format(data.CuttingAllowanceMm);
+        if (cuttingAllowanceIsMixed)
+        {
+            AllowanceTextBox.ToolTip = "Vybrané prvky majú rôzne výrobné prídavky. Nezaškrtnuté pole ponechá každému prvku pôvodnú hodnotu.";
+        }
         ManualLengthTextBox.Text = data.ManualLengthMm is null
             ? string.Empty
             : Format(data.ManualLengthMm.Value);
@@ -72,6 +80,7 @@ public partial class ElementEditWindow : Window
             if (!_isInitializing)
             {
                 CuttingAllowanceWasEdited = true;
+                UseDefaultCuttingAllowanceByType = false;
             }
         };
         _isInitializing = false;
@@ -89,6 +98,16 @@ public partial class ElementEditWindow : Window
 
         _isInitializing = true;
         AllowanceTextBox.Text = Format(_defaultProfile.GetCuttingAllowanceMm(type));
+        _isInitializing = false;
+    }
+
+    private void UseDefaultAllowance_Click(object sender, RoutedEventArgs e)
+    {
+        UseDefaultCuttingAllowanceByType = true;
+        ChangeAllowanceCheckBox.IsChecked = false;
+        _isInitializing = true;
+        AllowanceTextBox.Text = string.Empty;
+        AllowanceTextBox.ToolTip = "Pri použití sa každému vybranému prvku nastaví aktuálny predvolený prídavok podľa jeho typu.";
         _isInitializing = false;
     }
 
@@ -110,12 +129,11 @@ public partial class ElementEditWindow : Window
                 "sklon",
                 out var slope,
                 allowZero: true) ||
-            !TryReadOptionalNumber(
-                ChangeAllowanceCheckBox.IsChecked == true,
+            !TryReadOptionalWholeNumber(
+                ChangeAllowanceCheckBox.IsChecked == true && !UseDefaultCuttingAllowanceByType,
                 AllowanceTextBox.Text,
-                "prídavok na rez",
-                out var allowance,
-                allowZero: true) ||
+                "výrobný prídavok",
+                out var allowance) ||
             !TryReadOptionalNumber(
                 ChangeManualLengthCheckBox.IsChecked == true,
                 ManualLengthTextBox.Text,
@@ -136,7 +154,7 @@ public partial class ElementEditWindow : Window
             ChangeRoofPlaneCheckBox.IsChecked == true
                 ? EmptyToNull(RoofPlaneTextBox.Text)
                 : null,
-            allowance,
+            UseDefaultCuttingAllowanceByType ? null : allowance,
             ChangeLengthModeCheckBox.IsChecked == true
                 ? (LengthModeComboBox.SelectedItem as LengthModeOption)?.Value
                 : null,
@@ -147,6 +165,39 @@ public partial class ElementEditWindow : Window
             null);
 
         DialogResult = true;
+    }
+
+    private static bool TryReadOptionalWholeNumber(
+        bool shouldRead,
+        string raw,
+        string label,
+        out double? result)
+    {
+        result = null;
+
+        if (!shouldRead)
+        {
+            return true;
+        }
+
+        if (double.TryParse(raw, NumberStyles.Float, SlovakCulture, out var value) ||
+            double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out value))
+        {
+            var rounded = Math.Round(value);
+            if (value >= 0 && Math.Abs(value - rounded) < 0.000001)
+            {
+                result = rounded;
+                return true;
+            }
+        }
+
+        MessageBox.Show(
+            $"Pole „{label}“ musí obsahovať celé nezáporné číslo v milimetroch.",
+            "ACAD KROVY",
+            MessageBoxButton.OK,
+            MessageBoxImage.Warning);
+
+        return false;
     }
 
     private static bool TryReadOptionalNumber(

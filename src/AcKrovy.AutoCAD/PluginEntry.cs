@@ -15,7 +15,7 @@ public sealed class PluginEntry : IExtensionApplication
         AcKrovyRibbon.ScheduleCreation();
 
         var document = AcApp.DocumentManager.MdiActiveDocument;
-        document?.Editor.WriteMessage("\nACAD KROVY 0.7.0 načítané. Karta ACAD KROVY sa pridá do Ribbonu. Zadaj AK_HELP pre zoznam príkazov alebo AK_TOOLBAR pre klasický panel malých ikon.");
+        document?.Editor.WriteMessage("\nACAD KROVY 0.8.0 načítané. Karta ACAD KROVY sa pridá do Ribbonu. Zadaj AK_HELP pre zoznam príkazov alebo AK_TOOLBAR pre klasický panel malých ikon.");
     }
 
     public void Terminate()

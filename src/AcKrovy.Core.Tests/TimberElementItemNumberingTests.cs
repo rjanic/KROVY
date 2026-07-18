@@ -138,6 +138,34 @@ public sealed class TimberElementItemNumberingTests
         Assert.Equal(new[] { "K1", "K2" }, result.Select(x => x.ElementId));
     }
 
+    [Fact]
+    public void AssignElementIds_IndividualAllowanceWithSameRoundedLengthKeepsSharedItemIdentity()
+    {
+        var first = CalculatedMeasurement("K1", TimberElementType.Rafter, 5000, 100);
+        var second = CalculatedMeasurement("K1", TimberElementType.Rafter, 4975, 120);
+
+        var result = Assign(first, second);
+
+        Assert.Equal(5100, first.CuttingLengthMm);
+        Assert.Equal(5100, second.CuttingLengthMm);
+        Assert.Equal(result[0].Signature, result[1].Signature);
+        Assert.Equal(new[] { "K1", "K1" }, result.Select(x => x.ElementId));
+    }
+
+    [Fact]
+    public void AssignElementIds_IndividualAllowanceWithDifferentRoundedLengthSplitsItemIdentity()
+    {
+        var first = CalculatedMeasurement("K1", TimberElementType.Rafter, 5000, 100);
+        var second = CalculatedMeasurement("K1", TimberElementType.Rafter, 5000, 300);
+
+        var result = Assign(first, second);
+
+        Assert.Equal(5100, first.CuttingLengthMm);
+        Assert.Equal(5300, second.CuttingLengthMm);
+        Assert.NotEqual(result[0].Signature, result[1].Signature);
+        Assert.Equal(new[] { "K1", "K2" }, result.Select(x => x.ElementId));
+    }
+
     private static IReadOnlyList<TimberElementItemAssignment> Assign(
         params TimberElementMeasurement[] measurements) =>
         TimberElementItemNumbering.AssignElementIds(measurements);

@@ -73,6 +73,63 @@ public sealed class TimberElementPatcherTests
     }
 
     [Fact]
+    public void Apply_NullCuttingAllowanceKeepsOriginalValueForMixedEdit()
+    {
+        var source = Source() with { CuttingAllowanceMm = 275 };
+
+        var result = TimberElementPatcher.Apply(source, EmptyPatch());
+
+        Assert.Equal(275, result.CuttingAllowanceMm);
+    }
+
+    [Fact]
+    public void Apply_SameCuttingAllowanceCanBeAppliedToMultipleElements()
+    {
+        var first = Source() with { CuttingAllowanceMm = 100 };
+        var second = Source() with { ElementId = "K8", CuttingAllowanceMm = 200 };
+        var patch = EmptyPatch() with { CuttingAllowanceMm = 300 };
+
+        var firstResult = TimberElementPatcher.Apply(first, patch);
+        var secondResult = TimberElementPatcher.Apply(second, patch);
+
+        Assert.Equal(300, firstResult.CuttingAllowanceMm);
+        Assert.Equal(300, secondResult.CuttingAllowanceMm);
+    }
+
+    [Fact]
+    public void Apply_TypeChangeKeepsIndividualCuttingAllowanceWhenNotExplicitlyChanged()
+    {
+        var source = Source() with { ElementType = TimberElementType.Rafter, CuttingAllowanceMm = 500 };
+        var patch = EmptyPatch() with { ElementType = TimberElementType.WallPlate };
+
+        var result = TimberElementPatcher.Apply(source, patch);
+
+        Assert.Equal(TimberElementType.WallPlate, result.ElementType);
+        Assert.Equal(500, result.CuttingAllowanceMm);
+    }
+
+    [Fact]
+    public void Apply_DefaultApplicatorAfterTypeChangeUsesNewTypeDefault()
+    {
+        var profile = new TimberElementDefaultProfile
+        {
+            Styles = new List<TimberElementDefaultStyle>
+            {
+                new(TimberElementType.Rafter, 300),
+                new(TimberElementType.WallPlate, 100),
+            },
+        };
+        var source = Source() with { ElementType = TimberElementType.Rafter, CuttingAllowanceMm = 500 };
+        var patch = EmptyPatch() with { ElementType = TimberElementType.WallPlate };
+
+        var patched = TimberElementPatcher.Apply(source, patch);
+        var result = TimberElementDefaultApplicator.ApplyCuttingAllowance(patched, profile);
+
+        Assert.Equal(TimberElementType.WallPlate, result.ElementType);
+        Assert.Equal(100, result.CuttingAllowanceMm);
+    }
+
+    [Fact]
     public void Apply_ChangesOnlyLengthCalculationMode()
     {
         var result = TimberElementPatcher.Apply(Source(), EmptyPatch() with

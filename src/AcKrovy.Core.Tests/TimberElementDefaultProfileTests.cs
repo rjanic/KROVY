@@ -134,6 +134,34 @@ public sealed class TimberElementDefaultProfileTests
     }
 
     [Fact]
+    public void ApplyCuttingAllowance_AppliesPerElementTypeForMixedSelection()
+    {
+        var profile = new TimberElementDefaultProfile
+        {
+            Styles = new List<TimberElementDefaultStyle>
+            {
+                new(TimberElementType.Rafter, 300),
+                new(TimberElementType.WallPlate, 100),
+                new(TimberElementType.Post, 200),
+            },
+        };
+        var elements = new[]
+        {
+            TimberElementDefaults.For(TimberElementType.Rafter) with { CuttingAllowanceMm = 500 },
+            TimberElementDefaults.For(TimberElementType.WallPlate) with { CuttingAllowanceMm = 500 },
+            TimberElementDefaults.For(TimberElementType.Post) with { CuttingAllowanceMm = 500 },
+        };
+
+        var result = elements
+            .Select(element => TimberElementDefaultApplicator.ApplyCuttingAllowance(element, profile))
+            .ToList();
+
+        Assert.Equal(300, result[0].CuttingAllowanceMm);
+        Assert.Equal(100, result[1].CuttingAllowanceMm);
+        Assert.Equal(200, result[2].CuttingAllowanceMm);
+    }
+
+    [Fact]
     public void ApplyCuttingAllowance_ChangedAllowanceChangesCuttingLength()
     {
         var existing = TimberElementDefaults.For(TimberElementType.Purlin) with
@@ -156,6 +184,63 @@ public sealed class TimberElementDefaultProfileTests
 
         Assert.Equal(5000, before.CuttingLengthMm);
         Assert.Equal(5200, after.CuttingLengthMm);
+    }
+
+    [Fact]
+    public void ChangedIndividualAllowance_DoesNotMutateGlobalDefaultProfile()
+    {
+        var profile = new TimberElementDefaultProfile
+        {
+            Styles = new List<TimberElementDefaultStyle>
+            {
+                new(TimberElementType.Rafter, 300),
+            },
+        };
+        var element = TimberElementDefaults.For(TimberElementType.Rafter, profile);
+
+        var overridden = TimberElementPatcher.Apply(element, new TimberElementPatch(
+            ElementType: null,
+            WidthMm: null,
+            HeightMm: null,
+            SlopeDegrees: null,
+            RoofPlaneId: null,
+            CuttingAllowanceMm: 500,
+            LengthCalculationMode: null,
+            ManualLengthMm: null,
+            Material: null,
+            Note: null));
+
+        Assert.Equal(500, overridden.CuttingAllowanceMm);
+        Assert.Equal(300, profile.GetCuttingAllowanceMm(TimberElementType.Rafter));
+    }
+
+    [Fact]
+    public void ChangedAllowanceWithManualLengthModePreservesManualLengthModeAndManualLength()
+    {
+        var element = TimberElementDefaults.For(TimberElementType.Post) with
+        {
+            LengthCalculationMode = LengthCalculationMode.ManualLength,
+            ManualLengthMm = 2500,
+            CuttingAllowanceMm = 100,
+        };
+
+        var result = TimberElementPatcher.Apply(element, new TimberElementPatch(
+            ElementType: null,
+            WidthMm: null,
+            HeightMm: null,
+            SlopeDegrees: null,
+            RoofPlaneId: null,
+            CuttingAllowanceMm: 300,
+            LengthCalculationMode: null,
+            ManualLengthMm: null,
+            Material: null,
+            Note: null));
+        var measurement = TimberCalculator.Measure(result, planLengthMm: 1000);
+
+        Assert.Equal(LengthCalculationMode.ManualLength, result.LengthCalculationMode);
+        Assert.Equal(2500, result.ManualLengthMm);
+        Assert.Equal(2500, measurement.ActualLengthMm);
+        Assert.Equal(2800, measurement.CuttingLengthMm);
     }
 
     [Fact]

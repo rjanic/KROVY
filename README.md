@@ -2,14 +2,14 @@
 
 Základ pre AutoCAD doplnok na **2D výkaz krovu**. Čiara alebo polyline predstavuje jeden drevený prvok. K objektu sa do DWG uloží typ, prierez, sklon, prídavok na rezanie, materiál a označenie. Z vybraných alebo všetkých označených prvkov doplnok vytvorí výkaz s počtom, dĺžkami a kubatúrou.
 
-> Stav: **0.7.0 – Manufacturing Length & Allowance Foundation**. Hlavná vývojová platforma je AutoCAD 2027 na Windows. Verzia obsahuje prenosné XData metadáta, automatické popisy, používateľské nastavenia hladín a nastaviteľné výrobné prídavky podľa typu prvku.
+> Stav: **0.8.0 – Per-Element Manufacturing Overrides**. Hlavná vývojová platforma je AutoCAD 2027 na Windows. Verzia obsahuje prenosné XData metadáta, automatické popisy, používateľské nastavenia hladín, nastaviteľné výrobné prídavky podľa typu a individuálne výrobné prídavky priamo cez `AK_EDIT`.
 
 ## Čo už kostra obsahuje
 
 - C# riešenie rozdelené na CAD-nezávislé výpočtové jadro, CAD abstrakcie a AutoCAD doplnok.
 - Údaje uložené priamo pri čiare/polyline v prenosnom **XData** formáte; legacy `Xrecord` údaje sa stále vedia spätne načítať.
 - Príkaz `AK_ASSIGN` na priradenie dát viacerým čiaram naraz.
-- Príkaz `AK_EDIT` na hromadnú úpravu šírky, výšky, sklonu, prídavku, materiálu a typu.
+- Príkaz `AK_EDIT` na hromadnú úpravu šírky, výšky, sklonu, individuálneho výrobného prídavku, materiálu a typu.
 - Príkaz `AK_REPORT` na výkaz z aktuálneho výberu.
 - Príkaz `AK_REPORTALL` na výkaz všetkých prvkov v modelovom priestore.
 - Príkaz `AK_INSPECT` na vypísanie údajov pri jednom prvku.
@@ -18,7 +18,7 @@ Základ pre AutoCAD doplnok na **2D výkaz krovu**. Čiara alebo polyline predst
 - Automatické MText popisy prvkov s väzbou cez `SourceHandle`.
 - Výsledný AutoCAD `Table` so stĺpcami: typ, materiál, šírka, výška, dĺžka kusu, počet, celková dĺžka, kubatúra.
 
-## Dôležité pravidlo výpočtu v 0.7.0
+## Dôležité pravidlo výpočtu v 0.8.0
 
 Pre krokvy a vzpery je čiara chápaná ako **vodorovná projekcia v smere spádu strechy**:
 
@@ -113,6 +113,14 @@ AK_HELP
 - COPY/COPYCLIP kópia sa pri synchronizačnom flow inicializuje ako nový fyzický prvok.
 - WBLOCK/import workflow je chránený pred nechceným hromadným prepisom prídavkov.
 - Výpočet a aplikovanie výrobných prídavkov sú centralizované v Core bez AutoCAD závislostí.
+
+## v0.8.0 Per-Element Manufacturing Overrides
+
+- Individuálna editácia `CuttingAllowanceMm` cez `AK_EDIT`.
+- Hromadná editácia s bezpečným mixed-value správaním.
+- Možnosť obnoviť aktuálny predvolený prídavok podľa typu prvku.
+- Bezpečný prepočet reznej dĺžky a synchronizácia `ElementId` cez existujúcu výrobnú identitu.
+- Zachované správanie COPY/COPYCLIP z v0.7.0 a ochrana WBLOCK/import workflow.
 
 ## Štruktúra
 

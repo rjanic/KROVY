@@ -26,7 +26,7 @@ public sealed class AcKrovyCommands
     {
         var editor = ActiveEditor();
         editor.WriteMessage(
-            "\nACAD KROVY 0.7.0"
+            "\nACAD KROVY 0.8.0"
             + "\n\nPRVKY KROVU"
             + "\n  AK_KROKVA      – rýchlo priradí typ Krokva"
             + "\n  AK_POMURNICA   – rýchlo priradí typ Pomúrnica"
@@ -213,20 +213,27 @@ public sealed class AcKrovyCommands
 
         using var readTransaction = document.Database.TransactionManager.StartTransaction();
         var readMetadataStore = new AutoCadTimberElementMetadataStore(readTransaction);
-        var firstData = ids
+        var selectedData = ids
             .Select(id => readTransaction.GetObject(id, OpenMode.ForRead) as Entity)
             .Where(entity => entity is not null)
             .Select(entity => readMetadataStore.TryRead(entity!, out var data) ? data : null)
-            .FirstOrDefault(data => data is not null);
+            .Where(data => data is not null)
+            .Cast<TimberElementData>()
+            .ToList();
         readTransaction.Commit();
 
-        if (firstData is null)
+        if (selectedData.Count == 0)
         {
             editor.WriteMessage("\nVybraný objekt nemá údaje ACAD KROVY. Najprv použi AK_ASSIGN alebo ikonku typu prvku.");
             return;
         }
 
-        var dialog = new ElementEditWindow(firstData, isNewAssignment: false);
+        var defaultProfile = TimberElementDefaultProfileStore.Load();
+        var dialog = new ElementEditWindow(
+            selectedData[0],
+            isNewAssignment: false,
+            defaultProfile,
+            cuttingAllowanceIsMixed: HasMixedCuttingAllowance(selectedData));
         if (AcApp.ShowModalWindow(dialog) != true || dialog.Patch is null)
         {
             return;
@@ -253,6 +260,11 @@ public sealed class AcKrovyCommands
             }
 
             var merged = TimberElementPatcher.Apply(original, dialog.Patch);
+            if (dialog.UseDefaultCuttingAllowanceByType)
+            {
+                merged = TimberElementDefaultApplicator.ApplyCuttingAllowance(merged, defaultProfile);
+            }
+
             previousElementIdById[id] = original.ElementId;
             metadataStore.Write(entity, merged);
             layerService.ApplyLayerForTimberType(entity, merged.ElementType, layerProfile);
@@ -406,6 +418,11 @@ public sealed class AcKrovyCommands
                 ? dialog.Patch with { CuttingAllowanceMm = null }
                 : dialog.Patch;
             var merged = TimberElementPatcher.Apply(original, patch);
+            if (dialog.UseDefaultCuttingAllowanceByType)
+            {
+                merged = TimberElementDefaultApplicator.ApplyCuttingAllowance(merged, defaultProfile);
+            }
+
             previousElementIdById[id] = original.ElementId;
             metadataStore.Write(entity, merged);
             layerService.ApplyLayerForTimberType(entity, merged.ElementType, layerProfile);
@@ -417,6 +434,17 @@ public sealed class AcKrovyCommands
 
         transaction.Commit();
         editor.WriteMessage($"\nACAD KROVY: priradené údaje k {assigned} prvkom. Preskočené: {skipped}.");
+    }
+
+    private static bool HasMixedCuttingAllowance(IReadOnlyList<TimberElementData> selectedData)
+    {
+        if (selectedData.Count < 2)
+        {
+            return false;
+        }
+
+        var first = selectedData[0].CuttingAllowanceMm;
+        return selectedData.Skip(1).Any(data => Math.Abs(data.CuttingAllowanceMm - first) > 0.000001);
     }
 
     private static void UpdateLabelsForChangedEntities(

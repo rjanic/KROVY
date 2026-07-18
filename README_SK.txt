@@ -1,8 +1,13 @@
-ACAD KROVY 0.7.0 – Manufacturing Length & Allowance Foundation
+ACAD KROVY 0.8.0 – Per-Element Manufacturing Overrides
 
-Táto verzia nadväzuje na stabilnú architektúru v0.6.0 a bola manuálne overená v AutoCAD 2027.
+Táto verzia nadväzuje na stabilnú architektúru v0.7.0 a bola manuálne overená v AutoCAD 2027.
 
 ČO PRIDÁVA
+- Individuálnu editáciu CuttingAllowanceMm priamo cez AK_EDIT.
+- Bezpečnú hromadnú editáciu so zmiešanými hodnotami bez tichého prepisu.
+- Tlačidlo „Použiť predvolený podľa typu“ v AK_EDIT.
+- Bezpečný prepočet CuttingLengthMm a synchronizáciu ElementId po zmene prídavku.
+- Zachované COPY/COPYCLIP správanie a WBLOCK/import ochranu z v0.7.0.
 - Nastaviteľné predvolené výrobné prídavky podľa typu prvku v AK_SETTINGS.
 - Predvolené prídavky sa ukladajú pre aktuálny účet Windows do:
   %APPDATA%\ACAD_KROVY\timber-element-default-profile.json
