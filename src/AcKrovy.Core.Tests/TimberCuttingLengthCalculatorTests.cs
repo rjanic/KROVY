@@ -30,12 +30,30 @@ public sealed class TimberCuttingLengthCalculatorTests
         Assert.Equal(5100, result);
     }
 
-    [Fact]
-    public void Calculate_UsesCustomRoundingStepForFutureConfiguration()
+    [Theory]
+    [InlineData(4923, 100, 5000)]
+    [InlineData(4923, 50, 4950)]
+    [InlineData(4923, 10, 4930)]
+    [InlineData(4923, 500, 5000)]
+    [InlineData(5000, 100, 5000)]
+    [InlineData(5000, 500, 5000)]
+    public void Calculate_UsesConfiguredRoundingStep(
+        double measuredLengthMm,
+        double roundingStepMm,
+        double expectedCuttingLengthMm)
     {
-        var result = TimberCuttingLengthCalculator.Calculate(4823, 100, roundingStepMm: 50);
+        var result = TimberCuttingLengthCalculator.Calculate(measuredLengthMm, 0, roundingStepMm);
 
-        Assert.Equal(4950, result);
+        Assert.Equal(expectedCuttingLengthMm, result);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-10)]
+    public void Calculate_RejectsInvalidRoundingStep(double roundingStepMm)
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            TimberCuttingLengthCalculator.Calculate(4923, 0, roundingStepMm));
     }
 
     [Fact]

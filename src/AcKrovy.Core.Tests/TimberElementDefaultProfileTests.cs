@@ -11,10 +11,38 @@ public sealed class TimberElementDefaultProfileTests
     {
         var profile = TimberElementDefaultProfile.CreateDefault();
 
+        Assert.Equal(100, profile.GetCuttingLengthRoundingStepMm());
         foreach (TimberElementType type in Enum.GetValues(typeof(TimberElementType)))
         {
             Assert.Equal(TimberElementDefaultProfile.GetFactoryCuttingAllowanceMm(type), profile.GetCuttingAllowanceMm(type));
         }
+    }
+
+    [Fact]
+    public void Normalize_OldProfileWithoutRoundingStepUsesFactoryFallback()
+    {
+        var profile = new TimberElementDefaultProfile
+        {
+            CuttingLengthRoundingStepMm = 0,
+            Styles = new List<TimberElementDefaultStyle>
+            {
+                new(TimberElementType.Rafter, 150),
+            },
+        }.Normalize();
+
+        Assert.Equal(100, profile.GetCuttingLengthRoundingStepMm());
+        Assert.Equal(150, profile.GetCuttingAllowanceMm(TimberElementType.Rafter));
+    }
+
+    [Fact]
+    public void Normalize_StoresPositiveIntegerRoundingStep()
+    {
+        var profile = new TimberElementDefaultProfile
+        {
+            CuttingLengthRoundingStepMm = 50,
+        }.Normalize();
+
+        Assert.Equal(50, profile.GetCuttingLengthRoundingStepMm());
     }
 
     [Fact]
@@ -275,6 +303,23 @@ public sealed class TimberElementDefaultProfileTests
         Assert.Equal(2500, result.ManualLengthMm);
         Assert.Equal(2500, measurement.ActualLengthMm);
         Assert.Equal(2800, measurement.CuttingLengthMm);
+    }
+
+    [Fact]
+    public void ManualLengthMode_UsesManualLengthAndConfiguredRoundingStepForCuttingLength()
+    {
+        var element = TimberElementDefaults.For(TimberElementType.Post) with
+        {
+            LengthCalculationMode = LengthCalculationMode.ManualLength,
+            ManualLengthMm = 2500,
+            CuttingAllowanceMm = 75,
+        };
+
+        var measurement = TimberCalculator.Measure(element, planLengthMm: 1000, roundingIncrementMm: 50);
+
+        Assert.Equal(LengthCalculationMode.ManualLength, element.LengthCalculationMode);
+        Assert.Equal(2500, measurement.ActualLengthMm);
+        Assert.Equal(2600, measurement.CuttingLengthMm);
     }
 
     [Fact]

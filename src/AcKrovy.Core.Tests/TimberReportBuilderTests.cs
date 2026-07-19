@@ -24,6 +24,7 @@ public sealed class TimberReportBuilderTests
         var report = TimberReportBuilder.Build(new[] { measurement });
 
         var line = Assert.Single(report.Lines);
+        Assert.Equal("K1", line.ElementId);
         Assert.Equal(TimberElementType.Rafter, line.ElementType);
         Assert.Equal("Smrek C24", line.Material);
         Assert.Equal(1, line.Count);
@@ -36,17 +37,31 @@ public sealed class TimberReportBuilderTests
     [Fact]
     public void Build_GroupsMatchingElements()
     {
-        var first = Measurement(TimberElementType.Rafter, "Smrek C24", 80, 160, 5000, 0.064);
-        var second = Measurement(TimberElementType.Rafter, "Smrek C24", 80, 160, 5000, 0.064);
+        var first = Measurement(TimberElementType.Rafter, "Smrek C24", 80, 160, 5000, 0.064, "K1");
+        var second = Measurement(TimberElementType.Rafter, "Smrek C24", 80, 160, 5000, 0.064, "K1");
 
         var report = TimberReportBuilder.Build(new[] { first, second });
 
         var line = Assert.Single(report.Lines);
         Assert.Equal(2, line.Count);
+        Assert.Equal("K1", line.ElementId);
         Assert.Equal(10000, line.TotalLengthMm);
         Assert.Equal(0.128, line.TotalVolumeM3, precision: 6);
         Assert.Equal(2, report.SourceElementCount);
         Assert.Equal(0.128, report.TotalVolumeM3, precision: 6);
+    }
+
+    [Fact]
+    public void Build_UsesExistingItemNumberForReportLine()
+    {
+        var first = Measurement(TimberElementType.Brace, "Smrek C24", 100, 140, 3000, 0.042, "V1");
+        var second = Measurement(TimberElementType.Brace, "Smrek C24", 100, 140, 3000, 0.042, "V1");
+
+        var report = TimberReportBuilder.Build(new[] { first, second });
+
+        var line = Assert.Single(report.Lines);
+        Assert.Equal("V1", line.ElementId);
+        Assert.Equal(2, line.Count);
     }
 
     [Fact]
@@ -76,10 +91,12 @@ public sealed class TimberReportBuilderTests
         double widthMm,
         double heightMm,
         double cuttingLengthMm,
-        double volumeM3)
+        double volumeM3,
+        string elementId = "K1")
     {
         var data = new TimberElementData
         {
+            ElementId = elementId,
             ElementType = type,
             Material = material,
             WidthMm = widthMm,

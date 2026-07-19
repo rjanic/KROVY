@@ -15,9 +15,10 @@ using AcKrovy.Core.Services;
 
 namespace AcKrovy.AutoCAD.UI;
 
-public partial class LayerSettingsWindow : Window
+public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
 {
     private static readonly CultureInfo SlovakCulture = CultureInfo.GetCultureInfo("sk-SK");
+    private string _roundingStepMmText = Format(TimberElementDefaultProfile.FactoryCuttingLengthRoundingStepMm);
 
     public ObservableCollection<LayerSettingsRow> Rows { get; } = [];
     public ObservableCollection<ElementDefaultSettingsRow> DefaultRows { get; } = [];
@@ -27,6 +28,26 @@ public partial class LayerSettingsWindow : Window
     internal TimberElementDefaultProfile? DefaultProfile { get; private set; }
     internal bool ApplyToExistingElements { get; private set; }
     internal CuttingAllowanceApplyMode CuttingAllowanceApplyMode { get; private set; }
+
+    public string RoundingStepMmText
+    {
+        get => _roundingStepMmText;
+        set
+        {
+            if (_roundingStepMmText == value)
+            {
+                return;
+            }
+
+            _roundingStepMmText = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 
     internal LayerSettingsWindow(ElementLayerProfile profile, TimberElementDefaultProfile defaultProfile)
     {
@@ -125,6 +146,17 @@ public partial class LayerSettingsWindow : Window
 
     private bool TryBuildDefaultProfile(out TimberElementDefaultProfile profile)
     {
+        if (!TryReadPositiveInteger(RoundingStepMmText, out var roundingStepMm))
+        {
+            WpfMessageBox.Show(
+                $"Krok zaokrúhľovania výrobnej dĺžky musí byť celé kladné číslo v milimetroch, najviac {TimberElementDefaultProfile.MaxCuttingLengthRoundingStepMm:0}.",
+                "ACAD KROVY",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            profile = TimberElementDefaultProfile.CreateDefault();
+            return false;
+        }
+
         var styles = new List<TimberElementDefaultStyle>();
 
         foreach (var row in DefaultRows)
@@ -145,6 +177,7 @@ public partial class LayerSettingsWindow : Window
 
         profile = new TimberElementDefaultProfile
         {
+            CuttingLengthRoundingStepMm = roundingStepMm,
             Styles = styles,
         }.Normalize();
         return true;
@@ -164,6 +197,7 @@ public partial class LayerSettingsWindow : Window
 
     private void ReplaceDefaultRows(TimberElementDefaultProfile profile)
     {
+        RoundingStepMmText = Format(profile.GetCuttingLengthRoundingStepMm());
         DefaultRows.Clear();
         foreach (var type in Enum.GetValues<TimberElementType>())
         {
@@ -183,6 +217,23 @@ public partial class LayerSettingsWindow : Window
                 !double.IsInfinity(value) &&
                 value >= 0 &&
                 value <= TimberElementDefaultProfile.MaxCuttingAllowanceMm;
+        }
+
+        value = 0;
+        return false;
+    }
+
+    private static bool TryReadPositiveInteger(string raw, out double value)
+    {
+        if ((double.TryParse(raw, NumberStyles.Float, SlovakCulture, out value) ||
+             double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out value)) &&
+            !double.IsNaN(value) &&
+            !double.IsInfinity(value))
+        {
+            var rounded = Math.Round(value);
+            return value > 0 &&
+                Math.Abs(value - rounded) < 0.000001 &&
+                value <= TimberElementDefaultProfile.MaxCuttingLengthRoundingStepMm;
         }
 
         value = 0;

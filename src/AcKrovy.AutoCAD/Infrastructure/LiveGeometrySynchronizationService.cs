@@ -248,12 +248,14 @@ internal static class LiveGeometrySynchronizationService
                         transaction,
                         erasedSourceHandles);
 
+                    var defaultProfile = TimberElementDefaultProfileStore.Load();
+                    var roundingStepMm = defaultProfile.GetCuttingLengthRoundingStepMm();
                     TimberElementCopyInitializationService.InitializeLocalCopies(
                         document.Database,
                         transaction,
                         metadataStore,
                         ids,
-                        TimberElementDefaultProfileStore.Load());
+                        defaultProfile);
 
                     var previousElementIdById = ReadElementIds(document.Database, transaction, metadataStore, ids);
                     var timberIds = FilterTimberElementIds(document.Database, transaction, metadataStore, ids);
@@ -263,7 +265,8 @@ internal static class LiveGeometrySynchronizationService
                             document.Database,
                             transaction,
                             metadataStore,
-                            timberIds);
+                            timberIds,
+                            roundingStepMm);
 
                         foreach (var id in timberIds)
                         {
@@ -280,7 +283,13 @@ internal static class LiveGeometrySynchronizationService
                             }
 
                             previousElementIdById.TryGetValue(id, out var previousElementId);
-                            ElementLabelService.UpsertForElement(document.Database, transaction, entity, data, previousElementId);
+                            ElementLabelService.UpsertForElement(
+                                document.Database,
+                                transaction,
+                                entity,
+                                data,
+                                previousElementId,
+                                roundingStepMm);
                         }
                     }
 

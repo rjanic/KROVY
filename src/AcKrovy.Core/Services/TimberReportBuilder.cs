@@ -16,6 +16,7 @@ public static class TimberReportBuilder
             .ThenBy(x => x.Key.HeightMm)
             .ThenBy(x => x.Key.CuttingLengthMm)
             .Select(group => new TimberReportLine(
+                SelectElementId(group),
                 group.Key.ElementType,
                 group.Key.Material,
                 group.Key.WidthMm,
@@ -28,4 +29,9 @@ public static class TimberReportBuilder
 
         return new TimberReport(lines, materialized.Count, lines.Sum(x => x.TotalVolumeM3));
     }
+
+    private static string SelectElementId(IEnumerable<TimberElementMeasurement> measurements) =>
+        measurements
+            .Select(measurement => measurement.Data.ElementId)
+            .FirstOrDefault(elementId => !string.IsNullOrWhiteSpace(elementId)) ?? string.Empty;
 }

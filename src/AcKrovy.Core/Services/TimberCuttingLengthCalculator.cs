@@ -15,9 +15,9 @@ public static class TimberCuttingLengthCalculator
 
     public static double RoundUp(double valueMm, double roundingStepMm)
     {
-        if (roundingStepMm <= 0)
+        if (double.IsNaN(roundingStepMm) || double.IsInfinity(roundingStepMm) || roundingStepMm <= 0)
         {
-            return valueMm;
+            throw new ArgumentOutOfRangeException(nameof(roundingStepMm), "Krok zaokrúhľovania musí byť kladné číslo.");
         }
 
         return Math.Ceiling(valueMm / roundingStepMm) * roundingStepMm;

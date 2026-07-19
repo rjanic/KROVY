@@ -10,10 +10,11 @@ internal static class TimberElementItemIdentityService
         Database database,
         Transaction transaction,
         AutoCadTimberElementMetadataStore metadataStore,
-        IReadOnlyCollection<ObjectId> targetIds)
+        IReadOnlyCollection<ObjectId> targetIds,
+        double roundingStepMm = TimberCuttingLengthCalculator.DefaultRoundingStepMm)
     {
         var targetSet = targetIds.Distinct().ToHashSet();
-        var entries = ReadCurrentMeasurements(database, transaction, metadataStore);
+        var entries = ReadCurrentMeasurements(database, transaction, metadataStore, roundingStepMm);
         var assignments = TimberElementItemNumbering.AssignElementIds(entries.Select(entry =>
             new TimberElementItemNumberingCandidate(
                 entry.Measurement,
@@ -53,7 +54,8 @@ internal static class TimberElementItemIdentityService
     private static List<TimberElementMeasurementEntry> ReadCurrentMeasurements(
         Database database,
         Transaction transaction,
-        AutoCadTimberElementMetadataStore metadataStore)
+        AutoCadTimberElementMetadataStore metadataStore,
+        double roundingStepMm)
     {
         var entries = new List<TimberElementMeasurementEntry>();
 
@@ -74,7 +76,7 @@ internal static class TimberElementItemIdentityService
 
             entries.Add(new TimberElementMeasurementEntry(
                 id,
-                TimberElementMeasurer.Measure(snapshot)));
+                TimberElementMeasurer.Measure(snapshot, roundingStepMm)));
         }
 
         return entries;

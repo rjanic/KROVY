@@ -1,12 +1,20 @@
+using AcKrovy.Core.Services;
+
 namespace AcKrovy.Core.Models;
 
 public sealed class TimberElementDefaultProfile
 {
     public const double FactoryCuttingAllowanceMm = 100d;
+    public const double FactoryCuttingLengthRoundingStepMm = TimberCuttingLengthCalculator.DefaultRoundingStepMm;
     public const double MaxCuttingAllowanceMm = 10000d;
+    public const double MaxCuttingLengthRoundingStepMm = 10000d;
 
     public int Version { get; set; } = 1;
+    public double CuttingLengthRoundingStepMm { get; set; } = FactoryCuttingLengthRoundingStepMm;
     public List<TimberElementDefaultStyle> Styles { get; set; } = new();
+
+    public double GetCuttingLengthRoundingStepMm() =>
+        NormalizeCuttingLengthRoundingStepMm(CuttingLengthRoundingStepMm);
 
     public double GetCuttingAllowanceMm(TimberElementType type)
     {
@@ -28,6 +36,7 @@ public sealed class TimberElementDefaultProfile
         return new TimberElementDefaultProfile
         {
             Version = Version <= 0 ? 1 : Version,
+            CuttingLengthRoundingStepMm = GetCuttingLengthRoundingStepMm(),
             Styles = Enum
                 .GetValues(typeof(TimberElementType))
                 .Cast<TimberElementType>()
@@ -47,6 +56,16 @@ public sealed class TimberElementDefaultProfile
 
     private static double NormalizeCuttingAllowanceMm(double value) =>
         Math.Min(MaxCuttingAllowanceMm, Math.Max(0, value));
+
+    private static double NormalizeCuttingLengthRoundingStepMm(double value)
+    {
+        if (double.IsNaN(value) || double.IsInfinity(value) || value <= 0)
+        {
+            return FactoryCuttingLengthRoundingStepMm;
+        }
+
+        return Math.Min(MaxCuttingLengthRoundingStepMm, Math.Round(value));
+    }
 }
 
 public sealed class TimberElementDefaultStyle

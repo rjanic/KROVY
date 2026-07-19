@@ -28,7 +28,8 @@ internal static class ElementLabelService
         Transaction transaction,
         Entity sourceEntity,
         TimberElementData data,
-        string? previousElementId = null)
+        string? previousElementId = null,
+        double roundingStepMm = TimberCuttingLengthCalculator.DefaultRoundingStepMm)
     {
         ArgumentNullException.ThrowIfNull(database);
         ArgumentNullException.ThrowIfNull(transaction);
@@ -40,7 +41,7 @@ internal static class ElementLabelService
             return false;
         }
 
-        var measurement = TimberCalculator.Measure(data, AutoCadEntityHelpers.GetPlanLengthMm(sourceEntity));
+        var measurement = TimberCalculator.Measure(data, AutoCadEntityHelpers.GetPlanLengthMm(sourceEntity), roundingStepMm);
         var labelText = TimberElementLabelFormatter.Format(data, measurement);
         var placement = CalculatePlacement(sourceEntity);
         var sourceHandle = sourceEntity.Handle.ToString();
@@ -241,19 +242,22 @@ internal static class ElementLabelService
         var created = 0;
         var updated = 0;
         var skipped = 0;
+        var defaultProfile = TimberElementDefaultProfileStore.Load();
+        var roundingStepMm = defaultProfile.GetCuttingLengthRoundingStepMm();
         var distinctIds = ids.Distinct().ToList();
         TimberElementCopyInitializationService.InitializeLocalCopies(
             database,
             transaction,
             metadataStore,
             distinctIds,
-            TimberElementDefaultProfileStore.Load());
+            defaultProfile);
         var previousElementIdById = ReadElementIds(transaction, metadataStore, distinctIds);
         var synchronizedDataById = TimberElementItemIdentityService.SynchronizeElementIds(
             database,
             transaction,
             metadataStore,
-            distinctIds);
+            distinctIds,
+            roundingStepMm);
 
         foreach (var id in distinctIds)
         {
@@ -274,7 +278,7 @@ internal static class ElementLabelService
                 }
 
                 previousElementIdById.TryGetValue(id, out var previousElementId);
-                if (UpsertForElement(database, transaction, entity, data, previousElementId))
+                if (UpsertForElement(database, transaction, entity, data, previousElementId, roundingStepMm))
                 {
                     created++;
                 }

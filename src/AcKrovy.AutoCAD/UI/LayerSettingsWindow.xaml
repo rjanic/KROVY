@@ -73,13 +73,21 @@
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="8" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="8" />
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
                     <TextBlock Grid.Row="0" TextWrapping="Wrap" Foreground="#555555">
                         Predvolený prídavok na rez sa použije pri novom priradení prvku. Pri uložení si môžeš vybrať, či sa má premietnuť aj do existujúcich prvkov.
                     </TextBlock>
+                    <StackPanel Grid.Row="2" Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock VerticalAlignment="Center" Text="Zaokrúhľovať výrobnú dĺžku nahor na [mm]" />
+                        <TextBox Width="90"
+                                 Margin="12,0,0,0"
+                                 Text="{Binding RoundingStepMmText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                    </StackPanel>
                     <DataGrid x:Name="DefaultsDataGrid"
-                              Grid.Row="2"
+                              Grid.Row="4"
                               AutoGenerateColumns="False"
                               CanUserAddRows="False"
                               CanUserDeleteRows="False"

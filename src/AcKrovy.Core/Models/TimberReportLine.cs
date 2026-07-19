@@ -2,6 +2,7 @@ namespace AcKrovy.Core.Models;
 
 /// <summary>Jeden súhrnný riadok výkazu reziva.</summary>
 public sealed record TimberReportLine(
+    string ElementId,
     TimberElementType ElementType,
     string Material,
     double WidthMm,

@@ -231,11 +231,18 @@ public sealed class TimberCalculatorTests
     [Theory]
     [InlineData(1001, 10, 1010)]
     [InlineData(1000, 10, 1000)]
-    [InlineData(1001, 0, 1001)]
-    [InlineData(1001, -10, 1001)]
     public void RoundUp_UsesExistingIncrementBehavior(double valueMm, double incrementMm, double expected)
     {
         Assert.Equal(expected, TimberCalculator.RoundUp(valueMm, incrementMm));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-10)]
+    public void RoundUp_RejectsInvalidIncrement(double incrementMm)
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            TimberCalculator.RoundUp(1001, incrementMm));
     }
 
     [Theory]

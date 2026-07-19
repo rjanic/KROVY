@@ -300,8 +300,9 @@ public sealed class AcKrovyCommands
         }
 
         var data = snapshot.Data;
-        var measurement = TimberElementMeasurer.Measure(snapshot);
         var defaultProfile = TimberElementDefaultProfileStore.Load();
+        var roundingStepMm = defaultProfile.GetCuttingLengthRoundingStepMm();
+        var measurement = TimberElementMeasurer.Measure(snapshot, roundingStepMm);
         var currentDefaultAllowance = defaultProfile.GetCuttingAllowanceMm(data.ElementType);
         var allowanceSource = Math.Abs(data.CuttingAllowanceMm - currentDefaultAllowance) < 0.000001
             ? "aktuálny default podľa typu"
@@ -320,6 +321,7 @@ public sealed class AcKrovyCommands
             new("Materiál", data.Material),
             new("Šírka", $"{data.WidthMm:0} mm"),
             new("Výška", $"{data.HeightMm:0} mm"),
+            new("Sklon", $"{data.SlopeDegrees:0.###}°"),
             new("Pôdorysná dĺžka", $"{measurement.PlanLengthMm:0} mm"),
             new("Skutočná dĺžka", $"{measurement.ActualLengthMm:0} mm"),
             new("Prídavok na prírez", $"{data.CuttingAllowanceMm:0} mm ({allowanceSource})"),
@@ -363,6 +365,8 @@ public sealed class AcKrovyCommands
         var editor = document.Editor;
         using var transaction = document.Database.TransactionManager.StartTransaction();
         var metadataStore = new AutoCadTimberElementMetadataStore(transaction);
+        var defaultProfile = TimberElementDefaultProfileStore.Load();
+        var roundingStepMm = defaultProfile.GetCuttingLengthRoundingStepMm();
         var checkedCount = 0;
         var errors = 0;
 
@@ -377,7 +381,7 @@ public sealed class AcKrovyCommands
 
             try
             {
-                _ = TimberElementMeasurer.Measure(snapshot);
+                _ = TimberElementMeasurer.Measure(snapshot, roundingStepMm);
                 checkedCount++;
             }
             catch (System.Exception ex)
@@ -480,11 +484,14 @@ public sealed class AcKrovyCommands
         IReadOnlyList<ObjectId> changedIds,
         IReadOnlyDictionary<ObjectId, string> previousElementIdById)
     {
+        var defaultProfile = TimberElementDefaultProfileStore.Load();
+        var roundingStepMm = defaultProfile.GetCuttingLengthRoundingStepMm();
         var synchronizedDataById = TimberElementItemIdentityService.SynchronizeElementIds(
             database,
             transaction,
             metadataStore,
-            changedIds);
+            changedIds,
+            roundingStepMm);
 
         foreach (var id in changedIds.Distinct())
         {
@@ -495,7 +502,13 @@ public sealed class AcKrovyCommands
             }
 
             previousElementIdById.TryGetValue(id, out var previousElementId);
-            ElementLabelService.UpsertForElement(database, transaction, entity, synchronizedData, previousElementId);
+            ElementLabelService.UpsertForElement(
+                database,
+                transaction,
+                entity,
+                synchronizedData,
+                previousElementId,
+                roundingStepMm);
         }
     }
 
@@ -617,6 +630,14 @@ public sealed class AcKrovyCommands
 
         using var transaction = document.Database.TransactionManager.StartTransaction();
         var metadataStore = new AutoCadTimberElementMetadataStore(transaction);
+        var defaultProfile = TimberElementDefaultProfileStore.Load();
+        var roundingStepMm = defaultProfile.GetCuttingLengthRoundingStepMm();
+        _ = TimberElementItemIdentityService.SynchronizeElementIds(
+            document.Database,
+            transaction,
+            metadataStore,
+            ids,
+            roundingStepMm);
         var measurements = new List<TimberElementMeasurement>();
         var skipped = 0;
 
@@ -632,7 +653,7 @@ public sealed class AcKrovyCommands
 
             try
             {
-                measurements.Add(TimberElementMeasurer.Measure(snapshot));
+                measurements.Add(TimberElementMeasurer.Measure(snapshot, roundingStepMm));
             }
             catch (System.Exception ex)
             {
