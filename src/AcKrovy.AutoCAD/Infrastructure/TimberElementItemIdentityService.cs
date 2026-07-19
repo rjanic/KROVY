@@ -32,7 +32,13 @@ internal static class TimberElementItemIdentityService
                         entry.Measurement.Data.ElementId,
                         updatedData.ElementId,
                         StringComparison.OrdinalIgnoreCase) &&
-                    transaction.GetObject(entry.Id, OpenMode.ForWrite) is Entity writableEntity)
+                    AutoCadObjectIdAccess.TryGetObject<Entity>(
+                        transaction,
+                        entry.Id,
+                        OpenMode.ForWrite,
+                        out var writableEntity,
+                        database) &&
+                    writableEntity is not null)
                 {
                     metadataStore.Write(writableEntity, updatedData);
                 }
@@ -53,7 +59,13 @@ internal static class TimberElementItemIdentityService
 
         foreach (var id in DrawingScanner.FindAllTimberElements(database, transaction, metadataStore))
         {
-            if (transaction.GetObject(id, OpenMode.ForRead) is not Entity entity ||
+            if (!AutoCadObjectIdAccess.TryGetObject<Entity>(
+                    transaction,
+                    id,
+                    OpenMode.ForRead,
+                    out var entity,
+                    database) ||
+                entity is null ||
                 !AutoCadEntityReader.TryReadTimberElement(entity, metadataStore, out var snapshot) ||
                 snapshot is null)
             {

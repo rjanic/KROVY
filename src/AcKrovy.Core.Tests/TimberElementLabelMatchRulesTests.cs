@@ -81,6 +81,24 @@ public sealed class TimberElementLabelMatchRulesTests
     }
 
     [Fact]
+    public void SelectLabelForUpsert_NoLabelForNewSourceHandle_CreatesNewLabel()
+    {
+        var result = TimberElementLabelMatchRules.SelectLabelForUpsert(
+            sourceHandle: "COPY",
+            currentElementId: "K1",
+            previousElementId: "K1",
+            new[]
+            {
+                Label("original", "K1", "ORIGINAL"),
+            },
+            currentElementOwnerCount: 2,
+            previousElementOwnerCount: 2);
+
+        Assert.Null(result.LabelKeyToUpdate);
+        Assert.Empty(result.LabelKeysToDelete);
+    }
+
+    [Fact]
     public void SelectLabelForUpsert_LabelWithoutSourceHandle_FallsBackToPreviousElementIdWhenUnique()
     {
         var result = TimberElementLabelMatchRules.SelectLabelForUpsert(

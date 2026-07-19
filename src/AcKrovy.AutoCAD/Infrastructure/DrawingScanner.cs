@@ -17,7 +17,13 @@ internal static class DrawingScanner
 
         foreach (ObjectId id in modelSpace)
         {
-            if (transaction.GetObject(id, OpenMode.ForRead) is not Entity entity)
+            if (!AutoCadObjectIdAccess.TryGetObject<Entity>(
+                    transaction,
+                    id,
+                    OpenMode.ForRead,
+                    out var entity,
+                    database) ||
+                entity is null)
             {
                 continue;
             }

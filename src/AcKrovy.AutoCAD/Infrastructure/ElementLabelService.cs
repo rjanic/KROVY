@@ -259,7 +259,13 @@ internal static class ElementLabelService
         {
             try
             {
-                if (transaction.GetObject(id, OpenMode.ForRead) is not Entity entity ||
+                if (!AutoCadObjectIdAccess.TryGetObject<Entity>(
+                        transaction,
+                        id,
+                        OpenMode.ForRead,
+                        out var entity,
+                        database) ||
+                    entity is null ||
                     !AutoCadEntityHelpers.IsSupportedTimberGeometry(entity) ||
                     !synchronizedDataById.TryGetValue(id, out var data))
                 {
@@ -297,7 +303,12 @@ internal static class ElementLabelService
 
         foreach (var id in ids)
         {
-            if (transaction.GetObject(id, OpenMode.ForRead) is Entity entity &&
+            if (AutoCadObjectIdAccess.TryGetObject<Entity>(
+                    transaction,
+                    id,
+                    OpenMode.ForRead,
+                    out var entity) &&
+                entity is not null &&
                 metadataStore.TryRead(entity, out var data) &&
                 data is not null)
             {
@@ -357,7 +368,13 @@ internal static class ElementLabelService
 
         foreach (ObjectId id in modelSpace)
         {
-            if (transaction.GetObject(id, OpenMode.ForRead) is not MText text ||
+            if (!AutoCadObjectIdAccess.TryGetObject<MText>(
+                    transaction,
+                    id,
+                    OpenMode.ForRead,
+                    out var text,
+                    database) ||
+                text is null ||
                 !ElementLabelStore.TryRead(text, out var data) ||
                 data is null)
             {
@@ -377,7 +394,13 @@ internal static class ElementLabelService
 
         foreach (var id in DrawingScanner.FindAllTimberElements(database, transaction, metadataStore))
         {
-            if (transaction.GetObject(id, OpenMode.ForRead, false) is Entity entity)
+            if (AutoCadObjectIdAccess.TryGetObject<Entity>(
+                    transaction,
+                    id,
+                    OpenMode.ForRead,
+                    out var entity,
+                    database) &&
+                entity is not null)
             {
                 handles.Add(entity.Handle.ToString());
             }
@@ -394,7 +417,12 @@ internal static class ElementLabelService
         foreach (var id in obsoleteLabelIds.Distinct())
         {
             if (id == selectedLabelId ||
-                transaction.GetObject(id, OpenMode.ForWrite, false) is not MText label ||
+                !AutoCadObjectIdAccess.TryGetObject<MText>(
+                    transaction,
+                    id,
+                    OpenMode.ForWrite,
+                    out var label) ||
+                label is null ||
                 !ElementLabelStore.TryRead(label, out _))
             {
                 continue;
@@ -414,7 +442,12 @@ internal static class ElementLabelService
         foreach (var labelKey in labelKeysToDelete.Distinct(StringComparer.OrdinalIgnoreCase))
         {
             if (!labelIdsByKey.TryGetValue(labelKey, out var id) ||
-                transaction.GetObject(id, OpenMode.ForWrite, false) is not MText label ||
+                !AutoCadObjectIdAccess.TryGetObject<MText>(
+                    transaction,
+                    id,
+                    OpenMode.ForWrite,
+                    out var label) ||
+                label is null ||
                 !ElementLabelStore.TryRead(label, out _))
             {
                 continue;
@@ -442,7 +475,13 @@ internal static class ElementLabelService
 
         foreach (var id in DrawingScanner.FindAllTimberElements(database, transaction, metadataStore))
         {
-            if (transaction.GetObject(id, OpenMode.ForRead) is not Entity entity ||
+            if (!AutoCadObjectIdAccess.TryGetObject<Entity>(
+                    transaction,
+                    id,
+                    OpenMode.ForRead,
+                    out var entity,
+                    database) ||
+                entity is null ||
                 !metadataStore.TryRead(entity, out var data) ||
                 data is null ||
                 !string.Equals(data.ElementId, elementId, StringComparison.OrdinalIgnoreCase))

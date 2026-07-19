@@ -30,7 +30,13 @@ internal static class TimberElementCopyInitializationService
 
         foreach (var id in targetIds.Distinct())
         {
-            if (transaction.GetObject(id, OpenMode.ForWrite) is not Entity entity ||
+            if (!AutoCadObjectIdAccess.TryGetObject<Entity>(
+                    transaction,
+                    id,
+                    OpenMode.ForWrite,
+                    out var entity,
+                    database) ||
+                entity is null ||
                 !AutoCadEntityHelpers.IsSupportedTimberGeometry(entity) ||
                 !metadataStore.TryRead(entity, out var data) ||
                 data is null)

@@ -255,8 +255,8 @@ internal static class LiveGeometrySynchronizationService
                         ids,
                         TimberElementDefaultProfileStore.Load());
 
-                    var previousElementIdById = ReadElementIds(transaction, metadataStore, ids);
-                    var timberIds = FilterTimberElementIds(transaction, metadataStore, ids);
+                    var previousElementIdById = ReadElementIds(document.Database, transaction, metadataStore, ids);
+                    var timberIds = FilterTimberElementIds(document.Database, transaction, metadataStore, ids);
                     if (timberIds.Count > 0)
                     {
                         var synchronizedDataById = TimberElementItemIdentityService.SynchronizeElementIds(
@@ -267,7 +267,13 @@ internal static class LiveGeometrySynchronizationService
 
                         foreach (var id in timberIds)
                         {
-                            if (transaction.GetObject(id, OpenMode.ForRead, false) is not Entity entity ||
+                            if (!AutoCadObjectIdAccess.TryGetObject<Entity>(
+                                    transaction,
+                                    id,
+                                    OpenMode.ForRead,
+                                    out var entity,
+                                    document.Database) ||
+                                entity is null ||
                                 !synchronizedDataById.TryGetValue(id, out var data))
                             {
                                 continue;
@@ -293,6 +299,7 @@ internal static class LiveGeometrySynchronizationService
         }
 
         private static IReadOnlyDictionary<ObjectId, string> ReadElementIds(
+            Database database,
             Transaction transaction,
             AutoCadTimberElementMetadataStore metadataStore,
             IReadOnlyList<ObjectId> ids)
@@ -301,9 +308,13 @@ internal static class LiveGeometrySynchronizationService
 
             foreach (var id in ids.Distinct())
             {
-                if (!id.IsValid ||
-                    id.IsErased ||
-                    transaction.GetObject(id, OpenMode.ForRead, false) is not Entity entity ||
+                if (!AutoCadObjectIdAccess.TryGetObject<Entity>(
+                        transaction,
+                        id,
+                        OpenMode.ForRead,
+                        out var entity,
+                        database) ||
+                    entity is null ||
                     !metadataStore.TryRead(entity, out var data) ||
                     data is null)
                 {
@@ -317,6 +328,7 @@ internal static class LiveGeometrySynchronizationService
         }
 
         private static IReadOnlyList<ObjectId> FilterTimberElementIds(
+            Database database,
             Transaction transaction,
             AutoCadTimberElementMetadataStore metadataStore,
             IReadOnlyList<ObjectId> ids)
@@ -325,9 +337,13 @@ internal static class LiveGeometrySynchronizationService
 
             foreach (var id in ids.Distinct())
             {
-                if (!id.IsValid ||
-                    id.IsErased ||
-                    transaction.GetObject(id, OpenMode.ForRead, false) is not Entity entity ||
+                if (!AutoCadObjectIdAccess.TryGetObject<Entity>(
+                        transaction,
+                        id,
+                        OpenMode.ForRead,
+                        out var entity,
+                        database) ||
+                    entity is null ||
                     !AutoCadEntityHelpers.IsSupportedTimberGeometry(entity) ||
                     !metadataStore.TryRead(entity, out var data) ||
                     data is null)
