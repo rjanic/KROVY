@@ -1,0 +1,28 @@
+name: Compatibility Gate
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  portable:
+    name: Portable Compatibility Gate
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Run portable compatibility gate
+        shell: pwsh
+        run: .\scripts\compatibility-gate.ps1 -Portable

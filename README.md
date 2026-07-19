@@ -49,6 +49,10 @@ Nárožné krokvy, úžľabia, rôzne strešné roviny a skutočné 3D smerové 
 
 AutoCAD API DLL sa berú z lokálnej inštalácie AutoCADu, preto nie sú vložené v projekte ani v repozitári.
 
+## Compatibility Gate
+
+Automatické portable/full kontroly buildu, testov a architektonických závislostí sú popísané v [docs/COMPATIBILITY_GATE.md](docs/COMPATIBILITY_GATE.md).
+
 ## Otvorenie vo Visual Studiu
 
 1. Otvor `AcKrovy.sln`.
