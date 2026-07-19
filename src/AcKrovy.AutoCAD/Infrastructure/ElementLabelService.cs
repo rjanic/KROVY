@@ -135,6 +135,60 @@ internal static class ElementLabelService
             .ToList();
     }
 
+    internal static bool TryGetLongitudinalInterval(
+        Database database,
+        Transaction transaction,
+        Entity sourceEntity,
+        out TimberSlopeAnnotationLongitudinalInterval interval)
+    {
+        interval = new TimberSlopeAnnotationLongitudinalInterval(0d, 0d);
+        var sourceHandle = sourceEntity.Handle.ToString();
+        var matchingLabel = ReadLabels(database, transaction)
+            .FirstOrDefault(label => TimberSlopeAnnotationRules.HasSameSourceHandle(
+                label.Data.SourceHandle,
+                sourceHandle));
+        if (matchingLabel == default ||
+            !AutoCadObjectIdAccess.TryGetObject<MText>(
+                transaction,
+                matchingLabel.Id,
+                OpenMode.ForRead,
+                out var label,
+                database) ||
+            label is null)
+        {
+            return false;
+        }
+
+        var (start, end) = sourceEntity switch
+        {
+            Line line => (line.StartPoint, line.EndPoint),
+            Polyline polyline => (polyline.StartPoint, polyline.EndPoint),
+            _ => (Point3d.Origin, Point3d.Origin),
+        };
+        var dx = end.X - start.X;
+        var dy = end.Y - start.Y;
+        var axisLength = Math.Sqrt(dx * dx + dy * dy);
+        if (axisLength < 0.001d)
+        {
+            return false;
+        }
+
+        var axisX = dx / axisLength;
+        var axisY = dy / axisLength;
+        var centerDistance = (label.Location.X - start.X) * axisX +
+            (label.Location.Y - start.Y) * axisY;
+        var halfWidth = label.ActualWidth / 2d;
+        if (double.IsNaN(halfWidth) || double.IsInfinity(halfWidth) || halfWidth <= 0d)
+        {
+            return false;
+        }
+
+        interval = new TimberSlopeAnnotationLongitudinalInterval(
+            centerDistance - halfWidth,
+            centerDistance + halfWidth);
+        return true;
+    }
+
     internal static int DeleteLabelsForMissingSourceHandles(
         Database database,
         Transaction transaction,

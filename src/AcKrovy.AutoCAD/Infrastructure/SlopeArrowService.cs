@@ -15,7 +15,8 @@ internal static class SlopeArrowService
         Database database,
         Transaction transaction,
         Entity sourceEntity,
-        TimberElementData data)
+        TimberElementData data,
+        SlopeAnnotationGeometryData geometry)
     {
         ArgumentNullException.ThrowIfNull(database);
         ArgumentNullException.ThrowIfNull(transaction);
@@ -41,7 +42,7 @@ internal static class SlopeArrowService
             return false;
         }
 
-        var placement = CalculatePlacement(sourceEntity, data.IsSlopeDirectionReversed);
+        var placement = CalculatePlacement(geometry, data.IsSlopeDirectionReversed);
         Polyline arrow;
         var isCreated = matchingArrows.Count == 0;
 
@@ -114,10 +115,10 @@ internal static class SlopeArrowService
         return DeleteArrowsSelectedByCleanupRules(transaction, arrows, existingHandles, deleteDuplicates: true);
     }
 
-    private static ArrowPlacement CalculatePlacement(Entity sourceEntity, bool isReversed)
+    private static ArrowPlacement CalculatePlacement(
+        SlopeAnnotationGeometryData geometry,
+        bool isReversed)
     {
-        var geometry = SlopeAnnotationGeometry.Calculate(sourceEntity);
-
         return new ArrowPlacement(
             TimberSlopeArrowCalculator.Calculate(
                 geometry.Start.X,

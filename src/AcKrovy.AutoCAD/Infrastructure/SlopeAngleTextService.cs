@@ -15,7 +15,8 @@ internal static class SlopeAngleTextService
         Database database,
         Transaction transaction,
         Entity sourceEntity,
-        TimberElementData data)
+        TimberElementData data,
+        SlopeAnnotationGeometryData geometry)
     {
         ArgumentNullException.ThrowIfNull(database);
         ArgumentNullException.ThrowIfNull(transaction);
@@ -57,7 +58,7 @@ internal static class SlopeAngleTextService
             angleText = (DBText)transaction.GetObject(matchingTexts[0].Id, OpenMode.ForWrite);
         }
 
-        ApplyAppearance(database, transaction, angleText, sourceEntity, data.SlopeDegrees);
+        ApplyAppearance(database, transaction, angleText, geometry, data.SlopeDegrees);
         SlopeAngleTextStore.Write(
             angleText,
             transaction,
@@ -123,10 +124,9 @@ internal static class SlopeAngleTextService
         Database database,
         Transaction transaction,
         DBText angleText,
-        Entity sourceEntity,
+        SlopeAnnotationGeometryData geometry,
         double slopeDegrees)
     {
-        var geometry = SlopeAnnotationGeometry.Calculate(sourceEntity);
         var placement = TimberElementLabelPlacementCalculator.Calculate(
             geometry.Start.X,
             geometry.Start.Y,

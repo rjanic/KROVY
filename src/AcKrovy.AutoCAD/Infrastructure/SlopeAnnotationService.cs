@@ -1,4 +1,5 @@
 using AcKrovy.Core.Models;
+using AcKrovy.Core.Services;
 using Autodesk.AutoCAD.DatabaseServices;
 
 namespace AcKrovy.AutoCAD.Infrastructure;
@@ -11,8 +12,24 @@ internal static class SlopeAnnotationService
         Entity sourceEntity,
         TimberElementData data)
     {
-        SlopeArrowService.UpsertForElement(database, transaction, sourceEntity, data);
-        SlopeAngleTextService.UpsertForElement(database, transaction, sourceEntity, data);
+        var preferredGeometry = SlopeAnnotationGeometry.CalculatePreferred(sourceEntity);
+        TimberSlopeAnnotationLongitudinalInterval? labelInterval = null;
+        if (ElementLabelService.TryGetLongitudinalInterval(
+                database,
+                transaction,
+                sourceEntity,
+                out var interval))
+        {
+            labelInterval = interval;
+        }
+
+        var placement = TimberSlopeAnnotationPlacementCalculator.Calculate(
+            preferredGeometry.LengthMm,
+            labelInterval);
+        var geometry = SlopeAnnotationGeometry.Calculate(sourceEntity, placement.AnchorDistanceMm);
+
+        SlopeArrowService.UpsertForElement(database, transaction, sourceEntity, data, geometry);
+        SlopeAngleTextService.UpsertForElement(database, transaction, sourceEntity, data, geometry);
     }
 
     public static void DeleteForMissingSourceHandles(
