@@ -69,6 +69,21 @@ public sealed class TimberElementLabelCleanupRulesTests
         Assert.Empty(second);
     }
 
+    [Fact]
+    public void SelectLabelsWithoutExistingSourceHandleToDelete_RemovesOnlyStaleInsertedLabel()
+    {
+        var result = TimberElementLabelCleanupRules.SelectLabelsWithoutExistingSourceHandleToDelete(
+            new[]
+            {
+                Label("manual-like", "K1", string.Empty),
+                Label("stale-clone", "K1", "OLD"),
+                Label("current", "K1", "NEW"),
+            },
+            new[] { "NEW" });
+
+        Assert.Equal(new[] { "stale-clone" }, result);
+    }
+
     private static IReadOnlyList<string> Select(
         IReadOnlyCollection<string> existingTimberSourceHandles,
         params TimberElementLabelCandidate[] labels) =>

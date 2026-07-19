@@ -198,6 +198,39 @@ internal static class ElementLabelService
         return DeleteLabelsByKey(transaction, labelIdsByKey, keysToDelete);
     }
 
+    internal static int DeleteInsertedLabelsWithoutCurrentSourceHandles(
+        Database database,
+        Transaction transaction,
+        IReadOnlyCollection<ObjectId> labelIds)
+    {
+        if (labelIds.Count == 0)
+        {
+            return 0;
+        }
+
+        var labels = ReadLabels(database, transaction)
+            .Where(label => labelIds.Contains(label.Id))
+            .ToList();
+        if (labels.Count == 0)
+        {
+            return 0;
+        }
+
+        var labelIdsByKey = labels.ToDictionary(label => label.Id.ToString(), label => label.Id);
+        var keysToDelete = TimberElementLabelCleanupRules.SelectLabelsWithoutExistingSourceHandleToDelete(
+            labels
+                .Select(label => new TimberElementLabelCandidate
+                {
+                    LabelKey = label.Id.ToString(),
+                    ElementId = label.Data.ElementId,
+                    SourceHandle = label.Data.SourceHandle,
+                })
+                .ToList(),
+            ReadTimberSourceHandles(database, transaction));
+
+        return DeleteLabelsByKey(transaction, labelIdsByKey, keysToDelete);
+    }
+
     private static ElementLabelUpdateResult Update(
         Database database,
         Transaction transaction,

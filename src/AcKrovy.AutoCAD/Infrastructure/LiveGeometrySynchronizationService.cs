@@ -81,6 +81,7 @@ internal static class LiveGeometrySynchronizationService
     {
         private readonly Document _document;
         private readonly LiveGeometryRefreshCoordinator<ObjectId> _modifiedIds = new();
+        private readonly LiveGeometryRefreshCoordinator<ObjectId> _appendedLabelIds = new();
         private readonly LiveGeometryRefreshCoordinator<string> _erasedSourceHandles = new();
         private bool _ignoreCurrentCommand;
         private bool _isDisposed;
@@ -88,6 +89,7 @@ internal static class LiveGeometrySynchronizationService
         public DocumentTracker(Document document)
         {
             _document = document;
+            _document.Database.ObjectAppended += ObjectAppended;
             _document.Database.ObjectModified += ObjectModified;
             _document.Database.ObjectErased += ObjectErased;
             _document.CommandWillStart += CommandWillStart;
@@ -104,6 +106,7 @@ internal static class LiveGeometrySynchronizationService
             }
 
             _isDisposed = true;
+            _document.Database.ObjectAppended -= ObjectAppended;
             _document.Database.ObjectModified -= ObjectModified;
             _document.Database.ObjectErased -= ObjectErased;
             _document.CommandWillStart -= CommandWillStart;
@@ -111,7 +114,31 @@ internal static class LiveGeometrySynchronizationService
             _document.CommandCancelled -= CommandCancelled;
             _document.CommandFailed -= CommandFailed;
             _modifiedIds.Clear();
+            _appendedLabelIds.Clear();
             _erasedSourceHandles.Clear();
+        }
+
+        private void ObjectAppended(object? sender, ObjectEventArgs e)
+        {
+            if (_ignoreCurrentCommand ||
+                _modifiedIds.IsSuppressed ||
+                e.DBObject is not Entity entity ||
+                entity.ObjectId.IsNull ||
+                entity.IsErased)
+            {
+                return;
+            }
+
+            if (AutoCadEntityHelpers.IsSupportedTimberGeometry(entity))
+            {
+                _modifiedIds.TryAdd(entity.ObjectId);
+                return;
+            }
+
+            if (!_appendedLabelIds.IsSuppressed && entity is MText)
+            {
+                _appendedLabelIds.TryAdd(entity.ObjectId);
+            }
         }
 
         private void ObjectModified(object? sender, ObjectEventArgs e)
@@ -148,6 +175,7 @@ internal static class LiveGeometrySynchronizationService
             if (_ignoreCurrentCommand)
             {
                 _modifiedIds.Clear();
+                _appendedLabelIds.Clear();
                 _erasedSourceHandles.Clear();
             }
         }
@@ -159,6 +187,7 @@ internal static class LiveGeometrySynchronizationService
             if (shouldIgnore)
             {
                 _modifiedIds.Clear();
+                _appendedLabelIds.Clear();
                 _erasedSourceHandles.Clear();
                 return;
             }
@@ -170,6 +199,7 @@ internal static class LiveGeometrySynchronizationService
         {
             _ignoreCurrentCommand = false;
             _modifiedIds.Clear();
+            _appendedLabelIds.Clear();
             _erasedSourceHandles.Clear();
         }
 
@@ -177,28 +207,32 @@ internal static class LiveGeometrySynchronizationService
         {
             _ignoreCurrentCommand = false;
             _modifiedIds.Clear();
+            _appendedLabelIds.Clear();
             _erasedSourceHandles.Clear();
         }
 
         private void RefreshCandidates()
         {
             var ids = _modifiedIds.Drain();
+            var appendedLabelIds = _appendedLabelIds.Drain();
             var erasedSourceHandles = _erasedSourceHandles.Drain();
-            if (ids.Count == 0 && erasedSourceHandles.Count == 0)
+            if (ids.Count == 0 && appendedLabelIds.Count == 0 && erasedSourceHandles.Count == 0)
             {
                 return;
             }
 
             using (_modifiedIds.Suppress())
+            using (_appendedLabelIds.Suppress())
             using (_erasedSourceHandles.Suppress())
             {
-                RefreshTimberElements(_document, ids, erasedSourceHandles);
+                RefreshTimberElements(_document, ids, appendedLabelIds, erasedSourceHandles);
             }
         }
 
         private static void RefreshTimberElements(
             Document document,
             IReadOnlyList<ObjectId> ids,
+            IReadOnlyCollection<ObjectId> appendedLabelIds,
             IReadOnlyCollection<string> erasedSourceHandles)
         {
             var editor = document.Editor;
@@ -223,30 +257,32 @@ internal static class LiveGeometrySynchronizationService
 
                     var previousElementIdById = ReadElementIds(transaction, metadataStore, ids);
                     var timberIds = FilterTimberElementIds(transaction, metadataStore, ids);
-                    if (timberIds.Count == 0)
+                    if (timberIds.Count > 0)
                     {
-                        transaction.Commit();
-                        return;
+                        var synchronizedDataById = TimberElementItemIdentityService.SynchronizeElementIds(
+                            document.Database,
+                            transaction,
+                            metadataStore,
+                            timberIds);
+
+                        foreach (var id in timberIds)
+                        {
+                            if (transaction.GetObject(id, OpenMode.ForRead, false) is not Entity entity ||
+                                !synchronizedDataById.TryGetValue(id, out var data))
+                            {
+                                continue;
+                            }
+
+                            previousElementIdById.TryGetValue(id, out var previousElementId);
+                            ElementLabelService.UpsertForElement(document.Database, transaction, entity, data, previousElementId);
+                        }
                     }
 
-                    var synchronizedDataById = TimberElementItemIdentityService.SynchronizeElementIds(
+                    ElementLabelService.DeleteInsertedLabelsWithoutCurrentSourceHandles(
                         document.Database,
                         transaction,
-                        metadataStore,
-                        timberIds);
-
-                    foreach (var id in timberIds)
-                    {
-                        if (transaction.GetObject(id, OpenMode.ForRead, false) is not Entity entity ||
-                            !synchronizedDataById.TryGetValue(id, out var data))
-                        {
-                            continue;
-                        }
-
-                        previousElementIdById.TryGetValue(id, out var previousElementId);
-                        ElementLabelService.UpsertForElement(document.Database, transaction, entity, data, previousElementId);
-                    }
-
+                        appendedLabelIds);
+                    ElementLabelService.DeleteDuplicateLabelsForExistingSourceHandles(document.Database, transaction);
                     transaction.Commit();
                 }
             }
