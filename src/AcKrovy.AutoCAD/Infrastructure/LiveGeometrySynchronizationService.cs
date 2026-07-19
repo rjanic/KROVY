@@ -85,6 +85,7 @@ internal static class LiveGeometrySynchronizationService
         private readonly LiveGeometryRefreshCoordinator<ObjectId> _appendedSlopeArrowIds = new();
         private readonly LiveGeometryRefreshCoordinator<string> _erasedSourceHandles = new();
         private bool _ignoreCurrentCommand;
+        private bool _refreshAllTimberAnnotationsAfterCommand;
         private bool _isDisposed;
 
         public DocumentTracker(Document document)
@@ -118,6 +119,7 @@ internal static class LiveGeometrySynchronizationService
             _appendedLabelIds.Clear();
             _appendedSlopeArrowIds.Clear();
             _erasedSourceHandles.Clear();
+            _refreshAllTimberAnnotationsAfterCommand = false;
         }
 
         private void ObjectAppended(object? sender, ObjectEventArgs e)
@@ -183,6 +185,8 @@ internal static class LiveGeometrySynchronizationService
         private void CommandWillStart(object? sender, CommandEventArgs e)
         {
             _ignoreCurrentCommand = IsAcKrovyCommand(e.GlobalCommandName);
+            _refreshAllTimberAnnotationsAfterCommand =
+                LiveGeometryCommandRules.RequiresFullTimberAnnotationRefresh(e.GlobalCommandName);
             if (_ignoreCurrentCommand)
             {
                 _modifiedIds.Clear();
@@ -195,7 +199,9 @@ internal static class LiveGeometrySynchronizationService
         private void CommandEnded(object? sender, CommandEventArgs e)
         {
             var shouldIgnore = _ignoreCurrentCommand || IsAcKrovyCommand(e.GlobalCommandName);
+            var refreshAllTimberAnnotations = _refreshAllTimberAnnotationsAfterCommand;
             _ignoreCurrentCommand = false;
+            _refreshAllTimberAnnotationsAfterCommand = false;
             if (shouldIgnore)
             {
                 _modifiedIds.Clear();
@@ -205,7 +211,7 @@ internal static class LiveGeometrySynchronizationService
                 return;
             }
 
-            RefreshCandidates();
+            RefreshCandidates(refreshAllTimberAnnotations);
         }
 
         private void CommandCancelled(object? sender, CommandEventArgs e)
@@ -215,6 +221,7 @@ internal static class LiveGeometrySynchronizationService
             _appendedLabelIds.Clear();
             _appendedSlopeArrowIds.Clear();
             _erasedSourceHandles.Clear();
+            _refreshAllTimberAnnotationsAfterCommand = false;
         }
 
         private void CommandFailed(object? sender, CommandEventArgs e)
@@ -224,9 +231,10 @@ internal static class LiveGeometrySynchronizationService
             _appendedLabelIds.Clear();
             _appendedSlopeArrowIds.Clear();
             _erasedSourceHandles.Clear();
+            _refreshAllTimberAnnotationsAfterCommand = false;
         }
 
-        private void RefreshCandidates()
+        private void RefreshCandidates(bool refreshAllTimberAnnotations)
         {
             var ids = _modifiedIds.Drain();
             var appendedLabelIds = _appendedLabelIds.Drain();
@@ -235,7 +243,8 @@ internal static class LiveGeometrySynchronizationService
             if (ids.Count == 0 &&
                 appendedLabelIds.Count == 0 &&
                 appendedSlopeArrowIds.Count == 0 &&
-                erasedSourceHandles.Count == 0)
+                erasedSourceHandles.Count == 0 &&
+                !refreshAllTimberAnnotations)
             {
                 return;
             }
@@ -250,7 +259,8 @@ internal static class LiveGeometrySynchronizationService
                     ids,
                     appendedLabelIds,
                     appendedSlopeArrowIds,
-                    erasedSourceHandles);
+                    erasedSourceHandles,
+                    refreshAllTimberAnnotations);
             }
         }
 
@@ -259,7 +269,8 @@ internal static class LiveGeometrySynchronizationService
             IReadOnlyList<ObjectId> ids,
             IReadOnlyCollection<ObjectId> appendedLabelIds,
             IReadOnlyCollection<ObjectId> appendedSlopeArrowIds,
-            IReadOnlyCollection<string> erasedSourceHandles)
+            IReadOnlyCollection<string> erasedSourceHandles,
+            bool refreshAllTimberAnnotations)
         {
             var editor = document.Editor;
 
@@ -269,26 +280,36 @@ internal static class LiveGeometrySynchronizationService
                 using (var transaction = document.Database.TransactionManager.StartTransaction())
                 {
                     var metadataStore = new AutoCadTimberElementMetadataStore(transaction);
-                    ElementLabelService.DeleteLabelsForMissingSourceHandles(
-                        document.Database,
-                        transaction,
-                        erasedSourceHandles);
-                    SlopeArrowService.DeleteArrowsForMissingSourceHandles(
+                    TimberAnnotationService.DeleteForMissingSourceHandles(
                         document.Database,
                         transaction,
                         erasedSourceHandles);
 
                     var defaultProfile = TimberElementDefaultProfileStore.Load();
                     var roundingStepMm = defaultProfile.GetCuttingLengthRoundingStepMm();
+                    var candidateIds = refreshAllTimberAnnotations
+                        ? DrawingScanner.FindAllTimberElements(
+                            document.Database,
+                            transaction,
+                            metadataStore)
+                        : ids;
                     TimberElementCopyInitializationService.InitializeLocalCopies(
                         document.Database,
                         transaction,
                         metadataStore,
-                        ids,
+                        candidateIds,
                         defaultProfile);
 
-                    var previousElementIdById = ReadElementIds(document.Database, transaction, metadataStore, ids);
-                    var timberIds = FilterTimberElementIds(document.Database, transaction, metadataStore, ids);
+                    var previousElementIdById = ReadElementIds(
+                        document.Database,
+                        transaction,
+                        metadataStore,
+                        candidateIds);
+                    var timberIds = FilterTimberElementIds(
+                        document.Database,
+                        transaction,
+                        metadataStore,
+                        candidateIds);
                     if (timberIds.Count > 0)
                     {
                         var synchronizedDataById = TimberElementItemIdentityService.SynchronizeElementIds(
@@ -313,33 +334,22 @@ internal static class LiveGeometrySynchronizationService
                             }
 
                             previousElementIdById.TryGetValue(id, out var previousElementId);
-                            ElementLabelService.UpsertForElement(
+                            TimberAnnotationService.EnsureForElement(
                                 document.Database,
                                 transaction,
                                 entity,
                                 data,
                                 previousElementId,
                                 roundingStepMm);
-                            SlopeArrowService.UpsertForElement(
-                                document.Database,
-                                transaction,
-                                entity,
-                                data);
                         }
                     }
 
-                    ElementLabelService.DeleteInsertedLabelsWithoutCurrentSourceHandles(
+                    TimberAnnotationService.DeleteInsertedWithoutCurrentSourceHandles(
                         document.Database,
                         transaction,
-                        appendedLabelIds);
-                    ElementLabelService.DeleteDuplicateLabelsForExistingSourceHandles(document.Database, transaction);
-                    SlopeArrowService.DeleteInsertedArrowsWithoutCurrentSourceHandles(
-                        document.Database,
-                        transaction,
+                        appendedLabelIds,
                         appendedSlopeArrowIds);
-                    SlopeArrowService.DeleteDuplicateArrowsForExistingSourceHandles(
-                        document.Database,
-                        transaction);
+                    TimberAnnotationService.DeleteDuplicatesForExistingSourceHandles(document.Database, transaction);
                     transaction.Commit();
                 }
             }

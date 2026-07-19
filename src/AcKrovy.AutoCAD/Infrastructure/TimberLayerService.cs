@@ -41,7 +41,8 @@ internal static class TimberLayerService
         Transaction transaction,
         Entity entity,
         string layerName,
-        int colorIndex)
+        int colorIndex,
+        bool isPlottable = true)
     {
         ArgumentNullException.ThrowIfNull(database);
         ArgumentNullException.ThrowIfNull(transaction);
@@ -59,6 +60,8 @@ internal static class TimberLayerService
 
         entity.LayerId = EnsureLayer(database, transaction, normalizedLayerName, colorIndex);
         entity.Color = AcColor.FromColorIndex(ColorMethod.ByLayer, 256);
+        var layer = (LayerTableRecord)transaction.GetObject(entity.LayerId, OpenMode.ForWrite);
+        layer.IsPlottable = isPlottable;
     }
 
     private static ObjectId EnsureLayer(

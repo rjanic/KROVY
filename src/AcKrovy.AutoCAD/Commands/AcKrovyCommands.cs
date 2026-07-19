@@ -518,18 +518,13 @@ public sealed class AcKrovyCommands
             }
 
             previousElementIdById.TryGetValue(id, out var previousElementId);
-            ElementLabelService.UpsertForElement(
+            TimberAnnotationService.EnsureForElement(
                 database,
                 transaction,
                 entity,
                 synchronizedData,
                 previousElementId,
                 roundingStepMm);
-            SlopeArrowService.UpsertForElement(
-                database,
-                transaction,
-                entity,
-                synchronizedData);
         }
     }
 

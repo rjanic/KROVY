@@ -47,7 +47,7 @@ internal static class SlopeArrowService
 
         if (isCreated)
         {
-            arrow = new Polyline(5);
+            arrow = new Polyline(3);
             var blockTable = (BlockTable)transaction.GetObject(database.BlockTableId, OpenMode.ForRead);
             var modelSpace = (BlockTableRecord)transaction.GetObject(
                 blockTable[BlockTableRecord.ModelSpace],
@@ -151,23 +151,40 @@ internal static class SlopeArrowService
         TimberSlopeArrowPlacement placement,
         double elevation)
     {
-        while (arrow.NumberOfVertices > 0)
+        var points = new[]
+        {
+            new Point2d(placement.HeadLeftX, placement.HeadLeftY),
+            new Point2d(placement.TipX, placement.TipY),
+            new Point2d(placement.HeadRightX, placement.HeadRightY),
+        };
+
+        while (arrow.NumberOfVertices < points.Length)
+        {
+            var index = arrow.NumberOfVertices;
+            arrow.AddVertexAt(index, points[index], 0d, 0d, 0d);
+        }
+
+        for (var index = 0; index < points.Length; index++)
+        {
+            arrow.SetPointAt(index, points[index]);
+            arrow.SetBulgeAt(index, 0d);
+            arrow.SetStartWidthAt(index, 0d);
+            arrow.SetEndWidthAt(index, 0d);
+        }
+
+        while (arrow.NumberOfVertices > points.Length)
         {
             arrow.RemoveVertexAt(arrow.NumberOfVertices - 1);
         }
 
-        arrow.AddVertexAt(0, new Point2d(placement.TailX, placement.TailY), 0d, 0d, 0d);
-        arrow.AddVertexAt(1, new Point2d(placement.TipX, placement.TipY), 0d, 0d, 0d);
-        arrow.AddVertexAt(2, new Point2d(placement.HeadLeftX, placement.HeadLeftY), 0d, 0d, 0d);
-        arrow.AddVertexAt(3, new Point2d(placement.TipX, placement.TipY), 0d, 0d, 0d);
-        arrow.AddVertexAt(4, new Point2d(placement.HeadRightX, placement.HeadRightY), 0d, 0d, 0d);
         arrow.Elevation = elevation;
         TimberLayerService.ApplyToAnnotationEntity(
             database,
             transaction,
             arrow,
             ArrowLayerName,
-            ArrowLayerColorIndex);
+            ArrowLayerColorIndex,
+            isPlottable: false);
         arrow.LineWeight = LineWeight.ByLayer;
     }
 

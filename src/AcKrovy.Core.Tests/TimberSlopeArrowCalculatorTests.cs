@@ -13,35 +13,44 @@ public sealed class TimberSlopeArrowCalculatorTests
     {
         var placement = TimberSlopeArrowCalculator.Calculate(0, 0, 1000, 0, 500, 0, isReversed: false);
 
-        Assert.Equal(350, placement.TailX);
-        Assert.Equal(-180, placement.TailY);
-        Assert.Equal(650, placement.TipX);
-        Assert.Equal(-180, placement.TipY);
-        Assert.True(placement.TipX > placement.TailX);
+        Assert.Equal(560, placement.TipX);
+        Assert.Equal(0, placement.TipY);
+        Assert.Equal(440, placement.HeadLeftX);
+        Assert.Equal(50, placement.HeadLeftY);
+        Assert.Equal(440, placement.HeadRightX);
+        Assert.Equal(-50, placement.HeadRightY);
     }
 
     [Fact]
-    public void Calculate_ReversedDirectionPointsFromEndToStartWithoutMovingCenter()
+    public void Calculate_ReversedDirectionTurnsArrowAroundSameMidpoint()
     {
         var normal = TimberSlopeArrowCalculator.Calculate(0, 0, 1000, 0, 500, 0, isReversed: false);
         var reversed = TimberSlopeArrowCalculator.Calculate(0, 0, 1000, 0, 500, 0, isReversed: true);
 
-        Assert.Equal(normal.TailX, reversed.TipX);
-        Assert.Equal(normal.TipX, reversed.TailX);
-        Assert.Equal(normal.TailY, reversed.TipY);
-        Assert.Equal(normal.TipY, reversed.TailY);
-        Assert.True(reversed.TipX < reversed.TailX);
+        Assert.Equal(560, normal.TipX);
+        Assert.Equal(440, reversed.TipX);
+        Assert.Equal(500, (normal.TipX + normal.HeadLeftX) / 2d);
+        Assert.Equal(500, (reversed.TipX + reversed.HeadLeftX) / 2d);
     }
 
     [Fact]
-    public void Calculate_EndpointOrderKeepsArrowOnSideOppositeUprightLabel()
+    public void Calculate_VerticalElementKeepsTipAndHeadCenteredOnElementAxis()
     {
-        var forward = TimberSlopeArrowCalculator.Calculate(0, 0, 1000, 0, 500, 0, isReversed: false);
-        var backward = TimberSlopeArrowCalculator.Calculate(1000, 0, 0, 0, 500, 0, isReversed: false);
+        var placement = TimberSlopeArrowCalculator.Calculate(0, 0, 0, 1000, 0, 500, isReversed: false);
 
-        Assert.Equal(forward.TailY, backward.TailY);
-        Assert.Equal(forward.TipY, backward.TipY);
-        Assert.Equal(-TimberSlopeArrowCalculator.OffsetMm, forward.TailY);
+        Assert.Equal(0, placement.TipX);
+        Assert.Equal(560, placement.TipY);
+        Assert.Equal(440, placement.HeadLeftY);
+        Assert.Equal(440, placement.HeadRightY);
+    }
+
+    [Fact]
+    public void Calculate_VeryShortElementProducesStableFixedSizeMarkerAtMidpoint()
+    {
+        var placement = TimberSlopeArrowCalculator.Calculate(0, 0, 40, 0, 20, 0, isReversed: false);
+
+        Assert.Equal(TimberSlopeArrowCalculator.HeadLengthMm, placement.TipX - placement.HeadLeftX);
+        Assert.Equal(20, (placement.TipX + placement.HeadLeftX) / 2d);
     }
 
     [Theory]

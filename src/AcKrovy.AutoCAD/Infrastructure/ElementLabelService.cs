@@ -278,7 +278,13 @@ internal static class ElementLabelService
                 }
 
                 previousElementIdById.TryGetValue(id, out var previousElementId);
-                if (UpsertForElement(database, transaction, entity, data, previousElementId, roundingStepMm))
+                if (TimberAnnotationService.EnsureForElement(
+                        database,
+                        transaction,
+                        entity,
+                        data,
+                        previousElementId,
+                        roundingStepMm))
                 {
                     created++;
                 }
@@ -287,7 +293,6 @@ internal static class ElementLabelService
                     updated++;
                 }
 
-                SlopeArrowService.UpsertForElement(database, transaction, entity, data);
             }
             catch (System.Exception ex)
             {
@@ -296,8 +301,7 @@ internal static class ElementLabelService
             }
         }
 
-        DeleteDuplicateLabelsForExistingSourceHandles(database, transaction);
-        SlopeArrowService.DeleteDuplicateArrowsForExistingSourceHandles(database, transaction);
+        TimberAnnotationService.DeleteDuplicatesForExistingSourceHandles(database, transaction);
         return new ElementLabelUpdateResult(created, updated, skipped);
     }
 

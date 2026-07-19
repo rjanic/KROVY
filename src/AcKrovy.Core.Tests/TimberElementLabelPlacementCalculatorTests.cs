@@ -43,6 +43,18 @@ public sealed class TimberElementLabelPlacementCalculatorTests
         Assert.Equal(180, extended.Y, precision: 6);
     }
 
+    [Fact]
+    public void Calculate_RotatedElementMovesLabelAndRotatesItAlongElementAxis()
+    {
+        var horizontal = TimberElementLabelPlacementCalculator.Calculate(0, 0, 4000, 0, 2000, 0, 180);
+        var vertical = TimberElementLabelPlacementCalculator.Calculate(0, 0, 0, 4000, 0, 2000, 180);
+
+        Assert.Equal(0, horizontal.RotationRadians, precision: 6);
+        Assert.Equal(Math.PI / 2d, vertical.RotationRadians, precision: 6);
+        Assert.Equal(2000, horizontal.X, precision: 6);
+        Assert.Equal(2000, vertical.Y, precision: 6);
+    }
+
     private static double DistanceFromLine(
         double startX,
         double startY,
