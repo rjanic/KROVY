@@ -22,9 +22,9 @@ internal static class TimberAnnotationService
                 data,
                 previousElementId,
                 roundingStepMm);
-        if (plan.ReconcileSlopeArrow)
+        if (plan.ReconcileSlopeArrow && plan.ReconcileSlopeAngleText)
         {
-            SlopeArrowService.UpsertForElement(database, transaction, sourceEntity, data);
+            SlopeAnnotationService.EnsureForElement(database, transaction, sourceEntity, data);
         }
 
         return labelCreated;
@@ -36,17 +36,22 @@ internal static class TimberAnnotationService
         IReadOnlyCollection<string> sourceHandles)
     {
         ElementLabelService.DeleteLabelsForMissingSourceHandles(database, transaction, sourceHandles);
-        SlopeArrowService.DeleteArrowsForMissingSourceHandles(database, transaction, sourceHandles);
+        SlopeAnnotationService.DeleteForMissingSourceHandles(database, transaction, sourceHandles);
     }
 
     public static void DeleteInsertedWithoutCurrentSourceHandles(
         Database database,
         Transaction transaction,
         IReadOnlyCollection<ObjectId> labelIds,
-        IReadOnlyCollection<ObjectId> slopeArrowIds)
+        IReadOnlyCollection<ObjectId> slopeArrowIds,
+        IReadOnlyCollection<ObjectId> slopeAngleTextIds)
     {
         ElementLabelService.DeleteInsertedLabelsWithoutCurrentSourceHandles(database, transaction, labelIds);
-        SlopeArrowService.DeleteInsertedArrowsWithoutCurrentSourceHandles(database, transaction, slopeArrowIds);
+        SlopeAnnotationService.DeleteInsertedWithoutCurrentSourceHandles(
+            database,
+            transaction,
+            slopeArrowIds,
+            slopeAngleTextIds);
     }
 
     public static void DeleteDuplicatesForExistingSourceHandles(
@@ -54,6 +59,6 @@ internal static class TimberAnnotationService
         Transaction transaction)
     {
         ElementLabelService.DeleteDuplicateLabelsForExistingSourceHandles(database, transaction);
-        SlopeArrowService.DeleteDuplicateArrowsForExistingSourceHandles(database, transaction);
+        SlopeAnnotationService.DeleteDuplicatesForExistingSourceHandles(database, transaction);
     }
 }

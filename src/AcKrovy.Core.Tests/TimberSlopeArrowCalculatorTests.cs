@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Globalization;
 using AcKrovy.Core.Models;
 using AcKrovy.Core.Services;
 using Xunit;
@@ -51,6 +52,49 @@ public sealed class TimberSlopeArrowCalculatorTests
 
         Assert.Equal(TimberSlopeArrowCalculator.HeadLengthMm, placement.TipX - placement.HeadLeftX);
         Assert.Equal(20, (placement.TipX + placement.HeadLeftX) / 2d);
+    }
+
+    [Fact]
+    public void CalculatePosition_UsesOneThirdOfElementLength()
+    {
+        var position = TimberSlopeArrowCalculator.CalculatePosition(0, 0, 900, 300);
+
+        Assert.Equal(300, position.X);
+        Assert.Equal(100, position.Y);
+        Assert.Equal(1d / 3d, TimberSlopeArrowCalculator.SlopeAnnotationPositionFactor);
+    }
+
+    [Theory]
+    [InlineData(30, "30°")]
+    [InlineData(35, "35°")]
+    [InlineData(35.5, "35,5°")]
+    public void AngleFormatter_UsesCultureAndOmitsTrailingZeros(double slopeDegrees, string expected)
+    {
+        var culture = CultureInfo.GetCultureInfo("sk-SK");
+
+        Assert.Equal(expected, TimberSlopeAngleFormatter.Format(slopeDegrees, culture));
+    }
+
+    [Theory]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    public void ToggleDirection_InvertsOnlyDirection(bool current, bool expected)
+    {
+        Assert.Equal(expected, TimberSlopeAnnotationRules.ToggleDirection(current));
+    }
+
+    [Theory]
+    [InlineData("A1", "A1", true)]
+    [InlineData("a1", " A1 ", true)]
+    [InlineData("A1", "B2", false)]
+    public void SourceHandleBinding_UsesPhysicalTimberHandle(
+        string annotationHandle,
+        string timberHandle,
+        bool expected)
+    {
+        Assert.Equal(
+            expected,
+            TimberSlopeAnnotationRules.HasSameSourceHandle(annotationHandle, timberHandle));
     }
 
     [Theory]

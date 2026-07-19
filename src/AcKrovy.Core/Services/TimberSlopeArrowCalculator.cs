@@ -4,11 +4,21 @@ namespace AcKrovy.Core.Services;
 
 public static class TimberSlopeArrowCalculator
 {
+    public const double SlopeAnnotationPositionFactor = 1d / 3d;
     public const double HeadLengthMm = 120d;
     public const double HeadHalfWidthMm = 50d;
 
     public static bool ShouldDisplay(double slopeDegrees) =>
         !double.IsNaN(slopeDegrees) && !double.IsInfinity(slopeDegrees) && slopeDegrees > 0d;
+
+    public static TimberSlopeAnnotationPoint CalculatePosition(
+        double startX,
+        double startY,
+        double endX,
+        double endY) =>
+        new(
+            startX + (endX - startX) * SlopeAnnotationPositionFactor,
+            startY + (endY - startY) * SlopeAnnotationPositionFactor);
 
     public static TimberSlopeArrowPlacement Calculate(
         double startX,

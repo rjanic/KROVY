@@ -83,6 +83,7 @@ internal static class LiveGeometrySynchronizationService
         private readonly LiveGeometryRefreshCoordinator<ObjectId> _modifiedIds = new();
         private readonly LiveGeometryRefreshCoordinator<ObjectId> _appendedLabelIds = new();
         private readonly LiveGeometryRefreshCoordinator<ObjectId> _appendedSlopeArrowIds = new();
+        private readonly LiveGeometryRefreshCoordinator<ObjectId> _appendedSlopeAngleTextIds = new();
         private readonly LiveGeometryRefreshCoordinator<string> _erasedSourceHandles = new();
         private bool _ignoreCurrentCommand;
         private bool _refreshAllTimberAnnotationsAfterCommand;
@@ -118,6 +119,7 @@ internal static class LiveGeometrySynchronizationService
             _modifiedIds.Clear();
             _appendedLabelIds.Clear();
             _appendedSlopeArrowIds.Clear();
+            _appendedSlopeAngleTextIds.Clear();
             _erasedSourceHandles.Clear();
             _refreshAllTimberAnnotationsAfterCommand = false;
         }
@@ -136,6 +138,12 @@ internal static class LiveGeometrySynchronizationService
             if (!_appendedSlopeArrowIds.IsSuppressed && SlopeArrowStore.TryRead(entity, out _))
             {
                 _appendedSlopeArrowIds.TryAdd(entity.ObjectId);
+                return;
+            }
+
+            if (!_appendedSlopeAngleTextIds.IsSuppressed && SlopeAngleTextStore.TryRead(entity, out _))
+            {
+                _appendedSlopeAngleTextIds.TryAdd(entity.ObjectId);
                 return;
             }
 
@@ -162,7 +170,7 @@ internal static class LiveGeometrySynchronizationService
                 return;
             }
 
-            if (!SlopeArrowStore.TryRead(entity, out _))
+            if (!SlopeArrowStore.TryRead(entity, out _) && !SlopeAngleTextStore.TryRead(entity, out _))
             {
                 _modifiedIds.TryAdd(entity.ObjectId);
             }
@@ -192,6 +200,7 @@ internal static class LiveGeometrySynchronizationService
                 _modifiedIds.Clear();
                 _appendedLabelIds.Clear();
                 _appendedSlopeArrowIds.Clear();
+                _appendedSlopeAngleTextIds.Clear();
                 _erasedSourceHandles.Clear();
             }
         }
@@ -207,6 +216,7 @@ internal static class LiveGeometrySynchronizationService
                 _modifiedIds.Clear();
                 _appendedLabelIds.Clear();
                 _appendedSlopeArrowIds.Clear();
+                _appendedSlopeAngleTextIds.Clear();
                 _erasedSourceHandles.Clear();
                 return;
             }
@@ -220,6 +230,7 @@ internal static class LiveGeometrySynchronizationService
             _modifiedIds.Clear();
             _appendedLabelIds.Clear();
             _appendedSlopeArrowIds.Clear();
+            _appendedSlopeAngleTextIds.Clear();
             _erasedSourceHandles.Clear();
             _refreshAllTimberAnnotationsAfterCommand = false;
         }
@@ -230,6 +241,7 @@ internal static class LiveGeometrySynchronizationService
             _modifiedIds.Clear();
             _appendedLabelIds.Clear();
             _appendedSlopeArrowIds.Clear();
+            _appendedSlopeAngleTextIds.Clear();
             _erasedSourceHandles.Clear();
             _refreshAllTimberAnnotationsAfterCommand = false;
         }
@@ -239,10 +251,12 @@ internal static class LiveGeometrySynchronizationService
             var ids = _modifiedIds.Drain();
             var appendedLabelIds = _appendedLabelIds.Drain();
             var appendedSlopeArrowIds = _appendedSlopeArrowIds.Drain();
+            var appendedSlopeAngleTextIds = _appendedSlopeAngleTextIds.Drain();
             var erasedSourceHandles = _erasedSourceHandles.Drain();
             if (ids.Count == 0 &&
                 appendedLabelIds.Count == 0 &&
                 appendedSlopeArrowIds.Count == 0 &&
+                appendedSlopeAngleTextIds.Count == 0 &&
                 erasedSourceHandles.Count == 0 &&
                 !refreshAllTimberAnnotations)
             {
@@ -252,6 +266,7 @@ internal static class LiveGeometrySynchronizationService
             using (_modifiedIds.Suppress())
             using (_appendedLabelIds.Suppress())
             using (_appendedSlopeArrowIds.Suppress())
+            using (_appendedSlopeAngleTextIds.Suppress())
             using (_erasedSourceHandles.Suppress())
             {
                 RefreshTimberElements(
@@ -259,6 +274,7 @@ internal static class LiveGeometrySynchronizationService
                     ids,
                     appendedLabelIds,
                     appendedSlopeArrowIds,
+                    appendedSlopeAngleTextIds,
                     erasedSourceHandles,
                     refreshAllTimberAnnotations);
             }
@@ -269,6 +285,7 @@ internal static class LiveGeometrySynchronizationService
             IReadOnlyList<ObjectId> ids,
             IReadOnlyCollection<ObjectId> appendedLabelIds,
             IReadOnlyCollection<ObjectId> appendedSlopeArrowIds,
+            IReadOnlyCollection<ObjectId> appendedSlopeAngleTextIds,
             IReadOnlyCollection<string> erasedSourceHandles,
             bool refreshAllTimberAnnotations)
         {
@@ -348,7 +365,8 @@ internal static class LiveGeometrySynchronizationService
                         document.Database,
                         transaction,
                         appendedLabelIds,
-                        appendedSlopeArrowIds);
+                        appendedSlopeArrowIds,
+                        appendedSlopeAngleTextIds);
                     TimberAnnotationService.DeleteDuplicatesForExistingSourceHandles(document.Database, transaction);
                     transaction.Commit();
                 }

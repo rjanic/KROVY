@@ -11,9 +11,12 @@ public static class TimberAnnotationRefreshPlanner
             throw new ArgumentNullException(nameof(data));
         }
 
+        var shouldSlopeAnnotationExist = TimberSlopeArrowCalculator.ShouldDisplay(data.SlopeDegrees);
         return new TimberAnnotationRefreshPlan(
             EnsureLabel: true,
             ReconcileSlopeArrow: true,
-            ShouldSlopeArrowExist: TimberSlopeArrowCalculator.ShouldDisplay(data.SlopeDegrees));
+            ShouldSlopeArrowExist: shouldSlopeAnnotationExist,
+            ReconcileSlopeAngleText: true,
+            ShouldSlopeAngleTextExist: shouldSlopeAnnotationExist);
     }
 }

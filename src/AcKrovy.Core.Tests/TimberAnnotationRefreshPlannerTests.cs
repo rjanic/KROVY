@@ -19,6 +19,8 @@ public sealed class TimberAnnotationRefreshPlannerTests
         Assert.True(plan.EnsureLabel);
         Assert.True(plan.ReconcileSlopeArrow);
         Assert.Equal(arrowShouldExist, plan.ShouldSlopeArrowExist);
+        Assert.True(plan.ReconcileSlopeAngleText);
+        Assert.Equal(arrowShouldExist, plan.ShouldSlopeAngleTextExist);
     }
 
     [Theory]

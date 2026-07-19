@@ -38,6 +38,7 @@ public sealed class AcKrovyCommands
             + "\n\nÚDAJE A VÝKAZY"
             + "\n  AK_ASSIGN      – priradí údaje vybraným čiaram/polyline"
             + "\n  AK_EDIT        – hromadne upraví zaškrtnuté hodnoty"
+            + "\n  AK_FLIPSLOPE   – obráti smer spádu kliknutého prvku alebo jeho anotácie"
             + "\n  AK_INSPECT     – zobrazí údaje jedného prvku"
             + "\n  AK_REPORT      – vloží tabuľku z vybraných prvkov"
             + "\n  AK_REPORTALL   – vloží tabuľku zo všetkých prvkov"
@@ -280,6 +281,65 @@ public sealed class AcKrovyCommands
 
         transaction.Commit();
         editor.WriteMessage($"\nACAD KROVY: upravené {changed} prvky. Preskočené: {skipped}.");
+    }
+
+    [CommandMethod("AK_FLIPSLOPE", CommandFlags.Modal)]
+    public void FlipSlopeDirection()
+    {
+        var document = ActiveDocument();
+        var editor = document.Editor;
+        var selection = editor.GetEntity(
+            "\nKlikni na timber prvok, šípku alebo text sklonu pre obrátenie smeru: ");
+        if (selection.Status != PromptStatus.OK)
+        {
+            return;
+        }
+
+        using var transaction = document.Database.TransactionManager.StartTransaction();
+        var metadataStore = new AutoCadTimberElementMetadataStore(transaction);
+        if (!AutoCadObjectIdAccess.TryGetObject<Entity>(
+                transaction,
+                selection.ObjectId,
+                OpenMode.ForRead,
+                out var selectedEntity,
+                document.Database) ||
+            selectedEntity is null ||
+            !SlopeAnnotationSourceResolver.TryResolveSourceId(
+                document.Database,
+                transaction,
+                metadataStore,
+                selectedEntity,
+                out var sourceId) ||
+            !AutoCadObjectIdAccess.TryGetObject<Entity>(
+                transaction,
+                sourceId,
+                OpenMode.ForWrite,
+                out var sourceEntity,
+                document.Database) ||
+            sourceEntity is null ||
+            !metadataStore.TryRead(sourceEntity, out var data) ||
+            data is null)
+        {
+            editor.WriteMessage("\nACAD KROVY: vybraný objekt nie je timber prvok ani jeho slope anotácia.");
+            return;
+        }
+
+        var updated = data with
+        {
+            IsSlopeDirectionReversed = TimberSlopeAnnotationRules.ToggleDirection(
+                data.IsSlopeDirectionReversed),
+        };
+        metadataStore.Write(sourceEntity, updated);
+        SlopeAnnotationService.EnsureForElement(
+            document.Database,
+            transaction,
+            sourceEntity,
+            updated);
+        transaction.Commit();
+
+        editor.WriteMessage(updated.IsSlopeDirectionReversed
+            ? "\nACAD KROVY: smer spádu bol obrátený."
+            : "\nACAD KROVY: smer spádu bol nastavený na normálny.");
     }
 
     [CommandMethod("AK_INSPECT", CommandFlags.Modal)]

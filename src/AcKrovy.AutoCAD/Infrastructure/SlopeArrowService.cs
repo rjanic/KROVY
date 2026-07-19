@@ -116,32 +116,18 @@ internal static class SlopeArrowService
 
     private static ArrowPlacement CalculatePlacement(Entity sourceEntity, bool isReversed)
     {
-        var (start, end, midpoint) = sourceEntity switch
-        {
-            Line line => (
-                line.StartPoint,
-                line.EndPoint,
-                new Point3d(
-                    (line.StartPoint.X + line.EndPoint.X) / 2d,
-                    (line.StartPoint.Y + line.EndPoint.Y) / 2d,
-                    (line.StartPoint.Z + line.EndPoint.Z) / 2d)),
-            Polyline polyline => (
-                polyline.StartPoint,
-                polyline.EndPoint,
-                polyline.GetPointAtDist(polyline.Length / 2d)),
-            _ => throw new NotSupportedException("Šípku sklonu možno vytvoriť iba pre LINE alebo LWPOLYLINE."),
-        };
+        var geometry = SlopeAnnotationGeometry.Calculate(sourceEntity);
 
         return new ArrowPlacement(
             TimberSlopeArrowCalculator.Calculate(
-                start.X,
-                start.Y,
-                end.X,
-                end.Y,
-                midpoint.X,
-                midpoint.Y,
+                geometry.Start.X,
+                geometry.Start.Y,
+                geometry.End.X,
+                geometry.End.Y,
+                geometry.AnnotationPoint.X,
+                geometry.AnnotationPoint.Y,
                 isReversed),
-            midpoint.Z);
+            geometry.AnnotationPoint.Z);
     }
 
     private static void ApplyAppearance(
