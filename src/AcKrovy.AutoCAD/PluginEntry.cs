@@ -17,7 +17,7 @@ public sealed class PluginEntry : IExtensionApplication
         LiveGeometrySynchronizationService.Start();
 
         var document = AcApp.DocumentManager.MdiActiveDocument;
-        document?.Editor.WriteMessage("\nACAD KROVY 0.9.0 načítané. Karta ACAD KROVY sa pridá do Ribbonu. Zadaj AK_HELP pre zoznam príkazov alebo AK_TOOLBAR pre klasický panel malých ikon.");
+        document?.Editor.WriteMessage("\nACAD KROVY 0.10.0 načítané. Karta ACAD KROVY sa pridá do Ribbonu. Zadaj AK_HELP pre zoznam príkazov alebo AK_TOOLBAR pre klasický panel malých ikon.");
     }
 
     public void Terminate()

@@ -26,7 +26,7 @@ public sealed class AcKrovyCommands
     {
         var editor = ActiveEditor();
         editor.WriteMessage(
-            "\nACAD KROVY 0.9.0"
+            "\nACAD KROVY 0.10.0"
             + "\n\nPRVKY KROVU"
             + "\n  AK_KROKVA      – rýchlo priradí typ Krokva"
             + "\n  AK_POMURNICA   – rýchlo priradí typ Pomúrnica"
@@ -301,6 +301,11 @@ public sealed class AcKrovyCommands
 
         var data = snapshot.Data;
         var measurement = TimberElementMeasurer.Measure(snapshot);
+        var defaultProfile = TimberElementDefaultProfileStore.Load();
+        var currentDefaultAllowance = defaultProfile.GetCuttingAllowanceMm(data.ElementType);
+        var allowanceSource = Math.Abs(data.CuttingAllowanceMm - currentDefaultAllowance) < 0.000001
+            ? "aktuálny default podľa typu"
+            : "individuálna hodnota prvku";
         var message =
             $"\n{data.ElementId} | {TimberElementLabels.ToSlovak(data.ElementType)}"
             + $"\n  Prierez: {data.WidthMm:0} × {data.HeightMm:0} mm"
@@ -317,7 +322,7 @@ public sealed class AcKrovyCommands
             new("Výška", $"{data.HeightMm:0} mm"),
             new("Pôdorysná dĺžka", $"{measurement.PlanLengthMm:0} mm"),
             new("Skutočná dĺžka", $"{measurement.ActualLengthMm:0} mm"),
-            new("Prídavok na prírez", $"{data.CuttingAllowanceMm:0} mm"),
+            new("Prídavok na prírez", $"{data.CuttingAllowanceMm:0} mm ({allowanceSource})"),
             new("Rezná dĺžka", $"{measurement.CuttingLengthMm:0} mm"),
             new("ManualLengthMode", data.LengthCalculationMode == LengthCalculationMode.ManualLength ? "Áno" : "Nie"),
             new("CAD Handle", entity.Handle.ToString()),

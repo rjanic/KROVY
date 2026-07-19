@@ -5,7 +5,7 @@ namespace AcKrovy.Core.Services;
 /// <summary>Výpočty dĺžok a objemov. Nezávislé od AutoCADu, preto sa dajú testovať samostatne.</summary>
 public static class TimberCalculator
 {
-    public const double CuttingLengthRoundingIncrementMm = 100d;
+    public const double CuttingLengthRoundingIncrementMm = TimberCuttingLengthCalculator.DefaultRoundingStepMm;
 
     public static TimberElementMeasurement Measure(
         TimberElementData data,
@@ -17,7 +17,10 @@ public static class TimberCalculator
         ValidateDimension(planLengthMm, nameof(planLengthMm));
 
         var actualLengthMm = CalculateActualLengthMm(data, planLengthMm);
-        var cuttingLengthMm = RoundUp(actualLengthMm + Math.Max(0, data.CuttingAllowanceMm), roundingIncrementMm);
+        var cuttingLengthMm = TimberCuttingLengthCalculator.Calculate(
+            actualLengthMm,
+            data.CuttingAllowanceMm,
+            roundingIncrementMm);
         var volumeM3 = CalculateVolumeM3(data.WidthMm, data.HeightMm, cuttingLengthMm);
 
         return new TimberElementMeasurement(data, planLengthMm, actualLengthMm, cuttingLengthMm, volumeM3);
@@ -76,12 +79,7 @@ public static class TimberCalculator
 
     public static double RoundUp(double valueMm, double incrementMm)
     {
-        if (incrementMm <= 0)
-        {
-            return valueMm;
-        }
-
-        return Math.Ceiling(valueMm / incrementMm) * incrementMm;
+        return TimberCuttingLengthCalculator.RoundUp(valueMm, incrementMm);
     }
 
     private static void ValidateDimension(double value, string name)

@@ -7,13 +7,33 @@ namespace AcKrovy.Core.Tests;
 public sealed class TimberElementDefaultProfileTests
 {
     [Fact]
-    public void CreateDefault_UsesFactoryCuttingAllowanceForEveryType()
+    public void CreateDefault_UsesFactoryCuttingAllowanceByType()
     {
         var profile = TimberElementDefaultProfile.CreateDefault();
 
         foreach (TimberElementType type in Enum.GetValues(typeof(TimberElementType)))
         {
-            Assert.Equal(TimberElementDefaultProfile.FactoryCuttingAllowanceMm, profile.GetCuttingAllowanceMm(type));
+            Assert.Equal(TimberElementDefaultProfile.GetFactoryCuttingAllowanceMm(type), profile.GetCuttingAllowanceMm(type));
+        }
+    }
+
+    [Fact]
+    public void CreateDefault_UsesConservativePurlinAllowance()
+    {
+        var profile = TimberElementDefaultProfile.CreateDefault();
+
+        Assert.Equal(200, profile.GetCuttingAllowanceMm(TimberElementType.Purlin));
+    }
+
+    [Fact]
+    public void CreateDefault_HasValidNonNegativeAllowanceForEveryType()
+    {
+        var profile = TimberElementDefaultProfile.CreateDefault();
+
+        foreach (TimberElementType type in Enum.GetValues(typeof(TimberElementType)))
+        {
+            var allowance = profile.GetCuttingAllowanceMm(type);
+            Assert.InRange(allowance, 0, TimberElementDefaultProfile.MaxCuttingAllowanceMm);
         }
     }
 
@@ -48,6 +68,20 @@ public sealed class TimberElementDefaultProfileTests
         }.Normalize();
 
         Assert.Equal(0, profile.GetCuttingAllowanceMm(TimberElementType.Rafter));
+    }
+
+    [Fact]
+    public void Normalize_ClampsExcessiveCuttingAllowanceToMaximum()
+    {
+        var profile = new TimberElementDefaultProfile
+        {
+            Styles = new List<TimberElementDefaultStyle>
+            {
+                new(TimberElementType.Rafter, TimberElementDefaultProfile.MaxCuttingAllowanceMm + 1),
+            },
+        }.Normalize();
+
+        Assert.Equal(TimberElementDefaultProfile.MaxCuttingAllowanceMm, profile.GetCuttingAllowanceMm(TimberElementType.Rafter));
     }
 
     [Fact]

@@ -2,7 +2,7 @@
 
 Základ pre AutoCAD doplnok na **2D výkaz krovu**. Čiara alebo polyline predstavuje jeden drevený prvok. K objektu sa do DWG uloží typ, prierez, sklon, prídavok na rezanie, materiál a označenie. Z vybraných alebo všetkých označených prvkov doplnok vytvorí výkaz s počtom, dĺžkami a kubatúrou.
 
-> Stav: **0.9.0 – Live Geometry Synchronization**. Hlavná vývojová platforma je AutoCAD 2027 na Windows. Verzia obsahuje prenosné XData metadáta, automatické popisy, používateľské nastavenia hladín, nastaviteľné výrobné prídavky podľa typu, individuálne výrobné prídavky cez `AK_EDIT` a automatickú synchronizáciu po zmene geometrie.
+> Stav: **0.10.0 – Cutting Rules & Allowances**. Hlavná vývojová platforma je AutoCAD 2027 na Windows. Verzia obsahuje prenosné XData metadáta, automatické popisy, používateľské nastavenia hladín, nastaviteľné výrobné prídavky podľa typu, individuálne výrobné prídavky cez `AK_EDIT` a automatickú synchronizáciu po zmene geometrie.
 
 ## Čo už kostra obsahuje
 
@@ -19,7 +19,7 @@ Základ pre AutoCAD doplnok na **2D výkaz krovu**. Čiara alebo polyline predst
 - Automatický refresh po STRETCH, TRIM, EXTEND, grip edit a MOVE bez nutnosti ručne spúšťať `AK_RECALC`.
 - Výsledný AutoCAD `Table` so stĺpcami: typ, materiál, šírka, výška, dĺžka kusu, počet, celková dĺžka, kubatúra.
 
-## Dôležité pravidlo výpočtu v 0.9.0
+## Dôležité pravidlo výpočtu v 0.10.0
 
 Pre krokvy a vzpery je čiara chápaná ako **vodorovná projekcia v smere spádu strechy**:
 
@@ -138,6 +138,14 @@ AK_HELP
 - Automatické popisy sa aktualizujú okamžite, čistia orphan/clone labely a rozmery zapisujú vo formáte `80x160`.
 - `AK_INSPECT` zobrazuje kompaktné read-only informačné okno.
 - COPY/COPYCLIP a WBLOCK/import kompatibilita z v0.7.0 zostáva zachovaná.
+
+## v0.10.0 Cutting Rules & Allowances
+
+- Výpočet reznej dĺžky je centralizovaný v Core cez jednotné zaokrúhlenie nahor na 100 mm.
+- Predvolené výrobné prídavky sú vedené podľa `TimberElementType`; väznica má konzervatívny default 200 mm, ostatné aktuálne typy 100 mm.
+- `AK_SETTINGS` validuje nezáporné hodnoty v rozumnom rozsahu a staršie nastavenia bez typu doplní factory defaultom.
+- `AK_EDIT` naďalej podporuje individuálnu hodnotu prvku, nulu ako platný prídavok a návrat na aktuálny default podľa typu.
+- `AK_INSPECT` zobrazuje použitý prídavok a či zodpovedá aktuálnemu defaultu alebo individuálnej hodnote prvku.
 
 ## Štruktúra
 

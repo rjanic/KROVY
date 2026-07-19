@@ -184,7 +184,9 @@ public partial class ElementEditWindow : Window
             double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out value))
         {
             var rounded = Math.Round(value);
-            if (value >= 0 && Math.Abs(value - rounded) < 0.000001)
+            if (value >= 0 &&
+                value <= TimberElementDefaultProfile.MaxCuttingAllowanceMm &&
+                Math.Abs(value - rounded) < 0.000001)
             {
                 result = rounded;
                 return true;
@@ -192,7 +194,7 @@ public partial class ElementEditWindow : Window
         }
 
         MessageBox.Show(
-            $"Pole „{label}“ musí obsahovať celé nezáporné číslo v milimetroch.",
+            $"Pole „{label}“ musí obsahovať celé nezáporné číslo v milimetroch, najviac {TimberElementDefaultProfile.MaxCuttingAllowanceMm:0}.",
             "ACAD KROVY",
             MessageBoxButton.OK,
             MessageBoxImage.Warning);

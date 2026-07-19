@@ -1,8 +1,12 @@
-ACAD KROVY 0.9.0 – Live Geometry Synchronization
+ACAD KROVY 0.10.0 – Cutting Rules & Allowances
 
-Táto verzia nadväzuje na stabilnú architektúru v0.8.0 a bola manuálne overená v AutoCAD 2027.
+Táto verzia nadväzuje na stabilnú architektúru v0.9.0 a je pripravená na manuálne overenie v AutoCAD 2027.
 
 ČO PRIDÁVA
+- Centralizovaný výpočet CuttingLengthMm v Core so zaokrúhlením nahor na 100 mm.
+- Konzervatívne predvolené prídavky podľa typu prvku: väznica 200 mm, ostatné aktuálne typy 100 mm.
+- Validáciu nezáporných používateľských prídavkov v rozumnom rozsahu.
+- AK_INSPECT zobrazuje použitý prídavok a či zodpovedá aktuálnemu defaultu alebo individuálnej hodnote prvku.
 - Automatickú synchronizáciu inteligentných timber prvkov po STRETCH, TRIM, EXTEND, grip edit a MOVE.
 - Zber zmenených entít počas AutoCAD príkazu a bezpečné spracovanie až po jeho úspešnom ukončení.
 - Reentrancy guard proti zacykleniu pri internom zápise metadát a aktualizácii labelov.

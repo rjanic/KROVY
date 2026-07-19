@@ -132,7 +132,7 @@ public partial class LayerSettingsWindow : Window
             if (!TryReadNonNegativeNumber(row.CuttingAllowanceMmText, out var cuttingAllowanceMm))
             {
                 WpfMessageBox.Show(
-                    $"{row.ElementLabel}: prídavok na rez musí byť nezáporné číslo v milimetroch.",
+                    $"{row.ElementLabel}: prídavok na rez musí byť nezáporné číslo v milimetroch, najviac {TimberElementDefaultProfile.MaxCuttingAllowanceMm:0}.",
                     "ACAD KROVY",
                     MessageBoxButton.OK,
                     MessageBoxImage.Warning);
@@ -179,7 +179,10 @@ public partial class LayerSettingsWindow : Window
         if (double.TryParse(raw, NumberStyles.Float, SlovakCulture, out value) ||
             double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out value))
         {
-            return !double.IsNaN(value) && !double.IsInfinity(value) && value >= 0;
+            return !double.IsNaN(value) &&
+                !double.IsInfinity(value) &&
+                value >= 0 &&
+                value <= TimberElementDefaultProfile.MaxCuttingAllowanceMm;
         }
 
         value = 0;
