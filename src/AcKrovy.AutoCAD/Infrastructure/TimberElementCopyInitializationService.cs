@@ -48,7 +48,6 @@ internal static class TimberElementCopyInitializationService
                 continue;
             }
 
-            metadataStore.Write(entity, TimberElementDefaultApplicator.ApplyCuttingAllowance(data, defaultProfile));
             initialized++;
         }
 

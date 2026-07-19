@@ -47,12 +47,12 @@ public sealed class TimberElementCopyInitializationRulesTests
     }
 
     [Fact]
-    public void CopiedElement_UsesCurrentDefaultByElementTypeAndOriginalStaysUnchanged()
+    public void CopiedElement_PreservesSourceCuttingAllowanceWhenDefaultDiffers()
     {
         var original = TimberElementDefaults.For(TimberElementType.Rafter) with
         {
             ElementId = "K1",
-            CuttingAllowanceMm = 100,
+            CuttingAllowanceMm = 300,
         };
         var copiedMetadata = original;
         var profile = new TimberElementDefaultProfile
@@ -63,32 +63,66 @@ public sealed class TimberElementCopyInitializationRulesTests
             },
         };
 
-        var initializedCopy = TimberElementDefaultApplicator.ApplyCuttingAllowance(copiedMetadata, profile);
-
-        Assert.Equal(100, original.CuttingAllowanceMm);
-        Assert.Equal(400, initializedCopy.CuttingAllowanceMm);
+        Assert.Equal(300, original.CuttingAllowanceMm);
+        Assert.Equal(300, copiedMetadata.CuttingAllowanceMm);
+        Assert.Equal(400, profile.GetCuttingAllowanceMm(TimberElementType.Rafter));
     }
 
     [Fact]
-    public void CopiedElement_NewAllowanceRecalculatesCuttingLength()
+    public void CopiedElement_PreservesZeroCuttingAllowanceWhenDefaultDiffers()
     {
-        var copy = TimberElementDefaultApplicator.ApplyCuttingAllowance(
-            TimberElementDefaults.For(TimberElementType.Rafter) with
+        var original = TimberElementDefaults.For(TimberElementType.Rafter) with
+        {
+            ElementId = "K1",
+            CuttingAllowanceMm = 0,
+        };
+        var copiedMetadata = original;
+        var profile = new TimberElementDefaultProfile
+        {
+            Styles = new List<TimberElementDefaultStyle>
             {
-                LengthCalculationMode = LengthCalculationMode.PlanLength,
-                CuttingAllowanceMm = 100,
+                new(TimberElementType.Rafter, 100),
             },
-            new TimberElementDefaultProfile
+        };
+
+        Assert.Equal(0, copiedMetadata.CuttingAllowanceMm);
+        Assert.Equal(100, profile.GetCuttingAllowanceMm(TimberElementType.Rafter));
+    }
+
+    [Fact]
+    public void CopiedElement_PreservesCuttingAllowanceWhenItEqualsDefault()
+    {
+        var profile = new TimberElementDefaultProfile
+        {
+            Styles = new List<TimberElementDefaultStyle>
             {
-                Styles = new List<TimberElementDefaultStyle>
-                {
-                    new(TimberElementType.Rafter, 400),
-                },
-            });
+                new(TimberElementType.Rafter, 100),
+            },
+        };
+        var original = TimberElementDefaults.For(TimberElementType.Rafter, profile) with
+        {
+            ElementId = "K1",
+            CuttingAllowanceMm = 100,
+        };
+        var copiedMetadata = original;
 
-        var measurement = TimberCalculator.Measure(copy, planLengthMm: 5000);
+        Assert.Equal(profile.GetCuttingAllowanceMm(TimberElementType.Rafter), copiedMetadata.CuttingAllowanceMm);
+    }
 
-        Assert.Equal(5400, measurement.CuttingLengthMm);
+    [Fact]
+    public void NewAssign_UsesCurrentDefaultByElementType()
+    {
+        var profile = new TimberElementDefaultProfile
+        {
+            Styles = new List<TimberElementDefaultStyle>
+            {
+                new(TimberElementType.Rafter, 300),
+            },
+        };
+
+        var assigned = TimberElementDefaults.For(TimberElementType.Rafter, profile);
+
+        Assert.Equal(300, assigned.CuttingAllowanceMm);
     }
 
     [Fact]
@@ -100,20 +134,12 @@ public sealed class TimberElementCopyInitializationRulesTests
             LengthCalculationMode = LengthCalculationMode.PlanLength,
             CuttingAllowanceMm = 100,
         };
-        var copy = TimberElementDefaultApplicator.ApplyCuttingAllowance(
-            original,
-            new TimberElementDefaultProfile
-            {
-                Styles = new List<TimberElementDefaultStyle>
-                {
-                    new(TimberElementType.Rafter, 120),
-                },
-            });
+        var copy = original;
 
         var assignments = TimberElementItemNumbering.AssignElementIds(new[]
         {
             TimberCalculator.Measure(original, 5000),
-            TimberCalculator.Measure(copy, 4975),
+            TimberCalculator.Measure(copy, 5000),
         });
 
         Assert.Equal(5100, assignments[0].Signature.CuttingLengthMm);
@@ -130,20 +156,12 @@ public sealed class TimberElementCopyInitializationRulesTests
             LengthCalculationMode = LengthCalculationMode.PlanLength,
             CuttingAllowanceMm = 100,
         };
-        var copy = TimberElementDefaultApplicator.ApplyCuttingAllowance(
-            original,
-            new TimberElementDefaultProfile
-            {
-                Styles = new List<TimberElementDefaultStyle>
-                {
-                    new(TimberElementType.Rafter, 400),
-                },
-            });
+        var copy = original;
 
         var assignments = TimberElementItemNumbering.AssignElementIds(new[]
         {
             TimberCalculator.Measure(original, 5000),
-            TimberCalculator.Measure(copy, 5000),
+            TimberCalculator.Measure(copy, 5300),
         });
 
         Assert.Equal(5100, assignments[0].Signature.CuttingLengthMm);
