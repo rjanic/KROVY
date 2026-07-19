@@ -233,7 +233,8 @@ public sealed class AcKrovyCommands
             selectedData[0],
             isNewAssignment: false,
             defaultProfile,
-            cuttingAllowanceIsMixed: HasMixedCuttingAllowance(selectedData));
+            cuttingAllowanceIsMixed: HasMixedCuttingAllowance(selectedData),
+            slopeDirectionIsMixed: HasMixedSlopeDirection(selectedData));
         dialog.Title = selectedData.Count == 1
             ? $"ACAD KROVY – editácia prvku – {selectedData[0].ElementId} – {TimberElementLabels.ToSlovak(selectedData[0].ElementType)}"
             : $"ACAD KROVY – editácia {selectedData.Count} prvkov";
@@ -325,6 +326,7 @@ public sealed class AcKrovyCommands
             new("Šírka", $"{data.WidthMm:0} mm"),
             new("Výška", $"{data.HeightMm:0} mm"),
             new("Sklon", $"{data.SlopeDegrees:0.###}°"),
+            new("Smer spádu", data.IsSlopeDirectionReversed ? "Obrátený" : "Normálny"),
             new("Pôdorysná dĺžka", $"{measurement.PlanLengthMm:0} mm"),
             new("Skutočná dĺžka", $"{measurement.ActualLengthMm:0} mm"),
             new("Prídavok na prírez", $"{data.CuttingAllowanceMm:0} mm ({allowanceSource})"),
@@ -480,6 +482,17 @@ public sealed class AcKrovyCommands
         return selectedData.Skip(1).Any(data => Math.Abs(data.CuttingAllowanceMm - first) > 0.000001);
     }
 
+    private static bool HasMixedSlopeDirection(IReadOnlyList<TimberElementData> selectedData)
+    {
+        if (selectedData.Count < 2)
+        {
+            return false;
+        }
+
+        var first = selectedData[0].IsSlopeDirectionReversed;
+        return selectedData.Skip(1).Any(data => data.IsSlopeDirectionReversed != first);
+    }
+
     private static void UpdateLabelsForChangedEntities(
         Database database,
         Transaction transaction,
@@ -512,6 +525,11 @@ public sealed class AcKrovyCommands
                 synchronizedData,
                 previousElementId,
                 roundingStepMm);
+            SlopeArrowService.UpsertForElement(
+                database,
+                transaction,
+                entity,
+                synchronizedData);
         }
     }
 

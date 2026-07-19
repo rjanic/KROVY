@@ -286,6 +286,8 @@ internal static class ElementLabelService
                 {
                     updated++;
                 }
+
+                SlopeArrowService.UpsertForElement(database, transaction, entity, data);
             }
             catch (System.Exception ex)
             {
@@ -295,6 +297,7 @@ internal static class ElementLabelService
         }
 
         DeleteDuplicateLabelsForExistingSourceHandles(database, transaction);
+        SlopeArrowService.DeleteDuplicateArrowsForExistingSourceHandles(database, transaction);
         return new ElementLabelUpdateResult(created, updated, skipped);
     }
 

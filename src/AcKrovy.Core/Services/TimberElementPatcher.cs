@@ -22,6 +22,7 @@ public static class TimberElementPatcher
             WidthMm = patch.WidthMm ?? source.WidthMm,
             HeightMm = patch.HeightMm ?? source.HeightMm,
             SlopeDegrees = patch.SlopeDegrees ?? source.SlopeDegrees,
+            IsSlopeDirectionReversed = patch.IsSlopeDirectionReversed ?? source.IsSlopeDirectionReversed,
             RoofPlaneId = patch.RoofPlaneId ?? source.RoofPlaneId,
             CuttingAllowanceMm = patch.CuttingAllowanceMm ?? source.CuttingAllowanceMm,
             LengthCalculationMode = patch.LengthCalculationMode ?? source.LengthCalculationMode,

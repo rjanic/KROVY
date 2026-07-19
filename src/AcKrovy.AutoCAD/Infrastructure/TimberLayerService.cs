@@ -36,6 +36,31 @@ internal static class TimberLayerService
         entity.Color = AcColor.FromColorIndex(ColorMethod.ByLayer, 256);
     }
 
+    public static void ApplyToAnnotationEntity(
+        Database database,
+        Transaction transaction,
+        Entity entity,
+        string layerName,
+        int colorIndex)
+    {
+        ArgumentNullException.ThrowIfNull(database);
+        ArgumentNullException.ThrowIfNull(transaction);
+        ArgumentNullException.ThrowIfNull(entity);
+
+        if (!LayerNameValidator.TryValidate(layerName, out var normalizedLayerName, out var error))
+        {
+            throw new InvalidOperationException($"Neplatná hladina anotácie: {error}");
+        }
+
+        if (colorIndex is < 1 or > 255)
+        {
+            throw new ArgumentOutOfRangeException(nameof(colorIndex));
+        }
+
+        entity.LayerId = EnsureLayer(database, transaction, normalizedLayerName, colorIndex);
+        entity.Color = AcColor.FromColorIndex(ColorMethod.ByLayer, 256);
+    }
+
     private static ObjectId EnsureLayer(
         Database database,
         Transaction transaction,

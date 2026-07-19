@@ -12,6 +12,7 @@ public sealed record TimberElementData
     public double WidthMm { get; init; } = 80;
     public double HeightMm { get; init; } = 160;
     public double SlopeDegrees { get; init; } = 35;
+    public bool IsSlopeDirectionReversed { get; init; }
     public string RoofPlaneId { get; init; } = "R1";
     public double CuttingAllowanceMm { get; init; } = TimberElementDefaultProfile.FactoryCuttingAllowanceMm;
     public LengthCalculationMode LengthCalculationMode { get; init; } = LengthCalculationMode.AutoByElementType;

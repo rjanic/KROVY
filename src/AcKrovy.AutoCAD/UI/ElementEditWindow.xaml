@@ -19,6 +19,7 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="18" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
@@ -46,30 +47,34 @@
         <CheckBox x:Name="ChangeSlopeCheckBox" Grid.Row="5" Grid.Column="1" VerticalAlignment="Center" ToolTip="Zmeniť" />
         <TextBox x:Name="SlopeTextBox" Grid.Row="5" Grid.Column="2" Margin="0,4" />
 
-        <TextBlock Grid.Row="6" Grid.Column="0" VerticalAlignment="Center" Text="Strešná rovina" />
-        <CheckBox x:Name="ChangeRoofPlaneCheckBox" Grid.Row="6" Grid.Column="1" VerticalAlignment="Center" ToolTip="Zmeniť" />
-        <TextBox x:Name="RoofPlaneTextBox" Grid.Row="6" Grid.Column="2" Margin="0,4" />
+        <TextBlock Grid.Row="6" Grid.Column="0" VerticalAlignment="Center" Text="Smer spádu" />
+        <CheckBox x:Name="ChangeSlopeDirectionCheckBox" Grid.Row="6" Grid.Column="1" VerticalAlignment="Center" ToolTip="Zmeniť" />
+        <ComboBox x:Name="SlopeDirectionComboBox" Grid.Row="6" Grid.Column="2" />
 
-        <TextBlock Grid.Row="7" Grid.Column="0" VerticalAlignment="Center" Text="Výrobný prídavok [mm]" />
-        <CheckBox x:Name="ChangeAllowanceCheckBox" Grid.Row="7" Grid.Column="1" VerticalAlignment="Center" ToolTip="Zmeniť" />
-        <StackPanel Grid.Row="7" Grid.Column="2" Orientation="Horizontal" Margin="0,4">
+        <TextBlock Grid.Row="7" Grid.Column="0" VerticalAlignment="Center" Text="Strešná rovina" />
+        <CheckBox x:Name="ChangeRoofPlaneCheckBox" Grid.Row="7" Grid.Column="1" VerticalAlignment="Center" ToolTip="Zmeniť" />
+        <TextBox x:Name="RoofPlaneTextBox" Grid.Row="7" Grid.Column="2" Margin="0,4" />
+
+        <TextBlock Grid.Row="8" Grid.Column="0" VerticalAlignment="Center" Text="Výrobný prídavok [mm]" />
+        <CheckBox x:Name="ChangeAllowanceCheckBox" Grid.Row="8" Grid.Column="1" VerticalAlignment="Center" ToolTip="Zmeniť" />
+        <StackPanel Grid.Row="8" Grid.Column="2" Orientation="Horizontal" Margin="0,4">
             <TextBox x:Name="AllowanceTextBox" Width="105" />
             <Button Width="215" Margin="8,0,0,0" Padding="8,3" Click="UseDefaultAllowance_Click">Použiť predvolený podľa typu</Button>
         </StackPanel>
 
-        <TextBlock Grid.Row="8" Grid.Column="0" VerticalAlignment="Center" Text="Režim dĺžky" />
-        <CheckBox x:Name="ChangeLengthModeCheckBox" Grid.Row="8" Grid.Column="1" VerticalAlignment="Center" ToolTip="Zmeniť" />
-        <ComboBox x:Name="LengthModeComboBox" Grid.Row="8" Grid.Column="2" />
+        <TextBlock Grid.Row="9" Grid.Column="0" VerticalAlignment="Center" Text="Režim dĺžky" />
+        <CheckBox x:Name="ChangeLengthModeCheckBox" Grid.Row="9" Grid.Column="1" VerticalAlignment="Center" ToolTip="Zmeniť" />
+        <ComboBox x:Name="LengthModeComboBox" Grid.Row="9" Grid.Column="2" />
 
-        <TextBlock Grid.Row="9" Grid.Column="0" VerticalAlignment="Center" Text="Ručná dĺžka [mm]" />
-        <CheckBox x:Name="ChangeManualLengthCheckBox" Grid.Row="9" Grid.Column="1" VerticalAlignment="Center" ToolTip="Zmeniť" />
-        <TextBox x:Name="ManualLengthTextBox" Grid.Row="9" Grid.Column="2" Margin="0,4" />
+        <TextBlock Grid.Row="10" Grid.Column="0" VerticalAlignment="Center" Text="Ručná dĺžka [mm]" />
+        <CheckBox x:Name="ChangeManualLengthCheckBox" Grid.Row="10" Grid.Column="1" VerticalAlignment="Center" ToolTip="Zmeniť" />
+        <TextBox x:Name="ManualLengthTextBox" Grid.Row="10" Grid.Column="2" Margin="0,4" />
 
-        <TextBlock Grid.Row="10" Grid.Column="0" VerticalAlignment="Center" Text="Materiál" />
-        <CheckBox x:Name="ChangeMaterialCheckBox" Grid.Row="10" Grid.Column="1" VerticalAlignment="Center" ToolTip="Zmeniť" />
-        <TextBox x:Name="MaterialTextBox" Grid.Row="10" Grid.Column="2" Margin="0,4" />
+        <TextBlock Grid.Row="11" Grid.Column="0" VerticalAlignment="Center" Text="Materiál" />
+        <CheckBox x:Name="ChangeMaterialCheckBox" Grid.Row="11" Grid.Column="1" VerticalAlignment="Center" ToolTip="Zmeniť" />
+        <TextBox x:Name="MaterialTextBox" Grid.Row="11" Grid.Column="2" Margin="0,4" />
 
-        <StackPanel Grid.Row="12" Grid.ColumnSpan="3" HorizontalAlignment="Right" Orientation="Horizontal">
+        <StackPanel Grid.Row="13" Grid.ColumnSpan="3" HorizontalAlignment="Right" Orientation="Horizontal">
             <Button Width="105" Margin="0,0,8,0" Padding="8,4" Click="Cancel_Click" IsCancel="True">Zrušiť</Button>
             <Button Width="105" Padding="8,4" Click="Save_Click" IsDefault="True">Použiť</Button>
         </StackPanel>

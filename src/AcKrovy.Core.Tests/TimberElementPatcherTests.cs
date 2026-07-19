@@ -62,6 +62,17 @@ public sealed class TimberElementPatcherTests
     }
 
     [Fact]
+    public void Apply_ChangesOnlySlopeDirection()
+    {
+        var result = TimberElementPatcher.Apply(Source(), EmptyPatch() with
+        {
+            IsSlopeDirectionReversed = true,
+        });
+
+        AssertPatched(result, value => Assert.True(value.IsSlopeDirectionReversed));
+    }
+
+    [Fact]
     public void Apply_ChangesOnlyCuttingAllowance()
     {
         var result = TimberElementPatcher.Apply(Source(), EmptyPatch() with
@@ -200,6 +211,7 @@ public sealed class TimberElementPatcherTests
         Assert.Equal(120, result.WidthMm);
         Assert.Equal(source.HeightMm, result.HeightMm);
         Assert.Equal(source.SlopeDegrees, result.SlopeDegrees);
+        Assert.Equal(source.IsSlopeDirectionReversed, result.IsSlopeDirectionReversed);
         Assert.Equal(source.RoofPlaneId, result.RoofPlaneId);
         Assert.Equal(source.CuttingAllowanceMm, result.CuttingAllowanceMm);
         Assert.Equal(source.LengthCalculationMode, result.LengthCalculationMode);

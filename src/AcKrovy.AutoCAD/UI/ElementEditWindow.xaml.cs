@@ -23,7 +23,8 @@ public partial class ElementEditWindow : Window
         TimberElementData? seedData,
         bool isNewAssignment,
         TimberElementDefaultProfile? defaultProfile = null,
-        bool cuttingAllowanceIsMixed = false)
+        bool cuttingAllowanceIsMixed = false,
+        bool slopeDirectionIsMixed = false)
     {
         InitializeComponent();
         _isInitializing = true;
@@ -40,6 +41,12 @@ public partial class ElementEditWindow : Window
             .Select(mode => new LengthModeOption(mode, ToSlovak(mode)))
             .ToList();
 
+        SlopeDirectionComboBox.ItemsSource = new[]
+        {
+            new SlopeDirectionOption(false, "Normálny (začiatok → koniec)"),
+            new SlopeDirectionOption(true, "Obrátený (koniec → začiatok)"),
+        };
+
         var data = seedData ?? new TimberElementData();
 
         ElementTypeComboBox.SelectedItem = ((IEnumerable<ElementTypeOption>)ElementTypeComboBox.ItemsSource)
@@ -47,6 +54,12 @@ public partial class ElementEditWindow : Window
 
         LengthModeComboBox.SelectedItem = ((IEnumerable<LengthModeOption>)LengthModeComboBox.ItemsSource)
             .First(item => item.Value == data.LengthCalculationMode);
+        SlopeDirectionComboBox.SelectedItem = ((IEnumerable<SlopeDirectionOption>)SlopeDirectionComboBox.ItemsSource)
+            .First(item => item.IsReversed == data.IsSlopeDirectionReversed);
+        if (slopeDirectionIsMixed)
+        {
+            SlopeDirectionComboBox.ToolTip = "Vybrané prvky majú rôzny smer spádu. Nezaškrtnuté pole ponechá každému prvku pôvodný smer.";
+        }
 
         WidthTextBox.Text = Format(data.WidthMm);
         HeightTextBox.Text = Format(data.HeightMm);
@@ -68,6 +81,7 @@ public partial class ElementEditWindow : Window
         ChangeWidthCheckBox.IsChecked = isNewAssignment;
         ChangeHeightCheckBox.IsChecked = isNewAssignment;
         ChangeSlopeCheckBox.IsChecked = isNewAssignment;
+        ChangeSlopeDirectionCheckBox.IsChecked = isNewAssignment;
         ChangeRoofPlaneCheckBox.IsChecked = isNewAssignment;
         ChangeAllowanceCheckBox.IsChecked = isNewAssignment;
         ChangeLengthModeCheckBox.IsChecked = isNewAssignment;
@@ -167,7 +181,10 @@ public partial class ElementEditWindow : Window
             ChangeMaterialCheckBox.IsChecked == true
                 ? EmptyToNull(MaterialTextBox.Text)
                 : null,
-            null);
+            null,
+            ChangeSlopeDirectionCheckBox.IsChecked == true
+                ? (SlopeDirectionComboBox.SelectedItem as SlopeDirectionOption)?.IsReversed
+                : null);
 
         DialogResult = true;
     }
@@ -263,6 +280,11 @@ public partial class ElementEditWindow : Window
     }
 
     private sealed record LengthModeOption(LengthCalculationMode Value, string Label)
+    {
+        public override string ToString() => Label;
+    }
+
+    private sealed record SlopeDirectionOption(bool IsReversed, string Label)
     {
         public override string ToString() => Label;
     }

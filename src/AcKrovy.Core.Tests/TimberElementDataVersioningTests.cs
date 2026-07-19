@@ -52,6 +52,7 @@ public sealed class TimberElementDataVersioningTests
         Assert.Equal(data.WidthMm, normalized.WidthMm);
         Assert.Equal(data.HeightMm, normalized.HeightMm);
         Assert.Equal(data.SlopeDegrees, normalized.SlopeDegrees);
+        Assert.Equal(data.IsSlopeDirectionReversed, normalized.IsSlopeDirectionReversed);
         Assert.Equal(data.RoofPlaneId, normalized.RoofPlaneId);
         Assert.Equal(data.CuttingAllowanceMm, normalized.CuttingAllowanceMm);
         Assert.Equal(data.LengthCalculationMode, normalized.LengthCalculationMode);
@@ -131,6 +132,7 @@ public sealed class TimberElementDataVersioningTests
         Assert.Equal(90, normalized.WidthMm);
         Assert.Equal(170, normalized.HeightMm);
         Assert.Equal(37, normalized.SlopeDegrees);
+        Assert.False(normalized.IsSlopeDirectionReversed);
     }
 
     [Fact]

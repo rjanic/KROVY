@@ -11,4 +11,5 @@ public sealed record TimberElementPatch(
     LengthCalculationMode? LengthCalculationMode,
     double? ManualLengthMm,
     string? Material,
-    string? Note);
+    string? Note,
+    bool? IsSlopeDirectionReversed = null);
