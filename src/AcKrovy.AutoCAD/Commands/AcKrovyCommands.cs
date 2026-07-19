@@ -234,6 +234,9 @@ public sealed class AcKrovyCommands
             isNewAssignment: false,
             defaultProfile,
             cuttingAllowanceIsMixed: HasMixedCuttingAllowance(selectedData));
+        dialog.Title = selectedData.Count == 1
+            ? $"ACAD KROVY – editácia prvku – {selectedData[0].ElementId} – {TimberElementLabels.ToSlovak(selectedData[0].ElementType)}"
+            : $"ACAD KROVY – editácia {selectedData.Count} prvkov";
         if (AcApp.ShowModalWindow(dialog) != true || dialog.Patch is null)
         {
             return;

@@ -103,10 +103,15 @@ public partial class ElementEditWindow : Window
 
     private void UseDefaultAllowance_Click(object sender, RoutedEventArgs e)
     {
+        if (SelectedElementType is not { } type)
+        {
+            return;
+        }
+
         UseDefaultCuttingAllowanceByType = true;
         ChangeAllowanceCheckBox.IsChecked = false;
         _isInitializing = true;
-        AllowanceTextBox.Text = string.Empty;
+        AllowanceTextBox.Text = Format(_defaultProfile.GetCuttingAllowanceMm(type));
         AllowanceTextBox.ToolTip = "Pri použití sa každému vybranému prvku nastaví aktuálny predvolený prídavok podľa jeho typu.";
         _isInitializing = false;
     }
