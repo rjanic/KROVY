@@ -85,6 +85,43 @@ public sealed class TimberReportBuilderTests
             line.ElementType == TimberElementType.Purlin && line.CuttingLengthMm == 4000);
     }
 
+    [Theory]
+    [InlineData(TimberElementType.Rafter, "K2,K1", "K1,K2")]
+    [InlineData(TimberElementType.WallPlate, "P3,P1,P2", "P1,P2,P3")]
+    [InlineData(TimberElementType.Rafter, "K10,K2,K1", "K1,K2,K10")]
+    [InlineData(TimberElementType.WallPlate, "P10,P1,P3", "P1,P3,P10")]
+    public void Build_SortsReportLinesByNaturalItemNumber(
+        TimberElementType type,
+        string inputIds,
+        string expectedIds)
+    {
+        var measurements = inputIds
+            .Split(',')
+            .Select((elementId, index) => Measurement(
+                type,
+                "Smrek C24",
+                80 + index,
+                160,
+                5000,
+                0.064,
+                elementId));
+
+        var report = TimberReportBuilder.Build(measurements);
+
+        Assert.Equal(expectedIds.Split(','), report.Lines.Select(line => line.ElementId));
+    }
+
+    [Fact]
+    public void Build_PreservesDeterministicElementTypeOrderAcrossPrefixes()
+    {
+        var wallPlate = Measurement(TimberElementType.WallPlate, "Smrek C24", 160, 160, 5000, 0.128, "P1");
+        var rafter = Measurement(TimberElementType.Rafter, "Smrek C24", 80, 160, 5000, 0.064, "K1");
+
+        var report = TimberReportBuilder.Build(new[] { wallPlate, rafter });
+
+        Assert.Equal(new[] { "K1", "P1" }, report.Lines.Select(line => line.ElementId));
+    }
+
     private static TimberElementMeasurement Measurement(
         TimberElementType type,
         string material,

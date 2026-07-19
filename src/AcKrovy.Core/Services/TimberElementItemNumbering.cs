@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 using AcKrovy.Core.Models;
 
 namespace AcKrovy.Core.Services;
@@ -56,7 +55,7 @@ public static class TimberElementItemNumbering
             var measurement = candidate.Measurement;
             var signature = TimberElementSignature.FromMeasurement(measurement);
             var elementId = measurement.Data.ElementId;
-            if (TryParseElementNumber(elementId, signature.ElementType) is null ||
+            if (TimberElementIdentityRules.TryParseElementNumber(elementId, signature.ElementType) is null ||
                 assignments.ContainsKey(signature) ||
                 !ElementIdBelongsToPreferredSignature(candidates, elementId, signature))
             {
@@ -83,7 +82,7 @@ public static class TimberElementItemNumbering
         {
             var measurement = candidate.Measurement;
             var type = measurement.Data.ElementType;
-            var number = TryParseElementNumber(measurement.Data.ElementId, type);
+            var number = TimberElementIdentityRules.TryParseElementNumber(measurement.Data.ElementId, type);
             if (number is null)
             {
                 continue;
@@ -140,23 +139,5 @@ public static class TimberElementItemNumbering
 
         allocatedNumbers.Add(number);
         return TimberElementIdentityRules.CreateElementId(type, number);
-    }
-
-    private static int? TryParseElementNumber(string elementId, TimberElementType type)
-    {
-        if (string.IsNullOrWhiteSpace(elementId))
-        {
-            return null;
-        }
-
-        var prefix = TimberElementLabels.Prefix(type);
-        var match = Regex.Match(
-            elementId.Trim(),
-            $"^{Regex.Escape(prefix)}(?<number>\\d+)$",
-            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
-
-        return match.Success && int.TryParse(match.Groups["number"].Value, out var number)
-            ? number
-            : null;
     }
 }

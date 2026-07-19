@@ -11,10 +11,6 @@ public static class TimberReportBuilder
 
         var lines = materialized
             .GroupBy(TimberElementSignature.FromMeasurement)
-            .OrderBy(x => x.Key.ElementType)
-            .ThenBy(x => x.Key.WidthMm)
-            .ThenBy(x => x.Key.HeightMm)
-            .ThenBy(x => x.Key.CuttingLengthMm)
             .Select(group => new TimberReportLine(
                 SelectElementId(group),
                 group.Key.ElementType,
@@ -25,6 +21,12 @@ public static class TimberReportBuilder
                 group.Count(),
                 group.Sum(x => x.CuttingLengthMm),
                 group.Sum(x => x.VolumeM3)))
+            .OrderBy(line => line.ElementType)
+            .ThenBy(line => TimberElementIdentityRules.TryParseElementNumber(line.ElementId, line.ElementType) ?? int.MaxValue)
+            .ThenBy(line => line.ElementId, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(line => line.WidthMm)
+            .ThenBy(line => line.HeightMm)
+            .ThenBy(line => line.CuttingLengthMm)
             .ToList();
 
         return new TimberReport(lines, materialized.Count, lines.Sum(x => x.TotalVolumeM3));
