@@ -13,18 +13,30 @@ public static class TimberElementItemNumbering
             throw new ArgumentNullException(nameof(measurements));
         }
 
-        var materialized = measurements.ToList();
-        var assignedIdsBySignature = new Dictionary<TimberElementSignature, string>();
-        var nextNumberByType = InitializeNextNumbers(materialized);
+        return AssignElementIds(measurements.Select(measurement =>
+            new TimberElementItemNumberingCandidate(measurement, IsChanged: false)));
+    }
+
+    public static IReadOnlyList<TimberElementItemAssignment> AssignElementIds(
+        IEnumerable<TimberElementItemNumberingCandidate> candidates)
+    {
+        if (candidates is null)
+        {
+            throw new ArgumentNullException(nameof(candidates));
+        }
+
+        var materialized = candidates.ToList();
+        var assignedIdsBySignature = FindExistingStableAssignments(materialized);
+        var allocatedNumbersByType = ReadAllocatedNumbers(materialized);
         var result = new List<TimberElementItemAssignment>(materialized.Count);
 
-        foreach (var measurement in materialized)
+        foreach (var candidate in materialized)
         {
+            var measurement = candidate.Measurement;
             var signature = TimberElementSignature.FromMeasurement(measurement);
             if (!assignedIdsBySignature.TryGetValue(signature, out var elementId))
             {
-                elementId = FindStableElementId(materialized, signature)
-                    ?? CreateNextElementId(signature.ElementType, nextNumberByType);
+                elementId = CreateNextElementId(signature.ElementType, allocatedNumbersByType);
                 assignedIdsBySignature.Add(signature, elementId);
             }
 
@@ -34,13 +46,42 @@ public static class TimberElementItemNumbering
         return result;
     }
 
-    private static Dictionary<TimberElementType, int> InitializeNextNumbers(
-        IReadOnlyList<TimberElementMeasurement> measurements)
+    private static Dictionary<TimberElementSignature, string> FindExistingStableAssignments(
+        IReadOnlyList<TimberElementItemNumberingCandidate> candidates)
     {
-        var nextNumberByType = new Dictionary<TimberElementType, int>();
+        var assignments = new Dictionary<TimberElementSignature, string>();
 
-        foreach (var measurement in measurements)
+        foreach (var candidate in candidates)
         {
+            var measurement = candidate.Measurement;
+            var signature = TimberElementSignature.FromMeasurement(measurement);
+            var elementId = measurement.Data.ElementId;
+            if (TryParseElementNumber(elementId, signature.ElementType) is null ||
+                assignments.ContainsKey(signature) ||
+                !ElementIdBelongsToPreferredSignature(candidates, elementId, signature))
+            {
+                continue;
+            }
+
+            assignments.Add(signature, elementId.Trim());
+        }
+
+        return assignments;
+    }
+
+    private static Dictionary<TimberElementType, HashSet<int>> ReadAllocatedNumbers(
+        IReadOnlyList<TimberElementItemNumberingCandidate> candidates)
+    {
+        var allocatedNumbersByType = new Dictionary<TimberElementType, HashSet<int>>();
+
+        foreach (TimberElementType type in Enum.GetValues(typeof(TimberElementType)))
+        {
+            allocatedNumbersByType[type] = new HashSet<int>();
+        }
+
+        foreach (var candidate in candidates)
+        {
+            var measurement = candidate.Measurement;
             var type = measurement.Data.ElementType;
             var number = TryParseElementNumber(measurement.Data.ElementId, type);
             if (number is null)
@@ -48,56 +89,56 @@ public static class TimberElementItemNumbering
                 continue;
             }
 
-            if (!nextNumberByType.TryGetValue(type, out var highest) || number.Value > highest)
-            {
-                nextNumberByType[type] = number.Value;
-            }
+            allocatedNumbersByType[type].Add(number.Value);
         }
 
-        foreach (TimberElementType type in Enum.GetValues(typeof(TimberElementType)))
-        {
-            nextNumberByType[type] = nextNumberByType.TryGetValue(type, out var highest)
-                ? highest + 1
-                : 1;
-        }
-
-        return nextNumberByType;
-    }
-
-    private static string? FindStableElementId(
-        IReadOnlyList<TimberElementMeasurement> measurements,
-        TimberElementSignature signature)
-    {
-        return measurements
-            .Where(measurement =>
-                TimberElementSignature.FromMeasurement(measurement) == signature &&
-                TryParseElementNumber(measurement.Data.ElementId, signature.ElementType) is not null &&
-                ElementIdBelongsToPreferredSignature(measurements, measurement.Data.ElementId, signature))
-            .Select(measurement => measurement.Data.ElementId)
-            .OrderBy(elementId => TryParseElementNumber(elementId, signature.ElementType))
-            .ThenBy(elementId => elementId, StringComparer.OrdinalIgnoreCase)
-            .FirstOrDefault();
+        return allocatedNumbersByType;
     }
 
     private static bool ElementIdBelongsToPreferredSignature(
-        IReadOnlyList<TimberElementMeasurement> measurements,
+        IReadOnlyList<TimberElementItemNumberingCandidate> candidates,
         string elementId,
         TimberElementSignature signature)
     {
-        var firstOwner = measurements.FirstOrDefault(measurement => string.Equals(
-            measurement.Data.ElementId,
-            elementId,
-            StringComparison.OrdinalIgnoreCase));
+        var owners = candidates
+            .Where(candidate => string.Equals(
+                candidate.Measurement.Data.ElementId,
+                elementId,
+                StringComparison.OrdinalIgnoreCase))
+            .Select((candidate, index) => new
+            {
+                Signature = TimberElementSignature.FromMeasurement(candidate.Measurement),
+                candidate.IsChanged,
+                Index = index,
+            })
+            .GroupBy(candidate => candidate.Signature)
+            .Select((group, index) => new
+            {
+                Signature = group.Key,
+                Count = group.Count(),
+                UnchangedCount = group.Count(candidate => !candidate.IsChanged),
+                FirstIndex = group.Min(candidate => candidate.Index),
+            })
+            .OrderByDescending(group => group.UnchangedCount)
+            .ThenByDescending(group => group.Count)
+            .ThenBy(group => group.FirstIndex)
+            .ToList();
 
-        return firstOwner is not null && TimberElementSignature.FromMeasurement(firstOwner) == signature;
+        return owners.Count > 0 && owners[0].Signature == signature;
     }
 
     private static string CreateNextElementId(
         TimberElementType type,
-        IDictionary<TimberElementType, int> nextNumberByType)
+        IDictionary<TimberElementType, HashSet<int>> allocatedNumbersByType)
     {
-        var number = nextNumberByType[type];
-        nextNumberByType[type] = number + 1;
+        var allocatedNumbers = allocatedNumbersByType[type];
+        var number = 1;
+        while (allocatedNumbers.Contains(number))
+        {
+            number++;
+        }
+
+        allocatedNumbers.Add(number);
         return TimberElementIdentityRules.CreateElementId(type, number);
     }
 

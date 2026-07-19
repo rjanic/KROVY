@@ -1,0 +1,45 @@
+<Window x:Class="AcKrovy.AutoCAD.UI.InspectInfoWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="ACAD KROVY - údaje prvku"
+        SizeToContent="WidthAndHeight"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner">
+    <Border Padding="18" MinWidth="360">
+        <DockPanel LastChildFill="True">
+            <Button DockPanel.Dock="Bottom"
+                    Width="92"
+                    Height="30"
+                    Margin="0,16,0,0"
+                    HorizontalAlignment="Right"
+                    Click="CloseButton_Click"
+                    Content="Zavrieť" />
+
+            <StackPanel>
+                <TextBlock Text="Údaje prvku"
+                           FontSize="16"
+                           FontWeight="SemiBold"
+                           Margin="0,0,0,10" />
+                <ItemsControl ItemsSource="{Binding Rows}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Margin="0,3">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="165" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0"
+                                           Text="{Binding Label}"
+                                           Foreground="#555555" />
+                                <TextBlock Grid.Column="1"
+                                           Text="{Binding Value}"
+                                           FontWeight="SemiBold"
+                                           TextWrapping="Wrap" />
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </DockPanel>
+    </Border>
+</Window>

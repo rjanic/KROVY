@@ -113,6 +113,108 @@ public sealed class TimberElementItemNumberingTests
     }
 
     [Fact]
+    public void AssignElementIds_GapAfterDeletedItemDoesNotCompactExistingIds()
+    {
+        var result = Assign(
+            Measurement("K1", TimberElementType.Rafter, 80, 160, 1000),
+            Measurement("K2", TimberElementType.Rafter, 80, 160, 2000),
+            Measurement("K4", TimberElementType.Rafter, 80, 160, 4000),
+            Measurement("K5", TimberElementType.Rafter, 80, 160, 5000));
+
+        Assert.Equal(new[] { "K1", "K2", "K4", "K5" }, result.Select(x => x.ElementId));
+    }
+
+    [Fact]
+    public void AssignElementIds_NewSignatureCanUseFirstFreeGapWithoutRenumberingExistingIds()
+    {
+        var result = Assign(
+            Measurement("K1", TimberElementType.Rafter, 80, 160, 1000),
+            Measurement("K2", TimberElementType.Rafter, 80, 160, 2000),
+            Measurement("K4", TimberElementType.Rafter, 80, 160, 4000),
+            Measurement("K5", TimberElementType.Rafter, 80, 160, 5000),
+            Measurement("K1", TimberElementType.Rafter, 80, 160, 3000));
+
+        Assert.Equal(new[] { "K1", "K2", "K4", "K5", "K3" }, result.Select(x => x.ElementId));
+    }
+
+    [Fact]
+    public void AssignElementIds_SameSignatureWithExistingGapKeepsSharedExistingId()
+    {
+        var result = Assign(
+            Measurement("K4", TimberElementType.Rafter, 80, 160, 4000),
+            Measurement("K4", TimberElementType.Rafter, 80, 160, 4000));
+
+        Assert.Equal(new[] { "K4", "K4" }, result.Select(x => x.ElementId));
+    }
+
+    [Fact]
+    public void AssignElementIds_ChangedSignatureUsesExistingTargetIdAndDoesNotRenumberOthers()
+    {
+        var result = Assign(
+            Measurement("K1", TimberElementType.Rafter, 80, 160, 1000),
+            Measurement("K2", TimberElementType.Rafter, 80, 160, 2000),
+            Measurement("K5", TimberElementType.Rafter, 80, 160, 5000),
+            Measurement("K1", TimberElementType.Rafter, 80, 160, 5000));
+
+        Assert.Equal(new[] { "K1", "K2", "K5", "K5" }, result.Select(x => x.ElementId));
+    }
+
+    [Fact]
+    public void AssignElementIds_ChangedSignatureGetsFreeIdAndDoesNotRenumberOthers()
+    {
+        var result = Assign(
+            Measurement("K1", TimberElementType.Rafter, 80, 160, 1000),
+            Measurement("K2", TimberElementType.Rafter, 80, 160, 2000),
+            Measurement("K4", TimberElementType.Rafter, 80, 160, 4000),
+            Measurement("K1", TimberElementType.Rafter, 80, 160, 3000));
+
+        Assert.Equal(new[] { "K1", "K2", "K4", "K3" }, result.Select(x => x.ElementId));
+    }
+
+    [Fact]
+    public void AssignElementIds_RepeatedSynchronizationIsIdempotent()
+    {
+        var first = Assign(
+            Measurement("K1", TimberElementType.Rafter, 80, 160, 1000),
+            Measurement("K2", TimberElementType.Rafter, 80, 160, 2000),
+            Measurement("K4", TimberElementType.Rafter, 80, 160, 4000),
+            Measurement("K1", TimberElementType.Rafter, 80, 160, 3000));
+        var second = Assign(
+            first.Select(assignment => Measurement(
+                assignment.ElementId,
+                assignment.Signature.ElementType,
+                assignment.Signature.WidthMm,
+                assignment.Signature.HeightMm,
+                assignment.Signature.CuttingLengthMm)).ToArray());
+
+        Assert.Equal(first.Select(x => x.ElementId), second.Select(x => x.ElementId));
+    }
+
+    [Fact]
+    public void AssignElementIds_OriginalChangedAmongCopiesGetsNewIdAndCopiesKeepSharedId()
+    {
+        var result = AssignWithChangedIndexes(
+            new[] { 0 },
+            Measurement("K1", TimberElementType.Rafter, 80, 160, 2000),
+            Measurement("K1", TimberElementType.Rafter, 80, 160, 1000),
+            Measurement("K1", TimberElementType.Rafter, 80, 160, 1000));
+
+        Assert.Equal(new[] { "K2", "K1", "K1" }, result.Select(x => x.ElementId));
+    }
+
+    [Fact]
+    public void AssignElementIds_SecondCopyChangedAfterOriginalKeepsOtherIdsStable()
+    {
+        var result = AssignWithChangedIndexes(
+            new[] { 1 },
+            Measurement("K2", TimberElementType.Rafter, 80, 160, 2000),
+            Measurement("K1", TimberElementType.Rafter, 80, 160, 3000),
+            Measurement("K1", TimberElementType.Rafter, 80, 160, 1000));
+
+        Assert.Equal(new[] { "K2", "K3", "K1" }, result.Select(x => x.ElementId));
+    }
+
+    [Fact]
     public void AssignElementIds_SameRoundedCuttingLengthSharesItemIdentity()
     {
         var first = CalculatedMeasurement("K1", TimberElementType.Rafter, 11021, 0);
@@ -169,6 +271,14 @@ public sealed class TimberElementItemNumberingTests
     private static IReadOnlyList<TimberElementItemAssignment> Assign(
         params TimberElementMeasurement[] measurements) =>
         TimberElementItemNumbering.AssignElementIds(measurements);
+
+    private static IReadOnlyList<TimberElementItemAssignment> AssignWithChangedIndexes(
+        IReadOnlyCollection<int> changedIndexes,
+        params TimberElementMeasurement[] measurements) =>
+        TimberElementItemNumbering.AssignElementIds(measurements
+            .Select((measurement, index) => new TimberElementItemNumberingCandidate(
+                measurement,
+                changedIndexes.Contains(index))));
 
     private static TimberElementMeasurement CalculatedMeasurement(
         string elementId,

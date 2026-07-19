@@ -41,8 +41,8 @@ internal static class ElementLabelService
         }
 
         var measurement = TimberCalculator.Measure(data, AutoCadEntityHelpers.GetPlanLengthMm(sourceEntity));
+        var labelText = TimberElementLabelFormatter.Format(data, measurement);
         var placement = CalculatePlacement(sourceEntity);
-        var labelText = CreateContents(data, measurement);
         var sourceHandle = sourceEntity.Handle.ToString();
         var existingLabelId = FindExistingLabelId(
             database,
@@ -76,6 +76,7 @@ internal static class ElementLabelService
             SourceHandle = sourceHandle,
         });
         DeleteObsoleteLabels(transaction, obsoleteLabelIds, label.ObjectId);
+        DeleteDuplicateLabelsForExistingSourceHandles(database, transaction);
 
         return isCreated;
     }
@@ -133,6 +134,70 @@ internal static class ElementLabelService
             .ToList();
     }
 
+    internal static int DeleteLabelsForMissingSourceHandles(
+        Database database,
+        Transaction transaction,
+        IReadOnlyCollection<string> sourceHandles)
+    {
+        if (sourceHandles.Count == 0)
+        {
+            return 0;
+        }
+
+        var targetHandles = new HashSet<string>(
+            sourceHandles
+                .Where(handle => !string.IsNullOrWhiteSpace(handle))
+                .Select(handle => handle.Trim()),
+            StringComparer.OrdinalIgnoreCase);
+        if (targetHandles.Count == 0)
+        {
+            return 0;
+        }
+
+        var existingSourceHandles = ReadTimberSourceHandles(database, transaction);
+        var deleted = 0;
+
+        foreach (var label in ReadLabels(database, transaction))
+        {
+            if (!targetHandles.Contains(label.Data.SourceHandle) ||
+                existingSourceHandles.Contains(label.Data.SourceHandle) ||
+                transaction.GetObject(label.Id, OpenMode.ForWrite, false) is not MText text)
+            {
+                continue;
+            }
+
+            text.Erase();
+            deleted++;
+        }
+
+        return deleted;
+    }
+
+    internal static int DeleteDuplicateLabelsForExistingSourceHandles(
+        Database database,
+        Transaction transaction)
+    {
+        var labels = ReadLabels(database, transaction);
+        if (labels.Count == 0)
+        {
+            return 0;
+        }
+
+        var labelIdsByKey = labels.ToDictionary(label => label.Id.ToString(), label => label.Id);
+        var keysToDelete = TimberElementLabelCleanupRules.SelectDuplicateLabelKeysToDelete(
+            labels
+                .Select(label => new TimberElementLabelCandidate
+                {
+                    LabelKey = label.Id.ToString(),
+                    ElementId = label.Data.ElementId,
+                    SourceHandle = label.Data.SourceHandle,
+                })
+                .ToList(),
+            ReadTimberSourceHandles(database, transaction));
+
+        return DeleteLabelsByKey(transaction, labelIdsByKey, keysToDelete);
+    }
+
     private static ElementLabelUpdateResult Update(
         Database database,
         Transaction transaction,
@@ -186,6 +251,7 @@ internal static class ElementLabelService
             }
         }
 
+        DeleteDuplicateLabelsForExistingSourceHandles(database, transaction);
         return new ElementLabelUpdateResult(created, updated, skipped);
     }
 
@@ -271,6 +337,22 @@ internal static class ElementLabelService
         return labels;
     }
 
+    private static IReadOnlySet<string> ReadTimberSourceHandles(Database database, Transaction transaction)
+    {
+        var metadataStore = new AutoCadTimberElementMetadataStore(transaction);
+        var handles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var id in DrawingScanner.FindAllTimberElements(database, transaction, metadataStore))
+        {
+            if (transaction.GetObject(id, OpenMode.ForRead, false) is Entity entity)
+            {
+                handles.Add(entity.Handle.ToString());
+            }
+        }
+
+        return handles;
+    }
+
     private static void DeleteObsoleteLabels(
         Transaction transaction,
         IReadOnlyList<ObjectId> obsoleteLabelIds,
@@ -287,6 +369,29 @@ internal static class ElementLabelService
 
             label.Erase();
         }
+    }
+
+    private static int DeleteLabelsByKey(
+        Transaction transaction,
+        IReadOnlyDictionary<string, ObjectId> labelIdsByKey,
+        IReadOnlyList<string> labelKeysToDelete)
+    {
+        var deleted = 0;
+
+        foreach (var labelKey in labelKeysToDelete.Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            if (!labelIdsByKey.TryGetValue(labelKey, out var id) ||
+                transaction.GetObject(id, OpenMode.ForWrite, false) is not MText label ||
+                !ElementLabelStore.TryRead(label, out _))
+            {
+                continue;
+            }
+
+            label.Erase();
+            deleted++;
+        }
+
+        return deleted;
     }
 
     private static int CountTimberElementsWithElementId(
@@ -386,9 +491,6 @@ internal static class ElementLabelService
 
         return new LabelPlacement(location, placement.RotationRadians);
     }
-
-    private static string CreateContents(TimberElementData data, TimberElementMeasurement measurement) =>
-        $"{data.ElementId}\\P{data.WidthMm:0} × {data.HeightMm:0}\\P{measurement.CuttingLengthMm:0} mm";
 
     private sealed record LabelPlacement(Point3d Location, double RotationRadians);
 }

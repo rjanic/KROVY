@@ -14,7 +14,10 @@ internal static class TimberElementItemIdentityService
     {
         var targetSet = targetIds.Distinct().ToHashSet();
         var entries = ReadCurrentMeasurements(database, transaction, metadataStore);
-        var assignments = TimberElementItemNumbering.AssignElementIds(entries.Select(entry => entry.Measurement));
+        var assignments = TimberElementItemNumbering.AssignElementIds(entries.Select(entry =>
+            new TimberElementItemNumberingCandidate(
+                entry.Measurement,
+                IsChanged: targetSet.Contains(entry.Id))));
         var result = new Dictionary<ObjectId, TimberElementData>();
 
         for (var index = 0; index < entries.Count; index++)
@@ -25,7 +28,11 @@ internal static class TimberElementItemIdentityService
 
             if (targetSet.Contains(entry.Id))
             {
-                if (transaction.GetObject(entry.Id, OpenMode.ForWrite) is Entity writableEntity)
+                if (!string.Equals(
+                        entry.Measurement.Data.ElementId,
+                        updatedData.ElementId,
+                        StringComparison.OrdinalIgnoreCase) &&
+                    transaction.GetObject(entry.Id, OpenMode.ForWrite) is Entity writableEntity)
                 {
                     metadataStore.Write(writableEntity, updatedData);
                 }

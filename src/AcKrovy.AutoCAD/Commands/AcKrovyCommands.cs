@@ -26,7 +26,7 @@ public sealed class AcKrovyCommands
     {
         var editor = ActiveEditor();
         editor.WriteMessage(
-            "\nACAD KROVY 0.8.0"
+            "\nACAD KROVY 0.9.0"
             + "\n\nPRVKY KROVU"
             + "\n  AK_KROKVA      – rýchlo priradí typ Krokva"
             + "\n  AK_POMURNICA   – rýchlo priradí typ Pomúrnica"
@@ -51,7 +51,7 @@ public sealed class AcKrovyCommands
             + "\n  AK_LABELSELECTED – vytvorí alebo obnoví popisy označených prvkov"
             + "\n  AK_LABELSHOW   – zobrazí hladinu KROV_POPIS"
             + "\n  AK_LABELHIDE   – skryje hladinu KROV_POPIS"
-            + "\n\nTip: pri priradení alebo úprave sa popis vytvorí automaticky. Po ručnej zmene dĺžky čiary použi AK_LABELS alebo AK_RECALC.");
+            + "\n\nTip: pri priradení, úprave alebo zmene geometrie sa popis obnoví automaticky. AK_LABELS a AK_RECALC môžeš použiť na ručnú kontrolu.");
     }
 
     [CommandMethod("AK_RIBBON", CommandFlags.Modal)]
@@ -301,14 +301,35 @@ public sealed class AcKrovyCommands
 
         var data = snapshot.Data;
         var measurement = TimberElementMeasurer.Measure(snapshot);
-        editor.WriteMessage(
+        var message =
             $"\n{data.ElementId} | {TimberElementLabels.ToSlovak(data.ElementType)}"
             + $"\n  Prierez: {data.WidthMm:0} × {data.HeightMm:0} mm"
             + $"\n  Pôdorysná dĺžka: {measurement.PlanLengthMm / 1000d:0.###} m"
             + $"\n  Skutočná dĺžka: {measurement.ActualLengthMm / 1000d:0.###} m"
             + $"\n  Rezná dĺžka: {measurement.CuttingLengthMm / 1000d:0.###} m"
-            + $"\n  Kubatúra: {measurement.VolumeM3:0.0000} m³");
+            + $"\n  Kubatúra: {measurement.VolumeM3:0.0000} m³";
+        var rows = new List<InspectInfoRow>
+        {
+            new("Označenie", data.ElementId),
+            new("Typ prvku", TimberElementLabels.ToSlovak(data.ElementType)),
+            new("Materiál", data.Material),
+            new("Šírka", $"{data.WidthMm:0} mm"),
+            new("Výška", $"{data.HeightMm:0} mm"),
+            new("Pôdorysná dĺžka", $"{measurement.PlanLengthMm:0} mm"),
+            new("Skutočná dĺžka", $"{measurement.ActualLengthMm:0} mm"),
+            new("Prídavok na prírez", $"{data.CuttingAllowanceMm:0} mm"),
+            new("Rezná dĺžka", $"{measurement.CuttingLengthMm:0} mm"),
+            new("ManualLengthMode", data.LengthCalculationMode == LengthCalculationMode.ManualLength ? "Áno" : "Nie"),
+            new("CAD Handle", entity.Handle.ToString()),
+        };
+        if (data.ManualLengthMm.HasValue)
+        {
+            rows.Add(new InspectInfoRow("Manuálna dĺžka", $"{data.ManualLengthMm.Value:0} mm"));
+        }
+
         transaction.Commit();
+        editor.WriteMessage(message);
+        AcApp.ShowModalWindow(new InspectInfoWindow(rows));
     }
 
     [CommandMethod("AK_REPORT", CommandFlags.Modal | CommandFlags.UsePickSet)]

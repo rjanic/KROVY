@@ -1,8 +1,16 @@
-ACAD KROVY 0.8.0 – Per-Element Manufacturing Overrides
+ACAD KROVY 0.9.0 – Live Geometry Synchronization
 
-Táto verzia nadväzuje na stabilnú architektúru v0.7.0 a bola manuálne overená v AutoCAD 2027.
+Táto verzia nadväzuje na stabilnú architektúru v0.8.0 a bola manuálne overená v AutoCAD 2027.
 
 ČO PRIDÁVA
+- Automatickú synchronizáciu inteligentných timber prvkov po STRETCH, TRIM, EXTEND, grip edit a MOVE.
+- Zber zmenených entít počas AutoCAD príkazu a bezpečné spracovanie až po jeho úspešnom ukončení.
+- Reentrancy guard proti zacykleniu pri internom zápise metadát a aktualizácii labelov.
+- Per-dokumentové event subscriptions pre bezpečnú prácu s viacerými otvorenými DWG.
+- Stabilné číslovanie ElementId bez automatického kompaktného prečíslovania existujúcich položiek.
+- Automatickú aktualizáciu popisov, cleanup orphan/clone labelov a formát rozmerov 80x160.
+- Read-only informačné okno v AK_INSPECT.
+- Zachované COPY/COPYCLIP správanie a WBLOCK/import ochranu z predchádzajúcich verzií.
 - Individuálnu editáciu CuttingAllowanceMm priamo cez AK_EDIT.
 - Bezpečnú hromadnú editáciu so zmiešanými hodnotami bez tichého prepisu.
 - Tlačidlo „Použiť predvolený podľa typu“ v AK_EDIT.
@@ -25,7 +33,7 @@ Táto verzia nadväzuje na stabilnú architektúru v0.7.0 a bola manuálne overe
 - Výpočet a aplikovanie výrobných prídavkov sú centralizované v Core bez AutoCAD závislostí.
 - Po AK_ASSIGN alebo ikonke typu sa pri každom prvku automaticky vytvorí MText štítok:
   K1
-  80 × 160
+  80x160
   5000 mm
 - Po AK_EDIT sa popis okamžite obnoví.
 - AK_RECALC zároveň obnoví popisy po manuálnej úprave dĺžok čiar.

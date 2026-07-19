@@ -2,7 +2,7 @@
 
 Základ pre AutoCAD doplnok na **2D výkaz krovu**. Čiara alebo polyline predstavuje jeden drevený prvok. K objektu sa do DWG uloží typ, prierez, sklon, prídavok na rezanie, materiál a označenie. Z vybraných alebo všetkých označených prvkov doplnok vytvorí výkaz s počtom, dĺžkami a kubatúrou.
 
-> Stav: **0.8.0 – Per-Element Manufacturing Overrides**. Hlavná vývojová platforma je AutoCAD 2027 na Windows. Verzia obsahuje prenosné XData metadáta, automatické popisy, používateľské nastavenia hladín, nastaviteľné výrobné prídavky podľa typu a individuálne výrobné prídavky priamo cez `AK_EDIT`.
+> Stav: **0.9.0 – Live Geometry Synchronization**. Hlavná vývojová platforma je AutoCAD 2027 na Windows. Verzia obsahuje prenosné XData metadáta, automatické popisy, používateľské nastavenia hladín, nastaviteľné výrobné prídavky podľa typu, individuálne výrobné prídavky cez `AK_EDIT` a automatickú synchronizáciu po zmene geometrie.
 
 ## Čo už kostra obsahuje
 
@@ -12,13 +12,14 @@ Základ pre AutoCAD doplnok na **2D výkaz krovu**. Čiara alebo polyline predst
 - Príkaz `AK_EDIT` na hromadnú úpravu šírky, výšky, sklonu, individuálneho výrobného prídavku, materiálu a typu.
 - Príkaz `AK_REPORT` na výkaz z aktuálneho výberu.
 - Príkaz `AK_REPORTALL` na výkaz všetkých prvkov v modelovom priestore.
-- Príkaz `AK_INSPECT` na vypísanie údajov pri jednom prvku.
+- Príkaz `AK_INSPECT` na vypísanie údajov a read-only informačné okno pri jednom prvku.
 - Príkaz `AK_RECALC` na kontrolný prepočet všetkých prvkov.
 - Príkaz `AK_SETTINGS` na používateľské nastavenia hladín, farieb a predvolených výrobných prídavkov.
 - Automatické MText popisy prvkov s väzbou cez `SourceHandle`.
+- Automatický refresh po STRETCH, TRIM, EXTEND, grip edit a MOVE bez nutnosti ručne spúšťať `AK_RECALC`.
 - Výsledný AutoCAD `Table` so stĺpcami: typ, materiál, šírka, výška, dĺžka kusu, počet, celková dĺžka, kubatúra.
 
-## Dôležité pravidlo výpočtu v 0.8.0
+## Dôležité pravidlo výpočtu v 0.9.0
 
 Pre krokvy a vzpery je čiara chápaná ako **vodorovná projekcia v smere spádu strechy**:
 
@@ -121,6 +122,18 @@ AK_HELP
 - Možnosť obnoviť aktuálny predvolený prídavok podľa typu prvku.
 - Bezpečný prepočet reznej dĺžky a synchronizácia `ElementId` cez existujúcu výrobnú identitu.
 - Zachované správanie COPY/COPYCLIP z v0.7.0 a ochrana WBLOCK/import workflow.
+
+## v0.9.0 Live Geometry Synchronization
+
+- Automatická synchronizácia inteligentných timber prvkov po STRETCH, TRIM, EXTEND, grip edit a MOVE.
+- Zmenené entity sa zbierajú počas AutoCAD príkazu a spracujú až po jeho úspešnom ukončení.
+- Refresh používa existujúce Core meranie, výrobnú signatúru, synchronizáciu `ElementId` a `ElementLabelService`.
+- Reentrancy guard bráni zacykleniu pri internom zápise metadát a aktualizácii labelov.
+- Multi-document lifecycle je riešený per-dokumentovými subscription bez zdieľania kandidátov medzi DWG.
+- Stabilné číslovanie výrobných položiek nekompaktuje existujúce `ElementId`; nové položky môžu použiť prvú voľnú medzeru.
+- Automatické popisy sa aktualizujú okamžite, čistia orphan/clone labely a rozmery zapisujú vo formáte `80x160`.
+- `AK_INSPECT` zobrazuje kompaktné read-only informačné okno.
+- COPY/COPYCLIP a WBLOCK/import kompatibilita z v0.7.0 zostáva zachovaná.
 
 ## Štruktúra
 

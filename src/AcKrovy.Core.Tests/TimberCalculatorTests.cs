@@ -104,6 +104,51 @@ public sealed class TimberCalculatorTests
     }
 
     [Fact]
+    public void Measure_GeometryChangeUpdatesActualAndCuttingLengthInAutomaticMode()
+    {
+        var data = new TimberElementData
+        {
+            ElementType = TimberElementType.Purlin,
+            LengthCalculationMode = LengthCalculationMode.AutoByElementType,
+            WidthMm = 100,
+            HeightMm = 100,
+            CuttingAllowanceMm = 100,
+        };
+
+        var before = TimberCalculator.Measure(data, planLengthMm: 5000);
+        var after = TimberCalculator.Measure(data, planLengthMm: 5350);
+
+        Assert.Equal(5000, before.ActualLengthMm);
+        Assert.Equal(5100, before.CuttingLengthMm);
+        Assert.Equal(5350, after.ActualLengthMm);
+        Assert.Equal(5500, after.CuttingLengthMm);
+        Assert.Equal(100, after.Data.CuttingAllowanceMm);
+    }
+
+    [Fact]
+    public void Measure_GeometryChangeDoesNotOverrideManualLengthMode()
+    {
+        var data = new TimberElementData
+        {
+            ElementType = TimberElementType.Post,
+            LengthCalculationMode = LengthCalculationMode.ManualLength,
+            ManualLengthMm = 2500,
+            WidthMm = 100,
+            HeightMm = 100,
+            CuttingAllowanceMm = 100,
+        };
+
+        var before = TimberCalculator.Measure(data, planLengthMm: 1000);
+        var after = TimberCalculator.Measure(data, planLengthMm: 5000);
+
+        Assert.Equal(2500, before.ActualLengthMm);
+        Assert.Equal(2600, before.CuttingLengthMm);
+        Assert.Equal(2500, after.ActualLengthMm);
+        Assert.Equal(2600, after.CuttingLengthMm);
+        Assert.Equal(100, after.Data.CuttingAllowanceMm);
+    }
+
+    [Fact]
     public void Measure_AllowsZeroCuttingAllowance()
     {
         var data = new TimberElementData

@@ -1,5 +1,6 @@
 using AcKrovy.AutoCAD.Ribbon;
 using AcKrovy.AutoCAD.ClassicToolbar;
+using AcKrovy.AutoCAD.Infrastructure;
 using AcApp = Autodesk.AutoCAD.ApplicationServices.Application;
 using Autodesk.AutoCAD.Runtime;
 
@@ -13,13 +14,15 @@ public sealed class PluginEntry : IExtensionApplication
         // Ribbon môže byť pri NETLOAD ešte vo fáze inicializácie. AcKrovyRibbon
         // ho preto bezpečne vytvorí pri najbližšom idle AutoCADu.
         AcKrovyRibbon.ScheduleCreation();
+        LiveGeometrySynchronizationService.Start();
 
         var document = AcApp.DocumentManager.MdiActiveDocument;
-        document?.Editor.WriteMessage("\nACAD KROVY 0.8.0 načítané. Karta ACAD KROVY sa pridá do Ribbonu. Zadaj AK_HELP pre zoznam príkazov alebo AK_TOOLBAR pre klasický panel malých ikon.");
+        document?.Editor.WriteMessage("\nACAD KROVY 0.9.0 načítané. Karta ACAD KROVY sa pridá do Ribbonu. Zadaj AK_HELP pre zoznam príkazov alebo AK_TOOLBAR pre klasický panel malých ikon.");
     }
 
     public void Terminate()
     {
+        LiveGeometrySynchronizationService.Stop();
         ClassicToolbarManager.Dispose();
         AcKrovyRibbon.Dispose();
     }
