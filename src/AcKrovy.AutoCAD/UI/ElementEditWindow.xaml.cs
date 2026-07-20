@@ -15,6 +15,7 @@ public partial class ElementEditWindow : Window
     private readonly IReadOnlyList<TimberElementData> _validationData;
     private readonly bool _isNewAssignment;
     private bool _isInitializing;
+    private bool _manualLengthEditingEnabled;
 
     internal TimberElementPatch? Patch { get; private set; }
     internal TimberElementType? SelectedElementType => (ElementTypeComboBox.SelectedItem as ElementTypeOption)?.Value;
@@ -92,7 +93,16 @@ public partial class ElementEditWindow : Window
         ChangeManualLengthCheckBox.IsChecked = isNewAssignment;
         ChangeMaterialCheckBox.IsChecked = isNewAssignment;
 
-        ElementTypeComboBox.SelectionChanged += (_, _) => UpdateAllowanceForSelectedType();
+        ElementTypeComboBox.SelectionChanged += (_, _) =>
+        {
+            UpdateAllowanceForSelectedType();
+            UpdateManualLengthEditingState();
+        };
+        LengthModeComboBox.SelectionChanged += (_, _) => UpdateManualLengthEditingState();
+        ChangeTypeCheckBox.Checked += (_, _) => UpdateManualLengthEditingState();
+        ChangeTypeCheckBox.Unchecked += (_, _) => UpdateManualLengthEditingState();
+        ChangeLengthModeCheckBox.Checked += (_, _) => UpdateManualLengthEditingState();
+        ChangeLengthModeCheckBox.Unchecked += (_, _) => UpdateManualLengthEditingState();
         AllowanceTextBox.TextChanged += (_, _) =>
         {
             if (!_isInitializing)
@@ -102,6 +112,25 @@ public partial class ElementEditWindow : Window
             }
         };
         _isInitializing = false;
+        UpdateManualLengthEditingState();
+    }
+
+    private void UpdateManualLengthEditingState()
+    {
+        var elementTypeOverride = ChangeTypeCheckBox.IsChecked == true
+            ? (ElementTypeComboBox.SelectedItem as ElementTypeOption)?.Value
+            : null;
+        var lengthModeOverride = ChangeLengthModeCheckBox.IsChecked == true
+            ? (LengthModeComboBox.SelectedItem as LengthModeOption)?.Value
+            : null;
+
+        _manualLengthEditingEnabled = TimberManualLengthEditRules.CanEdit(
+            _validationData,
+            elementTypeOverride,
+            lengthModeOverride);
+        ChangeManualLengthCheckBox.IsEnabled = _manualLengthEditingEnabled;
+        ManualLengthTextBox.IsEnabled = _manualLengthEditingEnabled;
+        ManualLengthTextBox.IsReadOnly = !_manualLengthEditingEnabled;
     }
 
     private void UpdateAllowanceForSelectedType()
@@ -136,6 +165,7 @@ public partial class ElementEditWindow : Window
 
     private void Save_Click(object sender, RoutedEventArgs e)
     {
+        UpdateManualLengthEditingState();
         if (!TryReadOptionalNumber(
                 ChangeWidthCheckBox.IsChecked == true,
                 WidthTextBox.Text,
@@ -156,7 +186,7 @@ public partial class ElementEditWindow : Window
                 UiStrings.DialogEditFieldCuttingAllowance,
                 out var allowance) ||
             !TryReadOptionalNumber(
-                ChangeManualLengthCheckBox.IsChecked == true,
+                _manualLengthEditingEnabled && ChangeManualLengthCheckBox.IsChecked == true,
                 ManualLengthTextBox.Text,
                 UiStrings.DialogEditFieldManualLength,
                 out var manualLength,
