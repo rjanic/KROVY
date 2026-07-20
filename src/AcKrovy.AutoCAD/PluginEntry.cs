@@ -3,6 +3,7 @@ using AcKrovy.AutoCAD.ClassicToolbar;
 using AcKrovy.AutoCAD.Infrastructure;
 using AcApp = Autodesk.AutoCAD.ApplicationServices.Application;
 using Autodesk.AutoCAD.Runtime;
+using AcKrovy.Localization;
 
 namespace AcKrovy.AutoCAD;
 
@@ -17,7 +18,7 @@ public sealed class PluginEntry : IExtensionApplication
         LiveGeometrySynchronizationService.Start();
 
         var document = AcApp.DocumentManager.MdiActiveDocument;
-        document?.Editor.WriteMessage("\nACAD KROVY 0.10.0 načítané. Karta ACAD KROVY sa pridá do Ribbonu. Zadaj AK_HELP pre zoznam príkazov alebo AK_TOOLBAR pre klasický panel malých ikon.");
+        document?.Editor.WriteMessage(UiStrings.MessagePluginLoaded);
     }
 
     public void Terminate()

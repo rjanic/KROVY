@@ -139,12 +139,12 @@ public partial class ElementEditWindow : Window
         if (!TryReadOptionalNumber(
                 ChangeWidthCheckBox.IsChecked == true,
                 WidthTextBox.Text,
-                "šírka",
+                UiStrings.DialogEditFieldWidth,
                 out var width) ||
             !TryReadOptionalNumber(
                 ChangeHeightCheckBox.IsChecked == true,
                 HeightTextBox.Text,
-                "výška",
+                UiStrings.DialogEditFieldHeight,
                 out var height) ||
             !TryReadOptionalSlope(
                 ChangeSlopeCheckBox.IsChecked == true,
@@ -153,12 +153,12 @@ public partial class ElementEditWindow : Window
             !TryReadOptionalWholeNumber(
                 ChangeAllowanceCheckBox.IsChecked == true && !UseDefaultCuttingAllowanceByType,
                 AllowanceTextBox.Text,
-                "výrobný prídavok",
+                UiStrings.DialogEditFieldCuttingAllowance,
                 out var allowance) ||
             !TryReadOptionalNumber(
                 ChangeManualLengthCheckBox.IsChecked == true,
                 ManualLengthTextBox.Text,
-                "ručná dĺžka",
+                UiStrings.DialogEditFieldManualLength,
                 out var manualLength,
                 allowEmpty: true))
         {
@@ -198,7 +198,7 @@ public partial class ElementEditWindow : Window
 
             MessageBox.Show(
                 error,
-                "ACAD KROVY",
+                UiStrings.MessageDialogTitle,
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
             return;
@@ -228,7 +228,7 @@ public partial class ElementEditWindow : Window
         TimberCalculator.TryValidateSlopeDegrees(parsed ? value : double.NaN, out var error);
         MessageBox.Show(
             error,
-            "ACAD KROVY",
+            UiStrings.MessageDialogTitle,
             MessageBoxButton.OK,
             MessageBoxImage.Warning);
         return false;
@@ -261,8 +261,11 @@ public partial class ElementEditWindow : Window
         }
 
         MessageBox.Show(
-            $"Pole „{label}“ musí obsahovať celé nezáporné číslo v milimetroch, najviac {TimberElementDefaultProfile.MaxCuttingAllowanceMm:0}.",
-            "ACAD KROVY",
+            UiStrings.Format(
+                UiStrings.DialogEditWholeNonnegativeFormat,
+                label,
+                TimberElementDefaultProfile.MaxCuttingAllowanceMm),
+            UiStrings.MessageDialogTitle,
             MessageBoxButton.OK,
             MessageBoxImage.Warning);
 
@@ -299,8 +302,8 @@ public partial class ElementEditWindow : Window
         }
 
         MessageBox.Show(
-            $"Pole „{label}“ musí obsahovať kladné číslo.",
-            "ACAD KROVY",
+            UiStrings.Format(UiStrings.DialogEditPositiveNumberFormat, label),
+            UiStrings.MessageDialogTitle,
             MessageBoxButton.OK,
             MessageBoxImage.Warning);
 

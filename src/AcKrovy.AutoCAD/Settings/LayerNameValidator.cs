@@ -1,5 +1,7 @@
 namespace AcKrovy.AutoCAD.Settings;
 
+using AcKrovy.Localization;
+
 internal static class LayerNameValidator
 {
     // Základná množina znakov, ktoré AutoCAD nepovoľuje v názve symbolu/h hladiny.
@@ -12,19 +14,19 @@ internal static class LayerNameValidator
 
         if (string.IsNullOrWhiteSpace(normalizedLayerName))
         {
-            error = "Názov hladiny nesmie byť prázdny.";
+            error = UiStrings.ErrorLayerNameEmpty;
             return false;
         }
 
         if (normalizedLayerName.Length > 255)
         {
-            error = "Názov hladiny je príliš dlhý.";
+            error = UiStrings.ErrorLayerNameTooLong;
             return false;
         }
 
         if (normalizedLayerName.IndexOfAny(InvalidCharacters) >= 0)
         {
-            error = "Názov hladiny obsahuje nepovolený znak.";
+            error = UiStrings.ErrorLayerNameInvalidCharacter;
             return false;
         }
 

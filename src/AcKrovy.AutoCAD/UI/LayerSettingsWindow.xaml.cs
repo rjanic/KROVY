@@ -116,8 +116,8 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
             if (!LayerNameValidator.TryValidate(row.LayerName, out var layerName, out var error))
             {
                 WpfMessageBox.Show(
-                    $"{row.ElementLabel}: {error}",
-                    "ACAD KROVY",
+                    UiStrings.Format(UiStrings.DialogLayersErrorFormat, row.ElementLabel, error),
+                    UiStrings.MessageDialogTitle,
                     MessageBoxButton.OK,
                     MessageBoxImage.Warning);
                 profile = ElementLayerProfile.CreateDefault();
@@ -127,8 +127,8 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
             if (!occupiedNames.Add(layerName))
             {
                 WpfMessageBox.Show(
-                    $"Hladina „{layerName}“ je zadaná viackrát. Každý typ prvku musí mať vlastnú hladinu.",
-                    "ACAD KROVY",
+                    UiStrings.Format(UiStrings.DialogLayersDuplicateFormat, layerName),
+                    UiStrings.MessageDialogTitle,
                     MessageBoxButton.OK,
                     MessageBoxImage.Warning);
                 profile = ElementLayerProfile.CreateDefault();
@@ -150,8 +150,10 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
         if (!TryReadPositiveInteger(RoundingStepMmText, out var roundingStepMm))
         {
             WpfMessageBox.Show(
-                $"Krok zaokrúhľovania výrobnej dĺžky musí byť celé kladné číslo v milimetroch, najviac {TimberElementDefaultProfile.MaxCuttingLengthRoundingStepMm:0}.",
-                "ACAD KROVY",
+                UiStrings.Format(
+                    UiStrings.DialogSettingsRoundingStepFormat,
+                    TimberElementDefaultProfile.MaxCuttingLengthRoundingStepMm),
+                UiStrings.MessageDialogTitle,
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
             profile = TimberElementDefaultProfile.CreateDefault();
@@ -165,8 +167,11 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
             if (!TryReadNonNegativeNumber(row.CuttingAllowanceMmText, out var cuttingAllowanceMm))
             {
                 WpfMessageBox.Show(
-                    $"{row.ElementLabel}: prídavok na rez musí byť nezáporné číslo v milimetroch, najviac {TimberElementDefaultProfile.MaxCuttingAllowanceMm:0}.",
-                    "ACAD KROVY",
+                    UiStrings.Format(
+                        UiStrings.DialogSettingsCuttingAllowanceFormat,
+                        row.ElementLabel,
+                        TimberElementDefaultProfile.MaxCuttingAllowanceMm),
+                    UiStrings.MessageDialogTitle,
                     MessageBoxButton.OK,
                     MessageBoxImage.Warning);
                 profile = TimberElementDefaultProfile.CreateDefault();

@@ -26,34 +26,7 @@ public sealed class AcKrovyCommands
     public void Help()
     {
         var editor = ActiveEditor();
-        editor.WriteMessage(
-            "\nACAD KROVY 0.10.0"
-            + "\n\nPRVKY KROVU"
-            + "\n  AK_KROKVA      – rýchlo priradí typ Krokva"
-            + "\n  AK_POMURNICA   – rýchlo priradí typ Pomúrnica"
-            + "\n  AK_VAZNICA     – rýchlo priradí typ Väznica"
-            + "\n  AK_STLPIK      – rýchlo priradí typ Stĺpik"
-            + "\n  AK_KLIESTINA   – rýchlo priradí typ Klieština / hambálok"
-            + "\n  AK_VZPERA      – rýchlo priradí typ Vzpera"
-            + "\n  AK_VAZNYTRAM   – rýchlo priradí typ Väzný trám"
-            + "\n\nÚDAJE A VÝKAZY"
-            + "\n  AK_ASSIGN      – priradí údaje vybraným čiaram/polyline"
-            + "\n  AK_EDIT        – hromadne upraví zaškrtnuté hodnoty"
-            + "\n  AK_FLIPSLOPE   – obráti smer spádu kliknutého prvku alebo jeho anotácie"
-            + "\n  AK_INSPECT     – zobrazí údaje jedného prvku"
-            + "\n  AK_REPORT      – vloží tabuľku z vybraných prvkov"
-            + "\n  AK_REPORTALL   – vloží tabuľku zo všetkých prvkov"
-            + "\n  AK_RECALC     – skontroluje prepočty všetkých prvkov"
-            + "\n  AK_RIBBON      – zobrazí/obnoví kartu ACAD KROVY v Ribbóne"
-            + "\n  AK_TOOLBAR     – zobrazí/skryje klasický plávajúci panel malých ikon"
-            + "\n  AK_SETTINGS    – nastaví hladiny a farby jednotlivých typov prvkov"
-            + "\n  AK_APPLYLAYERS – premietne aktuálne nastavenia hladín do výkresu"
-            + "\n\nPOPISY VO VÝKRESE"
-            + "\n  AK_LABELS      – vytvorí alebo obnoví popisy všetkých prvkov"
-            + "\n  AK_LABELSELECTED – vytvorí alebo obnoví popisy označených prvkov"
-            + "\n  AK_LABELSHOW   – zobrazí hladinu KROV_POPIS"
-            + "\n  AK_LABELHIDE   – skryje hladinu KROV_POPIS"
-            + "\n\nTip: pri priradení, úprave alebo zmene geometrie sa popis obnoví automaticky. AK_LABELS a AK_RECALC môžeš použiť na ručnú kontrolu.");
+        editor.WriteMessage(UiStrings.HelpCommandOverview);
     }
 
     [CommandMethod("AK_RIBBON", CommandFlags.Modal)]
@@ -61,12 +34,12 @@ public sealed class AcKrovyCommands
     {
         if (AcKrovyRibbon.EnsureCreated(activateTab: true))
         {
-            ActiveEditor().WriteMessage("\nACAD KROVY: karta Ribbonu je pripravená.");
+            ActiveEditor().WriteMessage(UiStrings.CommandRibbonReady);
             return;
         }
 
         AcKrovyRibbon.ScheduleCreation();
-        ActiveEditor().WriteMessage("\nACAD KROVY: Ribbon ešte nie je pripravený, karta sa pridá o chvíľu.");
+        ActiveEditor().WriteMessage(UiStrings.CommandRibbonPending);
     }
 
     [CommandMethod("AK_TOOLBAR", CommandFlags.Modal)]
@@ -74,22 +47,22 @@ public sealed class AcKrovyCommands
     {
         ClassicToolbarManager.Toggle();
         ActiveEditor().WriteMessage(ClassicToolbarManager.IsVisible
-            ? "\nACAD KROVY: klasický panel ikoniek je zobrazený."
-            : "\nACAD KROVY: klasický panel ikoniek je skrytý.");
+            ? UiStrings.CommandToolbarShown
+            : UiStrings.CommandToolbarHidden);
     }
 
     [CommandMethod("AK_TOOLBARSHOW", CommandFlags.Modal)]
     public void ShowClassicToolbar()
     {
         ClassicToolbarManager.Show();
-        ActiveEditor().WriteMessage("\nACAD KROVY: klasický panel ikoniek je zobrazený.");
+        ActiveEditor().WriteMessage(UiStrings.CommandToolbarShown);
     }
 
     [CommandMethod("AK_TOOLBARHIDE", CommandFlags.Modal)]
     public void HideClassicToolbar()
     {
         ClassicToolbarManager.Hide();
-        ActiveEditor().WriteMessage("\nACAD KROVY: klasický panel ikoniek je skrytý.");
+        ActiveEditor().WriteMessage(UiStrings.CommandToolbarHidden);
     }
 
     [CommandMethod("AK_SETTINGS", CommandFlags.Modal)]
@@ -112,21 +85,21 @@ public sealed class AcKrovyCommands
         }
         catch (System.Exception ex)
         {
-            editor.WriteMessage($"\nACAD KROVY: nepodarilo sa uložiť nastavenia: {ex.Message}");
+            editor.WriteMessage(UiStrings.Format(UiStrings.CommandSettingsSaveFailedFormat, ex.Message));
             return;
         }
 
-        editor.WriteMessage("\nACAD KROVY: nastavenia boli uložené.");
+        editor.WriteMessage(UiStrings.CommandSettingsSaved);
         switch (dialog.CuttingAllowanceApplyMode)
         {
             case CuttingAllowanceApplyMode.AllElements:
                 ApplySettingsToExistingElements(document, dialog.Profile, dialog.DefaultProfile, null);
                 break;
             case CuttingAllowanceApplyMode.SelectedElements:
-                var ids = PromptForEntities(editor, "\nOznač prvky, na ktoré chceš aplikovať nové výrobné prídavky: ");
+                var ids = PromptForEntities(editor, UiStrings.CommandSettingsPromptApplyAllowances);
                 if (ids.Count == 0)
                 {
-                    editor.WriteMessage("\nACAD KROVY: výber bol zrušený, existujúce prvky neboli zmenené.");
+                    editor.WriteMessage(UiStrings.CommandSettingsSelectionCancelled);
                     return;
                 }
 
@@ -153,23 +126,29 @@ public sealed class AcKrovyCommands
     {
         var document = ActiveDocument();
         var result = ElementLabelService.UpdateAll(document.Database, document.Editor);
-        document.Editor.WriteMessage(
-            $"\nACAD KROVY: popisy obnovené: {result.Processed}. Nové: {result.Created}. Preskočené: {result.Skipped}.");
+        document.Editor.WriteMessage(UiStrings.Format(
+            UiStrings.CommandLabelsUpdatedFormat,
+            result.Processed,
+            result.Created,
+            result.Skipped));
     }
 
     [CommandMethod("AK_LABELSELECTED", CommandFlags.Modal | CommandFlags.UsePickSet)]
     public void UpdateSelectedLabels()
     {
         var document = ActiveDocument();
-        var ids = PromptForEntities(document.Editor, "\nOznač prvky, ktorým chceš vytvoriť alebo obnoviť popisy: ");
+        var ids = PromptForEntities(document.Editor, UiStrings.CommandLabelsPromptSelected);
         if (ids.Count == 0)
         {
             return;
         }
 
         var result = ElementLabelService.UpdateSelected(document.Database, document.Editor, ids);
-        document.Editor.WriteMessage(
-            $"\nACAD KROVY: popisy obnovené: {result.Processed}. Nové: {result.Created}. Preskočené: {result.Skipped}.");
+        document.Editor.WriteMessage(UiStrings.Format(
+            UiStrings.CommandLabelsUpdatedFormat,
+            result.Processed,
+            result.Created,
+            result.Skipped));
     }
 
     [CommandMethod("AK_LABELSHOW", CommandFlags.Modal)]
@@ -207,7 +186,7 @@ public sealed class AcKrovyCommands
     {
         var document = ActiveDocument();
         var editor = document.Editor;
-        var ids = PromptForEntities(editor, "\nOznač inteligentné prvky krovu na úpravu: ");
+        var ids = PromptForEntities(editor, UiStrings.CommandEditPrompt);
         if (ids.Count == 0)
         {
             return;
@@ -226,7 +205,7 @@ public sealed class AcKrovyCommands
 
         if (selectedData.Count == 0)
         {
-            editor.WriteMessage("\nVybraný objekt nemá údaje ACAD KROVY. Najprv použi AK_ASSIGN alebo ikonku typu prvku.");
+            editor.WriteMessage(UiStrings.CommandEditNoData);
             return;
         }
 
@@ -239,8 +218,11 @@ public sealed class AcKrovyCommands
             slopeDirectionIsMixed: HasMixedSlopeDirection(selectedData),
             validationData: selectedData);
         dialog.Title = selectedData.Count == 1
-            ? $"ACAD KROVY – editácia prvku – {selectedData[0].ElementId} – {TimberElementTypeDisplayNameProvider.GetDisplayName(selectedData[0].ElementType)}"
-            : $"ACAD KROVY – editácia {selectedData.Count} prvkov";
+            ? UiStrings.Format(
+                UiStrings.CommandEditTitleSingleFormat,
+                selectedData[0].ElementId,
+                TimberElementTypeDisplayNameProvider.GetDisplayName(selectedData[0].ElementType))
+            : UiStrings.Format(UiStrings.CommandEditTitleMultipleFormat, selectedData.Count);
         if (AcApp.ShowModalWindow(dialog) != true || dialog.Patch is null)
         {
             return;
@@ -282,7 +264,7 @@ public sealed class AcKrovyCommands
         UpdateLabelsForChangedEntities(document.Database, transaction, metadataStore, changedIds, previousElementIdById);
 
         transaction.Commit();
-        editor.WriteMessage($"\nACAD KROVY: upravené {changed} prvky. Preskočené: {skipped}.");
+        editor.WriteMessage(UiStrings.Format(UiStrings.CommandEditResultFormat, changed, skipped));
     }
 
     [CommandMethod("AK_FLIPSLOPE", CommandFlags.Modal)]
@@ -290,8 +272,7 @@ public sealed class AcKrovyCommands
     {
         var document = ActiveDocument();
         var editor = document.Editor;
-        var selection = editor.GetEntity(
-            "\nKlikni na timber prvok alebo jeho slope anotáciu pre obrátenie smeru: ");
+        var selection = editor.GetEntity(UiStrings.CommandFlipSlopePrompt);
         if (selection.Status != PromptStatus.OK)
         {
             return;
@@ -322,13 +303,13 @@ public sealed class AcKrovyCommands
             !metadataStore.TryRead(sourceEntity, out var data) ||
             data is null)
         {
-            editor.WriteMessage("\nACAD KROVY: vybraný objekt nie je timber prvok ani jeho slope anotácia.");
+            editor.WriteMessage(UiStrings.CommandFlipSlopeNotTimberOrAnnotation);
             return;
         }
 
         if (!TimberSlopeAnnotationRules.CanFlipDirection(data.SlopeDegrees))
         {
-            editor.WriteMessage("\nACAD KROVY: vodorovný prvok nemá smer spádu.");
+            editor.WriteMessage(UiStrings.CommandFlipSlopeHorizontal);
             return;
         }
 
@@ -346,8 +327,8 @@ public sealed class AcKrovyCommands
         transaction.Commit();
 
         editor.WriteMessage(updated.IsSlopeDirectionReversed
-            ? "\nACAD KROVY: smer spádu bol obrátený."
-            : "\nACAD KROVY: smer spádu bol nastavený na normálny.");
+            ? UiStrings.CommandFlipSlopeResultReversed
+            : UiStrings.CommandFlipSlopeResultNormal);
     }
 
     [CommandMethod("AK_INSPECT", CommandFlags.Modal)]
@@ -355,7 +336,7 @@ public sealed class AcKrovyCommands
     {
         var document = ActiveDocument();
         var editor = document.Editor;
-        var result = editor.GetEntity("\nVyber prvok ACAD KROVY: ");
+        var result = editor.GetEntity(UiStrings.CommandInspectPrompt);
         if (result.Status != PromptStatus.OK)
         {
             return;
@@ -367,7 +348,7 @@ public sealed class AcKrovyCommands
             !AutoCadEntityReader.TryReadTimberElement(entity, metadataStore, out var snapshot) ||
             snapshot is null)
         {
-            editor.WriteMessage("\nTento objekt nemá údaje ACAD KROVY.");
+            editor.WriteMessage(UiStrings.CommandInspectNoData);
             return;
         }
 
@@ -377,34 +358,41 @@ public sealed class AcKrovyCommands
         var measurement = TimberElementMeasurer.Measure(snapshot, roundingStepMm);
         var currentDefaultAllowance = defaultProfile.GetCuttingAllowanceMm(data.ElementType);
         var allowanceSource = Math.Abs(data.CuttingAllowanceMm - currentDefaultAllowance) < 0.000001
-            ? "aktuálny default podľa typu"
-            : "individuálna hodnota prvku";
-        var message =
-            $"\n{data.ElementId} | {TimberElementTypeDisplayNameProvider.GetDisplayName(data.ElementType)}"
-            + $"\n  Prierez: {data.WidthMm:0} × {data.HeightMm:0} mm"
-            + $"\n  Pôdorysná dĺžka: {measurement.PlanLengthMm / 1000d:0.###} m"
-            + $"\n  Skutočná dĺžka: {measurement.ActualLengthMm / 1000d:0.###} m"
-            + $"\n  Rezná dĺžka: {measurement.CuttingLengthMm / 1000d:0.###} m"
-            + $"\n  Kubatúra: {measurement.VolumeM3:0.0000} m³";
+            ? UiStrings.CommandInspectAllowanceDefault
+            : UiStrings.CommandInspectAllowanceIndividual;
+        var message = UiStrings.Format(
+            UiStrings.CommandInspectSummaryFormat,
+            data.ElementId,
+            TimberElementTypeDisplayNameProvider.GetDisplayName(data.ElementType),
+            data.WidthMm,
+            data.HeightMm,
+            measurement.PlanLengthMm / 1000d,
+            measurement.ActualLengthMm / 1000d,
+            measurement.CuttingLengthMm / 1000d,
+            measurement.VolumeM3);
         var rows = new List<InspectInfoRow>
         {
-            new("Označenie", data.ElementId),
-            new("Typ prvku", TimberElementTypeDisplayNameProvider.GetDisplayName(data.ElementType)),
-            new("Materiál", data.Material),
-            new("Šírka", $"{data.WidthMm:0} mm"),
-            new("Výška", $"{data.HeightMm:0} mm"),
-            new("Sklon", $"{data.SlopeDegrees:0.###}°"),
-            new("Smer spádu", data.IsSlopeDirectionReversed ? "Obrátený" : "Normálny"),
-            new("Pôdorysná dĺžka", $"{measurement.PlanLengthMm:0} mm"),
-            new("Skutočná dĺžka", $"{measurement.ActualLengthMm:0} mm"),
-            new("Prídavok na prírez", $"{data.CuttingAllowanceMm:0} mm ({allowanceSource})"),
-            new("Rezná dĺžka", $"{measurement.CuttingLengthMm:0} mm"),
-            new("ManualLengthMode", data.LengthCalculationMode == LengthCalculationMode.ManualLength ? "Áno" : "Nie"),
-            new("CAD Handle", entity.Handle.ToString()),
+            new(UiStrings.DialogInspectItem, data.ElementId),
+            new(UiStrings.DialogInspectElementType, TimberElementTypeDisplayNameProvider.GetDisplayName(data.ElementType)),
+            new(UiStrings.DialogInspectMaterial, data.Material),
+            new(UiStrings.DialogInspectWidth, $"{data.WidthMm:0} mm"),
+            new(UiStrings.DialogInspectHeight, $"{data.HeightMm:0} mm"),
+            new(UiStrings.DialogInspectSlope, $"{data.SlopeDegrees:0.###}°"),
+            new(UiStrings.DialogInspectSlopeDirection, data.IsSlopeDirectionReversed
+                ? UiStrings.MessageDirectionReversed
+                : UiStrings.MessageDirectionNormal),
+            new(UiStrings.DialogInspectPlanLength, $"{measurement.PlanLengthMm:0} mm"),
+            new(UiStrings.DialogInspectActualLength, $"{measurement.ActualLengthMm:0} mm"),
+            new(UiStrings.DialogInspectCuttingAllowance, $"{data.CuttingAllowanceMm:0} mm ({allowanceSource})"),
+            new(UiStrings.DialogInspectCuttingLength, $"{measurement.CuttingLengthMm:0} mm"),
+            new(UiStrings.DialogInspectManualLengthMode, data.LengthCalculationMode == LengthCalculationMode.ManualLength
+                ? UiStrings.MessageYes
+                : UiStrings.MessageNo),
+            new(UiStrings.DialogInspectCadHandle, entity.Handle.ToString()),
         };
         if (data.ManualLengthMm.HasValue)
         {
-            rows.Add(new InspectInfoRow("Manuálna dĺžka", $"{data.ManualLengthMm.Value:0} mm"));
+            rows.Add(new InspectInfoRow(UiStrings.DialogInspectManualLength, $"{data.ManualLengthMm.Value:0} mm"));
         }
 
         transaction.Commit();
@@ -416,7 +404,7 @@ public sealed class AcKrovyCommands
     public void ReportFromSelection()
     {
         var document = ActiveDocument();
-        var ids = PromptForEntities(document.Editor, "\nOznač prvky pre výkaz: ");
+        var ids = PromptForEntities(document.Editor, UiStrings.CommandReportPromptSelection);
         InsertReport(document, ids);
     }
 
@@ -460,15 +448,21 @@ public sealed class AcKrovyCommands
             catch (System.Exception ex)
             {
                 errors++;
-                editor.WriteMessage($"\nChyba v prvku {snapshot.Data.ElementId}: {ex.Message}");
+                editor.WriteMessage(UiStrings.Format(
+                    UiStrings.CommandRecalcElementErrorFormat,
+                    snapshot.Data.ElementId,
+                    ex.Message));
             }
         }
 
         transaction.Commit();
         var labels = ElementLabelService.UpdateAll(document.Database, editor);
-        editor.WriteMessage(
-            $"\nACAD KROVY: prepočítaných {checkedCount} prvkov, chýb: {errors}. "
-            + $"Popisy obnovené: {labels.Processed}. Preskočené: {labels.Skipped}.");
+        editor.WriteMessage(UiStrings.Format(
+            UiStrings.CommandRecalcResultFormat,
+            checkedCount,
+            errors,
+            labels.Processed,
+            labels.Skipped));
     }
 
     private static void AssignWithPresetType(TimberElementType? presetType)
@@ -476,8 +470,10 @@ public sealed class AcKrovyCommands
         var document = ActiveDocument();
         var editor = document.Editor;
         var message = presetType is null
-            ? "\nOznač čiary alebo polyline, ktorým chceš priradiť údaje: "
-            : $"\nOznač čiary alebo polyline pre prvok {TimberElementTypeDisplayNameProvider.GetDisplayName(presetType.Value)}: ";
+            ? UiStrings.CommandAssignPrompt
+            : UiStrings.Format(
+                UiStrings.CommandAssignPromptTypeFormat,
+                TimberElementTypeDisplayNameProvider.GetDisplayName(presetType.Value));
         var ids = PromptForEntities(editor, message);
         if (ids.Count == 0)
         {
@@ -536,7 +532,7 @@ public sealed class AcKrovyCommands
         UpdateLabelsForChangedEntities(document.Database, transaction, metadataStore, assignedIds, previousElementIdById);
 
         transaction.Commit();
-        editor.WriteMessage($"\nACAD KROVY: priradené údaje k {assigned} prvkom. Preskočené: {skipped}.");
+        editor.WriteMessage(UiStrings.Format(UiStrings.CommandAssignResultFormat, assigned, skipped));
     }
 
     private static bool HasMixedCuttingAllowance(IReadOnlyList<TimberElementData> selectedData)
@@ -624,12 +620,12 @@ public sealed class AcKrovyCommands
             catch (System.Exception ex)
             {
                 skipped++;
-                editor.WriteMessage($"\nPreskočený prvok pri nastavovaní hladiny: {ex.Message}");
+                editor.WriteMessage(UiStrings.Format(UiStrings.CommandLayersElementSkippedFormat, ex.Message));
             }
         }
 
         transaction.Commit();
-        editor.WriteMessage($"\nACAD KROVY: prvky presunuté na hladiny: {updated}. Preskočené: {skipped}.");
+        editor.WriteMessage(UiStrings.Format(UiStrings.CommandLayersResultFormat, updated, skipped));
     }
 
     private static void ApplySettingsToExistingElements(
@@ -673,7 +669,9 @@ public sealed class AcKrovyCommands
             catch (System.Exception ex)
             {
                 skipped++;
-                editor.WriteMessage($"\nPreskočený prvok pri aplikovaní nastavení: {ex.Message}");
+                editor.WriteMessage(UiStrings.Format(
+                    UiStrings.CommandSettingsApplyElementSkippedFormat,
+                    ex.Message));
             }
         }
 
@@ -685,8 +683,7 @@ public sealed class AcKrovyCommands
             previousElementIdById);
 
         transaction.Commit();
-        editor.WriteMessage(
-            $"\nACAD KROVY: výrobné prídavky aplikované na {updated} prvkov. Preskočené: {skipped}.");
+        editor.WriteMessage(UiStrings.Format(UiStrings.CommandSettingsApplyResultFormat, updated, skipped));
     }
 
     private static void SetLabelsVisibility(bool visible)
@@ -698,9 +695,9 @@ public sealed class AcKrovyCommands
 
         document.Editor.WriteMessage(changed
             ? visible
-                ? "\nACAD KROVY: popisy na hladine KROV_POPIS sú zobrazené."
-                : "\nACAD KROVY: popisy na hladine KROV_POPIS sú skryté."
-            : "\nACAD KROVY: hladina KROV_POPIS ešte vo výkrese neexistuje.");
+                ? UiStrings.CommandLabelsShown
+                : UiStrings.CommandLabelsHidden
+            : UiStrings.CommandLabelsLayerMissing);
     }
 
     private static void InsertReport(Document document, IReadOnlyList<ObjectId> ids)
@@ -708,7 +705,7 @@ public sealed class AcKrovyCommands
         var editor = document.Editor;
         if (ids.Count == 0)
         {
-            editor.WriteMessage("\nNenašli sa žiadne prvky ACAD KROVY.");
+            editor.WriteMessage(UiStrings.CommandReportNoneFound);
             return;
         }
 
@@ -742,17 +739,20 @@ public sealed class AcKrovyCommands
             catch (System.Exception ex)
             {
                 skipped++;
-                editor.WriteMessage($"\nPreskočený prvok {snapshot.Data.ElementId}: {ex.Message}");
+                editor.WriteMessage(UiStrings.Format(
+                    UiStrings.CommandReportElementSkippedFormat,
+                    snapshot.Data.ElementId,
+                    ex.Message));
             }
         }
 
         if (measurements.Count == 0)
         {
-            editor.WriteMessage("\nVo výbere nie sú platné prvky ACAD KROVY.");
+            editor.WriteMessage(UiStrings.CommandReportNoValidElements);
             return;
         }
 
-        var pointResult = editor.GetPoint("\nZadaj miesto vloženia výkazu: ");
+        var pointResult = editor.GetPoint(UiStrings.CommandReportPromptInsertionPoint);
         if (pointResult.Status != PromptStatus.OK)
         {
             return;
@@ -761,7 +761,11 @@ public sealed class AcKrovyCommands
         var report = TimberReportBuilder.Build(measurements);
         ReportTableWriter.Insert(document.Database, transaction, pointResult.Value, report);
         transaction.Commit();
-        editor.WriteMessage($"\nACAD KROVY: vložený výkaz z {measurements.Count} prvkov. Preskočené: {skipped}. Kubatúra: {report.TotalVolumeM3:0.0000} m³.");
+        editor.WriteMessage(UiStrings.Format(
+            UiStrings.CommandReportInsertedFormat,
+            measurements.Count,
+            skipped,
+            report.TotalVolumeM3));
     }
 
     private static IReadOnlyList<ObjectId> PromptForEntities(Editor editor, string message)
@@ -778,7 +782,7 @@ public sealed class AcKrovyCommands
         var options = new PromptSelectionOptions
         {
             MessageForAdding = message,
-            MessageForRemoval = "\nOdober z výberu: ",
+            MessageForRemoval = UiStrings.CommandPromptRemoveSelection,
             AllowDuplicates = false,
         };
 

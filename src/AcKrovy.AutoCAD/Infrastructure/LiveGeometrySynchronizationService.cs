@@ -1,5 +1,6 @@
 using AcKrovy.AutoCAD.Settings;
 using AcKrovy.Core.Services;
+using AcKrovy.Localization;
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
@@ -373,7 +374,7 @@ internal static class LiveGeometrySynchronizationService
             }
             catch (System.Exception ex)
             {
-                editor.WriteMessage($"\nACAD KROVY: automatická aktualizácia prvkov bola preskočená: {ex.Message}");
+                editor.WriteMessage(UiStrings.Format(UiStrings.WarningLiveRefreshSkippedFormat, ex.Message));
             }
         }
 

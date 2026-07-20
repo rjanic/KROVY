@@ -6,6 +6,7 @@ using AcColor = Autodesk.AutoCAD.Colors.Color;
 using AcKrovy.AutoCAD.Settings;
 using AcKrovy.Core.Models;
 using AcKrovy.Core.Services;
+using AcKrovy.Localization;
 
 namespace AcKrovy.AutoCAD.Infrastructure;
 
@@ -351,7 +352,10 @@ internal static class ElementLabelService
             catch (System.Exception ex)
             {
                 skipped++;
-                editor.WriteMessage($"\nPopis nebol vytvorený/obnovený pre prvok {id}: {ex.Message}");
+                editor.WriteMessage(UiStrings.Format(
+                    UiStrings.CommandLabelsRefreshFailedFormat,
+                    id,
+                    ex.Message));
             }
         }
 

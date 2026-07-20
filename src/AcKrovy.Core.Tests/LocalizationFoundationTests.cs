@@ -19,6 +19,35 @@ public sealed class LocalizationCultureCollection
 public sealed class LocalizationFoundationTests
 {
     private static readonly string[] CultureNames = ["sk-SK", "cs-CZ", "en-US", "de-DE", "pl-PL", "fr-FR"];
+    private static readonly string[] CommandAndMessageResourceKeys =
+    [
+        "Message_DialogTitle", "Message_PluginLoaded", "Help_CommandOverview",
+        "Command_Ribbon_Ready", "Command_Ribbon_Pending", "Command_Toolbar_Shown", "Command_Toolbar_Hidden",
+        "Command_Settings_SaveFailedFormat", "Command_Settings_Saved", "Command_Settings_PromptApplyAllowances",
+        "Command_Settings_SelectionCancelled", "Command_Labels_PromptSelected", "Command_Labels_UpdatedFormat",
+        "Command_Labels_RefreshFailedFormat", "Command_Edit_Prompt", "Command_Edit_NoData",
+        "Command_Edit_TitleSingleFormat", "Command_Edit_TitleMultipleFormat", "Command_Edit_ResultFormat",
+        "Command_FlipSlope_Prompt", "Command_FlipSlope_NotTimberOrAnnotation", "Command_FlipSlope_Horizontal",
+        "Command_FlipSlope_ResultReversed", "Command_FlipSlope_ResultNormal", "Command_Inspect_Prompt",
+        "Command_Inspect_NoData", "Command_Inspect_AllowanceDefault", "Command_Inspect_AllowanceIndividual",
+        "Command_Inspect_SummaryFormat", "Dialog_Inspect_Item", "Dialog_Inspect_ElementType",
+        "Dialog_Inspect_Material", "Dialog_Inspect_Width", "Dialog_Inspect_Height", "Dialog_Inspect_Slope",
+        "Dialog_Inspect_SlopeDirection", "Dialog_Inspect_PlanLength", "Dialog_Inspect_ActualLength",
+        "Dialog_Inspect_CuttingAllowance", "Dialog_Inspect_CuttingLength", "Dialog_Inspect_ManualLengthMode",
+        "Dialog_Inspect_CadHandle", "Dialog_Inspect_ManualLength", "Message_Yes", "Message_No",
+        "Message_DirectionNormal", "Message_DirectionReversed", "Command_Report_PromptSelection",
+        "Command_Report_NoneFound", "Command_Report_ElementSkippedFormat", "Command_Report_NoValidElements",
+        "Command_Report_PromptInsertionPoint", "Command_Report_InsertedFormat", "Command_Recalc_ElementErrorFormat",
+        "Command_Recalc_ResultFormat", "Command_Assign_Prompt", "Command_Assign_PromptTypeFormat",
+        "Command_Assign_ResultFormat", "Command_Layers_ElementSkippedFormat", "Command_Layers_ResultFormat",
+        "Command_Settings_ApplyElementSkippedFormat", "Command_Settings_ApplyResultFormat", "Command_Labels_Shown",
+        "Command_Labels_Hidden", "Command_Labels_LayerMissing", "Command_Prompt_RemoveSelection",
+        "Warning_LiveRefreshSkippedFormat", "Dialog_Edit_FieldWidth", "Dialog_Edit_FieldHeight",
+        "Dialog_Edit_FieldCuttingAllowance", "Dialog_Edit_FieldManualLength", "Dialog_Edit_WholeNonnegativeFormat",
+        "Dialog_Edit_PositiveNumberFormat", "Dialog_Layers_ErrorFormat", "Dialog_Layers_DuplicateFormat",
+        "Dialog_Settings_RoundingStepFormat", "Dialog_Settings_CuttingAllowanceFormat", "Error_LayerName_Empty",
+        "Error_LayerName_TooLong", "Error_LayerName_InvalidCharacter",
+    ];
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -182,12 +211,79 @@ public sealed class LocalizationFoundationTests
             LengthMode = LengthCalculationModeDisplayNameProvider.GetDisplayName(LengthCalculationMode.SlopeCorrected),
             ReportTitle = UiStrings.ReportTitle,
             ReportTotalFormat = UiStrings.ReportTotalFormat,
+            AssignResult = UiStrings.Format(UiStrings.CommandAssignResultFormat, 3, 1),
         });
 
         Assert.Equal("Krokva", result.ElementType);
         Assert.Equal("Prepočítať podľa sklonu", result.LengthMode);
         Assert.Equal("ACAD KROVY – výkaz reziva", result.ReportTitle);
         Assert.Equal("Spolu: {0} prvkov", result.ReportTotalFormat);
+        Assert.Equal("\nACAD KROVY: priradené údaje k 3 prvkom. Preskočené: 1.", result.AssignResult);
+    }
+
+    [Fact]
+    public void CommandAndMessageResourceKeys_AllExist()
+    {
+        Assert.Equal(80, CommandAndMessageResourceKeys.Length);
+        Assert.All(CommandAndMessageResourceKeys, key =>
+        {
+            var value = UiStrings.GetString(key, CultureInfo.GetCultureInfo("sk-SK"));
+            Assert.False(string.IsNullOrWhiteSpace(value));
+            Assert.NotEqual(key, value);
+        });
+    }
+
+    [Fact]
+    public void HelpResource_PreservesStableTechnicalCommandNames()
+    {
+        var expectedCommandNames = new[]
+        {
+            "AK_KROKVA", "AK_POMURNICA", "AK_VAZNICA", "AK_STLPIK", "AK_KLIESTINA", "AK_VZPERA",
+            "AK_VAZNYTRAM", "AK_ASSIGN", "AK_EDIT", "AK_FLIPSLOPE", "AK_INSPECT", "AK_REPORT",
+            "AK_REPORTALL", "AK_RECALC", "AK_RIBBON", "AK_TOOLBAR", "AK_SETTINGS", "AK_APPLYLAYERS",
+            "AK_LABELS", "AK_LABELSELECTED", "AK_LABELSHOW", "AK_LABELHIDE",
+        };
+
+        Assert.All(expectedCommandNames, commandName => Assert.Contains(commandName, UiStrings.HelpCommandOverview));
+    }
+
+    [Fact]
+    public void CommandAndMessageFormats_AcceptExpectedArguments()
+    {
+        var formats = new (string Format, object?[] Arguments)[]
+        {
+            (UiStrings.CommandSettingsSaveFailedFormat, ["chyba"]),
+            (UiStrings.CommandLabelsUpdatedFormat, [1, 2, 3]),
+            (UiStrings.CommandLabelsRefreshFailedFormat, ["K1", "chyba"]),
+            (UiStrings.CommandEditTitleSingleFormat, ["K1", "Krokva"]),
+            (UiStrings.CommandEditTitleMultipleFormat, [5]),
+            (UiStrings.CommandEditResultFormat, [4, 1]),
+            (UiStrings.CommandInspectSummaryFormat, ["K1", "Krokva", 80d, 160d, 4d, 4.5d, 4.7d, 0.1d]),
+            (UiStrings.CommandReportElementSkippedFormat, ["K1", "chyba"]),
+            (UiStrings.CommandReportInsertedFormat, [5, 1, 0.1234d]),
+            (UiStrings.CommandRecalcElementErrorFormat, ["K1", "chyba"]),
+            (UiStrings.CommandRecalcResultFormat, [5, 0, 5, 0]),
+            (UiStrings.CommandAssignPromptTypeFormat, ["Krokva"]),
+            (UiStrings.CommandAssignResultFormat, [5, 0]),
+            (UiStrings.CommandLayersElementSkippedFormat, ["chyba"]),
+            (UiStrings.CommandLayersResultFormat, [5, 0]),
+            (UiStrings.CommandSettingsApplyElementSkippedFormat, ["chyba"]),
+            (UiStrings.CommandSettingsApplyResultFormat, [5, 0]),
+            (UiStrings.WarningLiveRefreshSkippedFormat, ["chyba"]),
+            (UiStrings.DialogEditWholeNonnegativeFormat, ["prídavok", 1000d]),
+            (UiStrings.DialogEditPositiveNumberFormat, ["šírka"]),
+            (UiStrings.DialogLayersErrorFormat, ["Krokva", "chyba"]),
+            (UiStrings.DialogLayersDuplicateFormat, ["KROKVA"]),
+            (UiStrings.DialogSettingsRoundingStepFormat, [1000d]),
+            (UiStrings.DialogSettingsCuttingAllowanceFormat, ["Krokva", 1000d]),
+        };
+
+        Assert.All(formats, item =>
+        {
+            var formatted = UiStrings.Format(item.Format, item.Arguments);
+            Assert.False(string.IsNullOrWhiteSpace(formatted));
+            Assert.DoesNotContain("{0", formatted, StringComparison.Ordinal);
+        });
     }
 
     private static TimberElementData SampleData() => new()
