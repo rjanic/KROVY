@@ -69,10 +69,7 @@ internal static class SlopeArrowService
 
         if (glyph is Polyline arrow)
         {
-            var arrowGeometry = SlopeAnnotationGeometry.Calculate(
-                sourceEntity,
-                geometry.LengthMm * TimberSlopeArrowCalculator.SlopeArrowPositionFactor);
-            var placement = CalculatePlacement(arrowGeometry, data.IsSlopeDirectionReversed);
+            var placement = CalculatePlacement(geometry, data.IsSlopeDirectionReversed);
             ApplyArrowAppearance(database, transaction, arrow, placement.Geometry, placement.Elevation);
         }
         else if (glyph is BlockReference marker)

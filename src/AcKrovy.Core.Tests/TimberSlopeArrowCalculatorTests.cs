@@ -60,13 +60,13 @@ public sealed class TimberSlopeArrowCalculatorTests
     }
 
     [Fact]
-    public void CalculatePosition_UsesElementMidpoint()
+    public void CalculatePosition_UsesPreferredOneThirdPosition()
     {
         var position = TimberSlopeArrowCalculator.CalculatePosition(0, 0, 900, 300);
 
-        Assert.Equal(450, position.X);
-        Assert.Equal(150, position.Y);
-        Assert.Equal(1d / 2d, TimberSlopeArrowCalculator.SlopeArrowPositionFactor);
+        Assert.Equal(300, position.X);
+        Assert.Equal(100, position.Y);
+        Assert.Equal(1d / 3d, TimberSlopeArrowCalculator.SlopeAnnotationPositionFactor);
     }
 
     [Theory]
@@ -80,8 +80,9 @@ public sealed class TimberSlopeArrowCalculatorTests
         double endX,
         double endY)
     {
-        var centerX = (startX + endX) / 2d;
-        var centerY = (startY + endY) / 2d;
+        const double anchorFactor = 1d / 3d;
+        var centerX = startX + (endX - startX) * anchorFactor;
+        var centerY = startY + (endY - startY) * anchorFactor;
         var placement = TimberSlopeArrowCalculator.Calculate(
             startX,
             startY,
@@ -93,6 +94,9 @@ public sealed class TimberSlopeArrowCalculatorTests
 
         Assert.Equal(centerX, (placement.TailX + placement.TipX) / 2d, precision: 6);
         Assert.Equal(centerY, (placement.TailY + placement.TipY) / 2d, precision: 6);
+        Assert.False(
+            Math.Abs(centerX - (startX + endX) / 2d) < 0.000001d &&
+            Math.Abs(centerY - (startY + endY) / 2d) < 0.000001d);
         Assert.Equal(0d, CrossProductFromSourceAxis(
             startX,
             startY,

@@ -28,6 +28,25 @@ public sealed class TimberSlopeAnnotationPlacementCalculatorTests
         Assert.False(placement.UsesPreferredPosition);
     }
 
+    [Theory]
+    [InlineData(1070d, 750d)]
+    [InlineData(920d, 600d)]
+    [InlineData(820d, 500d)]
+    public void CollisionAwarePlacementCanSelectQuarterFifthAndSixthPositions(
+        double labelMinimumMm,
+        double expectedAnchorMm)
+    {
+        const double elementLengthMm = 3000d;
+
+        var placement = TimberSlopeAnnotationPlacementCalculator.Calculate(
+            elementLengthMm,
+            new TimberSlopeAnnotationLongitudinalInterval(labelMinimumMm, 1500d));
+
+        Assert.Equal(expectedAnchorMm, placement.AnchorDistanceMm);
+        Assert.NotEqual(elementLengthMm / 2d, placement.AnchorDistanceMm);
+        Assert.False(placement.UsesPreferredPosition);
+    }
+
     [Fact]
     public void PlacementUsesEndSideWhenStartSideHasInsufficientSpace()
     {
@@ -50,9 +69,13 @@ public sealed class TimberSlopeAnnotationPlacementCalculatorTests
             new TimberSlopeAnnotationLongitudinalInterval(1100d, 1900d));
 
         Assert.Equal(normal.AnchorDistanceMm, reversed.AnchorDistanceMm);
-        Assert.NotEqual(
-            TimberSlopeArrowCalculator.Calculate(0d, 0d, 3000d, 0d, normal.AnchorDistanceMm, 0d, false),
-            TimberSlopeArrowCalculator.Calculate(0d, 0d, 3000d, 0d, reversed.AnchorDistanceMm, 0d, true));
+        var normalArrow = TimberSlopeArrowCalculator.Calculate(
+            0d, 0d, 3000d, 0d, normal.AnchorDistanceMm, 0d, false);
+        var reversedArrow = TimberSlopeArrowCalculator.Calculate(
+            0d, 0d, 3000d, 0d, reversed.AnchorDistanceMm, 0d, true);
+        Assert.NotEqual(normalArrow, reversedArrow);
+        Assert.Equal(normal.AnchorDistanceMm, (normalArrow.TailX + normalArrow.TipX) / 2d);
+        Assert.Equal(reversed.AnchorDistanceMm, (reversedArrow.TailX + reversedArrow.TipX) / 2d);
     }
 
     [Theory]

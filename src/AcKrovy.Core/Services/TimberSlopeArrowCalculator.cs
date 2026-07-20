@@ -5,7 +5,6 @@ namespace AcKrovy.Core.Services;
 public static class TimberSlopeArrowCalculator
 {
     public const double SlopeAnnotationPositionFactor = 1d / 3d;
-    public const double SlopeArrowPositionFactor = 1d / 2d;
     public const double AxisLengthMm = 180d;
     public const double HeadLengthMm = 65d;
     public const double HeadHalfWidthMm = 28d;
@@ -22,8 +21,8 @@ public static class TimberSlopeArrowCalculator
         double endX,
         double endY) =>
         new(
-            startX + (endX - startX) * SlopeArrowPositionFactor,
-            startY + (endY - startY) * SlopeArrowPositionFactor);
+            startX + (endX - startX) * SlopeAnnotationPositionFactor,
+            startY + (endY - startY) * SlopeAnnotationPositionFactor);
 
     public static TimberSlopeArrowPlacement Calculate(
         double startX,
