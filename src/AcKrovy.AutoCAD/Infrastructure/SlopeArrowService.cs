@@ -10,6 +10,9 @@ internal static class SlopeArrowService
     public const string ArrowLayerName = "KROV_SKLON";
 
     private const int ArrowLayerColorIndex = 8;
+    private const string HorizontalMarkerBlockName = "DECORAIR_ACADKROVY_HORIZONTAL_SLOPE_MARKER";
+    private const double HorizontalMarkerHalfLengthMm = 60d;
+    private const double HorizontalMarkerHalfGapMm = 25d;
 
     public static bool UpsertForElement(
         Database database,
@@ -29,41 +32,55 @@ internal static class SlopeArrowService
         }
 
         var sourceHandle = sourceEntity.Handle.ToString();
-        var matchingArrows = ReadArrows(database, transaction)
-            .Where(arrow => string.Equals(
-                arrow.Data.SourceHandle,
+        var matchingGlyphs = ReadGlyphs(database, transaction)
+            .Where(glyph => string.Equals(
+                glyph.Data.SourceHandle,
                 sourceHandle,
                 StringComparison.OrdinalIgnoreCase))
             .ToList();
+        var glyphKind = TimberSlopeAnnotationRules.ResolveGlyphKind(data.SlopeDegrees);
 
-        if (!TimberSlopeArrowCalculator.ShouldDisplay(data.SlopeDegrees))
+        if (glyphKind == TimberSlopeGlyphKind.None)
         {
-            DeleteArrows(transaction, matchingArrows.Select(arrow => arrow.Id));
+            DeleteGlyphs(transaction, matchingGlyphs.Select(glyph => glyph.Id));
             return false;
         }
 
-        var placement = CalculatePlacement(geometry, data.IsSlopeDirectionReversed);
-        Polyline arrow;
-        var isCreated = matchingArrows.Count == 0;
+        var matchingDesiredGlyphs = matchingGlyphs
+            .Where(glyph => IsDesiredEntityType(glyph.Entity, glyphKind))
+            .ToList();
+        Entity glyph;
+        var isCreated = matchingDesiredGlyphs.Count == 0;
 
         if (isCreated)
         {
-            arrow = new Polyline(3);
+            glyph = CreateGlyph(database, transaction, glyphKind, geometry.AnnotationPoint);
             var blockTable = (BlockTable)transaction.GetObject(database.BlockTableId, OpenMode.ForRead);
             var modelSpace = (BlockTableRecord)transaction.GetObject(
                 blockTable[BlockTableRecord.ModelSpace],
                 OpenMode.ForWrite);
-            modelSpace.AppendEntity(arrow);
-            transaction.AddNewlyCreatedDBObject(arrow, true);
+            modelSpace.AppendEntity(glyph);
+            transaction.AddNewlyCreatedDBObject(glyph, true);
         }
         else
         {
-            arrow = (Polyline)transaction.GetObject(matchingArrows[0].Id, OpenMode.ForWrite);
+            glyph = (Entity)transaction.GetObject(matchingDesiredGlyphs[0].Id, OpenMode.ForWrite);
         }
 
-        ApplyAppearance(database, transaction, arrow, placement.Geometry, placement.Elevation);
-        SlopeArrowStore.Write(arrow, transaction, new SlopeArrowData { SourceHandle = sourceHandle });
-        DeleteArrows(transaction, matchingArrows.Skip(1).Select(item => item.Id));
+        if (glyph is Polyline arrow)
+        {
+            var placement = CalculatePlacement(geometry, data.IsSlopeDirectionReversed);
+            ApplyArrowAppearance(database, transaction, arrow, placement.Geometry, placement.Elevation);
+        }
+        else if (glyph is BlockReference marker)
+        {
+            ApplyHorizontalMarkerAppearance(database, transaction, marker, geometry);
+        }
+
+        SlopeArrowStore.Write(glyph, transaction, new SlopeArrowData { SourceHandle = sourceHandle });
+        DeleteGlyphs(transaction, matchingGlyphs
+            .Where(item => item.Id != glyph.ObjectId)
+            .Select(item => item.Id));
         DeleteDuplicateArrowsForExistingSourceHandles(database, transaction);
         return isCreated;
     }
@@ -80,7 +97,7 @@ internal static class SlopeArrowService
 
         var targetHandles = new HashSet<string>(sourceHandles, StringComparer.OrdinalIgnoreCase);
         var existingHandles = ReadTimberSourceHandles(database, transaction);
-        var arrows = ReadArrows(database, transaction)
+        var arrows = ReadGlyphs(database, transaction)
             .Where(arrow => targetHandles.Contains(arrow.Data.SourceHandle))
             .ToList();
         return DeleteArrowsSelectedByCleanupRules(transaction, arrows, existingHandles, deleteDuplicates: false);
@@ -96,7 +113,7 @@ internal static class SlopeArrowService
             return 0;
         }
 
-        var arrows = ReadArrows(database, transaction)
+        var arrows = ReadGlyphs(database, transaction)
             .Where(arrow => arrowIds.Contains(arrow.Id))
             .ToList();
         return DeleteArrowsSelectedByCleanupRules(
@@ -110,7 +127,7 @@ internal static class SlopeArrowService
         Database database,
         Transaction transaction)
     {
-        var arrows = ReadArrows(database, transaction);
+        var arrows = ReadGlyphs(database, transaction);
         var existingHandles = ReadTimberSourceHandles(database, transaction);
         return DeleteArrowsSelectedByCleanupRules(transaction, arrows, existingHandles, deleteDuplicates: true);
     }
@@ -131,7 +148,7 @@ internal static class SlopeArrowService
             geometry.AnnotationPoint.Z);
     }
 
-    private static void ApplyAppearance(
+    private static void ApplyArrowAppearance(
         Database database,
         Transaction transaction,
         Polyline arrow,
@@ -175,11 +192,88 @@ internal static class SlopeArrowService
         arrow.LineWeight = LineWeight.ByLayer;
     }
 
-    private static IReadOnlyList<(ObjectId Id, SlopeArrowData Data)> ReadArrows(
+    private static void ApplyHorizontalMarkerAppearance(
+        Database database,
+        Transaction transaction,
+        BlockReference marker,
+        SlopeAnnotationGeometryData geometry)
+    {
+        marker.Position = geometry.AnnotationPoint;
+        marker.Rotation = Math.Atan2(
+            geometry.End.Y - geometry.Start.Y,
+            geometry.End.X - geometry.Start.X);
+        marker.ScaleFactors = new Scale3d(1d);
+        TimberLayerService.ApplyToAnnotationEntity(
+            database,
+            transaction,
+            marker,
+            ArrowLayerName,
+            ArrowLayerColorIndex,
+            isPlottable: false);
+        marker.LineWeight = LineWeight.ByLayer;
+    }
+
+    private static Entity CreateGlyph(
+        Database database,
+        Transaction transaction,
+        TimberSlopeGlyphKind glyphKind,
+        Point3d position) => glyphKind switch
+        {
+            TimberSlopeGlyphKind.DirectionalArrow => new Polyline(3),
+            TimberSlopeGlyphKind.HorizontalMarker => new BlockReference(
+                position,
+                EnsureHorizontalMarkerBlock(database, transaction)),
+            _ => throw new InvalidOperationException("Nepodporovaný symbol anotácie sklonu."),
+        };
+
+    private static ObjectId EnsureHorizontalMarkerBlock(Database database, Transaction transaction)
+    {
+        var blockTable = (BlockTable)transaction.GetObject(database.BlockTableId, OpenMode.ForRead);
+        if (blockTable.Has(HorizontalMarkerBlockName))
+        {
+            return blockTable[HorizontalMarkerBlockName];
+        }
+
+        blockTable.UpgradeOpen();
+        var definition = new BlockTableRecord
+        {
+            Name = HorizontalMarkerBlockName,
+            Origin = Point3d.Origin,
+        };
+        blockTable.Add(definition);
+        transaction.AddNewlyCreatedDBObject(definition, true);
+
+        AddHorizontalMarkerLine(database, transaction, definition, -HorizontalMarkerHalfGapMm);
+        AddHorizontalMarkerLine(database, transaction, definition, HorizontalMarkerHalfGapMm);
+        return definition.ObjectId;
+    }
+
+    private static void AddHorizontalMarkerLine(
+        Database database,
+        Transaction transaction,
+        BlockTableRecord definition,
+        double y)
+    {
+        var line = new Line(
+            new Point3d(-HorizontalMarkerHalfLengthMm, y, 0d),
+            new Point3d(HorizontalMarkerHalfLengthMm, y, 0d));
+        line.SetDatabaseDefaults(database);
+        line.Layer = "0";
+        line.ColorIndex = 0;
+        line.LineWeight = LineWeight.ByBlock;
+        definition.AppendEntity(line);
+        transaction.AddNewlyCreatedDBObject(line, true);
+    }
+
+    private static bool IsDesiredEntityType(Entity entity, TimberSlopeGlyphKind glyphKind) =>
+        (glyphKind == TimberSlopeGlyphKind.DirectionalArrow && entity is Polyline) ||
+        (glyphKind == TimberSlopeGlyphKind.HorizontalMarker && entity is BlockReference);
+
+    private static IReadOnlyList<SlopeGlyphEntry> ReadGlyphs(
         Database database,
         Transaction transaction)
     {
-        var arrows = new List<(ObjectId Id, SlopeArrowData Data)>();
+        var arrows = new List<SlopeGlyphEntry>();
         var blockTable = (BlockTable)transaction.GetObject(database.BlockTableId, OpenMode.ForRead);
         var modelSpace = (BlockTableRecord)transaction.GetObject(
             blockTable[BlockTableRecord.ModelSpace],
@@ -187,20 +281,20 @@ internal static class SlopeArrowService
 
         foreach (ObjectId id in modelSpace)
         {
-            if (!AutoCadObjectIdAccess.TryGetObject<Polyline>(
+            if (!AutoCadObjectIdAccess.TryGetObject<Entity>(
                     transaction,
                     id,
                     OpenMode.ForRead,
-                    out var arrow,
+                    out var glyph,
                     database) ||
-                arrow is null ||
-                !SlopeArrowStore.TryRead(arrow, out var data) ||
+                glyph is null ||
+                !SlopeArrowStore.TryRead(glyph, out var data) ||
                 data is null)
             {
                 continue;
             }
 
-            arrows.Add((id, data));
+            arrows.Add(new SlopeGlyphEntry(id, glyph, data));
         }
 
         return arrows;
@@ -227,23 +321,23 @@ internal static class SlopeArrowService
         return handles;
     }
 
-    private static int DeleteArrows(Transaction transaction, IEnumerable<ObjectId> ids)
+    private static int DeleteGlyphs(Transaction transaction, IEnumerable<ObjectId> ids)
     {
         var deleted = 0;
         foreach (var id in ids.Distinct())
         {
-            if (!AutoCadObjectIdAccess.TryGetObject<Polyline>(
+            if (!AutoCadObjectIdAccess.TryGetObject<Entity>(
                     transaction,
                     id,
                     OpenMode.ForWrite,
-                    out var arrow) ||
-                arrow is null ||
-                !SlopeArrowStore.TryRead(arrow, out _))
+                    out var glyph) ||
+                glyph is null ||
+                !SlopeArrowStore.TryRead(glyph, out _))
             {
                 continue;
             }
 
-            arrow.Erase();
+            glyph.Erase();
             deleted++;
         }
 
@@ -252,7 +346,7 @@ internal static class SlopeArrowService
 
     private static int DeleteArrowsSelectedByCleanupRules(
         Transaction transaction,
-        IReadOnlyList<(ObjectId Id, SlopeArrowData Data)> arrows,
+        IReadOnlyList<SlopeGlyphEntry> arrows,
         IReadOnlyCollection<string> existingTimberSourceHandles,
         bool deleteDuplicates)
     {
@@ -272,10 +366,11 @@ internal static class SlopeArrowService
                 candidates,
                 existingTimberSourceHandles);
 
-        return DeleteArrows(
+        return DeleteGlyphs(
             transaction,
             keys.Where(idsByKey.ContainsKey).Select(key => idsByKey[key]));
     }
 
     private sealed record ArrowPlacement(TimberSlopeArrowPlacement Geometry, double Elevation);
+    private sealed record SlopeGlyphEntry(ObjectId Id, Entity Entity, SlopeArrowData Data);
 }

@@ -6,6 +6,7 @@ namespace AcKrovy.Core.Services;
 public static class TimberCalculator
 {
     public const double CuttingLengthRoundingIncrementMm = TimberCuttingLengthCalculator.DefaultRoundingStepMm;
+    public const double MaximumSlopeDegreesExclusive = 89.9d;
 
     public static TimberElementMeasurement Measure(
         TimberElementData data,
@@ -28,6 +29,7 @@ public static class TimberCalculator
 
     public static double CalculateActualLengthMm(TimberElementData data, double planLengthMm)
     {
+        ValidateSlopeDegrees(data.SlopeDegrees);
         var mode = ResolveLengthCalculationMode(data);
 
         return mode switch
@@ -59,13 +61,36 @@ public static class TimberCalculator
 
     public static double CalculateSlopeCorrectedLengthMm(double planLengthMm, double slopeDegrees)
     {
-        if (slopeDegrees is <= 0 or >= 89.9)
-        {
-            throw new ArgumentOutOfRangeException(nameof(slopeDegrees), "Sklon musí byť väčší než 0° a menší než 89,9°.");
-        }
+        ValidateSlopeDegrees(slopeDegrees);
 
         var radians = slopeDegrees * Math.PI / 180.0;
         return planLengthMm / Math.Cos(radians);
+    }
+
+    public static bool IsValidSlopeDegrees(double slopeDegrees) =>
+        !double.IsNaN(slopeDegrees) &&
+        !double.IsInfinity(slopeDegrees) &&
+        slopeDegrees >= 0d &&
+        slopeDegrees < MaximumSlopeDegreesExclusive;
+
+    public static bool TryValidateSlopeDegrees(double slopeDegrees, out string error)
+    {
+        if (IsValidSlopeDegrees(slopeDegrees))
+        {
+            error = string.Empty;
+            return true;
+        }
+
+        error = "Sklon musí byť nezáporné číslo menšie než 89,9°.";
+        return false;
+    }
+
+    public static void ValidateSlopeDegrees(double slopeDegrees)
+    {
+        if (!TryValidateSlopeDegrees(slopeDegrees, out var error))
+        {
+            throw new ArgumentOutOfRangeException(nameof(slopeDegrees), error);
+        }
     }
 
     public static double CalculateVolumeM3(double widthMm, double heightMm, double lengthMm)

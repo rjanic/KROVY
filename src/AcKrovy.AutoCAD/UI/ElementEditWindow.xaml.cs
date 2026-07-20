@@ -11,6 +11,7 @@ public partial class ElementEditWindow : Window
 {
     private static readonly CultureInfo SlovakCulture = CultureInfo.GetCultureInfo("sk-SK");
     private readonly TimberElementDefaultProfile _defaultProfile;
+    private readonly IReadOnlyList<TimberElementData> _validationData;
     private readonly bool _isNewAssignment;
     private bool _isInitializing;
 
@@ -24,7 +25,8 @@ public partial class ElementEditWindow : Window
         bool isNewAssignment,
         TimberElementDefaultProfile? defaultProfile = null,
         bool cuttingAllowanceIsMixed = false,
-        bool slopeDirectionIsMixed = false)
+        bool slopeDirectionIsMixed = false,
+        IReadOnlyList<TimberElementData>? validationData = null)
     {
         InitializeComponent();
         _isInitializing = true;
@@ -48,6 +50,7 @@ public partial class ElementEditWindow : Window
         };
 
         var data = seedData ?? new TimberElementData();
+        _validationData = validationData ?? new[] { data };
 
         ElementTypeComboBox.SelectedItem = ((IEnumerable<ElementTypeOption>)ElementTypeComboBox.ItemsSource)
             .First(item => item.Value == data.ElementType);
@@ -142,12 +145,10 @@ public partial class ElementEditWindow : Window
                 HeightTextBox.Text,
                 "výška",
                 out var height) ||
-            !TryReadOptionalNumber(
+            !TryReadOptionalSlope(
                 ChangeSlopeCheckBox.IsChecked == true,
                 SlopeTextBox.Text,
-                "sklon",
-                out var slope,
-                allowZero: true) ||
+                out var slope) ||
             !TryReadOptionalWholeNumber(
                 ChangeAllowanceCheckBox.IsChecked == true && !UseDefaultCuttingAllowanceByType,
                 AllowanceTextBox.Text,
@@ -163,7 +164,7 @@ public partial class ElementEditWindow : Window
             return;
         }
 
-        Patch = new TimberElementPatch(
+        var patch = new TimberElementPatch(
             ChangeTypeCheckBox.IsChecked == true
                 ? (ElementTypeComboBox.SelectedItem as ElementTypeOption)?.Value
                 : null,
@@ -186,7 +187,50 @@ public partial class ElementEditWindow : Window
                 ? (SlopeDirectionComboBox.SelectedItem as SlopeDirectionOption)?.IsReversed
                 : null);
 
+        foreach (var validationData in _validationData)
+        {
+            var candidate = TimberElementPatcher.Apply(validationData, patch);
+            if (TimberCalculator.TryValidateSlopeDegrees(candidate.SlopeDegrees, out var error))
+            {
+                continue;
+            }
+
+            MessageBox.Show(
+                error,
+                "ACAD KROVY",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return;
+        }
+
+        Patch = patch;
         DialogResult = true;
+    }
+
+    private static bool TryReadOptionalSlope(bool shouldRead, string raw, out double? result)
+    {
+        result = null;
+        if (!shouldRead)
+        {
+            return true;
+        }
+
+        var parsed = double.TryParse(raw, NumberStyles.Float, SlovakCulture, out var value) ||
+            double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
+        if (parsed &&
+            TimberCalculator.TryValidateSlopeDegrees(value, out _))
+        {
+            result = value;
+            return true;
+        }
+
+        TimberCalculator.TryValidateSlopeDegrees(parsed ? value : double.NaN, out var error);
+        MessageBox.Show(
+            error,
+            "ACAD KROVY",
+            MessageBoxButton.OK,
+            MessageBoxImage.Warning);
+        return false;
     }
 
     private static bool TryReadOptionalWholeNumber(
@@ -229,8 +273,7 @@ public partial class ElementEditWindow : Window
         string raw,
         string label,
         out double? result,
-        bool allowEmpty = false,
-        bool allowZero = false)
+        bool allowEmpty = false)
     {
         result = null;
 
@@ -247,17 +290,15 @@ public partial class ElementEditWindow : Window
         if (double.TryParse(raw, NumberStyles.Float, SlovakCulture, out var value) ||
             double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out value))
         {
-            if (allowZero ? value >= 0 : value > 0)
+            if (value > 0)
             {
                 result = value;
                 return true;
             }
         }
 
-        var condition = allowZero ? "nezáporné číslo" : "kladné číslo";
-
         MessageBox.Show(
-            $"Pole „{label}“ musí obsahovať {condition}.",
+            $"Pole „{label}“ musí obsahovať kladné číslo.",
             "ACAD KROVY",
             MessageBoxButton.OK,
             MessageBoxImage.Warning);

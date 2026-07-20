@@ -9,7 +9,10 @@ public static class TimberSlopeArrowCalculator
     public const double HeadHalfWidthMm = 50d;
 
     public static bool ShouldDisplay(double slopeDegrees) =>
-        !double.IsNaN(slopeDegrees) && !double.IsInfinity(slopeDegrees) && slopeDegrees > 0d;
+        TimberSlopeAnnotationRules.ResolveGlyphKind(slopeDegrees) == TimberSlopeGlyphKind.DirectionalArrow;
+
+    public static bool ShouldDisplayHorizontalMarker(double slopeDegrees) =>
+        TimberSlopeAnnotationRules.ResolveGlyphKind(slopeDegrees) == TimberSlopeGlyphKind.HorizontalMarker;
 
     public static TimberSlopeAnnotationPoint CalculatePosition(
         double startX,

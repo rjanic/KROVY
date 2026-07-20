@@ -11,12 +11,13 @@ public static class TimberAnnotationRefreshPlanner
             throw new ArgumentNullException(nameof(data));
         }
 
-        var shouldSlopeAnnotationExist = TimberSlopeArrowCalculator.ShouldDisplay(data.SlopeDegrees);
+        var glyphKind = TimberSlopeAnnotationRules.ResolveGlyphKind(data.SlopeDegrees);
         return new TimberAnnotationRefreshPlan(
             EnsureLabel: true,
             ReconcileSlopeArrow: true,
-            ShouldSlopeArrowExist: shouldSlopeAnnotationExist,
+            ShouldSlopeArrowExist: glyphKind == TimberSlopeGlyphKind.DirectionalArrow,
+            ShouldHorizontalSlopeMarkerExist: glyphKind == TimberSlopeGlyphKind.HorizontalMarker,
             ReconcileSlopeAngleText: true,
-            ShouldSlopeAngleTextExist: shouldSlopeAnnotationExist);
+            ShouldSlopeAngleTextExist: TimberSlopeAnnotationRules.ShouldDisplayAngleText(data.SlopeDegrees));
     }
 }

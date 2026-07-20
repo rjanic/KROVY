@@ -235,7 +235,8 @@ public sealed class AcKrovyCommands
             isNewAssignment: false,
             defaultProfile,
             cuttingAllowanceIsMixed: HasMixedCuttingAllowance(selectedData),
-            slopeDirectionIsMixed: HasMixedSlopeDirection(selectedData));
+            slopeDirectionIsMixed: HasMixedSlopeDirection(selectedData),
+            validationData: selectedData);
         dialog.Title = selectedData.Count == 1
             ? $"ACAD KROVY – editácia prvku – {selectedData[0].ElementId} – {TimberElementLabels.ToSlovak(selectedData[0].ElementType)}"
             : $"ACAD KROVY – editácia {selectedData.Count} prvkov";
@@ -289,7 +290,7 @@ public sealed class AcKrovyCommands
         var document = ActiveDocument();
         var editor = document.Editor;
         var selection = editor.GetEntity(
-            "\nKlikni na timber prvok, šípku alebo text sklonu pre obrátenie smeru: ");
+            "\nKlikni na timber prvok alebo jeho slope anotáciu pre obrátenie smeru: ");
         if (selection.Status != PromptStatus.OK)
         {
             return;
@@ -321,6 +322,12 @@ public sealed class AcKrovyCommands
             data is null)
         {
             editor.WriteMessage("\nACAD KROVY: vybraný objekt nie je timber prvok ani jeho slope anotácia.");
+            return;
+        }
+
+        if (!TimberSlopeAnnotationRules.CanFlipDirection(data.SlopeDegrees))
+        {
+            editor.WriteMessage("\nACAD KROVY: vodorovný prvok nemá smer spádu.");
             return;
         }
 

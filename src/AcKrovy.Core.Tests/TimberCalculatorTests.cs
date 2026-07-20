@@ -39,8 +39,13 @@ public sealed class TimberCalculatorTests
         Assert.Equal(2000, actual, precision: 6);
     }
 
+    [Fact]
+    public void CalculateSlopeCorrectedLength_AllowsZeroSlope()
+    {
+        Assert.Equal(1000d, TimberCalculator.CalculateSlopeCorrectedLengthMm(1000d, 0d));
+    }
+
     [Theory]
-    [InlineData(0)]
     [InlineData(-1)]
     [InlineData(89.9)]
     [InlineData(90)]
@@ -48,6 +53,49 @@ public sealed class TimberCalculatorTests
     {
         Assert.Throws<ArgumentOutOfRangeException>(() =>
             TimberCalculator.CalculateSlopeCorrectedLengthMm(1000, slopeDegrees));
+    }
+
+    [Theory]
+    [InlineData(0d, true)]
+    [InlineData(30d, true)]
+    [InlineData(45.5d, true)]
+    [InlineData(89.8d, true)]
+    [InlineData(-0.1d, false)]
+    [InlineData(89.9d, false)]
+    public void SlopeValidation_UsesZeroInclusiveUpperExclusiveRange(double slopeDegrees, bool expected)
+    {
+        Assert.Equal(expected, TimberCalculator.IsValidSlopeDegrees(slopeDegrees));
+    }
+
+    [Fact]
+    public void ChangingWallPlateToRafterAtZeroSlopeMeasuresWithoutException()
+    {
+        var wallPlate = new TimberElementData
+        {
+            ElementType = TimberElementType.WallPlate,
+            LengthCalculationMode = LengthCalculationMode.AutoByElementType,
+            SlopeDegrees = 0d,
+            WidthMm = 160d,
+            HeightMm = 160d,
+        };
+        var patch = new TimberElementPatch(
+            TimberElementType.Rafter,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null);
+
+        var rafter = TimberElementPatcher.Apply(wallPlate, patch);
+        var measurement = TimberCalculator.Measure(rafter, 4000d);
+
+        Assert.Equal(LengthCalculationMode.SlopeCorrected, TimberCalculator.ResolveLengthCalculationMode(rafter));
+        Assert.Equal(4000d, measurement.ActualLengthMm);
     }
 
     [Fact]

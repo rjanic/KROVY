@@ -35,7 +35,7 @@ internal static class SlopeAngleTextService
                 sourceHandle))
             .ToList();
 
-        if (!TimberSlopeArrowCalculator.ShouldDisplay(data.SlopeDegrees))
+        if (!TimberSlopeAnnotationRules.ShouldDisplayAngleText(data.SlopeDegrees))
         {
             DeleteTexts(transaction, matchingTexts.Select(text => text.Id));
             return false;

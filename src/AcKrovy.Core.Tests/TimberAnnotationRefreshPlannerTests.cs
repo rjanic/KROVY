@@ -7,9 +7,12 @@ namespace AcKrovy.Core.Tests;
 public sealed class TimberAnnotationRefreshPlannerTests
 {
     [Theory]
-    [InlineData(30, true)]
-    [InlineData(0, false)]
-    public void Create_AlwaysReconcilesLabelAndSlopeArrow(double slopeDegrees, bool arrowShouldExist)
+    [InlineData(30, true, false)]
+    [InlineData(0, false, true)]
+    public void Create_AlwaysReconcilesCompleteSlopeAnnotation(
+        double slopeDegrees,
+        bool arrowShouldExist,
+        bool markerShouldExist)
     {
         var plan = TimberAnnotationRefreshPlanner.Create(new TimberElementData
         {
@@ -19,8 +22,9 @@ public sealed class TimberAnnotationRefreshPlannerTests
         Assert.True(plan.EnsureLabel);
         Assert.True(plan.ReconcileSlopeArrow);
         Assert.Equal(arrowShouldExist, plan.ShouldSlopeArrowExist);
+        Assert.Equal(markerShouldExist, plan.ShouldHorizontalSlopeMarkerExist);
         Assert.True(plan.ReconcileSlopeAngleText);
-        Assert.Equal(arrowShouldExist, plan.ShouldSlopeAngleTextExist);
+        Assert.True(plan.ShouldSlopeAngleTextExist);
     }
 
     [Theory]

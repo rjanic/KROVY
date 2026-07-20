@@ -65,6 +65,7 @@ public sealed class TimberSlopeArrowCalculatorTests
     }
 
     [Theory]
+    [InlineData(0, "0°")]
     [InlineData(30, "30°")]
     [InlineData(35, "35°")]
     [InlineData(35.5, "35,5°")]
@@ -104,6 +105,37 @@ public sealed class TimberSlopeArrowCalculatorTests
     public void ShouldDisplay_UsesPositiveSlopeOnly(double slopeDegrees, bool expected)
     {
         Assert.Equal(expected, TimberSlopeArrowCalculator.ShouldDisplay(slopeDegrees));
+    }
+
+    [Theory]
+    [InlineData(0d, TimberSlopeGlyphKind.HorizontalMarker)]
+    [InlineData(30d, TimberSlopeGlyphKind.DirectionalArrow)]
+    [InlineData(-1d, TimberSlopeGlyphKind.None)]
+    public void GlyphKind_ChoosesMarkerForZeroAndArrowForPositiveSlope(
+        double slopeDegrees,
+        TimberSlopeGlyphKind expected)
+    {
+        Assert.Equal(expected, TimberSlopeAnnotationRules.ResolveGlyphKind(slopeDegrees));
+    }
+
+    [Fact]
+    public void ChangingBetweenZeroAndPositiveSlopeSwitchesGlyphKind()
+    {
+        var marker = TimberSlopeAnnotationRules.ResolveGlyphKind(0d);
+        var arrow = TimberSlopeAnnotationRules.ResolveGlyphKind(30d);
+        var markerAgain = TimberSlopeAnnotationRules.ResolveGlyphKind(0d);
+
+        Assert.Equal(TimberSlopeGlyphKind.HorizontalMarker, marker);
+        Assert.Equal(TimberSlopeGlyphKind.DirectionalArrow, arrow);
+        Assert.Equal(TimberSlopeGlyphKind.HorizontalMarker, markerAgain);
+    }
+
+    [Theory]
+    [InlineData(0d, false)]
+    [InlineData(30d, true)]
+    public void FlipDirection_IsAvailableOnlyForPositiveSlope(double slopeDegrees, bool expected)
+    {
+        Assert.Equal(expected, TimberSlopeAnnotationRules.CanFlipDirection(slopeDegrees));
     }
 
     [Fact]
