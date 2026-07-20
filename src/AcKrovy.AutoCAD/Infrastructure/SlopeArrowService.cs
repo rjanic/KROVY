@@ -69,7 +69,10 @@ internal static class SlopeArrowService
 
         if (glyph is Polyline arrow)
         {
-            var placement = CalculatePlacement(geometry, data.IsSlopeDirectionReversed);
+            var arrowGeometry = SlopeAnnotationGeometry.Calculate(
+                sourceEntity,
+                geometry.LengthMm * TimberSlopeArrowCalculator.SlopeArrowPositionFactor);
+            var placement = CalculatePlacement(arrowGeometry, data.IsSlopeDirectionReversed);
             ApplyArrowAppearance(database, transaction, arrow, placement.Geometry, placement.Elevation);
         }
         else if (glyph is BlockReference marker)
@@ -157,6 +160,8 @@ internal static class SlopeArrowService
     {
         var points = new[]
         {
+            new Point2d(placement.TailX, placement.TailY),
+            new Point2d(placement.TipX, placement.TipY),
             new Point2d(placement.HeadLeftX, placement.HeadLeftY),
             new Point2d(placement.TipX, placement.TipY),
             new Point2d(placement.HeadRightX, placement.HeadRightY),
@@ -219,7 +224,7 @@ internal static class SlopeArrowService
         TimberSlopeGlyphKind glyphKind,
         Point3d position) => glyphKind switch
         {
-            TimberSlopeGlyphKind.DirectionalArrow => new Polyline(3),
+            TimberSlopeGlyphKind.DirectionalArrow => new Polyline(5),
             TimberSlopeGlyphKind.HorizontalMarker => new BlockReference(
                 position,
                 EnsureHorizontalMarkerBlock(database, transaction)),

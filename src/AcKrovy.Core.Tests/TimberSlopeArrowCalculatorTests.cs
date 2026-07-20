@@ -14,12 +14,13 @@ public sealed class TimberSlopeArrowCalculatorTests
     {
         var placement = TimberSlopeArrowCalculator.Calculate(0, 0, 1000, 0, 500, 0, isReversed: false);
 
-        Assert.Equal(560, placement.TipX);
+        Assert.Equal(410, placement.TailX);
+        Assert.Equal(590, placement.TipX);
         Assert.Equal(0, placement.TipY);
-        Assert.Equal(440, placement.HeadLeftX);
-        Assert.Equal(50, placement.HeadLeftY);
-        Assert.Equal(440, placement.HeadRightX);
-        Assert.Equal(-50, placement.HeadRightY);
+        Assert.Equal(525, placement.HeadLeftX);
+        Assert.Equal(28, placement.HeadLeftY);
+        Assert.Equal(525, placement.HeadRightX);
+        Assert.Equal(-28, placement.HeadRightY);
     }
 
     [Fact]
@@ -28,10 +29,12 @@ public sealed class TimberSlopeArrowCalculatorTests
         var normal = TimberSlopeArrowCalculator.Calculate(0, 0, 1000, 0, 500, 0, isReversed: false);
         var reversed = TimberSlopeArrowCalculator.Calculate(0, 0, 1000, 0, 500, 0, isReversed: true);
 
-        Assert.Equal(560, normal.TipX);
-        Assert.Equal(440, reversed.TipX);
-        Assert.Equal(500, (normal.TipX + normal.HeadLeftX) / 2d);
-        Assert.Equal(500, (reversed.TipX + reversed.HeadLeftX) / 2d);
+        Assert.Equal(590, normal.TipX);
+        Assert.Equal(410, reversed.TipX);
+        Assert.Equal(normal.TailX, reversed.TipX);
+        Assert.Equal(normal.TipX, reversed.TailX);
+        Assert.Equal(500, (normal.TipX + normal.TailX) / 2d);
+        Assert.Equal(500, (reversed.TipX + reversed.TailX) / 2d);
     }
 
     [Fact]
@@ -40,9 +43,11 @@ public sealed class TimberSlopeArrowCalculatorTests
         var placement = TimberSlopeArrowCalculator.Calculate(0, 0, 0, 1000, 0, 500, isReversed: false);
 
         Assert.Equal(0, placement.TipX);
-        Assert.Equal(560, placement.TipY);
-        Assert.Equal(440, placement.HeadLeftY);
-        Assert.Equal(440, placement.HeadRightY);
+        Assert.Equal(0, placement.TailX);
+        Assert.Equal(590, placement.TipY);
+        Assert.Equal(410, placement.TailY);
+        Assert.Equal(525, placement.HeadLeftY);
+        Assert.Equal(525, placement.HeadRightY);
     }
 
     [Fact]
@@ -50,19 +55,68 @@ public sealed class TimberSlopeArrowCalculatorTests
     {
         var placement = TimberSlopeArrowCalculator.Calculate(0, 0, 40, 0, 20, 0, isReversed: false);
 
-        Assert.Equal(TimberSlopeArrowCalculator.HeadLengthMm, placement.TipX - placement.HeadLeftX);
-        Assert.Equal(20, (placement.TipX + placement.HeadLeftX) / 2d);
+        Assert.Equal(TimberSlopeArrowCalculator.AxisLengthMm, placement.TipX - placement.TailX);
+        Assert.Equal(20, (placement.TipX + placement.TailX) / 2d);
     }
 
     [Fact]
-    public void CalculatePosition_UsesOneThirdOfElementLength()
+    public void CalculatePosition_UsesElementMidpoint()
     {
         var position = TimberSlopeArrowCalculator.CalculatePosition(0, 0, 900, 300);
 
-        Assert.Equal(300, position.X);
-        Assert.Equal(100, position.Y);
-        Assert.Equal(1d / 3d, TimberSlopeArrowCalculator.SlopeAnnotationPositionFactor);
+        Assert.Equal(450, position.X);
+        Assert.Equal(150, position.Y);
+        Assert.Equal(1d / 2d, TimberSlopeArrowCalculator.SlopeArrowPositionFactor);
     }
+
+    [Theory]
+    [InlineData(0d, 0d, 1000d, 0d)]
+    [InlineData(0d, 0d, 0d, 1000d)]
+    [InlineData(100d, 200d, 1100d, 1200d)]
+    [InlineData(1100d, 1200d, 100d, 200d)]
+    public void Calculate_DifferentLineOrientationsKeepShaftCenteredOnAxis(
+        double startX,
+        double startY,
+        double endX,
+        double endY)
+    {
+        var centerX = (startX + endX) / 2d;
+        var centerY = (startY + endY) / 2d;
+        var placement = TimberSlopeArrowCalculator.Calculate(
+            startX,
+            startY,
+            endX,
+            endY,
+            centerX,
+            centerY,
+            isReversed: false);
+
+        Assert.Equal(centerX, (placement.TailX + placement.TipX) / 2d, precision: 6);
+        Assert.Equal(centerY, (placement.TailY + placement.TipY) / 2d, precision: 6);
+        Assert.Equal(0d, CrossProductFromSourceAxis(
+            startX,
+            startY,
+            endX,
+            endY,
+            placement.TailX,
+            placement.TailY), precision: 6);
+        Assert.Equal(0d, CrossProductFromSourceAxis(
+            startX,
+            startY,
+            endX,
+            endY,
+            placement.TipX,
+            placement.TipY), precision: 6);
+    }
+
+    private static double CrossProductFromSourceAxis(
+        double startX,
+        double startY,
+        double endX,
+        double endY,
+        double pointX,
+        double pointY) =>
+        (endX - startX) * (pointY - startY) - (endY - startY) * (pointX - startX);
 
     [Theory]
     [InlineData(0, "0°")]

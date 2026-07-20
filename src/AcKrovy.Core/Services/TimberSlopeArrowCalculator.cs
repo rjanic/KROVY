@@ -5,8 +5,10 @@ namespace AcKrovy.Core.Services;
 public static class TimberSlopeArrowCalculator
 {
     public const double SlopeAnnotationPositionFactor = 1d / 3d;
-    public const double HeadLengthMm = 120d;
-    public const double HeadHalfWidthMm = 50d;
+    public const double SlopeArrowPositionFactor = 1d / 2d;
+    public const double AxisLengthMm = 180d;
+    public const double HeadLengthMm = 65d;
+    public const double HeadHalfWidthMm = 28d;
 
     public static bool ShouldDisplay(double slopeDegrees) =>
         TimberSlopeAnnotationRules.ResolveGlyphKind(slopeDegrees) == TimberSlopeGlyphKind.DirectionalArrow;
@@ -20,8 +22,8 @@ public static class TimberSlopeArrowCalculator
         double endX,
         double endY) =>
         new(
-            startX + (endX - startX) * SlopeAnnotationPositionFactor,
-            startY + (endY - startY) * SlopeAnnotationPositionFactor);
+            startX + (endX - startX) * SlopeArrowPositionFactor,
+            startY + (endY - startY) * SlopeArrowPositionFactor);
 
     public static TimberSlopeArrowPlacement Calculate(
         double startX,
@@ -45,15 +47,19 @@ public static class TimberSlopeArrowCalculator
         var directionSign = isReversed ? -1d : 1d;
         var directionX = sourceDirectionX * directionSign;
         var directionY = sourceDirectionY * directionSign;
-        var halfHeadLength = HeadLengthMm / 2d;
-        var tipX = midpointX + directionX * halfHeadLength;
-        var tipY = midpointY + directionY * halfHeadLength;
+        var halfAxisLength = AxisLengthMm / 2d;
+        var tailX = midpointX - directionX * halfAxisLength;
+        var tailY = midpointY - directionY * halfAxisLength;
+        var tipX = midpointX + directionX * halfAxisLength;
+        var tipY = midpointY + directionY * halfAxisLength;
         var headBaseX = tipX - directionX * HeadLengthMm;
         var headBaseY = tipY - directionY * HeadLengthMm;
         var headNormalX = -directionY;
         var headNormalY = directionX;
 
         return new TimberSlopeArrowPlacement(
+            tailX,
+            tailY,
             tipX,
             tipY,
             headBaseX + headNormalX * HeadHalfWidthMm,
