@@ -1,4 +1,5 @@
 using AcKrovy.Core.Services;
+using AcKrovy.Localization;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.Geometry;
 
@@ -23,7 +24,7 @@ internal static class SlopeAnnotationGeometry
                 polyline.GetPointAtDist(ClampDistance(annotationDistanceMm, polyline.Length)),
                 polyline.Length),
             _ => throw new NotSupportedException(
-                "Anotáciu sklonu možno vytvoriť iba pre LINE alebo LWPOLYLINE."),
+                UiStrings.ErrorSlopeAnnotationUnsupportedEntityType),
         };
     }
 
@@ -34,7 +35,7 @@ internal static class SlopeAnnotationGeometry
             Line line => GetPlanarLength(line.StartPoint, line.EndPoint),
             Polyline polyline => polyline.Length,
             _ => throw new NotSupportedException(
-                "Anotáciu sklonu možno vytvoriť iba pre LINE alebo LWPOLYLINE."),
+                UiStrings.ErrorSlopeAnnotationUnsupportedEntityType),
         };
 
         return Calculate(

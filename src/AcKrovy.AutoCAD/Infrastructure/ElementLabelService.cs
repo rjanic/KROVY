@@ -617,7 +617,7 @@ internal static class ElementLabelService
                 polyline.StartPoint,
                 polyline.EndPoint,
                 polyline.GetPointAtDist(polyline.Length / 2d)),
-            _ => throw new NotSupportedException("Popis možno vytvoriť iba pre LINE alebo LWPOLYLINE."),
+            _ => throw new NotSupportedException(UiStrings.ErrorLabelUnsupportedEntityType),
         };
 
         var placement = TimberElementLabelPlacementCalculator.Calculate(

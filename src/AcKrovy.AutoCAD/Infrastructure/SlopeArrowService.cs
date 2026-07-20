@@ -1,5 +1,6 @@
 using AcKrovy.Core.Models;
 using AcKrovy.Core.Services;
+using AcKrovy.Localization;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.Geometry;
 
@@ -225,7 +226,7 @@ internal static class SlopeArrowService
             TimberSlopeGlyphKind.HorizontalMarker => new BlockReference(
                 position,
                 EnsureHorizontalMarkerBlock(database, transaction)),
-            _ => throw new InvalidOperationException("Nepodporovaný symbol anotácie sklonu."),
+            _ => throw new InvalidOperationException(UiStrings.ErrorUnsupportedSlopeGlyph),
         };
 
     private static ObjectId EnsureHorizontalMarkerBlock(Database database, Transaction transaction)

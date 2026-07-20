@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using AcKrovy.Core.Models;
 using AcKrovy.Core.Services;
+using AcKrovy.Localization;
 using Autodesk.AutoCAD.DatabaseServices;
 
 namespace AcKrovy.AutoCAD.Infrastructure;
@@ -65,7 +66,7 @@ internal static class ElementDataStore
         if (jsonByteCount > MaxPortableJsonBytes)
         {
             throw new InvalidOperationException(
-                $"Údaje prvku ACAD KROVY sú príliš veľké pre prenosný formát XData ({jsonByteCount} B)." );
+                UiStrings.Format(UiStrings.ErrorXDataTooLargeFormat, jsonByteCount));
         }
 
         // Zachovaj XData ostatných doplnkov a prepíš iba náš vlastný oddiel.

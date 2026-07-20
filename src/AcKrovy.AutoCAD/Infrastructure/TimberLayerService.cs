@@ -1,6 +1,7 @@
 using AcKrovy.Cad.Abstractions.Layers;
 using AcKrovy.AutoCAD.Settings;
 using AcKrovy.Core.Models;
+using AcKrovy.Localization;
 using Autodesk.AutoCAD.Colors;
 using AcColor = Autodesk.AutoCAD.Colors.Color;
 using Autodesk.AutoCAD.DatabaseServices;
@@ -28,7 +29,10 @@ internal static class TimberLayerService
         var style = profile.GetStyle(elementType);
         if (!LayerNameValidator.TryValidate(style.LayerName, out var layerName, out var error))
         {
-            throw new InvalidOperationException($"Neplatná hladina pre prvok {elementType}: {error}");
+            throw new InvalidOperationException(UiStrings.Format(
+                UiStrings.ErrorInvalidElementLayerFormat,
+                elementType,
+                error));
         }
 
         var layerId = EnsureLayer(database, transaction, layerName, style.ColorIndex);
@@ -50,7 +54,9 @@ internal static class TimberLayerService
 
         if (!LayerNameValidator.TryValidate(layerName, out var normalizedLayerName, out var error))
         {
-            throw new InvalidOperationException($"Neplatná hladina anotácie: {error}");
+            throw new InvalidOperationException(UiStrings.Format(
+                UiStrings.ErrorInvalidAnnotationLayerFormat,
+                error));
         }
 
         if (colorIndex is < 1 or > 255)

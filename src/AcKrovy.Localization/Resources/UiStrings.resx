@@ -197,4 +197,13 @@
   <data name="CommandUi_Labels_Tooltip" xml:space="preserve"><value>Vytvorí alebo obnoví automatické popisy všetkých prvkov krovu.</value></data>
   <data name="CommandUi_Toolbar_Label" xml:space="preserve"><value>Klasický panel</value></data>
   <data name="CommandUi_Toolbar_Tooltip" xml:space="preserve"><value>Zobrazí alebo skryje klasický plávajúci panel malých ikon.</value></data>
+  <data name="Error_NoActiveDrawing" xml:space="preserve"><value>Nie je otvorený žiadny výkres AutoCADu.</value></data>
+  <data name="Error_UnsupportedTimberGeometry" xml:space="preserve"><value>Podporované sú iba objekty LINE a LWPOLYLINE.</value></data>
+  <data name="Error_LabelUnsupportedEntityType" xml:space="preserve"><value>Popis možno vytvoriť iba pre LINE alebo LWPOLYLINE.</value></data>
+  <data name="Error_XDataTooLargeFormat" xml:space="preserve"><value>Údaje prvku ACAD KROVY sú príliš veľké pre prenosný formát XData ({0} B).</value></data>
+  <data name="Error_SlopeAnnotationUnsupportedEntityType" xml:space="preserve"><value>Anotáciu sklonu možno vytvoriť iba pre LINE alebo LWPOLYLINE.</value></data>
+  <data name="Error_UnsupportedSlopeGlyph" xml:space="preserve"><value>Nepodporovaný symbol anotácie sklonu.</value></data>
+  <data name="Error_InvalidElementLayerFormat" xml:space="preserve"><value>Neplatná hladina pre prvok {0}: {1}</value></data>
+  <data name="Error_InvalidAnnotationLayerFormat" xml:space="preserve"><value>Neplatná hladina anotácie: {0}</value></data>
+  <data name="Error_InvalidSlopeDegrees" xml:space="preserve"><value>Sklon musí byť nezáporné číslo menšie než 89,9°.</value></data>
 </root>

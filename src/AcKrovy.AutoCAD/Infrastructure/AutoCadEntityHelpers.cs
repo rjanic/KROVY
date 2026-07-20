@@ -1,4 +1,5 @@
 using Autodesk.AutoCAD.DatabaseServices;
+using AcKrovy.Localization;
 
 namespace AcKrovy.AutoCAD.Infrastructure;
 
@@ -10,6 +11,6 @@ internal static class AutoCadEntityHelpers
     {
         Line line => line.Length,
         Polyline polyline => polyline.Length,
-        _ => throw new NotSupportedException("Podporované sú iba objekty LINE a LWPOLYLINE."),
+        _ => throw new NotSupportedException(UiStrings.ErrorUnsupportedTimberGeometry),
     };
 }

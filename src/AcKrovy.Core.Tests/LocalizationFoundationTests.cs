@@ -83,6 +83,13 @@ public sealed class LocalizationFoundationTests
         "CommandUi_Settings_Label", "CommandUi_Settings_Tooltip", "CommandUi_Labels_Label",
         "CommandUi_Labels_Tooltip", "CommandUi_Toolbar_Label", "CommandUi_Toolbar_Tooltip",
     ];
+    private static readonly string[] AdapterGuardResourceKeys =
+    [
+        "Error_NoActiveDrawing", "Error_UnsupportedTimberGeometry", "Error_LabelUnsupportedEntityType",
+        "Error_XDataTooLargeFormat", "Error_SlopeAnnotationUnsupportedEntityType",
+        "Error_UnsupportedSlopeGlyph", "Error_InvalidElementLayerFormat", "Error_InvalidAnnotationLayerFormat",
+        "Error_InvalidSlopeDegrees",
+    ];
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -418,6 +425,42 @@ public sealed class LocalizationFoundationTests
     {
         Assert.All(AcKrovyCommandNames.All, command =>
             Assert.Equal(command + " ", CommandMacroBuilder.Build(command)));
+    }
+
+    [Fact]
+    public void AdapterGuardResourceKeys_ExistAndUseSlovakFallbackForAllPlannedCultures()
+    {
+        Assert.Equal(9, AdapterGuardResourceKeys.Length);
+
+        foreach (var key in AdapterGuardResourceKeys)
+        {
+            var slovak = UiStrings.GetString(key, CultureInfo.GetCultureInfo("sk-SK"));
+            Assert.False(string.IsNullOrWhiteSpace(slovak));
+            Assert.NotEqual(key, slovak);
+
+            Assert.All(CultureNames, cultureName => Assert.Equal(
+                slovak,
+                UiStrings.GetString(key, CultureInfo.GetCultureInfo(cultureName))));
+        }
+    }
+
+    [Fact]
+    public void AdapterGuardResourceFormats_AcceptExpectedTechnicalArguments()
+    {
+        var formats = new (string Format, object?[] Arguments)[]
+        {
+            (UiStrings.ErrorXDataTooLargeFormat, [4096]),
+            (UiStrings.ErrorInvalidElementLayerFormat, [TimberElementType.Rafter, "chyba vrstvy"]),
+            (UiStrings.ErrorInvalidAnnotationLayerFormat, ["chyba vrstvy"]),
+        };
+
+        Assert.All(formats, item =>
+        {
+            var formatted = UiStrings.Format(item.Format, item.Arguments);
+            Assert.False(string.IsNullOrWhiteSpace(formatted));
+            Assert.DoesNotContain("{0", formatted, StringComparison.Ordinal);
+            Assert.DoesNotContain("{1", formatted, StringComparison.Ordinal);
+        });
     }
 
     [Fact]

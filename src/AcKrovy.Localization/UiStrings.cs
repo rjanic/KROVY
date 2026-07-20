@@ -159,6 +159,15 @@ public static class UiStrings
     public static string RibbonPanelToolbar => GetString("Ribbon_Panel_Toolbar");
     public static string ToolbarTitle => GetString("Toolbar_Title");
     public static string ToolbarContentTitle => GetString("Toolbar_ContentTitle");
+    public static string ErrorNoActiveDrawing => GetString("Error_NoActiveDrawing");
+    public static string ErrorUnsupportedTimberGeometry => GetString("Error_UnsupportedTimberGeometry");
+    public static string ErrorLabelUnsupportedEntityType => GetString("Error_LabelUnsupportedEntityType");
+    public static string ErrorXDataTooLargeFormat => GetString("Error_XDataTooLargeFormat");
+    public static string ErrorSlopeAnnotationUnsupportedEntityType => GetString("Error_SlopeAnnotationUnsupportedEntityType");
+    public static string ErrorUnsupportedSlopeGlyph => GetString("Error_UnsupportedSlopeGlyph");
+    public static string ErrorInvalidElementLayerFormat => GetString("Error_InvalidElementLayerFormat");
+    public static string ErrorInvalidAnnotationLayerFormat => GetString("Error_InvalidAnnotationLayerFormat");
+    public static string ErrorInvalidSlopeDegrees => GetString("Error_InvalidSlopeDegrees");
 
     public static string Format(string format, params object?[] arguments) =>
         string.Format(CultureInfo.CurrentCulture, format, arguments);

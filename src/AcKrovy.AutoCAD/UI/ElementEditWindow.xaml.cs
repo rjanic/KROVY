@@ -221,13 +221,13 @@ public partial class ElementEditWindow : Window
         foreach (var validationData in _validationData)
         {
             var candidate = TimberElementPatcher.Apply(validationData, patch);
-            if (TimberCalculator.TryValidateSlopeDegrees(candidate.SlopeDegrees, out var error))
+            if (TimberCalculator.TryValidateSlopeDegrees(candidate.SlopeDegrees, out _))
             {
                 continue;
             }
 
             MessageBox.Show(
-                error,
+                UiStrings.ErrorInvalidSlopeDegrees,
                 UiStrings.MessageDialogTitle,
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
@@ -255,9 +255,9 @@ public partial class ElementEditWindow : Window
             return true;
         }
 
-        TimberCalculator.TryValidateSlopeDegrees(parsed ? value : double.NaN, out var error);
+        TimberCalculator.TryValidateSlopeDegrees(parsed ? value : double.NaN, out _);
         MessageBox.Show(
-            error,
+            UiStrings.ErrorInvalidSlopeDegrees,
             UiStrings.MessageDialogTitle,
             MessageBoxButton.OK,
             MessageBoxImage.Warning);

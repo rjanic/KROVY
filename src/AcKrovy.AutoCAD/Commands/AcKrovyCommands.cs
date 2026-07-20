@@ -793,7 +793,7 @@ public sealed class AcKrovyCommands
     }
 
     private static Document ActiveDocument() => AcApp.DocumentManager.MdiActiveDocument
-        ?? throw new InvalidOperationException("Nie je otvorený žiadny výkres AutoCADu.");
+        ?? throw new InvalidOperationException(UiStrings.ErrorNoActiveDrawing);
 
     private static Editor ActiveEditor() => ActiveDocument().Editor;
 }
