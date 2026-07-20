@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="ElementType_Rafter" xml:space="preserve"><value>Krokiew</value></data>
+  <data name="ElementType_WallPlate" xml:space="preserve"><value>Murłata</value></data>
+  <data name="ElementType_Purlin" xml:space="preserve"><value>Płatew</value></data>
+  <data name="ElementType_Post" xml:space="preserve"><value>Słup</value></data>
+  <data name="ElementType_CollarTie" xml:space="preserve"><value>Jętka</value></data>
+  <data name="ElementType_Brace" xml:space="preserve"><value>Zastrzał</value></data>
+  <data name="ElementType_TieBeam" xml:space="preserve"><value>Belka wiązarowa</value></data>
+  <data name="LengthCalculationMode_AutoByElementType" xml:space="preserve"><value>Automatycznie według typu elementu</value></data>
+  <data name="LengthCalculationMode_PlanLength" xml:space="preserve"><value>Długość w rzucie</value></data>
+  <data name="LengthCalculationMode_SlopeCorrected" xml:space="preserve"><value>Przelicz według nachylenia</value></data>
+  <data name="LengthCalculationMode_ManualLength" xml:space="preserve"><value>Długość wprowadzona ręcznie</value></data>
+  <data name="Report_Title" xml:space="preserve"><value>ACAD KROVY – zestawienie drewna</value></data>
+  <data name="Report_Column_Item" xml:space="preserve"><value>Pozycja</value></data>
+  <data name="Report_Column_Type" xml:space="preserve"><value>Typ</value></data>
+  <data name="Report_Column_Material" xml:space="preserve"><value>Materiał</value></data>
+  <data name="Report_Column_WidthMm" xml:space="preserve"><value>Szerokość [mm]</value></data>
+  <data name="Report_Column_HeightMm" xml:space="preserve"><value>Wysokość [mm]</value></data>
+  <data name="Report_Column_PieceLengthM" xml:space="preserve"><value>Długość sztuki [m]</value></data>
+  <data name="Report_Column_Count" xml:space="preserve"><value>Liczba</value></data>
+  <data name="Report_Column_TotalLengthM" xml:space="preserve"><value>Długość całkowita [m]</value></data>
+  <data name="Report_Column_VolumeM3" xml:space="preserve"><value>Objętość [m³]</value></data>
+  <data name="Report_TotalFormat" xml:space="preserve"><value>Razem: {0} elementów</value></data>
+  <data name="Message_DialogTitle" xml:space="preserve"><value>ACAD KROVY</value></data>
+  <data name="Message_PluginLoaded" xml:space="preserve"><value>&#xA;Wczytano ACAD KROVY 0.10.0. Karta ACAD KROVY zostanie dodana do wstążki. Wpisz AK_HELP, aby wyświetlić listę poleceń, lub AK_TOOLBAR, aby wyświetlić klasyczny pasek małych ikon.</value></data>
+  <data name="Help_CommandOverview" xml:space="preserve"><value>&#xA;ACAD KROVY 0.10.0&#xA;&#xA;ELEMENTY WIĘŹBY&#xA;  AK_KROKVA      – szybko przypisuje typ Krokiew&#xA;  AK_POMURNICA   – szybko przypisuje typ Murłata&#xA;  AK_VAZNICA     – szybko przypisuje typ Płatew&#xA;  AK_STLPIK      – szybko przypisuje typ Słup&#xA;  AK_KLIESTINA   – szybko przypisuje typ Jętka&#xA;  AK_VZPERA      – szybko przypisuje typ Zastrzał&#xA;  AK_VAZNYTRAM   – szybko przypisuje typ Belka wiązarowa&#xA;&#xA;DANE I ZESTAWIENIA&#xA;  AK_ASSIGN      – przypisuje dane do wybranych linii lub polilinii&#xA;  AK_EDIT        – zbiorczo edytuje zaznaczone wartości&#xA;  AK_FLIPSLOPE   – odwraca kierunek spadku elementu lub jego opisu&#xA;  AK_INSPECT     – wyświetla dane jednego elementu&#xA;  AK_REPORT      – wstawia tabelę z wybranych elementów&#xA;  AK_REPORTALL   – wstawia tabelę ze wszystkich elementów&#xA;  AK_RECALC      – sprawdza obliczenia wszystkich elementów&#xA;  AK_RIBBON      – wyświetla lub odświeża kartę ACAD KROVY na wstążce&#xA;  AK_TOOLBAR     – wyświetla lub ukrywa klasyczny pływający pasek małych ikon&#xA;  AK_SETTINGS    – konfiguruje warstwy i kolory poszczególnych typów elementów&#xA;  AK_APPLYLAYERS – stosuje bieżące ustawienia warstw w rysunku&#xA;&#xA;OPISY W RYSUNKU&#xA;  AK_LABELS      – tworzy lub odświeża opisy wszystkich elementów&#xA;  AK_LABELSELECTED – tworzy lub odświeża opisy wybranych elementów&#xA;  AK_LABELSHOW   – wyświetla warstwę KROV_POPIS&#xA;  AK_LABELHIDE   – ukrywa warstwę KROV_POPIS&#xA;&#xA;Wskazówka: opis jest odświeżany automatycznie po przypisaniu, edycji lub zmianie geometrii. AK_LABELS i AK_RECALC umożliwiają kontrolę ręczną.</value></data>
+  <data name="Command_Ribbon_Ready" xml:space="preserve"><value>&#xA;ACAD KROVY: karta wstążki jest gotowa.</value></data>
+  <data name="Command_Ribbon_Pending" xml:space="preserve"><value>&#xA;ACAD KROVY: wstążka nie jest jeszcze gotowa; karta zostanie wkrótce dodana.</value></data>
+  <data name="Command_Toolbar_Shown" xml:space="preserve"><value>&#xA;ACAD KROVY: klasyczny pasek ikon jest widoczny.</value></data>
+  <data name="Command_Toolbar_Hidden" xml:space="preserve"><value>&#xA;ACAD KROVY: klasyczny pasek ikon jest ukryty.</value></data>
+  <data name="Command_Settings_SaveFailedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: nie udało się zapisać ustawień: {0}</value></data>
+  <data name="Command_Settings_Saved" xml:space="preserve"><value>&#xA;ACAD KROVY: ustawienia zostały zapisane.</value></data>
+  <data name="Command_Settings_PromptApplyAllowances" xml:space="preserve"><value>&#xA;Wybierz elementy, do których chcesz zastosować nowe naddatki na cięcie: </value></data>
+  <data name="Command_Settings_SelectionCancelled" xml:space="preserve"><value>&#xA;ACAD KROVY: anulowano wybór; istniejące elementy nie zostały zmienione.</value></data>
+  <data name="Command_Labels_PromptSelected" xml:space="preserve"><value>&#xA;Wybierz elementy, których opisy chcesz utworzyć lub odświeżyć: </value></data>
+  <data name="Command_Labels_UpdatedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: odświeżone opisy: {0}. Nowe: {1}. Pominięte: {2}.</value></data>
+  <data name="Command_Labels_RefreshFailedFormat" xml:space="preserve"><value>&#xA;Nie utworzono ani nie odświeżono opisu elementu {0}: {1}</value></data>
+  <data name="Command_Edit_Prompt" xml:space="preserve"><value>&#xA;Wybierz inteligentne elementy więźby do edycji: </value></data>
+  <data name="Command_Edit_NoData" xml:space="preserve"><value>&#xA;Wybrany obiekt nie zawiera danych ACAD KROVY. Najpierw użyj AK_ASSIGN lub ikony typu elementu.</value></data>
+  <data name="Command_Edit_TitleSingleFormat" xml:space="preserve"><value>ACAD KROVY – edycja elementu – {0} – {1}</value></data>
+  <data name="Command_Edit_TitleMultipleFormat" xml:space="preserve"><value>ACAD KROVY – edycja {0} elementów</value></data>
+  <data name="Command_Edit_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: zaktualizowane elementy: {0}. Pominięte: {1}.</value></data>
+  <data name="Command_FlipSlope_Prompt" xml:space="preserve"><value>&#xA;Wybierz element drewniany lub jego oznaczenie spadku, aby odwrócić kierunek: </value></data>
+  <data name="Command_FlipSlope_NotTimberOrAnnotation" xml:space="preserve"><value>&#xA;ACAD KROVY: wybrany obiekt nie jest elementem drewnianym ani jego oznaczeniem spadku.</value></data>
+  <data name="Command_FlipSlope_Horizontal" xml:space="preserve"><value>&#xA;ACAD KROVY: element poziomy nie ma kierunku spadku.</value></data>
+  <data name="Command_FlipSlope_ResultReversed" xml:space="preserve"><value>&#xA;ACAD KROVY: kierunek spadku został odwrócony.</value></data>
+  <data name="Command_FlipSlope_ResultNormal" xml:space="preserve"><value>&#xA;ACAD KROVY: ustawiono normalny kierunek spadku.</value></data>
+  <data name="Command_Inspect_Prompt" xml:space="preserve"><value>&#xA;Wybierz element ACAD KROVY: </value></data>
+  <data name="Command_Inspect_NoData" xml:space="preserve"><value>&#xA;Ten obiekt nie zawiera danych ACAD KROVY.</value></data>
+  <data name="Command_Inspect_AllowanceDefault" xml:space="preserve"><value>bieżąca wartość domyślna według typu</value></data>
+  <data name="Command_Inspect_AllowanceIndividual" xml:space="preserve"><value>indywidualna wartość elementu</value></data>
+  <data name="Command_Inspect_SummaryFormat" xml:space="preserve"><value>&#xA;{0} | {1}&#xA;  Przekrój: {2:0} × {3:0} mm&#xA;  Długość w rzucie: {4:0.###} m&#xA;  Długość rzeczywista: {5:0.###} m&#xA;  Długość cięcia: {6:0.###} m&#xA;  Objętość: {7:0.0000} m³</value></data>
+  <data name="Dialog_Inspect_Item" xml:space="preserve"><value>Pozycja</value></data>
+  <data name="Dialog_Inspect_ElementType" xml:space="preserve"><value>Typ elementu</value></data>
+  <data name="Dialog_Inspect_Material" xml:space="preserve"><value>Materiał</value></data>
+  <data name="Dialog_Inspect_Width" xml:space="preserve"><value>Szerokość</value></data>
+  <data name="Dialog_Inspect_Height" xml:space="preserve"><value>Wysokość</value></data>
+  <data name="Dialog_Inspect_Slope" xml:space="preserve"><value>Nachylenie</value></data>
+  <data name="Dialog_Inspect_SlopeDirection" xml:space="preserve"><value>Kierunek spadku</value></data>
+  <data name="Dialog_Inspect_PlanLength" xml:space="preserve"><value>Długość w rzucie</value></data>
+  <data name="Dialog_Inspect_ActualLength" xml:space="preserve"><value>Długość rzeczywista</value></data>
+  <data name="Dialog_Inspect_CuttingAllowance" xml:space="preserve"><value>Naddatek na cięcie</value></data>
+  <data name="Dialog_Inspect_CuttingLength" xml:space="preserve"><value>Długość cięcia</value></data>
+  <data name="Dialog_Inspect_ManualLengthMode" xml:space="preserve"><value>ManualLengthMode</value></data>
+  <data name="Dialog_Inspect_CadHandle" xml:space="preserve"><value>CAD Handle</value></data>
+  <data name="Dialog_Inspect_ManualLength" xml:space="preserve"><value>Długość wprowadzona ręcznie</value></data>
+  <data name="Message_Yes" xml:space="preserve"><value>Tak</value></data>
+  <data name="Message_No" xml:space="preserve"><value>Nie</value></data>
+  <data name="Message_DirectionNormal" xml:space="preserve"><value>Normalny</value></data>
+  <data name="Message_DirectionReversed" xml:space="preserve"><value>Odwrócony</value></data>
+  <data name="Command_Report_PromptSelection" xml:space="preserve"><value>&#xA;Wybierz elementy do zestawienia: </value></data>
+  <data name="Command_Report_NoneFound" xml:space="preserve"><value>&#xA;Nie znaleziono żadnych elementów ACAD KROVY.</value></data>
+  <data name="Command_Report_ElementSkippedFormat" xml:space="preserve"><value>&#xA;Pominięty element {0}: {1}</value></data>
+  <data name="Command_Report_NoValidElements" xml:space="preserve"><value>&#xA;Wybór nie zawiera prawidłowych elementów ACAD KROVY.</value></data>
+  <data name="Command_Report_PromptInsertionPoint" xml:space="preserve"><value>&#xA;Wskaż punkt wstawienia zestawienia: </value></data>
+  <data name="Command_Report_InsertedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: wstawiono zestawienie dla {0} elementów. Pominięte: {1}. Objętość: {2:0.0000} m³.</value></data>
+  <data name="Command_Recalc_ElementErrorFormat" xml:space="preserve"><value>&#xA;Błąd w elemencie {0}: {1}</value></data>
+  <data name="Command_Recalc_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: przeliczone elementy: {0}, błędy: {1}. Odświeżone opisy: {2}. Pominięte: {3}.</value></data>
+  <data name="Command_Assign_Prompt" xml:space="preserve"><value>&#xA;Wybierz linie lub polilinie, do których chcesz przypisać dane: </value></data>
+  <data name="Command_Assign_PromptTypeFormat" xml:space="preserve"><value>&#xA;Wybierz linie lub polilinie dla elementu {0}: </value></data>
+  <data name="Command_Assign_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: przypisano dane do {0} elementów. Pominięte: {1}.</value></data>
+  <data name="Command_Layers_ElementSkippedFormat" xml:space="preserve"><value>&#xA;Pominięto element podczas ustawiania warstwy: {0}</value></data>
+  <data name="Command_Layers_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: elementy przeniesione na warstwy: {0}. Pominięte: {1}.</value></data>
+  <data name="Command_Settings_ApplyElementSkippedFormat" xml:space="preserve"><value>&#xA;Pominięto element podczas stosowania ustawień: {0}</value></data>
+  <data name="Command_Settings_ApplyResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: zastosowano naddatki na cięcie do {0} elementów. Pominięte: {1}.</value></data>
+  <data name="Command_Labels_Shown" xml:space="preserve"><value>&#xA;ACAD KROVY: opisy na warstwie KROV_POPIS są widoczne.</value></data>
+  <data name="Command_Labels_Hidden" xml:space="preserve"><value>&#xA;ACAD KROVY: opisy na warstwie KROV_POPIS są ukryte.</value></data>
+  <data name="Command_Labels_LayerMissing" xml:space="preserve"><value>&#xA;ACAD KROVY: warstwa KROV_POPIS nie istnieje jeszcze w rysunku.</value></data>
+  <data name="Command_Prompt_RemoveSelection" xml:space="preserve"><value>&#xA;Usuń z wyboru: </value></data>
+  <data name="Warning_LiveRefreshSkippedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: pominięto automatyczne odświeżenie elementów: {0}</value></data>
+  <data name="Dialog_Edit_FieldWidth" xml:space="preserve"><value>szerokość</value></data>
+  <data name="Dialog_Edit_FieldHeight" xml:space="preserve"><value>wysokość</value></data>
+  <data name="Dialog_Edit_FieldCuttingAllowance" xml:space="preserve"><value>naddatek na cięcie</value></data>
+  <data name="Dialog_Edit_FieldManualLength" xml:space="preserve"><value>długość wprowadzona ręcznie</value></data>
+  <data name="Dialog_Edit_WholeNonnegativeFormat" xml:space="preserve"><value>Pole „{0}” musi zawierać nieujemną liczbę całkowitą w milimetrach, nie większą niż {1:0}.</value></data>
+  <data name="Dialog_Edit_PositiveNumberFormat" xml:space="preserve"><value>Pole „{0}” musi zawierać liczbę dodatnią.</value></data>
+  <data name="Dialog_Layers_ErrorFormat" xml:space="preserve"><value>{0}: {1}</value></data>
+  <data name="Dialog_Layers_DuplicateFormat" xml:space="preserve"><value>Warstwa „{0}” została podana wielokrotnie. Każdy typ elementu musi mieć własną warstwę.</value></data>
+  <data name="Dialog_Settings_RoundingStepFormat" xml:space="preserve"><value>Krok zaokrąglania długości produkcyjnej musi być dodatnią liczbą całkowitą w milimetrach, nie większą niż {0:0}.</value></data>
+  <data name="Dialog_Settings_CuttingAllowanceFormat" xml:space="preserve"><value>{0}: naddatek na cięcie musi być nieujemną liczbą w milimetrach, nie większą niż {1:0}.</value></data>
+  <data name="Error_LayerName_Empty" xml:space="preserve"><value>Nazwa warstwy nie może być pusta.</value></data>
+  <data name="Error_LayerName_TooLong" xml:space="preserve"><value>Nazwa warstwy jest za długa.</value></data>
+  <data name="Error_LayerName_InvalidCharacter" xml:space="preserve"><value>Nazwa warstwy zawiera niedozwolony znak.</value></data>
+  <data name="EditWindow_Title" xml:space="preserve"><value>ACAD KROVY – dane elementów</value></data>
+  <data name="EditWindow_Heading" xml:space="preserve"><value>Dane wybranych elementów</value></data>
+  <data name="EditWindow_ElementType" xml:space="preserve"><value>Typ elementu</value></data>
+  <data name="EditWindow_WidthMm" xml:space="preserve"><value>Szerokość [mm]</value></data>
+  <data name="EditWindow_HeightMm" xml:space="preserve"><value>Wysokość [mm]</value></data>
+  <data name="EditWindow_SlopeDegrees" xml:space="preserve"><value>Nachylenie [°]</value></data>
+  <data name="EditWindow_SlopeDirection" xml:space="preserve"><value>Kierunek spadku</value></data>
+  <data name="EditWindow_RoofPlane" xml:space="preserve"><value>Połać dachowa</value></data>
+  <data name="EditWindow_CuttingAllowanceMm" xml:space="preserve"><value>Naddatek na cięcie [mm]</value></data>
+  <data name="EditWindow_UseDefaultByType" xml:space="preserve"><value>Użyj wartości domyślnej dla typu</value></data>
+  <data name="EditWindow_LengthMode" xml:space="preserve"><value>Tryb długości</value></data>
+  <data name="EditWindow_ManualLengthMm" xml:space="preserve"><value>Długość wprowadzona ręcznie [mm]</value></data>
+  <data name="EditWindow_Material" xml:space="preserve"><value>Materiał</value></data>
+  <data name="EditWindow_ChangeTooltip" xml:space="preserve"><value>Zmień</value></data>
+  <data name="EditWindow_Cancel" xml:space="preserve"><value>Anuluj</value></data>
+  <data name="EditWindow_Apply" xml:space="preserve"><value>Zastosuj</value></data>
+  <data name="EditWindow_SlopeDirectionNormal" xml:space="preserve"><value>Normalny (początek → koniec)</value></data>
+  <data name="EditWindow_SlopeDirectionReversed" xml:space="preserve"><value>Odwrócony (koniec → początek)</value></data>
+  <data name="EditWindow_SlopeDirectionMixedTooltip" xml:space="preserve"><value>Wybrane elementy mają różne kierunki spadku. Jeśli pole pozostanie niezaznaczone, każdy element zachowa pierwotny kierunek.</value></data>
+  <data name="EditWindow_CuttingAllowanceMixedTooltip" xml:space="preserve"><value>Wybrane elementy mają różne naddatki na cięcie. Jeśli pole pozostanie niezaznaczone, każdy element zachowa pierwotną wartość.</value></data>
+  <data name="EditWindow_DefaultAllowanceTooltip" xml:space="preserve"><value>Stosuje bieżący domyślny naddatek właściwy dla typu każdego wybranego elementu.</value></data>
+  <data name="SettingsWindow_Title" xml:space="preserve"><value>ACAD KROVY – ustawienia elementów i warstw</value></data>
+  <data name="SettingsWindow_Heading" xml:space="preserve"><value>Ustawienia elementów i warstw</value></data>
+  <data name="SettingsWindow_Description" xml:space="preserve"><value>Ustawienia są zapisywane dla bieżącego konta Windows. Warstwy określają rozmieszczenie elementów w rysunku. Domyślne naddatki można zapisać tylko dla nowych elementów albo zastosować również do istniejących elementów w rysunku.</value></data>
+  <data name="SettingsWindow_Layers_Tab" xml:space="preserve"><value>Warstwy</value></data>
+  <data name="SettingsWindow_Layers_ElementTypeColumn" xml:space="preserve"><value>Typ elementu</value></data>
+  <data name="SettingsWindow_Layers_LayerNameColumn" xml:space="preserve"><value>Nazwa warstwy</value></data>
+  <data name="SettingsWindow_Layers_LayerColorColumn" xml:space="preserve"><value>Kolor warstwy</value></data>
+  <data name="SettingsWindow_Manufacturing_Tab" xml:space="preserve"><value>Naddatki na cięcie</value></data>
+  <data name="SettingsWindow_Manufacturing_Description" xml:space="preserve"><value>Domyślny naddatek na cięcie jest używany przy nowym przypisaniu elementu. Podczas zapisywania można wybrać, czy zastosować go również do istniejących elementów.</value></data>
+  <data name="SettingsWindow_Manufacturing_RoundingStep" xml:space="preserve"><value>Zaokrąglaj długość produkcyjną w górę do [mm]</value></data>
+  <data name="SettingsWindow_Manufacturing_ElementTypeColumn" xml:space="preserve"><value>Typ elementu</value></data>
+  <data name="SettingsWindow_Manufacturing_DefaultAllowanceColumn" xml:space="preserve"><value>Domyślny naddatek na cięcie [mm]</value></data>
+  <data name="SettingsWindow_RestoreDefaults" xml:space="preserve"><value>Przywróć domyślne</value></data>
+  <data name="SettingsWindow_Cancel" xml:space="preserve"><value>Anuluj</value></data>
+  <data name="SettingsWindow_SaveNewElementsOnly" xml:space="preserve"><value>Zapisz tylko dla nowych elementów</value></data>
+  <data name="SettingsWindow_SaveApplySelection" xml:space="preserve"><value>Zapisz i zastosuj do wyboru</value></data>
+  <data name="SettingsWindow_SaveApplyAll" xml:space="preserve"><value>Zapisz i zastosuj do wszystkich</value></data>
+  <data name="LayerColor_Red" xml:space="preserve"><value>Czerwony (1)</value></data>
+  <data name="LayerColor_Yellow" xml:space="preserve"><value>Żółty (2)</value></data>
+  <data name="LayerColor_Green" xml:space="preserve"><value>Zielony (3)</value></data>
+  <data name="LayerColor_Cyan" xml:space="preserve"><value>Cyjan (4)</value></data>
+  <data name="LayerColor_Blue" xml:space="preserve"><value>Niebieski (5)</value></data>
+  <data name="LayerColor_Magenta" xml:space="preserve"><value>Magenta (6)</value></data>
+  <data name="LayerColor_Orange" xml:space="preserve"><value>Pomarańczowy (30)</value></data>
+  <data name="LayerColor_Gray" xml:space="preserve"><value>Szary (8)</value></data>
+  <data name="LayerColor_LightGray" xml:space="preserve"><value>Jasnoszary (9)</value></data>
+  <data name="InspectWindow_Title" xml:space="preserve"><value>ACAD KROVY – dane elementu</value></data>
+  <data name="InspectWindow_Heading" xml:space="preserve"><value>Dane elementu</value></data>
+  <data name="InspectWindow_Close" xml:space="preserve"><value>Zamknij</value></data>
+  <data name="Ribbon_Tab_Title" xml:space="preserve"><value>ACAD KROVY</value></data>
+  <data name="Ribbon_Panel_Elements" xml:space="preserve"><value>Elementy</value></data>
+  <data name="Ribbon_Panel_Data" xml:space="preserve"><value>Dane</value></data>
+  <data name="Ribbon_Panel_Reports" xml:space="preserve"><value>Zestawienie</value></data>
+  <data name="Ribbon_Panel_Settings" xml:space="preserve"><value>Ustawienia</value></data>
+  <data name="Ribbon_Panel_Labels" xml:space="preserve"><value>Opisy</value></data>
+  <data name="Ribbon_Panel_Toolbar" xml:space="preserve"><value>Pasek</value></data>
+  <data name="Toolbar_Title" xml:space="preserve"><value>ACAD KROVY – klasyczny pasek</value></data>
+  <data name="Toolbar_ContentTitle" xml:space="preserve"><value>ACAD KROVY</value></data>
+  <data name="CommandUi_Rafter_Label" xml:space="preserve"><value>Krokiew</value></data>
+  <data name="CommandUi_Rafter_Tooltip" xml:space="preserve"><value>Przypisuje wybranym liniom typ Krokiew.</value></data>
+  <data name="CommandUi_WallPlate_Label" xml:space="preserve"><value>Murłata</value></data>
+  <data name="CommandUi_WallPlate_Tooltip" xml:space="preserve"><value>Przypisuje wybranym liniom typ Murłata.</value></data>
+  <data name="CommandUi_Purlin_Label" xml:space="preserve"><value>Płatew</value></data>
+  <data name="CommandUi_Purlin_Tooltip" xml:space="preserve"><value>Przypisuje wybranym liniom typ Płatew.</value></data>
+  <data name="CommandUi_Post_Label" xml:space="preserve"><value>Słup</value></data>
+  <data name="CommandUi_Post_Tooltip" xml:space="preserve"><value>Przypisuje wybranym liniom typ Słup.</value></data>
+  <data name="CommandUi_CollarTie_Label" xml:space="preserve"><value>Jętka</value></data>
+  <data name="CommandUi_CollarTie_Tooltip" xml:space="preserve"><value>Przypisuje wybranym liniom typ Jętka.</value></data>
+  <data name="CommandUi_Brace_Label" xml:space="preserve"><value>Zastrzał</value></data>
+  <data name="CommandUi_Brace_Tooltip" xml:space="preserve"><value>Przypisuje wybranym liniom typ Zastrzał.</value></data>
+  <data name="CommandUi_TieBeam_Label" xml:space="preserve"><value>Belka wiązarowa</value></data>
+  <data name="CommandUi_TieBeam_Tooltip" xml:space="preserve"><value>Przypisuje wybranym liniom typ Belka wiązarowa.</value></data>
+  <data name="CommandUi_Assign_Label" xml:space="preserve"><value>Przypisz dane</value></data>
+  <data name="CommandUi_Assign_Tooltip" xml:space="preserve"><value>Przypisuje dane do wybranych linii lub polilinii.</value></data>
+  <data name="CommandUi_Edit_Label" xml:space="preserve"><value>Edytuj</value></data>
+  <data name="CommandUi_Edit_Tooltip" xml:space="preserve"><value>Zbiorczo edytuje zaznaczone wartości wybranych elementów.</value></data>
+  <data name="CommandUi_Inspect_Label" xml:space="preserve"><value>Sprawdź</value></data>
+  <data name="CommandUi_Inspect_Tooltip" xml:space="preserve"><value>Wyświetla dane jednego elementu ACAD KROVY.</value></data>
+  <data name="CommandUi_Recalc_Label" xml:space="preserve"><value>Przelicz</value></data>
+  <data name="CommandUi_Recalc_Tooltip" xml:space="preserve"><value>Sprawdza obliczenia wszystkich elementów w rysunku.</value></data>
+  <data name="CommandUi_Report_Label" xml:space="preserve"><value>Zestawienie wyboru</value></data>
+  <data name="CommandUi_Report_Tooltip" xml:space="preserve"><value>Wstawia zestawienie drewna z aktualnie wybranych elementów.</value></data>
+  <data name="CommandUi_ReportAll_Label" xml:space="preserve"><value>Pełne zestawienie</value></data>
+  <data name="CommandUi_ReportAll_Tooltip" xml:space="preserve"><value>Wstawia zestawienie drewna ze wszystkich elementów ACAD KROVY w rysunku.</value></data>
+  <data name="CommandUi_Settings_Label" xml:space="preserve"><value>Ustawienia</value></data>
+  <data name="CommandUi_Settings_Tooltip" xml:space="preserve"><value>Konfiguruje nazwy warstw i kolory poszczególnych typów więźby.</value></data>
+  <data name="CommandUi_Labels_Label" xml:space="preserve"><value>Odśwież opisy</value></data>
+  <data name="CommandUi_Labels_Tooltip" xml:space="preserve"><value>Tworzy lub odświeża automatyczne opisy wszystkich elementów więźby.</value></data>
+  <data name="CommandUi_Toolbar_Label" xml:space="preserve"><value>Klasyczny pasek</value></data>
+  <data name="CommandUi_Toolbar_Tooltip" xml:space="preserve"><value>Wyświetla lub ukrywa klasyczny pływający pasek małych ikon.</value></data>
+  <data name="Error_NoActiveDrawing" xml:space="preserve"><value>Nie jest otwarty żaden rysunek AutoCAD.</value></data>
+  <data name="Error_UnsupportedTimberGeometry" xml:space="preserve"><value>Obsługiwane są tylko obiekty LINE i LWPOLYLINE.</value></data>
+  <data name="Error_LabelUnsupportedEntityType" xml:space="preserve"><value>Opisy można tworzyć tylko dla obiektów LINE lub LWPOLYLINE.</value></data>
+  <data name="Error_XDataTooLargeFormat" xml:space="preserve"><value>Dane elementu ACAD KROVY są zbyt duże dla przenośnego formatu XData ({0} B).</value></data>
+  <data name="Error_SlopeAnnotationUnsupportedEntityType" xml:space="preserve"><value>Oznaczenia spadku można tworzyć tylko dla obiektów LINE lub LWPOLYLINE.</value></data>
+  <data name="Error_UnsupportedSlopeGlyph" xml:space="preserve"><value>Nieobsługiwany symbol oznaczenia spadku.</value></data>
+  <data name="Error_InvalidElementLayerFormat" xml:space="preserve"><value>Nieprawidłowa warstwa dla elementu {0}: {1}</value></data>
+  <data name="Error_InvalidAnnotationLayerFormat" xml:space="preserve"><value>Nieprawidłowa warstwa opisu: {0}</value></data>
+  <data name="Error_InvalidSlopeDegrees" xml:space="preserve"><value>Nachylenie musi być nieujemną liczbą mniejszą niż 89,9°.</value></data>
+</root>

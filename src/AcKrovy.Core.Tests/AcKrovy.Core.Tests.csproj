@@ -21,4 +21,10 @@
     <ProjectReference Include="..\AcKrovy.Core\AcKrovy.Core.csproj" />
     <ProjectReference Include="..\AcKrovy.Localization\AcKrovy.Localization.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\AcKrovy.Localization\Resources\UiStrings*.resx"
+          Link="LocalizationResources\%(Filename)%(Extension)"
+          CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

@@ -109,7 +109,9 @@ public sealed class LocalizationFoundationTests
         TimberElementType type,
         string expectedDisplayName)
     {
-        Assert.Equal(expectedDisplayName, TimberElementTypeDisplayNameProvider.GetDisplayName(type));
+        Assert.Equal(expectedDisplayName, TimberElementTypeDisplayNameProvider.GetDisplayName(
+            type,
+            CultureInfo.GetCultureInfo("sk-SK")));
         Assert.NotEqual(expectedDisplayName, type.ToString());
     }
 
@@ -122,7 +124,9 @@ public sealed class LocalizationFoundationTests
         LengthCalculationMode mode,
         string expectedDisplayName)
     {
-        Assert.Equal(expectedDisplayName, LengthCalculationModeDisplayNameProvider.GetDisplayName(mode));
+        Assert.Equal(expectedDisplayName, LengthCalculationModeDisplayNameProvider.GetDisplayName(
+            mode,
+            CultureInfo.GetCultureInfo("sk-SK")));
     }
 
     [Fact]
@@ -231,21 +235,25 @@ public sealed class LocalizationFoundationTests
     [Fact]
     public void PilotReportResources_PreserveCurrentSlovakText()
     {
-        Assert.Equal("ACAD KROVY – výkaz reziva", UiStrings.ReportTitle);
-        Assert.Equal("Položka", UiStrings.ReportColumnItem);
-        Assert.Equal("Typ", UiStrings.ReportColumnType);
-        Assert.Equal("Materiál", UiStrings.ReportColumnMaterial);
-        Assert.Equal("Šírka [mm]", UiStrings.ReportColumnWidthMm);
-        Assert.Equal("Výška [mm]", UiStrings.ReportColumnHeightMm);
-        Assert.Equal("Dĺžka kusu [m]", UiStrings.ReportColumnPieceLengthM);
-        Assert.Equal("Počet", UiStrings.ReportColumnCount);
-        Assert.Equal("Celková dĺžka [m]", UiStrings.ReportColumnTotalLengthM);
-        Assert.Equal("Kubatúra [m³]", UiStrings.ReportColumnVolumeM3);
-        Assert.Equal("Spolu: {0} prvkov", UiStrings.ReportTotalFormat);
+        InCulture("sk-SK", () =>
+        {
+            Assert.Equal("ACAD KROVY – výkaz reziva", UiStrings.ReportTitle);
+            Assert.Equal("Položka", UiStrings.ReportColumnItem);
+            Assert.Equal("Typ", UiStrings.ReportColumnType);
+            Assert.Equal("Materiál", UiStrings.ReportColumnMaterial);
+            Assert.Equal("Šírka [mm]", UiStrings.ReportColumnWidthMm);
+            Assert.Equal("Výška [mm]", UiStrings.ReportColumnHeightMm);
+            Assert.Equal("Dĺžka kusu [m]", UiStrings.ReportColumnPieceLengthM);
+            Assert.Equal("Počet", UiStrings.ReportColumnCount);
+            Assert.Equal("Celková dĺžka [m]", UiStrings.ReportColumnTotalLengthM);
+            Assert.Equal("Kubatúra [m³]", UiStrings.ReportColumnVolumeM3);
+            Assert.Equal("Spolu: {0} prvkov", UiStrings.ReportTotalFormat);
+            return true;
+        });
     }
 
     [Fact]
-    public void FrenchUiCulture_UsesDefaultSlovakResourceFallback()
+    public void FrenchUiCulture_UsesFrenchNeutralSatelliteResource()
     {
         var result = InCulture("fr-FR", () => new
         {
@@ -256,11 +264,11 @@ public sealed class LocalizationFoundationTests
             AssignResult = UiStrings.Format(UiStrings.CommandAssignResultFormat, 3, 1),
         });
 
-        Assert.Equal("Krokva", result.ElementType);
-        Assert.Equal("Prepočítať podľa sklonu", result.LengthMode);
-        Assert.Equal("ACAD KROVY – výkaz reziva", result.ReportTitle);
-        Assert.Equal("Spolu: {0} prvkov", result.ReportTotalFormat);
-        Assert.Equal("\nACAD KROVY: priradené údaje k 3 prvkom. Preskočené: 1.", result.AssignResult);
+        Assert.Equal("Chevron", result.ElementType);
+        Assert.Equal("Recalculer selon la pente", result.LengthMode);
+        Assert.Equal("ACAD KROVY – liste de débit des bois", result.ReportTitle);
+        Assert.Equal("Total : {0} éléments", result.ReportTotalFormat);
+        Assert.Equal("\nACAD KROVY : données attribuées à 3 éléments. Ignorés : 1.", result.AssignResult);
     }
 
     [Fact]
@@ -276,26 +284,23 @@ public sealed class LocalizationFoundationTests
     }
 
     [Fact]
-    public void WpfUiResourceKeys_ExistAndUseSlovakFallbackForAllPlannedCultures()
+    public void WpfUiResourceKeys_ExistForAllSupportedCultures()
     {
         Assert.Equal(50, WpfUiResourceKeys.Length);
 
         foreach (var key in WpfUiResourceKeys)
         {
-            var slovak = UiStrings.GetString(key, CultureInfo.GetCultureInfo("sk-SK"));
-            Assert.False(string.IsNullOrWhiteSpace(slovak));
-            Assert.NotEqual(key, slovak);
-
             Assert.All(CultureNames, cultureName =>
             {
                 var localized = UiStrings.GetString(key, CultureInfo.GetCultureInfo(cultureName));
-                Assert.Equal(slovak, localized);
+                Assert.False(string.IsNullOrWhiteSpace(localized));
+                Assert.NotEqual(key, localized);
             });
         }
     }
 
     [Fact]
-    public void UiStringBindingSource_RefreshesIndexerAndUsesFallbackCulture()
+    public void UiStringBindingSource_RefreshesIndexerAndUsesSelectedCulture()
     {
         var source = new UiStringBindingSource();
         var changedProperties = new List<string?>();
@@ -303,13 +308,13 @@ public sealed class LocalizationFoundationTests
 
         source.Culture = CultureInfo.GetCultureInfo("fr-FR");
 
-        Assert.Equal("Údaje vybraných prvkov", source["EditWindow_Heading"]);
+        Assert.Equal("Données des éléments sélectionnés", source["EditWindow_Heading"]);
         Assert.Contains("Item[]", changedProperties);
     }
 
     [Theory]
-    [InlineData(false, "Normálny (začiatok → koniec)")]
-    [InlineData(true, "Obrátený (koniec → začiatok)")]
+    [InlineData(false, "Normal (début → fin)")]
+    [InlineData(true, "Inversé (fin → début)")]
     public void SlopeDirectionProvider_LocalizesDisplayWithoutChangingTechnicalValue(
         bool isReversed,
         string expectedDisplay)
@@ -328,14 +333,18 @@ public sealed class LocalizationFoundationTests
     public void LayerColorProvider_LocalizesNamesWithoutChangingColorIndexes()
     {
         var colorIndexes = new[] { 1, 2, 3, 4, 5, 6, 30, 8, 9 };
-        var expectedLabels = new[]
+        var expectedByCulture = new Dictionary<string, string[]>
         {
-            "Červená (1)", "Žltá (2)", "Zelená (3)", "Azúrová (4)", "Modrá (5)",
-            "Purpurová (6)", "Oranžová (30)", "Sivá (8)", "Svetlosivá (9)",
+            ["sk-SK"] = ["Červená (1)", "Žltá (2)", "Zelená (3)", "Azúrová (4)", "Modrá (5)", "Purpurová (6)", "Oranžová (30)", "Sivá (8)", "Svetlosivá (9)"],
+            ["cs-CZ"] = ["Červená (1)", "Žlutá (2)", "Zelená (3)", "Azurová (4)", "Modrá (5)", "Purpurová (6)", "Oranžová (30)", "Šedá (8)", "Světle šedá (9)"],
+            ["en-US"] = ["Red (1)", "Yellow (2)", "Green (3)", "Cyan (4)", "Blue (5)", "Magenta (6)", "Orange (30)", "Gray (8)", "Light gray (9)"],
+            ["de-DE"] = ["Rot (1)", "Gelb (2)", "Grün (3)", "Cyan (4)", "Blau (5)", "Magenta (6)", "Orange (30)", "Grau (8)", "Hellgrau (9)"],
+            ["pl-PL"] = ["Czerwony (1)", "Żółty (2)", "Zielony (3)", "Cyjan (4)", "Niebieski (5)", "Magenta (6)", "Pomarańczowy (30)", "Szary (8)", "Jasnoszary (9)"],
+            ["fr-FR"] = ["Rouge (1)", "Jaune (2)", "Vert (3)", "Cyan (4)", "Bleu (5)", "Magenta (6)", "Orange (30)", "Gris (8)", "Gris clair (9)"],
         };
 
         Assert.All(CultureNames, cultureName => Assert.Equal(
-            expectedLabels,
+            expectedByCulture[cultureName],
             colorIndexes
                 .Select(index => LayerColorDisplayNameProvider.GetDisplayName(
                     index,
@@ -345,19 +354,18 @@ public sealed class LocalizationFoundationTests
     }
 
     [Fact]
-    public void RibbonToolbarResourceKeys_ExistAndUseSlovakFallbackForAllPlannedCultures()
+    public void RibbonToolbarResourceKeys_ExistForAllSupportedCultures()
     {
         Assert.Equal(41, RibbonToolbarResourceKeys.Length);
 
         foreach (var key in RibbonToolbarResourceKeys)
         {
-            var slovak = UiStrings.GetString(key, CultureInfo.GetCultureInfo("sk-SK"));
-            Assert.False(string.IsNullOrWhiteSpace(slovak));
-            Assert.NotEqual(key, slovak);
-
-            Assert.All(CultureNames, cultureName => Assert.Equal(
-                slovak,
-                UiStrings.GetString(key, CultureInfo.GetCultureInfo(cultureName))));
+            Assert.All(CultureNames, cultureName =>
+            {
+                var localized = UiStrings.GetString(key, CultureInfo.GetCultureInfo(cultureName));
+                Assert.False(string.IsNullOrWhiteSpace(localized));
+                Assert.NotEqual(key, localized);
+            });
         }
     }
 
@@ -412,8 +420,8 @@ public sealed class LocalizationFoundationTests
             Assert.Equal(item.Item1, descriptor.CommandName);
             Assert.Equal(item.Item2, descriptor.RibbonControlId);
             Assert.Equal(item.Item3, descriptor.IconKey);
-            Assert.Equal(item.Item4, descriptor.GetLabel(CultureInfo.GetCultureInfo("fr-FR")));
-            Assert.False(string.IsNullOrWhiteSpace(descriptor.GetToolTip(CultureInfo.GetCultureInfo("fr-FR"))));
+            Assert.Equal(item.Item4, descriptor.GetLabel(CultureInfo.GetCultureInfo("sk-SK")));
+            Assert.False(string.IsNullOrWhiteSpace(descriptor.GetToolTip(CultureInfo.GetCultureInfo("sk-SK"))));
         }
 
         Assert.Equal(15, CommandUiCatalog.ClassicToolbarCommands.Count);
@@ -428,19 +436,18 @@ public sealed class LocalizationFoundationTests
     }
 
     [Fact]
-    public void AdapterGuardResourceKeys_ExistAndUseSlovakFallbackForAllPlannedCultures()
+    public void AdapterGuardResourceKeys_ExistForAllSupportedCultures()
     {
         Assert.Equal(9, AdapterGuardResourceKeys.Length);
 
         foreach (var key in AdapterGuardResourceKeys)
         {
-            var slovak = UiStrings.GetString(key, CultureInfo.GetCultureInfo("sk-SK"));
-            Assert.False(string.IsNullOrWhiteSpace(slovak));
-            Assert.NotEqual(key, slovak);
-
-            Assert.All(CultureNames, cultureName => Assert.Equal(
-                slovak,
-                UiStrings.GetString(key, CultureInfo.GetCultureInfo(cultureName))));
+            Assert.All(CultureNames, cultureName =>
+            {
+                var localized = UiStrings.GetString(key, CultureInfo.GetCultureInfo(cultureName));
+                Assert.False(string.IsNullOrWhiteSpace(localized));
+                Assert.NotEqual(key, localized);
+            });
         }
     }
 
@@ -474,7 +481,11 @@ public sealed class LocalizationFoundationTests
             "AK_LABELS", "AK_LABELSELECTED", "AK_LABELSHOW", "AK_LABELHIDE",
         };
 
-        Assert.All(expectedCommandNames, commandName => Assert.Contains(commandName, UiStrings.HelpCommandOverview));
+        Assert.All(CultureNames, cultureName =>
+        {
+            var help = UiStrings.GetString("Help_CommandOverview", CultureInfo.GetCultureInfo(cultureName));
+            Assert.All(expectedCommandNames, commandName => Assert.Contains(commandName, help));
+        });
     }
 
     [Fact]

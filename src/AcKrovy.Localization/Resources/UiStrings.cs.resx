@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="ElementType_Rafter" xml:space="preserve"><value>Krokev</value></data>
+  <data name="ElementType_WallPlate" xml:space="preserve"><value>Pozednice</value></data>
+  <data name="ElementType_Purlin" xml:space="preserve"><value>Vaznice</value></data>
+  <data name="ElementType_Post" xml:space="preserve"><value>Sloupek</value></data>
+  <data name="ElementType_CollarTie" xml:space="preserve"><value>Kleština / hambálek</value></data>
+  <data name="ElementType_Brace" xml:space="preserve"><value>Vzpěra</value></data>
+  <data name="ElementType_TieBeam" xml:space="preserve"><value>Vazný trám</value></data>
+  <data name="LengthCalculationMode_AutoByElementType" xml:space="preserve"><value>Automaticky podle typu</value></data>
+  <data name="LengthCalculationMode_PlanLength" xml:space="preserve"><value>Půdorysná délka</value></data>
+  <data name="LengthCalculationMode_SlopeCorrected" xml:space="preserve"><value>Přepočítat podle sklonu</value></data>
+  <data name="LengthCalculationMode_ManualLength" xml:space="preserve"><value>Ručně zadaná délka</value></data>
+  <data name="Report_Title" xml:space="preserve"><value>ACAD KROVY – výkaz řeziva</value></data>
+  <data name="Report_Column_Item" xml:space="preserve"><value>Položka</value></data>
+  <data name="Report_Column_Type" xml:space="preserve"><value>Typ</value></data>
+  <data name="Report_Column_Material" xml:space="preserve"><value>Materiál</value></data>
+  <data name="Report_Column_WidthMm" xml:space="preserve"><value>Šířka [mm]</value></data>
+  <data name="Report_Column_HeightMm" xml:space="preserve"><value>Výška [mm]</value></data>
+  <data name="Report_Column_PieceLengthM" xml:space="preserve"><value>Délka kusu [m]</value></data>
+  <data name="Report_Column_Count" xml:space="preserve"><value>Počet</value></data>
+  <data name="Report_Column_TotalLengthM" xml:space="preserve"><value>Celková délka [m]</value></data>
+  <data name="Report_Column_VolumeM3" xml:space="preserve"><value>Objem [m³]</value></data>
+  <data name="Report_TotalFormat" xml:space="preserve"><value>Celkem: {0} prvků</value></data>
+  <data name="Message_DialogTitle" xml:space="preserve"><value>ACAD KROVY</value></data>
+  <data name="Message_PluginLoaded" xml:space="preserve"><value>&#xA;ACAD KROVY 0.10.0 načteno. Do pásu karet bude přidána karta ACAD KROVY. Seznam příkazů zobrazíte pomocí AK_HELP, klasický panel malých ikon pomocí AK_TOOLBAR.</value></data>
+  <data name="Help_CommandOverview" xml:space="preserve"><value>&#xA;ACAD KROVY 0.10.0&#xA;&#xA;PRVKY KROVU&#xA;  AK_KROKVA      – rychle přiřadí typ Krokev&#xA;  AK_POMURNICA   – rychle přiřadí typ Pozednice&#xA;  AK_VAZNICA     – rychle přiřadí typ Vaznice&#xA;  AK_STLPIK      – rychle přiřadí typ Sloupek&#xA;  AK_KLIESTINA   – rychle přiřadí typ Kleština / hambálek&#xA;  AK_VZPERA      – rychle přiřadí typ Vzpěra&#xA;  AK_VAZNYTRAM   – rychle přiřadí typ Vazný trám&#xA;&#xA;DATA A VÝKAZY&#xA;  AK_ASSIGN      – přiřadí data vybraným čarám nebo křivkám&#xA;  AK_EDIT        – hromadně upraví zaškrtnuté hodnoty&#xA;  AK_FLIPSLOPE   – obrátí směr spádu vybraného prvku nebo jeho anotace&#xA;  AK_INSPECT     – zobrazí data jednoho prvku&#xA;  AK_REPORT      – vloží tabulku z vybraných prvků&#xA;  AK_REPORTALL   – vloží tabulku ze všech prvků&#xA;  AK_RECALC      – zkontroluje výpočty všech prvků&#xA;  AK_RIBBON      – zobrazí nebo obnoví kartu ACAD KROVY v pásu karet&#xA;  AK_TOOLBAR     – zobrazí nebo skryje klasický plovoucí panel malých ikon&#xA;  AK_SETTINGS    – nastaví hladiny a barvy jednotlivých typů prvků&#xA;  AK_APPLYLAYERS – promítne aktuální nastavení hladin do výkresu&#xA;&#xA;POPISY VE VÝKRESU&#xA;  AK_LABELS      – vytvoří nebo obnoví popisy všech prvků&#xA;  AK_LABELSELECTED – vytvoří nebo obnoví popisy vybraných prvků&#xA;  AK_LABELSHOW   – zobrazí hladinu KROV_POPIS&#xA;  AK_LABELHIDE   – skryje hladinu KROV_POPIS&#xA;&#xA;Tip: po přiřazení, úpravě nebo změně geometrie se popis obnoví automaticky. AK_LABELS a AK_RECALC lze použít k ruční kontrole.</value></data>
+  <data name="Command_Ribbon_Ready" xml:space="preserve"><value>&#xA;ACAD KROVY: karta pásu karet je připravena.</value></data>
+  <data name="Command_Ribbon_Pending" xml:space="preserve"><value>&#xA;ACAD KROVY: pás karet ještě není připraven, karta bude za chvíli přidána.</value></data>
+  <data name="Command_Toolbar_Shown" xml:space="preserve"><value>&#xA;ACAD KROVY: klasický panel ikon je zobrazen.</value></data>
+  <data name="Command_Toolbar_Hidden" xml:space="preserve"><value>&#xA;ACAD KROVY: klasický panel ikon je skryt.</value></data>
+  <data name="Command_Settings_SaveFailedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: nastavení se nepodařilo uložit: {0}</value></data>
+  <data name="Command_Settings_Saved" xml:space="preserve"><value>&#xA;ACAD KROVY: nastavení bylo uloženo.</value></data>
+  <data name="Command_Settings_PromptApplyAllowances" xml:space="preserve"><value>&#xA;Vyberte prvky, na které chcete použít nové výrobní přídavky: </value></data>
+  <data name="Command_Settings_SelectionCancelled" xml:space="preserve"><value>&#xA;ACAD KROVY: výběr byl zrušen, existující prvky nebyly změněny.</value></data>
+  <data name="Command_Labels_PromptSelected" xml:space="preserve"><value>&#xA;Vyberte prvky, pro které chcete vytvořit nebo obnovit popisy: </value></data>
+  <data name="Command_Labels_UpdatedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: obnovené popisy: {0}. Nové: {1}. Přeskočené: {2}.</value></data>
+  <data name="Command_Labels_RefreshFailedFormat" xml:space="preserve"><value>&#xA;Popis prvku {0} nebyl vytvořen nebo obnoven: {1}</value></data>
+  <data name="Command_Edit_Prompt" xml:space="preserve"><value>&#xA;Vyberte inteligentní prvky krovu k úpravě: </value></data>
+  <data name="Command_Edit_NoData" xml:space="preserve"><value>&#xA;Vybraný objekt nemá data ACAD KROVY. Nejprve použijte AK_ASSIGN nebo ikonu typu prvku.</value></data>
+  <data name="Command_Edit_TitleSingleFormat" xml:space="preserve"><value>ACAD KROVY – úprava prvku – {0} – {1}</value></data>
+  <data name="Command_Edit_TitleMultipleFormat" xml:space="preserve"><value>ACAD KROVY – úprava {0} prvků</value></data>
+  <data name="Command_Edit_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: upravené prvky: {0}. Přeskočené: {1}.</value></data>
+  <data name="Command_FlipSlope_Prompt" xml:space="preserve"><value>&#xA;Vyberte dřevěný prvek nebo jeho označení sklonu pro obrácení směru: </value></data>
+  <data name="Command_FlipSlope_NotTimberOrAnnotation" xml:space="preserve"><value>&#xA;ACAD KROVY: vybraný objekt není dřevěný prvek ani jeho anotace sklonu.</value></data>
+  <data name="Command_FlipSlope_Horizontal" xml:space="preserve"><value>&#xA;ACAD KROVY: vodorovný prvek nemá směr spádu.</value></data>
+  <data name="Command_FlipSlope_ResultReversed" xml:space="preserve"><value>&#xA;ACAD KROVY: směr spádu byl obrácen.</value></data>
+  <data name="Command_FlipSlope_ResultNormal" xml:space="preserve"><value>&#xA;ACAD KROVY: směr spádu byl nastaven na normální.</value></data>
+  <data name="Command_Inspect_Prompt" xml:space="preserve"><value>&#xA;Vyberte prvek ACAD KROVY: </value></data>
+  <data name="Command_Inspect_NoData" xml:space="preserve"><value>&#xA;Tento objekt nemá data ACAD KROVY.</value></data>
+  <data name="Command_Inspect_AllowanceDefault" xml:space="preserve"><value>aktuální výchozí hodnota podle typu</value></data>
+  <data name="Command_Inspect_AllowanceIndividual" xml:space="preserve"><value>individuální hodnota prvku</value></data>
+  <data name="Command_Inspect_SummaryFormat" xml:space="preserve"><value>&#xA;{0} | {1}&#xA;  Průřez: {2:0} × {3:0} mm&#xA;  Půdorysná délka: {4:0.###} m&#xA;  Skutečná délka: {5:0.###} m&#xA;  Řezná délka: {6:0.###} m&#xA;  Objem: {7:0.0000} m³</value></data>
+  <data name="Dialog_Inspect_Item" xml:space="preserve"><value>Označení</value></data>
+  <data name="Dialog_Inspect_ElementType" xml:space="preserve"><value>Typ prvku</value></data>
+  <data name="Dialog_Inspect_Material" xml:space="preserve"><value>Materiál</value></data>
+  <data name="Dialog_Inspect_Width" xml:space="preserve"><value>Šířka</value></data>
+  <data name="Dialog_Inspect_Height" xml:space="preserve"><value>Výška</value></data>
+  <data name="Dialog_Inspect_Slope" xml:space="preserve"><value>Sklon</value></data>
+  <data name="Dialog_Inspect_SlopeDirection" xml:space="preserve"><value>Směr spádu</value></data>
+  <data name="Dialog_Inspect_PlanLength" xml:space="preserve"><value>Půdorysná délka</value></data>
+  <data name="Dialog_Inspect_ActualLength" xml:space="preserve"><value>Skutečná délka</value></data>
+  <data name="Dialog_Inspect_CuttingAllowance" xml:space="preserve"><value>Přídavek na řez</value></data>
+  <data name="Dialog_Inspect_CuttingLength" xml:space="preserve"><value>Řezná délka</value></data>
+  <data name="Dialog_Inspect_ManualLengthMode" xml:space="preserve"><value>ManualLengthMode</value></data>
+  <data name="Dialog_Inspect_CadHandle" xml:space="preserve"><value>CAD Handle</value></data>
+  <data name="Dialog_Inspect_ManualLength" xml:space="preserve"><value>Ruční délka</value></data>
+  <data name="Message_Yes" xml:space="preserve"><value>Ano</value></data>
+  <data name="Message_No" xml:space="preserve"><value>Ne</value></data>
+  <data name="Message_DirectionNormal" xml:space="preserve"><value>Normální</value></data>
+  <data name="Message_DirectionReversed" xml:space="preserve"><value>Obrácený</value></data>
+  <data name="Command_Report_PromptSelection" xml:space="preserve"><value>&#xA;Vyberte prvky pro výkaz: </value></data>
+  <data name="Command_Report_NoneFound" xml:space="preserve"><value>&#xA;Nebyly nalezeny žádné prvky ACAD KROVY.</value></data>
+  <data name="Command_Report_ElementSkippedFormat" xml:space="preserve"><value>&#xA;Přeskočený prvek {0}: {1}</value></data>
+  <data name="Command_Report_NoValidElements" xml:space="preserve"><value>&#xA;Výběr neobsahuje platné prvky ACAD KROVY.</value></data>
+  <data name="Command_Report_PromptInsertionPoint" xml:space="preserve"><value>&#xA;Určete bod vložení výkazu: </value></data>
+  <data name="Command_Report_InsertedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: vložen výkaz z {0} prvků. Přeskočené: {1}. Objem: {2:0.0000} m³.</value></data>
+  <data name="Command_Recalc_ElementErrorFormat" xml:space="preserve"><value>&#xA;Chyba v prvku {0}: {1}</value></data>
+  <data name="Command_Recalc_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: přepočítané prvky: {0}, chyby: {1}. Obnovené popisy: {2}. Přeskočené: {3}.</value></data>
+  <data name="Command_Assign_Prompt" xml:space="preserve"><value>&#xA;Vyberte čáry nebo křivky, kterým chcete přiřadit data: </value></data>
+  <data name="Command_Assign_PromptTypeFormat" xml:space="preserve"><value>&#xA;Vyberte čáry nebo křivky pro prvek {0}: </value></data>
+  <data name="Command_Assign_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: data přiřazena k {0} prvkům. Přeskočené: {1}.</value></data>
+  <data name="Command_Layers_ElementSkippedFormat" xml:space="preserve"><value>&#xA;Při nastavování hladiny byl přeskočen prvek: {0}</value></data>
+  <data name="Command_Layers_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: prvky přesunuté do hladin: {0}. Přeskočené: {1}.</value></data>
+  <data name="Command_Settings_ApplyElementSkippedFormat" xml:space="preserve"><value>&#xA;Při použití nastavení byl přeskočen prvek: {0}</value></data>
+  <data name="Command_Settings_ApplyResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: výrobní přídavky použity na {0} prvků. Přeskočené: {1}.</value></data>
+  <data name="Command_Labels_Shown" xml:space="preserve"><value>&#xA;ACAD KROVY: popisy v hladině KROV_POPIS jsou zobrazeny.</value></data>
+  <data name="Command_Labels_Hidden" xml:space="preserve"><value>&#xA;ACAD KROVY: popisy v hladině KROV_POPIS jsou skryty.</value></data>
+  <data name="Command_Labels_LayerMissing" xml:space="preserve"><value>&#xA;ACAD KROVY: hladina KROV_POPIS ve výkresu ještě neexistuje.</value></data>
+  <data name="Command_Prompt_RemoveSelection" xml:space="preserve"><value>&#xA;Odeberte z výběru: </value></data>
+  <data name="Warning_LiveRefreshSkippedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: automatická aktualizace prvků byla přeskočena: {0}</value></data>
+  <data name="Dialog_Edit_FieldWidth" xml:space="preserve"><value>šířka</value></data>
+  <data name="Dialog_Edit_FieldHeight" xml:space="preserve"><value>výška</value></data>
+  <data name="Dialog_Edit_FieldCuttingAllowance" xml:space="preserve"><value>výrobní přídavek</value></data>
+  <data name="Dialog_Edit_FieldManualLength" xml:space="preserve"><value>ruční délka</value></data>
+  <data name="Dialog_Edit_WholeNonnegativeFormat" xml:space="preserve"><value>Pole „{0}“ musí obsahovat celé nezáporné číslo v milimetrech, nejvýše {1:0}.</value></data>
+  <data name="Dialog_Edit_PositiveNumberFormat" xml:space="preserve"><value>Pole „{0}“ musí obsahovat kladné číslo.</value></data>
+  <data name="Dialog_Layers_ErrorFormat" xml:space="preserve"><value>{0}: {1}</value></data>
+  <data name="Dialog_Layers_DuplicateFormat" xml:space="preserve"><value>Hladina „{0}“ je zadána vícekrát. Každý typ prvku musí mít vlastní hladinu.</value></data>
+  <data name="Dialog_Settings_RoundingStepFormat" xml:space="preserve"><value>Krok zaokrouhlení výrobní délky musí být celé kladné číslo v milimetrech, nejvýše {0:0}.</value></data>
+  <data name="Dialog_Settings_CuttingAllowanceFormat" xml:space="preserve"><value>{0}: přídavek na řez musí být nezáporné číslo v milimetrech, nejvýše {1:0}.</value></data>
+  <data name="Error_LayerName_Empty" xml:space="preserve"><value>Název hladiny nesmí být prázdný.</value></data>
+  <data name="Error_LayerName_TooLong" xml:space="preserve"><value>Název hladiny je příliš dlouhý.</value></data>
+  <data name="Error_LayerName_InvalidCharacter" xml:space="preserve"><value>Název hladiny obsahuje nepovolený znak.</value></data>
+  <data name="EditWindow_Title" xml:space="preserve"><value>ACAD KROVY – data prvků</value></data>
+  <data name="EditWindow_Heading" xml:space="preserve"><value>Data vybraných prvků</value></data>
+  <data name="EditWindow_ElementType" xml:space="preserve"><value>Typ prvku</value></data>
+  <data name="EditWindow_WidthMm" xml:space="preserve"><value>Šířka [mm]</value></data>
+  <data name="EditWindow_HeightMm" xml:space="preserve"><value>Výška [mm]</value></data>
+  <data name="EditWindow_SlopeDegrees" xml:space="preserve"><value>Sklon [°]</value></data>
+  <data name="EditWindow_SlopeDirection" xml:space="preserve"><value>Směr spádu</value></data>
+  <data name="EditWindow_RoofPlane" xml:space="preserve"><value>Střešní rovina</value></data>
+  <data name="EditWindow_CuttingAllowanceMm" xml:space="preserve"><value>Výrobní přídavek [mm]</value></data>
+  <data name="EditWindow_UseDefaultByType" xml:space="preserve"><value>Použít výchozí podle typu</value></data>
+  <data name="EditWindow_LengthMode" xml:space="preserve"><value>Režim délky</value></data>
+  <data name="EditWindow_ManualLengthMm" xml:space="preserve"><value>Ruční délka [mm]</value></data>
+  <data name="EditWindow_Material" xml:space="preserve"><value>Materiál</value></data>
+  <data name="EditWindow_ChangeTooltip" xml:space="preserve"><value>Změnit</value></data>
+  <data name="EditWindow_Cancel" xml:space="preserve"><value>Zrušit</value></data>
+  <data name="EditWindow_Apply" xml:space="preserve"><value>Použít</value></data>
+  <data name="EditWindow_SlopeDirectionNormal" xml:space="preserve"><value>Normální (začátek → konec)</value></data>
+  <data name="EditWindow_SlopeDirectionReversed" xml:space="preserve"><value>Obrácený (konec → začátek)</value></data>
+  <data name="EditWindow_SlopeDirectionMixedTooltip" xml:space="preserve"><value>Vybrané prvky mají různý směr spádu. Nezaškrtnuté pole ponechá každému prvku původní směr.</value></data>
+  <data name="EditWindow_CuttingAllowanceMixedTooltip" xml:space="preserve"><value>Vybrané prvky mají různé výrobní přídavky. Nezaškrtnuté pole ponechá každému prvku původní hodnotu.</value></data>
+  <data name="EditWindow_DefaultAllowanceTooltip" xml:space="preserve"><value>Při použití se každému vybranému prvku nastaví aktuální výchozí přídavek podle jeho typu.</value></data>
+  <data name="SettingsWindow_Title" xml:space="preserve"><value>ACAD KROVY – nastavení prvků a hladin</value></data>
+  <data name="SettingsWindow_Heading" xml:space="preserve"><value>Nastavení prvků a hladin</value></data>
+  <data name="SettingsWindow_Description" xml:space="preserve"><value>Nastavení se ukládá pro aktuální účet Windows. Hladiny určují zařazení prvků ve výkresu. Výchozí přídavky lze uložit jen pro nové prvky nebo je použít také na existující prvky ve výkresu.</value></data>
+  <data name="SettingsWindow_Layers_Tab" xml:space="preserve"><value>Hladiny</value></data>
+  <data name="SettingsWindow_Layers_ElementTypeColumn" xml:space="preserve"><value>Typ prvku</value></data>
+  <data name="SettingsWindow_Layers_LayerNameColumn" xml:space="preserve"><value>Název hladiny</value></data>
+  <data name="SettingsWindow_Layers_LayerColorColumn" xml:space="preserve"><value>Barva hladiny</value></data>
+  <data name="SettingsWindow_Manufacturing_Tab" xml:space="preserve"><value>Výrobní přídavky</value></data>
+  <data name="SettingsWindow_Manufacturing_Description" xml:space="preserve"><value>Výchozí přídavek na řez se použije při novém přiřazení prvku. Při uložení lze zvolit, zda se má použít také na existující prvky.</value></data>
+  <data name="SettingsWindow_Manufacturing_RoundingStep" xml:space="preserve"><value>Zaokrouhlit výrobní délku nahoru na [mm]</value></data>
+  <data name="SettingsWindow_Manufacturing_ElementTypeColumn" xml:space="preserve"><value>Typ prvku</value></data>
+  <data name="SettingsWindow_Manufacturing_DefaultAllowanceColumn" xml:space="preserve"><value>Výchozí přídavek na řez [mm]</value></data>
+  <data name="SettingsWindow_RestoreDefaults" xml:space="preserve"><value>Obnovit výchozí</value></data>
+  <data name="SettingsWindow_Cancel" xml:space="preserve"><value>Zrušit</value></data>
+  <data name="SettingsWindow_SaveNewElementsOnly" xml:space="preserve"><value>Uložit jen pro nové prvky</value></data>
+  <data name="SettingsWindow_SaveApplySelection" xml:space="preserve"><value>Uložit a použít na výběr</value></data>
+  <data name="SettingsWindow_SaveApplyAll" xml:space="preserve"><value>Uložit a použít na všechny prvky</value></data>
+  <data name="LayerColor_Red" xml:space="preserve"><value>Červená (1)</value></data>
+  <data name="LayerColor_Yellow" xml:space="preserve"><value>Žlutá (2)</value></data>
+  <data name="LayerColor_Green" xml:space="preserve"><value>Zelená (3)</value></data>
+  <data name="LayerColor_Cyan" xml:space="preserve"><value>Azurová (4)</value></data>
+  <data name="LayerColor_Blue" xml:space="preserve"><value>Modrá (5)</value></data>
+  <data name="LayerColor_Magenta" xml:space="preserve"><value>Purpurová (6)</value></data>
+  <data name="LayerColor_Orange" xml:space="preserve"><value>Oranžová (30)</value></data>
+  <data name="LayerColor_Gray" xml:space="preserve"><value>Šedá (8)</value></data>
+  <data name="LayerColor_LightGray" xml:space="preserve"><value>Světle šedá (9)</value></data>
+  <data name="InspectWindow_Title" xml:space="preserve"><value>ACAD KROVY – data prvku</value></data>
+  <data name="InspectWindow_Heading" xml:space="preserve"><value>Data prvku</value></data>
+  <data name="InspectWindow_Close" xml:space="preserve"><value>Zavřít</value></data>
+  <data name="Ribbon_Tab_Title" xml:space="preserve"><value>ACAD KROVY</value></data>
+  <data name="Ribbon_Panel_Elements" xml:space="preserve"><value>Prvky</value></data>
+  <data name="Ribbon_Panel_Data" xml:space="preserve"><value>Data</value></data>
+  <data name="Ribbon_Panel_Reports" xml:space="preserve"><value>Výkaz</value></data>
+  <data name="Ribbon_Panel_Settings" xml:space="preserve"><value>Nastavení</value></data>
+  <data name="Ribbon_Panel_Labels" xml:space="preserve"><value>Popisy</value></data>
+  <data name="Ribbon_Panel_Toolbar" xml:space="preserve"><value>Panel</value></data>
+  <data name="Toolbar_Title" xml:space="preserve"><value>ACAD KROVY – klasický panel</value></data>
+  <data name="Toolbar_ContentTitle" xml:space="preserve"><value>ACAD KROVY</value></data>
+  <data name="CommandUi_Rafter_Label" xml:space="preserve"><value>Krokev</value></data>
+  <data name="CommandUi_Rafter_Tooltip" xml:space="preserve"><value>Přiřadí vybraným čarám typ Krokev.</value></data>
+  <data name="CommandUi_WallPlate_Label" xml:space="preserve"><value>Pozednice</value></data>
+  <data name="CommandUi_WallPlate_Tooltip" xml:space="preserve"><value>Přiřadí vybraným čarám typ Pozednice.</value></data>
+  <data name="CommandUi_Purlin_Label" xml:space="preserve"><value>Vaznice</value></data>
+  <data name="CommandUi_Purlin_Tooltip" xml:space="preserve"><value>Přiřadí vybraným čarám typ Vaznice.</value></data>
+  <data name="CommandUi_Post_Label" xml:space="preserve"><value>Sloupek</value></data>
+  <data name="CommandUi_Post_Tooltip" xml:space="preserve"><value>Přiřadí vybraným čarám typ Sloupek.</value></data>
+  <data name="CommandUi_CollarTie_Label" xml:space="preserve"><value>Kleština</value></data>
+  <data name="CommandUi_CollarTie_Tooltip" xml:space="preserve"><value>Přiřadí vybraným čarám typ Kleština / hambálek.</value></data>
+  <data name="CommandUi_Brace_Label" xml:space="preserve"><value>Vzpěra</value></data>
+  <data name="CommandUi_Brace_Tooltip" xml:space="preserve"><value>Přiřadí vybraným čarám typ Vzpěra.</value></data>
+  <data name="CommandUi_TieBeam_Label" xml:space="preserve"><value>Vazný trám</value></data>
+  <data name="CommandUi_TieBeam_Tooltip" xml:space="preserve"><value>Přiřadí vybraným čarám typ Vazný trám.</value></data>
+  <data name="CommandUi_Assign_Label" xml:space="preserve"><value>Přiřadit data</value></data>
+  <data name="CommandUi_Assign_Tooltip" xml:space="preserve"><value>Přiřadí data vybraným čarám nebo křivkám.</value></data>
+  <data name="CommandUi_Edit_Label" xml:space="preserve"><value>Upravit</value></data>
+  <data name="CommandUi_Edit_Tooltip" xml:space="preserve"><value>Hromadně upraví zaškrtnuté hodnoty vybraných prvků.</value></data>
+  <data name="CommandUi_Inspect_Label" xml:space="preserve"><value>Zkontrolovat</value></data>
+  <data name="CommandUi_Inspect_Tooltip" xml:space="preserve"><value>Zobrazí data jednoho prvku ACAD KROVY.</value></data>
+  <data name="CommandUi_Recalc_Label" xml:space="preserve"><value>Přepočítat</value></data>
+  <data name="CommandUi_Recalc_Tooltip" xml:space="preserve"><value>Zkontroluje výpočty všech prvků ve výkresu.</value></data>
+  <data name="CommandUi_Report_Label" xml:space="preserve"><value>Výkaz z výběru</value></data>
+  <data name="CommandUi_Report_Tooltip" xml:space="preserve"><value>Vloží výkaz řeziva z aktuálně vybraných prvků.</value></data>
+  <data name="CommandUi_ReportAll_Label" xml:space="preserve"><value>Výkaz všech prvků</value></data>
+  <data name="CommandUi_ReportAll_Tooltip" xml:space="preserve"><value>Vloží výkaz řeziva ze všech prvků ACAD KROVY ve výkresu.</value></data>
+  <data name="CommandUi_Settings_Label" xml:space="preserve"><value>Nastavení</value></data>
+  <data name="CommandUi_Settings_Tooltip" xml:space="preserve"><value>Nastaví názvy hladin a barvy jednotlivých typů krovu.</value></data>
+  <data name="CommandUi_Labels_Label" xml:space="preserve"><value>Obnovit popisy</value></data>
+  <data name="CommandUi_Labels_Tooltip" xml:space="preserve"><value>Vytvoří nebo obnoví automatické popisy všech prvků krovu.</value></data>
+  <data name="CommandUi_Toolbar_Label" xml:space="preserve"><value>Klasický panel</value></data>
+  <data name="CommandUi_Toolbar_Tooltip" xml:space="preserve"><value>Zobrazí nebo skryje klasický plovoucí panel malých ikon.</value></data>
+  <data name="Error_NoActiveDrawing" xml:space="preserve"><value>Není otevřen žádný výkres AutoCADu.</value></data>
+  <data name="Error_UnsupportedTimberGeometry" xml:space="preserve"><value>Podporovány jsou pouze objekty LINE a LWPOLYLINE.</value></data>
+  <data name="Error_LabelUnsupportedEntityType" xml:space="preserve"><value>Popis lze vytvořit pouze pro LINE nebo LWPOLYLINE.</value></data>
+  <data name="Error_XDataTooLargeFormat" xml:space="preserve"><value>Data prvku ACAD KROVY jsou pro přenosný formát XData příliš velká ({0} B).</value></data>
+  <data name="Error_SlopeAnnotationUnsupportedEntityType" xml:space="preserve"><value>Anotaci sklonu lze vytvořit pouze pro LINE nebo LWPOLYLINE.</value></data>
+  <data name="Error_UnsupportedSlopeGlyph" xml:space="preserve"><value>Nepodporovaný symbol anotace sklonu.</value></data>
+  <data name="Error_InvalidElementLayerFormat" xml:space="preserve"><value>Neplatná hladina pro prvek {0}: {1}</value></data>
+  <data name="Error_InvalidAnnotationLayerFormat" xml:space="preserve"><value>Neplatná hladina anotace: {0}</value></data>
+  <data name="Error_InvalidSlopeDegrees" xml:space="preserve"><value>Sklon musí být nezáporné číslo menší než 89,9°.</value></data>
+</root>

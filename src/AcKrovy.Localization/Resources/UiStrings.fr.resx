@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="ElementType_Rafter" xml:space="preserve"><value>Chevron</value></data>
+  <data name="ElementType_WallPlate" xml:space="preserve"><value>Sablière</value></data>
+  <data name="ElementType_Purlin" xml:space="preserve"><value>Panne</value></data>
+  <data name="ElementType_Post" xml:space="preserve"><value>Poteau</value></data>
+  <data name="ElementType_CollarTie" xml:space="preserve"><value>Entrait retroussé</value></data>
+  <data name="ElementType_Brace" xml:space="preserve"><value>Contrefiche</value></data>
+  <data name="ElementType_TieBeam" xml:space="preserve"><value>Entrait</value></data>
+  <data name="LengthCalculationMode_AutoByElementType" xml:space="preserve"><value>Automatique selon le type d'élément</value></data>
+  <data name="LengthCalculationMode_PlanLength" xml:space="preserve"><value>Longueur en projection horizontale</value></data>
+  <data name="LengthCalculationMode_SlopeCorrected" xml:space="preserve"><value>Recalculer selon la pente</value></data>
+  <data name="LengthCalculationMode_ManualLength" xml:space="preserve"><value>Longueur saisie manuellement</value></data>
+  <data name="Report_Title" xml:space="preserve"><value>ACAD KROVY – liste de débit des bois</value></data>
+  <data name="Report_Column_Item" xml:space="preserve"><value>Repère</value></data>
+  <data name="Report_Column_Type" xml:space="preserve"><value>Type</value></data>
+  <data name="Report_Column_Material" xml:space="preserve"><value>Matériau</value></data>
+  <data name="Report_Column_WidthMm" xml:space="preserve"><value>Largeur [mm]</value></data>
+  <data name="Report_Column_HeightMm" xml:space="preserve"><value>Hauteur [mm]</value></data>
+  <data name="Report_Column_PieceLengthM" xml:space="preserve"><value>Longueur unitaire [m]</value></data>
+  <data name="Report_Column_Count" xml:space="preserve"><value>Quantité</value></data>
+  <data name="Report_Column_TotalLengthM" xml:space="preserve"><value>Longueur totale [m]</value></data>
+  <data name="Report_Column_VolumeM3" xml:space="preserve"><value>Volume [m³]</value></data>
+  <data name="Report_TotalFormat" xml:space="preserve"><value>Total : {0} éléments</value></data>
+  <data name="Message_DialogTitle" xml:space="preserve"><value>ACAD KROVY</value></data>
+  <data name="Message_PluginLoaded" xml:space="preserve"><value>&#xA;ACAD KROVY 0.10.0 est chargé. L'onglet ACAD KROVY sera ajouté au ruban. Saisissez AK_HELP pour afficher la liste des commandes ou AK_TOOLBAR pour la barre d'outils classique à petites icônes.</value></data>
+  <data name="Help_CommandOverview" xml:space="preserve"><value>&#xA;ACAD KROVY 0.10.0&#xA;&#xA;ÉLÉMENTS DE CHARPENTE&#xA;  AK_KROKVA      – attribue rapidement le type Chevron&#xA;  AK_POMURNICA   – attribue rapidement le type Sablière&#xA;  AK_VAZNICA     – attribue rapidement le type Panne&#xA;  AK_STLPIK      – attribue rapidement le type Poteau&#xA;  AK_KLIESTINA   – attribue rapidement le type Entrait retroussé&#xA;  AK_VZPERA      – attribue rapidement le type Contrefiche&#xA;  AK_VAZNYTRAM   – attribue rapidement le type Entrait&#xA;&#xA;DONNÉES ET NOMENCLATURES&#xA;  AK_ASSIGN      – attribue des données aux lignes ou polylignes sélectionnées&#xA;  AK_EDIT        – modifie en série les valeurs cochées&#xA;  AK_FLIPSLOPE   – inverse le sens de pente d'un élément ou de son annotation&#xA;  AK_INSPECT     – affiche les données d'un élément&#xA;  AK_REPORT      – insère un tableau pour les éléments sélectionnés&#xA;  AK_REPORTALL   – insère un tableau pour tous les éléments&#xA;  AK_RECALC      – vérifie les calculs de tous les éléments&#xA;  AK_RIBBON      – affiche ou actualise l'onglet ACAD KROVY du ruban&#xA;  AK_TOOLBAR     – affiche ou masque la barre d'outils flottante classique&#xA;  AK_SETTINGS    – configure les calques et les couleurs des types d'éléments&#xA;  AK_APPLYLAYERS – applique les paramètres de calque actuels au dessin&#xA;&#xA;ÉTIQUETTES DANS LE DESSIN&#xA;  AK_LABELS      – crée ou actualise les étiquettes de tous les éléments&#xA;  AK_LABELSELECTED – crée ou actualise les étiquettes des éléments sélectionnés&#xA;  AK_LABELSHOW   – affiche le calque KROV_POPIS&#xA;  AK_LABELHIDE   – masque le calque KROV_POPIS&#xA;&#xA;Conseil : les étiquettes sont automatiquement actualisées après une attribution, une modification ou un changement de géométrie. Utilisez AK_LABELS et AK_RECALC pour un contrôle manuel.</value></data>
+  <data name="Command_Ribbon_Ready" xml:space="preserve"><value>&#xA;ACAD KROVY : l'onglet du ruban est prêt.</value></data>
+  <data name="Command_Ribbon_Pending" xml:space="preserve"><value>&#xA;ACAD KROVY : le ruban n'est pas encore prêt ; l'onglet sera ajouté sous peu.</value></data>
+  <data name="Command_Toolbar_Shown" xml:space="preserve"><value>&#xA;ACAD KROVY : la barre d'outils classique est affichée.</value></data>
+  <data name="Command_Toolbar_Hidden" xml:space="preserve"><value>&#xA;ACAD KROVY : la barre d'outils classique est masquée.</value></data>
+  <data name="Command_Settings_SaveFailedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY : impossible d'enregistrer les paramètres : {0}</value></data>
+  <data name="Command_Settings_Saved" xml:space="preserve"><value>&#xA;ACAD KROVY : les paramètres ont été enregistrés.</value></data>
+  <data name="Command_Settings_PromptApplyAllowances" xml:space="preserve"><value>&#xA;Sélectionnez les éléments auxquels appliquer les nouvelles surcotes de coupe : </value></data>
+  <data name="Command_Settings_SelectionCancelled" xml:space="preserve"><value>&#xA;ACAD KROVY : sélection annulée ; les éléments existants n'ont pas été modifiés.</value></data>
+  <data name="Command_Labels_PromptSelected" xml:space="preserve"><value>&#xA;Sélectionnez les éléments dont les étiquettes doivent être créées ou actualisées : </value></data>
+  <data name="Command_Labels_UpdatedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY : étiquettes actualisées : {0}. Nouvelles : {1}. Ignorées : {2}.</value></data>
+  <data name="Command_Labels_RefreshFailedFormat" xml:space="preserve"><value>&#xA;L'étiquette de l'élément {0} n'a pas été créée ou actualisée : {1}</value></data>
+  <data name="Command_Edit_Prompt" xml:space="preserve"><value>&#xA;Sélectionnez les éléments de charpente intelligents à modifier : </value></data>
+  <data name="Command_Edit_NoData" xml:space="preserve"><value>&#xA;L'objet sélectionné ne contient aucune donnée ACAD KROVY. Utilisez d'abord AK_ASSIGN ou l'icône d'un type d'élément.</value></data>
+  <data name="Command_Edit_TitleSingleFormat" xml:space="preserve"><value>ACAD KROVY – modifier l'élément – {0} – {1}</value></data>
+  <data name="Command_Edit_TitleMultipleFormat" xml:space="preserve"><value>ACAD KROVY – modifier {0} éléments</value></data>
+  <data name="Command_Edit_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY : éléments modifiés : {0}. Ignorés : {1}.</value></data>
+  <data name="Command_FlipSlope_Prompt" xml:space="preserve"><value>&#xA;Sélectionnez un élément en bois ou son repère de pente pour inverser le sens : </value></data>
+  <data name="Command_FlipSlope_NotTimberOrAnnotation" xml:space="preserve"><value>&#xA;ACAD KROVY : l'objet sélectionné n'est ni un élément en bois ni son annotation de pente.</value></data>
+  <data name="Command_FlipSlope_Horizontal" xml:space="preserve"><value>&#xA;ACAD KROVY : un élément horizontal n'a pas de sens de pente.</value></data>
+  <data name="Command_FlipSlope_ResultReversed" xml:space="preserve"><value>&#xA;ACAD KROVY : le sens de pente a été inversé.</value></data>
+  <data name="Command_FlipSlope_ResultNormal" xml:space="preserve"><value>&#xA;ACAD KROVY : le sens de pente a été réglé sur normal.</value></data>
+  <data name="Command_Inspect_Prompt" xml:space="preserve"><value>&#xA;Sélectionnez un élément ACAD KROVY : </value></data>
+  <data name="Command_Inspect_NoData" xml:space="preserve"><value>&#xA;Cet objet ne contient aucune donnée ACAD KROVY.</value></data>
+  <data name="Command_Inspect_AllowanceDefault" xml:space="preserve"><value>valeur par défaut actuelle selon le type</value></data>
+  <data name="Command_Inspect_AllowanceIndividual" xml:space="preserve"><value>valeur propre à l'élément</value></data>
+  <data name="Command_Inspect_SummaryFormat" xml:space="preserve"><value>&#xA;{0} | {1}&#xA;  Section : {2:0} × {3:0} mm&#xA;  Longueur en projection horizontale : {4:0.###} m&#xA;  Longueur réelle : {5:0.###} m&#xA;  Longueur de débit : {6:0.###} m&#xA;  Volume : {7:0.0000} m³</value></data>
+  <data name="Dialog_Inspect_Item" xml:space="preserve"><value>Repère</value></data>
+  <data name="Dialog_Inspect_ElementType" xml:space="preserve"><value>Type d'élément</value></data>
+  <data name="Dialog_Inspect_Material" xml:space="preserve"><value>Matériau</value></data>
+  <data name="Dialog_Inspect_Width" xml:space="preserve"><value>Largeur</value></data>
+  <data name="Dialog_Inspect_Height" xml:space="preserve"><value>Hauteur</value></data>
+  <data name="Dialog_Inspect_Slope" xml:space="preserve"><value>Pente</value></data>
+  <data name="Dialog_Inspect_SlopeDirection" xml:space="preserve"><value>Sens de pente</value></data>
+  <data name="Dialog_Inspect_PlanLength" xml:space="preserve"><value>Longueur en projection horizontale</value></data>
+  <data name="Dialog_Inspect_ActualLength" xml:space="preserve"><value>Longueur réelle</value></data>
+  <data name="Dialog_Inspect_CuttingAllowance" xml:space="preserve"><value>Surcote de coupe</value></data>
+  <data name="Dialog_Inspect_CuttingLength" xml:space="preserve"><value>Longueur de débit</value></data>
+  <data name="Dialog_Inspect_ManualLengthMode" xml:space="preserve"><value>ManualLengthMode</value></data>
+  <data name="Dialog_Inspect_CadHandle" xml:space="preserve"><value>CAD Handle</value></data>
+  <data name="Dialog_Inspect_ManualLength" xml:space="preserve"><value>Longueur saisie</value></data>
+  <data name="Message_Yes" xml:space="preserve"><value>Oui</value></data>
+  <data name="Message_No" xml:space="preserve"><value>Non</value></data>
+  <data name="Message_DirectionNormal" xml:space="preserve"><value>Normal</value></data>
+  <data name="Message_DirectionReversed" xml:space="preserve"><value>Inversé</value></data>
+  <data name="Command_Report_PromptSelection" xml:space="preserve"><value>&#xA;Sélectionnez les éléments pour la liste de débit : </value></data>
+  <data name="Command_Report_NoneFound" xml:space="preserve"><value>&#xA;Aucun élément ACAD KROVY n'a été trouvé.</value></data>
+  <data name="Command_Report_ElementSkippedFormat" xml:space="preserve"><value>&#xA;Élément {0} ignoré : {1}</value></data>
+  <data name="Command_Report_NoValidElements" xml:space="preserve"><value>&#xA;La sélection ne contient aucun élément ACAD KROVY valide.</value></data>
+  <data name="Command_Report_PromptInsertionPoint" xml:space="preserve"><value>&#xA;Indiquez le point d'insertion de la liste de débit : </value></data>
+  <data name="Command_Report_InsertedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY : liste de débit insérée pour {0} éléments. Ignorés : {1}. Volume : {2:0.0000} m³.</value></data>
+  <data name="Command_Recalc_ElementErrorFormat" xml:space="preserve"><value>&#xA;Erreur dans l'élément {0} : {1}</value></data>
+  <data name="Command_Recalc_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY : éléments recalculés : {0}, erreurs : {1}. Étiquettes actualisées : {2}. Ignorés : {3}.</value></data>
+  <data name="Command_Assign_Prompt" xml:space="preserve"><value>&#xA;Sélectionnez les lignes ou polylignes auxquelles attribuer des données : </value></data>
+  <data name="Command_Assign_PromptTypeFormat" xml:space="preserve"><value>&#xA;Sélectionnez les lignes ou polylignes pour l'élément {0} : </value></data>
+  <data name="Command_Assign_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY : données attribuées à {0} éléments. Ignorés : {1}.</value></data>
+  <data name="Command_Layers_ElementSkippedFormat" xml:space="preserve"><value>&#xA;Élément ignoré lors de la définition de son calque : {0}</value></data>
+  <data name="Command_Layers_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY : éléments déplacés sur les calques : {0}. Ignorés : {1}.</value></data>
+  <data name="Command_Settings_ApplyElementSkippedFormat" xml:space="preserve"><value>&#xA;Élément ignoré lors de l'application des paramètres : {0}</value></data>
+  <data name="Command_Settings_ApplyResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY : surcotes de coupe appliquées à {0} éléments. Ignorés : {1}.</value></data>
+  <data name="Command_Labels_Shown" xml:space="preserve"><value>&#xA;ACAD KROVY : les étiquettes du calque KROV_POPIS sont affichées.</value></data>
+  <data name="Command_Labels_Hidden" xml:space="preserve"><value>&#xA;ACAD KROVY : les étiquettes du calque KROV_POPIS sont masquées.</value></data>
+  <data name="Command_Labels_LayerMissing" xml:space="preserve"><value>&#xA;ACAD KROVY : le calque KROV_POPIS n'existe pas encore dans le dessin.</value></data>
+  <data name="Command_Prompt_RemoveSelection" xml:space="preserve"><value>&#xA;Retirer de la sélection : </value></data>
+  <data name="Warning_LiveRefreshSkippedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY : l'actualisation automatique des éléments a été ignorée : {0}</value></data>
+  <data name="Dialog_Edit_FieldWidth" xml:space="preserve"><value>largeur</value></data>
+  <data name="Dialog_Edit_FieldHeight" xml:space="preserve"><value>hauteur</value></data>
+  <data name="Dialog_Edit_FieldCuttingAllowance" xml:space="preserve"><value>surcote de coupe</value></data>
+  <data name="Dialog_Edit_FieldManualLength" xml:space="preserve"><value>longueur saisie</value></data>
+  <data name="Dialog_Edit_WholeNonnegativeFormat" xml:space="preserve"><value>Le champ « {0} » doit contenir un nombre entier positif ou nul en millimètres, inférieur ou égal à {1:0}.</value></data>
+  <data name="Dialog_Edit_PositiveNumberFormat" xml:space="preserve"><value>Le champ « {0} » doit contenir un nombre positif.</value></data>
+  <data name="Dialog_Layers_ErrorFormat" xml:space="preserve"><value>{0} : {1}</value></data>
+  <data name="Dialog_Layers_DuplicateFormat" xml:space="preserve"><value>Le calque « {0} » est indiqué plusieurs fois. Chaque type d'élément doit avoir son propre calque.</value></data>
+  <data name="Dialog_Settings_RoundingStepFormat" xml:space="preserve"><value>Le pas d'arrondi de la longueur de fabrication doit être un nombre entier positif en millimètres, inférieur ou égal à {0:0}.</value></data>
+  <data name="Dialog_Settings_CuttingAllowanceFormat" xml:space="preserve"><value>{0} : la surcote de coupe doit être un nombre positif ou nul en millimètres, inférieur ou égal à {1:0}.</value></data>
+  <data name="Error_LayerName_Empty" xml:space="preserve"><value>Le nom du calque ne peut pas être vide.</value></data>
+  <data name="Error_LayerName_TooLong" xml:space="preserve"><value>Le nom du calque est trop long.</value></data>
+  <data name="Error_LayerName_InvalidCharacter" xml:space="preserve"><value>Le nom du calque contient un caractère non autorisé.</value></data>
+  <data name="EditWindow_Title" xml:space="preserve"><value>ACAD KROVY – données des éléments</value></data>
+  <data name="EditWindow_Heading" xml:space="preserve"><value>Données des éléments sélectionnés</value></data>
+  <data name="EditWindow_ElementType" xml:space="preserve"><value>Type d'élément</value></data>
+  <data name="EditWindow_WidthMm" xml:space="preserve"><value>Largeur [mm]</value></data>
+  <data name="EditWindow_HeightMm" xml:space="preserve"><value>Hauteur [mm]</value></data>
+  <data name="EditWindow_SlopeDegrees" xml:space="preserve"><value>Pente [°]</value></data>
+  <data name="EditWindow_SlopeDirection" xml:space="preserve"><value>Sens de pente</value></data>
+  <data name="EditWindow_RoofPlane" xml:space="preserve"><value>Plan de toiture</value></data>
+  <data name="EditWindow_CuttingAllowanceMm" xml:space="preserve"><value>Surcote de coupe [mm]</value></data>
+  <data name="EditWindow_UseDefaultByType" xml:space="preserve"><value>Utiliser la valeur par défaut du type</value></data>
+  <data name="EditWindow_LengthMode" xml:space="preserve"><value>Mode de longueur</value></data>
+  <data name="EditWindow_ManualLengthMm" xml:space="preserve"><value>Longueur saisie [mm]</value></data>
+  <data name="EditWindow_Material" xml:space="preserve"><value>Matériau</value></data>
+  <data name="EditWindow_ChangeTooltip" xml:space="preserve"><value>Modifier</value></data>
+  <data name="EditWindow_Cancel" xml:space="preserve"><value>Annuler</value></data>
+  <data name="EditWindow_Apply" xml:space="preserve"><value>Appliquer</value></data>
+  <data name="EditWindow_SlopeDirectionNormal" xml:space="preserve"><value>Normal (début → fin)</value></data>
+  <data name="EditWindow_SlopeDirectionReversed" xml:space="preserve"><value>Inversé (fin → début)</value></data>
+  <data name="EditWindow_SlopeDirectionMixedTooltip" xml:space="preserve"><value>Les éléments sélectionnés ont des sens de pente différents. Si la case n'est pas cochée, chaque élément conserve son sens d'origine.</value></data>
+  <data name="EditWindow_CuttingAllowanceMixedTooltip" xml:space="preserve"><value>Les éléments sélectionnés ont des surcotes de coupe différentes. Si la case n'est pas cochée, chaque élément conserve sa valeur d'origine.</value></data>
+  <data name="EditWindow_DefaultAllowanceTooltip" xml:space="preserve"><value>Applique à chaque élément sélectionné la surcote par défaut actuelle de son type.</value></data>
+  <data name="SettingsWindow_Title" xml:space="preserve"><value>ACAD KROVY – paramètres des éléments et des calques</value></data>
+  <data name="SettingsWindow_Heading" xml:space="preserve"><value>Paramètres des éléments et des calques</value></data>
+  <data name="SettingsWindow_Description" xml:space="preserve"><value>Les paramètres sont enregistrés pour le compte Windows actuel. Les calques déterminent le classement des éléments dans le dessin. Les surcotes par défaut peuvent être enregistrées uniquement pour les nouveaux éléments ou également appliquées aux éléments existants.</value></data>
+  <data name="SettingsWindow_Layers_Tab" xml:space="preserve"><value>Calques</value></data>
+  <data name="SettingsWindow_Layers_ElementTypeColumn" xml:space="preserve"><value>Type d'élément</value></data>
+  <data name="SettingsWindow_Layers_LayerNameColumn" xml:space="preserve"><value>Nom du calque</value></data>
+  <data name="SettingsWindow_Layers_LayerColorColumn" xml:space="preserve"><value>Couleur du calque</value></data>
+  <data name="SettingsWindow_Manufacturing_Tab" xml:space="preserve"><value>Surcotes de coupe</value></data>
+  <data name="SettingsWindow_Manufacturing_Description" xml:space="preserve"><value>La surcote de coupe par défaut est utilisée lors de la nouvelle attribution d'un élément. Lors de l'enregistrement, vous pouvez choisir de l'appliquer également aux éléments existants.</value></data>
+  <data name="SettingsWindow_Manufacturing_RoundingStep" xml:space="preserve"><value>Arrondir la longueur de fabrication au multiple supérieur de [mm]</value></data>
+  <data name="SettingsWindow_Manufacturing_ElementTypeColumn" xml:space="preserve"><value>Type d'élément</value></data>
+  <data name="SettingsWindow_Manufacturing_DefaultAllowanceColumn" xml:space="preserve"><value>Surcote de coupe par défaut [mm]</value></data>
+  <data name="SettingsWindow_RestoreDefaults" xml:space="preserve"><value>Rétablir les valeurs par défaut</value></data>
+  <data name="SettingsWindow_Cancel" xml:space="preserve"><value>Annuler</value></data>
+  <data name="SettingsWindow_SaveNewElementsOnly" xml:space="preserve"><value>Nouveaux éléments uniquement</value></data>
+  <data name="SettingsWindow_SaveApplySelection" xml:space="preserve"><value>Enregistrer et appliquer à la sélection</value></data>
+  <data name="SettingsWindow_SaveApplyAll" xml:space="preserve"><value>Enregistrer et appliquer à tous</value></data>
+  <data name="LayerColor_Red" xml:space="preserve"><value>Rouge (1)</value></data>
+  <data name="LayerColor_Yellow" xml:space="preserve"><value>Jaune (2)</value></data>
+  <data name="LayerColor_Green" xml:space="preserve"><value>Vert (3)</value></data>
+  <data name="LayerColor_Cyan" xml:space="preserve"><value>Cyan (4)</value></data>
+  <data name="LayerColor_Blue" xml:space="preserve"><value>Bleu (5)</value></data>
+  <data name="LayerColor_Magenta" xml:space="preserve"><value>Magenta (6)</value></data>
+  <data name="LayerColor_Orange" xml:space="preserve"><value>Orange (30)</value></data>
+  <data name="LayerColor_Gray" xml:space="preserve"><value>Gris (8)</value></data>
+  <data name="LayerColor_LightGray" xml:space="preserve"><value>Gris clair (9)</value></data>
+  <data name="InspectWindow_Title" xml:space="preserve"><value>ACAD KROVY – données de l'élément</value></data>
+  <data name="InspectWindow_Heading" xml:space="preserve"><value>Données de l'élément</value></data>
+  <data name="InspectWindow_Close" xml:space="preserve"><value>Fermer</value></data>
+  <data name="Ribbon_Tab_Title" xml:space="preserve"><value>ACAD KROVY</value></data>
+  <data name="Ribbon_Panel_Elements" xml:space="preserve"><value>Éléments</value></data>
+  <data name="Ribbon_Panel_Data" xml:space="preserve"><value>Données</value></data>
+  <data name="Ribbon_Panel_Reports" xml:space="preserve"><value>Débit</value></data>
+  <data name="Ribbon_Panel_Settings" xml:space="preserve"><value>Paramètres</value></data>
+  <data name="Ribbon_Panel_Labels" xml:space="preserve"><value>Étiquettes</value></data>
+  <data name="Ribbon_Panel_Toolbar" xml:space="preserve"><value>Outils</value></data>
+  <data name="Toolbar_Title" xml:space="preserve"><value>ACAD KROVY – barre d'outils classique</value></data>
+  <data name="Toolbar_ContentTitle" xml:space="preserve"><value>ACAD KROVY</value></data>
+  <data name="CommandUi_Rafter_Label" xml:space="preserve"><value>Chevron</value></data>
+  <data name="CommandUi_Rafter_Tooltip" xml:space="preserve"><value>Attribue le type Chevron aux lignes sélectionnées.</value></data>
+  <data name="CommandUi_WallPlate_Label" xml:space="preserve"><value>Sablière</value></data>
+  <data name="CommandUi_WallPlate_Tooltip" xml:space="preserve"><value>Attribue le type Sablière aux lignes sélectionnées.</value></data>
+  <data name="CommandUi_Purlin_Label" xml:space="preserve"><value>Panne</value></data>
+  <data name="CommandUi_Purlin_Tooltip" xml:space="preserve"><value>Attribue le type Panne aux lignes sélectionnées.</value></data>
+  <data name="CommandUi_Post_Label" xml:space="preserve"><value>Poteau</value></data>
+  <data name="CommandUi_Post_Tooltip" xml:space="preserve"><value>Attribue le type Poteau aux lignes sélectionnées.</value></data>
+  <data name="CommandUi_CollarTie_Label" xml:space="preserve"><value>Entrait retroussé</value></data>
+  <data name="CommandUi_CollarTie_Tooltip" xml:space="preserve"><value>Attribue le type Entrait retroussé aux lignes sélectionnées.</value></data>
+  <data name="CommandUi_Brace_Label" xml:space="preserve"><value>Contrefiche</value></data>
+  <data name="CommandUi_Brace_Tooltip" xml:space="preserve"><value>Attribue le type Contrefiche aux lignes sélectionnées.</value></data>
+  <data name="CommandUi_TieBeam_Label" xml:space="preserve"><value>Entrait</value></data>
+  <data name="CommandUi_TieBeam_Tooltip" xml:space="preserve"><value>Attribue le type Entrait aux lignes sélectionnées.</value></data>
+  <data name="CommandUi_Assign_Label" xml:space="preserve"><value>Attribuer les données</value></data>
+  <data name="CommandUi_Assign_Tooltip" xml:space="preserve"><value>Attribue des données aux lignes ou polylignes sélectionnées.</value></data>
+  <data name="CommandUi_Edit_Label" xml:space="preserve"><value>Modifier</value></data>
+  <data name="CommandUi_Edit_Tooltip" xml:space="preserve"><value>Modifie en série les valeurs cochées des éléments sélectionnés.</value></data>
+  <data name="CommandUi_Inspect_Label" xml:space="preserve"><value>Inspecter</value></data>
+  <data name="CommandUi_Inspect_Tooltip" xml:space="preserve"><value>Affiche les données d'un élément ACAD KROVY.</value></data>
+  <data name="CommandUi_Recalc_Label" xml:space="preserve"><value>Recalculer</value></data>
+  <data name="CommandUi_Recalc_Tooltip" xml:space="preserve"><value>Vérifie les calculs de tous les éléments du dessin.</value></data>
+  <data name="CommandUi_Report_Label" xml:space="preserve"><value>Débit de la sélection</value></data>
+  <data name="CommandUi_Report_Tooltip" xml:space="preserve"><value>Insère la liste de débit des bois pour les éléments sélectionnés.</value></data>
+  <data name="CommandUi_ReportAll_Label" xml:space="preserve"><value>Débit complet</value></data>
+  <data name="CommandUi_ReportAll_Tooltip" xml:space="preserve"><value>Insère la liste de débit des bois pour tous les éléments ACAD KROVY du dessin.</value></data>
+  <data name="CommandUi_Settings_Label" xml:space="preserve"><value>Paramètres</value></data>
+  <data name="CommandUi_Settings_Tooltip" xml:space="preserve"><value>Configure les noms de calque et les couleurs des types de charpente.</value></data>
+  <data name="CommandUi_Labels_Label" xml:space="preserve"><value>Actualiser</value></data>
+  <data name="CommandUi_Labels_Tooltip" xml:space="preserve"><value>Crée ou actualise les étiquettes automatiques de tous les éléments de charpente.</value></data>
+  <data name="CommandUi_Toolbar_Label" xml:space="preserve"><value>Barre classique</value></data>
+  <data name="CommandUi_Toolbar_Tooltip" xml:space="preserve"><value>Affiche ou masque la barre d'outils flottante classique à petites icônes.</value></data>
+  <data name="Error_NoActiveDrawing" xml:space="preserve"><value>Aucun dessin AutoCAD n'est ouvert.</value></data>
+  <data name="Error_UnsupportedTimberGeometry" xml:space="preserve"><value>Seuls les objets LINE et LWPOLYLINE sont pris en charge.</value></data>
+  <data name="Error_LabelUnsupportedEntityType" xml:space="preserve"><value>Les étiquettes ne peuvent être créées que pour des objets LINE ou LWPOLYLINE.</value></data>
+  <data name="Error_XDataTooLargeFormat" xml:space="preserve"><value>Les données de l'élément ACAD KROVY sont trop volumineuses pour le format XData portable ({0} B).</value></data>
+  <data name="Error_SlopeAnnotationUnsupportedEntityType" xml:space="preserve"><value>Les annotations de pente ne peuvent être créées que pour des objets LINE ou LWPOLYLINE.</value></data>
+  <data name="Error_UnsupportedSlopeGlyph" xml:space="preserve"><value>Symbole d'annotation de pente non pris en charge.</value></data>
+  <data name="Error_InvalidElementLayerFormat" xml:space="preserve"><value>Calque non valide pour l'élément {0} : {1}</value></data>
+  <data name="Error_InvalidAnnotationLayerFormat" xml:space="preserve"><value>Calque d'annotation non valide : {0}</value></data>
+  <data name="Error_InvalidSlopeDegrees" xml:space="preserve"><value>La pente doit être un nombre positif ou nul inférieur à 89,9°.</value></data>
+</root>

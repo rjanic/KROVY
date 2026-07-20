@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="ElementType_Rafter" xml:space="preserve"><value>Sparren</value></data>
+  <data name="ElementType_WallPlate" xml:space="preserve"><value>Mauerlatte</value></data>
+  <data name="ElementType_Purlin" xml:space="preserve"><value>Pfette</value></data>
+  <data name="ElementType_Post" xml:space="preserve"><value>Stütze</value></data>
+  <data name="ElementType_CollarTie" xml:space="preserve"><value>Zange / Kehlbalken</value></data>
+  <data name="ElementType_Brace" xml:space="preserve"><value>Strebe</value></data>
+  <data name="ElementType_TieBeam" xml:space="preserve"><value>Bundbalken</value></data>
+  <data name="LengthCalculationMode_AutoByElementType" xml:space="preserve"><value>Automatisch nach Bauteiltyp</value></data>
+  <data name="LengthCalculationMode_PlanLength" xml:space="preserve"><value>Grundrisslänge</value></data>
+  <data name="LengthCalculationMode_SlopeCorrected" xml:space="preserve"><value>Nach Neigung umrechnen</value></data>
+  <data name="LengthCalculationMode_ManualLength" xml:space="preserve"><value>Manuell eingegebene Länge</value></data>
+  <data name="Report_Title" xml:space="preserve"><value>ACAD KROVY – Holzliste</value></data>
+  <data name="Report_Column_Item" xml:space="preserve"><value>Position</value></data>
+  <data name="Report_Column_Type" xml:space="preserve"><value>Typ</value></data>
+  <data name="Report_Column_Material" xml:space="preserve"><value>Material</value></data>
+  <data name="Report_Column_WidthMm" xml:space="preserve"><value>Breite [mm]</value></data>
+  <data name="Report_Column_HeightMm" xml:space="preserve"><value>Höhe [mm]</value></data>
+  <data name="Report_Column_PieceLengthM" xml:space="preserve"><value>Stücklänge [m]</value></data>
+  <data name="Report_Column_Count" xml:space="preserve"><value>Anzahl</value></data>
+  <data name="Report_Column_TotalLengthM" xml:space="preserve"><value>Gesamtlänge [m]</value></data>
+  <data name="Report_Column_VolumeM3" xml:space="preserve"><value>Volumen [m³]</value></data>
+  <data name="Report_TotalFormat" xml:space="preserve"><value>Gesamt: {0} Bauteile</value></data>
+  <data name="Message_DialogTitle" xml:space="preserve"><value>ACAD KROVY</value></data>
+  <data name="Message_PluginLoaded" xml:space="preserve"><value>&#xA;ACAD KROVY 0.10.0 wurde geladen. Die Registerkarte ACAD KROVY wird dem Menüband hinzugefügt. Geben Sie AK_HELP für die Befehlsliste oder AK_TOOLBAR für die klassische Symbolleiste ein.</value></data>
+  <data name="Help_CommandOverview" xml:space="preserve"><value>&#xA;ACAD KROVY 0.10.0&#xA;&#xA;BAUTEILE DES DACHSTUHLS&#xA;  AK_KROKVA      – weist schnell den Typ Sparren zu&#xA;  AK_POMURNICA   – weist schnell den Typ Mauerlatte zu&#xA;  AK_VAZNICA     – weist schnell den Typ Pfette zu&#xA;  AK_STLPIK      – weist schnell den Typ Stütze zu&#xA;  AK_KLIESTINA   – weist schnell den Typ Zange / Kehlbalken zu&#xA;  AK_VZPERA      – weist schnell den Typ Strebe zu&#xA;  AK_VAZNYTRAM   – weist schnell den Typ Bundbalken zu&#xA;&#xA;DATEN UND LISTEN&#xA;  AK_ASSIGN      – weist ausgewählten Linien oder Polylinien Daten zu&#xA;  AK_EDIT        – bearbeitet markierte Werte mehrerer Bauteile&#xA;  AK_FLIPSLOPE   – kehrt die Neigungsrichtung eines Bauteils oder seiner Beschriftung um&#xA;  AK_INSPECT     – zeigt die Daten eines Bauteils an&#xA;  AK_REPORT      – fügt eine Tabelle für ausgewählte Bauteile ein&#xA;  AK_REPORTALL   – fügt eine Tabelle für alle Bauteile ein&#xA;  AK_RECALC      – prüft die Berechnungen aller Bauteile&#xA;  AK_RIBBON      – zeigt oder aktualisiert die Registerkarte ACAD KROVY&#xA;  AK_TOOLBAR     – zeigt oder verbirgt die klassische schwebende Symbolleiste&#xA;  AK_SETTINGS    – konfiguriert Layer und Farben der Bauteiltypen&#xA;  AK_APPLYLAYERS – wendet die aktuellen Layer-Einstellungen auf die Zeichnung an&#xA;&#xA;BESCHRIFTUNGEN IN DER ZEICHNUNG&#xA;  AK_LABELS      – erstellt oder aktualisiert die Beschriftungen aller Bauteile&#xA;  AK_LABELSELECTED – erstellt oder aktualisiert die Beschriftungen ausgewählter Bauteile&#xA;  AK_LABELSHOW   – zeigt den Layer KROV_POPIS an&#xA;  AK_LABELHIDE   – blendet den Layer KROV_POPIS aus&#xA;&#xA;Tipp: Nach Zuweisung, Bearbeitung oder Geometrieänderung werden Beschriftungen automatisch aktualisiert. AK_LABELS und AK_RECALC dienen zur manuellen Prüfung.</value></data>
+  <data name="Command_Ribbon_Ready" xml:space="preserve"><value>&#xA;ACAD KROVY: Die Registerkarte im Menüband ist bereit.</value></data>
+  <data name="Command_Ribbon_Pending" xml:space="preserve"><value>&#xA;ACAD KROVY: Das Menüband ist noch nicht bereit; die Registerkarte wird in Kürze hinzugefügt.</value></data>
+  <data name="Command_Toolbar_Shown" xml:space="preserve"><value>&#xA;ACAD KROVY: Die klassische Symbolleiste ist sichtbar.</value></data>
+  <data name="Command_Toolbar_Hidden" xml:space="preserve"><value>&#xA;ACAD KROVY: Die klassische Symbolleiste ist ausgeblendet.</value></data>
+  <data name="Command_Settings_SaveFailedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: Die Einstellungen konnten nicht gespeichert werden: {0}</value></data>
+  <data name="Command_Settings_Saved" xml:space="preserve"><value>&#xA;ACAD KROVY: Die Einstellungen wurden gespeichert.</value></data>
+  <data name="Command_Settings_PromptApplyAllowances" xml:space="preserve"><value>&#xA;Wählen Sie die Bauteile aus, auf die die neuen Schnittzugaben angewendet werden sollen: </value></data>
+  <data name="Command_Settings_SelectionCancelled" xml:space="preserve"><value>&#xA;ACAD KROVY: Die Auswahl wurde abgebrochen; vorhandene Bauteile wurden nicht geändert.</value></data>
+  <data name="Command_Labels_PromptSelected" xml:space="preserve"><value>&#xA;Wählen Sie die Bauteile aus, deren Beschriftungen erstellt oder aktualisiert werden sollen: </value></data>
+  <data name="Command_Labels_UpdatedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: Beschriftungen aktualisiert: {0}. Neu: {1}. Übersprungen: {2}.</value></data>
+  <data name="Command_Labels_RefreshFailedFormat" xml:space="preserve"><value>&#xA;Die Beschriftung für Bauteil {0} wurde nicht erstellt oder aktualisiert: {1}</value></data>
+  <data name="Command_Edit_Prompt" xml:space="preserve"><value>&#xA;Wählen Sie intelligente Dachstuhlbauteile zur Bearbeitung aus: </value></data>
+  <data name="Command_Edit_NoData" xml:space="preserve"><value>&#xA;Das ausgewählte Objekt enthält keine ACAD KROVY-Daten. Verwenden Sie zuerst AK_ASSIGN oder ein Bauteiltyp-Symbol.</value></data>
+  <data name="Command_Edit_TitleSingleFormat" xml:space="preserve"><value>ACAD KROVY – Bauteil bearbeiten – {0} – {1}</value></data>
+  <data name="Command_Edit_TitleMultipleFormat" xml:space="preserve"><value>ACAD KROVY – {0} Bauteile bearbeiten</value></data>
+  <data name="Command_Edit_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: Bauteile aktualisiert: {0}. Übersprungen: {1}.</value></data>
+  <data name="Command_FlipSlope_Prompt" xml:space="preserve"><value>&#xA;Wählen Sie ein Holzbauteil oder seine Neigungsmarkierung aus, um die Richtung umzukehren: </value></data>
+  <data name="Command_FlipSlope_NotTimberOrAnnotation" xml:space="preserve"><value>&#xA;ACAD KROVY: Das ausgewählte Objekt ist weder ein Holzbauteil noch seine Neigungsbeschriftung.</value></data>
+  <data name="Command_FlipSlope_Horizontal" xml:space="preserve"><value>&#xA;ACAD KROVY: Ein waagerechtes Bauteil hat keine Neigungsrichtung.</value></data>
+  <data name="Command_FlipSlope_ResultReversed" xml:space="preserve"><value>&#xA;ACAD KROVY: Die Neigungsrichtung wurde umgekehrt.</value></data>
+  <data name="Command_FlipSlope_ResultNormal" xml:space="preserve"><value>&#xA;ACAD KROVY: Die Neigungsrichtung wurde auf normal gesetzt.</value></data>
+  <data name="Command_Inspect_Prompt" xml:space="preserve"><value>&#xA;Wählen Sie ein ACAD KROVY-Bauteil aus: </value></data>
+  <data name="Command_Inspect_NoData" xml:space="preserve"><value>&#xA;Dieses Objekt enthält keine ACAD KROVY-Daten.</value></data>
+  <data name="Command_Inspect_AllowanceDefault" xml:space="preserve"><value>aktueller Standardwert nach Typ</value></data>
+  <data name="Command_Inspect_AllowanceIndividual" xml:space="preserve"><value>individueller Bauteilwert</value></data>
+  <data name="Command_Inspect_SummaryFormat" xml:space="preserve"><value>&#xA;{0} | {1}&#xA;  Querschnitt: {2:0} × {3:0} mm&#xA;  Grundrisslänge: {4:0.###} m&#xA;  Tatsächliche Länge: {5:0.###} m&#xA;  Zuschnittlänge: {6:0.###} m&#xA;  Volumen: {7:0.0000} m³</value></data>
+  <data name="Dialog_Inspect_Item" xml:space="preserve"><value>Position</value></data>
+  <data name="Dialog_Inspect_ElementType" xml:space="preserve"><value>Bauteiltyp</value></data>
+  <data name="Dialog_Inspect_Material" xml:space="preserve"><value>Material</value></data>
+  <data name="Dialog_Inspect_Width" xml:space="preserve"><value>Breite</value></data>
+  <data name="Dialog_Inspect_Height" xml:space="preserve"><value>Höhe</value></data>
+  <data name="Dialog_Inspect_Slope" xml:space="preserve"><value>Neigung</value></data>
+  <data name="Dialog_Inspect_SlopeDirection" xml:space="preserve"><value>Neigungsrichtung</value></data>
+  <data name="Dialog_Inspect_PlanLength" xml:space="preserve"><value>Grundrisslänge</value></data>
+  <data name="Dialog_Inspect_ActualLength" xml:space="preserve"><value>Tatsächliche Länge</value></data>
+  <data name="Dialog_Inspect_CuttingAllowance" xml:space="preserve"><value>Schnittzugabe</value></data>
+  <data name="Dialog_Inspect_CuttingLength" xml:space="preserve"><value>Zuschnittlänge</value></data>
+  <data name="Dialog_Inspect_ManualLengthMode" xml:space="preserve"><value>ManualLengthMode</value></data>
+  <data name="Dialog_Inspect_CadHandle" xml:space="preserve"><value>CAD Handle</value></data>
+  <data name="Dialog_Inspect_ManualLength" xml:space="preserve"><value>Manuelle Länge</value></data>
+  <data name="Message_Yes" xml:space="preserve"><value>Ja</value></data>
+  <data name="Message_No" xml:space="preserve"><value>Nein</value></data>
+  <data name="Message_DirectionNormal" xml:space="preserve"><value>Normal</value></data>
+  <data name="Message_DirectionReversed" xml:space="preserve"><value>Umgekehrt</value></data>
+  <data name="Command_Report_PromptSelection" xml:space="preserve"><value>&#xA;Wählen Sie Bauteile für die Holzliste aus: </value></data>
+  <data name="Command_Report_NoneFound" xml:space="preserve"><value>&#xA;Es wurden keine ACAD KROVY-Bauteile gefunden.</value></data>
+  <data name="Command_Report_ElementSkippedFormat" xml:space="preserve"><value>&#xA;Bauteil {0} übersprungen: {1}</value></data>
+  <data name="Command_Report_NoValidElements" xml:space="preserve"><value>&#xA;Die Auswahl enthält keine gültigen ACAD KROVY-Bauteile.</value></data>
+  <data name="Command_Report_PromptInsertionPoint" xml:space="preserve"><value>&#xA;Geben Sie den Einfügepunkt der Holzliste an: </value></data>
+  <data name="Command_Report_InsertedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: Holzliste für {0} Bauteile eingefügt. Übersprungen: {1}. Volumen: {2:0.0000} m³.</value></data>
+  <data name="Command_Recalc_ElementErrorFormat" xml:space="preserve"><value>&#xA;Fehler in Bauteil {0}: {1}</value></data>
+  <data name="Command_Recalc_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: Bauteile neu berechnet: {0}, Fehler: {1}. Beschriftungen aktualisiert: {2}. Übersprungen: {3}.</value></data>
+  <data name="Command_Assign_Prompt" xml:space="preserve"><value>&#xA;Wählen Sie Linien oder Polylinien aus, denen Daten zugewiesen werden sollen: </value></data>
+  <data name="Command_Assign_PromptTypeFormat" xml:space="preserve"><value>&#xA;Wählen Sie Linien oder Polylinien für Bauteil {0} aus: </value></data>
+  <data name="Command_Assign_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: Daten wurden {0} Bauteilen zugewiesen. Übersprungen: {1}.</value></data>
+  <data name="Command_Layers_ElementSkippedFormat" xml:space="preserve"><value>&#xA;Bauteil beim Festlegen des Layers übersprungen: {0}</value></data>
+  <data name="Command_Layers_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: Bauteile auf Layer verschoben: {0}. Übersprungen: {1}.</value></data>
+  <data name="Command_Settings_ApplyElementSkippedFormat" xml:space="preserve"><value>&#xA;Bauteil beim Anwenden der Einstellungen übersprungen: {0}</value></data>
+  <data name="Command_Settings_ApplyResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: Schnittzugaben auf {0} Bauteile angewendet. Übersprungen: {1}.</value></data>
+  <data name="Command_Labels_Shown" xml:space="preserve"><value>&#xA;ACAD KROVY: Beschriftungen auf Layer KROV_POPIS sind sichtbar.</value></data>
+  <data name="Command_Labels_Hidden" xml:space="preserve"><value>&#xA;ACAD KROVY: Beschriftungen auf Layer KROV_POPIS sind ausgeblendet.</value></data>
+  <data name="Command_Labels_LayerMissing" xml:space="preserve"><value>&#xA;ACAD KROVY: Der Layer KROV_POPIS ist in der Zeichnung noch nicht vorhanden.</value></data>
+  <data name="Command_Prompt_RemoveSelection" xml:space="preserve"><value>&#xA;Aus Auswahl entfernen: </value></data>
+  <data name="Warning_LiveRefreshSkippedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: Die automatische Aktualisierung der Bauteile wurde übersprungen: {0}</value></data>
+  <data name="Dialog_Edit_FieldWidth" xml:space="preserve"><value>Breite</value></data>
+  <data name="Dialog_Edit_FieldHeight" xml:space="preserve"><value>Höhe</value></data>
+  <data name="Dialog_Edit_FieldCuttingAllowance" xml:space="preserve"><value>Schnittzugabe</value></data>
+  <data name="Dialog_Edit_FieldManualLength" xml:space="preserve"><value>manuelle Länge</value></data>
+  <data name="Dialog_Edit_WholeNonnegativeFormat" xml:space="preserve"><value>Das Feld „{0}“ muss eine nichtnegative ganze Zahl in Millimetern enthalten, höchstens {1:0}.</value></data>
+  <data name="Dialog_Edit_PositiveNumberFormat" xml:space="preserve"><value>Das Feld „{0}“ muss eine positive Zahl enthalten.</value></data>
+  <data name="Dialog_Layers_ErrorFormat" xml:space="preserve"><value>{0}: {1}</value></data>
+  <data name="Dialog_Layers_DuplicateFormat" xml:space="preserve"><value>Der Layer „{0}“ wurde mehrfach angegeben. Jeder Bauteiltyp muss einen eigenen Layer haben.</value></data>
+  <data name="Dialog_Settings_RoundingStepFormat" xml:space="preserve"><value>Die Rundungsstufe der Fertigungslänge muss eine positive ganze Zahl in Millimetern sein, höchstens {0:0}.</value></data>
+  <data name="Dialog_Settings_CuttingAllowanceFormat" xml:space="preserve"><value>{0}: Die Schnittzugabe muss eine nichtnegative Zahl in Millimetern sein, höchstens {1:0}.</value></data>
+  <data name="Error_LayerName_Empty" xml:space="preserve"><value>Der Layername darf nicht leer sein.</value></data>
+  <data name="Error_LayerName_TooLong" xml:space="preserve"><value>Der Layername ist zu lang.</value></data>
+  <data name="Error_LayerName_InvalidCharacter" xml:space="preserve"><value>Der Layername enthält ein unzulässiges Zeichen.</value></data>
+  <data name="EditWindow_Title" xml:space="preserve"><value>ACAD KROVY – Bauteildaten</value></data>
+  <data name="EditWindow_Heading" xml:space="preserve"><value>Daten der ausgewählten Bauteile</value></data>
+  <data name="EditWindow_ElementType" xml:space="preserve"><value>Bauteiltyp</value></data>
+  <data name="EditWindow_WidthMm" xml:space="preserve"><value>Breite [mm]</value></data>
+  <data name="EditWindow_HeightMm" xml:space="preserve"><value>Höhe [mm]</value></data>
+  <data name="EditWindow_SlopeDegrees" xml:space="preserve"><value>Neigung [°]</value></data>
+  <data name="EditWindow_SlopeDirection" xml:space="preserve"><value>Neigungsrichtung</value></data>
+  <data name="EditWindow_RoofPlane" xml:space="preserve"><value>Dachebene</value></data>
+  <data name="EditWindow_CuttingAllowanceMm" xml:space="preserve"><value>Schnittzugabe [mm]</value></data>
+  <data name="EditWindow_UseDefaultByType" xml:space="preserve"><value>Standardwert nach Typ verwenden</value></data>
+  <data name="EditWindow_LengthMode" xml:space="preserve"><value>Längenmodus</value></data>
+  <data name="EditWindow_ManualLengthMm" xml:space="preserve"><value>Manuelle Länge [mm]</value></data>
+  <data name="EditWindow_Material" xml:space="preserve"><value>Material</value></data>
+  <data name="EditWindow_ChangeTooltip" xml:space="preserve"><value>Ändern</value></data>
+  <data name="EditWindow_Cancel" xml:space="preserve"><value>Abbrechen</value></data>
+  <data name="EditWindow_Apply" xml:space="preserve"><value>Anwenden</value></data>
+  <data name="EditWindow_SlopeDirectionNormal" xml:space="preserve"><value>Normal (Anfang → Ende)</value></data>
+  <data name="EditWindow_SlopeDirectionReversed" xml:space="preserve"><value>Umgekehrt (Ende → Anfang)</value></data>
+  <data name="EditWindow_SlopeDirectionMixedTooltip" xml:space="preserve"><value>Die ausgewählten Bauteile haben unterschiedliche Neigungsrichtungen. Ist das Feld nicht markiert, behält jedes Bauteil seine ursprüngliche Richtung.</value></data>
+  <data name="EditWindow_CuttingAllowanceMixedTooltip" xml:space="preserve"><value>Die ausgewählten Bauteile haben unterschiedliche Schnittzugaben. Ist das Feld nicht markiert, behält jedes Bauteil seinen ursprünglichen Wert.</value></data>
+  <data name="EditWindow_DefaultAllowanceTooltip" xml:space="preserve"><value>Wendet auf jedes ausgewählte Bauteil die aktuelle Standardzugabe seines Typs an.</value></data>
+  <data name="SettingsWindow_Title" xml:space="preserve"><value>ACAD KROVY – Bauteil- und Layer-Einstellungen</value></data>
+  <data name="SettingsWindow_Heading" xml:space="preserve"><value>Bauteil- und Layer-Einstellungen</value></data>
+  <data name="SettingsWindow_Description" xml:space="preserve"><value>Die Einstellungen werden für das aktuelle Windows-Konto gespeichert. Layer bestimmen die Zuordnung der Bauteile in der Zeichnung. Standardzugaben können nur für neue Bauteile gespeichert oder auch auf vorhandene Bauteile angewendet werden.</value></data>
+  <data name="SettingsWindow_Layers_Tab" xml:space="preserve"><value>Layer</value></data>
+  <data name="SettingsWindow_Layers_ElementTypeColumn" xml:space="preserve"><value>Bauteiltyp</value></data>
+  <data name="SettingsWindow_Layers_LayerNameColumn" xml:space="preserve"><value>Layername</value></data>
+  <data name="SettingsWindow_Layers_LayerColorColumn" xml:space="preserve"><value>Layerfarbe</value></data>
+  <data name="SettingsWindow_Manufacturing_Tab" xml:space="preserve"><value>Schnittzugaben</value></data>
+  <data name="SettingsWindow_Manufacturing_Description" xml:space="preserve"><value>Die Standard-Schnittzugabe wird bei der Neuzuweisung eines Bauteils verwendet. Beim Speichern können Sie wählen, ob sie auch auf vorhandene Bauteile angewendet wird.</value></data>
+  <data name="SettingsWindow_Manufacturing_RoundingStep" xml:space="preserve"><value>Fertigungslänge aufrunden auf [mm]</value></data>
+  <data name="SettingsWindow_Manufacturing_ElementTypeColumn" xml:space="preserve"><value>Bauteiltyp</value></data>
+  <data name="SettingsWindow_Manufacturing_DefaultAllowanceColumn" xml:space="preserve"><value>Standard-Schnittzugabe [mm]</value></data>
+  <data name="SettingsWindow_RestoreDefaults" xml:space="preserve"><value>Standardwerte wiederherstellen</value></data>
+  <data name="SettingsWindow_Cancel" xml:space="preserve"><value>Abbrechen</value></data>
+  <data name="SettingsWindow_SaveNewElementsOnly" xml:space="preserve"><value>Nur für neue Bauteile speichern</value></data>
+  <data name="SettingsWindow_SaveApplySelection" xml:space="preserve"><value>Speichern und auf Auswahl anwenden</value></data>
+  <data name="SettingsWindow_SaveApplyAll" xml:space="preserve"><value>Speichern und auf alle anwenden</value></data>
+  <data name="LayerColor_Red" xml:space="preserve"><value>Rot (1)</value></data>
+  <data name="LayerColor_Yellow" xml:space="preserve"><value>Gelb (2)</value></data>
+  <data name="LayerColor_Green" xml:space="preserve"><value>Grün (3)</value></data>
+  <data name="LayerColor_Cyan" xml:space="preserve"><value>Cyan (4)</value></data>
+  <data name="LayerColor_Blue" xml:space="preserve"><value>Blau (5)</value></data>
+  <data name="LayerColor_Magenta" xml:space="preserve"><value>Magenta (6)</value></data>
+  <data name="LayerColor_Orange" xml:space="preserve"><value>Orange (30)</value></data>
+  <data name="LayerColor_Gray" xml:space="preserve"><value>Grau (8)</value></data>
+  <data name="LayerColor_LightGray" xml:space="preserve"><value>Hellgrau (9)</value></data>
+  <data name="InspectWindow_Title" xml:space="preserve"><value>ACAD KROVY – Bauteildaten</value></data>
+  <data name="InspectWindow_Heading" xml:space="preserve"><value>Bauteildaten</value></data>
+  <data name="InspectWindow_Close" xml:space="preserve"><value>Schließen</value></data>
+  <data name="Ribbon_Tab_Title" xml:space="preserve"><value>ACAD KROVY</value></data>
+  <data name="Ribbon_Panel_Elements" xml:space="preserve"><value>Bauteile</value></data>
+  <data name="Ribbon_Panel_Data" xml:space="preserve"><value>Daten</value></data>
+  <data name="Ribbon_Panel_Reports" xml:space="preserve"><value>Holzliste</value></data>
+  <data name="Ribbon_Panel_Settings" xml:space="preserve"><value>Einstellungen</value></data>
+  <data name="Ribbon_Panel_Labels" xml:space="preserve"><value>Beschriftungen</value></data>
+  <data name="Ribbon_Panel_Toolbar" xml:space="preserve"><value>Symbolleiste</value></data>
+  <data name="Toolbar_Title" xml:space="preserve"><value>ACAD KROVY – klassische Symbolleiste</value></data>
+  <data name="Toolbar_ContentTitle" xml:space="preserve"><value>ACAD KROVY</value></data>
+  <data name="CommandUi_Rafter_Label" xml:space="preserve"><value>Sparren</value></data>
+  <data name="CommandUi_Rafter_Tooltip" xml:space="preserve"><value>Weist ausgewählten Linien den Typ Sparren zu.</value></data>
+  <data name="CommandUi_WallPlate_Label" xml:space="preserve"><value>Mauerlatte</value></data>
+  <data name="CommandUi_WallPlate_Tooltip" xml:space="preserve"><value>Weist ausgewählten Linien den Typ Mauerlatte zu.</value></data>
+  <data name="CommandUi_Purlin_Label" xml:space="preserve"><value>Pfette</value></data>
+  <data name="CommandUi_Purlin_Tooltip" xml:space="preserve"><value>Weist ausgewählten Linien den Typ Pfette zu.</value></data>
+  <data name="CommandUi_Post_Label" xml:space="preserve"><value>Stütze</value></data>
+  <data name="CommandUi_Post_Tooltip" xml:space="preserve"><value>Weist ausgewählten Linien den Typ Stütze zu.</value></data>
+  <data name="CommandUi_CollarTie_Label" xml:space="preserve"><value>Zange</value></data>
+  <data name="CommandUi_CollarTie_Tooltip" xml:space="preserve"><value>Weist ausgewählten Linien den Typ Zange / Kehlbalken zu.</value></data>
+  <data name="CommandUi_Brace_Label" xml:space="preserve"><value>Strebe</value></data>
+  <data name="CommandUi_Brace_Tooltip" xml:space="preserve"><value>Weist ausgewählten Linien den Typ Strebe zu.</value></data>
+  <data name="CommandUi_TieBeam_Label" xml:space="preserve"><value>Bundbalken</value></data>
+  <data name="CommandUi_TieBeam_Tooltip" xml:space="preserve"><value>Weist ausgewählten Linien den Typ Bundbalken zu.</value></data>
+  <data name="CommandUi_Assign_Label" xml:space="preserve"><value>Daten zuweisen</value></data>
+  <data name="CommandUi_Assign_Tooltip" xml:space="preserve"><value>Weist ausgewählten Linien oder Polylinien Daten zu.</value></data>
+  <data name="CommandUi_Edit_Label" xml:space="preserve"><value>Bearbeiten</value></data>
+  <data name="CommandUi_Edit_Tooltip" xml:space="preserve"><value>Bearbeitet die markierten Werte der ausgewählten Bauteile gemeinsam.</value></data>
+  <data name="CommandUi_Inspect_Label" xml:space="preserve"><value>Prüfen</value></data>
+  <data name="CommandUi_Inspect_Tooltip" xml:space="preserve"><value>Zeigt die Daten eines ACAD KROVY-Bauteils an.</value></data>
+  <data name="CommandUi_Recalc_Label" xml:space="preserve"><value>Neu berechnen</value></data>
+  <data name="CommandUi_Recalc_Tooltip" xml:space="preserve"><value>Prüft die Berechnungen aller Bauteile in der Zeichnung.</value></data>
+  <data name="CommandUi_Report_Label" xml:space="preserve"><value>Auswahlliste</value></data>
+  <data name="CommandUi_Report_Tooltip" xml:space="preserve"><value>Fügt eine Holzliste der aktuell ausgewählten Bauteile ein.</value></data>
+  <data name="CommandUi_ReportAll_Label" xml:space="preserve"><value>Gesamtliste</value></data>
+  <data name="CommandUi_ReportAll_Tooltip" xml:space="preserve"><value>Fügt eine Holzliste aller ACAD KROVY-Bauteile in der Zeichnung ein.</value></data>
+  <data name="CommandUi_Settings_Label" xml:space="preserve"><value>Einstellungen</value></data>
+  <data name="CommandUi_Settings_Tooltip" xml:space="preserve"><value>Konfiguriert Layernamen und Farben der Dachstuhlbauteile.</value></data>
+  <data name="CommandUi_Labels_Label" xml:space="preserve"><value>Beschriftungen</value></data>
+  <data name="CommandUi_Labels_Tooltip" xml:space="preserve"><value>Erstellt oder aktualisiert automatische Beschriftungen aller Dachstuhlbauteile.</value></data>
+  <data name="CommandUi_Toolbar_Label" xml:space="preserve"><value>Klassische Symbolleiste</value></data>
+  <data name="CommandUi_Toolbar_Tooltip" xml:space="preserve"><value>Zeigt oder verbirgt die klassische schwebende Symbolleiste.</value></data>
+  <data name="Error_NoActiveDrawing" xml:space="preserve"><value>Es ist keine AutoCAD-Zeichnung geöffnet.</value></data>
+  <data name="Error_UnsupportedTimberGeometry" xml:space="preserve"><value>Es werden nur LINE- und LWPOLYLINE-Objekte unterstützt.</value></data>
+  <data name="Error_LabelUnsupportedEntityType" xml:space="preserve"><value>Beschriftungen können nur für LINE- oder LWPOLYLINE-Objekte erstellt werden.</value></data>
+  <data name="Error_XDataTooLargeFormat" xml:space="preserve"><value>Die ACAD KROVY-Bauteildaten sind für das portable XData-Format zu groß ({0} B).</value></data>
+  <data name="Error_SlopeAnnotationUnsupportedEntityType" xml:space="preserve"><value>Neigungsbeschriftungen können nur für LINE- oder LWPOLYLINE-Objekte erstellt werden.</value></data>
+  <data name="Error_UnsupportedSlopeGlyph" xml:space="preserve"><value>Nicht unterstütztes Symbol der Neigungsbeschriftung.</value></data>
+  <data name="Error_InvalidElementLayerFormat" xml:space="preserve"><value>Ungültiger Layer für Bauteil {0}: {1}</value></data>
+  <data name="Error_InvalidAnnotationLayerFormat" xml:space="preserve"><value>Ungültiger Beschriftungs-Layer: {0}</value></data>
+  <data name="Error_InvalidSlopeDegrees" xml:space="preserve"><value>Die Neigung muss zwischen 0° und 89,9° liegen.</value></data>
+</root>
