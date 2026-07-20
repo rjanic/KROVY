@@ -6,6 +6,7 @@ using AcKrovy.AutoCAD.UI;
 using AcKrovy.Cad.Abstractions.Layers;
 using AcKrovy.Core.Models;
 using AcKrovy.Core.Services;
+using AcKrovy.Localization;
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
@@ -238,7 +239,7 @@ public sealed class AcKrovyCommands
             slopeDirectionIsMixed: HasMixedSlopeDirection(selectedData),
             validationData: selectedData);
         dialog.Title = selectedData.Count == 1
-            ? $"ACAD KROVY – editácia prvku – {selectedData[0].ElementId} – {TimberElementLabels.ToSlovak(selectedData[0].ElementType)}"
+            ? $"ACAD KROVY – editácia prvku – {selectedData[0].ElementId} – {TimberElementTypeDisplayNameProvider.GetDisplayName(selectedData[0].ElementType)}"
             : $"ACAD KROVY – editácia {selectedData.Count} prvkov";
         if (AcApp.ShowModalWindow(dialog) != true || dialog.Patch is null)
         {
@@ -379,7 +380,7 @@ public sealed class AcKrovyCommands
             ? "aktuálny default podľa typu"
             : "individuálna hodnota prvku";
         var message =
-            $"\n{data.ElementId} | {TimberElementLabels.ToSlovak(data.ElementType)}"
+            $"\n{data.ElementId} | {TimberElementTypeDisplayNameProvider.GetDisplayName(data.ElementType)}"
             + $"\n  Prierez: {data.WidthMm:0} × {data.HeightMm:0} mm"
             + $"\n  Pôdorysná dĺžka: {measurement.PlanLengthMm / 1000d:0.###} m"
             + $"\n  Skutočná dĺžka: {measurement.ActualLengthMm / 1000d:0.###} m"
@@ -388,7 +389,7 @@ public sealed class AcKrovyCommands
         var rows = new List<InspectInfoRow>
         {
             new("Označenie", data.ElementId),
-            new("Typ prvku", TimberElementLabels.ToSlovak(data.ElementType)),
+            new("Typ prvku", TimberElementTypeDisplayNameProvider.GetDisplayName(data.ElementType)),
             new("Materiál", data.Material),
             new("Šírka", $"{data.WidthMm:0} mm"),
             new("Výška", $"{data.HeightMm:0} mm"),
@@ -476,7 +477,7 @@ public sealed class AcKrovyCommands
         var editor = document.Editor;
         var message = presetType is null
             ? "\nOznač čiary alebo polyline, ktorým chceš priradiť údaje: "
-            : $"\nOznač čiary alebo polyline pre prvok {TimberElementLabels.ToSlovak(presetType.Value)}: ";
+            : $"\nOznač čiary alebo polyline pre prvok {TimberElementTypeDisplayNameProvider.GetDisplayName(presetType.Value)}: ";
         var ids = PromptForEntities(editor, message);
         if (ids.Count == 0)
         {

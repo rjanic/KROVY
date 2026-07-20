@@ -19,6 +19,7 @@
   <ItemGroup>
     <ProjectReference Include="..\AcKrovy.Cad.Abstractions\AcKrovy.Cad.Abstractions.csproj" />
     <ProjectReference Include="..\AcKrovy.Core\AcKrovy.Core.csproj" />
+    <ProjectReference Include="..\AcKrovy.Localization\AcKrovy.Localization.csproj" />
   </ItemGroup>
 
   <!-- DLL sa referencujú z lokálnej inštalácie AutoCADu. Do balíka sa nekopírujú. -->

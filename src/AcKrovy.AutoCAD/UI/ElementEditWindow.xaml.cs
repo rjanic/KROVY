@@ -4,6 +4,7 @@ using MessageBox = System.Windows.MessageBox;
 
 using AcKrovy.Core.Models;
 using AcKrovy.Core.Services;
+using AcKrovy.Localization;
 
 namespace AcKrovy.AutoCAD.UI;
 
@@ -35,12 +36,12 @@ public partial class ElementEditWindow : Window
 
         ElementTypeComboBox.ItemsSource = Enum
             .GetValues<TimberElementType>()
-            .Select(type => new ElementTypeOption(type, TimberElementLabels.ToSlovak(type)))
+            .Select(type => new ElementTypeOption(type, TimberElementTypeDisplayNameProvider.GetDisplayName(type)))
             .ToList();
 
         LengthModeComboBox.ItemsSource = Enum
             .GetValues<LengthCalculationMode>()
-            .Select(mode => new LengthModeOption(mode, ToSlovak(mode)))
+            .Select(mode => new LengthModeOption(mode, LengthCalculationModeDisplayNameProvider.GetDisplayName(mode)))
             .ToList();
 
         SlopeDirectionComboBox.ItemsSource = new[]
@@ -330,13 +331,4 @@ public partial class ElementEditWindow : Window
         public override string ToString() => Label;
     }
 
-    private static string ToSlovak(LengthCalculationMode mode) =>
-        mode switch
-        {
-            LengthCalculationMode.AutoByElementType => "Automaticky podľa typu",
-            LengthCalculationMode.PlanLength => "Pôdorysná dĺžka",
-            LengthCalculationMode.SlopeCorrected => "Prepočítať podľa sklonu",
-            LengthCalculationMode.ManualLength => "Ručne zadaná dĺžka",
-            _ => mode.ToString(),
-        };
 }

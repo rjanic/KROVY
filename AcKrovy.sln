@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AcKrovy.Core.Tests", "src\A
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AcKrovy.Cad.Abstractions", "src\AcKrovy.Cad.Abstractions\AcKrovy.Cad.Abstractions.csproj", "{A0A76443-7745-4C40-A764-191928734BB0}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AcKrovy.Localization", "src\AcKrovy.Localization\AcKrovy.Localization.csproj", "{6D3D64E4-78A1-4D94-AD5E-56A7A635F0EF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -33,6 +35,10 @@ Global
 		{A0A76443-7745-4C40-A764-191928734BB0}.Debug|x64.Build.0 = Debug|Any CPU
 		{A0A76443-7745-4C40-A764-191928734BB0}.Release|x64.ActiveCfg = Release|Any CPU
 		{A0A76443-7745-4C40-A764-191928734BB0}.Release|x64.Build.0 = Release|Any CPU
+		{6D3D64E4-78A1-4D94-AD5E-56A7A635F0EF}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{6D3D64E4-78A1-4D94-AD5E-56A7A635F0EF}.Debug|x64.Build.0 = Debug|Any CPU
+		{6D3D64E4-78A1-4D94-AD5E-56A7A635F0EF}.Release|x64.ActiveCfg = Release|Any CPU
+		{6D3D64E4-78A1-4D94-AD5E-56A7A635F0EF}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

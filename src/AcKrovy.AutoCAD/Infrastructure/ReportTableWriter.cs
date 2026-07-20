@@ -1,6 +1,7 @@
 using System.Globalization;
 using AcKrovy.Core.Models;
 using AcKrovy.Core.Services;
+using AcKrovy.Localization;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.Geometry;
 
@@ -33,12 +34,20 @@ internal static class ReportTableWriter
         table.Columns[7].Width = 30;
         table.Columns[8].Width = 28;
 
-        table.Cells[0, 0].TextString = "ACAD KROVY – výkaz reziva";
+        table.Cells[0, 0].TextString = UiStrings.ReportTitle;
         table.MergeCells(CellRange.Create(table, 0, 0, 0, ColumnCount - 1));
 
         var headers = new[]
         {
-            "Položka", "Typ", "Materiál", "Šírka [mm]", "Výška [mm]", "Dĺžka kusu [m]", "Počet", "Celková dĺžka [m]", "Kubatúra [m³]",
+            UiStrings.ReportColumnItem,
+            UiStrings.ReportColumnType,
+            UiStrings.ReportColumnMaterial,
+            UiStrings.ReportColumnWidthMm,
+            UiStrings.ReportColumnHeightMm,
+            UiStrings.ReportColumnPieceLengthM,
+            UiStrings.ReportColumnCount,
+            UiStrings.ReportColumnTotalLengthM,
+            UiStrings.ReportColumnVolumeM3,
         };
 
         for (var column = 0; column < ColumnCount; column++)
@@ -52,7 +61,7 @@ internal static class ReportTableWriter
             var tableRow = index + 2;
 
             table.Cells[tableRow, 0].TextString = row.ElementId;
-            table.Cells[tableRow, 1].TextString = TimberElementLabels.ToSlovak(row.ElementType);
+            table.Cells[tableRow, 1].TextString = TimberElementTypeDisplayNameProvider.GetDisplayName(row.ElementType);
             table.Cells[tableRow, 2].TextString = row.Material;
             table.Cells[tableRow, 3].TextString = Format(row.WidthMm, 0);
             table.Cells[tableRow, 4].TextString = Format(row.HeightMm, 0);
@@ -63,7 +72,10 @@ internal static class ReportTableWriter
         }
 
         var totalRow = rows - 1;
-        table.Cells[totalRow, 0].TextString = $"Spolu: {report.SourceElementCount} prvkov";
+        table.Cells[totalRow, 0].TextString = string.Format(
+            CultureInfo.CurrentUICulture,
+            UiStrings.ReportTotalFormat,
+            report.SourceElementCount);
         table.MergeCells(CellRange.Create(table, totalRow, 0, totalRow, ColumnCount - 2));
         table.Cells[totalRow, ColumnCount - 1].TextString = Format(report.TotalVolumeM3, 4);
 

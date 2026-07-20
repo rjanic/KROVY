@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="ElementType_Rafter" xml:space="preserve"><value>Krokva</value></data>
+  <data name="ElementType_WallPlate" xml:space="preserve"><value>Pomúrnica</value></data>
+  <data name="ElementType_Purlin" xml:space="preserve"><value>Väznica</value></data>
+  <data name="ElementType_Post" xml:space="preserve"><value>Stĺpik</value></data>
+  <data name="ElementType_CollarTie" xml:space="preserve"><value>Klieština / hambálok</value></data>
+  <data name="ElementType_Brace" xml:space="preserve"><value>Vzpera</value></data>
+  <data name="ElementType_TieBeam" xml:space="preserve"><value>Väzný trám</value></data>
+  <data name="LengthCalculationMode_AutoByElementType" xml:space="preserve"><value>Automaticky podľa typu</value></data>
+  <data name="LengthCalculationMode_PlanLength" xml:space="preserve"><value>Pôdorysná dĺžka</value></data>
+  <data name="LengthCalculationMode_SlopeCorrected" xml:space="preserve"><value>Prepočítať podľa sklonu</value></data>
+  <data name="LengthCalculationMode_ManualLength" xml:space="preserve"><value>Ručne zadaná dĺžka</value></data>
+  <data name="Report_Title" xml:space="preserve"><value>ACAD KROVY – výkaz reziva</value></data>
+  <data name="Report_Column_Item" xml:space="preserve"><value>Položka</value></data>
+  <data name="Report_Column_Type" xml:space="preserve"><value>Typ</value></data>
+  <data name="Report_Column_Material" xml:space="preserve"><value>Materiál</value></data>
+  <data name="Report_Column_WidthMm" xml:space="preserve"><value>Šírka [mm]</value></data>
+  <data name="Report_Column_HeightMm" xml:space="preserve"><value>Výška [mm]</value></data>
+  <data name="Report_Column_PieceLengthM" xml:space="preserve"><value>Dĺžka kusu [m]</value></data>
+  <data name="Report_Column_Count" xml:space="preserve"><value>Počet</value></data>
+  <data name="Report_Column_TotalLengthM" xml:space="preserve"><value>Celková dĺžka [m]</value></data>
+  <data name="Report_Column_VolumeM3" xml:space="preserve"><value>Kubatúra [m³]</value></data>
+  <data name="Report_TotalFormat" xml:space="preserve"><value>Spolu: {0} prvkov</value></data>
+</root>

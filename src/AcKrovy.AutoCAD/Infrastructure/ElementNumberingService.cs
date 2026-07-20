@@ -9,7 +9,7 @@ internal static class ElementNumberingService
 {
     public static int GetNextNumber(Database database, Transaction transaction, TimberElementType type)
     {
-        var prefix = TimberElementLabels.Prefix(type);
+        var prefix = TimberElementIdentityPrefixes.GetPrefix(type);
         var pattern = new Regex($"^{Regex.Escape(prefix)}(?<number>\\d+)$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
         var highest = 0;
         var metadataStore = new AutoCadTimberElementMetadataStore(transaction);

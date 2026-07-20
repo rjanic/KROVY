@@ -14,6 +14,7 @@ if ($Portable -and $Full) {
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $coreProject = Join-Path $repoRoot "src/AcKrovy.Core/AcKrovy.Core.csproj"
 $abstractionsProject = Join-Path $repoRoot "src/AcKrovy.Cad.Abstractions/AcKrovy.Cad.Abstractions.csproj"
+$localizationProject = Join-Path $repoRoot "src/AcKrovy.Localization/AcKrovy.Localization.csproj"
 $testsProject = Join-Path $repoRoot "src/AcKrovy.Core.Tests/AcKrovy.Core.Tests.csproj"
 $solution = Join-Path $repoRoot "AcKrovy.sln"
 
@@ -22,7 +23,33 @@ $forbiddenPortableReferences = @(
     "AcMgd",
     "AcDbMgd",
     "AcCoreMgd",
+    "AcKrovy.AutoCAD",
+    "AcKrovy.Localization"
+)
+
+$forbiddenCadReferences = @(
+    "Autodesk.AutoCAD",
+    "AcMgd",
+    "AcDbMgd",
+    "AcCoreMgd",
     "AcKrovy.AutoCAD"
+)
+
+$forbiddenPortableSourcePatterns = @(
+    "Autodesk\.AutoCAD",
+    "\bAcMgd\b",
+    "\bAcDbMgd\b",
+    "\bAcCoreMgd\b",
+    "AcKrovy\.AutoCAD",
+    "AcKrovy\.Localization"
+)
+
+$forbiddenCadSourcePatterns = @(
+    "Autodesk\.AutoCAD",
+    "\bAcMgd\b",
+    "\bAcDbMgd\b",
+    "\bAcCoreMgd\b",
+    "AcKrovy\.AutoCAD"
 )
 
 function Write-GateHeader {
@@ -75,14 +102,17 @@ function Get-ProjectReferenceValues([string]$projectPath, [string]$itemName, [st
     return $values
 }
 
-function Assert-NoForbiddenProjectReferences([string]$projectPath, [string]$projectName) {
+function Assert-NoForbiddenProjectReferences(
+    [string]$projectPath,
+    [string]$projectName,
+    [string[]]$forbiddenReferences = $forbiddenPortableReferences) {
     $items = @()
     $items += Get-ProjectReferenceValues $projectPath "ProjectReference" "Include"
     $items += Get-ProjectReferenceValues $projectPath "Reference" "Include"
     $items += Get-ProjectReferenceValues $projectPath "PackageReference" "Include"
 
     foreach ($item in $items) {
-        foreach ($forbidden in $forbiddenPortableReferences) {
+        foreach ($forbidden in $forbiddenReferences) {
             if ($item -like "*$forbidden*") {
                 Fail-Step "$projectName contains forbidden project/reference dependency: $item"
             }
@@ -90,22 +120,17 @@ function Assert-NoForbiddenProjectReferences([string]$projectPath, [string]$proj
     }
 }
 
-function Assert-NoForbiddenSourceDependencies([string]$sourceRoot, [string]$projectName) {
-    $patterns = @(
-        "Autodesk\.AutoCAD",
-        "\bAcMgd\b",
-        "\bAcDbMgd\b",
-        "\bAcCoreMgd\b",
-        "AcKrovy\.AutoCAD"
-    )
-
+function Assert-NoForbiddenSourceDependencies(
+    [string]$sourceRoot,
+    [string]$projectName,
+    [string[]]$patterns = $forbiddenPortableSourcePatterns) {
     $files = Get-ChildItem -LiteralPath $sourceRoot -Recurse -File -Include *.cs,*.csproj
     foreach ($file in $files) {
         $content = Get-Content -LiteralPath $file.FullName -Raw
         foreach ($pattern in $patterns) {
             if ($content -match $pattern) {
                 $relative = Resolve-Path -LiteralPath $file.FullName -Relative
-                Fail-Step "$projectName contains forbidden AutoCAD dependency in $relative"
+                Fail-Step "$projectName contains forbidden dependency in $relative"
             }
         }
     }
@@ -125,8 +150,10 @@ function Test-AutoCadAssembliesAvailable {
 function Invoke-ArchitectureChecks {
     Assert-NoForbiddenProjectReferences $coreProject "AcKrovy.Core"
     Assert-NoForbiddenProjectReferences $abstractionsProject "AcKrovy.Cad.Abstractions"
+    Assert-NoForbiddenProjectReferences $localizationProject "AcKrovy.Localization" $forbiddenCadReferences
     Assert-NoForbiddenSourceDependencies (Join-Path $repoRoot "src/AcKrovy.Core") "AcKrovy.Core"
     Assert-NoForbiddenSourceDependencies (Join-Path $repoRoot "src/AcKrovy.Cad.Abstractions") "AcKrovy.Cad.Abstractions"
+    Assert-NoForbiddenSourceDependencies (Join-Path $repoRoot "src/AcKrovy.Localization") "AcKrovy.Localization" $forbiddenCadSourcePatterns
     Pass-Step "Architecture dependency rules"
 }
 
@@ -138,6 +165,9 @@ function Invoke-PortableGate {
 
     Invoke-CheckedCommand "AcKrovy.Cad.Abstractions restore" "dotnet" @("restore", $abstractionsProject)
     Invoke-CheckedCommand "AcKrovy.Cad.Abstractions build warnings-as-errors" "dotnet" @("build", $abstractionsProject, "--no-restore", "-warnaserror")
+
+    Invoke-CheckedCommand "AcKrovy.Localization restore" "dotnet" @("restore", $localizationProject)
+    Invoke-CheckedCommand "AcKrovy.Localization build warnings-as-errors" "dotnet" @("build", $localizationProject, "--no-restore", "-warnaserror")
 
     Invoke-CheckedCommand "AcKrovy.Core.Tests restore" "dotnet" @("restore", $testsProject)
     Invoke-CheckedCommand "Automated tests" "dotnet" @("test", $testsProject, "--no-restore", "-warnaserror")

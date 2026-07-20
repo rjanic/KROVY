@@ -12,6 +12,7 @@ using AcKrovy.Cad.Abstractions.Layers;
 using AcKrovy.AutoCAD.Settings;
 using AcKrovy.Core.Models;
 using AcKrovy.Core.Services;
+using AcKrovy.Localization;
 
 namespace AcKrovy.AutoCAD.UI;
 
@@ -191,7 +192,7 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
             var style = profile.GetStyle(type);
             var color = ColorOptions.FirstOrDefault(option => option.Index == style.ColorIndex)
                 ?? ColorOptions.First(option => option.Index == 8);
-            Rows.Add(new LayerSettingsRow(type, TimberElementLabels.ToSlovak(type), style.LayerName, color));
+            Rows.Add(new LayerSettingsRow(type, TimberElementTypeDisplayNameProvider.GetDisplayName(type), style.LayerName, color));
         }
     }
 
@@ -203,7 +204,7 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
         {
             DefaultRows.Add(new ElementDefaultSettingsRow(
                 type,
-                TimberElementLabels.ToSlovak(type),
+                TimberElementTypeDisplayNameProvider.GetDisplayName(type),
                 Format(profile.GetCuttingAllowanceMm(type))));
         }
     }

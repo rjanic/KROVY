@@ -12,7 +12,7 @@ public static class TimberElementIdentityRules
             throw new ArgumentOutOfRangeException(nameof(number), "Číslo prvku musí byť kladné.");
         }
 
-        return $"{TimberElementLabels.Prefix(type)}{number}";
+        return $"{TimberElementIdentityPrefixes.GetPrefix(type)}{number}";
     }
 
     public static int? TryParseElementNumber(string elementId, TimberElementType type)
@@ -22,7 +22,7 @@ public static class TimberElementIdentityRules
             return null;
         }
 
-        var prefix = TimberElementLabels.Prefix(type);
+        var prefix = TimberElementIdentityPrefixes.GetPrefix(type);
         var match = Regex.Match(
             elementId.Trim(),
             $"^{Regex.Escape(prefix)}(?<number>\\d+)$",
