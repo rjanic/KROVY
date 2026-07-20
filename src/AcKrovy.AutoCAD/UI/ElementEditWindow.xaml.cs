@@ -47,8 +47,8 @@ public partial class ElementEditWindow : Window
 
         SlopeDirectionComboBox.ItemsSource = new[]
         {
-            new SlopeDirectionOption(false, "Normálny (začiatok → koniec)"),
-            new SlopeDirectionOption(true, "Obrátený (koniec → začiatok)"),
+            new SlopeDirectionOption(false, SlopeDirectionDisplayNameProvider.GetDisplayName(false)),
+            new SlopeDirectionOption(true, SlopeDirectionDisplayNameProvider.GetDisplayName(true)),
         };
 
         var data = seedData ?? new TimberElementData();
@@ -63,7 +63,7 @@ public partial class ElementEditWindow : Window
             .First(item => item.IsReversed == data.IsSlopeDirectionReversed);
         if (slopeDirectionIsMixed)
         {
-            SlopeDirectionComboBox.ToolTip = "Vybrané prvky majú rôzny smer spádu. Nezaškrtnuté pole ponechá každému prvku pôvodný smer.";
+            SlopeDirectionComboBox.ToolTip = UiStrings.EditWindowSlopeDirectionMixedTooltip;
         }
 
         WidthTextBox.Text = Format(data.WidthMm);
@@ -75,7 +75,7 @@ public partial class ElementEditWindow : Window
             : Format(data.CuttingAllowanceMm);
         if (cuttingAllowanceIsMixed)
         {
-            AllowanceTextBox.ToolTip = "Vybrané prvky majú rôzne výrobné prídavky. Nezaškrtnuté pole ponechá každému prvku pôvodnú hodnotu.";
+            AllowanceTextBox.ToolTip = UiStrings.EditWindowCuttingAllowanceMixedTooltip;
         }
         ManualLengthTextBox.Text = data.ManualLengthMm is null
             ? string.Empty
@@ -159,7 +159,7 @@ public partial class ElementEditWindow : Window
         ChangeAllowanceCheckBox.IsChecked = false;
         _isInitializing = true;
         AllowanceTextBox.Text = Format(_defaultProfile.GetCuttingAllowanceMm(type));
-        AllowanceTextBox.ToolTip = "Pri použití sa každému vybranému prvku nastaví aktuálny predvolený prídavok podľa jeho typu.";
+        AllowanceTextBox.ToolTip = UiStrings.EditWindowDefaultAllowanceTooltip;
         _isInitializing = false;
     }
 

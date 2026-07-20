@@ -106,4 +106,54 @@
   <data name="Error_LayerName_Empty" xml:space="preserve"><value>Názov hladiny nesmie byť prázdny.</value></data>
   <data name="Error_LayerName_TooLong" xml:space="preserve"><value>Názov hladiny je príliš dlhý.</value></data>
   <data name="Error_LayerName_InvalidCharacter" xml:space="preserve"><value>Názov hladiny obsahuje nepovolený znak.</value></data>
+  <data name="EditWindow_Title" xml:space="preserve"><value>ACAD KROVY – údaje prvkov</value></data>
+  <data name="EditWindow_Heading" xml:space="preserve"><value>Údaje vybraných prvkov</value></data>
+  <data name="EditWindow_ElementType" xml:space="preserve"><value>Typ prvku</value></data>
+  <data name="EditWindow_WidthMm" xml:space="preserve"><value>Šírka [mm]</value></data>
+  <data name="EditWindow_HeightMm" xml:space="preserve"><value>Výška [mm]</value></data>
+  <data name="EditWindow_SlopeDegrees" xml:space="preserve"><value>Sklon [°]</value></data>
+  <data name="EditWindow_SlopeDirection" xml:space="preserve"><value>Smer spádu</value></data>
+  <data name="EditWindow_RoofPlane" xml:space="preserve"><value>Strešná rovina</value></data>
+  <data name="EditWindow_CuttingAllowanceMm" xml:space="preserve"><value>Výrobný prídavok [mm]</value></data>
+  <data name="EditWindow_UseDefaultByType" xml:space="preserve"><value>Použiť predvolený podľa typu</value></data>
+  <data name="EditWindow_LengthMode" xml:space="preserve"><value>Režim dĺžky</value></data>
+  <data name="EditWindow_ManualLengthMm" xml:space="preserve"><value>Ručná dĺžka [mm]</value></data>
+  <data name="EditWindow_Material" xml:space="preserve"><value>Materiál</value></data>
+  <data name="EditWindow_ChangeTooltip" xml:space="preserve"><value>Zmeniť</value></data>
+  <data name="EditWindow_Cancel" xml:space="preserve"><value>Zrušiť</value></data>
+  <data name="EditWindow_Apply" xml:space="preserve"><value>Použiť</value></data>
+  <data name="EditWindow_SlopeDirectionNormal" xml:space="preserve"><value>Normálny (začiatok → koniec)</value></data>
+  <data name="EditWindow_SlopeDirectionReversed" xml:space="preserve"><value>Obrátený (koniec → začiatok)</value></data>
+  <data name="EditWindow_SlopeDirectionMixedTooltip" xml:space="preserve"><value>Vybrané prvky majú rôzny smer spádu. Nezaškrtnuté pole ponechá každému prvku pôvodný smer.</value></data>
+  <data name="EditWindow_CuttingAllowanceMixedTooltip" xml:space="preserve"><value>Vybrané prvky majú rôzne výrobné prídavky. Nezaškrtnuté pole ponechá každému prvku pôvodnú hodnotu.</value></data>
+  <data name="EditWindow_DefaultAllowanceTooltip" xml:space="preserve"><value>Pri použití sa každému vybranému prvku nastaví aktuálny predvolený prídavok podľa jeho typu.</value></data>
+  <data name="SettingsWindow_Title" xml:space="preserve"><value>ACAD KROVY – nastavenia prvkov a hladín</value></data>
+  <data name="SettingsWindow_Heading" xml:space="preserve"><value>Nastavenia prvkov a hladín</value></data>
+  <data name="SettingsWindow_Description" xml:space="preserve"><value>Nastavenia sa ukladajú pre aktuálny účet Windows. Hladiny určujú zaradenie prvkov vo výkrese. Predvolené prídavky možno uložiť iba pre nové prvky alebo ich aplikovať aj na existujúce prvky vo výkrese.</value></data>
+  <data name="SettingsWindow_Layers_Tab" xml:space="preserve"><value>Hladiny</value></data>
+  <data name="SettingsWindow_Layers_ElementTypeColumn" xml:space="preserve"><value>Typ prvku</value></data>
+  <data name="SettingsWindow_Layers_LayerNameColumn" xml:space="preserve"><value>Názov hladiny</value></data>
+  <data name="SettingsWindow_Layers_LayerColorColumn" xml:space="preserve"><value>Farba hladiny</value></data>
+  <data name="SettingsWindow_Manufacturing_Tab" xml:space="preserve"><value>Výrobné prídavky</value></data>
+  <data name="SettingsWindow_Manufacturing_Description" xml:space="preserve"><value>Predvolený prídavok na rez sa použije pri novom priradení prvku. Pri uložení si môžeš vybrať, či sa má premietnuť aj do existujúcich prvkov.</value></data>
+  <data name="SettingsWindow_Manufacturing_RoundingStep" xml:space="preserve"><value>Zaokrúhľovať výrobnú dĺžku nahor na [mm]</value></data>
+  <data name="SettingsWindow_Manufacturing_ElementTypeColumn" xml:space="preserve"><value>Typ prvku</value></data>
+  <data name="SettingsWindow_Manufacturing_DefaultAllowanceColumn" xml:space="preserve"><value>Predvolený prídavok na rez [mm]</value></data>
+  <data name="SettingsWindow_RestoreDefaults" xml:space="preserve"><value>Obnoviť predvolené</value></data>
+  <data name="SettingsWindow_Cancel" xml:space="preserve"><value>Zrušiť</value></data>
+  <data name="SettingsWindow_SaveNewElementsOnly" xml:space="preserve"><value>Uložiť iba pre nové prvky</value></data>
+  <data name="SettingsWindow_SaveApplySelection" xml:space="preserve"><value>Uložiť a aplikovať na výber</value></data>
+  <data name="SettingsWindow_SaveApplyAll" xml:space="preserve"><value>Uložiť a aplikovať na všetky</value></data>
+  <data name="LayerColor_Red" xml:space="preserve"><value>Červená (1)</value></data>
+  <data name="LayerColor_Yellow" xml:space="preserve"><value>Žltá (2)</value></data>
+  <data name="LayerColor_Green" xml:space="preserve"><value>Zelená (3)</value></data>
+  <data name="LayerColor_Cyan" xml:space="preserve"><value>Azúrová (4)</value></data>
+  <data name="LayerColor_Blue" xml:space="preserve"><value>Modrá (5)</value></data>
+  <data name="LayerColor_Magenta" xml:space="preserve"><value>Purpurová (6)</value></data>
+  <data name="LayerColor_Orange" xml:space="preserve"><value>Oranžová (30)</value></data>
+  <data name="LayerColor_Gray" xml:space="preserve"><value>Sivá (8)</value></data>
+  <data name="LayerColor_LightGray" xml:space="preserve"><value>Svetlosivá (9)</value></data>
+  <data name="InspectWindow_Title" xml:space="preserve"><value>ACAD KROVY - údaje prvku</value></data>
+  <data name="InspectWindow_Heading" xml:space="preserve"><value>Údaje prvku</value></data>
+  <data name="InspectWindow_Close" xml:space="preserve"><value>Zavrieť</value></data>
 </root>

@@ -48,6 +48,25 @@ public sealed class LocalizationFoundationTests
         "Dialog_Settings_RoundingStepFormat", "Dialog_Settings_CuttingAllowanceFormat", "Error_LayerName_Empty",
         "Error_LayerName_TooLong", "Error_LayerName_InvalidCharacter",
     ];
+    private static readonly string[] WpfUiResourceKeys =
+    [
+        "EditWindow_Title", "EditWindow_Heading", "EditWindow_ElementType", "EditWindow_WidthMm",
+        "EditWindow_HeightMm", "EditWindow_SlopeDegrees", "EditWindow_SlopeDirection", "EditWindow_RoofPlane",
+        "EditWindow_CuttingAllowanceMm", "EditWindow_UseDefaultByType", "EditWindow_LengthMode",
+        "EditWindow_ManualLengthMm", "EditWindow_Material", "EditWindow_ChangeTooltip", "EditWindow_Cancel",
+        "EditWindow_Apply", "EditWindow_SlopeDirectionNormal", "EditWindow_SlopeDirectionReversed",
+        "EditWindow_SlopeDirectionMixedTooltip", "EditWindow_CuttingAllowanceMixedTooltip",
+        "EditWindow_DefaultAllowanceTooltip", "SettingsWindow_Title", "SettingsWindow_Heading",
+        "SettingsWindow_Description", "SettingsWindow_Layers_Tab", "SettingsWindow_Layers_ElementTypeColumn",
+        "SettingsWindow_Layers_LayerNameColumn", "SettingsWindow_Layers_LayerColorColumn",
+        "SettingsWindow_Manufacturing_Tab", "SettingsWindow_Manufacturing_Description",
+        "SettingsWindow_Manufacturing_RoundingStep", "SettingsWindow_Manufacturing_ElementTypeColumn",
+        "SettingsWindow_Manufacturing_DefaultAllowanceColumn", "SettingsWindow_RestoreDefaults",
+        "SettingsWindow_Cancel", "SettingsWindow_SaveNewElementsOnly", "SettingsWindow_SaveApplySelection",
+        "SettingsWindow_SaveApplyAll", "LayerColor_Red", "LayerColor_Yellow", "LayerColor_Green",
+        "LayerColor_Cyan", "LayerColor_Blue", "LayerColor_Magenta", "LayerColor_Orange", "LayerColor_Gray",
+        "LayerColor_LightGray", "InspectWindow_Title", "InspectWindow_Heading", "InspectWindow_Close",
+    ];
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -231,6 +250,75 @@ public sealed class LocalizationFoundationTests
             Assert.False(string.IsNullOrWhiteSpace(value));
             Assert.NotEqual(key, value);
         });
+    }
+
+    [Fact]
+    public void WpfUiResourceKeys_ExistAndUseSlovakFallbackForAllPlannedCultures()
+    {
+        Assert.Equal(50, WpfUiResourceKeys.Length);
+
+        foreach (var key in WpfUiResourceKeys)
+        {
+            var slovak = UiStrings.GetString(key, CultureInfo.GetCultureInfo("sk-SK"));
+            Assert.False(string.IsNullOrWhiteSpace(slovak));
+            Assert.NotEqual(key, slovak);
+
+            Assert.All(CultureNames, cultureName =>
+            {
+                var localized = UiStrings.GetString(key, CultureInfo.GetCultureInfo(cultureName));
+                Assert.Equal(slovak, localized);
+            });
+        }
+    }
+
+    [Fact]
+    public void UiStringBindingSource_RefreshesIndexerAndUsesFallbackCulture()
+    {
+        var source = new UiStringBindingSource();
+        var changedProperties = new List<string?>();
+        source.PropertyChanged += (_, args) => changedProperties.Add(args.PropertyName);
+
+        source.Culture = CultureInfo.GetCultureInfo("fr-FR");
+
+        Assert.Equal("Údaje vybraných prvkov", source["EditWindow_Heading"]);
+        Assert.Contains("Item[]", changedProperties);
+    }
+
+    [Theory]
+    [InlineData(false, "Normálny (začiatok → koniec)")]
+    [InlineData(true, "Obrátený (koniec → začiatok)")]
+    public void SlopeDirectionProvider_LocalizesDisplayWithoutChangingTechnicalValue(
+        bool isReversed,
+        string expectedDisplay)
+    {
+        var originalValue = isReversed;
+
+        var display = SlopeDirectionDisplayNameProvider.GetDisplayName(
+            isReversed,
+            CultureInfo.GetCultureInfo("fr-FR"));
+
+        Assert.Equal(expectedDisplay, display);
+        Assert.Equal(originalValue, isReversed);
+    }
+
+    [Fact]
+    public void LayerColorProvider_LocalizesNamesWithoutChangingColorIndexes()
+    {
+        var colorIndexes = new[] { 1, 2, 3, 4, 5, 6, 30, 8, 9 };
+        var expectedLabels = new[]
+        {
+            "Červená (1)", "Žltá (2)", "Zelená (3)", "Azúrová (4)", "Modrá (5)",
+            "Purpurová (6)", "Oranžová (30)", "Sivá (8)", "Svetlosivá (9)",
+        };
+
+        Assert.All(CultureNames, cultureName => Assert.Equal(
+            expectedLabels,
+            colorIndexes
+                .Select(index => LayerColorDisplayNameProvider.GetDisplayName(
+                    index,
+                    CultureInfo.GetCultureInfo(cultureName)))
+                .ToArray()));
+        Assert.Equal([1, 2, 3, 4, 5, 6, 30, 8, 9], colorIndexes);
     }
 
     [Fact]

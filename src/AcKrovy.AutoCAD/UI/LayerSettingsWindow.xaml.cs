@@ -350,21 +350,21 @@ public sealed record LayerColorOption(int Index, string Label, MediaBrush Brush)
 {
     public static IReadOnlyList<LayerColorOption> CreateDefaults() =>
     [
-        Create(1, "Červená (1)", "#FF0000"),
-        Create(2, "Žltá (2)", "#FFFF00"),
-        Create(3, "Zelená (3)", "#00CC00"),
-        Create(4, "Azúrová (4)", "#00CCCC"),
-        Create(5, "Modrá (5)", "#3366FF"),
-        Create(6, "Purpurová (6)", "#CC00CC"),
-        Create(30, "Oranžová (30)", "#FF7F00"),
-        Create(8, "Sivá (8)", "#777777"),
-        Create(9, "Svetlosivá (9)", "#B5B5B5"),
+        Create(1, "#FF0000"),
+        Create(2, "#FFFF00"),
+        Create(3, "#00CC00"),
+        Create(4, "#00CCCC"),
+        Create(5, "#3366FF"),
+        Create(6, "#CC00CC"),
+        Create(30, "#FF7F00"),
+        Create(8, "#777777"),
+        Create(9, "#B5B5B5"),
     ];
 
-    private static LayerColorOption Create(int index, string label, string hex)
+    private static LayerColorOption Create(int index, string hex)
     {
         var brush = new MediaSolidColorBrush((MediaColor)MediaColorConverter.ConvertFromString(hex)!);
         brush.Freeze();
-        return new LayerColorOption(index, label, brush);
+        return new LayerColorOption(index, LayerColorDisplayNameProvider.GetDisplayName(index), brush);
     }
 }

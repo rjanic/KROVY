@@ -1,7 +1,8 @@
 <Window x:Class="AcKrovy.AutoCAD.UI.InspectInfoWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="ACAD KROVY - údaje prvku"
+        xmlns:localization="clr-namespace:AcKrovy.AutoCAD.UI.Localization"
+        Title="{localization:Loc InspectWindow_Title}"
         SizeToContent="WidthAndHeight"
         ResizeMode="NoResize"
         WindowStartupLocation="CenterOwner">
@@ -13,10 +14,10 @@
                     Margin="0,16,0,0"
                     HorizontalAlignment="Right"
                     Click="CloseButton_Click"
-                    Content="Zavrieť" />
+                    Content="{localization:Loc InspectWindow_Close}" />
 
             <StackPanel>
-                <TextBlock Text="Údaje prvku"
+                <TextBlock Text="{localization:Loc InspectWindow_Heading}"
                            FontSize="16"
                            FontWeight="SemiBold"
                            Margin="0,0,0,10" />

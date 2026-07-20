@@ -1,7 +1,8 @@
 <Window x:Class="AcKrovy.AutoCAD.UI.LayerSettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="ACAD KROVY – nastavenia prvkov a hladín"
+        xmlns:localization="clr-namespace:AcKrovy.AutoCAD.UI.Localization"
+        Title="{localization:Loc SettingsWindow_Title}"
         Width="900"
         Height="485"
         MinWidth="860"
@@ -18,14 +19,11 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0" FontSize="16" FontWeight="SemiBold" Text="Nastavenia prvkov a hladín" />
-        <TextBlock Grid.Row="2" TextWrapping="Wrap" Foreground="#555555">
-            Nastavenia sa ukladajú pre aktuálny účet Windows. Hladiny určujú zaradenie prvkov vo výkrese.
-            Predvolené prídavky možno uložiť iba pre nové prvky alebo ich aplikovať aj na existujúce prvky vo výkrese.
-        </TextBlock>
+        <TextBlock Grid.Row="0" FontSize="16" FontWeight="SemiBold" Text="{localization:Loc SettingsWindow_Heading}" />
+        <TextBlock Grid.Row="2" TextWrapping="Wrap" Foreground="#555555" Text="{localization:Loc SettingsWindow_Description}" />
 
         <TabControl Grid.Row="4">
-            <TabItem Header="Hladiny">
+            <TabItem Header="{localization:Loc SettingsWindow_Layers_Tab}">
                 <DataGrid x:Name="StylesDataGrid"
                           AutoGenerateColumns="False"
                           CanUserAddRows="False"
@@ -38,9 +36,9 @@
                           GridLinesVisibility="Horizontal"
                           RowHeaderWidth="0">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="Typ prvku" Binding="{Binding ElementLabel}" IsReadOnly="True" Width="170" />
-                        <DataGridTextColumn Header="Názov hladiny" Binding="{Binding LayerName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="*" />
-                        <DataGridTemplateColumn Header="Farba hladiny" Width="200">
+                        <DataGridTextColumn Header="{localization:Loc SettingsWindow_Layers_ElementTypeColumn}" Binding="{Binding ElementLabel}" IsReadOnly="True" Width="170" />
+                        <DataGridTextColumn Header="{localization:Loc SettingsWindow_Layers_LayerNameColumn}" Binding="{Binding LayerName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="*" />
+                        <DataGridTemplateColumn Header="{localization:Loc SettingsWindow_Layers_LayerColorColumn}" Width="200">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
@@ -68,7 +66,7 @@
                     </DataGrid.Columns>
                 </DataGrid>
             </TabItem>
-            <TabItem Header="Výrobné prídavky">
+            <TabItem Header="{localization:Loc SettingsWindow_Manufacturing_Tab}">
                 <Grid Margin="0,8,0,0">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -77,11 +75,9 @@
                         <RowDefinition Height="8" />
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
-                    <TextBlock Grid.Row="0" TextWrapping="Wrap" Foreground="#555555">
-                        Predvolený prídavok na rez sa použije pri novom priradení prvku. Pri uložení si môžeš vybrať, či sa má premietnuť aj do existujúcich prvkov.
-                    </TextBlock>
+                    <TextBlock Grid.Row="0" TextWrapping="Wrap" Foreground="#555555" Text="{localization:Loc SettingsWindow_Manufacturing_Description}" />
                     <StackPanel Grid.Row="2" Orientation="Horizontal" VerticalAlignment="Center">
-                        <TextBlock VerticalAlignment="Center" Text="Zaokrúhľovať výrobnú dĺžku nahor na [mm]" />
+                        <TextBlock VerticalAlignment="Center" Text="{localization:Loc SettingsWindow_Manufacturing_RoundingStep}" />
                         <TextBox Width="90"
                                  Margin="12,0,0,0"
                                  Text="{Binding RoundingStepMmText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
@@ -99,8 +95,8 @@
                               GridLinesVisibility="Horizontal"
                               RowHeaderWidth="0">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="Typ prvku" Binding="{Binding ElementLabel}" IsReadOnly="True" Width="220" />
-                            <DataGridTextColumn Header="Predvolený prídavok na rez [mm]" Binding="{Binding CuttingAllowanceMmText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="*" />
+                            <DataGridTextColumn Header="{localization:Loc SettingsWindow_Manufacturing_ElementTypeColumn}" Binding="{Binding ElementLabel}" IsReadOnly="True" Width="220" />
+                            <DataGridTextColumn Header="{localization:Loc SettingsWindow_Manufacturing_DefaultAllowanceColumn}" Binding="{Binding CuttingAllowanceMmText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="*" />
                         </DataGrid.Columns>
                     </DataGrid>
                 </Grid>
@@ -112,12 +108,12 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <Button Grid.Column="0" Width="165" HorizontalAlignment="Left" Padding="8,4" Click="RestoreDefaults_Click">Obnoviť predvolené</Button>
+            <Button Grid.Column="0" Width="165" HorizontalAlignment="Left" Padding="8,4" Click="RestoreDefaults_Click" Content="{localization:Loc SettingsWindow_RestoreDefaults}" />
             <StackPanel Grid.Column="1" Orientation="Horizontal">
-                <Button Width="90" Margin="0,0,8,0" Padding="8,4" Click="Cancel_Click" IsCancel="True">Zrušiť</Button>
-                <Button Width="185" Margin="0,0,8,0" Padding="8,4" Click="SaveNewElementsOnly_Click">Uložiť iba pre nové prvky</Button>
-                <Button Width="175" Margin="0,0,8,0" Padding="8,4" Click="SaveAndApplySelected_Click">Uložiť a aplikovať na výber</Button>
-                <Button Width="175" Padding="8,4" Click="SaveAndApply_Click" IsDefault="True">Uložiť a aplikovať na všetky</Button>
+                <Button Width="90" Margin="0,0,8,0" Padding="8,4" Click="Cancel_Click" IsCancel="True" Content="{localization:Loc SettingsWindow_Cancel}" />
+                <Button Width="185" Margin="0,0,8,0" Padding="8,4" Click="SaveNewElementsOnly_Click" Content="{localization:Loc SettingsWindow_SaveNewElementsOnly}" />
+                <Button Width="175" Margin="0,0,8,0" Padding="8,4" Click="SaveAndApplySelected_Click" Content="{localization:Loc SettingsWindow_SaveApplySelection}" />
+                <Button Width="175" Padding="8,4" Click="SaveAndApply_Click" IsDefault="True" Content="{localization:Loc SettingsWindow_SaveApplyAll}" />
             </StackPanel>
         </Grid>
     </Grid>
