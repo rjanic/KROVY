@@ -67,6 +67,22 @@ public sealed class LocalizationFoundationTests
         "LayerColor_Cyan", "LayerColor_Blue", "LayerColor_Magenta", "LayerColor_Orange", "LayerColor_Gray",
         "LayerColor_LightGray", "InspectWindow_Title", "InspectWindow_Heading", "InspectWindow_Close",
     ];
+    private static readonly string[] RibbonToolbarResourceKeys =
+    [
+        "Ribbon_Tab_Title", "Ribbon_Panel_Elements", "Ribbon_Panel_Data", "Ribbon_Panel_Reports",
+        "Ribbon_Panel_Settings", "Ribbon_Panel_Labels", "Ribbon_Panel_Toolbar", "Toolbar_Title",
+        "Toolbar_ContentTitle", "CommandUi_Rafter_Label", "CommandUi_Rafter_Tooltip",
+        "CommandUi_WallPlate_Label", "CommandUi_WallPlate_Tooltip", "CommandUi_Purlin_Label",
+        "CommandUi_Purlin_Tooltip", "CommandUi_Post_Label", "CommandUi_Post_Tooltip",
+        "CommandUi_CollarTie_Label", "CommandUi_CollarTie_Tooltip", "CommandUi_Brace_Label",
+        "CommandUi_Brace_Tooltip", "CommandUi_TieBeam_Label", "CommandUi_TieBeam_Tooltip",
+        "CommandUi_Assign_Label", "CommandUi_Assign_Tooltip", "CommandUi_Edit_Label",
+        "CommandUi_Edit_Tooltip", "CommandUi_Inspect_Label", "CommandUi_Inspect_Tooltip",
+        "CommandUi_Recalc_Label", "CommandUi_Recalc_Tooltip", "CommandUi_Report_Label",
+        "CommandUi_Report_Tooltip", "CommandUi_ReportAll_Label", "CommandUi_ReportAll_Tooltip",
+        "CommandUi_Settings_Label", "CommandUi_Settings_Tooltip", "CommandUi_Labels_Label",
+        "CommandUi_Labels_Tooltip", "CommandUi_Toolbar_Label", "CommandUi_Toolbar_Tooltip",
+    ];
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -319,6 +335,89 @@ public sealed class LocalizationFoundationTests
                     CultureInfo.GetCultureInfo(cultureName)))
                 .ToArray()));
         Assert.Equal([1, 2, 3, 4, 5, 6, 30, 8, 9], colorIndexes);
+    }
+
+    [Fact]
+    public void RibbonToolbarResourceKeys_ExistAndUseSlovakFallbackForAllPlannedCultures()
+    {
+        Assert.Equal(41, RibbonToolbarResourceKeys.Length);
+
+        foreach (var key in RibbonToolbarResourceKeys)
+        {
+            var slovak = UiStrings.GetString(key, CultureInfo.GetCultureInfo("sk-SK"));
+            Assert.False(string.IsNullOrWhiteSpace(slovak));
+            Assert.NotEqual(key, slovak);
+
+            Assert.All(CultureNames, cultureName => Assert.Equal(
+                slovak,
+                UiStrings.GetString(key, CultureInfo.GetCultureInfo(cultureName))));
+        }
+    }
+
+    [Fact]
+    public void AllTechnicalCommandNames_RemainStableAndLanguageNeutral()
+    {
+        var expected = new[]
+        {
+            "AK_HELP", "AK_RIBBON", "AK_TOOLBAR", "AK_TOOLBARSHOW", "AK_TOOLBARHIDE", "AK_SETTINGS",
+            "AK_APPLYLAYERS", "AK_LABELS", "AK_LABELSELECTED", "AK_LABELSHOW", "AK_LABELHIDE",
+            "AK_ASSIGN", "AK_KROKVA", "AK_POMURNICA", "AK_VAZNICA", "AK_STLPIK", "AK_KLIESTINA",
+            "AK_VZPERA", "AK_VAZNYTRAM", "AK_EDIT", "AK_FLIPSLOPE", "AK_INSPECT", "AK_REPORT",
+            "AK_REPORTALL", "AK_RECALC",
+        };
+
+        Assert.Equal(25, AcKrovyCommandNames.All.Count);
+        Assert.Equal(expected, AcKrovyCommandNames.All);
+        Assert.All(AcKrovyCommandNames.All, command => Assert.StartsWith("AK_", command, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void CommandUiCatalog_LocalizesDisplayAndPreservesCommandsControlIdsAndIcons()
+    {
+        var expected = new[]
+        {
+            ("AK_KROKVA", "DECORAIR_AK_RAFTER", "rafter", "Krokva"),
+            ("AK_POMURNICA", "DECORAIR_AK_WALLPLATE", "wallplate", "Pomúrnica"),
+            ("AK_VAZNICA", "DECORAIR_AK_PURLIN", "purlin", "Väznica"),
+            ("AK_STLPIK", "DECORAIR_AK_POST", "post", "Stĺpik"),
+            ("AK_KLIESTINA", "DECORAIR_AK_COLLARTIE", "collartie", "Klieština"),
+            ("AK_VZPERA", "DECORAIR_AK_BRACE", "brace", "Vzpera"),
+            ("AK_VAZNYTRAM", "DECORAIR_AK_TIEBEAM", "tiebeam", "Väzný trám"),
+            ("AK_ASSIGN", "DECORAIR_AK_ASSIGN", "assign", "Priradiť údaje"),
+            ("AK_EDIT", "DECORAIR_AK_EDIT", "edit", "Upraviť"),
+            ("AK_INSPECT", "DECORAIR_AK_INSPECT", "inspect", "Skontrolovať"),
+            ("AK_RECALC", "DECORAIR_AK_RECALC", "recalc", "Prepočítať"),
+            ("AK_REPORT", "DECORAIR_AK_REPORT", "report_selection", "Výkaz z výberu"),
+            ("AK_REPORTALL", "DECORAIR_AK_REPORTALL", "report_all", "Výkaz všetkého"),
+            ("AK_SETTINGS", "DECORAIR_AK_SETTINGS", "settings", "Nastavenia"),
+            ("AK_LABELS", "DECORAIR_AK_LABELS", "labels", "Obnoviť popisy"),
+            ("AK_TOOLBAR", "DECORAIR_AK_TOOLBAR", "toolbar", "Klasický panel"),
+        };
+
+        Assert.Equal("DECORAIR_ACAD_KROVY_TAB", CommandUiCatalog.RibbonTabId);
+        Assert.Equal("AE3310A6-6077-4FB3-B9BE-D4A1DCC866C4", CommandUiCatalog.ClassicToolbarPaletteId);
+        Assert.Equal(expected.Length, CommandUiCatalog.RibbonCommands.Count);
+
+        for (var index = 0; index < expected.Length; index++)
+        {
+            var descriptor = CommandUiCatalog.RibbonCommands[index];
+            var item = expected[index];
+            Assert.Equal(item.Item1, descriptor.CommandName);
+            Assert.Equal(item.Item2, descriptor.RibbonControlId);
+            Assert.Equal(item.Item3, descriptor.IconKey);
+            Assert.Equal(item.Item4, descriptor.GetLabel(CultureInfo.GetCultureInfo("fr-FR")));
+            Assert.False(string.IsNullOrWhiteSpace(descriptor.GetToolTip(CultureInfo.GetCultureInfo("fr-FR"))));
+        }
+
+        Assert.Equal(15, CommandUiCatalog.ClassicToolbarCommands.Count);
+        Assert.DoesNotContain(CommandUiCatalog.Toolbar, CommandUiCatalog.ClassicToolbarCommands);
+    }
+
+    [Fact]
+    public void ToolbarCommandMacros_RemainStableForAllCommands()
+    {
+        Assert.All(AcKrovyCommandNames.All, command =>
+            Assert.Equal(command + " ", CommandMacroBuilder.Build(command)));
     }
 
     [Fact]

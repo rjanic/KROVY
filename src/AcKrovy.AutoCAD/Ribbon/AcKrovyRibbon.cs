@@ -1,6 +1,7 @@
 using System.Windows.Controls;
 using WpfOrientation = System.Windows.Controls.Orientation;
 using Autodesk.Windows;
+using AcKrovy.Localization;
 using AcApp = Autodesk.AutoCAD.ApplicationServices.Application;
 
 namespace AcKrovy.AutoCAD.Ribbon;
@@ -12,7 +13,6 @@ namespace AcKrovy.AutoCAD.Ribbon;
 /// </summary>
 internal static class AcKrovyRibbon
 {
-    private const string TabId = "DECORAIR_ACAD_KROVY_TAB";
     private static bool _idleSubscribed;
 
     public static void ScheduleCreation()
@@ -35,7 +35,7 @@ internal static class AcKrovyRibbon
         }
 
         var tab = ribbon.Tabs.FirstOrDefault(item =>
-            string.Equals(item.Id, TabId, StringComparison.OrdinalIgnoreCase));
+            string.Equals(item.Id, CommandUiCatalog.RibbonTabId, StringComparison.OrdinalIgnoreCase));
 
         if (tab is null)
         {
@@ -48,6 +48,32 @@ internal static class AcKrovyRibbon
             tab.IsActive = true;
         }
 
+        return true;
+    }
+
+    /// <summary>
+    /// Znovu vytvorí kartu s rovnakým technickým ID a aktuálnymi resource textami.
+    /// Budúci prepínač jazyka môže túto metódu zavolať po zmene CurrentUICulture.
+    /// </summary>
+    internal static bool RebuildLocalizedUi(bool activateTab)
+    {
+        var ribbon = ComponentManager.Ribbon;
+        if (ribbon is null)
+        {
+            return false;
+        }
+
+        var existing = ribbon.Tabs.FirstOrDefault(item =>
+            string.Equals(item.Id, CommandUiCatalog.RibbonTabId, StringComparison.OrdinalIgnoreCase));
+        var shouldActivate = activateTab || existing?.IsActive == true;
+        if (existing is not null)
+        {
+            ribbon.Tabs.Remove(existing);
+        }
+
+        var rebuilt = BuildTab();
+        ribbon.Tabs.Add(rebuilt);
+        rebuilt.IsActive = shouldActivate;
         return true;
     }
 
@@ -65,7 +91,7 @@ internal static class AcKrovyRibbon
         {
             var ribbon = ComponentManager.Ribbon;
             var tab = ribbon?.Tabs.FirstOrDefault(item =>
-                string.Equals(item.Id, TabId, StringComparison.OrdinalIgnoreCase));
+                string.Equals(item.Id, CommandUiCatalog.RibbonTabId, StringComparison.OrdinalIgnoreCase));
             if (tab is not null)
             {
                 ribbon!.Tabs.Remove(tab);
@@ -98,48 +124,48 @@ internal static class AcKrovyRibbon
     {
         var tab = new RibbonTab
         {
-            Id = TabId,
-            Title = "ACAD KROVY",
+            Id = CommandUiCatalog.RibbonTabId,
+            Title = UiStrings.RibbonTabTitle,
         };
 
-        tab.Panels.Add(BuildPanel("Prvky", new[]
+        tab.Panels.Add(BuildPanel(UiStrings.RibbonPanelElements, new[]
         {
-            Button("DECORAIR_AK_RAFTER", "Krokva", "rafter", "AK_KROKVA", "Priradí vybraným čiaram typ Krokva."),
-            Button("DECORAIR_AK_WALLPLATE", "Pomúrnica", "wallplate", "AK_POMURNICA", "Priradí vybraným čiaram typ Pomúrnica."),
-            Button("DECORAIR_AK_PURLIN", "Väznica", "purlin", "AK_VAZNICA", "Priradí vybraným čiaram typ Väznica."),
-            Button("DECORAIR_AK_POST", "Stĺpik", "post", "AK_STLPIK", "Priradí vybraným čiaram typ Stĺpik."),
-            Button("DECORAIR_AK_COLLARTIE", "Klieština", "collartie", "AK_KLIESTINA", "Priradí vybraným čiaram typ Klieština / hambálok."),
-            Button("DECORAIR_AK_BRACE", "Vzpera", "brace", "AK_VZPERA", "Priradí vybraným čiaram typ Vzpera."),
-            Button("DECORAIR_AK_TIEBEAM", "Väzný trám", "tiebeam", "AK_VAZNYTRAM", "Priradí vybraným čiaram typ Väzný trám."),
+            Button(CommandUiCatalog.Rafter),
+            Button(CommandUiCatalog.WallPlate),
+            Button(CommandUiCatalog.Purlin),
+            Button(CommandUiCatalog.Post),
+            Button(CommandUiCatalog.CollarTie),
+            Button(CommandUiCatalog.Brace),
+            Button(CommandUiCatalog.TieBeam),
         }));
 
-        tab.Panels.Add(BuildPanel("Údaje", new[]
+        tab.Panels.Add(BuildPanel(UiStrings.RibbonPanelData, new[]
         {
-            Button("DECORAIR_AK_ASSIGN", "Priradiť údaje", "assign", "AK_ASSIGN", "Priradí údaje vybraným čiaram alebo polyline."),
-            Button("DECORAIR_AK_EDIT", "Upraviť", "edit", "AK_EDIT", "Hromadne upraví zaškrtnuté hodnoty vybraných prvkov."),
-            Button("DECORAIR_AK_INSPECT", "Skontrolovať", "inspect", "AK_INSPECT", "Zobrazí údaje jedného prvku ACAD KROVY."),
-            Button("DECORAIR_AK_RECALC", "Prepočítať", "recalc", "AK_RECALC", "Skontroluje prepočty všetkých prvkov vo výkrese."),
+            Button(CommandUiCatalog.Assign),
+            Button(CommandUiCatalog.Edit),
+            Button(CommandUiCatalog.Inspect),
+            Button(CommandUiCatalog.Recalc),
         }));
 
-        tab.Panels.Add(BuildPanel("Výkaz", new[]
+        tab.Panels.Add(BuildPanel(UiStrings.RibbonPanelReports, new[]
         {
-            Button("DECORAIR_AK_REPORT", "Výkaz z výberu", "report_selection", "AK_REPORT", "Vloží výkaz reziva z aktuálne vybraných prvkov."),
-            Button("DECORAIR_AK_REPORTALL", "Výkaz všetkého", "report_all", "AK_REPORTALL", "Vloží výkaz reziva zo všetkých prvkov ACAD KROVY vo výkrese."),
+            Button(CommandUiCatalog.Report),
+            Button(CommandUiCatalog.ReportAll),
         }));
 
-        tab.Panels.Add(BuildPanel("Nastavenia", new[]
+        tab.Panels.Add(BuildPanel(UiStrings.RibbonPanelSettings, new[]
         {
-            Button("DECORAIR_AK_SETTINGS", "Nastavenia", "settings", "AK_SETTINGS", "Nastaví názvy hladín a farby jednotlivých typov krovu."),
+            Button(CommandUiCatalog.Settings),
         }));
 
-        tab.Panels.Add(BuildPanel("Popisy", new[]
+        tab.Panels.Add(BuildPanel(UiStrings.RibbonPanelLabels, new[]
         {
-            Button("DECORAIR_AK_LABELS", "Obnoviť popisy", "labels", "AK_LABELS", "Vytvorí alebo obnoví automatické popisy všetkých prvkov krovu."),
+            Button(CommandUiCatalog.Labels),
         }));
 
-        tab.Panels.Add(BuildPanel("Panel", new[]
+        tab.Panels.Add(BuildPanel(UiStrings.RibbonPanelToolbar, new[]
         {
-            Button("DECORAIR_AK_TOOLBAR", "Klasický panel", "toolbar", "AK_TOOLBAR", "Zobrazí alebo skryje klasický plávajúci panel malých ikon."),
+            Button(CommandUiCatalog.Toolbar),
         }));
 
         return tab;
@@ -163,24 +189,19 @@ internal static class AcKrovyRibbon
         };
     }
 
-    private static RibbonButton Button(
-        string id,
-        string text,
-        string iconKey,
-        string command,
-        string toolTip) => new()
+    private static RibbonButton Button(CommandUiDescriptor descriptor) => new()
     {
-        Id = id,
-        Text = text,
+        Id = descriptor.RibbonControlId,
+        Text = descriptor.GetLabel(),
         Size = RibbonItemSize.Large,
         Orientation = WpfOrientation.Vertical,
         ShowText = true,
         ShowImage = true,
         IsToolTipEnabled = true,
-        LargeImage = RibbonIconProvider.Get(iconKey, 32),
-        Image = RibbonIconProvider.Get(iconKey, 16),
-        ToolTip = toolTip,
-        CommandParameter = command,
+        LargeImage = RibbonIconProvider.Get(descriptor.IconKey, 32),
+        Image = RibbonIconProvider.Get(descriptor.IconKey, 16),
+        ToolTip = descriptor.GetToolTip(),
+        CommandParameter = descriptor.CommandName,
         CommandHandler = RibbonCommandHandler.Instance,
     };
 }

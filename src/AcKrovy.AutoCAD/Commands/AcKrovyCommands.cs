@@ -22,14 +22,14 @@ namespace AcKrovy.AutoCAD.Commands;
 /// </summary>
 public sealed class AcKrovyCommands
 {
-    [CommandMethod("AK_HELP", CommandFlags.Modal)]
+    [CommandMethod(AcKrovyCommandNames.Help, CommandFlags.Modal)]
     public void Help()
     {
         var editor = ActiveEditor();
         editor.WriteMessage(UiStrings.HelpCommandOverview);
     }
 
-    [CommandMethod("AK_RIBBON", CommandFlags.Modal)]
+    [CommandMethod(AcKrovyCommandNames.Ribbon, CommandFlags.Modal)]
     public void ShowRibbon()
     {
         if (AcKrovyRibbon.EnsureCreated(activateTab: true))
@@ -42,7 +42,7 @@ public sealed class AcKrovyCommands
         ActiveEditor().WriteMessage(UiStrings.CommandRibbonPending);
     }
 
-    [CommandMethod("AK_TOOLBAR", CommandFlags.Modal)]
+    [CommandMethod(AcKrovyCommandNames.Toolbar, CommandFlags.Modal)]
     public void ToggleClassicToolbar()
     {
         ClassicToolbarManager.Toggle();
@@ -51,21 +51,21 @@ public sealed class AcKrovyCommands
             : UiStrings.CommandToolbarHidden);
     }
 
-    [CommandMethod("AK_TOOLBARSHOW", CommandFlags.Modal)]
+    [CommandMethod(AcKrovyCommandNames.ToolbarShow, CommandFlags.Modal)]
     public void ShowClassicToolbar()
     {
         ClassicToolbarManager.Show();
         ActiveEditor().WriteMessage(UiStrings.CommandToolbarShown);
     }
 
-    [CommandMethod("AK_TOOLBARHIDE", CommandFlags.Modal)]
+    [CommandMethod(AcKrovyCommandNames.ToolbarHide, CommandFlags.Modal)]
     public void HideClassicToolbar()
     {
         ClassicToolbarManager.Hide();
         ActiveEditor().WriteMessage(UiStrings.CommandToolbarHidden);
     }
 
-    [CommandMethod("AK_SETTINGS", CommandFlags.Modal)]
+    [CommandMethod(AcKrovyCommandNames.Settings, CommandFlags.Modal)]
     public void OpenSettings()
     {
         var document = ActiveDocument();
@@ -115,13 +115,13 @@ public sealed class AcKrovyCommands
         }
     }
 
-    [CommandMethod("AK_APPLYLAYERS", CommandFlags.Modal)]
+    [CommandMethod(AcKrovyCommandNames.ApplyLayers, CommandFlags.Modal)]
     public void ApplyLayers()
     {
         ApplyLayersToExistingElements(ActiveDocument(), ElementLayerProfileStore.Load());
     }
 
-    [CommandMethod("AK_LABELS", CommandFlags.Modal)]
+    [CommandMethod(AcKrovyCommandNames.Labels, CommandFlags.Modal)]
     public void UpdateAllLabels()
     {
         var document = ActiveDocument();
@@ -133,7 +133,7 @@ public sealed class AcKrovyCommands
             result.Skipped));
     }
 
-    [CommandMethod("AK_LABELSELECTED", CommandFlags.Modal | CommandFlags.UsePickSet)]
+    [CommandMethod(AcKrovyCommandNames.LabelSelected, CommandFlags.Modal | CommandFlags.UsePickSet)]
     public void UpdateSelectedLabels()
     {
         var document = ActiveDocument();
@@ -151,37 +151,37 @@ public sealed class AcKrovyCommands
             result.Skipped));
     }
 
-    [CommandMethod("AK_LABELSHOW", CommandFlags.Modal)]
+    [CommandMethod(AcKrovyCommandNames.LabelShow, CommandFlags.Modal)]
     public void ShowLabels() => SetLabelsVisibility(true);
 
-    [CommandMethod("AK_LABELHIDE", CommandFlags.Modal)]
+    [CommandMethod(AcKrovyCommandNames.LabelHide, CommandFlags.Modal)]
     public void HideLabels() => SetLabelsVisibility(false);
 
-    [CommandMethod("AK_ASSIGN", CommandFlags.Modal | CommandFlags.UsePickSet)]
+    [CommandMethod(AcKrovyCommandNames.Assign, CommandFlags.Modal | CommandFlags.UsePickSet)]
     public void Assign() => AssignWithPresetType(null);
 
-    [CommandMethod("AK_KROKVA", CommandFlags.Modal | CommandFlags.UsePickSet)]
+    [CommandMethod(AcKrovyCommandNames.Rafter, CommandFlags.Modal | CommandFlags.UsePickSet)]
     public void AssignRafter() => AssignWithPresetType(TimberElementType.Rafter);
 
-    [CommandMethod("AK_POMURNICA", CommandFlags.Modal | CommandFlags.UsePickSet)]
+    [CommandMethod(AcKrovyCommandNames.WallPlate, CommandFlags.Modal | CommandFlags.UsePickSet)]
     public void AssignWallPlate() => AssignWithPresetType(TimberElementType.WallPlate);
 
-    [CommandMethod("AK_VAZNICA", CommandFlags.Modal | CommandFlags.UsePickSet)]
+    [CommandMethod(AcKrovyCommandNames.Purlin, CommandFlags.Modal | CommandFlags.UsePickSet)]
     public void AssignPurlin() => AssignWithPresetType(TimberElementType.Purlin);
 
-    [CommandMethod("AK_STLPIK", CommandFlags.Modal | CommandFlags.UsePickSet)]
+    [CommandMethod(AcKrovyCommandNames.Post, CommandFlags.Modal | CommandFlags.UsePickSet)]
     public void AssignPost() => AssignWithPresetType(TimberElementType.Post);
 
-    [CommandMethod("AK_KLIESTINA", CommandFlags.Modal | CommandFlags.UsePickSet)]
+    [CommandMethod(AcKrovyCommandNames.CollarTie, CommandFlags.Modal | CommandFlags.UsePickSet)]
     public void AssignCollarTie() => AssignWithPresetType(TimberElementType.CollarTie);
 
-    [CommandMethod("AK_VZPERA", CommandFlags.Modal | CommandFlags.UsePickSet)]
+    [CommandMethod(AcKrovyCommandNames.Brace, CommandFlags.Modal | CommandFlags.UsePickSet)]
     public void AssignBrace() => AssignWithPresetType(TimberElementType.Brace);
 
-    [CommandMethod("AK_VAZNYTRAM", CommandFlags.Modal | CommandFlags.UsePickSet)]
+    [CommandMethod(AcKrovyCommandNames.TieBeam, CommandFlags.Modal | CommandFlags.UsePickSet)]
     public void AssignTieBeam() => AssignWithPresetType(TimberElementType.TieBeam);
 
-    [CommandMethod("AK_EDIT", CommandFlags.Modal | CommandFlags.UsePickSet)]
+    [CommandMethod(AcKrovyCommandNames.Edit, CommandFlags.Modal | CommandFlags.UsePickSet)]
     public void Edit()
     {
         var document = ActiveDocument();
@@ -267,7 +267,7 @@ public sealed class AcKrovyCommands
         editor.WriteMessage(UiStrings.Format(UiStrings.CommandEditResultFormat, changed, skipped));
     }
 
-    [CommandMethod("AK_FLIPSLOPE", CommandFlags.Modal)]
+    [CommandMethod(AcKrovyCommandNames.FlipSlope, CommandFlags.Modal)]
     public void FlipSlopeDirection()
     {
         var document = ActiveDocument();
@@ -331,7 +331,7 @@ public sealed class AcKrovyCommands
             : UiStrings.CommandFlipSlopeResultNormal);
     }
 
-    [CommandMethod("AK_INSPECT", CommandFlags.Modal)]
+    [CommandMethod(AcKrovyCommandNames.Inspect, CommandFlags.Modal)]
     public void Inspect()
     {
         var document = ActiveDocument();
@@ -400,7 +400,7 @@ public sealed class AcKrovyCommands
         AcApp.ShowModalWindow(new InspectInfoWindow(rows));
     }
 
-    [CommandMethod("AK_REPORT", CommandFlags.Modal | CommandFlags.UsePickSet)]
+    [CommandMethod(AcKrovyCommandNames.Report, CommandFlags.Modal | CommandFlags.UsePickSet)]
     public void ReportFromSelection()
     {
         var document = ActiveDocument();
@@ -408,7 +408,7 @@ public sealed class AcKrovyCommands
         InsertReport(document, ids);
     }
 
-    [CommandMethod("AK_REPORTALL", CommandFlags.Modal)]
+    [CommandMethod(AcKrovyCommandNames.ReportAll, CommandFlags.Modal)]
     public void ReportAll()
     {
         var document = ActiveDocument();
@@ -419,7 +419,7 @@ public sealed class AcKrovyCommands
         InsertReport(document, ids);
     }
 
-    [CommandMethod("AK_RECALC", CommandFlags.Modal)]
+    [CommandMethod(AcKrovyCommandNames.Recalc, CommandFlags.Modal)]
     public void RecalculateAll()
     {
         var document = ActiveDocument();

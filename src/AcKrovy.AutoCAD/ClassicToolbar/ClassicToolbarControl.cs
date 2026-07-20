@@ -4,6 +4,7 @@ using System.Reflection;
 using System.Windows.Forms;
 using DrawingImage = System.Drawing.Image;
 using AcKrovy.AutoCAD.Ribbon;
+using AcKrovy.Localization;
 
 namespace AcKrovy.AutoCAD.ClassicToolbar;
 
@@ -42,46 +43,48 @@ internal sealed class ClassicToolbarControl : UserControl
 
         AddSection(layout, new[]
         {
-            Item("rafter", "Krokva", "AK_KROKVA", "Priradí vybraným čiaram typ Krokva."),
-            Item("wallplate", "Pomúrnica", "AK_POMURNICA", "Priradí vybraným čiaram typ Pomúrnica."),
-            Item("purlin", "Väznica", "AK_VAZNICA", "Priradí vybraným čiaram typ Väznica."),
-            Item("post", "Stĺpik", "AK_STLPIK", "Priradí vybraným čiaram typ Stĺpik."),
-            Item("collartie", "Klieština", "AK_KLIESTINA", "Priradí vybraným čiaram typ Klieština / hambálok."),
-            Item("brace", "Vzpera", "AK_VZPERA", "Priradí vybraným čiaram typ Vzpera."),
-            Item("tiebeam", "Väzný trám", "AK_VAZNYTRAM", "Priradí vybraným čiaram typ Väzný trám."),
+            CommandUiCatalog.Rafter,
+            CommandUiCatalog.WallPlate,
+            CommandUiCatalog.Purlin,
+            CommandUiCatalog.Post,
+            CommandUiCatalog.CollarTie,
+            CommandUiCatalog.Brace,
+            CommandUiCatalog.TieBeam,
         });
 
         AddSeparator(layout);
 
         AddSection(layout, new[]
         {
-            Item("assign", "Priradiť údaje", "AK_ASSIGN", "Priradí údaje vybraným čiaram alebo polyline."),
-            Item("edit", "Upraviť", "AK_EDIT", "Hromadne upraví označené údaje prvkov."),
-            Item("inspect", "Skontrolovať", "AK_INSPECT", "Zobrazí údaje jedného prvku."),
-            Item("recalc", "Prepočítať", "AK_RECALC", "Skontroluje prepočty všetkých prvkov."),
+            CommandUiCatalog.Assign,
+            CommandUiCatalog.Edit,
+            CommandUiCatalog.Inspect,
+            CommandUiCatalog.Recalc,
         });
 
         AddSeparator(layout);
 
         AddSection(layout, new[]
         {
-            Item("report_selection", "Výkaz z výberu", "AK_REPORT", "Vloží výkaz z označených prvkov."),
-            Item("report_all", "Výkaz všetkého", "AK_REPORTALL", "Vloží výkaz zo všetkých prvkov."),
-            Item("labels", "Obnoviť automatické popisy", "AK_LABELS", "Vytvorí alebo obnoví popisy všetkých prvkov krovu."),
-            Item("settings", "Nastavenia prvkov a hladín", "AK_SETTINGS", "Nastaví názvy hladín a farby prvkov."),
+            CommandUiCatalog.Report,
+            CommandUiCatalog.ReportAll,
+            CommandUiCatalog.Labels,
+            CommandUiCatalog.Settings,
         });
 
         Controls.Add(layout);
     }
 
-    private void AddSection(FlowLayoutPanel layout, IEnumerable<ToolbarItem> items)
+    private void AddSection(FlowLayoutPanel layout, IEnumerable<CommandUiDescriptor> items)
     {
         foreach (var item in items)
         {
+            var label = item.GetLabel();
+            var toolTip = item.GetToolTip();
             var button = new Button
             {
-                AccessibleName = item.Title,
-                AccessibleDescription = item.ToolTip,
+                AccessibleName = label,
+                AccessibleDescription = toolTip,
                 AutoSize = false,
                 BackColor = Color.FromArgb(54, 63, 73),
                 FlatAppearance =
@@ -98,8 +101,8 @@ internal sealed class ClassicToolbarControl : UserControl
                 UseVisualStyleBackColor = false,
             };
 
-            button.Click += (_, _) => AcKrovyCommandDispatcher.Execute(item.Command);
-            _toolTip.SetToolTip(button, item.Title + Environment.NewLine + item.ToolTip);
+            button.Click += (_, _) => AcKrovyCommandDispatcher.Execute(item.CommandName);
+            _toolTip.SetToolTip(button, label + Environment.NewLine + toolTip);
             layout.Controls.Add(button);
         }
     }
@@ -115,10 +118,6 @@ internal sealed class ClassicToolbarControl : UserControl
         });
     }
 
-    private static ToolbarItem Item(string iconKey, string title, string command, string tooltip) =>
-        new(iconKey, title, command, tooltip);
-
-    private sealed record ToolbarItem(string IconKey, string Title, string Command, string ToolTip);
 }
 
 /// <summary>Načíta 16×16 PNG bez zamknutia súborov v priečinku s DLL.</summary>

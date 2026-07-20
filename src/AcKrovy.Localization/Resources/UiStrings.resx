@@ -156,4 +156,45 @@
   <data name="InspectWindow_Title" xml:space="preserve"><value>ACAD KROVY - údaje prvku</value></data>
   <data name="InspectWindow_Heading" xml:space="preserve"><value>Údaje prvku</value></data>
   <data name="InspectWindow_Close" xml:space="preserve"><value>Zavrieť</value></data>
+  <data name="Ribbon_Tab_Title" xml:space="preserve"><value>ACAD KROVY</value></data>
+  <data name="Ribbon_Panel_Elements" xml:space="preserve"><value>Prvky</value></data>
+  <data name="Ribbon_Panel_Data" xml:space="preserve"><value>Údaje</value></data>
+  <data name="Ribbon_Panel_Reports" xml:space="preserve"><value>Výkaz</value></data>
+  <data name="Ribbon_Panel_Settings" xml:space="preserve"><value>Nastavenia</value></data>
+  <data name="Ribbon_Panel_Labels" xml:space="preserve"><value>Popisy</value></data>
+  <data name="Ribbon_Panel_Toolbar" xml:space="preserve"><value>Panel</value></data>
+  <data name="Toolbar_Title" xml:space="preserve"><value>ACAD KROVY – klasický panel</value></data>
+  <data name="Toolbar_ContentTitle" xml:space="preserve"><value>ACAD KROVY</value></data>
+  <data name="CommandUi_Rafter_Label" xml:space="preserve"><value>Krokva</value></data>
+  <data name="CommandUi_Rafter_Tooltip" xml:space="preserve"><value>Priradí vybraným čiaram typ Krokva.</value></data>
+  <data name="CommandUi_WallPlate_Label" xml:space="preserve"><value>Pomúrnica</value></data>
+  <data name="CommandUi_WallPlate_Tooltip" xml:space="preserve"><value>Priradí vybraným čiaram typ Pomúrnica.</value></data>
+  <data name="CommandUi_Purlin_Label" xml:space="preserve"><value>Väznica</value></data>
+  <data name="CommandUi_Purlin_Tooltip" xml:space="preserve"><value>Priradí vybraným čiaram typ Väznica.</value></data>
+  <data name="CommandUi_Post_Label" xml:space="preserve"><value>Stĺpik</value></data>
+  <data name="CommandUi_Post_Tooltip" xml:space="preserve"><value>Priradí vybraným čiaram typ Stĺpik.</value></data>
+  <data name="CommandUi_CollarTie_Label" xml:space="preserve"><value>Klieština</value></data>
+  <data name="CommandUi_CollarTie_Tooltip" xml:space="preserve"><value>Priradí vybraným čiaram typ Klieština / hambálok.</value></data>
+  <data name="CommandUi_Brace_Label" xml:space="preserve"><value>Vzpera</value></data>
+  <data name="CommandUi_Brace_Tooltip" xml:space="preserve"><value>Priradí vybraným čiaram typ Vzpera.</value></data>
+  <data name="CommandUi_TieBeam_Label" xml:space="preserve"><value>Väzný trám</value></data>
+  <data name="CommandUi_TieBeam_Tooltip" xml:space="preserve"><value>Priradí vybraným čiaram typ Väzný trám.</value></data>
+  <data name="CommandUi_Assign_Label" xml:space="preserve"><value>Priradiť údaje</value></data>
+  <data name="CommandUi_Assign_Tooltip" xml:space="preserve"><value>Priradí údaje vybraným čiaram alebo polyline.</value></data>
+  <data name="CommandUi_Edit_Label" xml:space="preserve"><value>Upraviť</value></data>
+  <data name="CommandUi_Edit_Tooltip" xml:space="preserve"><value>Hromadne upraví zaškrtnuté hodnoty vybraných prvkov.</value></data>
+  <data name="CommandUi_Inspect_Label" xml:space="preserve"><value>Skontrolovať</value></data>
+  <data name="CommandUi_Inspect_Tooltip" xml:space="preserve"><value>Zobrazí údaje jedného prvku ACAD KROVY.</value></data>
+  <data name="CommandUi_Recalc_Label" xml:space="preserve"><value>Prepočítať</value></data>
+  <data name="CommandUi_Recalc_Tooltip" xml:space="preserve"><value>Skontroluje prepočty všetkých prvkov vo výkrese.</value></data>
+  <data name="CommandUi_Report_Label" xml:space="preserve"><value>Výkaz z výberu</value></data>
+  <data name="CommandUi_Report_Tooltip" xml:space="preserve"><value>Vloží výkaz reziva z aktuálne vybraných prvkov.</value></data>
+  <data name="CommandUi_ReportAll_Label" xml:space="preserve"><value>Výkaz všetkého</value></data>
+  <data name="CommandUi_ReportAll_Tooltip" xml:space="preserve"><value>Vloží výkaz reziva zo všetkých prvkov ACAD KROVY vo výkrese.</value></data>
+  <data name="CommandUi_Settings_Label" xml:space="preserve"><value>Nastavenia</value></data>
+  <data name="CommandUi_Settings_Tooltip" xml:space="preserve"><value>Nastaví názvy hladín a farby jednotlivých typov krovu.</value></data>
+  <data name="CommandUi_Labels_Label" xml:space="preserve"><value>Obnoviť popisy</value></data>
+  <data name="CommandUi_Labels_Tooltip" xml:space="preserve"><value>Vytvorí alebo obnoví automatické popisy všetkých prvkov krovu.</value></data>
+  <data name="CommandUi_Toolbar_Label" xml:space="preserve"><value>Klasický panel</value></data>
+  <data name="CommandUi_Toolbar_Tooltip" xml:space="preserve"><value>Zobrazí alebo skryje klasický plávajúci panel malých ikon.</value></data>
 </root>

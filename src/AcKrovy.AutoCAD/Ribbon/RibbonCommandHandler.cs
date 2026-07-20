@@ -1,5 +1,6 @@
 using System.Windows.Input;
 using Autodesk.Windows;
+using AcKrovy.Localization;
 using AcApp = Autodesk.AutoCAD.ApplicationServices.Application;
 
 namespace AcKrovy.AutoCAD.Ribbon;
@@ -65,6 +66,6 @@ internal static class AcKrovyCommandDispatcher
             return;
         }
 
-        document.SendStringToExecute($"{command.Trim()} ", true, false, false);
+        document.SendStringToExecute(CommandMacroBuilder.Build(command), true, false, false);
     }
 }

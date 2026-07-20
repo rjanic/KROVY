@@ -1,5 +1,6 @@
 using System.Drawing;
 using Autodesk.AutoCAD.Windows;
+using AcKrovy.Localization;
 
 namespace AcKrovy.AutoCAD.ClassicToolbar;
 
@@ -9,7 +10,7 @@ namespace AcKrovy.AutoCAD.ClassicToolbar;
 /// </summary>
 internal static class ClassicToolbarManager
 {
-    private static readonly Guid PaletteId = new("AE3310A6-6077-4FB3-B9BE-D4A1DCC866C4");
+    private static readonly Guid PaletteId = new(CommandUiCatalog.ClassicToolbarPaletteId);
     private static PaletteSet? _palette;
 
     public static bool IsVisible => _palette?.Visible == true;
@@ -59,10 +60,13 @@ internal static class ClassicToolbarManager
     {
         if (_palette is not null)
         {
+            // Existujúci PaletteSet za behu nereštartujeme ani neduplikujeme: AutoCAD
+            // si k stabilnému GUID ukladá dokovanie a polohu. Nová kultúra sa bezpečne
+            // použije pri najbližšom vytvorení panelu, typicky po reštarte AutoCADu.
             return;
         }
 
-        var palette = new PaletteSet("ACAD KROVY – klasický panel", PaletteId)
+        var palette = new PaletteSet(UiStrings.ToolbarTitle, PaletteId)
         {
             Style = PaletteSetStyles.ShowAutoHideButton
                   | PaletteSetStyles.ShowCloseButton
@@ -71,7 +75,7 @@ internal static class ClassicToolbarManager
             Size = new Size(270, 118),
         };
 
-        palette.Add("ACAD KROVY", new ClassicToolbarControl());
+        palette.Add(UiStrings.ToolbarContentTitle, new ClassicToolbarControl());
         _palette = palette;
     }
 }

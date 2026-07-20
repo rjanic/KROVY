@@ -150,6 +150,15 @@ public static class UiStrings
     public static string InspectWindowTitle => GetString("InspectWindow_Title");
     public static string InspectWindowHeading => GetString("InspectWindow_Heading");
     public static string InspectWindowClose => GetString("InspectWindow_Close");
+    public static string RibbonTabTitle => GetString("Ribbon_Tab_Title");
+    public static string RibbonPanelElements => GetString("Ribbon_Panel_Elements");
+    public static string RibbonPanelData => GetString("Ribbon_Panel_Data");
+    public static string RibbonPanelReports => GetString("Ribbon_Panel_Reports");
+    public static string RibbonPanelSettings => GetString("Ribbon_Panel_Settings");
+    public static string RibbonPanelLabels => GetString("Ribbon_Panel_Labels");
+    public static string RibbonPanelToolbar => GetString("Ribbon_Panel_Toolbar");
+    public static string ToolbarTitle => GetString("Toolbar_Title");
+    public static string ToolbarContentTitle => GetString("Toolbar_ContentTitle");
 
     public static string Format(string format, params object?[] arguments) =>
         string.Format(CultureInfo.CurrentCulture, format, arguments);
