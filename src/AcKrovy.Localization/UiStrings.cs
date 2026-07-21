@@ -133,8 +133,12 @@ public static class UiStrings
     public static string SettingsWindowManufacturingRoundingStep => GetString("SettingsWindow_Manufacturing_RoundingStep");
     public static string SettingsWindowManufacturingElementTypeColumn => GetString("SettingsWindow_Manufacturing_ElementTypeColumn");
     public static string SettingsWindowManufacturingDefaultAllowanceColumn => GetString("SettingsWindow_Manufacturing_DefaultAllowanceColumn");
+    public static string SettingsWindowLanguageTab => GetString("SettingsWindow_Language_Tab");
+    public static string SettingsWindowLanguageDescription => GetString("SettingsWindow_Language_Description");
+    public static string SettingsWindowLanguageLabel => GetString("SettingsWindow_Language_Label");
     public static string SettingsWindowRestoreDefaults => GetString("SettingsWindow_RestoreDefaults");
     public static string SettingsWindowCancel => GetString("SettingsWindow_Cancel");
+    public static string SettingsWindowSave => GetString("SettingsWindow_Save");
     public static string SettingsWindowSaveNewElementsOnly => GetString("SettingsWindow_SaveNewElementsOnly");
     public static string SettingsWindowSaveApplySelection => GetString("SettingsWindow_SaveApplySelection");
     public static string SettingsWindowSaveApplyAll => GetString("SettingsWindow_SaveApplyAll");

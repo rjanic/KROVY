@@ -72,8 +72,31 @@ public sealed class AcKrovyCommands
         var editor = document.Editor;
         var dialog = new LayerSettingsWindow(
             ElementLayerProfileStore.Load(),
-            TimberElementDefaultProfileStore.Load());
-        if (AcApp.ShowModalWindow(dialog) != true || dialog.Profile is null || dialog.DefaultProfile is null)
+            TimberElementDefaultProfileStore.Load(),
+            AppLanguageService.CurrentLanguageCode);
+        if (AcApp.ShowModalWindow(dialog) != true)
+        {
+            return;
+        }
+
+        if (!SettingsWindowActionRules.AppliesElementSettings(dialog.SaveMode))
+        {
+            try
+            {
+                AppLanguageSettingsStore.Save(CreateLanguageSettings(dialog.LanguageCode));
+            }
+            catch (System.Exception ex)
+            {
+                editor.WriteMessage(UiStrings.Format(UiStrings.CommandSettingsSaveFailedFormat, ex.Message));
+                return;
+            }
+
+            ApplySelectedLanguage(dialog.LanguageCode);
+            editor.WriteMessage(UiStrings.CommandSettingsSaved);
+            return;
+        }
+
+        if (dialog.Profile is null || dialog.DefaultProfile is null)
         {
             return;
         }
@@ -82,6 +105,7 @@ public sealed class AcKrovyCommands
         {
             ElementLayerProfileStore.Save(dialog.Profile);
             TimberElementDefaultProfileStore.Save(dialog.DefaultProfile);
+            AppLanguageSettingsStore.Save(CreateLanguageSettings(dialog.LanguageCode));
         }
         catch (System.Exception ex)
         {
@@ -89,13 +113,15 @@ public sealed class AcKrovyCommands
             return;
         }
 
+        ApplySelectedLanguage(dialog.LanguageCode);
+
         editor.WriteMessage(UiStrings.CommandSettingsSaved);
-        switch (dialog.CuttingAllowanceApplyMode)
+        switch (dialog.SaveMode)
         {
-            case CuttingAllowanceApplyMode.AllElements:
+            case SettingsSaveMode.AllElements:
                 ApplySettingsToExistingElements(document, dialog.Profile, dialog.DefaultProfile, null);
                 break;
-            case CuttingAllowanceApplyMode.SelectedElements:
+            case SettingsSaveMode.SelectedElements:
                 var ids = PromptForEntities(editor, UiStrings.CommandSettingsPromptApplyAllowances);
                 if (ids.Count == 0)
                 {
@@ -105,7 +131,7 @@ public sealed class AcKrovyCommands
 
                 ApplySettingsToExistingElements(document, dialog.Profile, dialog.DefaultProfile, ids);
                 break;
-            case CuttingAllowanceApplyMode.NewElementsOnly:
+            case SettingsSaveMode.NewElementsOnly:
                 if (dialog.ApplyToExistingElements)
                 {
                     ApplyLayersToExistingElements(document, dialog.Profile);
@@ -113,6 +139,31 @@ public sealed class AcKrovyCommands
 
                 break;
         }
+    }
+
+    private static AppLanguageSettings CreateLanguageSettings(string languageCode) => new()
+    {
+        LanguageCode = languageCode,
+    };
+
+    private static void ApplySelectedLanguage(string languageCode)
+    {
+        var languageChanged = !string.Equals(
+            AppLanguageService.CurrentLanguageCode,
+            languageCode,
+            StringComparison.Ordinal);
+        if (!languageChanged)
+        {
+            return;
+        }
+
+        AppLanguageService.Apply(languageCode);
+        if (!AcKrovyRibbon.RebuildLocalizedUi(activateTab: false))
+        {
+            AcKrovyRibbon.ScheduleCreation();
+        }
+
+        ClassicToolbarManager.RefreshLocalizedContent();
     }
 
     [CommandMethod(AcKrovyCommandNames.ApplyLayers, CommandFlags.Modal)]

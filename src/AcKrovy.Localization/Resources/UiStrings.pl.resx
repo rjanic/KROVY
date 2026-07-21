@@ -139,8 +139,12 @@
   <data name="SettingsWindow_Manufacturing_RoundingStep" xml:space="preserve"><value>Zaokrąglaj długość produkcyjną w górę do [mm]</value></data>
   <data name="SettingsWindow_Manufacturing_ElementTypeColumn" xml:space="preserve"><value>Typ elementu</value></data>
   <data name="SettingsWindow_Manufacturing_DefaultAllowanceColumn" xml:space="preserve"><value>Domyślny naddatek na cięcie [mm]</value></data>
+  <data name="SettingsWindow_Language_Tab" xml:space="preserve"><value>Język</value></data>
+  <data name="SettingsWindow_Language_Description" xml:space="preserve"><value>Wybierz język interfejsu użytkownika. Zmiana zostanie zastosowana po zapisaniu ustawień.</value></data>
+  <data name="SettingsWindow_Language_Label" xml:space="preserve"><value>Język</value></data>
   <data name="SettingsWindow_RestoreDefaults" xml:space="preserve"><value>Przywróć domyślne</value></data>
   <data name="SettingsWindow_Cancel" xml:space="preserve"><value>Anuluj</value></data>
+  <data name="SettingsWindow_Save" xml:space="preserve"><value>Zapisz</value></data>
   <data name="SettingsWindow_SaveNewElementsOnly" xml:space="preserve"><value>Zapisz tylko dla nowych elementów</value></data>
   <data name="SettingsWindow_SaveApplySelection" xml:space="preserve"><value>Zapisz i zastosuj do wyboru</value></data>
   <data name="SettingsWindow_SaveApplyAll" xml:space="preserve"><value>Zapisz i zastosuj do wszystkich</value></data>

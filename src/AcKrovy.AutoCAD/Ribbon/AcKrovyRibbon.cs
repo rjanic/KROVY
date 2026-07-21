@@ -34,8 +34,14 @@ internal static class AcKrovyRibbon
             return false;
         }
 
-        var tab = ribbon.Tabs.FirstOrDefault(item =>
-            string.Equals(item.Id, CommandUiCatalog.RibbonTabId, StringComparison.OrdinalIgnoreCase));
+        var matchingTabs = ribbon.Tabs.Where(item =>
+            string.Equals(item.Id, CommandUiCatalog.RibbonTabId, StringComparison.OrdinalIgnoreCase)).ToList();
+        var tab = matchingTabs.FirstOrDefault();
+
+        foreach (var duplicate in matchingTabs.Skip(1))
+        {
+            ribbon.Tabs.Remove(duplicate);
+        }
 
         if (tab is null)
         {
@@ -53,7 +59,7 @@ internal static class AcKrovyRibbon
 
     /// <summary>
     /// Znovu vytvorí kartu s rovnakým technickým ID a aktuálnymi resource textami.
-    /// Budúci prepínač jazyka môže túto metódu zavolať po zmene CurrentUICulture.
+    /// Volá sa po zmene CurrentUICulture a zároveň odstráni prípadné staré duplicity.
     /// </summary>
     internal static bool RebuildLocalizedUi(bool activateTab)
     {
@@ -63,10 +69,10 @@ internal static class AcKrovyRibbon
             return false;
         }
 
-        var existing = ribbon.Tabs.FirstOrDefault(item =>
-            string.Equals(item.Id, CommandUiCatalog.RibbonTabId, StringComparison.OrdinalIgnoreCase));
-        var shouldActivate = activateTab || existing?.IsActive == true;
-        if (existing is not null)
+        var existingTabs = ribbon.Tabs.Where(item =>
+            string.Equals(item.Id, CommandUiCatalog.RibbonTabId, StringComparison.OrdinalIgnoreCase)).ToList();
+        var shouldActivate = activateTab || existingTabs.Any(item => item.IsActive);
+        foreach (var existing in existingTabs)
         {
             ribbon.Tabs.Remove(existing);
         }
@@ -90,11 +96,14 @@ internal static class AcKrovyRibbon
         try
         {
             var ribbon = ComponentManager.Ribbon;
-            var tab = ribbon?.Tabs.FirstOrDefault(item =>
-                string.Equals(item.Id, CommandUiCatalog.RibbonTabId, StringComparison.OrdinalIgnoreCase));
-            if (tab is not null)
+            var tabs = ribbon?.Tabs.Where(item =>
+                string.Equals(item.Id, CommandUiCatalog.RibbonTabId, StringComparison.OrdinalIgnoreCase)).ToList();
+            if (tabs is not null)
             {
-                ribbon!.Tabs.Remove(tab);
+                foreach (var tab in tabs)
+                {
+                    ribbon!.Tabs.Remove(tab);
+                }
             }
         }
         catch

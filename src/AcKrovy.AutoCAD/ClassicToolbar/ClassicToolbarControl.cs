@@ -14,6 +14,8 @@ namespace AcKrovy.AutoCAD.ClassicToolbar;
 /// </summary>
 internal sealed class ClassicToolbarControl : UserControl
 {
+    private readonly Dictionary<string, Button> _buttonsByControlId =
+        new(StringComparer.OrdinalIgnoreCase);
     private readonly ToolTip _toolTip = new()
     {
         AutoPopDelay = 8000,
@@ -75,16 +77,30 @@ internal sealed class ClassicToolbarControl : UserControl
         Controls.Add(layout);
     }
 
+    /// <summary>
+    /// Obnoví iba lokalizované texty existujúcich tlačidiel. Inštancie controlov,
+    /// click handlery, command routing, ikony a technické ID zostávajú nezmenené.
+    /// </summary>
+    public void RefreshLocalizedContent()
+    {
+        foreach (var content in CommandUiCatalog.GetLocalizedClassicToolbarContent())
+        {
+            if (!_buttonsByControlId.TryGetValue(content.ControlId, out var button))
+            {
+                continue;
+            }
+
+            ApplyLocalizedContent(button, content);
+        }
+    }
+
     private void AddSection(FlowLayoutPanel layout, IEnumerable<CommandUiDescriptor> items)
     {
         foreach (var item in items)
         {
-            var label = item.GetLabel();
-            var toolTip = item.GetToolTip();
+            var content = item.GetLocalizedContent();
             var button = new Button
             {
-                AccessibleName = label,
-                AccessibleDescription = toolTip,
                 AutoSize = false,
                 BackColor = Color.FromArgb(54, 63, 73),
                 FlatAppearance =
@@ -102,9 +118,19 @@ internal sealed class ClassicToolbarControl : UserControl
             };
 
             button.Click += (_, _) => AcKrovyCommandDispatcher.Execute(item.CommandName);
-            _toolTip.SetToolTip(button, label + Environment.NewLine + toolTip);
+            ApplyLocalizedContent(button, content);
+            _buttonsByControlId.Add(content.ControlId, button);
             layout.Controls.Add(button);
         }
+    }
+
+    private void ApplyLocalizedContent(Button button, LocalizedCommandUiContent content)
+    {
+        button.AccessibleName = content.Title;
+        button.AccessibleDescription = content.Description;
+        _toolTip.SetToolTip(
+            button,
+            content.Title + Environment.NewLine + content.Description);
     }
 
     private static void AddSeparator(FlowLayoutPanel layout)

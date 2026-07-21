@@ -61,8 +61,9 @@ public sealed class LocalizationFoundationTests
         "SettingsWindow_Layers_LayerNameColumn", "SettingsWindow_Layers_LayerColorColumn",
         "SettingsWindow_Manufacturing_Tab", "SettingsWindow_Manufacturing_Description",
         "SettingsWindow_Manufacturing_RoundingStep", "SettingsWindow_Manufacturing_ElementTypeColumn",
-        "SettingsWindow_Manufacturing_DefaultAllowanceColumn", "SettingsWindow_RestoreDefaults",
-        "SettingsWindow_Cancel", "SettingsWindow_SaveNewElementsOnly", "SettingsWindow_SaveApplySelection",
+        "SettingsWindow_Manufacturing_DefaultAllowanceColumn", "SettingsWindow_Language_Tab",
+        "SettingsWindow_Language_Description", "SettingsWindow_Language_Label", "SettingsWindow_RestoreDefaults",
+        "SettingsWindow_Cancel", "SettingsWindow_Save", "SettingsWindow_SaveNewElementsOnly", "SettingsWindow_SaveApplySelection",
         "SettingsWindow_SaveApplyAll", "LayerColor_Red", "LayerColor_Yellow", "LayerColor_Green",
         "LayerColor_Cyan", "LayerColor_Blue", "LayerColor_Magenta", "LayerColor_Orange", "LayerColor_Gray",
         "LayerColor_LightGray", "InspectWindow_Title", "InspectWindow_Heading", "InspectWindow_Close",
@@ -286,7 +287,7 @@ public sealed class LocalizationFoundationTests
     [Fact]
     public void WpfUiResourceKeys_ExistForAllSupportedCultures()
     {
-        Assert.Equal(50, WpfUiResourceKeys.Length);
+        Assert.Equal(54, WpfUiResourceKeys.Length);
 
         foreach (var key in WpfUiResourceKeys)
         {

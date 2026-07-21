@@ -65,6 +65,41 @@ public sealed class CommandUiDescriptor
 
     public string GetToolTip(CultureInfo? culture = null) =>
         UiStrings.GetString(ToolTipResourceKey, culture);
+
+    public LocalizedCommandUiContent GetLocalizedContent(CultureInfo? culture = null) =>
+        new(
+            CommandName,
+            RibbonControlId,
+            IconKey,
+            GetLabel(culture),
+            GetToolTip(culture));
+}
+
+/// <summary>
+/// Lokalizovaný prezentačný snapshot príkazu. Technické identity zostávajú
+/// prevzaté z <see cref="CommandUiDescriptor"/> a nemenia sa s UI kultúrou.
+/// </summary>
+public sealed class LocalizedCommandUiContent
+{
+    internal LocalizedCommandUiContent(
+        string commandName,
+        string controlId,
+        string iconKey,
+        string title,
+        string description)
+    {
+        CommandName = commandName;
+        ControlId = controlId;
+        IconKey = iconKey;
+        Title = title;
+        Description = description;
+    }
+
+    public string CommandName { get; }
+    public string ControlId { get; }
+    public string IconKey { get; }
+    public string Title { get; }
+    public string Description { get; }
 }
 
 public static class CommandUiCatalog
@@ -100,6 +135,10 @@ public static class CommandUiCatalog
         Rafter, WallPlate, Purlin, Post, CollarTie, Brace, TieBeam, Assign, Edit, Inspect, Recalc,
         Report, ReportAll, Labels, Settings,
     ];
+
+    public static IReadOnlyList<LocalizedCommandUiContent> GetLocalizedClassicToolbarContent(
+        CultureInfo? culture = null) =>
+        ClassicToolbarCommands.Select(item => item.GetLocalizedContent(culture)).ToArray();
 
     private static CommandUiDescriptor Create(
         string controlSuffix,

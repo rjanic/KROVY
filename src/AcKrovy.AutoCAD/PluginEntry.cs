@@ -1,6 +1,7 @@
 using AcKrovy.AutoCAD.Ribbon;
 using AcKrovy.AutoCAD.ClassicToolbar;
 using AcKrovy.AutoCAD.Infrastructure;
+using AcKrovy.AutoCAD.Settings;
 using AcApp = Autodesk.AutoCAD.ApplicationServices.Application;
 using Autodesk.AutoCAD.Runtime;
 using AcKrovy.Localization;
@@ -12,6 +13,9 @@ public sealed class PluginEntry : IExtensionApplication
 {
     public void Initialize()
     {
+        var languageSettings = AppLanguageSettingsStore.Load();
+        AppLanguageService.Apply(languageSettings.LanguageCode);
+
         // Ribbon môže byť pri NETLOAD ešte vo fáze inicializácie. AcKrovyRibbon
         // ho preto bezpečne vytvorí pri najbližšom idle AutoCADu.
         AcKrovyRibbon.ScheduleCreation();

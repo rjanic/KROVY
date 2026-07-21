@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Windows;
+using System.Windows.Controls;
 using WpfMessageBox = System.Windows.MessageBox;
 using MediaBrush = System.Windows.Media.Brush;
 using MediaColor = System.Windows.Media.Color;
@@ -20,15 +21,34 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
 {
     private static readonly CultureInfo SlovakCulture = CultureInfo.GetCultureInfo("sk-SK");
     private string _roundingStepMmText = Format(TimberElementDefaultProfile.FactoryCuttingLengthRoundingStepMm);
+    private string _selectedLanguageCode = AppLanguageService.DefaultLanguageCode;
 
     public ObservableCollection<LayerSettingsRow> Rows { get; } = [];
     public ObservableCollection<ElementDefaultSettingsRow> DefaultRows { get; } = [];
     public IReadOnlyList<LayerColorOption> ColorOptions { get; } = LayerColorOption.CreateDefaults();
+    public IReadOnlyList<SupportedAppLanguage> LanguageOptions => AppLanguageService.SupportedLanguages;
 
     internal ElementLayerProfile? Profile { get; private set; }
     internal TimberElementDefaultProfile? DefaultProfile { get; private set; }
     internal bool ApplyToExistingElements { get; private set; }
-    internal CuttingAllowanceApplyMode CuttingAllowanceApplyMode { get; private set; }
+    internal SettingsSaveMode SaveMode { get; private set; }
+    internal string LanguageCode { get; private set; } = AppLanguageService.DefaultLanguageCode;
+
+    public string SelectedLanguageCode
+    {
+        get => _selectedLanguageCode;
+        set
+        {
+            var normalized = AppLanguageService.NormalizeLanguageCode(value);
+            if (string.Equals(_selectedLanguageCode, normalized, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            _selectedLanguageCode = normalized;
+            OnPropertyChanged();
+        }
+    }
 
     public string RoundingStepMmText
     {
@@ -50,10 +70,16 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 
-    internal LayerSettingsWindow(ElementLayerProfile profile, TimberElementDefaultProfile defaultProfile)
+    internal LayerSettingsWindow(
+        ElementLayerProfile profile,
+        TimberElementDefaultProfile defaultProfile,
+        string languageCode)
     {
+        _selectedLanguageCode = AppLanguageService.NormalizeLanguageCode(languageCode);
         InitializeComponent();
         DataContext = this;
+        SettingsTabControl.SelectionChanged += SettingsTabControl_SelectionChanged;
+        UpdateActionButtons();
         ReplaceRows(profile.Normalize());
         ReplaceDefaultRows(defaultProfile.Normalize());
         StylesDataGrid.ItemsSource = Rows;
@@ -66,27 +92,30 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
         ReplaceDefaultRows(TimberElementDefaultProfile.CreateDefault());
     }
 
-    private void Save_Click(object sender, RoutedEventArgs e)
-    {
-        Save(applyToExistingElements: false, CuttingAllowanceApplyMode.NewElementsOnly);
-    }
-
     private void SaveAndApply_Click(object sender, RoutedEventArgs e)
     {
-        Save(applyToExistingElements: true, CuttingAllowanceApplyMode.AllElements);
+        Save(applyToExistingElements: true, SettingsSaveMode.AllElements);
     }
 
     private void SaveAndApplySelected_Click(object sender, RoutedEventArgs e)
     {
-        Save(applyToExistingElements: true, CuttingAllowanceApplyMode.SelectedElements);
+        Save(applyToExistingElements: true, SettingsSaveMode.SelectedElements);
     }
 
     private void SaveNewElementsOnly_Click(object sender, RoutedEventArgs e)
     {
-        Save(applyToExistingElements: false, CuttingAllowanceApplyMode.NewElementsOnly);
+        Save(applyToExistingElements: false, SettingsSaveMode.NewElementsOnly);
     }
 
-    private void Save(bool applyToExistingElements, CuttingAllowanceApplyMode cuttingAllowanceApplyMode)
+    private void SaveLanguage_Click(object sender, RoutedEventArgs e)
+    {
+        LanguageCode = AppLanguageService.NormalizeLanguageCode(SelectedLanguageCode);
+        ApplyToExistingElements = false;
+        SaveMode = SettingsSaveMode.LanguageOnly;
+        DialogResult = true;
+    }
+
+    private void Save(bool applyToExistingElements, SettingsSaveMode saveMode)
     {
         StylesDataGrid.CommitEdit();
         StylesDataGrid.CommitEdit();
@@ -102,7 +131,8 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
         Profile = profile;
         DefaultProfile = defaultProfile;
         ApplyToExistingElements = applyToExistingElements;
-        CuttingAllowanceApplyMode = cuttingAllowanceApplyMode;
+        SaveMode = saveMode;
+        LanguageCode = AppLanguageService.NormalizeLanguageCode(SelectedLanguageCode);
         DialogResult = true;
     }
 
@@ -250,13 +280,30 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
         value.ToString("0.###", SlovakCulture);
 
     private void Cancel_Click(object sender, RoutedEventArgs e) => DialogResult = false;
-}
 
-internal enum CuttingAllowanceApplyMode
-{
-    NewElementsOnly,
-    SelectedElements,
-    AllElements,
+    private void SettingsTabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (ReferenceEquals(e.OriginalSource, SettingsTabControl))
+        {
+            UpdateActionButtons();
+        }
+    }
+
+    private void UpdateActionButtons()
+    {
+        var tab = ReferenceEquals(SettingsTabControl.SelectedItem, LanguageTab)
+            ? SettingsWindowTabKind.Language
+            : ReferenceEquals(SettingsTabControl.SelectedItem, ManufacturingTab)
+                ? SettingsWindowTabKind.Manufacturing
+                : SettingsWindowTabKind.Layers;
+        var actions = SettingsWindowActionRules.ForTab(tab);
+
+        RestoreDefaultsButton.Visibility = actions.ShowRestoreDefaults ? Visibility.Visible : Visibility.Collapsed;
+        StandardSettingsActionsPanel.Visibility = actions.ShowApplyActions ? Visibility.Visible : Visibility.Collapsed;
+        LanguageSaveButton.Visibility = actions.ShowLanguageSave ? Visibility.Visible : Visibility.Collapsed;
+        SaveAndApplyAllButton.IsDefault = actions.ShowApplyActions;
+        LanguageSaveButton.IsDefault = actions.ShowLanguageSave;
+    }
 }
 
 public sealed class LayerSettingsRow : INotifyPropertyChanged

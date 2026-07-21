@@ -22,8 +22,8 @@
         <TextBlock Grid.Row="0" FontSize="16" FontWeight="SemiBold" Text="{localization:Loc SettingsWindow_Heading}" />
         <TextBlock Grid.Row="2" TextWrapping="Wrap" Foreground="#555555" Text="{localization:Loc SettingsWindow_Description}" />
 
-        <TabControl Grid.Row="4">
-            <TabItem Header="{localization:Loc SettingsWindow_Layers_Tab}">
+        <TabControl x:Name="SettingsTabControl" Grid.Row="4">
+            <TabItem x:Name="LayersTab" Header="{localization:Loc SettingsWindow_Layers_Tab}">
                 <DataGrid x:Name="StylesDataGrid"
                           AutoGenerateColumns="False"
                           CanUserAddRows="False"
@@ -66,7 +66,7 @@
                     </DataGrid.Columns>
                 </DataGrid>
             </TabItem>
-            <TabItem Header="{localization:Loc SettingsWindow_Manufacturing_Tab}">
+            <TabItem x:Name="ManufacturingTab" Header="{localization:Loc SettingsWindow_Manufacturing_Tab}">
                 <Grid Margin="0,8,0,0">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -101,6 +101,23 @@
                     </DataGrid>
                 </Grid>
             </TabItem>
+            <TabItem x:Name="LanguageTab" Header="{localization:Loc SettingsWindow_Language_Tab}">
+                <StackPanel Margin="12">
+                    <TextBlock TextWrapping="Wrap"
+                               Foreground="#555555"
+                               Text="{localization:Loc SettingsWindow_Language_Description}" />
+                    <StackPanel Margin="0,18,0,0" Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock VerticalAlignment="Center"
+                                   Text="{localization:Loc SettingsWindow_Language_Label}" />
+                        <ComboBox Width="220"
+                                  Margin="14,0,0,0"
+                                  ItemsSource="{Binding LanguageOptions}"
+                                  DisplayMemberPath="NativeName"
+                                  SelectedValuePath="Code"
+                                  SelectedValue="{Binding SelectedLanguageCode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                    </StackPanel>
+                </StackPanel>
+            </TabItem>
         </TabControl>
 
         <Grid Grid.Row="6">
@@ -108,12 +125,21 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <Button Grid.Column="0" Width="165" HorizontalAlignment="Left" Padding="8,4" Click="RestoreDefaults_Click" Content="{localization:Loc SettingsWindow_RestoreDefaults}" />
+            <Button x:Name="RestoreDefaultsButton" Grid.Column="0" Width="165" HorizontalAlignment="Left" Padding="8,4" Click="RestoreDefaults_Click" Content="{localization:Loc SettingsWindow_RestoreDefaults}" />
             <StackPanel Grid.Column="1" Orientation="Horizontal">
                 <Button Width="90" Margin="0,0,8,0" Padding="8,4" Click="Cancel_Click" IsCancel="True" Content="{localization:Loc SettingsWindow_Cancel}" />
-                <Button Width="185" Margin="0,0,8,0" Padding="8,4" Click="SaveNewElementsOnly_Click" Content="{localization:Loc SettingsWindow_SaveNewElementsOnly}" />
-                <Button Width="175" Margin="0,0,8,0" Padding="8,4" Click="SaveAndApplySelected_Click" Content="{localization:Loc SettingsWindow_SaveApplySelection}" />
-                <Button Width="175" Padding="8,4" Click="SaveAndApply_Click" IsDefault="True" Content="{localization:Loc SettingsWindow_SaveApplyAll}" />
+                <StackPanel x:Name="StandardSettingsActionsPanel" Orientation="Horizontal">
+                    <Button Width="185" Margin="0,0,8,0" Padding="8,4" Click="SaveNewElementsOnly_Click" Content="{localization:Loc SettingsWindow_SaveNewElementsOnly}" />
+                    <Button Width="175" Margin="0,0,8,0" Padding="8,4" Click="SaveAndApplySelected_Click" Content="{localization:Loc SettingsWindow_SaveApplySelection}" />
+                    <Button x:Name="SaveAndApplyAllButton" Width="175" Padding="8,4" Click="SaveAndApply_Click" IsDefault="True" Content="{localization:Loc SettingsWindow_SaveApplyAll}" />
+                </StackPanel>
+                <Button x:Name="LanguageSaveButton"
+                        Width="120"
+                        Padding="8,4"
+                        Click="SaveLanguage_Click"
+                        IsDefault="True"
+                        Visibility="Collapsed"
+                        Content="{localization:Loc SettingsWindow_Save}" />
             </StackPanel>
         </Grid>
     </Grid>

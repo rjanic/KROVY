@@ -139,8 +139,12 @@
   <data name="SettingsWindow_Manufacturing_RoundingStep" xml:space="preserve"><value>Fertigungslänge aufrunden auf [mm]</value></data>
   <data name="SettingsWindow_Manufacturing_ElementTypeColumn" xml:space="preserve"><value>Bauteiltyp</value></data>
   <data name="SettingsWindow_Manufacturing_DefaultAllowanceColumn" xml:space="preserve"><value>Standard-Schnittzugabe [mm]</value></data>
+  <data name="SettingsWindow_Language_Tab" xml:space="preserve"><value>Sprache</value></data>
+  <data name="SettingsWindow_Language_Description" xml:space="preserve"><value>Wählen Sie die Sprache der Benutzeroberfläche. Die Änderung wird nach dem Speichern der Einstellungen angewendet.</value></data>
+  <data name="SettingsWindow_Language_Label" xml:space="preserve"><value>Sprache</value></data>
   <data name="SettingsWindow_RestoreDefaults" xml:space="preserve"><value>Standardwerte wiederherstellen</value></data>
   <data name="SettingsWindow_Cancel" xml:space="preserve"><value>Abbrechen</value></data>
+  <data name="SettingsWindow_Save" xml:space="preserve"><value>Speichern</value></data>
   <data name="SettingsWindow_SaveNewElementsOnly" xml:space="preserve"><value>Nur für neue Bauteile speichern</value></data>
   <data name="SettingsWindow_SaveApplySelection" xml:space="preserve"><value>Speichern und auf Auswahl anwenden</value></data>
   <data name="SettingsWindow_SaveApplyAll" xml:space="preserve"><value>Speichern und auf alle anwenden</value></data>

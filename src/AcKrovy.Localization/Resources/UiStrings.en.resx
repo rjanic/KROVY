@@ -139,8 +139,12 @@
   <data name="SettingsWindow_Manufacturing_RoundingStep" xml:space="preserve"><value>Round fabrication length up to [mm]</value></data>
   <data name="SettingsWindow_Manufacturing_ElementTypeColumn" xml:space="preserve"><value>Element type</value></data>
   <data name="SettingsWindow_Manufacturing_DefaultAllowanceColumn" xml:space="preserve"><value>Default cutting allowance [mm]</value></data>
+  <data name="SettingsWindow_Language_Tab" xml:space="preserve"><value>Language</value></data>
+  <data name="SettingsWindow_Language_Description" xml:space="preserve"><value>Select the user interface language. The change is applied after the settings are saved.</value></data>
+  <data name="SettingsWindow_Language_Label" xml:space="preserve"><value>Language</value></data>
   <data name="SettingsWindow_RestoreDefaults" xml:space="preserve"><value>Restore defaults</value></data>
   <data name="SettingsWindow_Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="SettingsWindow_Save" xml:space="preserve"><value>Save</value></data>
   <data name="SettingsWindow_SaveNewElementsOnly" xml:space="preserve"><value>Save for new elements only</value></data>
   <data name="SettingsWindow_SaveApplySelection" xml:space="preserve"><value>Save and apply to selection</value></data>
   <data name="SettingsWindow_SaveApplyAll" xml:space="preserve"><value>Save and apply to all</value></data>

@@ -139,8 +139,12 @@
   <data name="SettingsWindow_Manufacturing_RoundingStep" xml:space="preserve"><value>Zaokrouhlit výrobní délku nahoru na [mm]</value></data>
   <data name="SettingsWindow_Manufacturing_ElementTypeColumn" xml:space="preserve"><value>Typ prvku</value></data>
   <data name="SettingsWindow_Manufacturing_DefaultAllowanceColumn" xml:space="preserve"><value>Výchozí přídavek na řez [mm]</value></data>
+  <data name="SettingsWindow_Language_Tab" xml:space="preserve"><value>Jazyk</value></data>
+  <data name="SettingsWindow_Language_Description" xml:space="preserve"><value>Vyberte jazyk uživatelského rozhraní. Změna se použije po uložení nastavení.</value></data>
+  <data name="SettingsWindow_Language_Label" xml:space="preserve"><value>Jazyk</value></data>
   <data name="SettingsWindow_RestoreDefaults" xml:space="preserve"><value>Obnovit výchozí</value></data>
   <data name="SettingsWindow_Cancel" xml:space="preserve"><value>Zrušit</value></data>
+  <data name="SettingsWindow_Save" xml:space="preserve"><value>Uložit</value></data>
   <data name="SettingsWindow_SaveNewElementsOnly" xml:space="preserve"><value>Uložit jen pro nové prvky</value></data>
   <data name="SettingsWindow_SaveApplySelection" xml:space="preserve"><value>Uložit a použít na výběr</value></data>
   <data name="SettingsWindow_SaveApplyAll" xml:space="preserve"><value>Uložit a použít na všechny prvky</value></data>

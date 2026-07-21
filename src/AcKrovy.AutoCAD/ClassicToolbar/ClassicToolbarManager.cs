@@ -12,6 +12,7 @@ internal static class ClassicToolbarManager
 {
     private static readonly Guid PaletteId = new(CommandUiCatalog.ClassicToolbarPaletteId);
     private static PaletteSet? _palette;
+    private static ClassicToolbarControl? _control;
 
     public static bool IsVisible => _palette?.Visible == true;
 
@@ -19,12 +20,14 @@ internal static class ClassicToolbarManager
     {
         EnsureCreated();
         _palette!.Visible = !_palette.Visible;
+        RefreshLocalizedContent();
     }
 
     public static void Show()
     {
         EnsureCreated();
         _palette!.Visible = true;
+        RefreshLocalizedContent();
     }
 
     public static void Hide()
@@ -32,7 +35,38 @@ internal static class ClassicToolbarManager
         if (_palette is not null)
         {
             _palette.Visible = false;
+            RefreshLocalizedContent();
         }
+    }
+
+    /// <summary>
+    /// Synchronizuje iba zobrazovaný názov existujúcej palety. Nevytvára nový
+    /// PaletteSet a nemení GUID, dokovanie, polohu ani workspace stav.
+    /// </summary>
+    public static bool SynchronizeLocalizedTitle()
+    {
+        if (_palette is null)
+        {
+            return false;
+        }
+
+        return ClassicToolbarTitleSynchronizer.TrySynchronize(title => _palette.Name = title);
+    }
+
+    /// <summary>
+    /// Synchronizuje titulok a textové vlastnosti existujúcich tlačidiel bez
+    /// vytvorenia nového PaletteSetu alebo toolbar controlu.
+    /// </summary>
+    public static bool RefreshLocalizedContent()
+    {
+        if (_palette is null)
+        {
+            return false;
+        }
+
+        SynchronizeLocalizedTitle();
+        _control?.RefreshLocalizedContent();
+        return true;
     }
 
     public static void Dispose()
@@ -52,6 +86,7 @@ internal static class ClassicToolbarManager
         }
         finally
         {
+            _control = null;
             _palette = null;
         }
     }
@@ -61,12 +96,14 @@ internal static class ClassicToolbarManager
         if (_palette is not null)
         {
             // Existujúci PaletteSet za behu nereštartujeme ani neduplikujeme: AutoCAD
-            // si k stabilnému GUID ukladá dokovanie a polohu. Nová kultúra sa bezpečne
-            // použije pri najbližšom vytvorení panelu, typicky po reštarte AutoCADu.
+            // si k stabilnému GUID ukladá dokovanie a polohu. Aktualizujeme iba
+            // lokalizované texty existujúceho panelu a jeho tlačidiel.
+            RefreshLocalizedContent();
             return;
         }
 
-        var palette = new PaletteSet(UiStrings.ToolbarTitle, PaletteId)
+        var localizedTitle = UiStrings.ToolbarTitle;
+        var palette = new PaletteSet(localizedTitle, PaletteId)
         {
             Style = PaletteSetStyles.ShowAutoHideButton
                   | PaletteSetStyles.ShowCloseButton
@@ -75,7 +112,13 @@ internal static class ClassicToolbarManager
             Size = new Size(270, 118),
         };
 
-        palette.Add(UiStrings.ToolbarContentTitle, new ClassicToolbarControl());
+        var control = new ClassicToolbarControl();
+        palette.Add(UiStrings.ToolbarContentTitle, control);
+        // AutoCAD obnovuje workspace stav podľa stabilného GUID a môže pritom vrátiť
+        // starý uložený názov. Zobrazovaný názov preto nastavíme ešte raz po vytvorení
+        // obsahu; GUID, dokovanie, poloha ani ostatný workspace stav sa nemenia.
+        _control = control;
         _palette = palette;
+        RefreshLocalizedContent();
     }
 }

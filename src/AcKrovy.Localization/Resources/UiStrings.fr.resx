@@ -139,8 +139,12 @@
   <data name="SettingsWindow_Manufacturing_RoundingStep" xml:space="preserve"><value>Arrondir la longueur de fabrication au multiple supérieur de [mm]</value></data>
   <data name="SettingsWindow_Manufacturing_ElementTypeColumn" xml:space="preserve"><value>Type d'élément</value></data>
   <data name="SettingsWindow_Manufacturing_DefaultAllowanceColumn" xml:space="preserve"><value>Surcote de coupe par défaut [mm]</value></data>
+  <data name="SettingsWindow_Language_Tab" xml:space="preserve"><value>Langue</value></data>
+  <data name="SettingsWindow_Language_Description" xml:space="preserve"><value>Sélectionnez la langue de l'interface utilisateur. La modification est appliquée après l'enregistrement des paramètres.</value></data>
+  <data name="SettingsWindow_Language_Label" xml:space="preserve"><value>Langue</value></data>
   <data name="SettingsWindow_RestoreDefaults" xml:space="preserve"><value>Rétablir les valeurs par défaut</value></data>
   <data name="SettingsWindow_Cancel" xml:space="preserve"><value>Annuler</value></data>
+  <data name="SettingsWindow_Save" xml:space="preserve"><value>Enregistrer</value></data>
   <data name="SettingsWindow_SaveNewElementsOnly" xml:space="preserve"><value>Nouveaux éléments uniquement</value></data>
   <data name="SettingsWindow_SaveApplySelection" xml:space="preserve"><value>Enregistrer et appliquer à la sélection</value></data>
   <data name="SettingsWindow_SaveApplyAll" xml:space="preserve"><value>Enregistrer et appliquer à tous</value></data>
