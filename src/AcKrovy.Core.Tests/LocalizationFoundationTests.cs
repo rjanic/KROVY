@@ -28,9 +28,11 @@ public sealed class LocalizationFoundationTests
         "Command_Labels_RefreshFailedFormat", "Command_Edit_Prompt", "Command_Edit_NoData",
         "Command_Edit_TitleSingleFormat", "Command_Edit_TitleMultipleFormat", "Command_Edit_ResultFormat",
         "Command_FlipSlope_Prompt", "Command_FlipSlope_NotTimberOrAnnotation", "Command_FlipSlope_Horizontal",
+        "Command_FlipSlope_PostPerpendicular",
         "Command_FlipSlope_ResultReversed", "Command_FlipSlope_ResultNormal", "Command_Inspect_Prompt",
         "Command_Inspect_NoData", "Command_Inspect_AllowanceDefault", "Command_Inspect_AllowanceIndividual",
-        "Command_Inspect_SummaryFormat", "Dialog_Inspect_Item", "Dialog_Inspect_ElementType",
+        "Command_Inspect_SummaryFormat", "Command_Inspect_FootprintSummaryFormat",
+        "Dialog_Inspect_Item", "Dialog_Inspect_ElementType",
         "Dialog_Inspect_Material", "Dialog_Inspect_Width", "Dialog_Inspect_Height", "Dialog_Inspect_Slope",
         "Dialog_Inspect_SlopeDirection", "Dialog_Inspect_PlanLength", "Dialog_Inspect_ActualLength",
         "Dialog_Inspect_CuttingAllowance", "Dialog_Inspect_CuttingLength", "Dialog_Inspect_ManualLengthMode",
@@ -39,7 +41,11 @@ public sealed class LocalizationFoundationTests
         "Command_Report_NoneFound", "Command_Report_ElementSkippedFormat", "Command_Report_NoValidElements",
         "Command_Report_PromptInsertionPoint", "Command_Report_InsertedFormat", "Command_Recalc_ElementErrorFormat",
         "Command_Recalc_ResultFormat", "Command_Assign_Prompt", "Command_Assign_PromptTypeFormat",
-        "Command_Assign_ResultFormat", "Command_Layers_ElementSkippedFormat", "Command_Layers_ResultFormat",
+        "Command_Assign_ResultFormat", "Command_PostFootprint_EdgePrompt",
+        "Command_PostFootprint_PolylineOnly", "Command_PostFootprint_InvalidGeometry",
+        "Command_PostFootprint_AmbiguousPick", "Command_PostFootprint_PickTooFar",
+        "Command_PostFootprint_AssignRedirect",
+        "Command_PostFootprint_AssignedFormat", "Command_Layers_ElementSkippedFormat", "Command_Layers_ResultFormat",
         "Command_Settings_ApplyElementSkippedFormat", "Command_Settings_ApplyResultFormat", "Command_Labels_Shown",
         "Command_Labels_Hidden", "Command_Labels_LayerMissing", "Command_Prompt_RemoveSelection",
         "Warning_LiveRefreshSkippedFormat", "Dialog_Edit_FieldWidth", "Dialog_Edit_FieldHeight",
@@ -190,7 +196,7 @@ public sealed class LocalizationFoundationTests
 
         Assert.All(loaded, data =>
         {
-            Assert.Equal(TimberElementDataSchema.CurrentVersion, data.SchemaVersion);
+            Assert.Equal(TimberElementDataSchema.LegacyImplicitVersion, data.SchemaVersion);
             Assert.Equal("K9", data.ElementId);
             Assert.Equal(TimberElementType.Rafter, data.ElementType);
             Assert.Equal(LengthCalculationMode.SlopeCorrected, data.LengthCalculationMode);
@@ -275,7 +281,7 @@ public sealed class LocalizationFoundationTests
     [Fact]
     public void CommandAndMessageResourceKeys_AllExist()
     {
-        Assert.Equal(80, CommandAndMessageResourceKeys.Length);
+        Assert.Equal(89, CommandAndMessageResourceKeys.Length);
         Assert.All(CommandAndMessageResourceKeys, key =>
         {
             var value = UiStrings.GetString(key, CultureInfo.GetCultureInfo("sk-SK"));

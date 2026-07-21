@@ -38,7 +38,7 @@ public sealed partial class LocalizationLanguagePackTests
     public void SatelliteResourceFiles_MatchDefaultKeysAndContainNoEmptyValues()
     {
         var defaultResources = LoadResources(DefaultResourceFile);
-        Assert.Equal(206, defaultResources.Count);
+        Assert.Equal(215, defaultResources.Count);
         Assert.All(defaultResources, item => Assert.False(string.IsNullOrWhiteSpace(item.Value)));
 
         foreach (var fileName in SatelliteResourceFiles)
@@ -89,6 +89,137 @@ public sealed partial class LocalizationLanguagePackTests
 
         Assert.Equal(expectedRafter, UiStrings.GetString("ElementType_Rafter", culture));
         Assert.Equal(expectedRafter, TimberElementTypeDisplayNameProvider.GetDisplayName(TimberElementType.Rafter, culture));
+    }
+
+    [Theory]
+    [InlineData("sk-SK", "Označenie", "Typ prvku", "Režim manuálnej dĺžky", "Identifikátor CAD")]
+    [InlineData("cs-CZ", "Označení", "Typ prvku", "Režim ruční délky", "Identifikátor CAD")]
+    [InlineData("en-US", "Item", "Element type", "Manual length mode", "CAD handle")]
+    [InlineData("de-DE", "Position", "Bauteiltyp", "Manueller Längenmodus", "CAD-Kennung")]
+    [InlineData("pl-PL", "Pozycja", "Typ elementu", "Tryb długości ręcznej", "Uchwyt CAD")]
+    [InlineData("fr-FR", "Repère", "Type d'élément", "Mode de longueur saisie", "Identifiant CAD")]
+    public void InspectFieldLabels_ResolveInAllSupportedCultures(
+        string cultureName,
+        string expectedItem,
+        string expectedType,
+        string expectedManualMode,
+        string expectedCadHandle)
+    {
+        var culture = CultureInfo.GetCultureInfo(cultureName);
+
+        Assert.Equal(expectedItem, UiStrings.GetString("Dialog_Inspect_Item", culture));
+        Assert.Equal(expectedType, UiStrings.GetString("Dialog_Inspect_ElementType", culture));
+        Assert.Equal(expectedManualMode, UiStrings.GetString("Dialog_Inspect_ManualLengthMode", culture));
+        Assert.Equal(expectedCadHandle, UiStrings.GetString("Dialog_Inspect_CadHandle", culture));
+
+        var allLabels = new[]
+        {
+            "Dialog_Inspect_Item", "Dialog_Inspect_ElementType", "Dialog_Inspect_Material",
+            "Dialog_Inspect_Width", "Dialog_Inspect_Height", "Dialog_Inspect_Slope",
+            "Dialog_Inspect_SlopeDirection", "Dialog_Inspect_PlanLength", "Dialog_Inspect_ActualLength",
+            "Dialog_Inspect_CuttingAllowance", "Dialog_Inspect_CuttingLength",
+            "Dialog_Inspect_ManualLengthMode", "Dialog_Inspect_CadHandle", "Dialog_Inspect_ManualLength",
+        };
+        Assert.All(allLabels, key => Assert.NotEqual(key, UiStrings.GetString(key, culture)));
+    }
+
+    [Fact]
+    public void CzechInspectFieldLabels_DoNotFallBackToEnglish()
+    {
+        var culture = CultureInfo.GetCultureInfo("cs-CZ");
+        var keys = new[]
+        {
+            "Dialog_Inspect_Item", "Dialog_Inspect_ElementType", "Dialog_Inspect_Material",
+            "Dialog_Inspect_Width", "Dialog_Inspect_Height", "Dialog_Inspect_Slope",
+            "Dialog_Inspect_SlopeDirection", "Dialog_Inspect_PlanLength", "Dialog_Inspect_ActualLength",
+            "Dialog_Inspect_CuttingAllowance", "Dialog_Inspect_CuttingLength",
+            "Dialog_Inspect_ManualLengthMode", "Dialog_Inspect_CadHandle", "Dialog_Inspect_ManualLength",
+        };
+        var expected = new[]
+        {
+            "Označení", "Typ prvku", "Materiál", "Šířka", "Výška", "Sklon",
+            "Směr spádu", "Půdorysná délka", "Skutečná délka", "Přídavek na řez",
+            "Řezná délka", "Režim ruční délky", "Identifikátor CAD", "Ruční délka",
+        };
+
+        Assert.Equal(expected, keys.Select(key => UiStrings.GetString(key, culture)));
+    }
+
+    [Fact]
+    public void InspectProperties_UseSelectedAppLanguageWhenCommandThreadCultureDiffers()
+    {
+        var previousLanguage = AppLanguageService.CurrentLanguageCode;
+        var previousUiCulture = CultureInfo.CurrentUICulture;
+        try
+        {
+            AppLanguageService.Apply("cs");
+            CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo("en-US");
+
+            Assert.Equal("Označení", UiStrings.DialogInspectItem);
+            Assert.Equal("Typ prvku", UiStrings.DialogInspectElementType);
+            Assert.Equal("Režim ruční délky", UiStrings.DialogInspectManualLengthMode);
+            Assert.Equal("Identifikátor CAD", UiStrings.DialogInspectCadHandle);
+            Assert.Contains("Skutečná délka", UiStrings.CommandInspectFootprintSummaryFormat);
+        }
+        finally
+        {
+            AppLanguageService.Apply(previousLanguage);
+            CultureInfo.CurrentUICulture = previousUiCulture;
+        }
+    }
+
+    [Theory]
+    [InlineData("sk", "Vyber jednu stranu pôdorysu stĺpika")]
+    [InlineData("cs", "Vyberte jednu stranu půdorysu sloupku")]
+    [InlineData("en", "Select one edge of the Post footprint")]
+    [InlineData("de", "Wählen Sie eine Kante des Stützengrundrisses")]
+    [InlineData("pl", "Wybierz jedną krawędź rzutu słupa")]
+    [InlineData("fr", "Sélectionnez un côté de l'empreinte du poteau")]
+    public void PostFootprintPrompts_UseSelectedAppLanguageWhenCommandThreadCultureDiffers(
+        string languageCode,
+        string expectedFirstPrompt)
+    {
+        var previousLanguage = AppLanguageService.CurrentLanguageCode;
+        var previousUiCulture = CultureInfo.CurrentUICulture;
+        try
+        {
+            AppLanguageService.Apply(languageCode);
+            CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo(
+                string.Equals(languageCode, "en", StringComparison.Ordinal) ? "sk-SK" : "en-US");
+
+            Assert.Contains(expectedFirstPrompt, UiStrings.CommandPostFootprintEdgePrompt);
+
+            var activeValues = new[]
+            {
+                UiStrings.CommandPostFootprintEdgePrompt,
+                UiStrings.CommandPostFootprintPolylineOnly,
+                UiStrings.CommandPostFootprintInvalidGeometry,
+                UiStrings.CommandPostFootprintAmbiguousPick,
+                UiStrings.CommandPostFootprintPickTooFar,
+                UiStrings.CommandPostFootprintAssignRedirect,
+                UiStrings.CommandPostFootprintAssignedFormat,
+            };
+            var resourceKeys = new[]
+            {
+                "Command_PostFootprint_EdgePrompt",
+                "Command_PostFootprint_PolylineOnly",
+                "Command_PostFootprint_InvalidGeometry",
+                "Command_PostFootprint_AmbiguousPick",
+                "Command_PostFootprint_PickTooFar",
+                "Command_PostFootprint_AssignRedirect",
+                "Command_PostFootprint_AssignedFormat",
+            };
+            var appCulture = AppLanguageService.GetCultureInfo(languageCode);
+
+            Assert.Equal(
+                resourceKeys.Select(key => UiStrings.GetString(key, appCulture)),
+                activeValues);
+        }
+        finally
+        {
+            AppLanguageService.Apply(previousLanguage);
+            CultureInfo.CurrentUICulture = previousUiCulture;
+        }
     }
 
     [Fact]

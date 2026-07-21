@@ -45,6 +45,75 @@ internal static class ElementLabelService
         var measurement = TimberCalculator.Measure(data, AutoCadEntityHelpers.GetPlanLengthMm(sourceEntity), roundingStepMm);
         var labelText = TimberElementLabelFormatter.Format(data, measurement);
         var placement = CalculatePlacement(sourceEntity);
+        return UpsertLabel(
+            database,
+            transaction,
+            sourceEntity,
+            data,
+            previousElementId,
+            placement,
+            labelText,
+            AttachmentPoint.MiddleCenter,
+            DefaultTextHeightMm,
+            lineSpacingFactor: null);
+    }
+
+    public static bool UpsertForPostFootprint(
+        Database database,
+        Transaction transaction,
+        Polyline sourcePolyline,
+        TimberElementData data,
+        TimberRectangularFootprintGeometry geometry,
+        string? previousElementId = null,
+        double roundingStepMm = TimberCuttingLengthCalculator.DefaultRoundingStepMm)
+    {
+        ArgumentNullException.ThrowIfNull(database);
+        ArgumentNullException.ThrowIfNull(transaction);
+        ArgumentNullException.ThrowIfNull(sourcePolyline);
+        ArgumentNullException.ThrowIfNull(data);
+        ArgumentNullException.ThrowIfNull(geometry);
+
+        if (string.IsNullOrWhiteSpace(data.ElementId))
+        {
+            return false;
+        }
+
+        var measurement = TimberCalculator.Measure(
+            data,
+            planLengthMm: null,
+            roundingIncrementMm: roundingStepMm);
+        var labelText = TimberPostFootprintLabelFormatter.Format(data, measurement.ActualLengthMm);
+        var footprintPlacement = TimberPostFootprintLabelPlacementCalculator.Calculate(geometry.Bounds);
+        var elevation = sourcePolyline.GetPoint3dAt(0).Z;
+        var placement = new LabelPlacement(
+            new Point3d(footprintPlacement.AnchorX, footprintPlacement.AnchorY, elevation),
+            footprintPlacement.RotationRadians);
+
+        return UpsertLabel(
+            database,
+            transaction,
+            sourcePolyline,
+            data,
+            previousElementId,
+            placement,
+            labelText,
+            AttachmentPoint.BottomCenter,
+            TimberPostFootprintLabelPlacementCalculator.TextHeightMm,
+            TimberPostFootprintLabelPlacementCalculator.LineSpacingFactor);
+    }
+
+    private static bool UpsertLabel(
+        Database database,
+        Transaction transaction,
+        Entity sourceEntity,
+        TimberElementData data,
+        string? previousElementId,
+        LabelPlacement placement,
+        string labelText,
+        AttachmentPoint attachment,
+        double textHeightMm,
+        double? lineSpacingFactor)
+    {
         var sourceHandle = sourceEntity.Handle.ToString();
         var existingLabelId = FindExistingLabelId(
             database,
@@ -71,7 +140,15 @@ internal static class ElementLabelService
             label = (MText)transaction.GetObject(existingLabelId, OpenMode.ForWrite);
         }
 
-        ApplyLabelAppearance(database, transaction, label, placement, labelText);
+        ApplyLabelAppearance(
+            database,
+            transaction,
+            label,
+            placement,
+            labelText,
+            attachment,
+            textHeightMm,
+            lineSpacingFactor);
         ElementLabelStore.Write(label, transaction, new ElementLabelData
         {
             ElementId = data.ElementId,
@@ -227,6 +304,24 @@ internal static class ElementLabelService
         }
 
         return deleted;
+    }
+
+    internal static int DeleteForSourceHandle(
+        Database database,
+        Transaction transaction,
+        string sourceHandle)
+    {
+        var ids = ReadLabels(database, transaction)
+            .Where(label => string.Equals(
+                label.Data.SourceHandle,
+                sourceHandle,
+                StringComparison.OrdinalIgnoreCase))
+            .Select(label => label.Id)
+            .ToList();
+        return DeleteLabelsByKey(
+            transaction,
+            ids.ToDictionary(id => id.ToString(), id => id),
+            ids.Select(id => id.ToString()).ToList());
     }
 
     internal static int DeleteDuplicateLabelsForExistingSourceHandles(
@@ -569,13 +664,20 @@ internal static class ElementLabelService
         Transaction transaction,
         MText label,
         LabelPlacement placement,
-        string contents)
+        string contents,
+        AttachmentPoint attachment,
+        double textHeightMm,
+        double? lineSpacingFactor)
     {
         var labelLayerId = EnsureLabelLayer(database, transaction);
         label.LayerId = labelLayerId;
         label.Color = AcColor.FromColorIndex(ColorMethod.ByLayer, 256);
-        label.Attachment = AttachmentPoint.MiddleCenter;
-        label.TextHeight = DefaultTextHeightMm;
+        label.Attachment = attachment;
+        label.TextHeight = textHeightMm;
+        if (lineSpacingFactor.HasValue)
+        {
+            label.LineSpacingFactor = lineSpacingFactor.Value;
+        }
         label.Rotation = placement.RotationRadians;
         label.Location = placement.Location;
         label.Contents = contents;

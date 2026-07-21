@@ -32,6 +32,18 @@ public static class TimberElementDataVersioning
             : data with { SchemaVersion = version };
     }
 
+    /// <summary>
+    /// Preserves tolerant version-one reads and upgrades only when metadata is
+    /// explicitly written back to a drawing.
+    /// </summary>
+    public static TimberElementData PrepareForWrite(TimberElementData data)
+    {
+        var normalized = Normalize(data);
+        return normalized.SchemaVersion == TimberElementDataSchema.CurrentVersion
+            ? normalized
+            : normalized with { SchemaVersion = TimberElementDataSchema.CurrentVersion };
+    }
+
     private static int ResolveVersion(TimberElementData data) =>
         data.SchemaVersion <= 0
             ? TimberElementDataSchema.LegacyImplicitVersion

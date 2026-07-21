@@ -221,7 +221,7 @@ public sealed class AcKrovyCommands
     public void AssignPurlin() => AssignWithPresetType(TimberElementType.Purlin);
 
     [CommandMethod(AcKrovyCommandNames.Post, CommandFlags.Modal | CommandFlags.UsePickSet)]
-    public void AssignPost() => AssignWithPresetType(TimberElementType.Post);
+    public void AssignPost() => PostFootprintAssignmentWorkflow.Run(ActiveDocument());
 
     [CommandMethod(AcKrovyCommandNames.CollarTie, CommandFlags.Modal | CommandFlags.UsePickSet)]
     public void AssignCollarTie() => AssignWithPresetType(TimberElementType.CollarTie);
@@ -237,7 +237,10 @@ public sealed class AcKrovyCommands
     {
         var document = ActiveDocument();
         var editor = document.Editor;
-        var ids = PromptForEntities(editor, UiStrings.CommandEditPrompt);
+        var uiCulture = AppLanguageService.CurrentUiCulture;
+        var ids = PromptForEntities(
+            editor,
+            UiStrings.GetString("Command_Edit_Prompt", uiCulture));
         if (ids.Count == 0)
         {
             return;
@@ -256,7 +259,7 @@ public sealed class AcKrovyCommands
 
         if (selectedData.Count == 0)
         {
-            editor.WriteMessage(UiStrings.CommandEditNoData);
+            editor.WriteMessage(UiStrings.GetString("Command_Edit_NoData", uiCulture));
             return;
         }
 
@@ -270,11 +273,20 @@ public sealed class AcKrovyCommands
             validationData: selectedData);
         dialog.Title = selectedData.Count == 1
             ? UiStrings.Format(
-                UiStrings.CommandEditTitleSingleFormat,
+                UiStrings.GetString("Command_Edit_TitleSingleFormat", uiCulture),
                 selectedData[0].ElementId,
-                TimberElementTypeDisplayNameProvider.GetDisplayName(selectedData[0].ElementType))
-            : UiStrings.Format(UiStrings.CommandEditTitleMultipleFormat, selectedData.Count);
+                TimberElementTypeDisplayNameProvider.GetDisplayName(
+                    selectedData[0].ElementType,
+                    uiCulture))
+            : UiStrings.Format(
+                UiStrings.GetString("Command_Edit_TitleMultipleFormat", uiCulture),
+                selectedData.Count);
         if (AcApp.ShowModalWindow(dialog) != true || dialog.Patch is null)
+        {
+            return;
+        }
+
+        if (TryRunPostFootprintAssignment(document, dialog))
         {
             return;
         }
@@ -315,7 +327,10 @@ public sealed class AcKrovyCommands
         UpdateLabelsForChangedEntities(document.Database, transaction, metadataStore, changedIds, previousElementIdById);
 
         transaction.Commit();
-        editor.WriteMessage(UiStrings.Format(UiStrings.CommandEditResultFormat, changed, skipped));
+        editor.WriteMessage(UiStrings.Format(
+            UiStrings.GetString("Command_Edit_ResultFormat", uiCulture),
+            changed,
+            skipped));
     }
 
     [CommandMethod(AcKrovyCommandNames.FlipSlope, CommandFlags.Modal)]
@@ -358,7 +373,13 @@ public sealed class AcKrovyCommands
             return;
         }
 
-        if (!TimberSlopeAnnotationRules.CanFlipDirection(data.SlopeDegrees))
+        if (data.ElementType == TimberElementType.Post)
+        {
+            editor.WriteMessage(UiStrings.CommandFlipSlopePostPerpendicular);
+            return;
+        }
+
+        if (!TimberSlopeAnnotationRules.CanFlipDirection(data.ElementType, data.SlopeDegrees))
         {
             editor.WriteMessage(UiStrings.CommandFlipSlopeHorizontal);
             return;
@@ -404,6 +425,10 @@ public sealed class AcKrovyCommands
         }
 
         var data = snapshot.Data;
+        var uiCulture = AppLanguageService.GetCultureInfo(AppLanguageService.CurrentLanguageCode);
+        var elementTypeDisplayName = TimberElementTypeDisplayNameProvider.GetDisplayName(
+            data.ElementType,
+            uiCulture);
         var defaultProfile = TimberElementDefaultProfileStore.Load();
         var roundingStepMm = defaultProfile.GetCuttingLengthRoundingStepMm();
         var measurement = TimberElementMeasurer.Measure(snapshot, roundingStepMm);
@@ -411,36 +436,54 @@ public sealed class AcKrovyCommands
         var allowanceSource = Math.Abs(data.CuttingAllowanceMm - currentDefaultAllowance) < 0.000001
             ? UiStrings.CommandInspectAllowanceDefault
             : UiStrings.CommandInspectAllowanceIndividual;
-        var message = UiStrings.Format(
-            UiStrings.CommandInspectSummaryFormat,
-            data.ElementId,
-            TimberElementTypeDisplayNameProvider.GetDisplayName(data.ElementType),
-            data.WidthMm,
-            data.HeightMm,
-            measurement.PlanLengthMm / 1000d,
-            measurement.ActualLengthMm / 1000d,
-            measurement.CuttingLengthMm / 1000d,
-            measurement.VolumeM3);
+        var isFootprintPost = !measurement.PlanLengthMm.HasValue;
+        var message = isFootprintPost
+            ? UiStrings.Format(
+                UiStrings.CommandInspectFootprintSummaryFormat,
+                data.ElementId,
+                elementTypeDisplayName,
+                data.WidthMm,
+                data.HeightMm,
+                measurement.ActualLengthMm / 1000d,
+                measurement.CuttingLengthMm / 1000d,
+                measurement.VolumeM3)
+            : UiStrings.Format(
+                UiStrings.CommandInspectSummaryFormat,
+                data.ElementId,
+                elementTypeDisplayName,
+                data.WidthMm,
+                data.HeightMm,
+                measurement.PlanLengthMm!.Value / 1000d,
+                measurement.ActualLengthMm / 1000d,
+                measurement.CuttingLengthMm / 1000d,
+                measurement.VolumeM3);
         var rows = new List<InspectInfoRow>
         {
             new(UiStrings.DialogInspectItem, data.ElementId),
-            new(UiStrings.DialogInspectElementType, TimberElementTypeDisplayNameProvider.GetDisplayName(data.ElementType)),
+            new(UiStrings.DialogInspectElementType, elementTypeDisplayName),
             new(UiStrings.DialogInspectMaterial, data.Material),
             new(UiStrings.DialogInspectWidth, $"{data.WidthMm:0} mm"),
             new(UiStrings.DialogInspectHeight, $"{data.HeightMm:0} mm"),
             new(UiStrings.DialogInspectSlope, $"{data.SlopeDegrees:0.###}°"),
-            new(UiStrings.DialogInspectSlopeDirection, data.IsSlopeDirectionReversed
-                ? UiStrings.MessageDirectionReversed
-                : UiStrings.MessageDirectionNormal),
-            new(UiStrings.DialogInspectPlanLength, $"{measurement.PlanLengthMm:0} mm"),
             new(UiStrings.DialogInspectActualLength, $"{measurement.ActualLengthMm:0} mm"),
             new(UiStrings.DialogInspectCuttingAllowance, $"{data.CuttingAllowanceMm:0} mm ({allowanceSource})"),
             new(UiStrings.DialogInspectCuttingLength, $"{measurement.CuttingLengthMm:0} mm"),
             new(UiStrings.DialogInspectManualLengthMode, data.LengthCalculationMode == LengthCalculationMode.ManualLength
-                ? UiStrings.MessageYes
-                : UiStrings.MessageNo),
+                ? UiStrings.GetString("Message_Yes", uiCulture)
+                : UiStrings.GetString("Message_No", uiCulture)),
             new(UiStrings.DialogInspectCadHandle, entity.Handle.ToString()),
         };
+        if (!isFootprintPost)
+        {
+            rows.Insert(6, new InspectInfoRow(
+                UiStrings.DialogInspectSlopeDirection,
+                data.IsSlopeDirectionReversed
+                    ? UiStrings.GetString("Message_DirectionReversed", uiCulture)
+                    : UiStrings.GetString("Message_DirectionNormal", uiCulture)));
+            rows.Insert(7, new InspectInfoRow(
+                UiStrings.DialogInspectPlanLength,
+                $"{measurement.PlanLengthMm!.Value:0} mm"));
+        }
         if (data.ManualLengthMm.HasValue)
         {
             rows.Add(new InspectInfoRow(UiStrings.DialogInspectManualLength, $"{data.ManualLengthMm.Value:0} mm"));
@@ -542,6 +585,11 @@ public sealed class AcKrovyCommands
             return;
         }
 
+        if (TryRunPostFootprintAssignment(document, dialog))
+        {
+            return;
+        }
+
         var layerProfile = ElementLayerProfileStore.Load();
         using var transaction = document.Database.TransactionManager.StartTransaction();
         var metadataStore = new AutoCadTimberElementMetadataStore(transaction);
@@ -584,6 +632,24 @@ public sealed class AcKrovyCommands
 
         transaction.Commit();
         editor.WriteMessage(UiStrings.Format(UiStrings.CommandAssignResultFormat, assigned, skipped));
+    }
+
+    private static bool TryRunPostFootprintAssignment(
+        Document document,
+        ElementEditWindow dialog)
+    {
+        if (dialog.SelectedElementType != TimberElementType.Post || dialog.Patch is null)
+        {
+            return false;
+        }
+
+        document.Editor.WriteMessage(UiStrings.CommandPostFootprintAssignRedirect);
+        PostFootprintAssignmentWorkflow.Run(
+            document,
+            dialog.Patch,
+            dialog.CuttingAllowanceWasEdited,
+            dialog.UseDefaultCuttingAllowanceByType);
+        return true;
     }
 
     private static bool HasMixedCuttingAllowance(IReadOnlyList<TimberElementData> selectedData)

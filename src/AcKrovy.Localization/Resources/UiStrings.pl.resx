@@ -48,6 +48,7 @@
   <data name="Command_FlipSlope_Prompt" xml:space="preserve"><value>&#xA;Wybierz element drewniany lub jego oznaczenie spadku, aby odwrócić kierunek: </value></data>
   <data name="Command_FlipSlope_NotTimberOrAnnotation" xml:space="preserve"><value>&#xA;ACAD KROVY: wybrany obiekt nie jest elementem drewnianym ani jego oznaczeniem spadku.</value></data>
   <data name="Command_FlipSlope_Horizontal" xml:space="preserve"><value>&#xA;ACAD KROVY: element poziomy nie ma kierunku spadku.</value></data>
+  <data name="Command_FlipSlope_PostPerpendicular" xml:space="preserve"><value>&#xA;ACAD KROVY: kierunek spadku słupa nie jest zmieniany; jego oznaczenie pozostaje 90°.</value></data>
   <data name="Command_FlipSlope_ResultReversed" xml:space="preserve"><value>&#xA;ACAD KROVY: kierunek spadku został odwrócony.</value></data>
   <data name="Command_FlipSlope_ResultNormal" xml:space="preserve"><value>&#xA;ACAD KROVY: ustawiono normalny kierunek spadku.</value></data>
   <data name="Command_Inspect_Prompt" xml:space="preserve"><value>&#xA;Wybierz element ACAD KROVY: </value></data>
@@ -55,6 +56,7 @@
   <data name="Command_Inspect_AllowanceDefault" xml:space="preserve"><value>bieżąca wartość domyślna według typu</value></data>
   <data name="Command_Inspect_AllowanceIndividual" xml:space="preserve"><value>indywidualna wartość elementu</value></data>
   <data name="Command_Inspect_SummaryFormat" xml:space="preserve"><value>&#xA;{0} | {1}&#xA;  Przekrój: {2:0} × {3:0} mm&#xA;  Długość w rzucie: {4:0.###} m&#xA;  Długość rzeczywista: {5:0.###} m&#xA;  Długość cięcia: {6:0.###} m&#xA;  Objętość: {7:0.0000} m³</value></data>
+  <data name="Command_Inspect_FootprintSummaryFormat" xml:space="preserve"><value>&#xA;{0} | {1}&#xA;  Przekrój: {2:0} × {3:0} mm&#xA;  Długość rzeczywista: {4:0.###} m&#xA;  Długość cięcia: {5:0.###} m&#xA;  Objętość: {6:0.0000} m³</value></data>
   <data name="Dialog_Inspect_Item" xml:space="preserve"><value>Pozycja</value></data>
   <data name="Dialog_Inspect_ElementType" xml:space="preserve"><value>Typ elementu</value></data>
   <data name="Dialog_Inspect_Material" xml:space="preserve"><value>Materiał</value></data>
@@ -66,8 +68,8 @@
   <data name="Dialog_Inspect_ActualLength" xml:space="preserve"><value>Długość rzeczywista</value></data>
   <data name="Dialog_Inspect_CuttingAllowance" xml:space="preserve"><value>Naddatek na cięcie</value></data>
   <data name="Dialog_Inspect_CuttingLength" xml:space="preserve"><value>Długość cięcia</value></data>
-  <data name="Dialog_Inspect_ManualLengthMode" xml:space="preserve"><value>ManualLengthMode</value></data>
-  <data name="Dialog_Inspect_CadHandle" xml:space="preserve"><value>CAD Handle</value></data>
+  <data name="Dialog_Inspect_ManualLengthMode" xml:space="preserve"><value>Tryb długości ręcznej</value></data>
+  <data name="Dialog_Inspect_CadHandle" xml:space="preserve"><value>Uchwyt CAD</value></data>
   <data name="Dialog_Inspect_ManualLength" xml:space="preserve"><value>Długość wprowadzona ręcznie</value></data>
   <data name="Message_Yes" xml:space="preserve"><value>Tak</value></data>
   <data name="Message_No" xml:space="preserve"><value>Nie</value></data>
@@ -84,6 +86,13 @@
   <data name="Command_Assign_Prompt" xml:space="preserve"><value>&#xA;Wybierz linie lub polilinie, do których chcesz przypisać dane: </value></data>
   <data name="Command_Assign_PromptTypeFormat" xml:space="preserve"><value>&#xA;Wybierz linie lub polilinie dla elementu {0}: </value></data>
   <data name="Command_Assign_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: przypisano dane do {0} elementów. Pominięte: {1}.</value></data>
+  <data name="Command_PostFootprint_EdgePrompt" xml:space="preserve"><value>&#xA;Wybierz jedną krawędź rzutu słupa: </value></data>
+  <data name="Command_PostFootprint_PolylineOnly" xml:space="preserve"><value>&#xA;Można wybrać wyłącznie lekką polilinię.</value></data>
+  <data name="Command_PostFootprint_InvalidGeometry" xml:space="preserve"><value>&#xA;Polilinia musi być zamkniętym prostokątem z czterema prostymi krawędziami bez łuków w płaszczyźnie rzutu.</value></data>
+  <data name="Command_PostFootprint_AmbiguousPick" xml:space="preserve"><value>&#xA;Wybór krawędzi przy narożniku jest niejednoznaczny. Kliknij dalej od narożnika.</value></data>
+  <data name="Command_PostFootprint_PickTooFar" xml:space="preserve"><value>&#xA;Kliknięcie jest zbyt daleko od krawędzi prostokąta. Wybierz krawędź ponownie.</value></data>
+  <data name="Command_PostFootprint_AssignRedirect" xml:space="preserve"><value>&#xA;Dla słupa wybierz jedną krawędź prostokątnej polilinii.</value></data>
+  <data name="Command_PostFootprint_AssignedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: przypisano słup – {0:0} × {1:0} mm, długość ręczna {2:0} mm.</value></data>
   <data name="Command_Layers_ElementSkippedFormat" xml:space="preserve"><value>&#xA;Pominięto element podczas ustawiania warstwy: {0}</value></data>
   <data name="Command_Layers_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: elementy przeniesione na warstwy: {0}. Pominięte: {1}.</value></data>
   <data name="Command_Settings_ApplyElementSkippedFormat" xml:space="preserve"><value>&#xA;Pominięto element podczas stosowania ustawień: {0}</value></data>

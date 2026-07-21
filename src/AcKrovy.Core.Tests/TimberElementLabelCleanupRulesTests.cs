@@ -84,6 +84,23 @@ public sealed class TimberElementLabelCleanupRulesTests
         Assert.Equal(new[] { "stale-clone" }, result);
     }
 
+    [Fact]
+    public void CopiedPostAnnotationCleanupKeepsOneGlyphForEachPhysicalSourceHandle()
+    {
+        var firstPass = Select(
+            new[] { "POST-OLD", "POST-NEW" },
+            Label("original-post-marker", "S1", "POST-OLD"),
+            Label("copied-old-binding", "S1", "POST-OLD"),
+            Label("refreshed-new-binding", "S2", "POST-NEW"));
+        var secondPass = Select(
+            new[] { "POST-OLD", "POST-NEW" },
+            Label("original-post-marker", "S1", "POST-OLD"),
+            Label("refreshed-new-binding", "S2", "POST-NEW"));
+
+        Assert.Equal(new[] { "copied-old-binding" }, firstPass);
+        Assert.Empty(secondPass);
+    }
+
     private static IReadOnlyList<string> Select(
         IReadOnlyCollection<string> existingTimberSourceHandles,
         params TimberElementLabelCandidate[] labels) =>

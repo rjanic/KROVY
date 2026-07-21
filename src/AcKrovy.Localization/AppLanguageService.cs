@@ -52,6 +52,7 @@ public static class AppLanguageService
 
     public static IReadOnlyList<SupportedAppLanguage> SupportedLanguages => Languages;
     public static string CurrentLanguageCode => _currentLanguageCode;
+    public static CultureInfo CurrentUiCulture => GetCultureInfo(_currentLanguageCode);
 
     public static event EventHandler<AppLanguageChangedEventArgs>? LanguageChanged;
 

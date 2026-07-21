@@ -60,7 +60,7 @@ internal static class ElementDataStore
 
         EnsureRegAppRegistered(entity.Database, transaction);
 
-        var normalizedData = TimberElementDataVersioning.Normalize(data);
+        var normalizedData = TimberElementDataVersioning.PrepareForWrite(data);
         var json = JsonSerializer.Serialize(normalizedData, JsonOptions);
         var jsonByteCount = Encoding.UTF8.GetByteCount(json);
         if (jsonByteCount > MaxPortableJsonBytes)

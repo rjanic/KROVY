@@ -35,7 +35,7 @@ internal static class SlopeAngleTextService
                 sourceHandle))
             .ToList();
 
-        if (!TimberSlopeAnnotationRules.ShouldDisplayAngleText(data.SlopeDegrees))
+        if (!TimberSlopeAnnotationRules.ShouldDisplayAngleText(data.ElementType, data.SlopeDegrees))
         {
             DeleteTexts(transaction, matchingTexts.Select(text => text.Id));
             return false;
@@ -58,7 +58,7 @@ internal static class SlopeAngleTextService
             angleText = (DBText)transaction.GetObject(matchingTexts[0].Id, OpenMode.ForWrite);
         }
 
-        ApplyAppearance(database, transaction, angleText, geometry, data.SlopeDegrees);
+        ApplyAppearance(database, transaction, angleText, geometry, data);
         SlopeAngleTextStore.Write(
             angleText,
             transaction,
@@ -87,6 +87,21 @@ internal static class SlopeAngleTextService
             texts,
             ReadTimberSourceHandles(database, transaction),
             deleteDuplicates: false);
+    }
+
+    internal static int DeleteForSourceHandle(
+        Database database,
+        Transaction transaction,
+        string sourceHandle)
+    {
+        return DeleteTexts(
+            transaction,
+            ReadTexts(database, transaction)
+                .Where(text => string.Equals(
+                    text.Data.SourceHandle,
+                    sourceHandle,
+                    StringComparison.OrdinalIgnoreCase))
+                .Select(text => text.Id));
     }
 
     internal static int DeleteInsertedTextsWithoutCurrentSourceHandles(
@@ -125,24 +140,39 @@ internal static class SlopeAngleTextService
         Transaction transaction,
         DBText angleText,
         SlopeAnnotationGeometryData geometry,
-        double slopeDegrees)
+        TimberElementData data)
     {
-        var placement = TimberElementLabelPlacementCalculator.Calculate(
-            geometry.Start.X,
-            geometry.Start.Y,
-            geometry.End.X,
-            geometry.End.Y,
-            geometry.AnnotationPoint.X,
-            geometry.AnnotationPoint.Y,
-            AngleTextOffsetMm);
-        var location = new Point3d(placement.X, placement.Y, geometry.AnnotationPoint.Z);
+        var isPost = data.ElementType == TimberElementType.Post;
+        var placement = isPost
+            ? null
+            : TimberElementLabelPlacementCalculator.Calculate(
+                geometry.Start.X,
+                geometry.Start.Y,
+                geometry.End.X,
+                geometry.End.Y,
+                geometry.AnnotationPoint.X,
+                geometry.AnnotationPoint.Y,
+                AngleTextOffsetMm);
+        var postGeometry = isPost
+            ? TimberPostAnnotationGeometryCalculator.Calculate(
+                geometry.Start.X,
+                geometry.Start.Y,
+                geometry.End.X,
+                geometry.End.Y,
+                geometry.AnnotationPoint.X,
+                geometry.AnnotationPoint.Y)
+            : null;
+        var location = postGeometry is not null
+            ? new Point3d(postGeometry.TextPosition.X, postGeometry.TextPosition.Y, geometry.AnnotationPoint.Z)
+            : new Point3d(placement!.X, placement.Y, geometry.AnnotationPoint.Z);
 
         angleText.Position = location;
         angleText.Justify = AttachmentPoint.MiddleCenter;
         angleText.AlignmentPoint = location;
         angleText.Height = AngleTextHeightMm;
-        angleText.Rotation = placement.RotationRadians;
-        angleText.TextString = TimberSlopeAngleFormatter.Format(slopeDegrees);
+        angleText.Rotation = postGeometry?.RotationRadians ?? placement!.RotationRadians;
+        angleText.TextString = TimberSlopeAngleFormatter.Format(
+            TimberSlopeAnnotationRules.ResolveDisplayAngleDegrees(data.ElementType, data.SlopeDegrees));
         TimberLayerService.ApplyToAnnotationEntity(
             database,
             transaction,

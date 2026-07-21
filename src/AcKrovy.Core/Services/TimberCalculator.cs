@@ -10,12 +10,11 @@ public static class TimberCalculator
 
     public static TimberElementMeasurement Measure(
         TimberElementData data,
-        double planLengthMm,
+        double? planLengthMm,
         double roundingIncrementMm = CuttingLengthRoundingIncrementMm)
     {
         ValidateDimension(data.WidthMm, nameof(data.WidthMm));
         ValidateDimension(data.HeightMm, nameof(data.HeightMm));
-        ValidateDimension(planLengthMm, nameof(planLengthMm));
 
         var actualLengthMm = CalculateActualLengthMm(data, planLengthMm);
         var cuttingLengthMm = TimberCuttingLengthCalculator.Calculate(
@@ -27,18 +26,20 @@ public static class TimberCalculator
         return new TimberElementMeasurement(data, planLengthMm, actualLengthMm, cuttingLengthMm, volumeM3);
     }
 
-    public static double CalculateActualLengthMm(TimberElementData data, double planLengthMm)
+    public static double CalculateActualLengthMm(TimberElementData data, double? planLengthMm)
     {
         ValidateSlopeDegrees(data.SlopeDegrees);
         var mode = ResolveLengthCalculationMode(data);
 
         return mode switch
         {
-            LengthCalculationMode.PlanLength => planLengthMm,
+            LengthCalculationMode.PlanLength => RequirePlanLength(planLengthMm),
             LengthCalculationMode.ManualLength => data.ManualLengthMm is > 0
                 ? data.ManualLengthMm.Value
-                : planLengthMm,
-            LengthCalculationMode.SlopeCorrected => CalculateSlopeCorrectedLengthMm(planLengthMm, data.SlopeDegrees),
+                : RequirePlanLength(planLengthMm),
+            LengthCalculationMode.SlopeCorrected => CalculateSlopeCorrectedLengthMm(
+                RequirePlanLength(planLengthMm),
+                data.SlopeDegrees),
             _ => throw new InvalidOperationException($"Nepodporovaný režim výpočtu: {mode}."),
         };
     }
@@ -113,5 +114,16 @@ public static class TimberCalculator
         {
             throw new ArgumentOutOfRangeException(name, "Rozmer musí byť kladné číslo.");
         }
+    }
+
+    private static double RequirePlanLength(double? planLengthMm)
+    {
+        if (!planLengthMm.HasValue)
+        {
+            throw new InvalidOperationException("Pôdorysná dĺžka nie je pre tento spôsob výpočtu dostupná.");
+        }
+
+        ValidateDimension(planLengthMm.Value, nameof(planLengthMm));
+        return planLengthMm.Value;
     }
 }

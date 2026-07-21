@@ -14,6 +14,7 @@ public static class TimberElementDefaults
         var defaults = (profile ?? TimberElementDefaultProfile.CreateDefault()).Normalize();
         var common = new TimberElementData
         {
+            SchemaVersion = TimberElementDataSchema.CurrentVersion,
             ElementType = type,
             RoofPlaneId = "R1",
             CuttingAllowanceMm = defaults.GetCuttingAllowanceMm(type),

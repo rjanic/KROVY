@@ -14,8 +14,10 @@ public partial class ElementEditWindow : Window
     private readonly TimberElementDefaultProfile _defaultProfile;
     private readonly IReadOnlyList<TimberElementData> _validationData;
     private readonly bool _isNewAssignment;
+    private readonly CultureInfo _uiCulture;
     private bool _isInitializing;
     private bool _manualLengthEditingEnabled;
+    private readonly bool _usesFootprintPostSlopePresentation;
 
     internal TimberElementPatch? Patch { get; private set; }
     internal TimberElementType? SelectedElementType => (ElementTypeComboBox.SelectedItem as ElementTypeOption)?.Value;
@@ -33,26 +35,33 @@ public partial class ElementEditWindow : Window
         InitializeComponent();
         _isInitializing = true;
         _isNewAssignment = isNewAssignment;
+        _uiCulture = AppLanguageService.CurrentUiCulture;
         _defaultProfile = (defaultProfile ?? TimberElementDefaultProfile.CreateDefault()).Normalize();
 
         ElementTypeComboBox.ItemsSource = Enum
             .GetValues<TimberElementType>()
-            .Select(type => new ElementTypeOption(type, TimberElementTypeDisplayNameProvider.GetDisplayName(type)))
+            .Select(type => new ElementTypeOption(
+                type,
+                TimberElementTypeDisplayNameProvider.GetDisplayName(type, _uiCulture)))
             .ToList();
 
         LengthModeComboBox.ItemsSource = Enum
             .GetValues<LengthCalculationMode>()
-            .Select(mode => new LengthModeOption(mode, LengthCalculationModeDisplayNameProvider.GetDisplayName(mode)))
+            .Select(mode => new LengthModeOption(
+                mode,
+                LengthCalculationModeDisplayNameProvider.GetDisplayName(mode, _uiCulture)))
             .ToList();
 
         SlopeDirectionComboBox.ItemsSource = new[]
         {
-            new SlopeDirectionOption(false, SlopeDirectionDisplayNameProvider.GetDisplayName(false)),
-            new SlopeDirectionOption(true, SlopeDirectionDisplayNameProvider.GetDisplayName(true)),
+            new SlopeDirectionOption(false, SlopeDirectionDisplayNameProvider.GetDisplayName(false, _uiCulture)),
+            new SlopeDirectionOption(true, SlopeDirectionDisplayNameProvider.GetDisplayName(true, _uiCulture)),
         };
 
         var data = seedData ?? new TimberElementData();
         _validationData = validationData ?? new[] { data };
+        _usesFootprintPostSlopePresentation =
+            !TimberPostFootprintSlopeEditRules.CanEditSlope(_validationData);
 
         ElementTypeComboBox.SelectedItem = ((IEnumerable<ElementTypeOption>)ElementTypeComboBox.ItemsSource)
             .First(item => item.Value == data.ElementType);
@@ -63,19 +72,21 @@ public partial class ElementEditWindow : Window
             .First(item => item.IsReversed == data.IsSlopeDirectionReversed);
         if (slopeDirectionIsMixed)
         {
-            SlopeDirectionComboBox.ToolTip = UiStrings.EditWindowSlopeDirectionMixedTooltip;
+            SlopeDirectionComboBox.ToolTip = GetUiString("EditWindow_SlopeDirectionMixedTooltip");
         }
 
         WidthTextBox.Text = Format(data.WidthMm);
         HeightTextBox.Text = Format(data.HeightMm);
-        SlopeTextBox.Text = Format(data.SlopeDegrees);
+        SlopeTextBox.Text = Format(TimberPostFootprintSlopeEditRules.ResolveDisplaySlopeDegrees(
+            data,
+            _validationData));
         RoofPlaneTextBox.Text = data.RoofPlaneId;
         AllowanceTextBox.Text = cuttingAllowanceIsMixed
             ? string.Empty
             : Format(data.CuttingAllowanceMm);
         if (cuttingAllowanceIsMixed)
         {
-            AllowanceTextBox.ToolTip = UiStrings.EditWindowCuttingAllowanceMixedTooltip;
+            AllowanceTextBox.ToolTip = GetUiString("EditWindow_CuttingAllowanceMixedTooltip");
         }
         ManualLengthTextBox.Text = data.ManualLengthMm is null
             ? string.Empty
@@ -92,6 +103,17 @@ public partial class ElementEditWindow : Window
         ChangeLengthModeCheckBox.IsChecked = isNewAssignment;
         ChangeManualLengthCheckBox.IsChecked = isNewAssignment;
         ChangeMaterialCheckBox.IsChecked = isNewAssignment;
+
+        if (_usesFootprintPostSlopePresentation)
+        {
+            ChangeSlopeCheckBox.IsChecked = false;
+            ChangeSlopeCheckBox.IsEnabled = false;
+            SlopeTextBox.IsReadOnly = true;
+            SlopeTextBox.IsEnabled = false;
+            ChangeSlopeDirectionCheckBox.IsChecked = false;
+            ChangeSlopeDirectionCheckBox.IsEnabled = false;
+            SlopeDirectionComboBox.IsEnabled = false;
+        }
 
         ElementTypeComboBox.SelectionChanged += (_, _) =>
         {
@@ -159,7 +181,7 @@ public partial class ElementEditWindow : Window
         ChangeAllowanceCheckBox.IsChecked = false;
         _isInitializing = true;
         AllowanceTextBox.Text = Format(_defaultProfile.GetCuttingAllowanceMm(type));
-        AllowanceTextBox.ToolTip = UiStrings.EditWindowDefaultAllowanceTooltip;
+        AllowanceTextBox.ToolTip = GetUiString("EditWindow_DefaultAllowanceTooltip");
         _isInitializing = false;
     }
 
@@ -169,26 +191,26 @@ public partial class ElementEditWindow : Window
         if (!TryReadOptionalNumber(
                 ChangeWidthCheckBox.IsChecked == true,
                 WidthTextBox.Text,
-                UiStrings.DialogEditFieldWidth,
+                GetUiString("Dialog_Edit_FieldWidth"),
                 out var width) ||
             !TryReadOptionalNumber(
                 ChangeHeightCheckBox.IsChecked == true,
                 HeightTextBox.Text,
-                UiStrings.DialogEditFieldHeight,
+                GetUiString("Dialog_Edit_FieldHeight"),
                 out var height) ||
             !TryReadOptionalSlope(
-                ChangeSlopeCheckBox.IsChecked == true,
+                !_usesFootprintPostSlopePresentation && ChangeSlopeCheckBox.IsChecked == true,
                 SlopeTextBox.Text,
                 out var slope) ||
             !TryReadOptionalWholeNumber(
                 ChangeAllowanceCheckBox.IsChecked == true && !UseDefaultCuttingAllowanceByType,
                 AllowanceTextBox.Text,
-                UiStrings.DialogEditFieldCuttingAllowance,
+                GetUiString("Dialog_Edit_FieldCuttingAllowance"),
                 out var allowance) ||
             !TryReadOptionalNumber(
                 _manualLengthEditingEnabled && ChangeManualLengthCheckBox.IsChecked == true,
                 ManualLengthTextBox.Text,
-                UiStrings.DialogEditFieldManualLength,
+                GetUiString("Dialog_Edit_FieldManualLength"),
                 out var manualLength,
                 allowEmpty: true))
         {
@@ -214,9 +236,10 @@ public partial class ElementEditWindow : Window
                 ? EmptyToNull(MaterialTextBox.Text)
                 : null,
             null,
-            ChangeSlopeDirectionCheckBox.IsChecked == true
-                ? (SlopeDirectionComboBox.SelectedItem as SlopeDirectionOption)?.IsReversed
-                : null);
+            TimberPostFootprintSlopeEditRules.ResolveSlopeDirectionPatch(
+                _validationData,
+                ChangeSlopeDirectionCheckBox.IsChecked == true,
+                (SlopeDirectionComboBox.SelectedItem as SlopeDirectionOption)?.IsReversed ?? false));
 
         foreach (var validationData in _validationData)
         {
@@ -227,8 +250,8 @@ public partial class ElementEditWindow : Window
             }
 
             MessageBox.Show(
-                UiStrings.ErrorInvalidSlopeDegrees,
-                UiStrings.MessageDialogTitle,
+                GetUiString("Error_InvalidSlopeDegrees"),
+                GetUiString("Message_DialogTitle"),
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
             return;
@@ -238,7 +261,7 @@ public partial class ElementEditWindow : Window
         DialogResult = true;
     }
 
-    private static bool TryReadOptionalSlope(bool shouldRead, string raw, out double? result)
+    private bool TryReadOptionalSlope(bool shouldRead, string raw, out double? result)
     {
         result = null;
         if (!shouldRead)
@@ -257,14 +280,14 @@ public partial class ElementEditWindow : Window
 
         TimberCalculator.TryValidateSlopeDegrees(parsed ? value : double.NaN, out _);
         MessageBox.Show(
-            UiStrings.ErrorInvalidSlopeDegrees,
-            UiStrings.MessageDialogTitle,
+            GetUiString("Error_InvalidSlopeDegrees"),
+            GetUiString("Message_DialogTitle"),
             MessageBoxButton.OK,
             MessageBoxImage.Warning);
         return false;
     }
 
-    private static bool TryReadOptionalWholeNumber(
+    private bool TryReadOptionalWholeNumber(
         bool shouldRead,
         string raw,
         string label,
@@ -292,17 +315,17 @@ public partial class ElementEditWindow : Window
 
         MessageBox.Show(
             UiStrings.Format(
-                UiStrings.DialogEditWholeNonnegativeFormat,
+                GetUiString("Dialog_Edit_WholeNonnegativeFormat"),
                 label,
                 TimberElementDefaultProfile.MaxCuttingAllowanceMm),
-            UiStrings.MessageDialogTitle,
+            GetUiString("Message_DialogTitle"),
             MessageBoxButton.OK,
             MessageBoxImage.Warning);
 
         return false;
     }
 
-    private static bool TryReadOptionalNumber(
+    private bool TryReadOptionalNumber(
         bool shouldRead,
         string raw,
         string label,
@@ -332,8 +355,8 @@ public partial class ElementEditWindow : Window
         }
 
         MessageBox.Show(
-            UiStrings.Format(UiStrings.DialogEditPositiveNumberFormat, label),
-            UiStrings.MessageDialogTitle,
+            UiStrings.Format(GetUiString("Dialog_Edit_PositiveNumberFormat"), label),
+            GetUiString("Message_DialogTitle"),
             MessageBoxButton.OK,
             MessageBoxImage.Warning);
 
@@ -342,6 +365,9 @@ public partial class ElementEditWindow : Window
 
     private static string Format(double value) =>
         value.ToString("0.###", SlovakCulture);
+
+    private string GetUiString(string resourceKey) =>
+        UiStrings.GetString(resourceKey, _uiCulture);
 
     private static string? EmptyToNull(string value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();

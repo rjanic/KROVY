@@ -48,6 +48,7 @@
   <data name="Command_FlipSlope_Prompt" xml:space="preserve"><value>&#xA;Sélectionnez un élément en bois ou son repère de pente pour inverser le sens : </value></data>
   <data name="Command_FlipSlope_NotTimberOrAnnotation" xml:space="preserve"><value>&#xA;ACAD KROVY : l'objet sélectionné n'est ni un élément en bois ni son annotation de pente.</value></data>
   <data name="Command_FlipSlope_Horizontal" xml:space="preserve"><value>&#xA;ACAD KROVY : un élément horizontal n'a pas de sens de pente.</value></data>
+  <data name="Command_FlipSlope_PostPerpendicular" xml:space="preserve"><value>&#xA;ACAD KROVY : le sens de pente d'un poteau n'est pas modifié ; son annotation reste à 90°.</value></data>
   <data name="Command_FlipSlope_ResultReversed" xml:space="preserve"><value>&#xA;ACAD KROVY : le sens de pente a été inversé.</value></data>
   <data name="Command_FlipSlope_ResultNormal" xml:space="preserve"><value>&#xA;ACAD KROVY : le sens de pente a été réglé sur normal.</value></data>
   <data name="Command_Inspect_Prompt" xml:space="preserve"><value>&#xA;Sélectionnez un élément ACAD KROVY : </value></data>
@@ -55,6 +56,7 @@
   <data name="Command_Inspect_AllowanceDefault" xml:space="preserve"><value>valeur par défaut actuelle selon le type</value></data>
   <data name="Command_Inspect_AllowanceIndividual" xml:space="preserve"><value>valeur propre à l'élément</value></data>
   <data name="Command_Inspect_SummaryFormat" xml:space="preserve"><value>&#xA;{0} | {1}&#xA;  Section : {2:0} × {3:0} mm&#xA;  Longueur en projection horizontale : {4:0.###} m&#xA;  Longueur réelle : {5:0.###} m&#xA;  Longueur de débit : {6:0.###} m&#xA;  Volume : {7:0.0000} m³</value></data>
+  <data name="Command_Inspect_FootprintSummaryFormat" xml:space="preserve"><value>&#xA;{0} | {1}&#xA;  Section : {2:0} × {3:0} mm&#xA;  Longueur réelle : {4:0.###} m&#xA;  Longueur de débit : {5:0.###} m&#xA;  Volume : {6:0.0000} m³</value></data>
   <data name="Dialog_Inspect_Item" xml:space="preserve"><value>Repère</value></data>
   <data name="Dialog_Inspect_ElementType" xml:space="preserve"><value>Type d'élément</value></data>
   <data name="Dialog_Inspect_Material" xml:space="preserve"><value>Matériau</value></data>
@@ -66,8 +68,8 @@
   <data name="Dialog_Inspect_ActualLength" xml:space="preserve"><value>Longueur réelle</value></data>
   <data name="Dialog_Inspect_CuttingAllowance" xml:space="preserve"><value>Surcote de coupe</value></data>
   <data name="Dialog_Inspect_CuttingLength" xml:space="preserve"><value>Longueur de débit</value></data>
-  <data name="Dialog_Inspect_ManualLengthMode" xml:space="preserve"><value>ManualLengthMode</value></data>
-  <data name="Dialog_Inspect_CadHandle" xml:space="preserve"><value>CAD Handle</value></data>
+  <data name="Dialog_Inspect_ManualLengthMode" xml:space="preserve"><value>Mode de longueur saisie</value></data>
+  <data name="Dialog_Inspect_CadHandle" xml:space="preserve"><value>Identifiant CAD</value></data>
   <data name="Dialog_Inspect_ManualLength" xml:space="preserve"><value>Longueur saisie</value></data>
   <data name="Message_Yes" xml:space="preserve"><value>Oui</value></data>
   <data name="Message_No" xml:space="preserve"><value>Non</value></data>
@@ -84,6 +86,13 @@
   <data name="Command_Assign_Prompt" xml:space="preserve"><value>&#xA;Sélectionnez les lignes ou polylignes auxquelles attribuer des données : </value></data>
   <data name="Command_Assign_PromptTypeFormat" xml:space="preserve"><value>&#xA;Sélectionnez les lignes ou polylignes pour l'élément {0} : </value></data>
   <data name="Command_Assign_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY : données attribuées à {0} éléments. Ignorés : {1}.</value></data>
+  <data name="Command_PostFootprint_EdgePrompt" xml:space="preserve"><value>&#xA;Sélectionnez un côté de l'empreinte du poteau : </value></data>
+  <data name="Command_PostFootprint_PolylineOnly" xml:space="preserve"><value>&#xA;Seule une polyligne légère peut être sélectionnée.</value></data>
+  <data name="Command_PostFootprint_InvalidGeometry" xml:space="preserve"><value>&#xA;La polyligne doit être un rectangle fermé composé de quatre côtés droits sans arc dans le plan.</value></data>
+  <data name="Command_PostFootprint_AmbiguousPick" xml:space="preserve"><value>&#xA;La sélection du côté est ambiguë près du coin. Cliquez plus loin du coin.</value></data>
+  <data name="Command_PostFootprint_PickTooFar" xml:space="preserve"><value>&#xA;Le clic est trop éloigné d'un côté du rectangle. Sélectionnez de nouveau le côté.</value></data>
+  <data name="Command_PostFootprint_AssignRedirect" xml:space="preserve"><value>&#xA;Pour un poteau, sélectionnez un côté d'une polyligne rectangulaire.</value></data>
+  <data name="Command_PostFootprint_AssignedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY : poteau attribué – {0:0} × {1:0} mm, longueur manuelle {2:0} mm.</value></data>
   <data name="Command_Layers_ElementSkippedFormat" xml:space="preserve"><value>&#xA;Élément ignoré lors de la définition de son calque : {0}</value></data>
   <data name="Command_Layers_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY : éléments déplacés sur les calques : {0}. Ignorés : {1}.</value></data>
   <data name="Command_Settings_ApplyElementSkippedFormat" xml:space="preserve"><value>&#xA;Élément ignoré lors de l'application des paramètres : {0}</value></data>

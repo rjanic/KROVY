@@ -23,9 +23,20 @@ internal static class AutoCadEntityReader
             return false;
         }
 
-        snapshot = new TimberElementSnapshot(
-            data,
-            AutoCadEntityHelpers.GetPlanLengthMm(entity));
+        if (PostFootprintRuntimeGeometryResolver.TryResolve(entity, data, out _, out var dimensions) &&
+            dimensions is not null)
+        {
+            snapshot = new TimberElementSnapshot(
+                data with
+                {
+                    WidthMm = dimensions.WidthMm,
+                    HeightMm = dimensions.HeightMm,
+                },
+                PlanLengthMm: null);
+            return true;
+        }
+
+        snapshot = new TimberElementSnapshot(data, AutoCadEntityHelpers.GetPlanLengthMm(entity));
         return true;
     }
 }

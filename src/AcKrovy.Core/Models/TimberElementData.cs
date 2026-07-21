@@ -6,11 +6,12 @@ namespace AcKrovy.Core.Models;
 /// </summary>
 public sealed record TimberElementData
 {
-    public int SchemaVersion { get; init; } = TimberElementDataSchema.CurrentVersion;
+    public int SchemaVersion { get; init; }
     public string ElementId { get; init; } = string.Empty;
     public TimberElementType ElementType { get; init; } = TimberElementType.Rafter;
     public double WidthMm { get; init; } = 80;
     public double HeightMm { get; init; } = 160;
+    public int? FootprintWidthEdgeIndex { get; init; }
     public double SlopeDegrees { get; init; } = 35;
     public bool IsSlopeDirectionReversed { get; init; }
     public string RoofPlaneId { get; init; } = "R1";

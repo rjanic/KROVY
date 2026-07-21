@@ -12,6 +12,7 @@ internal static class SlopeArrowService
 
     private const int ArrowLayerColorIndex = 8;
     private const string HorizontalMarkerBlockName = "DECORAIR_ACADKROVY_HORIZONTAL_SLOPE_MARKER";
+    private const string PostPerpendicularMarkerBlockName = "DECORAIR_ACADKROVY_POST_90_MARKER_V3";
     private const double HorizontalMarkerHalfLengthMm = 60d;
     private const double HorizontalMarkerHalfGapMm = 25d;
 
@@ -39,7 +40,7 @@ internal static class SlopeArrowService
                 sourceHandle,
                 StringComparison.OrdinalIgnoreCase))
             .ToList();
-        var glyphKind = TimberSlopeAnnotationRules.ResolveGlyphKind(data.SlopeDegrees);
+        var glyphKind = TimberSlopeAnnotationRules.ResolveGlyphKind(data.ElementType, data.SlopeDegrees);
 
         if (glyphKind == TimberSlopeGlyphKind.None)
         {
@@ -48,7 +49,11 @@ internal static class SlopeArrowService
         }
 
         var matchingDesiredGlyphs = matchingGlyphs
-            .Where(glyph => IsDesiredEntityType(glyph.Entity, glyphKind))
+            .Where(glyph => IsDesiredEntityType(
+                database,
+                transaction,
+                glyph.Entity,
+                glyphKind))
             .ToList();
         Entity glyph;
         var isCreated = matchingDesiredGlyphs.Count == 0;
@@ -75,7 +80,14 @@ internal static class SlopeArrowService
         }
         else if (glyph is BlockReference marker)
         {
-            ApplyHorizontalMarkerAppearance(database, transaction, marker, geometry);
+            if (glyphKind == TimberSlopeGlyphKind.PostPerpendicularMarker)
+            {
+                ApplyPostPerpendicularMarkerAppearance(database, transaction, marker, geometry);
+            }
+            else
+            {
+                ApplyHorizontalMarkerAppearance(database, transaction, marker, geometry);
+            }
         }
 
         SlopeArrowStore.Write(glyph, transaction, new SlopeArrowData { SourceHandle = sourceHandle });
@@ -102,6 +114,21 @@ internal static class SlopeArrowService
             .Where(arrow => targetHandles.Contains(arrow.Data.SourceHandle))
             .ToList();
         return DeleteArrowsSelectedByCleanupRules(transaction, arrows, existingHandles, deleteDuplicates: false);
+    }
+
+    internal static int DeleteForSourceHandle(
+        Database database,
+        Transaction transaction,
+        string sourceHandle)
+    {
+        return DeleteGlyphs(
+            transaction,
+            ReadGlyphs(database, transaction)
+                .Where(arrow => string.Equals(
+                    arrow.Data.SourceHandle,
+                    sourceHandle,
+                    StringComparison.OrdinalIgnoreCase))
+                .Select(arrow => arrow.Id));
     }
 
     internal static int DeleteInsertedArrowsWithoutCurrentSourceHandles(
@@ -216,6 +243,35 @@ internal static class SlopeArrowService
         marker.LineWeight = LineWeight.ByLayer;
     }
 
+    private static void ApplyPostPerpendicularMarkerAppearance(
+        Database database,
+        Transaction transaction,
+        BlockReference marker,
+        SlopeAnnotationGeometryData geometry)
+    {
+        var symbol = TimberPostAnnotationGeometryCalculator.Calculate(
+            geometry.Start.X,
+            geometry.Start.Y,
+            geometry.End.X,
+            geometry.End.Y,
+            geometry.AnnotationPoint.X,
+            geometry.AnnotationPoint.Y);
+        marker.Position = new Point3d(
+            symbol.Anchor.X,
+            symbol.Anchor.Y,
+            geometry.AnnotationPoint.Z);
+        marker.Rotation = symbol.RotationRadians;
+        marker.ScaleFactors = new Scale3d(1d);
+        TimberLayerService.ApplyToAnnotationEntity(
+            database,
+            transaction,
+            marker,
+            ArrowLayerName,
+            ArrowLayerColorIndex,
+            isPlottable: false);
+        marker.LineWeight = LineWeight.ByLayer;
+    }
+
     private static Entity CreateGlyph(
         Database database,
         Transaction transaction,
@@ -226,6 +282,9 @@ internal static class SlopeArrowService
             TimberSlopeGlyphKind.HorizontalMarker => new BlockReference(
                 position,
                 EnsureHorizontalMarkerBlock(database, transaction)),
+            TimberSlopeGlyphKind.PostPerpendicularMarker => new BlockReference(
+                position,
+                EnsurePostPerpendicularMarkerBlock(database, transaction)),
             _ => throw new InvalidOperationException(UiStrings.ErrorUnsupportedSlopeGlyph),
         };
 
@@ -268,9 +327,83 @@ internal static class SlopeArrowService
         transaction.AddNewlyCreatedDBObject(line, true);
     }
 
-    private static bool IsDesiredEntityType(Entity entity, TimberSlopeGlyphKind glyphKind) =>
-        (glyphKind == TimberSlopeGlyphKind.DirectionalArrow && entity is Polyline) ||
-        (glyphKind == TimberSlopeGlyphKind.HorizontalMarker && entity is BlockReference);
+    private static ObjectId EnsurePostPerpendicularMarkerBlock(
+        Database database,
+        Transaction transaction)
+    {
+        var blockTable = (BlockTable)transaction.GetObject(database.BlockTableId, OpenMode.ForRead);
+        if (blockTable.Has(PostPerpendicularMarkerBlockName))
+        {
+            return blockTable[PostPerpendicularMarkerBlockName];
+        }
+
+        blockTable.UpgradeOpen();
+        var definition = new BlockTableRecord
+        {
+            Name = PostPerpendicularMarkerBlockName,
+            Origin = Point3d.Origin,
+        };
+        blockTable.Add(definition);
+        transaction.AddNewlyCreatedDBObject(definition, true);
+
+        var symbol = TimberPostAnnotationGeometryCalculator.CreateLocal();
+        AddPostMarkerLine(database, transaction, definition, symbol.CapStart, symbol.CapEnd);
+        AddPostMarkerLine(database, transaction, definition, symbol.Anchor, symbol.StemEnd);
+        return definition.ObjectId;
+    }
+
+    private static void AddPostMarkerLine(
+        Database database,
+        Transaction transaction,
+        BlockTableRecord definition,
+        TimberSlopeAnnotationPoint start,
+        TimberSlopeAnnotationPoint end)
+    {
+        var line = new Line(
+            new Point3d(start.X, start.Y, 0d),
+            new Point3d(end.X, end.Y, 0d));
+        line.SetDatabaseDefaults(database);
+        line.Layer = "0";
+        line.ColorIndex = 0;
+        line.LineWeight = LineWeight.ByBlock;
+        definition.AppendEntity(line);
+        transaction.AddNewlyCreatedDBObject(line, true);
+    }
+
+    private static bool IsDesiredEntityType(
+        Database database,
+        Transaction transaction,
+        Entity entity,
+        TimberSlopeGlyphKind glyphKind) => glyphKind switch
+        {
+            TimberSlopeGlyphKind.DirectionalArrow => entity is Polyline,
+            TimberSlopeGlyphKind.HorizontalMarker => IsBlockReferenceOf(
+                database,
+                transaction,
+                entity,
+                HorizontalMarkerBlockName),
+            TimberSlopeGlyphKind.PostPerpendicularMarker => IsBlockReferenceOf(
+                database,
+                transaction,
+                entity,
+                PostPerpendicularMarkerBlockName),
+            _ => false,
+        };
+
+    private static bool IsBlockReferenceOf(
+        Database database,
+        Transaction transaction,
+        Entity entity,
+        string blockName)
+    {
+        if (entity is not BlockReference blockReference)
+        {
+            return false;
+        }
+
+        var blockTable = (BlockTable)transaction.GetObject(database.BlockTableId, OpenMode.ForRead);
+        return blockTable.Has(blockName) && blockReference.BlockTableRecord == blockTable[blockName];
+    }
 
     private static IReadOnlyList<SlopeGlyphEntry> ReadGlyphs(
         Database database,

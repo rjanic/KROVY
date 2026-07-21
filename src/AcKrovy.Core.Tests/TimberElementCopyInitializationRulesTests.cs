@@ -169,6 +169,29 @@ public sealed class TimberElementCopyInitializationRulesTests
         Assert.Equal(new[] { "K1", "K2" }, assignments.Select(assignment => assignment.ElementId));
     }
 
+    [Fact]
+    public void CopiedPostIsInitializedForItsNewPhysicalSourceAndKeepsPostAnnotationKind()
+    {
+        var copiedData = TimberElementDefaults.For(TimberElementType.Post) with
+        {
+            ElementId = "S1",
+            SlopeDegrees = 0d,
+        };
+        var shouldInitialize = TimberElementCopyInitializationRules.ShouldInitializeAsNewPhysicalElement(
+            currentSourceHandle: "POST-NEW",
+            elementId: copiedData.ElementId,
+            labelCandidates: new[] { Label("original", "S1", "POST-OLD") },
+            existingTimberSourceHandles: new[] { "POST-OLD", "POST-NEW" });
+        var refreshPlan = TimberAnnotationRefreshPlanner.Create(copiedData);
+
+        Assert.True(shouldInitialize);
+        Assert.Equal(TimberElementType.Post, copiedData.ElementType);
+        Assert.True(refreshPlan.ShouldPostPerpendicularMarkerExist);
+        Assert.False(refreshPlan.ShouldSlopeArrowExist);
+        Assert.True(TimberSlopeAnnotationRules.HasSameSourceHandle("POST-NEW", "post-new"));
+        Assert.False(TimberSlopeAnnotationRules.HasSameSourceHandle("POST-OLD", "POST-NEW"));
+    }
+
     private static TimberElementLabelCandidate Label(string key, string elementId, string sourceHandle) =>
         new()
         {

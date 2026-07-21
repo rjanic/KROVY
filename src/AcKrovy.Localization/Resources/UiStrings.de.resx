@@ -48,6 +48,7 @@
   <data name="Command_FlipSlope_Prompt" xml:space="preserve"><value>&#xA;Wählen Sie ein Holzbauteil oder seine Neigungsmarkierung aus, um die Richtung umzukehren: </value></data>
   <data name="Command_FlipSlope_NotTimberOrAnnotation" xml:space="preserve"><value>&#xA;ACAD KROVY: Das ausgewählte Objekt ist weder ein Holzbauteil noch seine Neigungsbeschriftung.</value></data>
   <data name="Command_FlipSlope_Horizontal" xml:space="preserve"><value>&#xA;ACAD KROVY: Ein waagerechtes Bauteil hat keine Neigungsrichtung.</value></data>
+  <data name="Command_FlipSlope_PostPerpendicular" xml:space="preserve"><value>&#xA;ACAD KROVY: Die Neigungsrichtung einer Stütze wird nicht geändert; ihre Beschriftung bleibt 90°.</value></data>
   <data name="Command_FlipSlope_ResultReversed" xml:space="preserve"><value>&#xA;ACAD KROVY: Die Neigungsrichtung wurde umgekehrt.</value></data>
   <data name="Command_FlipSlope_ResultNormal" xml:space="preserve"><value>&#xA;ACAD KROVY: Die Neigungsrichtung wurde auf normal gesetzt.</value></data>
   <data name="Command_Inspect_Prompt" xml:space="preserve"><value>&#xA;Wählen Sie ein ACAD KROVY-Bauteil aus: </value></data>
@@ -55,6 +56,7 @@
   <data name="Command_Inspect_AllowanceDefault" xml:space="preserve"><value>aktueller Standardwert nach Typ</value></data>
   <data name="Command_Inspect_AllowanceIndividual" xml:space="preserve"><value>individueller Bauteilwert</value></data>
   <data name="Command_Inspect_SummaryFormat" xml:space="preserve"><value>&#xA;{0} | {1}&#xA;  Querschnitt: {2:0} × {3:0} mm&#xA;  Grundrisslänge: {4:0.###} m&#xA;  Tatsächliche Länge: {5:0.###} m&#xA;  Zuschnittlänge: {6:0.###} m&#xA;  Volumen: {7:0.0000} m³</value></data>
+  <data name="Command_Inspect_FootprintSummaryFormat" xml:space="preserve"><value>&#xA;{0} | {1}&#xA;  Querschnitt: {2:0} × {3:0} mm&#xA;  Tatsächliche Länge: {4:0.###} m&#xA;  Zuschnittlänge: {5:0.###} m&#xA;  Volumen: {6:0.0000} m³</value></data>
   <data name="Dialog_Inspect_Item" xml:space="preserve"><value>Position</value></data>
   <data name="Dialog_Inspect_ElementType" xml:space="preserve"><value>Bauteiltyp</value></data>
   <data name="Dialog_Inspect_Material" xml:space="preserve"><value>Material</value></data>
@@ -66,8 +68,8 @@
   <data name="Dialog_Inspect_ActualLength" xml:space="preserve"><value>Tatsächliche Länge</value></data>
   <data name="Dialog_Inspect_CuttingAllowance" xml:space="preserve"><value>Schnittzugabe</value></data>
   <data name="Dialog_Inspect_CuttingLength" xml:space="preserve"><value>Zuschnittlänge</value></data>
-  <data name="Dialog_Inspect_ManualLengthMode" xml:space="preserve"><value>ManualLengthMode</value></data>
-  <data name="Dialog_Inspect_CadHandle" xml:space="preserve"><value>CAD Handle</value></data>
+  <data name="Dialog_Inspect_ManualLengthMode" xml:space="preserve"><value>Manueller Längenmodus</value></data>
+  <data name="Dialog_Inspect_CadHandle" xml:space="preserve"><value>CAD-Kennung</value></data>
   <data name="Dialog_Inspect_ManualLength" xml:space="preserve"><value>Manuelle Länge</value></data>
   <data name="Message_Yes" xml:space="preserve"><value>Ja</value></data>
   <data name="Message_No" xml:space="preserve"><value>Nein</value></data>
@@ -84,6 +86,13 @@
   <data name="Command_Assign_Prompt" xml:space="preserve"><value>&#xA;Wählen Sie Linien oder Polylinien aus, denen Daten zugewiesen werden sollen: </value></data>
   <data name="Command_Assign_PromptTypeFormat" xml:space="preserve"><value>&#xA;Wählen Sie Linien oder Polylinien für Bauteil {0} aus: </value></data>
   <data name="Command_Assign_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: Daten wurden {0} Bauteilen zugewiesen. Übersprungen: {1}.</value></data>
+  <data name="Command_PostFootprint_EdgePrompt" xml:space="preserve"><value>&#xA;Wählen Sie eine Kante des Stützengrundrisses: </value></data>
+  <data name="Command_PostFootprint_PolylineOnly" xml:space="preserve"><value>&#xA;Es kann nur eine Lightweight-Polylinie ausgewählt werden.</value></data>
+  <data name="Command_PostFootprint_InvalidGeometry" xml:space="preserve"><value>&#xA;Die Polylinie muss ein geschlossenes Rechteck mit vier geraden Kanten ohne Bögen in der Grundrissebene sein.</value></data>
+  <data name="Command_PostFootprint_AmbiguousPick" xml:space="preserve"><value>&#xA;Die Kantenauswahl ist nahe der Ecke nicht eindeutig. Klicken Sie weiter von der Ecke entfernt.</value></data>
+  <data name="Command_PostFootprint_PickTooFar" xml:space="preserve"><value>&#xA;Der Klick liegt zu weit von einer Rechteckkante entfernt. Wählen Sie die Kante erneut.</value></data>
+  <data name="Command_PostFootprint_AssignRedirect" xml:space="preserve"><value>&#xA;Wählen Sie für eine Stütze eine Kante einer rechteckigen Polylinie.</value></data>
+  <data name="Command_PostFootprint_AssignedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: Stütze zugewiesen – {0:0} × {1:0} mm, manuelle Länge {2:0} mm.</value></data>
   <data name="Command_Layers_ElementSkippedFormat" xml:space="preserve"><value>&#xA;Bauteil beim Festlegen des Layers übersprungen: {0}</value></data>
   <data name="Command_Layers_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: Bauteile auf Layer verschoben: {0}. Übersprungen: {1}.</value></data>
   <data name="Command_Settings_ApplyElementSkippedFormat" xml:space="preserve"><value>&#xA;Bauteil beim Anwenden der Einstellungen übersprungen: {0}</value></data>

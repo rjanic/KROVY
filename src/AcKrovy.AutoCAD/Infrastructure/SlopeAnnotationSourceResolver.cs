@@ -62,6 +62,16 @@ internal static class SlopeAnnotationSourceResolver
             return arrowData.SourceHandle;
         }
 
+        if (PostFootprintPerpendicularAnnotationStore.TryRead(entity, out var postData) && postData is not null)
+        {
+            return postData.SourceHandle;
+        }
+
+        if (ElementLabelStore.TryRead(entity, out var labelData) && labelData is not null)
+        {
+            return labelData.SourceHandle;
+        }
+
         return SlopeAngleTextStore.TryRead(entity, out var textData) && textData is not null
             ? textData.SourceHandle
             : null;

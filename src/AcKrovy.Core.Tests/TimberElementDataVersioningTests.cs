@@ -15,9 +15,9 @@ public sealed class TimberElementDataVersioningTests
     };
 
     [Fact]
-    public void CurrentVersion_IsOne()
+    public void CurrentVersion_IsTwo()
     {
-        Assert.Equal(1, TimberElementDataSchema.CurrentVersion);
+        Assert.Equal(2, TimberElementDataSchema.CurrentVersion);
     }
 
     [Fact]
@@ -51,6 +51,7 @@ public sealed class TimberElementDataVersioningTests
         Assert.Equal(data.ElementType, normalized.ElementType);
         Assert.Equal(data.WidthMm, normalized.WidthMm);
         Assert.Equal(data.HeightMm, normalized.HeightMm);
+        Assert.Equal(data.FootprintWidthEdgeIndex, normalized.FootprintWidthEdgeIndex);
         Assert.Equal(data.SlopeDegrees, normalized.SlopeDegrees);
         Assert.Equal(data.IsSlopeDirectionReversed, normalized.IsSlopeDirectionReversed);
         Assert.Equal(data.RoofPlaneId, normalized.RoofPlaneId);
@@ -76,7 +77,7 @@ public sealed class TimberElementDataVersioningTests
 
         var exception = Assert.Throws<UnsupportedTimberElementDataSchemaException>(() =>
             TimberElementDataVersioning.Normalize(data));
-        Assert.Equal(2, exception.SchemaVersion);
+        Assert.Equal(3, exception.SchemaVersion);
         Assert.Equal(TimberElementDataSchema.CurrentVersion, exception.CurrentVersion);
     }
 
@@ -102,6 +103,7 @@ public sealed class TimberElementDataVersioningTests
         Assert.Equal(0, normalized.SlopeDegrees);
         Assert.Equal(75, normalized.CuttingAllowanceMm);
         Assert.Equal(2600, normalized.ManualLengthMm);
+        Assert.Null(normalized.FootprintWidthEdgeIndex);
     }
 
     [Fact]
@@ -133,6 +135,7 @@ public sealed class TimberElementDataVersioningTests
         Assert.Equal(170, normalized.HeightMm);
         Assert.Equal(37, normalized.SlopeDegrees);
         Assert.False(normalized.IsSlopeDirectionReversed);
+        Assert.Null(normalized.FootprintWidthEdgeIndex);
     }
 
     [Fact]
@@ -162,13 +165,32 @@ public sealed class TimberElementDataVersioningTests
     }
 
     [Fact]
-    public void Serialize_NewJson_IncludesVersionOne()
+    public void Serialize_NewJson_IncludesVersionTwo()
     {
         var data = Sample();
 
         var json = JsonSerializer.Serialize(data, JsonOptions);
 
-        Assert.Contains("\"SchemaVersion\":1", json);
+        Assert.Contains("\"SchemaVersion\":2", json);
+    }
+
+    [Fact]
+    public void PrepareForWrite_UpgradesVersionOneWithoutChangingValues()
+    {
+        var legacy = Sample() with
+        {
+            SchemaVersion = 1,
+            ElementType = TimberElementType.Post,
+            FootprintWidthEdgeIndex = null,
+        };
+
+        var prepared = TimberElementDataVersioning.PrepareForWrite(legacy);
+
+        Assert.Equal(2, prepared.SchemaVersion);
+        Assert.Null(prepared.FootprintWidthEdgeIndex);
+        Assert.Equal(legacy.ElementId, prepared.ElementId);
+        Assert.Equal(legacy.WidthMm, prepared.WidthMm);
+        Assert.Equal(legacy.HeightMm, prepared.HeightMm);
     }
 
     private static TimberElementData Sample() => new()

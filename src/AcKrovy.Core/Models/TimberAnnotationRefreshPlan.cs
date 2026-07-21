@@ -5,5 +5,6 @@ public sealed record TimberAnnotationRefreshPlan(
     bool ReconcileSlopeArrow,
     bool ShouldSlopeArrowExist,
     bool ShouldHorizontalSlopeMarkerExist,
+    bool ShouldPostPerpendicularMarkerExist,
     bool ReconcileSlopeAngleText,
     bool ShouldSlopeAngleTextExist);

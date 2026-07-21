@@ -48,6 +48,7 @@
   <data name="Command_FlipSlope_Prompt" xml:space="preserve"><value>&#xA;Vyber drevený prvok alebo jeho označenie sklonu na obrátenie smeru: </value></data>
   <data name="Command_FlipSlope_NotTimberOrAnnotation" xml:space="preserve"><value>&#xA;ACAD KROVY: vybraný objekt nie je timber prvok ani jeho slope anotácia.</value></data>
   <data name="Command_FlipSlope_Horizontal" xml:space="preserve"><value>&#xA;ACAD KROVY: vodorovný prvok nemá smer spádu.</value></data>
+  <data name="Command_FlipSlope_PostPerpendicular" xml:space="preserve"><value>&#xA;ACAD KROVY: smer sklonu stĺpika sa nemení; jeho označenie zostáva 90°.</value></data>
   <data name="Command_FlipSlope_ResultReversed" xml:space="preserve"><value>&#xA;ACAD KROVY: smer spádu bol obrátený.</value></data>
   <data name="Command_FlipSlope_ResultNormal" xml:space="preserve"><value>&#xA;ACAD KROVY: smer spádu bol nastavený na normálny.</value></data>
   <data name="Command_Inspect_Prompt" xml:space="preserve"><value>&#xA;Vyber prvok ACAD KROVY: </value></data>
@@ -55,6 +56,7 @@
   <data name="Command_Inspect_AllowanceDefault" xml:space="preserve"><value>aktuálny default podľa typu</value></data>
   <data name="Command_Inspect_AllowanceIndividual" xml:space="preserve"><value>individuálna hodnota prvku</value></data>
   <data name="Command_Inspect_SummaryFormat" xml:space="preserve"><value>&#xA;{0} | {1}&#xA;  Prierez: {2:0} × {3:0} mm&#xA;  Pôdorysná dĺžka: {4:0.###} m&#xA;  Skutočná dĺžka: {5:0.###} m&#xA;  Rezná dĺžka: {6:0.###} m&#xA;  Kubatúra: {7:0.0000} m³</value></data>
+  <data name="Command_Inspect_FootprintSummaryFormat" xml:space="preserve"><value>&#xA;{0} | {1}&#xA;  Prierez: {2:0} × {3:0} mm&#xA;  Skutočná dĺžka: {4:0.###} m&#xA;  Rezná dĺžka: {5:0.###} m&#xA;  Kubatúra: {6:0.0000} m³</value></data>
   <data name="Dialog_Inspect_Item" xml:space="preserve"><value>Označenie</value></data>
   <data name="Dialog_Inspect_ElementType" xml:space="preserve"><value>Typ prvku</value></data>
   <data name="Dialog_Inspect_Material" xml:space="preserve"><value>Materiál</value></data>
@@ -66,8 +68,8 @@
   <data name="Dialog_Inspect_ActualLength" xml:space="preserve"><value>Skutočná dĺžka</value></data>
   <data name="Dialog_Inspect_CuttingAllowance" xml:space="preserve"><value>Prídavok na prírez</value></data>
   <data name="Dialog_Inspect_CuttingLength" xml:space="preserve"><value>Rezná dĺžka</value></data>
-  <data name="Dialog_Inspect_ManualLengthMode" xml:space="preserve"><value>ManualLengthMode</value></data>
-  <data name="Dialog_Inspect_CadHandle" xml:space="preserve"><value>CAD Handle</value></data>
+  <data name="Dialog_Inspect_ManualLengthMode" xml:space="preserve"><value>Režim manuálnej dĺžky</value></data>
+  <data name="Dialog_Inspect_CadHandle" xml:space="preserve"><value>Identifikátor CAD</value></data>
   <data name="Dialog_Inspect_ManualLength" xml:space="preserve"><value>Manuálna dĺžka</value></data>
   <data name="Message_Yes" xml:space="preserve"><value>Áno</value></data>
   <data name="Message_No" xml:space="preserve"><value>Nie</value></data>
@@ -84,6 +86,13 @@
   <data name="Command_Assign_Prompt" xml:space="preserve"><value>&#xA;Označ čiary alebo polyline, ktorým chceš priradiť údaje: </value></data>
   <data name="Command_Assign_PromptTypeFormat" xml:space="preserve"><value>&#xA;Označ čiary alebo polyline pre prvok {0}: </value></data>
   <data name="Command_Assign_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: priradené údaje k {0} prvkom. Preskočené: {1}.</value></data>
+  <data name="Command_PostFootprint_EdgePrompt" xml:space="preserve"><value>&#xA;Vyber jednu stranu pôdorysu stĺpika: </value></data>
+  <data name="Command_PostFootprint_PolylineOnly" xml:space="preserve"><value>&#xA;Vybrať možno iba lightweight Polyline.</value></data>
+  <data name="Command_PostFootprint_InvalidGeometry" xml:space="preserve"><value>&#xA;Polyline musí byť uzavretý obdĺžnik so štyrmi rovnými stranami bez oblúkov v pôdorysnej rovine.</value></data>
+  <data name="Command_PostFootprint_AmbiguousPick" xml:space="preserve"><value>&#xA;Výber strany je pri rohu nejednoznačný. Klikni ďalej od rohu.</value></data>
+  <data name="Command_PostFootprint_PickTooFar" xml:space="preserve"><value>&#xA;Klik je príliš ďaleko od strany obdĺžnika. Vyber stranu znova.</value></data>
+  <data name="Command_PostFootprint_AssignRedirect" xml:space="preserve"><value>&#xA;Pre typ Stĺpik vyber jednu stranu obdĺžnikovej polyline.</value></data>
+  <data name="Command_PostFootprint_AssignedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: Stĺpik priradený – {0:0} × {1:0} mm, ručná dĺžka {2:0} mm.</value></data>
   <data name="Command_Layers_ElementSkippedFormat" xml:space="preserve"><value>&#xA;Preskočený prvok pri nastavovaní hladiny: {0}</value></data>
   <data name="Command_Layers_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: prvky presunuté na hladiny: {0}. Preskočené: {1}.</value></data>
   <data name="Command_Settings_ApplyElementSkippedFormat" xml:space="preserve"><value>&#xA;Preskočený prvok pri aplikovaní nastavení: {0}</value></data>

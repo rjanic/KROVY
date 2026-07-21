@@ -14,7 +14,56 @@ internal static class TimberAnnotationService
         string? previousElementId = null,
         double roundingStepMm = TimberCuttingLengthCalculator.DefaultRoundingStepMm)
     {
-        var plan = TimberAnnotationRefreshPlanner.Create(data);
+        var isRectangularFootprintPost =
+            TimberPostFootprintMetadataRules.IsValidNewFootprintPost(data);
+        var hasResolvedFootprintGeometry = PostFootprintRuntimeGeometryResolver.TryResolve(
+            sourceEntity,
+            data,
+            out var footprintGeometry,
+            out var footprintDimensions);
+        if (hasResolvedFootprintGeometry &&
+            sourceEntity is Polyline footprintPolyline &&
+            footprintGeometry is not null &&
+            footprintDimensions is not null)
+        {
+            var effectiveData = data with
+            {
+                WidthMm = footprintDimensions.WidthMm,
+                HeightMm = footprintDimensions.HeightMm,
+            };
+            var footprintLabelCreated = ElementLabelService.UpsertForPostFootprint(
+                database,
+                transaction,
+                footprintPolyline,
+                effectiveData,
+                footprintGeometry,
+                previousElementId,
+                roundingStepMm);
+            SlopeAnnotationService.DeleteForSourceHandle(
+                database,
+                transaction,
+                sourceEntity.Handle.ToString());
+            PostFootprintPerpendicularAnnotationService.UpsertForFootprint(
+                database,
+                transaction,
+                footprintPolyline,
+                footprintGeometry);
+            return footprintLabelCreated;
+        }
+
+        PostFootprintPerpendicularAnnotationService.DeleteForSourceHandle(
+            database,
+            transaction,
+            sourceEntity.Handle.ToString());
+        var plan = TimberAnnotationRefreshPlanner.Create(data, isRectangularFootprintPost);
+        if (!plan.EnsureLabel && !plan.ReconcileSlopeArrow && !plan.ReconcileSlopeAngleText)
+        {
+            var sourceHandle = sourceEntity.Handle.ToString();
+            ElementLabelService.DeleteForSourceHandle(database, transaction, sourceHandle);
+            SlopeAnnotationService.DeleteForSourceHandle(database, transaction, sourceHandle);
+            return false;
+        }
+
         var labelCreated = plan.EnsureLabel && ElementLabelService.UpsertForElement(
                 database,
                 transaction,
@@ -37,6 +86,10 @@ internal static class TimberAnnotationService
     {
         ElementLabelService.DeleteLabelsForMissingSourceHandles(database, transaction, sourceHandles);
         SlopeAnnotationService.DeleteForMissingSourceHandles(database, transaction, sourceHandles);
+        PostFootprintPerpendicularAnnotationService.DeleteForMissingSourceHandles(
+            database,
+            transaction,
+            sourceHandles);
     }
 
     public static void DeleteInsertedWithoutCurrentSourceHandles(
@@ -52,6 +105,10 @@ internal static class TimberAnnotationService
             transaction,
             slopeArrowIds,
             slopeAngleTextIds);
+        PostFootprintPerpendicularAnnotationService.DeleteInsertedWithoutCurrentSourceHandles(
+            database,
+            transaction,
+            slopeArrowIds);
     }
 
     public static void DeleteDuplicatesForExistingSourceHandles(
@@ -60,5 +117,8 @@ internal static class TimberAnnotationService
     {
         ElementLabelService.DeleteDuplicateLabelsForExistingSourceHandles(database, transaction);
         SlopeAnnotationService.DeleteDuplicatesForExistingSourceHandles(database, transaction);
+        PostFootprintPerpendicularAnnotationService.DeleteDuplicatesForExistingSourceHandles(
+            database,
+            transaction);
     }
 }

@@ -2,7 +2,8 @@ namespace AcKrovy.Core.Models;
 
 public enum TimberSlopeGlyphKind
 {
-    None,
-    HorizontalMarker,
-    DirectionalArrow,
+    None = 0,
+    HorizontalMarker = 1,
+    DirectionalArrow = 2,
+    PostPerpendicularMarker = 3,
 }

@@ -136,7 +136,9 @@ internal static class LiveGeometrySynchronizationService
                 return;
             }
 
-            if (!_appendedSlopeArrowIds.IsSuppressed && SlopeArrowStore.TryRead(entity, out _))
+            if (!_appendedSlopeArrowIds.IsSuppressed &&
+                (SlopeArrowStore.TryRead(entity, out _) ||
+                 PostFootprintPerpendicularAnnotationStore.TryRead(entity, out _)))
             {
                 _appendedSlopeArrowIds.TryAdd(entity.ObjectId);
                 return;
@@ -171,7 +173,9 @@ internal static class LiveGeometrySynchronizationService
                 return;
             }
 
-            if (!SlopeArrowStore.TryRead(entity, out _) && !SlopeAngleTextStore.TryRead(entity, out _))
+            if (!SlopeArrowStore.TryRead(entity, out _) &&
+                !PostFootprintPerpendicularAnnotationStore.TryRead(entity, out _) &&
+                !SlopeAngleTextStore.TryRead(entity, out _))
             {
                 _modifiedIds.TryAdd(entity.ObjectId);
             }

@@ -42,27 +42,29 @@ public static class UiStrings
     public static string CommandFlipSlopePrompt => GetString("Command_FlipSlope_Prompt");
     public static string CommandFlipSlopeNotTimberOrAnnotation => GetString("Command_FlipSlope_NotTimberOrAnnotation");
     public static string CommandFlipSlopeHorizontal => GetString("Command_FlipSlope_Horizontal");
+    public static string CommandFlipSlopePostPerpendicular => GetString("Command_FlipSlope_PostPerpendicular");
     public static string CommandFlipSlopeResultReversed => GetString("Command_FlipSlope_ResultReversed");
     public static string CommandFlipSlopeResultNormal => GetString("Command_FlipSlope_ResultNormal");
-    public static string CommandInspectPrompt => GetString("Command_Inspect_Prompt");
-    public static string CommandInspectNoData => GetString("Command_Inspect_NoData");
-    public static string CommandInspectAllowanceDefault => GetString("Command_Inspect_AllowanceDefault");
-    public static string CommandInspectAllowanceIndividual => GetString("Command_Inspect_AllowanceIndividual");
-    public static string CommandInspectSummaryFormat => GetString("Command_Inspect_SummaryFormat");
-    public static string DialogInspectItem => GetString("Dialog_Inspect_Item");
-    public static string DialogInspectElementType => GetString("Dialog_Inspect_ElementType");
-    public static string DialogInspectMaterial => GetString("Dialog_Inspect_Material");
-    public static string DialogInspectWidth => GetString("Dialog_Inspect_Width");
-    public static string DialogInspectHeight => GetString("Dialog_Inspect_Height");
-    public static string DialogInspectSlope => GetString("Dialog_Inspect_Slope");
-    public static string DialogInspectSlopeDirection => GetString("Dialog_Inspect_SlopeDirection");
-    public static string DialogInspectPlanLength => GetString("Dialog_Inspect_PlanLength");
-    public static string DialogInspectActualLength => GetString("Dialog_Inspect_ActualLength");
-    public static string DialogInspectCuttingAllowance => GetString("Dialog_Inspect_CuttingAllowance");
-    public static string DialogInspectCuttingLength => GetString("Dialog_Inspect_CuttingLength");
-    public static string DialogInspectManualLengthMode => GetString("Dialog_Inspect_ManualLengthMode");
-    public static string DialogInspectCadHandle => GetString("Dialog_Inspect_CadHandle");
-    public static string DialogInspectManualLength => GetString("Dialog_Inspect_ManualLength");
+    public static string CommandInspectPrompt => GetActiveUiString("Command_Inspect_Prompt");
+    public static string CommandInspectNoData => GetActiveUiString("Command_Inspect_NoData");
+    public static string CommandInspectAllowanceDefault => GetActiveUiString("Command_Inspect_AllowanceDefault");
+    public static string CommandInspectAllowanceIndividual => GetActiveUiString("Command_Inspect_AllowanceIndividual");
+    public static string CommandInspectSummaryFormat => GetActiveUiString("Command_Inspect_SummaryFormat");
+    public static string CommandInspectFootprintSummaryFormat => GetActiveUiString("Command_Inspect_FootprintSummaryFormat");
+    public static string DialogInspectItem => GetActiveUiString("Dialog_Inspect_Item");
+    public static string DialogInspectElementType => GetActiveUiString("Dialog_Inspect_ElementType");
+    public static string DialogInspectMaterial => GetActiveUiString("Dialog_Inspect_Material");
+    public static string DialogInspectWidth => GetActiveUiString("Dialog_Inspect_Width");
+    public static string DialogInspectHeight => GetActiveUiString("Dialog_Inspect_Height");
+    public static string DialogInspectSlope => GetActiveUiString("Dialog_Inspect_Slope");
+    public static string DialogInspectSlopeDirection => GetActiveUiString("Dialog_Inspect_SlopeDirection");
+    public static string DialogInspectPlanLength => GetActiveUiString("Dialog_Inspect_PlanLength");
+    public static string DialogInspectActualLength => GetActiveUiString("Dialog_Inspect_ActualLength");
+    public static string DialogInspectCuttingAllowance => GetActiveUiString("Dialog_Inspect_CuttingAllowance");
+    public static string DialogInspectCuttingLength => GetActiveUiString("Dialog_Inspect_CuttingLength");
+    public static string DialogInspectManualLengthMode => GetActiveUiString("Dialog_Inspect_ManualLengthMode");
+    public static string DialogInspectCadHandle => GetActiveUiString("Dialog_Inspect_CadHandle");
+    public static string DialogInspectManualLength => GetActiveUiString("Dialog_Inspect_ManualLength");
     public static string MessageYes => GetString("Message_Yes");
     public static string MessageNo => GetString("Message_No");
     public static string MessageDirectionNormal => GetString("Message_DirectionNormal");
@@ -78,6 +80,13 @@ public static class UiStrings
     public static string CommandAssignPrompt => GetString("Command_Assign_Prompt");
     public static string CommandAssignPromptTypeFormat => GetString("Command_Assign_PromptTypeFormat");
     public static string CommandAssignResultFormat => GetString("Command_Assign_ResultFormat");
+    public static string CommandPostFootprintEdgePrompt => GetActiveUiString("Command_PostFootprint_EdgePrompt");
+    public static string CommandPostFootprintPolylineOnly => GetActiveUiString("Command_PostFootprint_PolylineOnly");
+    public static string CommandPostFootprintInvalidGeometry => GetActiveUiString("Command_PostFootprint_InvalidGeometry");
+    public static string CommandPostFootprintAmbiguousPick => GetActiveUiString("Command_PostFootprint_AmbiguousPick");
+    public static string CommandPostFootprintPickTooFar => GetActiveUiString("Command_PostFootprint_PickTooFar");
+    public static string CommandPostFootprintAssignRedirect => GetActiveUiString("Command_PostFootprint_AssignRedirect");
+    public static string CommandPostFootprintAssignedFormat => GetActiveUiString("Command_PostFootprint_AssignedFormat");
     public static string CommandLayersElementSkippedFormat => GetString("Command_Layers_ElementSkippedFormat");
     public static string CommandLayersResultFormat => GetString("Command_Layers_ResultFormat");
     public static string CommandSettingsApplyElementSkippedFormat => GetString("Command_Settings_ApplyElementSkippedFormat");
@@ -178,4 +187,7 @@ public static class UiStrings
 
     public static string GetString(string resourceKey, CultureInfo? culture = null) =>
         ResourceManager.GetString(resourceKey, culture ?? CultureInfo.CurrentUICulture) ?? resourceKey;
+
+    private static string GetActiveUiString(string resourceKey) =>
+        GetString(resourceKey, UiStringBindingSource.Shared.Culture);
 }
