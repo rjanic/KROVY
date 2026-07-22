@@ -86,13 +86,19 @@
   <data name="Command_Assign_Prompt" xml:space="preserve"><value>&#xA;Wybierz linie lub polilinie, do których chcesz przypisać dane: </value></data>
   <data name="Command_Assign_PromptTypeFormat" xml:space="preserve"><value>&#xA;Wybierz linie lub polilinie dla elementu {0}: </value></data>
   <data name="Command_Assign_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: przypisano dane do {0} elementów. Pominięte: {1}.</value></data>
-  <data name="Command_PostFootprint_EdgePrompt" xml:space="preserve"><value>&#xA;Wybierz jedną krawędź rzutu słupa: </value></data>
-  <data name="Command_PostFootprint_PolylineOnly" xml:space="preserve"><value>&#xA;Można wybrać wyłącznie lekką polilinię.</value></data>
+  <data name="Command_PostFootprint_EdgePrompt" xml:space="preserve"><value>&#xA;Wybierz krawędź rzutu słupa: </value></data>
+  <data name="Command_PostFootprint_PolylineOnly" xml:space="preserve"><value>&#xA;Wybierz prostokątną lekką polilinię albo jedną LINE z prostokąta złożonego z czterech boków.</value></data>
   <data name="Command_PostFootprint_InvalidGeometry" xml:space="preserve"><value>&#xA;Polilinia musi być zamkniętym prostokątem z czterema prostymi krawędziami bez łuków w płaszczyźnie rzutu.</value></data>
   <data name="Command_PostFootprint_AmbiguousPick" xml:space="preserve"><value>&#xA;Wybór krawędzi przy narożniku jest niejednoznaczny. Kliknij dalej od narożnika.</value></data>
   <data name="Command_PostFootprint_PickTooFar" xml:space="preserve"><value>&#xA;Kliknięcie jest zbyt daleko od krawędzi prostokąta. Wybierz krawędź ponownie.</value></data>
-  <data name="Command_PostFootprint_AssignRedirect" xml:space="preserve"><value>&#xA;Dla słupa wybierz jedną krawędź prostokątnej polilinii.</value></data>
+  <data name="Command_PostFootprint_AssignRedirect" xml:space="preserve"><value>&#xA;Dla słupa wybierz krawędź prostokątnej polilinii albo jedną z czterech LINE.</value></data>
   <data name="Command_PostFootprint_AssignedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: przypisano słup – {0:0} × {1:0} mm, długość ręczna {2:0} mm.</value></data>
+  <data name="Command_PostFootprint_LineNotFound" xml:space="preserve"><value>&#xA;Nie znaleziono zamkniętego prostokąta z czterech geometrycznie połączonych obiektów LINE.</value></data>
+  <data name="Command_PostFootprint_LineAmbiguous" xml:space="preserve"><value>&#xA;Geometria LINE jest niejednoznaczna: wybrana linia należy do więcej niż jednego możliwego prostokąta.</value></data>
+  <data name="Command_PostFootprint_LineBranching" xml:space="preserve"><value>&#xA;Geometria LINE ma rozgałęzienie. W każdym narożniku prostokąta muszą łączyć się dokładnie dwie krawędzie.</value></data>
+  <data name="Command_PostFootprint_LineNotRectangle" xml:space="preserve"><value>&#xA;Cztery połączone obiekty LINE nie tworzą prawidłowego prostokąta.</value></data>
+  <data name="Command_PostFootprint_LineDuplicate" xml:space="preserve"><value>&#xA;Geometria zawiera nakładający się lub zduplikowany obiekt LINE.</value></data>
+  <data name="Command_PostFootprint_UnsupportedPlane" xml:space="preserve"><value>&#xA;Linie muszą leżeć w tej samej obsługiwanej płaszczyźnie rzutu i na tej samej wysokości.</value></data>
   <data name="Command_Layers_ElementSkippedFormat" xml:space="preserve"><value>&#xA;Pominięto element podczas ustawiania warstwy: {0}</value></data>
   <data name="Command_Layers_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: elementy przeniesione na warstwy: {0}. Pominięte: {1}.</value></data>
   <data name="Command_Settings_ApplyElementSkippedFormat" xml:space="preserve"><value>&#xA;Pominięto element podczas stosowania ustawień: {0}</value></data>

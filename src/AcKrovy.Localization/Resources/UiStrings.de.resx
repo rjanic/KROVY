@@ -87,12 +87,18 @@
   <data name="Command_Assign_PromptTypeFormat" xml:space="preserve"><value>&#xA;Wählen Sie Linien oder Polylinien für Bauteil {0} aus: </value></data>
   <data name="Command_Assign_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: Daten wurden {0} Bauteilen zugewiesen. Übersprungen: {1}.</value></data>
   <data name="Command_PostFootprint_EdgePrompt" xml:space="preserve"><value>&#xA;Wählen Sie eine Kante des Stützengrundrisses: </value></data>
-  <data name="Command_PostFootprint_PolylineOnly" xml:space="preserve"><value>&#xA;Es kann nur eine Lightweight-Polylinie ausgewählt werden.</value></data>
+  <data name="Command_PostFootprint_PolylineOnly" xml:space="preserve"><value>&#xA;Wählen Sie eine rechteckige Lightweight-Polylinie oder eine LINE eines vierseitigen Rechtecks.</value></data>
   <data name="Command_PostFootprint_InvalidGeometry" xml:space="preserve"><value>&#xA;Die Polylinie muss ein geschlossenes Rechteck mit vier geraden Kanten ohne Bögen in der Grundrissebene sein.</value></data>
   <data name="Command_PostFootprint_AmbiguousPick" xml:space="preserve"><value>&#xA;Die Kantenauswahl ist nahe der Ecke nicht eindeutig. Klicken Sie weiter von der Ecke entfernt.</value></data>
   <data name="Command_PostFootprint_PickTooFar" xml:space="preserve"><value>&#xA;Der Klick liegt zu weit von einer Rechteckkante entfernt. Wählen Sie die Kante erneut.</value></data>
-  <data name="Command_PostFootprint_AssignRedirect" xml:space="preserve"><value>&#xA;Wählen Sie für eine Stütze eine Kante einer rechteckigen Polylinie.</value></data>
+  <data name="Command_PostFootprint_AssignRedirect" xml:space="preserve"><value>&#xA;Wählen Sie für eine Stütze eine Kante einer rechteckigen Polylinie oder eine von vier LINE-Elementen.</value></data>
   <data name="Command_PostFootprint_AssignedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: Stütze zugewiesen – {0:0} × {1:0} mm, manuelle Länge {2:0} mm.</value></data>
+  <data name="Command_PostFootprint_LineNotFound" xml:space="preserve"><value>&#xA;Ein geschlossenes Rechteck aus vier geometrisch verbundenen LINE-Elementen wurde nicht gefunden.</value></data>
+  <data name="Command_PostFootprint_LineAmbiguous" xml:space="preserve"><value>&#xA;Die LINE-Geometrie ist mehrdeutig: Die gewählte Linie gehört zu mehreren möglichen Rechtecken.</value></data>
+  <data name="Command_PostFootprint_LineBranching" xml:space="preserve"><value>&#xA;Die LINE-Geometrie verzweigt sich. An jeder Rechteckecke müssen genau zwei Kanten zusammentreffen.</value></data>
+  <data name="Command_PostFootprint_LineNotRectangle" xml:space="preserve"><value>&#xA;Die vier verbundenen LINE-Elemente bilden kein gültiges Rechteck.</value></data>
+  <data name="Command_PostFootprint_LineDuplicate" xml:space="preserve"><value>&#xA;Die Geometrie enthält ein überlappendes oder doppeltes LINE-Element.</value></data>
+  <data name="Command_PostFootprint_UnsupportedPlane" xml:space="preserve"><value>&#xA;Die Linien müssen in derselben unterstützten Grundrissebene und Höhe liegen.</value></data>
   <data name="Command_Layers_ElementSkippedFormat" xml:space="preserve"><value>&#xA;Bauteil beim Festlegen des Layers übersprungen: {0}</value></data>
   <data name="Command_Layers_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: Bauteile auf Layer verschoben: {0}. Übersprungen: {1}.</value></data>
   <data name="Command_Settings_ApplyElementSkippedFormat" xml:space="preserve"><value>&#xA;Bauteil beim Anwenden der Einstellungen übersprungen: {0}</value></data>

@@ -28,8 +28,9 @@ internal static class PostFootprintAssignmentWorkflow
         using (var readTransaction = document.Database.TransactionManager.StartTransaction())
         {
             var readMetadataStore = new AutoCadTimberElementMetadataStore(readTransaction);
-            var entity = readTransaction.GetObject(selection.PolylineId, OpenMode.ForRead) as Entity;
-            existingData = entity is not null && readMetadataStore.TryRead(entity, out var data)
+            var entity = readTransaction.GetObject(selection.SelectedEntityId, OpenMode.ForRead) as Entity;
+            existingData = !selection.RequiresLineConversion &&
+                entity is not null && readMetadataStore.TryRead(entity, out var data)
                 ? data
                 : null;
             readTransaction.Commit();
@@ -69,10 +70,26 @@ internal static class PostFootprintAssignmentWorkflow
         merged = TimberPostFootprintAssignmentRules.CreateMetadata(merged, selection.Dimensions);
 
         using var transaction = document.Database.TransactionManager.StartTransaction();
-        if (transaction.GetObject(selection.PolylineId, OpenMode.ForWrite) is not Polyline polyline)
+        Polyline polyline;
+        if (selection.RequiresLineConversion)
+        {
+            var conversion = PostFootprintLineConversionService.CreatePolyline(
+                document.Database,
+                transaction,
+                selection);
+            polyline = conversion.Polyline;
+            merged = TimberPostFootprintAssignmentRules.CreateMetadata(merged, conversion.Dimensions);
+        }
+        else if (transaction.GetObject(selection.SelectedEntityId, OpenMode.ForWrite) is Polyline existingPolyline)
+        {
+            polyline = existingPolyline;
+        }
+        else
         {
             return false;
         }
+
+        var targetId = polyline.ObjectId;
 
         var metadataStore = new AutoCadTimberElementMetadataStore(transaction);
         metadataStore.Write(polyline, merged);
@@ -85,9 +102,9 @@ internal static class PostFootprintAssignmentWorkflow
             document.Database,
             transaction,
             metadataStore,
-            new[] { selection.PolylineId },
+            new[] { targetId },
             defaultProfile.GetCuttingLengthRoundingStepMm());
-        var assigned = synchronized.TryGetValue(selection.PolylineId, out var finalData)
+        var assigned = synchronized.TryGetValue(targetId, out var finalData)
             ? finalData
             : merged;
         TimberAnnotationService.EnsureForElement(
@@ -96,6 +113,13 @@ internal static class PostFootprintAssignmentWorkflow
             polyline,
             assigned,
             roundingStepMm: defaultProfile.GetCuttingLengthRoundingStepMm());
+        if (selection.RequiresLineConversion)
+        {
+            PostFootprintLineConversionService.EraseSourceLines(
+                transaction,
+                selection.OrderedSourceLineIds);
+        }
+
         transaction.Commit();
 
         document.Editor.WriteMessage(UiStrings.Format(

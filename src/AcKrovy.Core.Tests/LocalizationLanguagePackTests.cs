@@ -38,7 +38,7 @@ public sealed partial class LocalizationLanguagePackTests
     public void SatelliteResourceFiles_MatchDefaultKeysAndContainNoEmptyValues()
     {
         var defaultResources = LoadResources(DefaultResourceFile);
-        Assert.Equal(215, defaultResources.Count);
+        Assert.Equal(221, defaultResources.Count);
         Assert.All(defaultResources, item => Assert.False(string.IsNullOrWhiteSpace(item.Value)));
 
         foreach (var fileName in SatelliteResourceFiles)
@@ -169,11 +169,11 @@ public sealed partial class LocalizationLanguagePackTests
     }
 
     [Theory]
-    [InlineData("sk", "Vyber jednu stranu pôdorysu stĺpika")]
-    [InlineData("cs", "Vyberte jednu stranu půdorysu sloupku")]
-    [InlineData("en", "Select one edge of the Post footprint")]
+    [InlineData("sk", "Vyber stranu pôdorysu stĺpika")]
+    [InlineData("cs", "Vyberte stranu půdorysu sloupku")]
+    [InlineData("en", "Select an edge of the Post footprint")]
     [InlineData("de", "Wählen Sie eine Kante des Stützengrundrisses")]
-    [InlineData("pl", "Wybierz jedną krawędź rzutu słupa")]
+    [InlineData("pl", "Wybierz krawędź rzutu słupa")]
     [InlineData("fr", "Sélectionnez un côté de l'empreinte du poteau")]
     public void PostFootprintPrompts_UseSelectedAppLanguageWhenCommandThreadCultureDiffers(
         string languageCode,
@@ -198,6 +198,12 @@ public sealed partial class LocalizationLanguagePackTests
                 UiStrings.CommandPostFootprintPickTooFar,
                 UiStrings.CommandPostFootprintAssignRedirect,
                 UiStrings.CommandPostFootprintAssignedFormat,
+                UiStrings.CommandPostFootprintLineNotFound,
+                UiStrings.CommandPostFootprintLineAmbiguous,
+                UiStrings.CommandPostFootprintLineBranching,
+                UiStrings.CommandPostFootprintLineNotRectangle,
+                UiStrings.CommandPostFootprintLineDuplicate,
+                UiStrings.CommandPostFootprintUnsupportedPlane,
             };
             var resourceKeys = new[]
             {
@@ -208,6 +214,12 @@ public sealed partial class LocalizationLanguagePackTests
                 "Command_PostFootprint_PickTooFar",
                 "Command_PostFootprint_AssignRedirect",
                 "Command_PostFootprint_AssignedFormat",
+                "Command_PostFootprint_LineNotFound",
+                "Command_PostFootprint_LineAmbiguous",
+                "Command_PostFootprint_LineBranching",
+                "Command_PostFootprint_LineNotRectangle",
+                "Command_PostFootprint_LineDuplicate",
+                "Command_PostFootprint_UnsupportedPlane",
             };
             var appCulture = AppLanguageService.GetCultureInfo(languageCode);
 

@@ -498,7 +498,10 @@ public sealed class AcKrovyCommands
     public void ReportFromSelection()
     {
         var document = ActiveDocument();
-        var ids = PromptForEntities(document.Editor, UiStrings.CommandReportPromptSelection);
+        var uiCulture = AppLanguageService.CurrentUiCulture;
+        var ids = PromptForEntities(
+            document.Editor,
+            UiStrings.GetString("Command_Report_PromptSelection", uiCulture));
         InsertReport(document, ids);
     }
 
@@ -563,11 +566,12 @@ public sealed class AcKrovyCommands
     {
         var document = ActiveDocument();
         var editor = document.Editor;
+        var uiCulture = AppLanguageService.CurrentUiCulture;
         var message = presetType is null
-            ? UiStrings.CommandAssignPrompt
+            ? UiStrings.GetString("Command_Assign_Prompt", uiCulture)
             : UiStrings.Format(
-                UiStrings.CommandAssignPromptTypeFormat,
-                TimberElementTypeDisplayNameProvider.GetDisplayName(presetType.Value));
+                UiStrings.GetString("Command_Assign_PromptTypeFormat", uiCulture),
+                TimberElementTypeDisplayNameProvider.GetDisplayName(presetType.Value, uiCulture));
         var ids = PromptForEntities(editor, message);
         if (ids.Count == 0)
         {
@@ -631,7 +635,10 @@ public sealed class AcKrovyCommands
         UpdateLabelsForChangedEntities(document.Database, transaction, metadataStore, assignedIds, previousElementIdById);
 
         transaction.Commit();
-        editor.WriteMessage(UiStrings.Format(UiStrings.CommandAssignResultFormat, assigned, skipped));
+        editor.WriteMessage(UiStrings.Format(
+            UiStrings.GetString("Command_Assign_ResultFormat", uiCulture),
+            assigned,
+            skipped));
     }
 
     private static bool TryRunPostFootprintAssignment(
@@ -820,9 +827,10 @@ public sealed class AcKrovyCommands
     private static void InsertReport(Document document, IReadOnlyList<ObjectId> ids)
     {
         var editor = document.Editor;
+        var uiCulture = AppLanguageService.CurrentUiCulture;
         if (ids.Count == 0)
         {
-            editor.WriteMessage(UiStrings.CommandReportNoneFound);
+            editor.WriteMessage(UiStrings.GetString("Command_Report_NoneFound", uiCulture));
             return;
         }
 
@@ -857,7 +865,7 @@ public sealed class AcKrovyCommands
             {
                 skipped++;
                 editor.WriteMessage(UiStrings.Format(
-                    UiStrings.CommandReportElementSkippedFormat,
+                    UiStrings.GetString("Command_Report_ElementSkippedFormat", uiCulture),
                     snapshot.Data.ElementId,
                     ex.Message));
             }
@@ -865,21 +873,27 @@ public sealed class AcKrovyCommands
 
         if (measurements.Count == 0)
         {
-            editor.WriteMessage(UiStrings.CommandReportNoValidElements);
+            editor.WriteMessage(UiStrings.GetString("Command_Report_NoValidElements", uiCulture));
             return;
         }
 
-        var pointResult = editor.GetPoint(UiStrings.CommandReportPromptInsertionPoint);
+        var pointResult = editor.GetPoint(
+            UiStrings.GetString("Command_Report_PromptInsertionPoint", uiCulture));
         if (pointResult.Status != PromptStatus.OK)
         {
             return;
         }
 
         var report = TimberReportBuilder.Build(measurements);
-        ReportTableWriter.Insert(document.Database, transaction, pointResult.Value, report);
+        ReportTableWriter.Insert(
+            document.Database,
+            transaction,
+            pointResult.Value,
+            report,
+            uiCulture);
         transaction.Commit();
         editor.WriteMessage(UiStrings.Format(
-            UiStrings.CommandReportInsertedFormat,
+            UiStrings.GetString("Command_Report_InsertedFormat", uiCulture),
             measurements.Count,
             skipped,
             report.TotalVolumeM3));

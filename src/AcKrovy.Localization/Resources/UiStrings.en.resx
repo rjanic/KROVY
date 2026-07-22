@@ -86,13 +86,19 @@
   <data name="Command_Assign_Prompt" xml:space="preserve"><value>&#xA;Select lines or polylines to which you want to assign data: </value></data>
   <data name="Command_Assign_PromptTypeFormat" xml:space="preserve"><value>&#xA;Select lines or polylines for element {0}: </value></data>
   <data name="Command_Assign_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: data assigned to {0} elements. Skipped: {1}.</value></data>
-  <data name="Command_PostFootprint_EdgePrompt" xml:space="preserve"><value>&#xA;Select one edge of the Post footprint: </value></data>
-  <data name="Command_PostFootprint_PolylineOnly" xml:space="preserve"><value>&#xA;Only a lightweight Polyline can be selected.</value></data>
+  <data name="Command_PostFootprint_EdgePrompt" xml:space="preserve"><value>&#xA;Select an edge of the Post footprint: </value></data>
+  <data name="Command_PostFootprint_PolylineOnly" xml:space="preserve"><value>&#xA;Select a rectangular lightweight Polyline or one LINE from a four-edge rectangle.</value></data>
   <data name="Command_PostFootprint_InvalidGeometry" xml:space="preserve"><value>&#xA;The polyline must be a closed rectangle with four straight, non-arc edges in the plan plane.</value></data>
   <data name="Command_PostFootprint_AmbiguousPick" xml:space="preserve"><value>&#xA;The edge selection is ambiguous near the corner. Click farther from the corner.</value></data>
   <data name="Command_PostFootprint_PickTooFar" xml:space="preserve"><value>&#xA;The click is too far from a rectangle edge. Select the edge again.</value></data>
-  <data name="Command_PostFootprint_AssignRedirect" xml:space="preserve"><value>&#xA;For a Post, select one edge of a rectangular polyline.</value></data>
+  <data name="Command_PostFootprint_AssignRedirect" xml:space="preserve"><value>&#xA;For a Post, select an edge of a rectangular polyline or one of four LINE entities.</value></data>
   <data name="Command_PostFootprint_AssignedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: Post assigned – {0:0} × {1:0} mm, manual length {2:0} mm.</value></data>
+  <data name="Command_PostFootprint_LineNotFound" xml:space="preserve"><value>&#xA;A closed rectangle made of four geometrically connected LINE entities could not be found.</value></data>
+  <data name="Command_PostFootprint_LineAmbiguous" xml:space="preserve"><value>&#xA;The LINE geometry is ambiguous: the selected line belongs to more than one possible rectangle.</value></data>
+  <data name="Command_PostFootprint_LineBranching" xml:space="preserve"><value>&#xA;The LINE geometry branches. Each rectangle corner must connect exactly two edges.</value></data>
+  <data name="Command_PostFootprint_LineNotRectangle" xml:space="preserve"><value>&#xA;The four connected LINE entities do not form a valid rectangle.</value></data>
+  <data name="Command_PostFootprint_LineDuplicate" xml:space="preserve"><value>&#xA;The geometry contains an overlapping or duplicate LINE entity.</value></data>
+  <data name="Command_PostFootprint_UnsupportedPlane" xml:space="preserve"><value>&#xA;The lines must lie in the same supported plan plane and elevation.</value></data>
   <data name="Command_Layers_ElementSkippedFormat" xml:space="preserve"><value>&#xA;Element skipped while setting its layer: {0}</value></data>
   <data name="Command_Layers_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: elements moved to layers: {0}. Skipped: {1}.</value></data>
   <data name="Command_Settings_ApplyElementSkippedFormat" xml:space="preserve"><value>&#xA;Element skipped while applying settings: {0}</value></data>

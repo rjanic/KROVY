@@ -86,13 +86,19 @@
   <data name="Command_Assign_Prompt" xml:space="preserve"><value>&#xA;Vyberte čáry nebo křivky, kterým chcete přiřadit data: </value></data>
   <data name="Command_Assign_PromptTypeFormat" xml:space="preserve"><value>&#xA;Vyberte čáry nebo křivky pro prvek {0}: </value></data>
   <data name="Command_Assign_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: data přiřazena k {0} prvkům. Přeskočené: {1}.</value></data>
-  <data name="Command_PostFootprint_EdgePrompt" xml:space="preserve"><value>&#xA;Vyberte jednu stranu půdorysu sloupku: </value></data>
-  <data name="Command_PostFootprint_PolylineOnly" xml:space="preserve"><value>&#xA;Vybrat lze pouze lightweight Polyline.</value></data>
+  <data name="Command_PostFootprint_EdgePrompt" xml:space="preserve"><value>&#xA;Vyberte stranu půdorysu sloupku: </value></data>
+  <data name="Command_PostFootprint_PolylineOnly" xml:space="preserve"><value>&#xA;Vyberte obdélníkovou lightweight Polyline nebo jednu LINE ze čtyřstranného obdélníku.</value></data>
   <data name="Command_PostFootprint_InvalidGeometry" xml:space="preserve"><value>&#xA;Polyline musí být uzavřený obdélník se čtyřmi přímými stranami bez oblouků v půdorysné rovině.</value></data>
   <data name="Command_PostFootprint_AmbiguousPick" xml:space="preserve"><value>&#xA;Výběr strany je u rohu nejednoznačný. Klikněte dále od rohu.</value></data>
   <data name="Command_PostFootprint_PickTooFar" xml:space="preserve"><value>&#xA;Kliknutí je příliš daleko od strany obdélníku. Vyberte stranu znovu.</value></data>
-  <data name="Command_PostFootprint_AssignRedirect" xml:space="preserve"><value>&#xA;Pro typ Sloupek vyberte jednu stranu obdélníkové polyline.</value></data>
+  <data name="Command_PostFootprint_AssignRedirect" xml:space="preserve"><value>&#xA;Pro typ Sloupek vyberte stranu obdélníkové polyline nebo jednu ze čtyř LINE.</value></data>
   <data name="Command_PostFootprint_AssignedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: Sloupek přiřazen – {0:0} × {1:0} mm, ruční délka {2:0} mm.</value></data>
+  <data name="Command_PostFootprint_LineNotFound" xml:space="preserve"><value>&#xA;Nepodařilo se najít uzavřený obdélník ze čtyř geometricky spojených LINE.</value></data>
+  <data name="Command_PostFootprint_LineAmbiguous" xml:space="preserve"><value>&#xA;Geometrie LINE je nejednoznačná: vybraná čára patří do více možných obdélníků.</value></data>
+  <data name="Command_PostFootprint_LineBranching" xml:space="preserve"><value>&#xA;Geometrie LINE obsahuje větvení. Každý roh obdélníku musí spojovat přesně dvě strany.</value></data>
+  <data name="Command_PostFootprint_LineNotRectangle" xml:space="preserve"><value>&#xA;Čtyři spojené LINE netvoří platný obdélník.</value></data>
+  <data name="Command_PostFootprint_LineDuplicate" xml:space="preserve"><value>&#xA;Geometrie obsahuje překrývající se nebo duplicitní LINE.</value></data>
+  <data name="Command_PostFootprint_UnsupportedPlane" xml:space="preserve"><value>&#xA;Čáry musí ležet ve stejné podporované půdorysné rovině a výšce.</value></data>
   <data name="Command_Layers_ElementSkippedFormat" xml:space="preserve"><value>&#xA;Při nastavování hladiny byl přeskočen prvek: {0}</value></data>
   <data name="Command_Layers_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: prvky přesunuté do hladin: {0}. Přeskočené: {1}.</value></data>
   <data name="Command_Settings_ApplyElementSkippedFormat" xml:space="preserve"><value>&#xA;Při použití nastavení byl přeskočen prvek: {0}</value></data>

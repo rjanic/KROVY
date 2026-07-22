@@ -86,13 +86,19 @@
   <data name="Command_Assign_Prompt" xml:space="preserve"><value>&#xA;Označ čiary alebo polyline, ktorým chceš priradiť údaje: </value></data>
   <data name="Command_Assign_PromptTypeFormat" xml:space="preserve"><value>&#xA;Označ čiary alebo polyline pre prvok {0}: </value></data>
   <data name="Command_Assign_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: priradené údaje k {0} prvkom. Preskočené: {1}.</value></data>
-  <data name="Command_PostFootprint_EdgePrompt" xml:space="preserve"><value>&#xA;Vyber jednu stranu pôdorysu stĺpika: </value></data>
-  <data name="Command_PostFootprint_PolylineOnly" xml:space="preserve"><value>&#xA;Vybrať možno iba lightweight Polyline.</value></data>
+  <data name="Command_PostFootprint_EdgePrompt" xml:space="preserve"><value>&#xA;Vyber stranu pôdorysu stĺpika: </value></data>
+  <data name="Command_PostFootprint_PolylineOnly" xml:space="preserve"><value>&#xA;Vybrať možno iba obdĺžnikovú lightweight Polyline alebo jednu LINE zo štvorstranového obdĺžnika.</value></data>
   <data name="Command_PostFootprint_InvalidGeometry" xml:space="preserve"><value>&#xA;Polyline musí byť uzavretý obdĺžnik so štyrmi rovnými stranami bez oblúkov v pôdorysnej rovine.</value></data>
   <data name="Command_PostFootprint_AmbiguousPick" xml:space="preserve"><value>&#xA;Výber strany je pri rohu nejednoznačný. Klikni ďalej od rohu.</value></data>
   <data name="Command_PostFootprint_PickTooFar" xml:space="preserve"><value>&#xA;Klik je príliš ďaleko od strany obdĺžnika. Vyber stranu znova.</value></data>
-  <data name="Command_PostFootprint_AssignRedirect" xml:space="preserve"><value>&#xA;Pre typ Stĺpik vyber jednu stranu obdĺžnikovej polyline.</value></data>
+  <data name="Command_PostFootprint_AssignRedirect" xml:space="preserve"><value>&#xA;Pre typ Stĺpik vyber stranu obdĺžnikovej polyline alebo jednu zo štyroch LINE.</value></data>
   <data name="Command_PostFootprint_AssignedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: Stĺpik priradený – {0:0} × {1:0} mm, ručná dĺžka {2:0} mm.</value></data>
+  <data name="Command_PostFootprint_LineNotFound" xml:space="preserve"><value>&#xA;Nepodarilo sa nájsť uzavretý obdĺžnik zo štyroch geometricky spojených LINE.</value></data>
+  <data name="Command_PostFootprint_LineAmbiguous" xml:space="preserve"><value>&#xA;Geometria LINE je nejednoznačná: vybraná čiara patrí do viacerých možných obdĺžnikov.</value></data>
+  <data name="Command_PostFootprint_LineBranching" xml:space="preserve"><value>&#xA;Geometria LINE obsahuje vetvenie. Každý roh obdĺžnika musí spájať presne dve strany.</value></data>
+  <data name="Command_PostFootprint_LineNotRectangle" xml:space="preserve"><value>&#xA;Štyri spojené LINE netvoria platný obdĺžnik.</value></data>
+  <data name="Command_PostFootprint_LineDuplicate" xml:space="preserve"><value>&#xA;Geometria obsahuje prekrývajúcu sa alebo duplicitnú LINE.</value></data>
+  <data name="Command_PostFootprint_UnsupportedPlane" xml:space="preserve"><value>&#xA;Čiary musia ležať v rovnakej podporovanej pôdorysnej rovine a výške.</value></data>
   <data name="Command_Layers_ElementSkippedFormat" xml:space="preserve"><value>&#xA;Preskočený prvok pri nastavovaní hladiny: {0}</value></data>
   <data name="Command_Layers_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: prvky presunuté na hladiny: {0}. Preskočené: {1}.</value></data>
   <data name="Command_Settings_ApplyElementSkippedFormat" xml:space="preserve"><value>&#xA;Preskočený prvok pri aplikovaní nastavení: {0}</value></data>

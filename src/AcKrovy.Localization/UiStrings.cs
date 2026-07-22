@@ -87,6 +87,12 @@ public static class UiStrings
     public static string CommandPostFootprintPickTooFar => GetActiveUiString("Command_PostFootprint_PickTooFar");
     public static string CommandPostFootprintAssignRedirect => GetActiveUiString("Command_PostFootprint_AssignRedirect");
     public static string CommandPostFootprintAssignedFormat => GetActiveUiString("Command_PostFootprint_AssignedFormat");
+    public static string CommandPostFootprintLineNotFound => GetActiveUiString("Command_PostFootprint_LineNotFound");
+    public static string CommandPostFootprintLineAmbiguous => GetActiveUiString("Command_PostFootprint_LineAmbiguous");
+    public static string CommandPostFootprintLineBranching => GetActiveUiString("Command_PostFootprint_LineBranching");
+    public static string CommandPostFootprintLineNotRectangle => GetActiveUiString("Command_PostFootprint_LineNotRectangle");
+    public static string CommandPostFootprintLineDuplicate => GetActiveUiString("Command_PostFootprint_LineDuplicate");
+    public static string CommandPostFootprintUnsupportedPlane => GetActiveUiString("Command_PostFootprint_UnsupportedPlane");
     public static string CommandLayersElementSkippedFormat => GetString("Command_Layers_ElementSkippedFormat");
     public static string CommandLayersResultFormat => GetString("Command_Layers_ResultFormat");
     public static string CommandSettingsApplyElementSkippedFormat => GetString("Command_Settings_ApplyElementSkippedFormat");
@@ -186,7 +192,7 @@ public static class UiStrings
         string.Format(CultureInfo.CurrentCulture, format, arguments);
 
     public static string GetString(string resourceKey, CultureInfo? culture = null) =>
-        ResourceManager.GetString(resourceKey, culture ?? CultureInfo.CurrentUICulture) ?? resourceKey;
+        ResourceManager.GetString(resourceKey, culture ?? AppLanguageService.CurrentUiCulture) ?? resourceKey;
 
     private static string GetActiveUiString(string resourceKey) =>
         GetString(resourceKey, UiStringBindingSource.Shared.Culture);

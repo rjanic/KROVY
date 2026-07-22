@@ -87,12 +87,18 @@
   <data name="Command_Assign_PromptTypeFormat" xml:space="preserve"><value>&#xA;Sélectionnez les lignes ou polylignes pour l'élément {0} : </value></data>
   <data name="Command_Assign_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY : données attribuées à {0} éléments. Ignorés : {1}.</value></data>
   <data name="Command_PostFootprint_EdgePrompt" xml:space="preserve"><value>&#xA;Sélectionnez un côté de l'empreinte du poteau : </value></data>
-  <data name="Command_PostFootprint_PolylineOnly" xml:space="preserve"><value>&#xA;Seule une polyligne légère peut être sélectionnée.</value></data>
+  <data name="Command_PostFootprint_PolylineOnly" xml:space="preserve"><value>&#xA;Sélectionnez une polyligne légère rectangulaire ou une LINE d'un rectangle à quatre côtés.</value></data>
   <data name="Command_PostFootprint_InvalidGeometry" xml:space="preserve"><value>&#xA;La polyligne doit être un rectangle fermé composé de quatre côtés droits sans arc dans le plan.</value></data>
   <data name="Command_PostFootprint_AmbiguousPick" xml:space="preserve"><value>&#xA;La sélection du côté est ambiguë près du coin. Cliquez plus loin du coin.</value></data>
   <data name="Command_PostFootprint_PickTooFar" xml:space="preserve"><value>&#xA;Le clic est trop éloigné d'un côté du rectangle. Sélectionnez de nouveau le côté.</value></data>
-  <data name="Command_PostFootprint_AssignRedirect" xml:space="preserve"><value>&#xA;Pour un poteau, sélectionnez un côté d'une polyligne rectangulaire.</value></data>
+  <data name="Command_PostFootprint_AssignRedirect" xml:space="preserve"><value>&#xA;Pour un poteau, sélectionnez un côté d'une polyligne rectangulaire ou l'une des quatre LINE.</value></data>
   <data name="Command_PostFootprint_AssignedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY : poteau attribué – {0:0} × {1:0} mm, longueur manuelle {2:0} mm.</value></data>
+  <data name="Command_PostFootprint_LineNotFound" xml:space="preserve"><value>&#xA;Impossible de trouver un rectangle fermé formé de quatre entités LINE géométriquement raccordées.</value></data>
+  <data name="Command_PostFootprint_LineAmbiguous" xml:space="preserve"><value>&#xA;La géométrie LINE est ambiguë : la ligne sélectionnée appartient à plusieurs rectangles possibles.</value></data>
+  <data name="Command_PostFootprint_LineBranching" xml:space="preserve"><value>&#xA;La géométrie LINE comporte une bifurcation. Chaque angle du rectangle doit relier exactement deux côtés.</value></data>
+  <data name="Command_PostFootprint_LineNotRectangle" xml:space="preserve"><value>&#xA;Les quatre entités LINE raccordées ne forment pas un rectangle valide.</value></data>
+  <data name="Command_PostFootprint_LineDuplicate" xml:space="preserve"><value>&#xA;La géométrie contient une entité LINE superposée ou dupliquée.</value></data>
+  <data name="Command_PostFootprint_UnsupportedPlane" xml:space="preserve"><value>&#xA;Les lignes doivent se trouver dans le même plan horizontal pris en charge et à la même élévation.</value></data>
   <data name="Command_Layers_ElementSkippedFormat" xml:space="preserve"><value>&#xA;Élément ignoré lors de la définition de son calque : {0}</value></data>
   <data name="Command_Layers_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY : éléments déplacés sur les calques : {0}. Ignorés : {1}.</value></data>
   <data name="Command_Settings_ApplyElementSkippedFormat" xml:space="preserve"><value>&#xA;Élément ignoré lors de l'application des paramètres : {0}</value></data>

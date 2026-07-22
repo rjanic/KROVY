@@ -262,14 +262,15 @@ public sealed class LocalizationFoundationTests
     [Fact]
     public void FrenchUiCulture_UsesFrenchNeutralSatelliteResource()
     {
-        var result = InCulture("fr-FR", () => new
+        var culture = CultureInfo.GetCultureInfo("fr-FR");
+        var result = new
         {
-            ElementType = TimberElementTypeDisplayNameProvider.GetDisplayName(TimberElementType.Rafter),
-            LengthMode = LengthCalculationModeDisplayNameProvider.GetDisplayName(LengthCalculationMode.SlopeCorrected),
-            ReportTitle = UiStrings.ReportTitle,
-            ReportTotalFormat = UiStrings.ReportTotalFormat,
-            AssignResult = UiStrings.Format(UiStrings.CommandAssignResultFormat, 3, 1),
-        });
+            ElementType = TimberElementTypeDisplayNameProvider.GetDisplayName(TimberElementType.Rafter, culture),
+            LengthMode = LengthCalculationModeDisplayNameProvider.GetDisplayName(LengthCalculationMode.SlopeCorrected, culture),
+            ReportTitle = UiStrings.GetString("Report_Title", culture),
+            ReportTotalFormat = UiStrings.GetString("Report_TotalFormat", culture),
+            AssignResult = UiStrings.Format(UiStrings.GetString("Command_Assign_ResultFormat", culture), 3, 1),
+        };
 
         Assert.Equal("Chevron", result.ElementType);
         Assert.Equal("Recalculer selon la pente", result.LengthMode);

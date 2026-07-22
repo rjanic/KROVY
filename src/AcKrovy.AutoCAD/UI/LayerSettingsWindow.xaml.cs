@@ -20,12 +20,13 @@ namespace AcKrovy.AutoCAD.UI;
 public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
 {
     private static readonly CultureInfo SlovakCulture = CultureInfo.GetCultureInfo("sk-SK");
+    private readonly CultureInfo _uiCulture;
     private string _roundingStepMmText = Format(TimberElementDefaultProfile.FactoryCuttingLengthRoundingStepMm);
     private string _selectedLanguageCode = AppLanguageService.DefaultLanguageCode;
 
     public ObservableCollection<LayerSettingsRow> Rows { get; } = [];
     public ObservableCollection<ElementDefaultSettingsRow> DefaultRows { get; } = [];
-    public IReadOnlyList<LayerColorOption> ColorOptions { get; } = LayerColorOption.CreateDefaults();
+    public IReadOnlyList<LayerColorOption> ColorOptions { get; }
     public IReadOnlyList<SupportedAppLanguage> LanguageOptions => AppLanguageService.SupportedLanguages;
 
     internal ElementLayerProfile? Profile { get; private set; }
@@ -75,6 +76,8 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
         TimberElementDefaultProfile defaultProfile,
         string languageCode)
     {
+        _uiCulture = AppLanguageService.CurrentUiCulture;
+        ColorOptions = LayerColorOption.CreateDefaults(_uiCulture);
         _selectedLanguageCode = AppLanguageService.NormalizeLanguageCode(languageCode);
         InitializeComponent();
         DataContext = this;
@@ -227,7 +230,11 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
             var style = profile.GetStyle(type);
             var color = ColorOptions.FirstOrDefault(option => option.Index == style.ColorIndex)
                 ?? ColorOptions.First(option => option.Index == 8);
-            Rows.Add(new LayerSettingsRow(type, TimberElementTypeDisplayNameProvider.GetDisplayName(type), style.LayerName, color));
+            Rows.Add(new LayerSettingsRow(
+                type,
+                TimberElementTypeDisplayNameProvider.GetDisplayName(type, _uiCulture),
+                style.LayerName,
+                color));
         }
     }
 
@@ -239,7 +246,7 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
         {
             DefaultRows.Add(new ElementDefaultSettingsRow(
                 type,
-                TimberElementTypeDisplayNameProvider.GetDisplayName(type),
+                TimberElementTypeDisplayNameProvider.GetDisplayName(type, _uiCulture),
                 Format(profile.GetCuttingAllowanceMm(type))));
         }
     }
@@ -395,23 +402,26 @@ public sealed class ElementDefaultSettingsRow : INotifyPropertyChanged
 
 public sealed record LayerColorOption(int Index, string Label, MediaBrush Brush)
 {
-    public static IReadOnlyList<LayerColorOption> CreateDefaults() =>
+    public static IReadOnlyList<LayerColorOption> CreateDefaults(CultureInfo? culture = null) =>
     [
-        Create(1, "#FF0000"),
-        Create(2, "#FFFF00"),
-        Create(3, "#00CC00"),
-        Create(4, "#00CCCC"),
-        Create(5, "#3366FF"),
-        Create(6, "#CC00CC"),
-        Create(30, "#FF7F00"),
-        Create(8, "#777777"),
-        Create(9, "#B5B5B5"),
+        Create(1, "#FF0000", culture),
+        Create(2, "#FFFF00", culture),
+        Create(3, "#00CC00", culture),
+        Create(4, "#00CCCC", culture),
+        Create(5, "#3366FF", culture),
+        Create(6, "#CC00CC", culture),
+        Create(30, "#FF7F00", culture),
+        Create(8, "#777777", culture),
+        Create(9, "#B5B5B5", culture),
     ];
 
-    private static LayerColorOption Create(int index, string hex)
+    private static LayerColorOption Create(int index, string hex, CultureInfo? culture)
     {
         var brush = new MediaSolidColorBrush((MediaColor)MediaColorConverter.ConvertFromString(hex)!);
         brush.Freeze();
-        return new LayerColorOption(index, LayerColorDisplayNameProvider.GetDisplayName(index), brush);
+        return new LayerColorOption(
+            index,
+            LayerColorDisplayNameProvider.GetDisplayName(index, culture),
+            brush);
     }
 }
