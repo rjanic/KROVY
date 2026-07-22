@@ -1,173 +1,108 @@
-# ACAD KROVY – štartovací projekt
+# ACAD KROVY
 
-Základ pre AutoCAD doplnok na **2D výkaz krovu**. Čiara alebo polyline predstavuje jeden drevený prvok. K objektu sa do DWG uloží typ, prierez, sklon, prídavok na rezanie, materiál a označenie. Z vybraných alebo všetkých označených prvkov doplnok vytvorí výkaz s počtom, dĺžkami a kubatúrou.
+ACAD KROVY je .NET doplnok pre AutoCAD na evidenciu, označovanie a výrobný výkaz drevených prvkov krovu v 2D výkrese. Inteligentné prvky nesú prenosné XData metadata, reagujú na zmeny geometrie a vytvárajú lokalizované labely, anotácie a reportové tabuľky.
 
-> Stav: **0.10.0 – Cutting Rules & Allowances**. Hlavná vývojová platforma je AutoCAD 2027 na Windows. Verzia obsahuje prenosné XData metadáta, automatické popisy, používateľské nastavenia hladín, nastaviteľné výrobné prídavky podľa typu, individuálne výrobné prídavky cez `AK_EDIT` a automatickú synchronizáciu po zmene geometrie.
+Aktuálne číslo aplikácie je definované výhradne v [`Directory.Build.props`](Directory.Build.props). Startup hláška a `AK_HELP` ho čítajú z assembly metadata; `.bundle` manifest je povinný literal kontrolovaný Compatibility Gate.
 
-## Čo už kostra obsahuje
+## Aktuálne možnosti
 
-- C# riešenie rozdelené na CAD-nezávislé výpočtové jadro, CAD abstrakcie a AutoCAD doplnok.
-- Údaje uložené priamo pri čiare/polyline v prenosnom **XData** formáte; legacy `Xrecord` údaje sa stále vedia spätne načítať.
-- Príkaz `AK_ASSIGN` na priradenie dát viacerým čiaram naraz.
-- Príkaz `AK_EDIT` na hromadnú úpravu šírky, výšky, sklonu, individuálneho výrobného prídavku, materiálu a typu.
-- Príkaz `AK_REPORT` na výkaz z aktuálneho výberu.
-- Príkaz `AK_REPORTALL` na výkaz všetkých prvkov v modelovom priestore.
-- Príkaz `AK_INSPECT` na vypísanie údajov a read-only informačné okno pri jednom prvku.
-- Príkaz `AK_RECALC` na kontrolný prepočet všetkých prvkov.
-- Príkaz `AK_SETTINGS` na používateľské nastavenia hladín, farieb a predvolených výrobných prídavkov.
-- Automatické MText popisy prvkov s väzbou cez `SourceHandle`.
-- Automatický refresh po STRETCH, TRIM, EXTEND, grip edit a MOVE bez nutnosti ručne spúšťať `AK_RECALC`.
-- Výsledný AutoCAD `Table` so stĺpcami: typ, materiál, šírka, výška, dĺžka kusu, počet, celková dĺžka, kubatúra.
+- priradenie typov Krokva, Pomúrnica, Väznica, Stĺpik, Klieština, Vzpera a Väzný trám,
+- individuálna aj bezpečná batch editácia rozmerov, materiálu, režimu dĺžky, sklonu a výrobného prídavku,
+- stabilné položkové číslovanie, XData metadata a väzby cez `ElementId`/`SourceHandle`,
+- centrálne výpočty skutočnej a reznej dĺžky, prídavkov, zaokrúhľovania a kubatúry,
+- automatický refresh po MOVE, ROTATE, STRETCH, TRIM, EXTEND a grip edit,
+- labely prvkov, collision-aware anotácia smeru sklonu a `AK_FLIPSLOPE`,
+- report z výberu alebo celého výkresu s prirodzeným radením položiek,
+- rectangular footprint pre Stĺpik z jednej rectangular Polyline,
+- konverzia validného obdĺžnika zo štyroch samostatných LINE na jeden Post footprint,
+- bezpečné správanie pri COPY, COPYCLIP/PASTECLIP, WBLOCK a SAVE/REOPEN,
+- Ribbon aj klasický dokovateľný panel,
+- runtime lokalizácia SK, CS, EN, DE, PL a FR bez zmeny technických DWG dát.
 
-## Dôležité pravidlo výpočtu v 0.10.0
+## Post / Stĺpik
 
-Pre krokvy a vzpery je čiara chápaná ako **vodorovná projekcia v smere spádu strechy**:
+Nový Stĺpik je reprezentovaný jednou uzavretou rectangular Polyline. Kliknutá strana určuje orientáciu `Width`, susedná strana `Height`; skutočná dĺžka pochádza z manuálnej dĺžky, nie z obvodu footprintu. Doplnok vytvára samostatný trojriadkový label a anotáciu `⊥ 90°`.
 
-```text
-skutočná dĺžka = pôdorysná dĺžka / cos(sklon)
-```
+Alternatívny vstup zo štyroch LINE najprv overí jednoznačný uzavretý obdĺžnik. Až po úspešnom vytvorení a priradení jednej Polyline odstráni pôvodné čiary. Pri chybe vstupnú geometriu nemení.
 
-Pre pomúrnice, väznice, klieštiny a väzné trámy sa používa pôdorysná dĺžka. Stĺpik zatiaľ používa ručne zadanú dĺžku, ak ju nastavíš; inak dĺžku čiary.
+Legacy line-based Post prvky zostávajú čitateľné a kompatibilné.
 
-Rezná dĺžka sa počíta centrálne v Core:
+## Architektúra
 
 ```text
-CuttingLengthMm = RoundUp(ActualLengthMm + Max(0, CuttingAllowanceMm), 100)
+AcKrovy.Core              CAD-neutrálne modely, výpočty a geometrické pravidlá
+AcKrovy.Cad.Abstractions  rozhrania medzi doménou a CAD adaptérom
+AcKrovy.Localization      resources, jazyková služba a prezentačné názvy
+AcKrovy.AutoCAD           AutoCAD API, XData, výber, kreslenie, WPF a príkazy
+AcKrovy.Core.Tests        automatické regresné a architektonické testy
 ```
 
-Výsledok sa vždy zaokrúhľuje nahor na 100 mm. Predvolené výrobné prídavky sú nastaviteľné podľa typu prvku v `AK_SETTINGS` a ukladajú sa pre aktuálny účet Windows do `%APPDATA%\ACAD_KROVY\timber-element-default-profile.json`.
+`AcKrovy.Core` cieli na `netstandard2.0` a nesmie závisieť od Autodesk API. AutoCAD 2027 je hlavná vývojová a manuálne testovaná platforma. Roadmap počíta so samostatnými adaptérmi pre AutoCAD 2021–2027, BricsCAD a neskôr ZWCAD; spoločná doména a technické metadata preto zostávajú CAD- aj jazykovo neutrálne.
 
-Nárožné krokvy, úžľabia, rôzne strešné roviny a skutočné 3D smerové výpočty patria do modulu **Strešné roviny 2D/3D**, ktorý sa doplní neskôr. Tento základ ich architektúru už predpokladá cez pole `RoofPlaneId`.
+## Výpočet dĺžky
 
-## Predpoklady
-
-- Windows 10 alebo 11, 64-bit.
-- Plný **AutoCAD**, nie AutoCAD LT. AutoCAD LT nepodporuje vlastné .NET plug-iny.
-- Visual Studio 2022 s pracovným zaťažením **.NET desktop development**.
-- .NET SDK kompatibilné s riešením.
-- AutoCAD 2027 nainštalovaný na počítači, kde sa bude doplnok kompilovať a skúšať.
-
-AutoCAD API DLL sa berú z lokálnej inštalácie AutoCADu, preto nie sú vložené v projekte ani v repozitári.
-
-## Compatibility Gate
-
-Automatické portable/full kontroly buildu, testov a architektonických závislostí sú popísané v [docs/COMPATIBILITY_GATE.md](docs/COMPATIBILITY_GATE.md).
-
-## Otvorenie vo Visual Studiu
-
-1. Otvor `AcKrovy.sln`.
-2. Uprav cestu `AutoCadInstallDir` v `src/AcKrovy.AutoCAD/AcKrovy.AutoCAD.csproj` podľa nainštalovanej verzie:
-
-```xml
-<AutoCadInstallDir>C:\Program Files\Autodesk\AutoCAD 2027</AutoCadInstallDir>
-```
-
-3. Nastav konfiguráciu `Debug | x64`.
-4. Zostav riešenie.
-5. V AutoCADe spusti:
+Režim dĺžky určuje, či sa použije pôdorysná, sklonovo prepočítaná alebo manuálna dĺžka. Výrobná dĺžka sa vždy počíta v Core:
 
 ```text
-NETLOAD
+RawCuttingLengthMm = ActualLengthMm + Max(0, CuttingAllowanceMm)
+CuttingLengthMm    = RoundUp(RawCuttingLengthMm, configured step)
 ```
 
-6. Vyber vytvorený súbor:
+Predvolený krok je 100 mm. Defaultné prídavky podľa typu sú používateľské nastavenie; existujúce prvky si uchovávajú vlastnú uloženú hodnotu, kým používateľ výslovne neaplikuje nové defaulty.
+
+## Príkazy
+
+| Oblasť | Príkazy |
+|---|---|
+| Pomoc a UI | `AK_HELP`, `AK_RIBBON`, `AK_TOOLBAR`, `AK_TOOLBARSHOW`, `AK_TOOLBARHIDE` |
+| Priradenie | `AK_ASSIGN`, `AK_KROKVA`, `AK_POMURNICA`, `AK_VAZNICA`, `AK_STLPIK`, `AK_KLIESTINA`, `AK_VZPERA`, `AK_VAZNYTRAM` |
+| Údaje | `AK_EDIT`, `AK_INSPECT`, `AK_RECALC`, `AK_FLIPSLOPE` |
+| Reporty | `AK_REPORT`, `AK_REPORTALL` |
+| Labely | `AK_LABELS`, `AK_LABELSELECTED`, `AK_LABELSHOW`, `AK_LABELHIDE` |
+| Nastavenia | `AK_SETTINGS`, `AK_APPLYLAYERS` |
+
+Úplný lokalizovaný prehľad zobrazí `AK_HELP` priamo v AutoCADe.
+
+## Požiadavky a build
+
+- Windows x64,
+- plný AutoCAD 2027 (AutoCAD LT nepodporuje vlastné .NET plug-iny),
+- .NET 10 SDK,
+- Visual Studio 2022 alebo `dotnet` CLI,
+- AutoCAD .NET assemblies v štandardnom priečinku alebo cesta zadaná cez `AutoCadInstallDir`.
+
+```powershell
+dotnet restore AcKrovy.sln
+dotnet build AcKrovy.sln --no-restore
+dotnet test AcKrovy.sln --no-build
+```
+
+Pre inú inštalačnú cestu AutoCADu:
+
+```powershell
+dotnet build AcKrovy.sln -p:AutoCadInstallDir="D:\Autodesk\AutoCAD 2027"
+```
+
+Debug DLL pre `NETLOAD` vznikne v:
 
 ```text
 src\AcKrovy.AutoCAD\bin\x64\Debug\net10.0-windows\AcKrovy.AutoCAD.dll
 ```
 
-7. Zadaj príkaz:
+## Compatibility Gate
 
-```text
-AK_HELP
+```powershell
+.\scripts\compatibility-gate.ps1 -Portable
+.\scripts\compatibility-gate.ps1 -Full
 ```
 
-## Prvé testovanie
+Portable režim overuje CAD-neutrálne projekty, testy, zakázané závislosti a konzistenciu verzie. Full režim navyše zostaví AutoCAD adaptér proti lokálnej inštalácii AutoCADu. Podrobnosti sú v [`docs/COMPATIBILITY_GATE.md`](docs/COMPATIBILITY_GATE.md).
 
-1. Nakresli 3 až 5 čiar príkazom `LINE`.
-2. Spusti `AK_ASSIGN` a označ ich oknom alebo kliknutím.
-3. V dialógu ponechaj napríklad:
-   - Typ: Krokva
-   - Šírka: 80 mm
-   - Výška: 160 mm
-   - Sklon: 35°
-   - Prídavok na rez: 100 mm
-4. Označ tie isté čiary.
-5. Spusti `AK_REPORT`.
-6. Klikni do výkresu na miesto vloženia tabuľky.
+## Dokumentácia projektu
 
-## Príkazy
+- [`ACAD_KROVY_PROJECT_CONTEXT.md`](ACAD_KROVY_PROJECT_CONTEXT.md) – stabilné architektonické pravidlá a aktuálny kontext,
+- [`ACAD_KROVY_ROADMAP.md`](ACAD_KROVY_ROADMAP.md) – odporúčané poradie ďalšieho vývoja,
+- [`ACAD_KROVY_BACKLOG.md`](ACAD_KROVY_BACKLOG.md) – úplný zásobník otvorených nápadov,
+- [`README_SK.txt`](README_SK.txt) – stručný slovenský quick-start pre používateľa.
 
-| Príkaz | Účel |
-|---|---|
-| `AK_HELP` | Zobrazí stručnú pomoc. |
-| `AK_ASSIGN` | Priradí údaje jedným alebo viacerým čiaram/polyline naraz. |
-| `AK_EDIT` | Hromadne zmení iba polia zaškrtnuté v dialógu. |
-| `AK_INSPECT` | Vypíše údaje a prepočet vybraného prvku. |
-| `AK_REPORT` | Vloží výkaz z aktuálne vybraných inteligentných prvkov. |
-| `AK_REPORTALL` | Vloží výkaz zo všetkých inteligentných prvkov v modelovom priestore. |
-| `AK_RECALC` | Overí a vypíše prepočet všetkých prvkov. |
-| `AK_SETTINGS` | Nastaví hladiny, farby a predvolené výrobné prídavky podľa typu prvku. |
-
-## v0.7.0 Manufacturing Length & Allowance Foundation
-
-- Nastaviteľné predvolené výrobné prídavky podľa typu prvku.
-- Rezná dĺžka zaokrúhlená vždy nahor na 100 mm.
-- Tri režimy v `AK_SETTINGS`: aplikovať na všetky, aplikovať na výber, uložiť iba pre nové prvky.
-- Bezpečné aplikovanie defaultov na existujúce vybrané alebo všetky inteligentné prvky.
-- COPY/COPYCLIP kópia sa pri synchronizačnom flow inicializuje ako nový fyzický prvok.
-- WBLOCK/import workflow je chránený pred nechceným hromadným prepisom prídavkov.
-- Výpočet a aplikovanie výrobných prídavkov sú centralizované v Core bez AutoCAD závislostí.
-
-## v0.8.0 Per-Element Manufacturing Overrides
-
-- Individuálna editácia `CuttingAllowanceMm` cez `AK_EDIT`.
-- Hromadná editácia s bezpečným mixed-value správaním.
-- Možnosť obnoviť aktuálny predvolený prídavok podľa typu prvku.
-- Bezpečný prepočet reznej dĺžky a synchronizácia `ElementId` cez existujúcu výrobnú identitu.
-- Zachované správanie COPY/COPYCLIP z v0.7.0 a ochrana WBLOCK/import workflow.
-
-## v0.9.0 Live Geometry Synchronization
-
-- Automatická synchronizácia inteligentných timber prvkov po STRETCH, TRIM, EXTEND, grip edit a MOVE.
-- Zmenené entity sa zbierajú počas AutoCAD príkazu a spracujú až po jeho úspešnom ukončení.
-- Refresh používa existujúce Core meranie, výrobnú signatúru, synchronizáciu `ElementId` a `ElementLabelService`.
-- Reentrancy guard bráni zacykleniu pri internom zápise metadát a aktualizácii labelov.
-- Multi-document lifecycle je riešený per-dokumentovými subscription bez zdieľania kandidátov medzi DWG.
-- Stabilné číslovanie výrobných položiek nekompaktuje existujúce `ElementId`; nové položky môžu použiť prvú voľnú medzeru.
-- Automatické popisy sa aktualizujú okamžite, čistia orphan/clone labely a rozmery zapisujú vo formáte `80x160`.
-- `AK_INSPECT` zobrazuje kompaktné read-only informačné okno.
-- COPY/COPYCLIP a WBLOCK/import kompatibilita z v0.7.0 zostáva zachovaná.
-
-## v0.10.0 Cutting Rules & Allowances
-
-- Výpočet reznej dĺžky je centralizovaný v Core cez jednotné zaokrúhlenie nahor na 100 mm.
-- Predvolené výrobné prídavky sú vedené podľa `TimberElementType`; väznica má konzervatívny default 200 mm, ostatné aktuálne typy 100 mm.
-- `AK_SETTINGS` validuje nezáporné hodnoty v rozumnom rozsahu a staršie nastavenia bez typu doplní factory defaultom.
-- `AK_EDIT` naďalej podporuje individuálnu hodnotu prvku, nulu ako platný prídavok a návrat na aktuálny default podľa typu.
-- `AK_INSPECT` zobrazuje použitý prídavok a či zodpovedá aktuálnemu defaultu alebo individuálnej hodnote prvku.
-
-## Štruktúra
-
-```text
-AcKrovyStarter/
-├── AcKrovy.sln
-├── src/
-│   ├── AcKrovy.Core/              # výpočet, dátové modely, výkaz
-│   └── AcKrovy.AutoCAD/           # príkazy, AutoCAD Xrecord, WPF dialóg
-├── deploy/
-│   └── AcKrovy.bundle/            # základ pre budúce automatické načítanie
-└── docs/
-    ├── ROADMAP.md
-    └── TEST_SCENARIO_001.md
-```
-
-## Ďalšie plánované kroky
-
-1. Ribbon karta **ACAD KROVY** s ikonami jednotlivých prvkov.
-2. Zobrazenie menoviek `K1`, `K2`, `P1` vo výkrese.
-3. Strešné roviny, hrebeň, smer spádu a automatický výpočet nárožných krokiev.
-4. Export Excel/CSV/PDF.
-5. Prednastavenia bežných prierezov a materiálov.
-6. Výkaz reziva podľa obchodných dĺžok a optimalizácia odpadu.
-7. Licencovanie, inštalátor a aktualizácie.
+Najbližšou plánovanou funkciou je `AK_RENUMBER`. Dokumentácia a centralizácia verzie sú už dokončený základ, nie otvorená feature položka.

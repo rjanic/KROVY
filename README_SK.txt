@@ -1,61 +1,35 @@
-ACAD KROVY 0.10.0 – Cutting Rules & Allowances
+ACAD KROVY – STRUČNÝ SLOVENSKÝ QUICK-START
 
-Táto verzia nadväzuje na stabilnú architektúru v0.9.0 a je pripravená na manuálne overenie v AutoCAD 2027.
+Aktuálny a úplný popis projektu je v README.md.
+Architektúra, roadmap a backlog sú v:
+- ACAD_KROVY_PROJECT_CONTEXT.md
+- ACAD_KROVY_ROADMAP.md
+- ACAD_KROVY_BACKLOG.md
 
-ČO PRIDÁVA
-- Centralizovaný výpočet CuttingLengthMm v Core so zaokrúhlením nahor na 100 mm.
-- Konzervatívne predvolené prídavky podľa typu prvku: väznica 200 mm, ostatné aktuálne typy 100 mm.
-- Validáciu nezáporných používateľských prídavkov v rozumnom rozsahu.
-- AK_INSPECT zobrazuje použitý prídavok a či zodpovedá aktuálnemu defaultu alebo individuálnej hodnote prvku.
-- Automatickú synchronizáciu inteligentných timber prvkov po STRETCH, TRIM, EXTEND, grip edit a MOVE.
-- Zber zmenených entít počas AutoCAD príkazu a bezpečné spracovanie až po jeho úspešnom ukončení.
-- Reentrancy guard proti zacykleniu pri internom zápise metadát a aktualizácii labelov.
-- Per-dokumentové event subscriptions pre bezpečnú prácu s viacerými otvorenými DWG.
-- Stabilné číslovanie ElementId bez automatického kompaktného prečíslovania existujúcich položiek.
-- Automatickú aktualizáciu popisov, cleanup orphan/clone labelov a formát rozmerov 80x160.
-- Read-only informačné okno v AK_INSPECT.
-- Zachované COPY/COPYCLIP správanie a WBLOCK/import ochranu z predchádzajúcich verzií.
-- Individuálnu editáciu CuttingAllowanceMm priamo cez AK_EDIT.
-- Bezpečnú hromadnú editáciu so zmiešanými hodnotami bez tichého prepisu.
-- Tlačidlo „Použiť predvolený podľa typu“ v AK_EDIT.
-- Bezpečný prepočet CuttingLengthMm a synchronizáciu ElementId po zmene prídavku.
-- Zachované COPY/COPYCLIP správanie a WBLOCK/import ochranu z v0.7.0.
-- Nastaviteľné predvolené výrobné prídavky podľa typu prvku v AK_SETTINGS.
-- Predvolené prídavky sa ukladajú pre aktuálny účet Windows do:
-  %APPDATA%\ACAD_KROVY\timber-element-default-profile.json
-- Nové prvky cez AK_ASSIGN a rýchle príkazy preberajú aktuálny default podľa typu.
-- Existujúce prvky si uchovávajú vlastný uložený CuttingAllowanceMm, pokiaľ používateľ nezvolí aplikovanie defaultov na výber alebo na všetky prvky.
-- AK_SETTINGS obsahuje režimy:
-  Uložiť a aplikovať na všetky
-  Uložiť a aplikovať na výber
-  Uložiť iba pre nové prvky
-- CuttingLengthMm sa počíta ako:
-  RoundUp(ActualLengthMm + Max(0, CuttingAllowanceMm), 100)
-- Výsledná rezná dĺžka sa vždy zaokrúhľuje nahor na 100 mm.
-- COPY/COPYCLIP kópia sa pri existujúcom synchronizačnom flow správa ako nový fyzický prvok a preberá aktuálny default podľa typu.
-- WBLOCK/import kompatibilita zostáva chránená pred hromadným prepisom prídavkov iba kvôli zmene handle hodnôt.
-- Výpočet a aplikovanie výrobných prídavkov sú centralizované v Core bez AutoCAD závislostí.
-- Po AK_ASSIGN alebo ikonke typu sa pri každom prvku automaticky vytvorí MText štítok:
-  K1
-  80x160
-  5000 mm
-- Po AK_EDIT sa popis okamžite obnoví.
-- AK_RECALC zároveň obnoví popisy po manuálnej úprave dĺžok čiar.
-- AK_LABELS ručne obnoví/vytvorí popisy všetkých prvkov.
-- AK_LABELSELECTED pracuje iba s aktuálnym výberom.
-- AK_LABELSHOW / AK_LABELHIDE zobrazia alebo skryjú samostatnú hladinu KROV_POPIS.
-- Popisy sú na hladine KROV_POPIS, sivá ACI 8, a používajú farbu ByLayer.
-- Ribbon aj klasický panel dostanú nové tlačidlo „Obnoviť popisy“.
+SPUSTENIE V AUTOCAD 2027
+1. Zostav riešenie pre Debug | x64.
+2. V AutoCADe spusti NETLOAD.
+3. Vyber:
+   src\AcKrovy.AutoCAD\bin\x64\Debug\net10.0-windows\AcKrovy.AutoCAD.dll
+4. Zadaj AK_HELP pre aktuálny lokalizovaný zoznam príkazov.
 
-INŠTALÁCIA
-1. Zavri AutoCAD.
-2. Rozbaľ tento ZIP.
-3. Skopíruj jeho priečinok src do koreňa projektu:
-   C:\Users\Roman\Documents\CODEX\C#\CsharpProjects\ACAD_krovy\
-4. Potvrď prepísanie existujúcich súborov.
-5. Vo Visual Studiu spusti Build → Rebuild Solution.
-6. Otvor AutoCAD, NETLOAD, vyber AcKrovy.AutoCAD.dll.
+ZÁKLADNÝ WORKFLOW
+- AK_ASSIGN alebo rýchly príkaz typu priradí inteligentné údaje prvku.
+- AK_EDIT upraví jeden alebo viac prvkov.
+- AK_INSPECT zobrazí technické údaje jedného prvku.
+- AK_REPORT / AK_REPORTALL vloží výrobný výkaz.
+- AK_SETTINGS nastaví jazyk, hladiny, farby a výrobné defaulty.
+- AK_LABELS obnoví automatické popisy.
 
-WBLOCK
-Ak pri WBLOCK vyberieš prvky AJ ich textové popisy, prenesú sa spolu.
-Ak vyberieš iba čiary krovu, v novom DWG zadaj AK_LABELS a popisy sa vytvoria znovu.
+POST / STĹPIK
+Nový Stĺpik používa jednu rectangular Polyline. AK_STLPIK vie spracovať aj
+validný obdĺžnik zo štyroch samostatných LINE a bezpečne ho skonvertuje na
+jednu uzavretú Polyline. Manuálna dĺžka je nezávislá od obvodu footprintu.
+
+OVERENIE
+.\scripts\compatibility-gate.ps1 -Portable
+.\scripts\compatibility-gate.ps1 -Full
+
+Tento TXT súbor zostáva iba ako jednoduchý vstupný bod pre existujúce
+používateľské balíky. Pri budúcom zavedení generovaného inštalačného návodu
+ho možno odstrániť; dovtedy nemá duplikovať release notes ani celý README.

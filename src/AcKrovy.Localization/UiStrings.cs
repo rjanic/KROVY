@@ -21,8 +21,10 @@ public static class UiStrings
     public static string ReportColumnVolumeM3 => GetString("Report_Column_VolumeM3");
     public static string ReportTotalFormat => GetString("Report_TotalFormat");
     public static string MessageDialogTitle => GetString("Message_DialogTitle");
-    public static string MessagePluginLoaded => GetString("Message_PluginLoaded");
-    public static string HelpCommandOverview => GetString("Help_CommandOverview");
+    public static string MessagePluginLoaded =>
+        Format(GetString("Message_PluginLoaded"), ApplicationVersionProvider.DisplayVersion);
+    public static string HelpCommandOverview =>
+        Format(GetString("Help_CommandOverview"), ApplicationVersionProvider.DisplayVersion);
     public static string CommandRibbonReady => GetString("Command_Ribbon_Ready");
     public static string CommandRibbonPending => GetString("Command_Ribbon_Pending");
     public static string CommandToolbarShown => GetString("Command_Toolbar_Shown");

@@ -1,0 +1,11 @@
+<Project>
+  <PropertyGroup>
+    <!-- Authoritative application version for all ACAD KROVY assemblies. -->
+    <AcKrovyVersion>0.13.0</AcKrovyVersion>
+    <Version>$(AcKrovyVersion)</Version>
+    <AssemblyVersion>$(AcKrovyVersion).0</AssemblyVersion>
+    <FileVersion>$(AcKrovyVersion).0</FileVersion>
+    <InformationalVersion>$(AcKrovyVersion)</InformationalVersion>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+  </PropertyGroup>
+</Project>

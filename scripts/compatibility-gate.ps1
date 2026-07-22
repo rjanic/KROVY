@@ -17,6 +17,8 @@ $abstractionsProject = Join-Path $repoRoot "src/AcKrovy.Cad.Abstractions/AcKrovy
 $localizationProject = Join-Path $repoRoot "src/AcKrovy.Localization/AcKrovy.Localization.csproj"
 $testsProject = Join-Path $repoRoot "src/AcKrovy.Core.Tests/AcKrovy.Core.Tests.csproj"
 $solution = Join-Path $repoRoot "AcKrovy.sln"
+$buildMetadata = Join-Path $repoRoot "Directory.Build.props"
+$packageManifest = Join-Path $repoRoot "deploy/AcKrovy.bundle/PackageContents.xml"
 
 $forbiddenPortableReferences = @(
     "Autodesk.AutoCAD",
@@ -157,8 +159,27 @@ function Invoke-ArchitectureChecks {
     Pass-Step "Architecture dependency rules"
 }
 
+function Assert-PackageVersionMatchesBuildMetadata {
+    [xml]$metadata = Get-Content -LiteralPath $buildMetadata
+    [xml]$manifest = Get-Content -LiteralPath $packageManifest
+
+    $centralVersion = [string]$metadata.Project.PropertyGroup.AcKrovyVersion
+    $packageVersion = [string]$manifest.ApplicationPackage.AppVersion
+
+    if ([string]::IsNullOrWhiteSpace($centralVersion)) {
+        Fail-Step "Directory.Build.props does not define AcKrovyVersion"
+    }
+
+    if ($packageVersion -ne $centralVersion) {
+        Fail-Step "Package AppVersion '$packageVersion' does not match central version '$centralVersion'"
+    }
+
+    Pass-Step "Central version and package manifest are consistent ($centralVersion)"
+}
+
 function Invoke-PortableGate {
     Invoke-ArchitectureChecks
+    Assert-PackageVersionMatchesBuildMetadata
 
     Invoke-CheckedCommand "AcKrovy.Core restore" "dotnet" @("restore", $coreProject)
     Invoke-CheckedCommand "AcKrovy.Core build warnings-as-errors" "dotnet" @("build", $coreProject, "--no-restore", "-warnaserror")

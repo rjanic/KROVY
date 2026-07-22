@@ -1,10 +1,16 @@
 # ACAD KROVY – PROJECT CONTEXT
 
-**Aktualizované:** 22. 7. 2026  
-**Aktuálny stabilný commit:** `4a951041e2deef40a127ac9560cf6fb2ba4b6a5b`  
-**Branch:** `main`  
-**Stav:** pracovný strom čistý, `HEAD == origin/main`  
-**Posledný overený stav:** Debug/Release build PASS, 559/559 testov PASS, Portable aj Full Compatibility Gate PASS
+**Aktualizované:** 22. 7. 2026
+
+**Dokumentačný baseline:** `61646826b3550fb16855ed9592deabc266d86c97`
+
+**Branch:** `main`
+
+**Verzia aplikácie:** autoritatívne v `Directory.Build.props`
+
+**Stav baseline:** pracovný strom čistý, `HEAD == origin/main`
+
+**Overovanie:** Debug/Release build, kompletné automatické testy a Portable/Full Compatibility Gate
 
 ## Vízia
 ACAD KROVY je CAD systém pre návrh, označovanie, výpočty, výkazy a postupne aj automatické kreslenie drevených konštrukcií krovu.
@@ -165,6 +171,13 @@ Stabilný commit: `4a951041e2deef40a127ac9560cf6fb2ba4b6a5b`
 - rollback pri chybe
 - následne celý existujúci Post footprint lifecycle
 
+### Documentation & Centralized Version
+- spoločná assembly/package verzia vychádza z `Directory.Build.props`,
+- startup a `AK_HELP` používajú runtime version provider,
+- `.bundle` manifest je kontrolovaný Compatibility Gate,
+- README, project context, roadmap a backlog odrážajú Post workflow aj runtime lokalizáciu,
+- počet testov sa v dokumentácii nefixuje; zdrojom pravdy je aktuálny test run.
+
 ## Povinné kompatibilitné pravidlá
 
 1. Výpočty a geometrické rozhodovanie preferovať v Core.
@@ -190,10 +203,10 @@ Poradie:
 Multi-CAD kompatibilita sa má overiť ešte pred tým, než projekt prerastie do príliš veľkého AutoCAD-špecifického roof automation modulu.
 
 ## Najbližšia priorita
-1. aktualizácia dokumentácie a centralizácia verzie,
-2. `AK_RENUMBER`,
-3. Select Similar / filtre,
-4. CSV export,
+1. `AK_RENUMBER`,
+2. Select Similar / filtre,
+3. CSV export,
+4. diagnostika a servis,
 5. prezentačné a škálovacie nastavenia,
 6. Custom element,
 7. kompatibilitný checkpoint,

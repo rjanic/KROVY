@@ -1,7 +1,7 @@
 # ACAD KROVY – BACKLOG
 
 **Aktualizované:** 22. 7. 2026  
-**Aktuálny stabilný commit:** `4a951041e2deef40a127ac9560cf6fb2ba4b6a5b`
+**Dokumentačný baseline:** `61646826b3550fb16855ed9592deabc266d86c97`
 
 > Tento súbor je úplný zásobník nápadov. Poradie realizácie určuje `ACAD_KROVY_ROADMAP.md`.
 
@@ -210,10 +210,6 @@ Pred rozhodnutím:
 ## L. Technický dlh
 
 Priebežne:
-- centralizácia verzie,
-- README,
-- ROADMAP,
-- BACKLOG,
 - delenie veľkých command classes,
 - delenie label/live sync logiky,
 - testovateľnosť,
@@ -239,5 +235,11 @@ Priebežne:
 - validation,
 - conversion to one closed Polyline,
 - one SourceHandle.
+
+### Documentation and centralized version
+- spoločné build metadata,
+- runtime version provider pre startup a `AK_HELP`,
+- version guard pre `.bundle` manifest,
+- zosúladený README, project context, roadmap a backlog.
 
 Tieto funkcie zostávajú v histórii projektu a regresných testoch.

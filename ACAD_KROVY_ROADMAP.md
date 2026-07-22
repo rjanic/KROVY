@@ -1,17 +1,19 @@
 # ACAD KROVY – ROADMAP
 
 **Aktualizované:** 22. 7. 2026  
-**Aktuálny stabilný commit:** `4a951041e2deef40a127ac9560cf6fb2ba4b6a5b`
+**Dokumentačný baseline:** `61646826b3550fb16855ed9592deabc266d86c97`
 
 Tento dokument určuje odporúčané poradie ďalšieho vývoja. Úplný zásobník nápadov je v `ACAD_KROVY_BACKLOG.md`.
 
 # FÁZA A – UPRATANIE A PRODUKTIVITA
 
-## 1. Dokumentácia + centralizovaná verzia
-- aktualizovať README, ROADMAP, BACKLOG a project context,
-- odstrániť už dokončené veci zo sekcií „plánované“,
-- centralizovať číslo verzie z jedného zdroja,
-- používať ho v AK_HELP, startup informáciách a budúcom About okne.
+## 1. Dokumentácia + centralizovaná verzia — DOKONČENÉ
+- README, ROADMAP, BACKLOG a project context sú zosúladené,
+- verzia má autoritatívny zdroj v `Directory.Build.props`,
+- `AK_HELP` a startup ju získavajú z assembly metadata,
+- Compatibility Gate kontroluje zhodu s `.bundle` manifestom.
+
+Pri budúcom About okne použiť existujúci version provider, nie nový literal.
 
 ## 2. `AK_RENUMBER`
 - explicitné prečíslovanie,
@@ -295,28 +297,27 @@ Priebežne pri dotyku s danou oblasťou:
 
 # ODPORÚČANÉ NAJBLIŽŠIE PORADIE
 
-1. Dokumentácia + centralizovaná verzia
-2. `AK_RENUMBER`
-3. Select Similar / filtre
-4. CSV export
-5. Diagnostika/logovanie
-6. Linetype settings
-7. Annotation scale
-8. Fonts/text styles
-9. Label/leader modes
-10. Custom element
-11. AutoCAD 2021–2027 compatibility checkpoint
-12. BricsCAD PoC
-13. Roof Domain Foundation
-14. Automatic roof from points + roof types
-15. Roof planes
-16. Automatic rafters
-17. Hip/valley rafters
-18. True-width element outlines
-19. Automatic visual trim
-20. XLSX/PDF/report linking
-21. Internationalization/productization
-22. Autoloader + installer
-23. Video tutorials
-24. BricsCAD full adapter
-25. ZWCAD adapter
+1. `AK_RENUMBER`
+2. Select Similar / filtre
+3. CSV export
+4. Diagnostika/logovanie
+5. Linetype settings
+6. Annotation scale
+7. Fonts/text styles
+8. Label/leader modes
+9. Custom element
+10. AutoCAD 2021–2027 compatibility checkpoint
+11. BricsCAD PoC
+12. Roof Domain Foundation
+13. Automatic roof from points + roof types
+14. Roof planes
+15. Automatic rafters
+16. Hip/valley rafters
+17. True-width element outlines
+18. Automatic visual trim
+19. XLSX/PDF/report linking
+20. Internationalization/productization
+21. Autoloader + installer
+22. Video tutorials
+23. BricsCAD full adapter
+24. ZWCAD adapter
