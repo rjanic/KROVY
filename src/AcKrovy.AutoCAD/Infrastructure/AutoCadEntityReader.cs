@@ -1,5 +1,6 @@
 using AcKrovy.Cad.Abstractions.Metadata;
 using AcKrovy.Core.Models;
+using AcKrovy.Core.Services;
 using Autodesk.AutoCAD.DatabaseServices;
 
 namespace AcKrovy.AutoCAD.Infrastructure;
@@ -19,6 +20,12 @@ internal static class AutoCadEntityReader
         }
 
         if (!metadataStore.TryRead(entity, out var data) || data is null)
+        {
+            return false;
+        }
+
+        if (data.ElementType == TimberElementType.Custom &&
+            !CustomElementDefinitionRules.TryFromElementData(data, out _))
         {
             return false;
         }

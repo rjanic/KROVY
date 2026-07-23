@@ -238,4 +238,24 @@
   <data name="Error_InvalidElementLayerFormat" xml:space="preserve"><value>Neplatná hladina pre prvok {0}: {1}</value></data>
   <data name="Error_InvalidAnnotationLayerFormat" xml:space="preserve"><value>Neplatná hladina anotácie: {0}</value></data>
   <data name="Error_InvalidSlopeDegrees" xml:space="preserve"><value>Sklon musí byť nezáporné číslo menšie než 89,9°.</value></data>
+  <data name="ElementType_Custom" xml:space="preserve"><value>Vlastný prvok</value></data>
+  <data name="CommandUi_Custom_Label" xml:space="preserve"><value>Vlastný prvok</value></data>
+  <data name="CommandUi_Custom_Tooltip" xml:space="preserve"><value>Priradí čiare opakovane použiteľný vlastný typ dreveného prvku.</value></data>
+  <data name="Command_Custom_PromptSelection" xml:space="preserve"><value>&#xA;Vyber LINE alebo LWPOLYLINE pre vlastný prvok: </value></data>
+  <data name="Command_Custom_CatalogSaveFailedFormat" xml:space="preserve"><value>&#xA;Definíciu vlastného prvku sa nepodarilo uložiť. {0}</value></data>
+  <data name="CustomWindow_Title" xml:space="preserve"><value>ACAD KROVY – vlastný prvok</value></data>
+  <data name="CustomWindow_Heading" xml:space="preserve"><value>Definícia vlastného prvku</value></data>
+  <data name="CustomWindow_UseExisting" xml:space="preserve"><value>Použiť existujúcu definíciu</value></data>
+  <data name="CustomWindow_CreateNew" xml:space="preserve"><value>Vytvoriť novú definíciu</value></data>
+  <data name="CustomWindow_Name" xml:space="preserve"><value>Názov</value></data>
+  <data name="CustomWindow_Prefix" xml:space="preserve"><value>Prefix položky</value></data>
+  <data name="CustomWindow_Continue" xml:space="preserve"><value>Pokračovať</value></data>
+  <data name="CustomWindow_SelectDefinition" xml:space="preserve"><value>Vyber existujúcu definíciu vlastného prvku.</value></data>
+  <data name="CustomWindow_InvalidDefinition" xml:space="preserve"><value>Zadaj názov a jedinečný prefix s 1 až 8 písmenami A–Z.</value></data>
+  <data name="Help_CustomCommandLine" xml:space="preserve"><value>&#xA;  AK_CUSTOM      – priradí opakovane použiteľný vlastný typ prvku</value></data>
+  <data name="Command_Custom_AmbiguousDefinitionsFormat" xml:space="preserve"><value>&#xA;Vlastné definície obsahujú nejednoznačný prefix. {0}</value></data>
+  <data name="EditWindow_RenameCustomDefinition" xml:space="preserve"><value>Upraviť názov definície</value></data>
+  <data name="CustomRenameWindow_Title" xml:space="preserve"><value>ACAD KROVY – premenovanie definície</value></data>
+  <data name="CustomRenameWindow_Heading" xml:space="preserve"><value>Nový názov vlastnej definície</value></data>
+  <data name="CustomRenameWindow_InvalidName" xml:space="preserve"><value>Zadaj neprázdny názov s najviac 80 znakmi.</value></data>
 </root>

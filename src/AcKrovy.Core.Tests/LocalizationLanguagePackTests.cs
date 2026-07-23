@@ -38,7 +38,7 @@ public sealed partial class LocalizationLanguagePackTests
     public void SatelliteResourceFiles_MatchDefaultKeysAndContainNoEmptyValues()
     {
         var defaultResources = LoadResources(DefaultResourceFile);
-        Assert.Equal(234, defaultResources.Count);
+        Assert.Equal(254, defaultResources.Count);
         Assert.All(defaultResources, item => Assert.False(string.IsNullOrWhiteSpace(item.Value)));
 
         foreach (var fileName in SatelliteResourceFiles)
@@ -239,12 +239,12 @@ public sealed partial class LocalizationLanguagePackTests
     {
         var expected = new Dictionary<string, (string[] Types, string[] Modes, string[] Directions)>
         {
-            ["sk-SK"] = (["Krokva", "Pomúrnica", "Väznica", "Stĺpik", "Klieština / hambálok", "Vzpera", "Väzný trám"], ["Automaticky podľa typu", "Pôdorysná dĺžka", "Prepočítať podľa sklonu", "Ručne zadaná dĺžka"], ["Normálny (začiatok → koniec)", "Obrátený (koniec → začiatok)"]),
-            ["cs-CZ"] = (["Krokev", "Pozednice", "Vaznice", "Sloupek", "Kleština / hambálek", "Vzpěra", "Vazný trám"], ["Automaticky podle typu", "Půdorysná délka", "Přepočítat podle sklonu", "Ručně zadaná délka"], ["Normální (začátek → konec)", "Obrácený (konec → začátek)"]),
-            ["en-US"] = (["Rafter", "Wall plate", "Purlin", "Post", "Collar tie", "Brace", "Tie beam"], ["Automatic by element type", "Plan length", "Correct for slope", "Manually entered length"], ["Normal (start → end)", "Reversed (end → start)"]),
-            ["de-DE"] = (["Sparren", "Mauerlatte", "Pfette", "Stütze", "Zange / Kehlbalken", "Strebe", "Bundbalken"], ["Automatisch nach Bauteiltyp", "Grundrisslänge", "Nach Neigung umrechnen", "Manuell eingegebene Länge"], ["Normal (Anfang → Ende)", "Umgekehrt (Ende → Anfang)"]),
-            ["pl-PL"] = (["Krokiew", "Murłata", "Płatew", "Słup", "Jętka", "Zastrzał", "Belka wiązarowa"], ["Automatycznie według typu elementu", "Długość w rzucie", "Przelicz według nachylenia", "Długość wprowadzona ręcznie"], ["Normalny (początek → koniec)", "Odwrócony (koniec → początek)"]),
-            ["fr-FR"] = (["Chevron", "Sablière", "Panne", "Poteau", "Entrait retroussé", "Contrefiche", "Entrait"], ["Automatique selon le type d'élément", "Longueur en projection horizontale", "Recalculer selon la pente", "Longueur saisie manuellement"], ["Normal (début → fin)", "Inversé (fin → début)"]),
+            ["sk-SK"] = (["Krokva", "Pomúrnica", "Väznica", "Stĺpik", "Klieština / hambálok", "Vzpera", "Väzný trám", "Vlastný prvok"], ["Automaticky podľa typu", "Pôdorysná dĺžka", "Prepočítať podľa sklonu", "Ručne zadaná dĺžka"], ["Normálny (začiatok → koniec)", "Obrátený (koniec → začiatok)"]),
+            ["cs-CZ"] = (["Krokev", "Pozednice", "Vaznice", "Sloupek", "Kleština / hambálek", "Vzpěra", "Vazný trám", "Vlastní prvek"], ["Automaticky podle typu", "Půdorysná délka", "Přepočítat podle sklonu", "Ručně zadaná délka"], ["Normální (začátek → konec)", "Obrácený (konec → začátek)"]),
+            ["en-US"] = (["Rafter", "Wall plate", "Purlin", "Post", "Collar tie", "Brace", "Tie beam", "Custom element"], ["Automatic by element type", "Plan length", "Correct for slope", "Manually entered length"], ["Normal (start → end)", "Reversed (end → start)"]),
+            ["de-DE"] = (["Sparren", "Mauerlatte", "Pfette", "Stütze", "Zange / Kehlbalken", "Strebe", "Bundbalken", "Benutzerdefiniertes Bauteil"], ["Automatisch nach Bauteiltyp", "Grundrisslänge", "Nach Neigung umrechnen", "Manuell eingegebene Länge"], ["Normal (Anfang → Ende)", "Umgekehrt (Ende → Anfang)"]),
+            ["pl-PL"] = (["Krokiew", "Murłata", "Płatew", "Słup", "Jętka", "Zastrzał", "Belka wiązarowa", "Element niestandardowy"], ["Automatycznie według typu elementu", "Długość w rzucie", "Przelicz według nachylenia", "Długość wprowadzona ręcznie"], ["Normalny (początek → koniec)", "Odwrócony (koniec → początek)"]),
+            ["fr-FR"] = (["Chevron", "Sablière", "Panne", "Poteau", "Entrait retroussé", "Contrefiche", "Entrait", "Élément personnalisé"], ["Automatique selon le type d'élément", "Longueur en projection horizontale", "Recalculer selon la pente", "Longueur saisie manuellement"], ["Normal (début → fin)", "Inversé (fin → début)"]),
         };
 
         foreach (var cultureName in expected.Keys)

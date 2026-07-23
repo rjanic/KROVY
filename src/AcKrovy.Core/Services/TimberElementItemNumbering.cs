@@ -18,19 +18,23 @@ public static class TimberElementItemNumbering
         }
 
         var materialized = measurements.ToList();
+        var prefixesBySeries = ReadSeriesPrefixes(materialized.Select(measurement => measurement.Data));
         var newIdsBySignature = materialized
             .Select(TimberElementSignature.FromMeasurement)
             .Distinct()
-            .OrderBy(signature => signature.ElementType)
+            .OrderBy(signature => TimberElementSeriesRules.GetKey(signature).ElementType)
+            .ThenBy(signature => TimberElementSeriesRules.GetKey(signature).CustomElementTypeId, StringComparer.OrdinalIgnoreCase)
             .ThenBy(signature => signature.CuttingLengthMm)
             .ThenBy(signature => signature.WidthMm)
             .ThenBy(signature => signature.HeightMm)
             .ThenBy(signature => signature.Material, StringComparer.Ordinal)
-            .GroupBy(signature => signature.ElementType)
+            .GroupBy(TimberElementSeriesRules.GetKey)
             .SelectMany(group => group.Select((signature, index) => new
             {
                 Signature = signature,
-                ElementId = TimberElementIdentityRules.CreateElementId(group.Key, index + 1),
+                ElementId = TimberElementIdentityRules.CreateElementId(
+                    prefixesBySeries[group.Key],
+                    index + 1),
             }))
             .ToDictionary(item => item.Signature, item => item.ElementId);
 
@@ -69,7 +73,9 @@ public static class TimberElementItemNumbering
 
         var materialized = candidates.ToList();
         var assignedIdsBySignature = FindExistingStableAssignments(materialized);
-        var allocatedNumbersByType = ReadAllocatedNumbers(materialized);
+        var allocatedNumbersBySeries = ReadAllocatedNumbers(materialized);
+        var prefixesBySeries = ReadSeriesPrefixes(
+            materialized.Select(candidate => candidate.Measurement.Data));
         var result = new List<TimberElementItemAssignment>(materialized.Count);
 
         foreach (var candidate in materialized)
@@ -78,7 +84,11 @@ public static class TimberElementItemNumbering
             var signature = TimberElementSignature.FromMeasurement(measurement);
             if (!assignedIdsBySignature.TryGetValue(signature, out var elementId))
             {
-                elementId = CreateNextElementId(signature.ElementType, allocatedNumbersByType);
+                var seriesKey = TimberElementSeriesRules.GetKey(signature);
+                elementId = CreateNextElementId(
+                    seriesKey,
+                    prefixesBySeries[seriesKey],
+                    allocatedNumbersBySeries);
                 assignedIdsBySignature.Add(signature, elementId);
             }
 
@@ -98,7 +108,7 @@ public static class TimberElementItemNumbering
             var measurement = candidate.Measurement;
             var signature = TimberElementSignature.FromMeasurement(measurement);
             var elementId = measurement.Data.ElementId;
-            if (TimberElementIdentityRules.TryParseElementNumber(elementId, signature.ElementType) is null ||
+            if (TimberElementIdentityRules.TryParseElementNumber(elementId, measurement.Data) is null ||
                 assignments.ContainsKey(signature) ||
                 !ElementIdBelongsToPreferredSignature(candidates, elementId, signature))
             {
@@ -111,30 +121,30 @@ public static class TimberElementItemNumbering
         return assignments;
     }
 
-    private static Dictionary<TimberElementType, HashSet<int>> ReadAllocatedNumbers(
+    private static Dictionary<TimberElementSeriesKey, HashSet<int>> ReadAllocatedNumbers(
         IReadOnlyList<TimberElementItemNumberingCandidate> candidates)
     {
-        var allocatedNumbersByType = new Dictionary<TimberElementType, HashSet<int>>();
-
-        foreach (TimberElementType type in Enum.GetValues(typeof(TimberElementType)))
-        {
-            allocatedNumbersByType[type] = new HashSet<int>();
-        }
+        var allocatedNumbersBySeries = candidates
+            .Select(candidate => TimberElementSeriesRules.GetKey(candidate.Measurement.Data))
+            .Distinct()
+            .ToDictionary(key => key, _ => new HashSet<int>());
 
         foreach (var candidate in candidates)
         {
             var measurement = candidate.Measurement;
-            var type = measurement.Data.ElementType;
-            var number = TimberElementIdentityRules.TryParseElementNumber(measurement.Data.ElementId, type);
+            var key = TimberElementSeriesRules.GetKey(measurement.Data);
+            var number = TimberElementIdentityRules.TryParseElementNumber(
+                measurement.Data.ElementId,
+                measurement.Data);
             if (number is null)
             {
                 continue;
             }
 
-            allocatedNumbersByType[type].Add(number.Value);
+            allocatedNumbersBySeries[key].Add(number.Value);
         }
 
-        return allocatedNumbersByType;
+        return allocatedNumbersBySeries;
     }
 
     private static bool ElementIdBelongsToPreferredSignature(
@@ -170,10 +180,11 @@ public static class TimberElementItemNumbering
     }
 
     private static string CreateNextElementId(
-        TimberElementType type,
-        IDictionary<TimberElementType, HashSet<int>> allocatedNumbersByType)
+        TimberElementSeriesKey key,
+        string prefix,
+        IDictionary<TimberElementSeriesKey, HashSet<int>> allocatedNumbersBySeries)
     {
-        var allocatedNumbers = allocatedNumbersByType[type];
+        var allocatedNumbers = allocatedNumbersBySeries[key];
         var number = 1;
         while (allocatedNumbers.Contains(number))
         {
@@ -181,6 +192,37 @@ public static class TimberElementItemNumbering
         }
 
         allocatedNumbers.Add(number);
-        return TimberElementIdentityRules.CreateElementId(type, number);
+        return TimberElementIdentityRules.CreateElementId(prefix, number);
+    }
+
+    private static Dictionary<TimberElementSeriesKey, string> ReadSeriesPrefixes(
+        IEnumerable<TimberElementData> elements)
+    {
+        var prefixes = new Dictionary<TimberElementSeriesKey, string>();
+        var seriesByPrefix = new Dictionary<string, TimberElementSeriesKey>(
+            StringComparer.OrdinalIgnoreCase);
+        foreach (var data in elements)
+        {
+            var key = TimberElementSeriesRules.GetKey(data);
+            var prefix = TimberElementSeriesRules.GetPrefix(data);
+            if (prefixes.TryGetValue(key, out var existing) &&
+                !string.Equals(existing, prefix, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new ArgumentException(
+                    $"Numbering series '{key.CustomElementTypeId}' contains conflicting prefixes.");
+            }
+
+            prefixes[key] = prefix;
+            if (seriesByPrefix.TryGetValue(prefix, out var existingKey) &&
+                existingKey != key)
+            {
+                throw new ArgumentException(
+                    $"Prefix '{prefix}' is assigned to multiple numbering series.");
+            }
+
+            seriesByPrefix[prefix] = key;
+        }
+
+        return prefixes;
     }
 }

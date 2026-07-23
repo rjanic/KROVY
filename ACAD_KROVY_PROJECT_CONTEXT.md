@@ -2,7 +2,7 @@
 
 **Aktualizované:** 23. 7. 2026
 
-**Feature baseline:** `b5a9364cfd3323e9433017a7327b93e5fa0868cb`
+**Stabilný základ pred v0.15.0:** `2ad55a49086ee8f656effb3e636e82937ed02bd4`
 
 **Branch:** `main`
 
@@ -74,7 +74,8 @@ Runtime používateľské texty majú používať explicitnú aplikačnú kultú
 - `SourceHandle`: identita konkrétnej CAD entity/anotácie.
 - `ElementId`: identita výrobnej položky.
 - Metadata schema je verzovaná.
-- Post rectangular footprint používa schema v2.
+- Post rectangular footprint zostáva spätne čitateľný zo schema v2.
+- Custom element používa schema v3 a self-contained `CustomElementTypeId`, názov a prefix.
 - Existujúce DWG sa nesmú deštruktívne migrovať bez potreby.
 
 ### Item signature
@@ -84,6 +85,9 @@ Výrobná identita položky:
 - WidthMm,
 - HeightMm,
 - CuttingLengthMm.
+
+Pre `ElementType.Custom` je súčasťou signatúry aj stabilný `CustomElementTypeId`;
+používateľský názov ani prefix signatúru nemenia.
 
 ### Výrobná dĺžka
 - `Raw = Actual + Max(0, Allowance)`
@@ -195,6 +199,20 @@ Stabilný commit: `4a951041e2deef40a127ac9560cf6fb2ba4b6a5b`
 - `AK_INSPECT`, `AK_REPORT` a `AK_REPORTALL` zobrazujú lokalizovaný názov podľa explicitnej aplikačnej UI kultúry,
 - reportový materiál sa delí na hlavný názov a popis bez zobrazenej oddeľovacej pomlčky,
 - Typ a Materiál majú dynamickú šírku podľa skutočných riadkov reportu, maximálne dva textové riadky a ochranu pred delením slov.
+
+### Custom Element / Vlastný definovaný prvok
+- jeden stabilný enum `Custom`, nie dynamické runtime enum hodnoty,
+- schema v3 ukladá na každom prvku stabilné ID definície, používateľský názov a prefix,
+- `AK_CUSTOM` vyberá alebo vytvára opakovane použiteľnú lineárnu definíciu,
+- voliteľný používateľský katalóg je iba pomôcka; DWG ostáva samostatne prenosný,
+- každé Custom ID má samostatnú signatúru a numbering sériu,
+- explicitné premenovanie v `AK_EDIT` aktualizuje všetky prvky rovnakého Custom ID
+  v aktuálnom DWG a lokálny katalóg bez zmeny ID, prefixu alebo položiek,
+- `AK_INSPECT`, `AK_EDIT`, `AK_REPORT` a `AK_REPORTALL` zobrazujú persistentný
+  používateľský názov; automatický label obsahuje iba položku, prierez a výrobnú dĺžku,
+- automatický režim dĺžky je slope-aware cez rovnaký Core pipeline ako Krokva,
+- spoločná vrstva `KROV_CUSTOM` používa existujúce ByLayer pravidlá,
+- built-in typy, Post footprint, COPY/COPYCLIP/WBLOCK a live synchronization ostávajú v pôvodnom pipeline.
 
 ## Povinné kompatibilitné pravidlá
 

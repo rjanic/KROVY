@@ -1,7 +1,7 @@
 # ACAD KROVY – BACKLOG
 
 **Aktualizované:** 23. 7. 2026
-**Feature baseline:** `b5a9364cfd3323e9433017a7327b93e5fa0868cb`
+**Stabilný základ pred v0.15.0:** `2ad55a49086ee8f656effb3e636e82937ed02bd4`
 
 > Tento súbor je úplný zásobník nápadov. Poradie realizácie určuje `ACAD_KROVY_ROADMAP.md`.
 
@@ -73,17 +73,13 @@
 
 ## D. Vlastné prvky a materiály
 
-### Custom element
-- vlastný používateľský názov,
-- vzor podľa trámového prvku,
-- stabilná neutral technical identity,
-- prefix,
-- layer,
-- linetype,
-- length mode,
-- allowance,
-- report,
-- label.
+### Custom element — základ dokončený vo v0.15.0
+- hotové: lineárny workflow, stabilné ID, názov, prefix, signature, numbering,
+  slope-aware dĺžka, stručný label, report, inspect, editácia výrobných údajov,
+  premenovanie definície v aktuálnom DWG a portable metadata,
+- budúce: samostatný správca definícií,
+- budúce: layer a linetype pre každú definíciu namiesto spoločného profilu,
+- budúce: import/export katalógu definícií.
 
 ## E. Automatická strecha
 

@@ -55,6 +55,7 @@ public static class TimberCalculator
         {
             TimberElementType.Rafter => LengthCalculationMode.SlopeCorrected,
             TimberElementType.Brace => LengthCalculationMode.SlopeCorrected,
+            TimberElementType.Custom => LengthCalculationMode.SlopeCorrected,
             TimberElementType.Post => LengthCalculationMode.ManualLength,
             _ => LengthCalculationMode.PlanLength,
         };

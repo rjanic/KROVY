@@ -33,9 +33,7 @@ internal static class ReportTableWriter
         table.SetRowHeight(ReportTableLayout.DefaultRowHeight);
         var columnWidths = ReportTableLayout.GetColumnWidths(
             report.Lines.Select(row =>
-                TimberElementTypeDisplayNameProvider.GetDisplayName(
-                    row.ElementType,
-                    uiCulture)),
+                TimberElementDisplayNameProvider.GetDisplayName(row, uiCulture)),
             report.Lines.Select(row =>
                 ReportMaterialDisplayFormatter.FormatMaterialForReport(
                     TimberMaterialDisplayNameProvider.GetDisplayName(
@@ -78,9 +76,8 @@ internal static class ReportTableWriter
             var tableRow = index + 2;
 
             table.Cells[tableRow, 0].TextString = row.ElementId;
-            table.Cells[tableRow, 1].TextString = TimberElementTypeDisplayNameProvider.GetDisplayName(
-                row.ElementType,
-                uiCulture);
+            table.Cells[tableRow, 1].TextString =
+                TimberElementDisplayNameProvider.GetDisplayName(row, uiCulture);
             var materialDisplayName = TimberMaterialDisplayNameProvider.GetDisplayName(
                 row.Material,
                 uiCulture);

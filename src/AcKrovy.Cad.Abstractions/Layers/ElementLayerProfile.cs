@@ -63,6 +63,7 @@ public sealed class ElementLayerProfile
             new(TimberElementType.CollarTie, "KLIESTINA", 5),
             new(TimberElementType.Brace, "VZPERA", 1),
             new(TimberElementType.TieBeam, "VAZNY_TRAM", 6),
+            new(TimberElementType.Custom, "KROV_CUSTOM", 7),
         },
     };
 }

@@ -5,7 +5,8 @@ public sealed record TimberElementSignature(
     string Material,
     double WidthMm,
     double HeightMm,
-    double CuttingLengthMm)
+    double CuttingLengthMm,
+    string CustomElementTypeId = "")
 {
     public static TimberElementSignature FromMeasurement(TimberElementMeasurement measurement)
     {
@@ -19,6 +20,9 @@ public sealed record TimberElementSignature(
             measurement.Data.Material,
             measurement.Data.WidthMm,
             measurement.Data.HeightMm,
-            measurement.CuttingLengthMm);
+            measurement.CuttingLengthMm,
+            measurement.Data.ElementType == TimberElementType.Custom
+                ? measurement.Data.CustomElementTypeId?.Trim() ?? string.Empty
+                : string.Empty);
     }
 }

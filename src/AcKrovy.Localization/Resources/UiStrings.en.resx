@@ -238,4 +238,24 @@
   <data name="Error_InvalidElementLayerFormat" xml:space="preserve"><value>Invalid layer for element {0}: {1}</value></data>
   <data name="Error_InvalidAnnotationLayerFormat" xml:space="preserve"><value>Invalid annotation layer: {0}</value></data>
   <data name="Error_InvalidSlopeDegrees" xml:space="preserve"><value>The slope must be between 0° and 89.9°.</value></data>
+  <data name="ElementType_Custom" xml:space="preserve"><value>Custom element</value></data>
+  <data name="CommandUi_Custom_Label" xml:space="preserve"><value>Custom element</value></data>
+  <data name="CommandUi_Custom_Tooltip" xml:space="preserve"><value>Assigns a reusable custom timber element type to a line.</value></data>
+  <data name="Command_Custom_PromptSelection" xml:space="preserve"><value>&#xA;Select LINE or LWPOLYLINE for the custom element: </value></data>
+  <data name="Command_Custom_CatalogSaveFailedFormat" xml:space="preserve"><value>&#xA;The custom element definition could not be saved. {0}</value></data>
+  <data name="CustomWindow_Title" xml:space="preserve"><value>ACAD KROVY – custom element</value></data>
+  <data name="CustomWindow_Heading" xml:space="preserve"><value>Custom element definition</value></data>
+  <data name="CustomWindow_UseExisting" xml:space="preserve"><value>Use an existing definition</value></data>
+  <data name="CustomWindow_CreateNew" xml:space="preserve"><value>Create a new definition</value></data>
+  <data name="CustomWindow_Name" xml:space="preserve"><value>Name</value></data>
+  <data name="CustomWindow_Prefix" xml:space="preserve"><value>Item prefix</value></data>
+  <data name="CustomWindow_Continue" xml:space="preserve"><value>Continue</value></data>
+  <data name="CustomWindow_SelectDefinition" xml:space="preserve"><value>Select an existing custom element definition.</value></data>
+  <data name="CustomWindow_InvalidDefinition" xml:space="preserve"><value>Enter a name and a unique prefix containing 1 to 8 letters A–Z.</value></data>
+  <data name="Help_CustomCommandLine" xml:space="preserve"><value>&#xA;  AK_CUSTOM      – assigns a reusable custom element type</value></data>
+  <data name="Command_Custom_AmbiguousDefinitionsFormat" xml:space="preserve"><value>&#xA;Custom definitions contain an ambiguous prefix. {0}</value></data>
+  <data name="EditWindow_RenameCustomDefinition" xml:space="preserve"><value>Edit definition name</value></data>
+  <data name="CustomRenameWindow_Title" xml:space="preserve"><value>ACAD KROVY – rename definition</value></data>
+  <data name="CustomRenameWindow_Heading" xml:space="preserve"><value>New custom definition name</value></data>
+  <data name="CustomRenameWindow_InvalidName" xml:space="preserve"><value>Enter a non-empty name with no more than 80 characters.</value></data>
 </root>

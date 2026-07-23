@@ -238,4 +238,24 @@
   <data name="Error_InvalidElementLayerFormat" xml:space="preserve"><value>Nieprawidłowa warstwa dla elementu {0}: {1}</value></data>
   <data name="Error_InvalidAnnotationLayerFormat" xml:space="preserve"><value>Nieprawidłowa warstwa opisu: {0}</value></data>
   <data name="Error_InvalidSlopeDegrees" xml:space="preserve"><value>Nachylenie musi być nieujemną liczbą mniejszą niż 89,9°.</value></data>
+  <data name="ElementType_Custom" xml:space="preserve"><value>Element niestandardowy</value></data>
+  <data name="CommandUi_Custom_Label" xml:space="preserve"><value>Własny element</value></data>
+  <data name="CommandUi_Custom_Tooltip" xml:space="preserve"><value>Przypisuje do linii wielokrotnego użytku niestandardowy typ elementu drewnianego.</value></data>
+  <data name="Command_Custom_PromptSelection" xml:space="preserve"><value>&#xA;Wybierz LINE lub LWPOLYLINE dla elementu niestandardowego: </value></data>
+  <data name="Command_Custom_CatalogSaveFailedFormat" xml:space="preserve"><value>&#xA;Nie udało się zapisać definicji elementu niestandardowego. {0}</value></data>
+  <data name="CustomWindow_Title" xml:space="preserve"><value>ACAD KROVY – element niestandardowy</value></data>
+  <data name="CustomWindow_Heading" xml:space="preserve"><value>Definicja elementu niestandardowego</value></data>
+  <data name="CustomWindow_UseExisting" xml:space="preserve"><value>Użyj istniejącej definicji</value></data>
+  <data name="CustomWindow_CreateNew" xml:space="preserve"><value>Utwórz nową definicję</value></data>
+  <data name="CustomWindow_Name" xml:space="preserve"><value>Nazwa</value></data>
+  <data name="CustomWindow_Prefix" xml:space="preserve"><value>Prefiks pozycji</value></data>
+  <data name="CustomWindow_Continue" xml:space="preserve"><value>Kontynuuj</value></data>
+  <data name="CustomWindow_SelectDefinition" xml:space="preserve"><value>Wybierz istniejącą definicję elementu niestandardowego.</value></data>
+  <data name="CustomWindow_InvalidDefinition" xml:space="preserve"><value>Wprowadź nazwę i unikalny prefiks zawierający od 1 do 8 liter A–Z.</value></data>
+  <data name="Help_CustomCommandLine" xml:space="preserve"><value>&#xA;  AK_CUSTOM      – przypisuje własny typ elementu wielokrotnego użytku</value></data>
+  <data name="Command_Custom_AmbiguousDefinitionsFormat" xml:space="preserve"><value>&#xA;Definicje niestandardowe zawierają niejednoznaczny prefiks. {0}</value></data>
+  <data name="EditWindow_RenameCustomDefinition" xml:space="preserve"><value>Edytuj nazwę definicji</value></data>
+  <data name="CustomRenameWindow_Title" xml:space="preserve"><value>ACAD KROVY – zmiana nazwy definicji</value></data>
+  <data name="CustomRenameWindow_Heading" xml:space="preserve"><value>Nowa nazwa definicji niestandardowej</value></data>
+  <data name="CustomRenameWindow_InvalidName" xml:space="preserve"><value>Wprowadź niepustą nazwę o długości maksymalnie 80 znaków.</value></data>
 </root>

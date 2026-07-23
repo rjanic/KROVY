@@ -257,7 +257,7 @@ public sealed class TimberRectangularFootprintFoundationTests
             JsonSerializer.Serialize(source, JsonOptions),
             JsonOptions));
 
-        Assert.Equal(2, loaded.SchemaVersion);
+        Assert.Equal(3, loaded.SchemaVersion);
         Assert.Null(loaded.FootprintWidthEdgeIndex);
         Assert.True(TimberPostFootprintMetadataRules.HasPreferredFootprintMetadataShape(loaded));
     }
@@ -273,7 +273,7 @@ public sealed class TimberRectangularFootprintFoundationTests
 
         var prepared = TimberElementDataVersioning.PrepareForWrite(legacy);
 
-        Assert.Equal(2, prepared.SchemaVersion);
+        Assert.Equal(3, prepared.SchemaVersion);
         Assert.Null(prepared.FootprintWidthEdgeIndex);
         Assert.Equal(legacy.WidthMm, prepared.WidthMm);
         Assert.Equal(legacy.HeightMm, prepared.HeightMm);

@@ -238,4 +238,24 @@
   <data name="Error_InvalidElementLayerFormat" xml:space="preserve"><value>Ungültiger Layer für Bauteil {0}: {1}</value></data>
   <data name="Error_InvalidAnnotationLayerFormat" xml:space="preserve"><value>Ungültiger Beschriftungs-Layer: {0}</value></data>
   <data name="Error_InvalidSlopeDegrees" xml:space="preserve"><value>Die Neigung muss zwischen 0° und 89,9° liegen.</value></data>
+  <data name="ElementType_Custom" xml:space="preserve"><value>Benutzerdefiniertes Bauteil</value></data>
+  <data name="CommandUi_Custom_Label" xml:space="preserve"><value>Eigenes Bauteil</value></data>
+  <data name="CommandUi_Custom_Tooltip" xml:space="preserve"><value>Weist einer Linie einen wiederverwendbaren benutzerdefinierten Holzbauteiltyp zu.</value></data>
+  <data name="Command_Custom_PromptSelection" xml:space="preserve"><value>&#xA;LINE oder LWPOLYLINE für das benutzerdefinierte Bauteil wählen: </value></data>
+  <data name="Command_Custom_CatalogSaveFailedFormat" xml:space="preserve"><value>&#xA;Die benutzerdefinierte Bauteildefinition konnte nicht gespeichert werden. {0}</value></data>
+  <data name="CustomWindow_Title" xml:space="preserve"><value>ACAD KROVY – benutzerdefiniertes Bauteil</value></data>
+  <data name="CustomWindow_Heading" xml:space="preserve"><value>Benutzerdefinierte Bauteildefinition</value></data>
+  <data name="CustomWindow_UseExisting" xml:space="preserve"><value>Vorhandene Definition verwenden</value></data>
+  <data name="CustomWindow_CreateNew" xml:space="preserve"><value>Neue Definition erstellen</value></data>
+  <data name="CustomWindow_Name" xml:space="preserve"><value>Name</value></data>
+  <data name="CustomWindow_Prefix" xml:space="preserve"><value>Positionspräfix</value></data>
+  <data name="CustomWindow_Continue" xml:space="preserve"><value>Weiter</value></data>
+  <data name="CustomWindow_SelectDefinition" xml:space="preserve"><value>Wählen Sie eine vorhandene benutzerdefinierte Definition.</value></data>
+  <data name="CustomWindow_InvalidDefinition" xml:space="preserve"><value>Geben Sie einen Namen und ein eindeutiges Präfix mit 1 bis 8 Buchstaben A–Z ein.</value></data>
+  <data name="Help_CustomCommandLine" xml:space="preserve"><value>&#xA;  AK_CUSTOM      – weist einen wiederverwendbaren eigenen Bauteiltyp zu</value></data>
+  <data name="Command_Custom_AmbiguousDefinitionsFormat" xml:space="preserve"><value>&#xA;Benutzerdefinierte Definitionen enthalten ein mehrdeutiges Präfix. {0}</value></data>
+  <data name="EditWindow_RenameCustomDefinition" xml:space="preserve"><value>Definitionsname bearbeiten</value></data>
+  <data name="CustomRenameWindow_Title" xml:space="preserve"><value>ACAD KROVY – Definition umbenennen</value></data>
+  <data name="CustomRenameWindow_Heading" xml:space="preserve"><value>Neuer Name der benutzerdefinierten Definition</value></data>
+  <data name="CustomRenameWindow_InvalidName" xml:space="preserve"><value>Geben Sie einen nicht leeren Namen mit höchstens 80 Zeichen ein.</value></data>
 </root>

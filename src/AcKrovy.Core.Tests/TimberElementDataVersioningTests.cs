@@ -15,9 +15,9 @@ public sealed class TimberElementDataVersioningTests
     };
 
     [Fact]
-    public void CurrentVersion_IsTwo()
+    public void CurrentVersion_IsThree()
     {
-        Assert.Equal(2, TimberElementDataSchema.CurrentVersion);
+        Assert.Equal(3, TimberElementDataSchema.CurrentVersion);
     }
 
     [Fact]
@@ -77,7 +77,7 @@ public sealed class TimberElementDataVersioningTests
 
         var exception = Assert.Throws<UnsupportedTimberElementDataSchemaException>(() =>
             TimberElementDataVersioning.Normalize(data));
-        Assert.Equal(3, exception.SchemaVersion);
+        Assert.Equal(4, exception.SchemaVersion);
         Assert.Equal(TimberElementDataSchema.CurrentVersion, exception.CurrentVersion);
     }
 
@@ -165,13 +165,13 @@ public sealed class TimberElementDataVersioningTests
     }
 
     [Fact]
-    public void Serialize_NewJson_IncludesVersionTwo()
+    public void Serialize_NewJson_IncludesVersionThree()
     {
         var data = Sample();
 
         var json = JsonSerializer.Serialize(data, JsonOptions);
 
-        Assert.Contains("\"SchemaVersion\":2", json);
+        Assert.Contains("\"SchemaVersion\":3", json);
     }
 
     [Fact]
@@ -186,7 +186,7 @@ public sealed class TimberElementDataVersioningTests
 
         var prepared = TimberElementDataVersioning.PrepareForWrite(legacy);
 
-        Assert.Equal(2, prepared.SchemaVersion);
+        Assert.Equal(3, prepared.SchemaVersion);
         Assert.Null(prepared.FootprintWidthEdgeIndex);
         Assert.Equal(legacy.ElementId, prepared.ElementId);
         Assert.Equal(legacy.WidthMm, prepared.WidthMm);

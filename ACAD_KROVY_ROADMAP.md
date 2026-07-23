@@ -1,7 +1,7 @@
 # ACAD KROVY – ROADMAP
 
 **Aktualizované:** 23. 7. 2026
-**Feature baseline:** `b5a9364cfd3323e9433017a7327b93e5fa0868cb`
+**Stabilný základ pred v0.15.0:** `2ad55a49086ee8f656effb3e636e82937ed02bd4`
 
 Tento dokument určuje odporúčané poradie ďalšieho vývoja. Úplný zásobník nápadov je v `ACAD_KROVY_BACKLOG.md`.
 
@@ -102,11 +102,17 @@ Formát rozmerov:
 - `80x160`
 - `80/160`
 
-## 10. Vlastný používateľský prvok / Custom Element
-- vlastný názov,
-- vzor podľa existujúceho trámového prvku,
-- stabilná jazykovo neutrálna technická identita,
-- definovať prefix, layer, linetype, length mode, allowance, label, report a signature.
+## 10. Vlastný používateľský prvok / Custom Element — DOKONČENÉ
+- `AK_CUSTOM` pre lineárne LINE/LWPOLYLINE,
+- stabilné Custom ID, persistentný používateľský názov a validovaný prefix,
+- self-contained schema v3 metadata plus opakovane použiteľný AppData katalóg,
+- samostatné signature/numbering série podľa Custom ID,
+- explicitné premenovanie názvu definície cez AK_EDIT pre celé aktuálne DWG,
+- integrácia labelov, inspectu, reportov, AK_EDIT, COPY/COPYCLIP/WBLOCK a live sync,
+- slope-aware automatický výpočet dĺžky zdieľaný s Krokvou,
+- spoločný profil vrstvy `KROV_CUSTOM`.
+
+Budúce rozšírenia: samostatný správca definícií a per-definition layer/linetype.
 
 # FÁZA C – KOMPATIBILITNÝ CHECKPOINT
 

@@ -16,6 +16,7 @@ public partial class ElementEditWindow : Window
     private readonly bool _isNewAssignment;
     private readonly CultureInfo _uiCulture;
     private readonly string _originalStoredMaterial;
+    private readonly CustomElementDefinition? _originalCustomDefinition;
     private bool _isInitializing;
     private bool _manualLengthEditingEnabled;
     private readonly bool _usesFootprintPostSlopePresentation;
@@ -24,6 +25,8 @@ public partial class ElementEditWindow : Window
     internal TimberElementType? SelectedElementType => (ElementTypeComboBox.SelectedItem as ElementTypeOption)?.Value;
     internal bool CuttingAllowanceWasEdited { get; private set; }
     internal bool UseDefaultCuttingAllowanceByType { get; private set; }
+    internal CustomElementDefinition? RenamedCustomDefinition { get; private set; }
+    internal event Action<string>? CustomDefinitionNameChanged;
 
     public ElementEditWindow(
         TimberElementData? seedData,
@@ -39,11 +42,17 @@ public partial class ElementEditWindow : Window
         _uiCulture = AppLanguageService.CurrentUiCulture;
         _defaultProfile = (defaultProfile ?? TimberElementDefaultProfile.CreateDefault()).Normalize();
 
+        var data = seedData ?? new TimberElementData();
+        _validationData = validationData ?? new[] { data };
+        _originalCustomDefinition = ResolveRenameableCustomDefinition(_validationData);
         ElementTypeComboBox.ItemsSource = Enum
             .GetValues<TimberElementType>()
+            .Where(type => type != TimberElementType.Custom || data.ElementType == TimberElementType.Custom)
             .Select(type => new ElementTypeOption(
                 type,
-                TimberElementTypeDisplayNameProvider.GetDisplayName(type, _uiCulture)))
+                type == TimberElementType.Custom
+                    ? TimberElementDisplayNameProvider.GetDisplayName(data, _uiCulture)
+                    : TimberElementTypeDisplayNameProvider.GetDisplayName(type, _uiCulture)))
             .ToList();
 
         LengthModeComboBox.ItemsSource = Enum
@@ -59,9 +68,7 @@ public partial class ElementEditWindow : Window
             new SlopeDirectionOption(true, SlopeDirectionDisplayNameProvider.GetDisplayName(true, _uiCulture)),
         };
 
-        var data = seedData ?? new TimberElementData();
         _originalStoredMaterial = data.Material;
-        _validationData = validationData ?? new[] { data };
         _usesFootprintPostSlopePresentation =
             !TimberPostFootprintSlopeEditRules.CanEditSlope(_validationData);
 
@@ -114,6 +121,17 @@ public partial class ElementEditWindow : Window
         ChangeManualLengthCheckBox.IsChecked = isNewAssignment;
         ChangeMaterialCheckBox.IsChecked = isNewAssignment;
 
+        if (data.ElementType == TimberElementType.Custom)
+        {
+            ChangeTypeCheckBox.IsChecked = false;
+            ChangeTypeCheckBox.IsEnabled = false;
+            ElementTypeComboBox.IsEnabled = false;
+            RenameCustomDefinitionButton.Visibility =
+                _originalCustomDefinition is null
+                    ? Visibility.Collapsed
+                    : Visibility.Visible;
+        }
+
         if (_usesFootprintPostSlopePresentation)
         {
             ChangeSlopeCheckBox.IsChecked = false;
@@ -155,6 +173,45 @@ public partial class ElementEditWindow : Window
         };
         _isInitializing = false;
         UpdateManualLengthEditingState();
+    }
+
+    private void RenameCustomDefinition_Click(object sender, RoutedEventArgs e)
+    {
+        if (_originalCustomDefinition is null)
+        {
+            return;
+        }
+
+        var currentDefinition =
+            RenamedCustomDefinition ?? _originalCustomDefinition;
+        var dialog = new CustomElementDefinitionRenameWindow(currentDefinition)
+        {
+            Owner = this,
+        };
+        if (dialog.ShowDialog() != true ||
+            dialog.RenamedDefinition is not { } renamed)
+        {
+            return;
+        }
+
+        RenamedCustomDefinition =
+            CustomElementDefinitionRenameRules.HasChanged(
+                _originalCustomDefinition,
+                renamed)
+                ? renamed
+                : null;
+
+        var displayedDefinition =
+            RenamedCustomDefinition ?? _originalCustomDefinition;
+        var options = ((IEnumerable<ElementTypeOption>)ElementTypeComboBox.ItemsSource)
+            .Select(option => option.Value == TimberElementType.Custom
+                ? new ElementTypeOption(option.Value, displayedDefinition.Name)
+                : option)
+            .ToList();
+        ElementTypeComboBox.ItemsSource = options;
+        ElementTypeComboBox.SelectedItem =
+            options.First(option => option.Value == TimberElementType.Custom);
+        CustomDefinitionNameChanged?.Invoke(displayedDefinition.Name);
     }
 
     private void UpdateManualLengthEditingState()
@@ -391,6 +448,27 @@ public partial class ElementEditWindow : Window
 
     private static string? EmptyToNull(string value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private static CustomElementDefinition? ResolveRenameableCustomDefinition(
+        IReadOnlyList<TimberElementData> data)
+    {
+        if (data.Count == 0 ||
+            !CustomElementDefinitionRules.TryFromElementData(
+                data[0],
+                out var definition) ||
+            definition is null ||
+            data.Any(item =>
+                item.ElementType != TimberElementType.Custom ||
+                !string.Equals(
+                    item.CustomElementTypeId,
+                    definition.Id,
+                    StringComparison.OrdinalIgnoreCase)))
+        {
+            return null;
+        }
+
+        return definition;
+    }
 
     private void Cancel_Click(object sender, RoutedEventArgs e) =>
         DialogResult = false;

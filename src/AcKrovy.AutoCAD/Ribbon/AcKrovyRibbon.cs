@@ -146,6 +146,7 @@ internal static class AcKrovyRibbon
             Button(CommandUiCatalog.CollarTie),
             Button(CommandUiCatalog.Brace),
             Button(CommandUiCatalog.TieBeam),
+            Button(CommandUiCatalog.Custom),
         }));
 
         tab.Panels.Add(BuildPanel(UiStrings.RibbonPanelData, new[]

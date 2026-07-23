@@ -9,6 +9,9 @@ public sealed record TimberElementData
     public int SchemaVersion { get; init; }
     public string ElementId { get; init; } = string.Empty;
     public TimberElementType ElementType { get; init; } = TimberElementType.Rafter;
+    public string? CustomElementTypeId { get; init; }
+    public string? CustomElementTypeName { get; init; }
+    public string? CustomElementTypePrefix { get; init; }
     public double WidthMm { get; init; } = 80;
     public double HeightMm { get; init; } = 160;
     public int? FootprintWidthEdgeIndex { get; init; }

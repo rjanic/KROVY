@@ -10,4 +10,7 @@ public sealed record TimberReportLine(
     double CuttingLengthMm,
     int Count,
     double TotalLengthMm,
-    double TotalVolumeM3);
+    double TotalVolumeM3,
+    string? CustomElementTypeId = null,
+    string? CustomElementTypeName = null,
+    string? CustomElementTypePrefix = null);

@@ -296,6 +296,7 @@ public sealed class TimberCalculatorTests
     [Theory]
     [InlineData(TimberElementType.Rafter, LengthCalculationMode.SlopeCorrected)]
     [InlineData(TimberElementType.Brace, LengthCalculationMode.SlopeCorrected)]
+    [InlineData(TimberElementType.Custom, LengthCalculationMode.SlopeCorrected)]
     [InlineData(TimberElementType.Post, LengthCalculationMode.ManualLength)]
     [InlineData(TimberElementType.Purlin, LengthCalculationMode.PlanLength)]
     public void ResolveLengthCalculationMode_UsesCurrentTypeDefaults(

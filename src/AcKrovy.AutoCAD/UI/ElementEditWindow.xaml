@@ -34,7 +34,16 @@
 
         <TextBlock Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" Text="{localization:Loc EditWindow_ElementType}" />
         <CheckBox x:Name="ChangeTypeCheckBox" Grid.Row="2" Grid.Column="1" VerticalAlignment="Center" ToolTip="{localization:Loc EditWindow_ChangeTooltip}" />
-        <ComboBox x:Name="ElementTypeComboBox" Grid.Row="2" Grid.Column="2" MinWidth="210" />
+        <StackPanel Grid.Row="2" Grid.Column="2">
+            <ComboBox x:Name="ElementTypeComboBox" MinWidth="210" />
+            <Button x:Name="RenameCustomDefinitionButton"
+                    Margin="0,5,0,2"
+                    Padding="8,3"
+                    HorizontalAlignment="Left"
+                    Visibility="Collapsed"
+                    Click="RenameCustomDefinition_Click"
+                    Content="{localization:Loc EditWindow_RenameCustomDefinition}" />
+        </StackPanel>
 
         <TextBlock Grid.Row="3" Grid.Column="0" VerticalAlignment="Center" Text="{localization:Loc EditWindow_WidthMm}" />
         <CheckBox x:Name="ChangeWidthCheckBox" Grid.Row="3" Grid.Column="1" VerticalAlignment="Center" ToolTip="{localization:Loc EditWindow_ChangeTooltip}" />

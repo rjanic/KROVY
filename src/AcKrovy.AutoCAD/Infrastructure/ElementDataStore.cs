@@ -222,7 +222,8 @@ internal static class ElementDataStore
             data = TimberElementDataVersioning.Normalize(data);
             return true;
         }
-        catch (JsonException)
+        catch (System.Exception ex) when (
+            ex is JsonException or ArgumentException or NotSupportedException)
         {
             return false;
         }

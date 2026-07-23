@@ -10,4 +10,5 @@ public enum TimberElementType
     CollarTie,
     Brace,
     TieBeam,
+    Custom,
 }

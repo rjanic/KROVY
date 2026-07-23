@@ -15,6 +15,7 @@ public static class TimberElementTypeDisplayNameProvider
             TimberElementType.CollarTie => UiStrings.GetString("ElementType_CollarTie", culture),
             TimberElementType.Brace => UiStrings.GetString("ElementType_Brace", culture),
             TimberElementType.TieBeam => UiStrings.GetString("ElementType_TieBeam", culture),
+            TimberElementType.Custom => UiStrings.GetString("ElementType_Custom", culture),
             _ => type.ToString(),
         };
 }

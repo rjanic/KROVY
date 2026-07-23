@@ -85,6 +85,7 @@ public sealed class LocalizationFoundationTests
         "CommandUi_Purlin_Tooltip", "CommandUi_Post_Label", "CommandUi_Post_Tooltip",
         "CommandUi_CollarTie_Label", "CommandUi_CollarTie_Tooltip", "CommandUi_Brace_Label",
         "CommandUi_Brace_Tooltip", "CommandUi_TieBeam_Label", "CommandUi_TieBeam_Tooltip",
+        "CommandUi_Custom_Label", "CommandUi_Custom_Tooltip",
         "CommandUi_Assign_Label", "CommandUi_Assign_Tooltip", "CommandUi_Edit_Label",
         "CommandUi_Edit_Tooltip", "CommandUi_Inspect_Label", "CommandUi_Inspect_Tooltip",
         "CommandUi_Recalc_Label", "CommandUi_Recalc_Tooltip", "CommandUi_Renumber_Label",
@@ -218,7 +219,7 @@ public sealed class LocalizationFoundationTests
             .ToList();
 
         Assert.All(layerNames, names => Assert.Equal(
-            ["KROKVA", "POMURNICA", "VAZNICA", "STLPIK", "KLIESTINA", "VZPERA", "VAZNY_TRAM"],
+            ["KROKVA", "POMURNICA", "VAZNICA", "STLPIK", "KLIESTINA", "VZPERA", "VAZNY_TRAM", "KROV_CUSTOM"],
             names));
     }
 
@@ -367,7 +368,7 @@ public sealed class LocalizationFoundationTests
     [Fact]
     public void RibbonToolbarResourceKeys_ExistForAllSupportedCultures()
     {
-        Assert.Equal(43, RibbonToolbarResourceKeys.Length);
+        Assert.Equal(45, RibbonToolbarResourceKeys.Length);
 
         foreach (var key in RibbonToolbarResourceKeys)
         {
@@ -388,11 +389,11 @@ public sealed class LocalizationFoundationTests
             "AK_HELP", "AK_RIBBON", "AK_TOOLBAR", "AK_TOOLBARSHOW", "AK_TOOLBARHIDE", "AK_SETTINGS",
             "AK_APPLYLAYERS", "AK_LABELS", "AK_LABELSELECTED", "AK_LABELSHOW", "AK_LABELHIDE",
             "AK_ASSIGN", "AK_KROKVA", "AK_POMURNICA", "AK_VAZNICA", "AK_STLPIK", "AK_KLIESTINA",
-            "AK_VZPERA", "AK_VAZNYTRAM", "AK_EDIT", "AK_FLIPSLOPE", "AK_INSPECT", "AK_REPORT",
+            "AK_VZPERA", "AK_VAZNYTRAM", "AK_CUSTOM", "AK_EDIT", "AK_FLIPSLOPE", "AK_INSPECT", "AK_REPORT",
             "AK_REPORTALL", "AK_RECALC", "AK_RENUMBER",
         };
 
-        Assert.Equal(26, AcKrovyCommandNames.All.Count);
+        Assert.Equal(27, AcKrovyCommandNames.All.Count);
         Assert.Equal(expected, AcKrovyCommandNames.All);
         Assert.All(AcKrovyCommandNames.All, command => Assert.StartsWith("AK_", command, StringComparison.Ordinal));
     }
@@ -409,6 +410,7 @@ public sealed class LocalizationFoundationTests
             ("AK_KLIESTINA", "DECORAIR_AK_COLLARTIE", "collartie", "Klieština"),
             ("AK_VZPERA", "DECORAIR_AK_BRACE", "brace", "Vzpera"),
             ("AK_VAZNYTRAM", "DECORAIR_AK_TIEBEAM", "tiebeam", "Väzný trám"),
+            ("AK_CUSTOM", "DECORAIR_AK_CUSTOM", "assign", "Vlastný prvok"),
             ("AK_ASSIGN", "DECORAIR_AK_ASSIGN", "assign", "Priradiť údaje"),
             ("AK_EDIT", "DECORAIR_AK_EDIT", "edit", "Upraviť"),
             ("AK_INSPECT", "DECORAIR_AK_INSPECT", "inspect", "Skontrolovať"),
@@ -436,7 +438,7 @@ public sealed class LocalizationFoundationTests
             Assert.False(string.IsNullOrWhiteSpace(descriptor.GetToolTip(CultureInfo.GetCultureInfo("sk-SK"))));
         }
 
-        Assert.Equal(16, CommandUiCatalog.ClassicToolbarCommands.Count);
+        Assert.Equal(17, CommandUiCatalog.ClassicToolbarCommands.Count);
         Assert.DoesNotContain(CommandUiCatalog.Toolbar, CommandUiCatalog.ClassicToolbarCommands);
     }
 

@@ -13,6 +13,8 @@ public static class TimberElementIdentityPrefixes
         TimberElementType.CollarTie => "KL",
         TimberElementType.Brace => "W",
         TimberElementType.TieBeam => "VT",
-        _ => "X",
+        TimberElementType.Custom => throw new InvalidOperationException(
+            "Custom element prefix must be resolved from its persistent definition."),
+        _ => throw new ArgumentOutOfRangeException(nameof(type)),
     };
 }

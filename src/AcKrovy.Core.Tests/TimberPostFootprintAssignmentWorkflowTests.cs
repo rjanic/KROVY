@@ -236,9 +236,9 @@ public sealed class TimberPostFootprintAssignmentWorkflowTests
     }
 
     [Fact]
-    public void CreatedMetadata_UsesSchemaVersionTwo()
+    public void CreatedMetadata_UsesCurrentSchemaVersion()
     {
-        Assert.Equal(2, CreateMetadata().SchemaVersion);
+        Assert.Equal(3, CreateMetadata().SchemaVersion);
     }
 
     [Fact]

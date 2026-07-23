@@ -81,7 +81,10 @@ internal static class TimberElementRenumberingService
         return new TimberElementRenumberingResult(
             entries.Count,
             assignments.Select(assignment => assignment.Signature).Distinct().Count(),
-            assignments.Select(assignment => assignment.Signature.ElementType).Distinct().Count(),
+            assignments
+                .Select(assignment => TimberElementSeriesRules.GetKey(assignment.Signature))
+                .Distinct()
+                .Count(),
             changedEntries.Count);
     }
 

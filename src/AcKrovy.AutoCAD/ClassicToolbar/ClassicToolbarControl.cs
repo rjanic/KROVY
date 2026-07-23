@@ -52,6 +52,7 @@ internal sealed class ClassicToolbarControl : UserControl
             CommandUiCatalog.CollarTie,
             CommandUiCatalog.Brace,
             CommandUiCatalog.TieBeam,
+            CommandUiCatalog.Custom,
         });
 
         AddSeparator(layout);

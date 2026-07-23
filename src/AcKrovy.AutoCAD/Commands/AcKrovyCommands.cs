@@ -232,6 +232,84 @@ public sealed class AcKrovyCommands
     [CommandMethod(AcKrovyCommandNames.TieBeam, CommandFlags.Modal | CommandFlags.UsePickSet)]
     public void AssignTieBeam() => AssignWithPresetType(TimberElementType.TieBeam);
 
+    [CommandMethod(AcKrovyCommandNames.Custom, CommandFlags.Modal | CommandFlags.UsePickSet)]
+    public void AssignCustom()
+    {
+        var document = ActiveDocument();
+        var editor = document.Editor;
+        var uiCulture = AppLanguageService.CurrentUiCulture;
+        var ids = PromptForEntities(
+            editor,
+            UiStrings.GetString("Command_Custom_PromptSelection", uiCulture));
+        if (ids.Count == 0)
+        {
+            return;
+        }
+
+        IReadOnlyList<CustomElementDefinition> definitions;
+        try
+        {
+            definitions = CustomElementDefinitionCatalogRules.Normalize(
+                CustomElementDefinitionCatalogStore.Load()
+                    .Concat(ReadCustomDefinitionsFromDrawing(document.Database)));
+        }
+        catch (ArgumentException ex)
+        {
+            editor.WriteMessage(UiStrings.Format(
+                UiStrings.GetString("Command_Custom_AmbiguousDefinitionsFormat", uiCulture),
+                ex.Message));
+            return;
+        }
+        var definitionDialog = new CustomElementDefinitionWindow(definitions);
+        if (AcApp.ShowModalWindow(definitionDialog) != true ||
+            definitionDialog.SelectedDefinition is not { } definition)
+        {
+            return;
+        }
+
+        try
+        {
+            // Also imports self-contained definitions found only in the current
+            // DWG, so they become reusable in another drawing on this PC.
+            CustomElementDefinitionCatalogStore.Save(definitions.Append(definition));
+        }
+        catch (System.Exception ex)
+        {
+            editor.WriteMessage(UiStrings.Format(
+                UiStrings.GetString("Command_Custom_CatalogSaveFailedFormat", uiCulture),
+                ex.Message));
+            return;
+        }
+
+        var defaultProfile = TimberElementDefaultProfileStore.Load();
+        var seedData = CustomElementDefinitionRules.Apply(
+            TimberElementDefaults.For(TimberElementType.Custom, defaultProfile),
+            definition);
+        AssignSelectedElements(document, ids, seedData, defaultProfile);
+    }
+
+    private static IReadOnlyList<CustomElementDefinition> ReadCustomDefinitionsFromDrawing(
+        Database database)
+    {
+        using var transaction = database.TransactionManager.StartTransaction();
+        var metadataStore = new AutoCadTimberElementMetadataStore(transaction);
+        var definitions = new List<CustomElementDefinition>();
+        foreach (var id in DrawingScanner.FindAllTimberElements(database, transaction, metadataStore))
+        {
+            if (transaction.GetObject(id, OpenMode.ForRead) is Entity entity &&
+                metadataStore.TryRead(entity, out var data) &&
+                data is not null &&
+                CustomElementDefinitionRules.TryFromElementData(data, out var definition) &&
+                definition is not null)
+            {
+                definitions.Add(definition);
+            }
+        }
+
+        transaction.Commit();
+        return definitions;
+    }
+
     [CommandMethod(AcKrovyCommandNames.Edit, CommandFlags.Modal | CommandFlags.UsePickSet)]
     public void Edit()
     {
@@ -271,12 +349,22 @@ public sealed class AcKrovyCommands
             cuttingAllowanceIsMixed: HasMixedCuttingAllowance(selectedData),
             slopeDirectionIsMixed: HasMixedSlopeDirection(selectedData),
             validationData: selectedData);
+        dialog.CustomDefinitionNameChanged += name =>
+        {
+            if (selectedData.Count == 1)
+            {
+                dialog.Title = UiStrings.Format(
+                    UiStrings.GetString("Command_Edit_TitleSingleFormat", uiCulture),
+                    selectedData[0].ElementId,
+                    name);
+            }
+        };
         dialog.Title = selectedData.Count == 1
             ? UiStrings.Format(
                 UiStrings.GetString("Command_Edit_TitleSingleFormat", uiCulture),
                 selectedData[0].ElementId,
-                TimberElementTypeDisplayNameProvider.GetDisplayName(
-                    selectedData[0].ElementType,
+                TimberElementDisplayNameProvider.GetDisplayName(
+                    selectedData[0],
                     uiCulture))
             : UiStrings.Format(
                 UiStrings.GetString("Command_Edit_TitleMultipleFormat", uiCulture),
@@ -312,16 +400,71 @@ public sealed class AcKrovyCommands
                 merged = TimberElementDefaultApplicator.ApplyCuttingAllowance(merged, defaultProfile);
             }
 
-            previousElementIdById[id] = original.ElementId;
+            previousElementIdById.TryAdd(id, original.ElementId);
             metadataStore.Write(entity, merged);
             layerService.ApplyLayerForTimberType(entity, merged.ElementType, layerProfile);
             changedIds.Add(id);
             changed++;
         }
 
-        UpdateLabelsForChangedEntities(document.Database, transaction, metadataStore, changedIds, previousElementIdById);
+        if (dialog.RenamedCustomDefinition is { } renamedDefinition)
+        {
+            foreach (var id in DrawingScanner.FindAllTimberElements(
+                         document.Database,
+                         transaction,
+                         metadataStore))
+            {
+                if (transaction.GetObject(id, OpenMode.ForWrite) is not Entity entity ||
+                    !metadataStore.TryRead(entity, out var data) ||
+                    data is null)
+                {
+                    continue;
+                }
+
+                var renamedData = CustomElementDefinitionRenameRules.Apply(
+                    data,
+                    renamedDefinition);
+                if (ReferenceEquals(renamedData, data))
+                {
+                    continue;
+                }
+
+                previousElementIdById.TryAdd(id, data.ElementId);
+                metadataStore.Write(entity, renamedData);
+                if (!changedIds.Contains(id))
+                {
+                    changedIds.Add(id);
+                }
+            }
+        }
+
+        UpdateLabelsForChangedEntities(
+            document.Database,
+            transaction,
+            metadataStore,
+            changedIds.ToList(),
+            previousElementIdById);
 
         transaction.Commit();
+
+        if (dialog.RenamedCustomDefinition is { } catalogRename)
+        {
+            try
+            {
+                CustomElementDefinitionCatalogStore.Save(
+                    CustomElementDefinitionCatalogRules.ApplyRename(
+                        CustomElementDefinitionCatalogStore.Load(),
+                        catalogRename));
+            }
+            catch (System.Exception ex)
+            {
+                editor.WriteMessage(UiStrings.Format(
+                    UiStrings.GetString(
+                        "Command_Custom_CatalogSaveFailedFormat",
+                        uiCulture),
+                    ex.Message));
+            }
+        }
         editor.WriteMessage(UiStrings.Format(
             UiStrings.GetString("Command_Edit_ResultFormat", uiCulture),
             changed,
@@ -421,8 +564,8 @@ public sealed class AcKrovyCommands
 
         var data = snapshot.Data;
         var uiCulture = AppLanguageService.GetCultureInfo(AppLanguageService.CurrentLanguageCode);
-        var elementTypeDisplayName = TimberElementTypeDisplayNameProvider.GetDisplayName(
-            data.ElementType,
+        var elementTypeDisplayName = TimberElementDisplayNameProvider.GetDisplayName(
+            data,
             uiCulture);
         var defaultProfile = TimberElementDefaultProfileStore.Load();
         var roundingStepMm = defaultProfile.GetCuttingLengthRoundingStepMm();
@@ -580,6 +723,17 @@ public sealed class AcKrovyCommands
         var seedData = presetType is { } elementType
             ? TimberElementDefaults.For(elementType, defaultProfile)
             : TimberElementDefaults.For(TimberElementType.Rafter, defaultProfile);
+        AssignSelectedElements(document, ids, seedData, defaultProfile);
+    }
+
+    private static void AssignSelectedElements(
+        Document document,
+        IReadOnlyList<ObjectId> ids,
+        TimberElementData seedData,
+        TimberElementDefaultProfile defaultProfile)
+    {
+        var editor = document.Editor;
+        var uiCulture = AppLanguageService.CurrentUiCulture;
         var dialog = new ElementEditWindow(seedData, isNewAssignment: true, defaultProfile);
         if (AcApp.ShowModalWindow(dialog) != true || dialog.Patch is null)
         {
@@ -611,12 +765,22 @@ public sealed class AcKrovyCommands
             var hadExistingData = metadataStore.TryRead(entity, out var existing) && existing is not null;
             var original = hadExistingData
                 ? existing!
-                : TimberElementDefaults.For(dialog.SelectedElementType ?? seedData.ElementType, defaultProfile);
+                : seedData.ElementType == TimberElementType.Custom
+                    ? seedData
+                    : TimberElementDefaults.For(
+                        dialog.SelectedElementType ?? seedData.ElementType,
+                        defaultProfile);
 
             var patch = hadExistingData && !dialog.CuttingAllowanceWasEdited
                 ? dialog.Patch with { CuttingAllowanceMm = null }
                 : dialog.Patch;
             var merged = TimberElementPatcher.Apply(original, patch);
+            if (seedData.ElementType == TimberElementType.Custom &&
+                CustomElementDefinitionRules.TryFromElementData(seedData, out var definition) &&
+                definition is not null)
+            {
+                merged = CustomElementDefinitionRules.Apply(merged, definition);
+            }
             if (dialog.UseDefaultCuttingAllowanceByType)
             {
                 merged = TimberElementDefaultApplicator.ApplyCuttingAllowance(merged, defaultProfile);

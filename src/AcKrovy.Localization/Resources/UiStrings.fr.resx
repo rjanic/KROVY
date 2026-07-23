@@ -238,4 +238,24 @@
   <data name="Error_InvalidElementLayerFormat" xml:space="preserve"><value>Calque non valide pour l'élément {0} : {1}</value></data>
   <data name="Error_InvalidAnnotationLayerFormat" xml:space="preserve"><value>Calque d'annotation non valide : {0}</value></data>
   <data name="Error_InvalidSlopeDegrees" xml:space="preserve"><value>La pente doit être un nombre positif ou nul inférieur à 89,9°.</value></data>
+  <data name="ElementType_Custom" xml:space="preserve"><value>Élément personnalisé</value></data>
+  <data name="CommandUi_Custom_Label" xml:space="preserve"><value>Élément personnalisé</value></data>
+  <data name="CommandUi_Custom_Tooltip" xml:space="preserve"><value>Attribue à une ligne un type d'élément bois personnalisé réutilisable.</value></data>
+  <data name="Command_Custom_PromptSelection" xml:space="preserve"><value>&#xA;Sélectionnez une LINE ou LWPOLYLINE pour l'élément personnalisé : </value></data>
+  <data name="Command_Custom_CatalogSaveFailedFormat" xml:space="preserve"><value>&#xA;La définition de l'élément personnalisé n'a pas pu être enregistrée. {0}</value></data>
+  <data name="CustomWindow_Title" xml:space="preserve"><value>ACAD KROVY – élément personnalisé</value></data>
+  <data name="CustomWindow_Heading" xml:space="preserve"><value>Définition d'élément personnalisé</value></data>
+  <data name="CustomWindow_UseExisting" xml:space="preserve"><value>Utiliser une définition existante</value></data>
+  <data name="CustomWindow_CreateNew" xml:space="preserve"><value>Créer une nouvelle définition</value></data>
+  <data name="CustomWindow_Name" xml:space="preserve"><value>Nom</value></data>
+  <data name="CustomWindow_Prefix" xml:space="preserve"><value>Préfixe du repère</value></data>
+  <data name="CustomWindow_Continue" xml:space="preserve"><value>Continuer</value></data>
+  <data name="CustomWindow_SelectDefinition" xml:space="preserve"><value>Sélectionnez une définition personnalisée existante.</value></data>
+  <data name="CustomWindow_InvalidDefinition" xml:space="preserve"><value>Saisissez un nom et un préfixe unique de 1 à 8 lettres A–Z.</value></data>
+  <data name="Help_CustomCommandLine" xml:space="preserve"><value>&#xA;  AK_CUSTOM      – attribue un type d'élément personnalisé réutilisable</value></data>
+  <data name="Command_Custom_AmbiguousDefinitionsFormat" xml:space="preserve"><value>&#xA;Les définitions personnalisées contiennent un préfixe ambigu. {0}</value></data>
+  <data name="EditWindow_RenameCustomDefinition" xml:space="preserve"><value>Modifier le nom de la définition</value></data>
+  <data name="CustomRenameWindow_Title" xml:space="preserve"><value>ACAD KROVY – renommer la définition</value></data>
+  <data name="CustomRenameWindow_Heading" xml:space="preserve"><value>Nouveau nom de la définition personnalisée</value></data>
+  <data name="CustomRenameWindow_InvalidName" xml:space="preserve"><value>Saisissez un nom non vide de 80 caractères maximum.</value></data>
 </root>

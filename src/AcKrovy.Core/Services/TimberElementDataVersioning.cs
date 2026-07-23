@@ -27,9 +27,18 @@ public static class TimberElementDataVersioning
             throw new UnsupportedTimberElementDataSchemaException(version, TimberElementDataSchema.CurrentVersion);
         }
 
-        return data.SchemaVersion == version
+        var normalized = data.SchemaVersion == version
             ? data
             : data with { SchemaVersion = version };
+        if (normalized.ElementType == TimberElementType.Custom &&
+            !CustomElementDefinitionRules.TryFromElementData(normalized, out _))
+        {
+            throw new ArgumentException(
+                "Custom timber element metadata must contain a valid id, name and prefix.",
+                nameof(data));
+        }
+
+        return normalized;
     }
 
     /// <summary>

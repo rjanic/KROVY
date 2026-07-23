@@ -15,6 +15,7 @@ SPUSTENIE V AUTOCAD 2027
 
 ZÁKLADNÝ WORKFLOW
 - AK_ASSIGN alebo rýchly príkaz typu priradí inteligentné údaje prvku.
+- AK_CUSTOM vytvorí alebo znovu použije vlastný lineárny typ s názvom a prefixom.
 - AK_EDIT upraví jeden alebo viac prvkov.
 - AK_INSPECT zobrazí technické údaje jedného prvku.
 - AK_RENUMBER po potvrdení vedome prečísluje všetky výrobné položky podľa
@@ -38,6 +39,16 @@ POST / STĹPIK
 Nový Stĺpik používa jednu rectangular Polyline. AK_STLPIK vie spracovať aj
 validný obdĺžnik zo štyroch samostatných LINE a bezpečne ho skonvertuje na
 jednu uzavretú Polyline. Manuálna dĺžka je nezávislá od obvodu footprintu.
+
+VLASTNÝ PRVOK
+AK_CUSTOM pracuje s LINE/LWPOLYLINE. Definícia má stabilné technické ID,
+používateľský názov a prefix (napr. Konzola / KO). Každý prvok nesie kompletnú
+definíciu vo svojich XData, takže COPY, COPYCLIP a WBLOCK nie sú závislé od
+lokálneho katalógu. Používateľský názov sa pri zmene jazyka neprekladá a každá
+definícia má vlastnú numbering sériu. V AK_EDIT možno názov definície výslovne
+zmeniť pre všetky jej prvky v aktuálnom DWG bez zmeny ID, prefixu a položiek.
+Automatický label obsahuje iba položku, prierez a výrobnú dĺžku. Custom prvok
+je v automatickom režime slope-aware rovnako ako Krokva.
 
 OVERENIE
 .\scripts\compatibility-gate.ps1 -Portable

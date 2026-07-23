@@ -16,7 +16,7 @@ public static class TimberElementPatcher
             throw new ArgumentNullException(nameof(patch));
         }
 
-        return source with
+        var result = source with
         {
             ElementType = patch.ElementType ?? source.ElementType,
             WidthMm = patch.WidthMm ?? source.WidthMm,
@@ -30,5 +30,14 @@ public static class TimberElementPatcher
             Material = patch.Material ?? source.Material,
             Note = patch.Note ?? source.Note,
         };
+
+        return result.ElementType == TimberElementType.Custom
+            ? result
+            : result with
+            {
+                CustomElementTypeId = null,
+                CustomElementTypeName = null,
+                CustomElementTypePrefix = null,
+            };
     }
 }

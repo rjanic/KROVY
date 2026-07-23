@@ -67,6 +67,12 @@ public static class TimberElementDefaults
                 HeightMm = 200,
                 SlopeDegrees = 0,
             },
+            TimberElementType.Custom => common with
+            {
+                WidthMm = 100,
+                HeightMm = 200,
+                SlopeDegrees = 0,
+            },
             _ => common,
         };
     }

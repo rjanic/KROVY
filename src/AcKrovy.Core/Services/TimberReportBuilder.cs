@@ -20,9 +20,13 @@ public static class TimberReportBuilder
                 group.Key.CuttingLengthMm,
                 group.Count(),
                 group.Sum(x => x.CuttingLengthMm),
-                group.Sum(x => x.VolumeM3)))
+                group.Sum(x => x.VolumeM3),
+                group.First().Data.CustomElementTypeId,
+                group.First().Data.CustomElementTypeName,
+                group.First().Data.CustomElementTypePrefix))
             .OrderBy(line => line.ElementType)
-            .ThenBy(line => TimberElementIdentityRules.TryParseElementNumber(line.ElementId, line.ElementType) ?? int.MaxValue)
+            .ThenBy(line => line.CustomElementTypeId, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(line => TryParseElementNumber(line) ?? int.MaxValue)
             .ThenBy(line => line.ElementId, StringComparer.OrdinalIgnoreCase)
             .ThenBy(line => line.WidthMm)
             .ThenBy(line => line.HeightMm)
@@ -36,4 +40,11 @@ public static class TimberReportBuilder
         measurements
             .Select(measurement => measurement.Data.ElementId)
             .FirstOrDefault(elementId => !string.IsNullOrWhiteSpace(elementId)) ?? string.Empty;
+
+    private static int? TryParseElementNumber(TimberReportLine line) =>
+        TimberElementIdentityRules.TryParseElementNumber(
+            line.ElementId,
+            line.ElementType == TimberElementType.Custom
+                ? line.CustomElementTypePrefix ?? string.Empty
+                : TimberElementIdentityPrefixes.GetPrefix(line.ElementType));
 }
