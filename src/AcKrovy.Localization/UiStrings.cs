@@ -79,6 +79,10 @@ public static class UiStrings
     public static string CommandReportInsertedFormat => GetString("Command_Report_InsertedFormat");
     public static string CommandRecalcElementErrorFormat => GetString("Command_Recalc_ElementErrorFormat");
     public static string CommandRecalcResultFormat => GetString("Command_Recalc_ResultFormat");
+    public static string CommandRenumberConfirmPrompt => GetString("Command_Renumber_ConfirmPrompt");
+    public static string CommandRenumberNoElements => GetString("Command_Renumber_NoElements");
+    public static string CommandRenumberResultFormat => GetString("Command_Renumber_ResultFormat");
+    public static string CommandRenumberFailedFormat => GetString("Command_Renumber_FailedFormat");
     public static string CommandAssignPrompt => GetString("Command_Assign_Prompt");
     public static string CommandAssignPromptTypeFormat => GetString("Command_Assign_PromptTypeFormat");
     public static string CommandAssignResultFormat => GetString("Command_Assign_ResultFormat");
@@ -189,6 +193,7 @@ public static class UiStrings
     public static string ErrorInvalidElementLayerFormat => GetString("Error_InvalidElementLayerFormat");
     public static string ErrorInvalidAnnotationLayerFormat => GetString("Error_InvalidAnnotationLayerFormat");
     public static string ErrorInvalidSlopeDegrees => GetString("Error_InvalidSlopeDegrees");
+    public static string ErrorRenumberEntityUnavailable => GetString("Error_Renumber_EntityUnavailable");
 
     public static string Format(string format, params object?[] arguments) =>
         string.Format(CultureInfo.CurrentCulture, format, arguments);

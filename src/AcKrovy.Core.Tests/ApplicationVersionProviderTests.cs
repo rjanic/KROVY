@@ -16,9 +16,9 @@ public sealed class ApplicationVersionProviderTests
     }
 
     [Theory]
-    [InlineData("0.13.0+abc123", "0.13.0")]
-    [InlineData("0.13.0-beta.2+abc123", "0.13.0-beta.2")]
-    [InlineData(" 0.13.0 ", "0.13.0")]
+    [InlineData("1.2.3+abc123", "1.2.3")]
+    [InlineData("1.2.3-beta.2+abc123", "1.2.3-beta.2")]
+    [InlineData(" 1.2.3 ", "1.2.3")]
     public void NormalizeDisplayVersion_RemovesBuildMetadata(
         string informationalVersion,
         string expected)

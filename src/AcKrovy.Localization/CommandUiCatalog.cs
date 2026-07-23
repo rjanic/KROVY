@@ -29,12 +29,13 @@ public static class AcKrovyCommandNames
     public const string Report = "AK_REPORT";
     public const string ReportAll = "AK_REPORTALL";
     public const string Recalc = "AK_RECALC";
+    public const string Renumber = "AK_RENUMBER";
 
     public static IReadOnlyList<string> All { get; } =
     [
         Help, Ribbon, Toolbar, ToolbarShow, ToolbarHide, Settings, ApplyLayers, Labels, LabelSelected,
         LabelShow, LabelHide, Assign, Rafter, WallPlate, Purlin, Post, CollarTie, Brace, TieBeam, Edit,
-        FlipSlope, Inspect, Report, ReportAll, Recalc,
+        FlipSlope, Inspect, Report, ReportAll, Recalc, Renumber,
     ];
 }
 
@@ -118,6 +119,7 @@ public static class CommandUiCatalog
     public static CommandUiDescriptor Edit { get; } = Create("EDIT", "edit", AcKrovyCommandNames.Edit, "Edit");
     public static CommandUiDescriptor Inspect { get; } = Create("INSPECT", "inspect", AcKrovyCommandNames.Inspect, "Inspect");
     public static CommandUiDescriptor Recalc { get; } = Create("RECALC", "recalc", AcKrovyCommandNames.Recalc, "Recalc");
+    public static CommandUiDescriptor Renumber { get; } = Create("RENUMBER", "recalc", AcKrovyCommandNames.Renumber, "Renumber");
     public static CommandUiDescriptor Report { get; } = Create("REPORT", "report_selection", AcKrovyCommandNames.Report, "Report");
     public static CommandUiDescriptor ReportAll { get; } = Create("REPORTALL", "report_all", AcKrovyCommandNames.ReportAll, "ReportAll");
     public static CommandUiDescriptor Settings { get; } = Create("SETTINGS", "settings", AcKrovyCommandNames.Settings, "Settings");
@@ -126,13 +128,13 @@ public static class CommandUiCatalog
 
     public static IReadOnlyList<CommandUiDescriptor> RibbonCommands { get; } =
     [
-        Rafter, WallPlate, Purlin, Post, CollarTie, Brace, TieBeam, Assign, Edit, Inspect, Recalc,
+        Rafter, WallPlate, Purlin, Post, CollarTie, Brace, TieBeam, Assign, Edit, Inspect, Recalc, Renumber,
         Report, ReportAll, Settings, Labels, Toolbar,
     ];
 
     public static IReadOnlyList<CommandUiDescriptor> ClassicToolbarCommands { get; } =
     [
-        Rafter, WallPlate, Purlin, Post, CollarTie, Brace, TieBeam, Assign, Edit, Inspect, Recalc,
+        Rafter, WallPlate, Purlin, Post, CollarTie, Brace, TieBeam, Assign, Edit, Inspect, Recalc, Renumber,
         Report, ReportAll, Labels, Settings,
     ];
 

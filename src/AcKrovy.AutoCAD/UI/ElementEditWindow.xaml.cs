@@ -15,6 +15,7 @@ public partial class ElementEditWindow : Window
     private readonly IReadOnlyList<TimberElementData> _validationData;
     private readonly bool _isNewAssignment;
     private readonly CultureInfo _uiCulture;
+    private readonly string _originalStoredMaterial;
     private bool _isInitializing;
     private bool _manualLengthEditingEnabled;
     private readonly bool _usesFootprintPostSlopePresentation;
@@ -59,6 +60,7 @@ public partial class ElementEditWindow : Window
         };
 
         var data = seedData ?? new TimberElementData();
+        _originalStoredMaterial = data.Material;
         _validationData = validationData ?? new[] { data };
         _usesFootprintPostSlopePresentation =
             !TimberPostFootprintSlopeEditRules.CanEditSlope(_validationData);
@@ -91,7 +93,15 @@ public partial class ElementEditWindow : Window
         ManualLengthTextBox.Text = data.ManualLengthMm is null
             ? string.Empty
             : Format(data.ManualLengthMm.Value);
-        MaterialTextBox.Text = data.Material;
+        MaterialComboBox.ItemsSource = TimberMaterialDisplayNameProvider.GetOptions(
+            data.Material,
+            _uiCulture);
+        MaterialComboBox.SelectedItem =
+            ((IEnumerable<TimberMaterialDisplayOption>)MaterialComboBox.ItemsSource)
+            .First(option => string.Equals(
+                option.StoredValue,
+                data.Material,
+                StringComparison.Ordinal));
 
         ChangeTypeCheckBox.IsChecked = isNewAssignment;
         ChangeWidthCheckBox.IsChecked = isNewAssignment;
@@ -131,6 +141,16 @@ public partial class ElementEditWindow : Window
             {
                 CuttingAllowanceWasEdited = true;
                 UseDefaultCuttingAllowanceByType = false;
+            }
+        };
+        MaterialComboBox.SelectionChanged += (_, _) =>
+        {
+            if (TimberMaterialEditRules.ShouldActivateApplyFlag(
+                    _isInitializing,
+                    (MaterialComboBox.SelectedItem as TimberMaterialDisplayOption)?.StoredValue,
+                    _originalStoredMaterial))
+            {
+                ChangeMaterialCheckBox.IsChecked = true;
             }
         };
         _isInitializing = false;
@@ -232,9 +252,9 @@ public partial class ElementEditWindow : Window
                 ? (LengthModeComboBox.SelectedItem as LengthModeOption)?.Value
                 : null,
             manualLength,
-            ChangeMaterialCheckBox.IsChecked == true
-                ? EmptyToNull(MaterialTextBox.Text)
-                : null,
+            TimberMaterialEditRules.ResolvePatchValue(
+                ChangeMaterialCheckBox.IsChecked == true,
+                (MaterialComboBox.SelectedItem as TimberMaterialDisplayOption)?.StoredValue),
             null,
             TimberPostFootprintSlopeEditRules.ResolveSlopeDirectionPatch(
                 _validationData,
@@ -389,5 +409,4 @@ public partial class ElementEditWindow : Window
     {
         public override string ToString() => Label;
     }
-
 }

@@ -1,8 +1,8 @@
 # ACAD KROVY – PROJECT CONTEXT
 
-**Aktualizované:** 22. 7. 2026
+**Aktualizované:** 23. 7. 2026
 
-**Dokumentačný baseline:** `61646826b3550fb16855ed9592deabc266d86c97`
+**Feature baseline:** `b5a9364cfd3323e9433017a7327b93e5fa0868cb`
 
 **Branch:** `main`
 
@@ -178,6 +178,24 @@ Stabilný commit: `4a951041e2deef40a127ac9560cf6fb2ba4b6a5b`
 - README, project context, roadmap a backlog odrážajú Post workflow aj runtime lokalizáciu,
 - počet testov sa v dokumentácii nefixuje; zdrojom pravdy je aktuálny test run.
 
+### Explicit Item Renumbering
+- `AK_RENUMBER` pracuje so všetkými platnými timber prvkami aktuálneho DWG,
+- unikátne `TimberElementSignature` radí v každom type podľa `CuttingLengthMm`, prierezu a materiálu,
+- prideľuje súvislé používateľské označenia od 1 a rovnaké signatúry zdieľajú číslo,
+- `ElementId` je v existujúcej architektúre používateľské položkové označenie, nie nemenná entitná identita,
+- stabilná identita CAD entity a väzieb anotácií zostáva `SourceHandle`,
+- bežná automatická logika naďalej zachováva existujúce čísla a medzery,
+- labely sa obnovia v rovnakej transakcii; reporty čítajú nové čísla z metadata.
+
+### Localized Material Catalog & Adaptive Reports
+- katalóg obsahuje šesť stabilných canonical material hodnôt; lokalizované názvy sú iba prezentačná vrstva,
+- `AK_EDIT` zapisuje vybranú canonical hodnotu a bezpečný batch patch vzniká iba pri aktívnej zmene,
+- neznámy legacy materiál sa pridá ako zachovateľná raw voľba a automaticky sa nemigruje,
+- `TimberElementSignature`, metadata, COPY/COPYCLIP, live sync a `AK_RENUMBER` používajú raw/canonical `Material`,
+- `AK_INSPECT`, `AK_REPORT` a `AK_REPORTALL` zobrazujú lokalizovaný názov podľa explicitnej aplikačnej UI kultúry,
+- reportový materiál sa delí na hlavný názov a popis bez zobrazenej oddeľovacej pomlčky,
+- Typ a Materiál majú dynamickú šírku podľa skutočných riadkov reportu, maximálne dva textové riadky a ochranu pred delením slov.
+
 ## Povinné kompatibilitné pravidlá
 
 1. Výpočty a geometrické rozhodovanie preferovať v Core.
@@ -203,13 +221,12 @@ Poradie:
 Multi-CAD kompatibilita sa má overiť ešte pred tým, než projekt prerastie do príliš veľkého AutoCAD-špecifického roof automation modulu.
 
 ## Najbližšia priorita
-1. `AK_RENUMBER`,
-2. Select Similar / filtre,
-3. CSV export,
-4. diagnostika a servis,
-5. prezentačné a škálovacie nastavenia,
-6. Custom element,
-7. kompatibilitný checkpoint,
-8. potom veľký modul automatickej geometrie strechy.
+1. Select Similar / filtre,
+2. CSV export,
+3. diagnostika a servis,
+4. prezentačné a škálovacie nastavenia,
+5. Custom element,
+6. kompatibilitný checkpoint,
+7. potom veľký modul automatickej geometrie strechy.
 
 Presné poradie je v `ACAD_KROVY_ROADMAP.md`, úplný zásobník nápadov v `ACAD_KROVY_BACKLOG.md`.

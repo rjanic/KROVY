@@ -73,7 +73,7 @@
 
         <TextBlock Grid.Row="11" Grid.Column="0" VerticalAlignment="Center" Text="{localization:Loc EditWindow_Material}" />
         <CheckBox x:Name="ChangeMaterialCheckBox" Grid.Row="11" Grid.Column="1" VerticalAlignment="Center" ToolTip="{localization:Loc EditWindow_ChangeTooltip}" />
-        <TextBox x:Name="MaterialTextBox" Grid.Row="11" Grid.Column="2" Margin="0,4" />
+        <ComboBox x:Name="MaterialComboBox" Grid.Row="11" Grid.Column="2" Margin="0,4" DisplayMemberPath="DisplayName" />
 
         <StackPanel Grid.Row="13" Grid.ColumnSpan="3" HorizontalAlignment="Right" Orientation="Horizontal">
             <Button Width="105" Margin="0,0,8,0" Padding="8,4" Click="Cancel_Click" IsCancel="True" Content="{localization:Loc EditWindow_Cancel}" />

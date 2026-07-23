@@ -8,11 +8,13 @@ Aktuálne číslo aplikácie je definované výhradne v [`Directory.Build.props`
 
 - priradenie typov Krokva, Pomúrnica, Väznica, Stĺpik, Klieština, Vzpera a Väzný trám,
 - individuálna aj bezpečná batch editácia rozmerov, materiálu, režimu dĺžky, sklonu a výrobného prídavku,
+- lokalizovaný katalóg šiestich materiálov so stabilnými canonical hodnotami v DWG,
 - stabilné položkové číslovanie, XData metadata a väzby cez `ElementId`/`SourceHandle`,
+- explicitný `AK_RENUMBER` na vedomé kompaktné prečíslovanie podľa finálnej reznej dĺžky,
 - centrálne výpočty skutočnej a reznej dĺžky, prídavkov, zaokrúhľovania a kubatúry,
 - automatický refresh po MOVE, ROTATE, STRETCH, TRIM, EXTEND a grip edit,
 - labely prvkov, collision-aware anotácia smeru sklonu a `AK_FLIPSLOPE`,
-- report z výberu alebo celého výkresu s prirodzeným radením položiek,
+- report z výberu alebo celého výkresu s prirodzeným radením položiek a adaptívnymi stĺpcami,
 - rectangular footprint pre Stĺpik z jednej rectangular Polyline,
 - konverzia validného obdĺžnika zo štyroch samostatných LINE na jeden Post footprint,
 - bezpečné správanie pri COPY, COPYCLIP/PASTECLIP, WBLOCK a SAVE/REOPEN,
@@ -50,13 +52,25 @@ CuttingLengthMm    = RoundUp(RawCuttingLengthMm, configured step)
 
 Predvolený krok je 100 mm. Defaultné prídavky podľa typu sú používateľské nastavenie; existujúce prvky si uchovávajú vlastnú uloženú hodnotu, kým používateľ výslovne neaplikuje nové defaulty.
 
+## Číslovanie položiek
+
+Bežné automatické číslovanie je stabilné: pri kreslení, editácii, COPY alebo live refreshi sa existujúce čísla nekompaktujú a medzery zostávajú zachované. Nová výrobná signatúra dostane číslo podľa existujúcich stabilných pravidiel.
+
+`AK_RENUMBER` je samostatná vedomá operácia nad všetkými platnými inteligentnými prvkami aktuálneho DWG. Po potvrdení zoradí unikátne výrobné signatúry v každom type podľa `CuttingLengthMm` od najkratšej po najdlhšiu a pridelí súvislé čísla od 1. Rovnaké signatúry ostávajú jednou položkou. Geometria, `SourceHandle` a výrobné údaje sa nemenia; labely a nové reporty používajú nové označenia.
+
+## Materiály a reporty
+
+Preddefinovaný katalóg používa canonical hodnoty `Smrek C24`, `Smrek C16`, `Smrekovec C30`, `KVH C24 NSi`, `KVH C24 Si` a `BSH GL24h`. Do DWG, `TimberElementSignature`, COPY/COPYCLIP a numberingu vstupuje vždy canonical hodnota; SK/CS/EN/DE/PL/FR menia iba zobrazenie v `AK_EDIT`, `AK_INSPECT` a reportoch. Neznámy materiál zo starého DWG sa zobrazí a zachová presne bez migrácie.
+
+`AK_REPORT` a `AK_REPORTALL` zobrazujú katalógový materiál stabilne v dvoch riadkoch: hlavný názov a lokalizovaná popisná časť. Stĺpce Typ a Materiál sa rozširujú iba podľa skutočného obsahu konkrétneho reportu, nerozdeľujú bežné slová uprostred a dátový riadok zostáva najviac dvojriadkový. Číselné stĺpce majú stabilné kompaktné šírky.
+
 ## Príkazy
 
 | Oblasť | Príkazy |
 |---|---|
 | Pomoc a UI | `AK_HELP`, `AK_RIBBON`, `AK_TOOLBAR`, `AK_TOOLBARSHOW`, `AK_TOOLBARHIDE` |
 | Priradenie | `AK_ASSIGN`, `AK_KROKVA`, `AK_POMURNICA`, `AK_VAZNICA`, `AK_STLPIK`, `AK_KLIESTINA`, `AK_VZPERA`, `AK_VAZNYTRAM` |
-| Údaje | `AK_EDIT`, `AK_INSPECT`, `AK_RECALC`, `AK_FLIPSLOPE` |
+| Údaje | `AK_EDIT`, `AK_INSPECT`, `AK_RECALC`, `AK_RENUMBER`, `AK_FLIPSLOPE` |
 | Reporty | `AK_REPORT`, `AK_REPORTALL` |
 | Labely | `AK_LABELS`, `AK_LABELSELECTED`, `AK_LABELSHOW`, `AK_LABELHIDE` |
 | Nastavenia | `AK_SETTINGS`, `AK_APPLYLAYERS` |
@@ -105,4 +119,4 @@ Portable režim overuje CAD-neutrálne projekty, testy, zakázané závislosti a
 - [`ACAD_KROVY_BACKLOG.md`](ACAD_KROVY_BACKLOG.md) – úplný zásobník otvorených nápadov,
 - [`README_SK.txt`](README_SK.txt) – stručný slovenský quick-start pre používateľa.
 
-Najbližšou plánovanou funkciou je `AK_RENUMBER`. Dokumentácia a centralizácia verzie sú už dokončený základ, nie otvorená feature položka.
+Najbližšou plánovanou funkciou je Select Similar / filtre. Dokumentácia, centralizácia verzie a explicitný `AK_RENUMBER` sú už dokončené základy.

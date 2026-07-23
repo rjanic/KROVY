@@ -286,11 +286,6 @@ public sealed class AcKrovyCommands
             return;
         }
 
-        if (TryRunPostFootprintAssignment(document, dialog))
-        {
-            return;
-        }
-
         var layerProfile = ElementLayerProfileStore.Load();
         using var transaction = document.Database.TransactionManager.StartTransaction();
         var metadataStore = new AutoCadTimberElementMetadataStore(transaction);
@@ -461,7 +456,9 @@ public sealed class AcKrovyCommands
         {
             new(UiStrings.DialogInspectItem, data.ElementId),
             new(UiStrings.DialogInspectElementType, elementTypeDisplayName),
-            new(UiStrings.DialogInspectMaterial, data.Material),
+            new(
+                UiStrings.DialogInspectMaterial,
+                TimberMaterialDisplayNameProvider.GetDisplayName(data.Material, uiCulture)),
             new(UiStrings.DialogInspectWidth, $"{data.WidthMm:0} mm"),
             new(UiStrings.DialogInspectHeight, $"{data.HeightMm:0} mm"),
             new(UiStrings.DialogInspectSlope, $"{data.SlopeDegrees:0.###}°"),
@@ -639,6 +636,72 @@ public sealed class AcKrovyCommands
             UiStrings.GetString("Command_Assign_ResultFormat", uiCulture),
             assigned,
             skipped));
+    }
+
+    [CommandMethod(AcKrovyCommandNames.Renumber, CommandFlags.Modal)]
+    public void RenumberAllItems()
+    {
+        var document = ActiveDocument();
+        var editor = document.Editor;
+        var uiCulture = AppLanguageService.CurrentUiCulture;
+        if (!ConfirmRenumbering(editor, uiCulture))
+        {
+            return;
+        }
+
+        try
+        {
+            var defaultProfile = TimberElementDefaultProfileStore.Load();
+            var result = TimberElementRenumberingService.RenumberAll(
+                document.Database,
+                defaultProfile.GetCuttingLengthRoundingStepMm());
+            if (result.ProcessedElements == 0)
+            {
+                editor.WriteMessage(UiStrings.GetString("Command_Renumber_NoElements", uiCulture));
+                return;
+            }
+
+            editor.WriteMessage(UiStrings.Format(
+                UiStrings.GetString("Command_Renumber_ResultFormat", uiCulture),
+                result.ProcessedElements,
+                result.UniqueItems,
+                result.RenumberedElementTypes,
+                result.ChangedElements));
+        }
+        catch (System.Exception ex)
+        {
+            editor.WriteMessage(UiStrings.Format(
+                UiStrings.GetString("Command_Renumber_FailedFormat", uiCulture),
+                ex.Message));
+        }
+    }
+
+    private static bool ConfirmRenumbering(Editor editor, System.Globalization.CultureInfo uiCulture)
+    {
+        var yes = UiStrings.GetString("Message_Yes", uiCulture);
+        var no = UiStrings.GetString("Message_No", uiCulture);
+        var options = new PromptKeywordOptions(
+            UiStrings.GetString("Command_Renumber_ConfirmPrompt", uiCulture))
+        {
+            AllowNone = true,
+            AppendKeywordsToMessage = false,
+        };
+        options.Keywords.Add("Yes", yes, yes);
+        if (RenumberConfirmationRules.SupportsSlovakAsciiYesAlias(uiCulture))
+        {
+            options.Keywords.Add(
+                RenumberConfirmationRules.SlovakAsciiYesKeyword,
+                RenumberConfirmationRules.SlovakAsciiYesKeyword,
+                RenumberConfirmationRules.SlovakAsciiYesKeyword,
+                false,
+                true);
+        }
+        options.Keywords.Add("No", no, no);
+        options.Keywords.Default = "No";
+
+        var response = editor.GetKeywords(options);
+        return response.Status == PromptStatus.OK &&
+               RenumberConfirmationRules.IsConfirmed(response.StringResult, yes, uiCulture);
     }
 
     private static bool TryRunPostFootprintAssignment(

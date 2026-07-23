@@ -9,7 +9,6 @@ namespace AcKrovy.AutoCAD.Infrastructure;
 
 internal static class ReportTableWriter
 {
-    private const int ColumnCount = 9;
     private static readonly CultureInfo SlovakCulture = CultureInfo.GetCultureInfo("sk-SK");
 
     public static void Insert(
@@ -30,18 +29,30 @@ internal static class ReportTableWriter
             Position = position,
         };
 
-        table.SetSize(rows, ColumnCount);
-        table.SetRowHeight(8);
-        table.SetColumnWidth(22);
-        table.Columns[0].Width = 18;
-        table.Columns[1].Width = 34;
-        table.Columns[2].Width = 28;
-        table.Columns[5].Width = 27;
-        table.Columns[7].Width = 30;
-        table.Columns[8].Width = 28;
+        table.SetSize(rows, ReportTableLayout.ColumnCount);
+        table.SetRowHeight(ReportTableLayout.DefaultRowHeight);
+        var columnWidths = ReportTableLayout.GetColumnWidths(
+            report.Lines.Select(row =>
+                TimberElementTypeDisplayNameProvider.GetDisplayName(
+                    row.ElementType,
+                    uiCulture)),
+            report.Lines.Select(row =>
+                ReportMaterialDisplayFormatter.FormatMaterialForReport(
+                    TimberMaterialDisplayNameProvider.GetDisplayName(
+                        row.Material,
+                        uiCulture))));
+        for (var column = 0; column < ReportTableLayout.ColumnCount; column++)
+        {
+            table.Columns[column].Width = columnWidths[column];
+        }
 
         table.Cells[0, 0].TextString = UiStrings.GetString("Report_Title", uiCulture);
-        table.MergeCells(CellRange.Create(table, 0, 0, 0, ColumnCount - 1));
+        table.MergeCells(CellRange.Create(
+            table,
+            0,
+            0,
+            0,
+            ReportTableLayout.ColumnCount - 1));
 
         var headers = new[]
         {
@@ -56,7 +67,7 @@ internal static class ReportTableWriter
             UiStrings.GetString("Report_Column_VolumeM3", uiCulture),
         };
 
-        for (var column = 0; column < ColumnCount; column++)
+        for (var column = 0; column < ReportTableLayout.ColumnCount; column++)
         {
             table.Cells[1, column].TextString = headers[column];
         }
@@ -70,13 +81,23 @@ internal static class ReportTableWriter
             table.Cells[tableRow, 1].TextString = TimberElementTypeDisplayNameProvider.GetDisplayName(
                 row.ElementType,
                 uiCulture);
-            table.Cells[tableRow, 2].TextString = row.Material;
+            var materialDisplayName = TimberMaterialDisplayNameProvider.GetDisplayName(
+                row.Material,
+                uiCulture);
+            table.Cells[tableRow, 2].TextString =
+                ReportMaterialDisplayFormatter
+                    .FormatMaterialForReport(materialDisplayName)
+                    .Replace(
+                        ReportMaterialDisplayFormatter.ReportLineBreak,
+                        MText.ParagraphBreak,
+                        StringComparison.Ordinal);
             table.Cells[tableRow, 3].TextString = Format(row.WidthMm, 0);
             table.Cells[tableRow, 4].TextString = Format(row.HeightMm, 0);
             table.Cells[tableRow, 5].TextString = Format(row.CuttingLengthMm / 1000d, 3);
             table.Cells[tableRow, 6].TextString = row.Count.ToString(SlovakCulture);
             table.Cells[tableRow, 7].TextString = Format(row.TotalLengthMm / 1000d, 3);
             table.Cells[tableRow, 8].TextString = Format(row.TotalVolumeM3, 4);
+            table.Rows[tableRow].Height = ReportTableLayout.MaximumDataRowHeight;
         }
 
         var totalRow = rows - 1;
@@ -84,8 +105,14 @@ internal static class ReportTableWriter
             uiCulture,
             UiStrings.GetString("Report_TotalFormat", uiCulture),
             report.SourceElementCount);
-        table.MergeCells(CellRange.Create(table, totalRow, 0, totalRow, ColumnCount - 2));
-        table.Cells[totalRow, ColumnCount - 1].TextString = Format(report.TotalVolumeM3, 4);
+        table.MergeCells(CellRange.Create(
+            table,
+            totalRow,
+            0,
+            totalRow,
+            ReportTableLayout.ColumnCount - 2));
+        table.Cells[totalRow, ReportTableLayout.ColumnCount - 1].TextString =
+            Format(report.TotalVolumeM3, 4);
 
         modelSpace.AppendEntity(table);
         transaction.AddNewlyCreatedDBObject(table, true);

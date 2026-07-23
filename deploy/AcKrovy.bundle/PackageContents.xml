@@ -2,7 +2,7 @@
 <ApplicationPackage SchemaVersion="1.0"
                     Name="ACAD KROVY"
                     Description="2D výkaz krovu, dĺžky a kubatúry"
-                    AppVersion="0.13.0"
+                    AppVersion="0.14.0"
                     ProductCode="ACADKROVY">
   <CompanyDetails Name="decorair" Url="https://soft.decorair.com" />
   <Components Description="ACAD KROVY plug-in">

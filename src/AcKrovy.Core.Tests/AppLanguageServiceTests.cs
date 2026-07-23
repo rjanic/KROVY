@@ -172,7 +172,7 @@ public sealed class AppLanguageServiceTests
         var german = CommandUiCatalog.GetLocalizedClassicToolbarContent(
             CultureInfo.GetCultureInfo("de-DE"));
 
-        Assert.Equal(15, slovak.Count);
+        Assert.Equal(16, slovak.Count);
         Assert.Equal(slovak.Count, english.Count);
         Assert.Equal(slovak.Count, german.Count);
         Assert.Equal(

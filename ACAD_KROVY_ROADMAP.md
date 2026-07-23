@@ -1,7 +1,7 @@
 # ACAD KROVY – ROADMAP
 
-**Aktualizované:** 22. 7. 2026  
-**Dokumentačný baseline:** `61646826b3550fb16855ed9592deabc266d86c97`
+**Aktualizované:** 23. 7. 2026
+**Feature baseline:** `b5a9364cfd3323e9433017a7327b93e5fa0868cb`
 
 Tento dokument určuje odporúčané poradie ďalšieho vývoja. Úplný zásobník nápadov je v `ACAD_KROVY_BACKLOG.md`.
 
@@ -15,17 +15,13 @@ Tento dokument určuje odporúčané poradie ďalšieho vývoja. Úplný zásobn
 
 Pri budúcom About okne použiť existujúci version provider, nie nový literal.
 
-## 2. `AK_RENUMBER`
-- explicitné prečíslovanie,
-- typicky podľa typu a dĺžky od najkratšej po najdlhšiu,
-- výber alebo celý DWG,
-- aktualizácia labelov a reportov,
-- žiadne automatické priebežné prečíslovanie.
-
-Pred implementáciou presne rozhodnúť:
-- poradie typov,
-- správanie pri zhodných dĺžkach,
-- či sa prečísluje výber alebo celý DWG.
+## 2. `AK_RENUMBER` — DOKONČENÉ
+- explicitne prečísluje celý aktuálny DWG; čiastočný výber sa zámerne nepodporuje,
+- každému typu prideľuje vlastnú súvislú sériu od 1,
+- primárne radí unikátne výrobné signatúry podľa `CuttingLengthMm`,
+- pri zhode používa deterministicky prierez a materiál,
+- aktualizuje XData položkové označenie a existujúce labely v jednej transakcii,
+- bežné automatické číslovanie zostáva stabilné a medzery nekompaktuje.
 
 ## 3. Select Similar / filtre
 Výber podľa:
@@ -223,10 +219,12 @@ Implementovať až po stabilnom true-width systéme.
 
 # FÁZA F – INTERNACIONALIZÁCIA A PRODUKTIZÁCIA
 
-## 24. Material presets
-- interný preset code,
-- lokalizovaný display názov,
-- používateľské materiály zostávajú voľný text.
+## 24. Material catalog — DOKONČENÉ
+- šesť stabilných canonical material hodnôt,
+- lokalizované display názvy pre SK/CS/EN/DE/PL/FR,
+- výber cez `AK_EDIT` bez lokalizovaných textov v metadata alebo signatúre,
+- neznáme legacy hodnoty sa zachovávajú bez migrácie,
+- lokalizované `AK_INSPECT` a adaptívne dvojriadkové reporty.
 
 ## 25. Default jazyk pri prvom spustení
 Odporúčanie:
@@ -297,27 +295,26 @@ Priebežne pri dotyku s danou oblasťou:
 
 # ODPORÚČANÉ NAJBLIŽŠIE PORADIE
 
-1. `AK_RENUMBER`
-2. Select Similar / filtre
-3. CSV export
-4. Diagnostika/logovanie
-5. Linetype settings
-6. Annotation scale
-7. Fonts/text styles
-8. Label/leader modes
-9. Custom element
-10. AutoCAD 2021–2027 compatibility checkpoint
-11. BricsCAD PoC
-12. Roof Domain Foundation
-13. Automatic roof from points + roof types
-14. Roof planes
-15. Automatic rafters
-16. Hip/valley rafters
-17. True-width element outlines
-18. Automatic visual trim
-19. XLSX/PDF/report linking
-20. Internationalization/productization
-21. Autoloader + installer
-22. Video tutorials
-23. BricsCAD full adapter
-24. ZWCAD adapter
+1. Select Similar / filtre
+2. CSV export
+3. Diagnostika/logovanie
+4. Linetype settings
+5. Annotation scale
+6. Fonts/text styles
+7. Label/leader modes
+8. Custom element
+9. AutoCAD 2021–2027 compatibility checkpoint
+10. BricsCAD PoC
+11. Roof Domain Foundation
+12. Automatic roof from points + roof types
+13. Roof planes
+14. Automatic rafters
+15. Hip/valley rafters
+16. True-width element outlines
+17. Automatic visual trim
+18. XLSX/PDF/report linking
+19. Internationalization/productization
+20. Autoloader + installer
+21. Video tutorials
+22. BricsCAD full adapter
+23. ZWCAD adapter

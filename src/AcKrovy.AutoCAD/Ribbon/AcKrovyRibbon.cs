@@ -154,6 +154,7 @@ internal static class AcKrovyRibbon
             Button(CommandUiCatalog.Edit),
             Button(CommandUiCatalog.Inspect),
             Button(CommandUiCatalog.Recalc),
+            Button(CommandUiCatalog.Renumber),
         }));
 
         tab.Panels.Add(BuildPanel(UiStrings.RibbonPanelReports, new[]

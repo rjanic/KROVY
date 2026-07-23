@@ -62,6 +62,7 @@ internal sealed class ClassicToolbarControl : UserControl
             CommandUiCatalog.Edit,
             CommandUiCatalog.Inspect,
             CommandUiCatalog.Recalc,
+            CommandUiCatalog.Renumber,
         });
 
         AddSeparator(layout);

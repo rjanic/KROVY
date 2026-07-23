@@ -1,17 +1,11 @@
 # ACAD KROVY – BACKLOG
 
-**Aktualizované:** 22. 7. 2026  
-**Dokumentačný baseline:** `61646826b3550fb16855ed9592deabc266d86c97`
+**Aktualizované:** 23. 7. 2026
+**Feature baseline:** `b5a9364cfd3323e9433017a7327b93e5fa0868cb`
 
 > Tento súbor je úplný zásobník nápadov. Poradie realizácie určuje `ACAD_KROVY_ROADMAP.md`.
 
 ## A. Produktivita
-
-### `AK_RENUMBER`
-- explicitné prečíslovanie,
-- podľa typu a dĺžky,
-- výber alebo celý DWG,
-- aktualizácia labelov a reportov.
 
 ### Select Similar / filtre
 - typ,
@@ -90,10 +84,6 @@
 - allowance,
 - report,
 - label.
-
-### Material presets
-- oddeliť interný preset code od lokalizovaného display názvu,
-- staré voľné materiály neprepisovať.
 
 ## E. Automatická strecha
 
@@ -241,5 +231,19 @@ Priebežne:
 - runtime version provider pre startup a `AK_HELP`,
 - version guard pre `.bundle` manifest,
 - zosúladený README, project context, roadmap a backlog.
+
+### `AK_RENUMBER`
+- explicitné prečíslovanie všetkých položiek v aktuálnom DWG,
+- samostatné súvislé série podľa typu,
+- poradie podľa `CuttingLengthMm` s deterministickými tie-breakermi,
+- atomická aktualizácia metadata a labelov,
+- bez zmeny stabilnej automatickej numbering logiky.
+
+### Lokalizovaný katalóg materiálov a adaptívne reporty
+- šesť canonical material hodnôt s display názvami v SK/CS/EN/DE/PL/FR,
+- bezpečné zachovanie neznámych legacy materiálov,
+- canonical `Material` zostáva súčasťou metadata a `TimberElementSignature`,
+- dvojriadkový reportový materiál bez oddeľovacej pomlčky,
+- dynamické šírky Typ/Materiál podľa skutočného obsahu reportu.
 
 Tieto funkcie zostávajú v histórii projektu a regresných testoch.

@@ -40,7 +40,9 @@ public sealed class LocalizationFoundationTests
         "Message_DirectionNormal", "Message_DirectionReversed", "Command_Report_PromptSelection",
         "Command_Report_NoneFound", "Command_Report_ElementSkippedFormat", "Command_Report_NoValidElements",
         "Command_Report_PromptInsertionPoint", "Command_Report_InsertedFormat", "Command_Recalc_ElementErrorFormat",
-        "Command_Recalc_ResultFormat", "Command_Assign_Prompt", "Command_Assign_PromptTypeFormat",
+        "Command_Recalc_ResultFormat", "Command_Renumber_ConfirmPrompt", "Command_Renumber_NoElements",
+        "Command_Renumber_ResultFormat", "Command_Renumber_FailedFormat",
+        "Command_Assign_Prompt", "Command_Assign_PromptTypeFormat",
         "Command_Assign_ResultFormat", "Command_PostFootprint_EdgePrompt",
         "Command_PostFootprint_PolylineOnly", "Command_PostFootprint_InvalidGeometry",
         "Command_PostFootprint_AmbiguousPick", "Command_PostFootprint_PickTooFar",
@@ -85,7 +87,8 @@ public sealed class LocalizationFoundationTests
         "CommandUi_Brace_Tooltip", "CommandUi_TieBeam_Label", "CommandUi_TieBeam_Tooltip",
         "CommandUi_Assign_Label", "CommandUi_Assign_Tooltip", "CommandUi_Edit_Label",
         "CommandUi_Edit_Tooltip", "CommandUi_Inspect_Label", "CommandUi_Inspect_Tooltip",
-        "CommandUi_Recalc_Label", "CommandUi_Recalc_Tooltip", "CommandUi_Report_Label",
+        "CommandUi_Recalc_Label", "CommandUi_Recalc_Tooltip", "CommandUi_Renumber_Label",
+        "CommandUi_Renumber_Tooltip", "CommandUi_Report_Label",
         "CommandUi_Report_Tooltip", "CommandUi_ReportAll_Label", "CommandUi_ReportAll_Tooltip",
         "CommandUi_Settings_Label", "CommandUi_Settings_Tooltip", "CommandUi_Labels_Label",
         "CommandUi_Labels_Tooltip", "CommandUi_Toolbar_Label", "CommandUi_Toolbar_Tooltip",
@@ -95,7 +98,7 @@ public sealed class LocalizationFoundationTests
         "Error_NoActiveDrawing", "Error_UnsupportedTimberGeometry", "Error_LabelUnsupportedEntityType",
         "Error_XDataTooLargeFormat", "Error_SlopeAnnotationUnsupportedEntityType",
         "Error_UnsupportedSlopeGlyph", "Error_InvalidElementLayerFormat", "Error_InvalidAnnotationLayerFormat",
-        "Error_InvalidSlopeDegrees",
+        "Error_InvalidSlopeDegrees", "Error_Renumber_EntityUnavailable",
     ];
 
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -282,7 +285,7 @@ public sealed class LocalizationFoundationTests
     [Fact]
     public void CommandAndMessageResourceKeys_AllExist()
     {
-        Assert.Equal(89, CommandAndMessageResourceKeys.Length);
+        Assert.Equal(93, CommandAndMessageResourceKeys.Length);
         Assert.All(CommandAndMessageResourceKeys, key =>
         {
             var value = UiStrings.GetString(key, CultureInfo.GetCultureInfo("sk-SK"));
@@ -364,7 +367,7 @@ public sealed class LocalizationFoundationTests
     [Fact]
     public void RibbonToolbarResourceKeys_ExistForAllSupportedCultures()
     {
-        Assert.Equal(41, RibbonToolbarResourceKeys.Length);
+        Assert.Equal(43, RibbonToolbarResourceKeys.Length);
 
         foreach (var key in RibbonToolbarResourceKeys)
         {
@@ -386,10 +389,10 @@ public sealed class LocalizationFoundationTests
             "AK_APPLYLAYERS", "AK_LABELS", "AK_LABELSELECTED", "AK_LABELSHOW", "AK_LABELHIDE",
             "AK_ASSIGN", "AK_KROKVA", "AK_POMURNICA", "AK_VAZNICA", "AK_STLPIK", "AK_KLIESTINA",
             "AK_VZPERA", "AK_VAZNYTRAM", "AK_EDIT", "AK_FLIPSLOPE", "AK_INSPECT", "AK_REPORT",
-            "AK_REPORTALL", "AK_RECALC",
+            "AK_REPORTALL", "AK_RECALC", "AK_RENUMBER",
         };
 
-        Assert.Equal(25, AcKrovyCommandNames.All.Count);
+        Assert.Equal(26, AcKrovyCommandNames.All.Count);
         Assert.Equal(expected, AcKrovyCommandNames.All);
         Assert.All(AcKrovyCommandNames.All, command => Assert.StartsWith("AK_", command, StringComparison.Ordinal));
     }
@@ -410,6 +413,7 @@ public sealed class LocalizationFoundationTests
             ("AK_EDIT", "DECORAIR_AK_EDIT", "edit", "Upraviť"),
             ("AK_INSPECT", "DECORAIR_AK_INSPECT", "inspect", "Skontrolovať"),
             ("AK_RECALC", "DECORAIR_AK_RECALC", "recalc", "Prepočítať"),
+            ("AK_RENUMBER", "DECORAIR_AK_RENUMBER", "recalc", "Prečíslovať"),
             ("AK_REPORT", "DECORAIR_AK_REPORT", "report_selection", "Výkaz z výberu"),
             ("AK_REPORTALL", "DECORAIR_AK_REPORTALL", "report_all", "Výkaz všetkého"),
             ("AK_SETTINGS", "DECORAIR_AK_SETTINGS", "settings", "Nastavenia"),
@@ -432,7 +436,7 @@ public sealed class LocalizationFoundationTests
             Assert.False(string.IsNullOrWhiteSpace(descriptor.GetToolTip(CultureInfo.GetCultureInfo("sk-SK"))));
         }
 
-        Assert.Equal(15, CommandUiCatalog.ClassicToolbarCommands.Count);
+        Assert.Equal(16, CommandUiCatalog.ClassicToolbarCommands.Count);
         Assert.DoesNotContain(CommandUiCatalog.Toolbar, CommandUiCatalog.ClassicToolbarCommands);
     }
 
@@ -446,7 +450,7 @@ public sealed class LocalizationFoundationTests
     [Fact]
     public void AdapterGuardResourceKeys_ExistForAllSupportedCultures()
     {
-        Assert.Equal(9, AdapterGuardResourceKeys.Length);
+        Assert.Equal(10, AdapterGuardResourceKeys.Length);
 
         foreach (var key in AdapterGuardResourceKeys)
         {
@@ -512,6 +516,8 @@ public sealed class LocalizationFoundationTests
             (UiStrings.CommandReportInsertedFormat, [5, 1, 0.1234d]),
             (UiStrings.CommandRecalcElementErrorFormat, ["K1", "chyba"]),
             (UiStrings.CommandRecalcResultFormat, [5, 0, 5, 0]),
+            (UiStrings.CommandRenumberResultFormat, [5, 3, 2, 4]),
+            (UiStrings.CommandRenumberFailedFormat, ["chyba"]),
             (UiStrings.CommandAssignPromptTypeFormat, ["Krokva"]),
             (UiStrings.CommandAssignResultFormat, [5, 0]),
             (UiStrings.CommandLayersElementSkippedFormat, ["chyba"]),

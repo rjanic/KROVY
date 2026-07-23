@@ -4,6 +4,49 @@ namespace AcKrovy.Core.Services;
 
 public static class TimberElementItemNumbering
 {
+    /// <summary>
+    /// Explicitly compacts all item numbers by final cutting length. Unlike
+    /// <see cref="AssignElementIds(IEnumerable{TimberElementMeasurement})"/>,
+    /// this method intentionally does not preserve gaps or previous numbers.
+    /// </summary>
+    public static IReadOnlyList<TimberElementRenumberingAssignment> RenumberElementIdsByCuttingLength(
+        IEnumerable<TimberElementMeasurement> measurements)
+    {
+        if (measurements is null)
+        {
+            throw new ArgumentNullException(nameof(measurements));
+        }
+
+        var materialized = measurements.ToList();
+        var newIdsBySignature = materialized
+            .Select(TimberElementSignature.FromMeasurement)
+            .Distinct()
+            .OrderBy(signature => signature.ElementType)
+            .ThenBy(signature => signature.CuttingLengthMm)
+            .ThenBy(signature => signature.WidthMm)
+            .ThenBy(signature => signature.HeightMm)
+            .ThenBy(signature => signature.Material, StringComparer.Ordinal)
+            .GroupBy(signature => signature.ElementType)
+            .SelectMany(group => group.Select((signature, index) => new
+            {
+                Signature = signature,
+                ElementId = TimberElementIdentityRules.CreateElementId(group.Key, index + 1),
+            }))
+            .ToDictionary(item => item.Signature, item => item.ElementId);
+
+        return materialized
+            .Select(measurement =>
+            {
+                var signature = TimberElementSignature.FromMeasurement(measurement);
+                return new TimberElementRenumberingAssignment(
+                    measurement,
+                    signature,
+                    measurement.Data.ElementId,
+                    newIdsBySignature[signature]);
+            })
+            .ToList();
+    }
+
     public static IReadOnlyList<TimberElementItemAssignment> AssignElementIds(
         IEnumerable<TimberElementMeasurement> measurements)
     {
