@@ -1,8 +1,8 @@
 # ACAD KROVY – PROJECT CONTEXT
 
-**Aktualizované:** 23. 7. 2026
+**Aktualizované:** 25. 7. 2026
 
-**Stabilný základ pred v0.16.0:** `99b3f2c434aa813aa2f3d4138eab0b55d9720875`
+**Stabilný základ pred v0.17.0:** `b4833746dc0b66a2c22ecdebb4f6f048877c75fe`
 
 **Branch:** `main`
 
@@ -232,6 +232,9 @@ Stabilný commit: `4a951041e2deef40a127ac9560cf6fb2ba4b6a5b`
   používajú self-contained BlockContent s atribútom `ITEM_NO`,
 - rámčekové MLeadery používajú Spline, insertion-point attachment, uhol 40°,
   dodatočný offset 350 mm a persistentný lokálny manuálny offset,
+- Circle používa jednu definíciu s priemerom 520 mm a BlockScale 1 bez
+  textovo alebo typovo závislých veľkostí; staré 760/1800 mm varianty sa pri
+  reconcile cielene normalizujú so zachovaním manuálneho offsetu,
 - `DimensionsLeader` zobrazuje cez rovnaký natívny MLeader iba prierez vo formáte `80x160`,
 - `AK_SETTINGS` ukladá default pre nové prvky a explicitne ho vie aplikovať na
   výber alebo všetky prvky,
@@ -240,6 +243,35 @@ Stabilný commit: `4a951041e2deef40a127ac9560cf6fb2ba4b6a5b`
   COPY/COPYCLIP, WBLOCK a AK_RENUMBER,
 - Post používa footprint-aware anchor hlavnej anotácie; jeho `⊥ 90°` sa nemení,
 - Custom stručné režimy nezobrazujú používateľský názov definície.
+
+### Layer Linetypes / Typy čiar timber vrstiev
+- CAD-neutrálny `ElementLayerProfile` v3 persistuje stabilný názov vrstvy,
+  ACI farbu, textový `LinetypeName` a číselný per-entity `LinetypeScale`;
+  timber metadata schema zostáva v4,
+- Krokva má default `DASHDOT`, ostatné built-in typy a spoločný `KROV_CUSTOM`
+  používajú `Continuous`; scale je `0.5` pre Krokvu a `1.0` pre ostatné,
+- AutoCAD adapter rešpektuje už načítaný `LinetypeTableRecord`, chýbajúci
+  podporovaný typ načíta cez `Database.LoadLineTypeFile` z `acadiso.lin`
+  vyhľadaného AutoCAD support paths a pri chybe použije `Continuous`,
+- timber geometria používa Color aj Linetype `ByLayer`; annotation, slope
+  a Post `⊥ 90°` entity zostávajú mimo layer-profile workflowu,
+- otvorenie settings je read-only; existujúce vrstvy a prvky sa menia iba
+  explicitným Apply na výber alebo všetky prvky,
+- nové priradenie existujúcu konfliktnú vrstvu zachová bez explicitného entity
+  override; odlišný vzhľad iba nových prvkov vyžaduje nový názov vrstvy,
+- modal `AK_SETTINGS` používa validovaný callback a `Editor.StartUserInteraction`
+  pre výber; po Apply zostáva otvorený, profilový fingerprint riadi iba
+  persistenciu profilu a neblokuje opakovaný Selection/All dispatch,
+- otvorené `AK_SETTINGS` regeneruje lokalizované annotation/style/apply/color
+  zdroje atómovou výmenou kompletnej kolekcie po `LanguageChanged`; výber držia
+  stabilné enumy a vždy sa obnoví až po dostupnosti novej ItemsSource,
+- neblokujúce výsledky používa ako overlay banner so stabilným resource key,
+  severity a argumentmi; jeden restartovaný `DispatcherTimer` ho skryje po 2 s,
+- rovnaký fyzický layer môže zdieľať viac profilov iba s identickou farbou
+  a linetype; konflikt sa odmietne pred uložením,
+- vizuálny míľnik `v0.18.0 – Settings Fashion Look` zostáva iba v backlogu;
+  v0.17.0 nemení vizuálny systém WPF okien,
+- definícia linetype a entity scale sú súčasť DWG; globálne scale premenné sa nemenia.
 
 ## Povinné kompatibilitné pravidlá
 

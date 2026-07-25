@@ -439,6 +439,72 @@ internal static class ElementLabelService
             .ToList();
     }
 
+    internal static IReadOnlySet<ObjectId> FindCircleNormalizationSourceIds(
+        Database database,
+        Transaction transaction,
+        IReadOnlyCollection<ObjectId> sourceIds)
+    {
+        var sourceIdByHandle = sourceIds
+            .Distinct()
+            .Select(id => (
+                Id: id,
+                Entity: transaction.GetObject(id, OpenMode.ForRead, false) as Entity))
+            .Where(entry => entry.Entity is not null)
+            .ToDictionary(
+                entry => entry.Entity!.Handle.ToString(),
+                entry => entry.Id,
+                StringComparer.OrdinalIgnoreCase);
+        var result = new HashSet<ObjectId>();
+
+        foreach (var annotation in ReadLabels(database, transaction))
+        {
+            if (annotation.Data.ItemNumberLeaderStyle != ItemNumberLeaderStyle.Circle ||
+                !sourceIdByHandle.TryGetValue(annotation.Data.SourceHandle, out var sourceId) ||
+                transaction.GetObject(annotation.Id, OpenMode.ForRead, false) is not
+                    MLeader leader ||
+                !RequiresCircleNormalization(transaction, leader))
+            {
+                continue;
+            }
+
+            result.Add(sourceId);
+        }
+
+        return result;
+    }
+
+    private static bool RequiresCircleNormalization(
+        Transaction transaction,
+        MLeader leader)
+    {
+        if (leader.ContentType != ContentType.BlockContent ||
+            leader.BlockContentId.IsNull ||
+            Math.Abs(
+                leader.BlockScale.X -
+                TimberItemLeaderBlockDefinitionRules.BlockScale) > 0.001d ||
+            Math.Abs(
+                leader.BlockScale.Y -
+                TimberItemLeaderBlockDefinitionRules.BlockScale) > 0.001d ||
+            Math.Abs(
+                leader.BlockScale.Z -
+                TimberItemLeaderBlockDefinitionRules.BlockScale) > 0.001d ||
+            transaction.GetObject(leader.BlockContentId, OpenMode.ForRead, false) is not
+                BlockTableRecord block)
+        {
+            return true;
+        }
+
+        var circles = block
+            .Cast<ObjectId>()
+            .Select(id => transaction.GetObject(id, OpenMode.ForRead, true))
+            .OfType<Circle>()
+            .Where(circle => !circle.IsErased)
+            .ToArray();
+        return circles.Length != 1 ||
+            !TimberItemLeaderBlockDefinitionRules.HasExpectedCircleDiameter(
+                circles[0].Radius * 2d);
+    }
+
     internal static void PersistFramedManualOffsets(
         Database database,
         Transaction transaction,
@@ -1331,7 +1397,8 @@ internal static class ElementLabelService
         leader.ContentType = ContentType.BlockContent;
         leader.BlockContentId = block.BlockId;
         leader.BlockConnectionType = BlockConnectionType.ConnectBase;
-        leader.BlockScale = new Scale3d(1d);
+        leader.BlockScale = new Scale3d(
+            TimberItemLeaderBlockDefinitionRules.BlockScale);
         leader.BlockRotation = 0d;
         leader.BlockPosition = placement.TextLocation;
 

@@ -3,12 +3,18 @@ using AcKrovy.Core.Models;
 namespace AcKrovy.Cad.Abstractions.Layers;
 
 /// <summary>
-/// Používateľské pravidlá, ktoré určujú, na akú hladinu a farbu sa zaradí
+/// Používateľské pravidlá, ktoré určujú, na akú hladinu, farbu a typ čiary sa zaradí
 /// inteligentný prvok ACAD KROVY.
 /// </summary>
 public sealed class ElementLayerProfile
 {
-    public int Version { get; set; } = 1;
+    public const int CurrentVersion = 3;
+    public const double MinLinetypeScale = 0.01;
+    public const double MaxLinetypeScale = 1000.0;
+    public const double DefaultRafterLinetypeScale = 0.5;
+    public const double DefaultOtherLinetypeScale = 1.0;
+
+    public int Version { get; set; } = CurrentVersion;
     public List<ElementLayerStyle> Styles { get; set; } = new();
 
     public ElementLayerStyle GetStyle(TimberElementType type)
@@ -27,7 +33,7 @@ public sealed class ElementLayerProfile
         var defaults = CreateDefault();
         return new ElementLayerProfile
         {
-            Version = Version <= 0 ? 1 : Version,
+            Version = CurrentVersion,
             Styles = Enum
                 .GetValues(typeof(TimberElementType))
                 .Cast<TimberElementType>()
@@ -46,6 +52,12 @@ public sealed class ElementLayerProfile
                         ColorIndex = stored is { ColorIndex: >= 1 and <= 255 }
                             ? stored.ColorIndex
                             : fallback.ColorIndex,
+                        LinetypeName = string.IsNullOrWhiteSpace(stored?.LinetypeName)
+                            ? fallback.LinetypeName
+                            : stored!.LinetypeName.Trim(),
+                        LinetypeScale = IsValidLinetypeScale(stored?.LinetypeScale)
+                            ? stored!.LinetypeScale
+                            : fallback.LinetypeScale,
                     };
                 })
                 .ToList(),
@@ -56,7 +68,12 @@ public sealed class ElementLayerProfile
     {
         Styles = new List<ElementLayerStyle>
         {
-            new(TimberElementType.Rafter, "KROKVA", 2),
+            new(
+                TimberElementType.Rafter,
+                "KROKVA",
+                2,
+                CadLinetypeNames.DashDot,
+                DefaultRafterLinetypeScale),
             new(TimberElementType.WallPlate, "POMURNICA", 30),
             new(TimberElementType.Purlin, "VAZNICA", 4),
             new(TimberElementType.Post, "STLPIK", 3),
@@ -66,6 +83,18 @@ public sealed class ElementLayerProfile
             new(TimberElementType.Custom, "KROV_CUSTOM", 7),
         },
     };
+
+    public static double GetDefaultLinetypeScale(TimberElementType type) =>
+        type == TimberElementType.Rafter
+            ? DefaultRafterLinetypeScale
+            : DefaultOtherLinetypeScale;
+
+    public static bool IsValidLinetypeScale(double? value) =>
+        value is { } scale &&
+        !double.IsNaN(scale) &&
+        !double.IsInfinity(scale) &&
+        scale >= MinLinetypeScale &&
+        scale <= MaxLinetypeScale;
 }
 
 public sealed class ElementLayerStyle
@@ -75,13 +104,41 @@ public sealed class ElementLayerStyle
     }
 
     public ElementLayerStyle(TimberElementType elementType, string layerName, int colorIndex)
+        : this(elementType, layerName, colorIndex, CadLinetypeNames.Continuous)
+    {
+    }
+
+    public ElementLayerStyle(
+        TimberElementType elementType,
+        string layerName,
+        int colorIndex,
+        string linetypeName)
+        : this(
+            elementType,
+            layerName,
+            colorIndex,
+            linetypeName,
+            ElementLayerProfile.GetDefaultLinetypeScale(elementType))
+    {
+    }
+
+    public ElementLayerStyle(
+        TimberElementType elementType,
+        string layerName,
+        int colorIndex,
+        string linetypeName,
+        double linetypeScale)
     {
         ElementType = elementType;
         LayerName = layerName;
         ColorIndex = colorIndex;
+        LinetypeName = linetypeName;
+        LinetypeScale = linetypeScale;
     }
 
     public TimberElementType ElementType { get; set; }
     public string LayerName { get; set; } = string.Empty;
     public int ColorIndex { get; set; }
+    public string LinetypeName { get; set; } = string.Empty;
+    public double LinetypeScale { get; set; }
 }

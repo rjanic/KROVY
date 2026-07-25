@@ -260,7 +260,8 @@ internal static class AcKrovyItemLeaderBlockService
         {
             ItemNumberLeaderStyle.Circle =>
                 frames[0] is Circle circle &&
-                Math.Abs(circle.Radius * 2d - definition.WidthMm) <= 0.001d,
+                TimberItemLeaderBlockDefinitionRules.HasExpectedCircleDiameter(
+                    circle.Radius * 2d),
             ItemNumberLeaderStyle.Slot =>
                 frames[0] is Polyline slot &&
                 slot.Closed &&

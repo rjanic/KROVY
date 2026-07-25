@@ -107,6 +107,8 @@
   <data name="Command_PostFootprint_UnsupportedPlane" xml:space="preserve"><value>&#xA;Les lignes doivent se trouver dans le même plan horizontal pris en charge et à la même élévation.</value></data>
   <data name="Command_Layers_ElementSkippedFormat" xml:space="preserve"><value>&#xA;Élément ignoré lors de la définition de son calque : {0}</value></data>
   <data name="Command_Layers_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY : éléments déplacés sur les calques : {0}. Ignorés : {1}.</value></data>
+  <data name="Warning_Linetype_FallbackFormat" xml:space="preserve"><value>&#xA;Impossible de charger le type de ligne « {0} ». {1} a été utilisé.</value></data>
+  <data name="Warning_ExistingLayerPreservedFormat" xml:space="preserve"><value>&#xA;Le calque « {0} » existe déjà avec des propriétés différentes. Il n'a pas été modifié afin de préserver les objets existants. Utilisez Appliquer à tous ou un nouveau nom de calque.</value></data>
   <data name="Command_Settings_ApplyElementSkippedFormat" xml:space="preserve"><value>&#xA;Élément ignoré lors de l'application des paramètres : {0}</value></data>
   <data name="Command_Settings_ApplyResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY : surcotes de coupe appliquées à {0} éléments. Ignorés : {1}.</value></data>
   <data name="Command_Labels_Shown" xml:space="preserve"><value>&#xA;ACAD KROVY : les étiquettes du calque KROV_POPIS sont affichées.</value></data>
@@ -122,6 +124,8 @@
   <data name="Dialog_Edit_PositiveNumberFormat" xml:space="preserve"><value>Le champ « {0} » doit contenir un nombre positif.</value></data>
   <data name="Dialog_Layers_ErrorFormat" xml:space="preserve"><value>{0} : {1}</value></data>
   <data name="Dialog_Layers_DuplicateFormat" xml:space="preserve"><value>Le calque « {0} » est indiqué plusieurs fois. Chaque type d'élément doit avoir son propre calque.</value></data>
+  <data name="Dialog_Layers_ConflictFormat" xml:space="preserve"><value>Le calque « {0} » est utilisé avec une couleur ou un type de ligne différent. Choisissez des valeurs identiques pour le même calque.</value></data>
+  <data name="Dialog_Layers_LinetypeScaleFormat" xml:space="preserve"><value>{0} : l'échelle du type de ligne doit être un nombre fini compris entre {1:0.##} et {2:0.##}, supérieur à zéro.</value></data>
   <data name="Dialog_Settings_RoundingStepFormat" xml:space="preserve"><value>Le pas d'arrondi de la longueur de fabrication doit être un nombre entier positif en millimètres, inférieur ou égal à {0:0}.</value></data>
   <data name="Dialog_Settings_CuttingAllowanceFormat" xml:space="preserve"><value>{0} : la surcote de coupe doit être un nombre positif ou nul en millimètres, inférieur ou égal à {1:0}.</value></data>
   <data name="Error_LayerName_Empty" xml:space="preserve"><value>Le nom du calque ne peut pas être vide.</value></data>
@@ -155,6 +159,23 @@
   <data name="SettingsWindow_Layers_ElementTypeColumn" xml:space="preserve"><value>Type d'élément</value></data>
   <data name="SettingsWindow_Layers_LayerNameColumn" xml:space="preserve"><value>Nom du calque</value></data>
   <data name="SettingsWindow_Layers_LayerColorColumn" xml:space="preserve"><value>Couleur du calque</value></data>
+  <data name="SettingsWindow_Layers_LinetypeColumn" xml:space="preserve"><value>Type de ligne</value></data>
+  <data name="SettingsWindow_Layers_LinetypeScaleColumn" xml:space="preserve"><value>Échelle du type de ligne</value></data>
+  <data name="SettingsWindow_Apply" xml:space="preserve"><value>Appliquer</value></data>
+  <data name="SettingsWindow_Close" xml:space="preserve"><value>Fermer</value></data>
+  <data name="SettingsWindow_SettingsApplied" xml:space="preserve"><value>Les paramètres ont été appliqués.</value></data>
+  <data name="SettingsWindow_NoChanges" xml:space="preserve"><value>Aucune modification n'a été détectée.</value></data>
+  <data name="SettingsWindow_ProfileSavedNewOnly" xml:space="preserve"><value>Le profil a été enregistré uniquement pour les nouveaux éléments.</value></data>
+  <data name="SettingsWindow_DefaultsRestored" xml:space="preserve"><value>Les valeurs par défaut ont été restaurées.</value></data>
+  <data name="SettingsWindow_LinetypeFallbackFormat" xml:space="preserve"><value>Impossible de charger le type de ligne « {0} ». Le type de ligne de remplacement {1} a été utilisé.</value></data>
+  <data name="SettingsWindow_SelectedElementsApplied" xml:space="preserve"><value>Les paramètres ont été appliqués aux éléments sélectionnés.</value></data>
+  <data name="SettingsWindow_SelectedElementsAlreadyMatch" xml:space="preserve"><value>Les éléments sélectionnés correspondent déjà aux paramètres.</value></data>
+  <data name="SettingsWindow_NoSmartElementsSelected" xml:space="preserve"><value>Aucun élément intelligent n'a été sélectionné.</value></data>
+  <data name="SettingsWindow_SelectionCancelled" xml:space="preserve"><value>La sélection a été annulée.</value></data>
+  <data name="SettingsWindow_AllElementsApplied" xml:space="preserve"><value>Les paramètres ont été appliqués à tous les éléments.</value></data>
+  <data name="SettingsWindow_AllElementsAlreadyMatch" xml:space="preserve"><value>Tous les éléments correspondent déjà aux paramètres.</value></data>
+  <data name="SettingsWindow_ExistingLayerInfoFormat" xml:space="preserve"><value>Les calques {0} existent déjà avec des propriétés différentes et n'ont pas été modifiés. Pour appliquer des propriétés différentes uniquement aux nouveaux éléments, utilisez un nouveau nom de calque ou une application explicite.</value></data>
+  <data name="SettingsWindow_ValidationFailed" xml:space="preserve"><value>Corrigez les valeurs non valides. Les paramètres n'ont pas été appliqués.</value></data>
   <data name="SettingsWindow_Manufacturing_Tab" xml:space="preserve"><value>Surcotes de coupe</value></data>
   <data name="SettingsWindow_Manufacturing_Description" xml:space="preserve"><value>La surcote de coupe par défaut est utilisée lors de la nouvelle attribution d'un élément. Lors de l'enregistrement, vous pouvez choisir de l'appliquer également aux éléments existants.</value></data>
   <data name="SettingsWindow_Manufacturing_RoundingStep" xml:space="preserve"><value>Arrondir la longueur de fabrication au multiple supérieur de [mm]</value></data>

@@ -48,11 +48,13 @@ public sealed class LocalizationFoundationTests
         "Command_PostFootprint_AmbiguousPick", "Command_PostFootprint_PickTooFar",
         "Command_PostFootprint_AssignRedirect",
         "Command_PostFootprint_AssignedFormat", "Command_Layers_ElementSkippedFormat", "Command_Layers_ResultFormat",
+        "Warning_Linetype_FallbackFormat", "Warning_ExistingLayerPreservedFormat",
         "Command_Settings_ApplyElementSkippedFormat", "Command_Settings_ApplyResultFormat", "Command_Labels_Shown",
         "Command_Labels_Hidden", "Command_Labels_LayerMissing", "Command_Prompt_RemoveSelection",
         "Warning_LiveRefreshSkippedFormat", "Dialog_Edit_FieldWidth", "Dialog_Edit_FieldHeight",
         "Dialog_Edit_FieldCuttingAllowance", "Dialog_Edit_FieldManualLength", "Dialog_Edit_WholeNonnegativeFormat",
         "Dialog_Edit_PositiveNumberFormat", "Dialog_Layers_ErrorFormat", "Dialog_Layers_DuplicateFormat",
+        "Dialog_Layers_ConflictFormat", "Dialog_Layers_LinetypeScaleFormat",
         "Dialog_Settings_RoundingStepFormat", "Dialog_Settings_CuttingAllowanceFormat", "Error_LayerName_Empty",
         "Error_LayerName_TooLong", "Error_LayerName_InvalidCharacter",
     ];
@@ -67,12 +69,21 @@ public sealed class LocalizationFoundationTests
         "EditWindow_DefaultAllowanceTooltip", "SettingsWindow_Title", "SettingsWindow_Heading",
         "SettingsWindow_Description", "SettingsWindow_Layers_Tab", "SettingsWindow_Layers_ElementTypeColumn",
         "SettingsWindow_Layers_LayerNameColumn", "SettingsWindow_Layers_LayerColorColumn",
+        "SettingsWindow_Layers_LinetypeColumn", "SettingsWindow_Layers_LinetypeScaleColumn",
         "SettingsWindow_Manufacturing_Tab", "SettingsWindow_Manufacturing_Description",
         "SettingsWindow_Manufacturing_RoundingStep", "SettingsWindow_Manufacturing_ElementTypeColumn",
         "SettingsWindow_Manufacturing_DefaultAllowanceColumn", "SettingsWindow_Language_Tab",
         "SettingsWindow_Language_Description", "SettingsWindow_Language_Label", "SettingsWindow_RestoreDefaults",
         "SettingsWindow_Cancel", "SettingsWindow_Save", "SettingsWindow_SaveNewElementsOnly", "SettingsWindow_SaveApplySelection",
-        "SettingsWindow_SaveApplyAll", "LayerColor_Red", "LayerColor_Yellow", "LayerColor_Green",
+        "SettingsWindow_SaveApplyAll", "SettingsWindow_Apply", "SettingsWindow_Close",
+        "SettingsWindow_SettingsApplied", "SettingsWindow_NoChanges",
+        "SettingsWindow_ProfileSavedNewOnly", "SettingsWindow_DefaultsRestored",
+        "SettingsWindow_LinetypeFallbackFormat",
+        "SettingsWindow_SelectedElementsApplied", "SettingsWindow_SelectedElementsAlreadyMatch",
+        "SettingsWindow_NoSmartElementsSelected", "SettingsWindow_SelectionCancelled",
+        "SettingsWindow_AllElementsApplied", "SettingsWindow_AllElementsAlreadyMatch",
+        "SettingsWindow_ExistingLayerInfoFormat", "SettingsWindow_ValidationFailed",
+        "LayerColor_Red", "LayerColor_Yellow", "LayerColor_Green",
         "LayerColor_Cyan", "LayerColor_Blue", "LayerColor_Magenta", "LayerColor_Orange", "LayerColor_Gray",
         "LayerColor_LightGray", "InspectWindow_Title", "InspectWindow_Heading", "InspectWindow_Close",
     ];
@@ -286,7 +297,7 @@ public sealed class LocalizationFoundationTests
     [Fact]
     public void CommandAndMessageResourceKeys_AllExist()
     {
-        Assert.Equal(93, CommandAndMessageResourceKeys.Length);
+        Assert.Equal(97, CommandAndMessageResourceKeys.Length);
         Assert.All(CommandAndMessageResourceKeys, key =>
         {
             var value = UiStrings.GetString(key, CultureInfo.GetCultureInfo("sk-SK"));
@@ -298,7 +309,7 @@ public sealed class LocalizationFoundationTests
     [Fact]
     public void WpfUiResourceKeys_ExistForAllSupportedCultures()
     {
-        Assert.Equal(54, WpfUiResourceKeys.Length);
+        Assert.Equal(71, WpfUiResourceKeys.Length);
 
         foreach (var key in WpfUiResourceKeys)
         {

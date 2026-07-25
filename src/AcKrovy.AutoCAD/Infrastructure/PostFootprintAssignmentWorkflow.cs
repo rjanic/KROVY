@@ -93,7 +93,10 @@ internal static class PostFootprintAssignmentWorkflow
 
         var metadataStore = new AutoCadTimberElementMetadataStore(transaction);
         metadataStore.Write(polyline, merged);
-        var layerService = new AutoCadTimberLayerService(document.Database, transaction);
+        var layerService = new AutoCadTimberLayerService(
+            document.Database,
+            transaction,
+            document.Editor);
         layerService.ApplyLayerForTimberType(
             polyline,
             TimberElementType.Post,

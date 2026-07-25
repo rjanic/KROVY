@@ -4,5 +4,11 @@ namespace AcKrovy.Cad.Abstractions.Layers;
 
 public interface ICadLayerService<TEntity>
 {
-    void ApplyLayerForTimberType(TEntity entity, TimberElementType elementType, ElementLayerProfile profile);
+    IReadOnlyList<string> GetAvailableLinetypeNames();
+
+    CadLayerApplyResult ApplyLayerForTimberType(
+        TEntity entity,
+        TimberElementType elementType,
+        ElementLayerProfile profile,
+        CadLayerUpdateMode updateMode = CadLayerUpdateMode.PreserveExisting);
 }

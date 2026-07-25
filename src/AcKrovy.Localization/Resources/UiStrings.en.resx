@@ -107,6 +107,8 @@
   <data name="Command_PostFootprint_UnsupportedPlane" xml:space="preserve"><value>&#xA;The lines must lie in the same supported plan plane and elevation.</value></data>
   <data name="Command_Layers_ElementSkippedFormat" xml:space="preserve"><value>&#xA;Element skipped while setting its layer: {0}</value></data>
   <data name="Command_Layers_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: elements moved to layers: {0}. Skipped: {1}.</value></data>
+  <data name="Warning_Linetype_FallbackFormat" xml:space="preserve"><value>&#xA;Could not load linetype “{0}”. {1} was used.</value></data>
+  <data name="Warning_ExistingLayerPreservedFormat" xml:space="preserve"><value>&#xA;Layer “{0}” already exists with different properties. The layer was not changed to preserve existing objects. Use Apply to all or a new layer name.</value></data>
   <data name="Command_Settings_ApplyElementSkippedFormat" xml:space="preserve"><value>&#xA;Element skipped while applying settings: {0}</value></data>
   <data name="Command_Settings_ApplyResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: cutting allowances applied to {0} elements. Skipped: {1}.</value></data>
   <data name="Command_Labels_Shown" xml:space="preserve"><value>&#xA;ACAD KROVY: labels on layer KROV_POPIS are visible.</value></data>
@@ -122,6 +124,8 @@
   <data name="Dialog_Edit_PositiveNumberFormat" xml:space="preserve"><value>The “{0}” field must contain a positive number.</value></data>
   <data name="Dialog_Layers_ErrorFormat" xml:space="preserve"><value>{0}: {1}</value></data>
   <data name="Dialog_Layers_DuplicateFormat" xml:space="preserve"><value>Layer “{0}” is specified more than once. Each element type must have its own layer.</value></data>
+  <data name="Dialog_Layers_ConflictFormat" xml:space="preserve"><value>Layer “{0}” is used with a different color or linetype. Choose identical values for the same layer.</value></data>
+  <data name="Dialog_Layers_LinetypeScaleFormat" xml:space="preserve"><value>{0}: linetype scale must be a finite number from {1:0.##} to {2:0.##} and greater than zero.</value></data>
   <data name="Dialog_Settings_RoundingStepFormat" xml:space="preserve"><value>The fabrication-length rounding increment must be a positive whole number in millimeters, no greater than {0:0}.</value></data>
   <data name="Dialog_Settings_CuttingAllowanceFormat" xml:space="preserve"><value>{0}: the cutting allowance must be a non-negative number in millimeters, no greater than {1:0}.</value></data>
   <data name="Error_LayerName_Empty" xml:space="preserve"><value>The layer name must not be empty.</value></data>
@@ -155,6 +159,23 @@
   <data name="SettingsWindow_Layers_ElementTypeColumn" xml:space="preserve"><value>Element type</value></data>
   <data name="SettingsWindow_Layers_LayerNameColumn" xml:space="preserve"><value>Layer name</value></data>
   <data name="SettingsWindow_Layers_LayerColorColumn" xml:space="preserve"><value>Layer color</value></data>
+  <data name="SettingsWindow_Layers_LinetypeColumn" xml:space="preserve"><value>Linetype</value></data>
+  <data name="SettingsWindow_Layers_LinetypeScaleColumn" xml:space="preserve"><value>Linetype scale</value></data>
+  <data name="SettingsWindow_Apply" xml:space="preserve"><value>Apply</value></data>
+  <data name="SettingsWindow_Close" xml:space="preserve"><value>Close</value></data>
+  <data name="SettingsWindow_SettingsApplied" xml:space="preserve"><value>Settings were applied.</value></data>
+  <data name="SettingsWindow_NoChanges" xml:space="preserve"><value>No changes were detected.</value></data>
+  <data name="SettingsWindow_ProfileSavedNewOnly" xml:space="preserve"><value>The profile was saved for new elements only.</value></data>
+  <data name="SettingsWindow_DefaultsRestored" xml:space="preserve"><value>Default values were restored.</value></data>
+  <data name="SettingsWindow_LinetypeFallbackFormat" xml:space="preserve"><value>Could not load linetype “{0}”. The fallback linetype {1} was used.</value></data>
+  <data name="SettingsWindow_SelectedElementsApplied" xml:space="preserve"><value>Settings were applied to the selected elements.</value></data>
+  <data name="SettingsWindow_SelectedElementsAlreadyMatch" xml:space="preserve"><value>The selected elements already match the settings.</value></data>
+  <data name="SettingsWindow_NoSmartElementsSelected" xml:space="preserve"><value>No intelligent elements were selected.</value></data>
+  <data name="SettingsWindow_SelectionCancelled" xml:space="preserve"><value>The selection was cancelled.</value></data>
+  <data name="SettingsWindow_AllElementsApplied" xml:space="preserve"><value>Settings were applied to all elements.</value></data>
+  <data name="SettingsWindow_AllElementsAlreadyMatch" xml:space="preserve"><value>All elements already match the settings.</value></data>
+  <data name="SettingsWindow_ExistingLayerInfoFormat" xml:space="preserve"><value>Layers {0} already exist with different properties and were not changed. To use different properties only for new elements, use a new layer name or an explicit Apply.</value></data>
+  <data name="SettingsWindow_ValidationFailed" xml:space="preserve"><value>Correct the invalid values. Settings were not applied.</value></data>
   <data name="SettingsWindow_Manufacturing_Tab" xml:space="preserve"><value>Cutting allowances</value></data>
   <data name="SettingsWindow_Manufacturing_Description" xml:space="preserve"><value>The default cutting allowance is used when an element is newly assigned. When saving, you can choose whether to apply it to existing elements as well.</value></data>
   <data name="SettingsWindow_Manufacturing_RoundingStep" xml:space="preserve"><value>Round fabrication length up to [mm]</value></data>

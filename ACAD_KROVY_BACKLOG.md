@@ -1,7 +1,7 @@
 # ACAD KROVY – BACKLOG
 
 **Aktualizované:** 25. 7. 2026
-**Stabilný základ pred v0.16.0:** `99b3f2c434aa813aa2f3d4138eab0b55d9720875`
+**Stabilný základ pred v0.17.0:** `b4833746dc0b66a2c22ecdebb4f6f048877c75fe`
 
 > Tento súbor je úplný zásobník nápadov. Poradie realizácie určuje `ACAD_KROVY_ROADMAP.md`.
 
@@ -64,9 +64,12 @@
 - labely,
 - reportová tabuľka.
 
-### Linetype podľa typu prvku
-- voľba vedľa layer setting,
-- Krokva default bodko-čiarkovaná podľa používateľskej požiadavky.
+### Linetype podľa typu prvku — dokončené vo v0.17.0
+- per-type voľba vedľa layer setting,
+- Krokva default `DASHDOT`/`0.5`, ostatné typy `Continuous`/`1.0`,
+- načítanie z `acadiso.lin`, fallback `Continuous`, ByLayer entity a DWG portability,
+- bez zmeny globálnych linetype scale premenných,
+- budúce: voliteľné nastavenia linetype scale podľa mierky výkresu.
 
 ### True-width element display
 - obdĺžnik/obrys okolo centerline podľa šírky prvku.
@@ -120,6 +123,17 @@
 - automaticky alebo asistovane.
 
 ## F. Nastavenia a internacionalizácia
+
+### v0.18.0 – Settings Fashion Look
+- moderný vizuálny systém WPF okien,
+- ľavá navigácia alebo modernizované sekcie,
+- lepšia typografia, spacing a DPI,
+- malé vektorové ikony,
+- ACI výber farieb 1–255,
+- vizuálne náhľady anotácií,
+- príprava svetlej/tmavej témy.
+
+Fashion Look sa vo v0.17.0 neimplementuje.
 
 ### Default language onboarding
 - Windows UI language,
@@ -207,6 +221,16 @@ Priebežne:
 - runtime localization audit.
 
 ## M. Dokončené položky, ktoré už nie sú otvorený backlog
+
+### Linetype settings v0.17.0
+- per-type `LinetypeName` a `LinetypeScale` v layer profile v3,
+- `DASHDOT`/`0.5` pre Krokvu a `Continuous`/`1.0` pre ostatné typy,
+- AutoCAD načítanie z `acadiso.lin`, fallback, ByLayer a DWG portability,
+- preserve-existing pravidlo pre nové prvky a opakovateľný Apply bez zatvorenia settings,
+- explicitné Apply režimy bez zmeny metadata schema v4 alebo globálnych scale premenných.
+- runtime lokalizácia otvoreného settings regeneruje dynamické ItemsSource
+  atómovou výmenou podľa stabilných enumov bez prázdneho validačného medzistavu
+  a Apply používa 2-sekundový overlay banner.
 
 ### Multilingual foundation
 - SK/CS/EN/DE/PL/FR,

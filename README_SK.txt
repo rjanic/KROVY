@@ -21,13 +21,29 @@ ZÁKLADNÝ WORKFLOW
 - AK_RENUMBER po potvrdení vedome prečísluje všetky výrobné položky podľa
   reznej dĺžky od najkratšej po najdlhšiu.
 - AK_REPORT / AK_REPORTALL vloží výrobný výkaz.
-- AK_SETTINGS nastaví jazyk, hladiny, farby, výrobné defaulty a režim anotácie.
+- AK_SETTINGS nastaví jazyk, hladiny, farby, typy čiar, výrobné defaulty a režim anotácie.
 - AK_LABELS obnoví automatické popisy.
 
 ČÍSLOVANIE
 Bežné automatické číslovanie je stabilné a zachováva medzery. Iba explicitný
 AK_RENUMBER vytvorí v každom type súvislé poradie od 1 podľa CuttingLengthMm.
 Geometria, SourceHandle a ostatné výrobné údaje zostávajú bez zmeny.
+
+VRSTVY A TYPY ČIAR
+Každý timber typ a spoločný profil KROV_CUSTOM má vlastný názov vrstvy, farbu
+a typ čiary. Krokva má default DASHDOT a entity scale 0,5, ostatné typy vrátane
+Custom používajú Continuous a scale 1,0. Timber entity majú farbu aj typ čiary
+ByLayer. Iba nové prvky nikdy neprepíšu existujúcu konfliktnú vrstvu; použijú
+jej aktuálny vzhľad a zobrazí sa upozornenie. Odlišný vzhľad iba nových prvkov
+vyžaduje nový názov vrstvy. Existujúce prvky sa zmenia iba cez explicitné Apply
+na výber alebo celý výkres; tým sa môžu zmeniť aj iné CAD entity na rovnakej
+vrstve. AK_SETTINGS zostáva po Použiť otvorené a režimy výber/všetky možno
+opakovať bez zmeny formulára; zapisujú iba skutočné rozdiely. Samotné otvorenie
+AK_SETTINGS nemení DWG. Chýbajúci DASHDOT sa načíta z metrického acadiso.lin
+cez AutoCAD support paths, pri chybe sa použije Continuous. Definícia zostáva
+uložená v DWG. Globálne scale premenné sa nemenia a annotation vrstvy zostávajú nezávislé.
+Runtime zmena jazyka obnoví dynamické zoznamy bez straty rozpracovaných hodnôt.
+Výsledok Použiť sa zobrazí vo veľkom neblokujúcom 2-sekundovom banneri.
 
 MATERIÁLY A REPORTY
 AK_EDIT ponúka lokalizovaný katalóg šiestich materiálov, ale do DWG vždy

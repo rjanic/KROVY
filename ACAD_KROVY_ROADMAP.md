@@ -1,7 +1,7 @@
 # ACAD KROVY – ROADMAP
 
 **Aktualizované:** 25. 7. 2026
-**Stabilný základ pred v0.16.0:** `99b3f2c434aa813aa2f3d4138eab0b55d9720875`
+**Stabilný základ pred v0.17.0:** `b4833746dc0b66a2c22ecdebb4f6f048877c75fe`
 
 Tento dokument určuje odporúčané poradie ďalšieho vývoja. Úplný zásobník nápadov je v `ACAD_KROVY_BACKLOG.md`.
 
@@ -58,11 +58,20 @@ Report/export model držať v Core.
 
 # FÁZA B – PREZENTAČNÉ A VÝKRESOVÉ NASTAVENIA
 
-## 6. Linetype podľa typu prvku
-V `AK_SETTINGS` vedľa voľby hladiny:
-- voľba linetype,
-- aplikovanie na nové/vybrané/všetky prvky podľa existujúceho settings workflowu,
-- pre Krokvu navrhnúť default bodko-čiarkovanú čiaru.
+## 6. Linetype podľa typu prvku — DOKONČENÉ VO v0.17.0
+- `AK_SETTINGS` ponúka per-type linetype vedľa názvu a farby vrstvy,
+- Krokva používa default `DASHDOT` a entity scale `0.5`; ostatné typy
+  a `KROV_CUSTOM` používajú `Continuous` a scale `1.0`,
+- podporované štandardné definície sa načítajú z metrického `acadiso.lin`
+  cez AutoCAD support paths, s bezpečným fallbackom `Continuous`,
+- timber entity používajú Color aj Linetype `ByLayer`,
+- nové prvky neprepisujú existujúcu konfliktnú vrstvu; vybrané/všetky prvky
+  ju môžu zmeniť iba explicitným Apply,
+- settings zostáva po Apply otvorený a zachová kontext; Selection a All sa dajú
+  opakovať bez zmeny profilu, pričom zapisujú iba skutočné rozdiely,
+- existujúci DWG sa nemení otvorením settings ani lokálnym uložením profilu,
+- typ čiary zostáva portable v DWG; `LTSCALE` sa nemení,
+- metadata timber prvku zostáva schema v4 a Core bez Autodesk dependencies.
 
 ## 7. Mierka anotácií
 Podporovať:
@@ -91,6 +100,17 @@ Preferovať CAD text styles.
 
 Poznámka:
 V používateľskom PDF je pri bode o písme uvedené „default pre všetko 1:50“. Roadmap to interpretuje ako default mierky 1:50. Potrebné neskôr potvrdiť.
+
+## v0.18.0 – Settings Fashion Look
+- moderný vizuálny systém WPF okien,
+- ľavá navigácia alebo modernizované sekcie,
+- lepšia typografia, spacing a DPI,
+- malé vektorové ikony,
+- ACI výber farieb 1–255,
+- vizuálne náhľady anotácií,
+- príprava svetlej/tmavej témy.
+
+Tento vizuálny míľnik nie je súčasťou v0.17.0.
 
 ## 9. Režimy kótovania a popisov — DOKONČENÉ VO v0.16.0
 - `FullLabel`: pôvodný automatický MText,
@@ -310,19 +330,16 @@ Priebežne pri dotyku s danou oblasťou:
 1. Select Similar / filtre
 2. CSV export
 3. Diagnostika/logovanie
-4. Linetype settings
-5. Annotation scale
-6. Fonts/text styles
-7. Label/leader modes
-8. Custom element
-9. AutoCAD 2021–2027 compatibility checkpoint
-10. BricsCAD PoC
-11. Roof Domain Foundation
-12. Automatic roof from points + roof types
-13. Roof planes
-14. Automatic rafters
-15. Hip/valley rafters
-16. True-width element outlines
+4. Annotation scale
+5. Fonts/text styles
+6. AutoCAD 2021–2027 compatibility checkpoint
+7. BricsCAD PoC
+8. Roof Domain Foundation
+9. Automatic roof from points + roof types
+10. Roof planes
+11. Automatic rafters
+12. Hip/valley rafters
+13. True-width element outlines
 17. Automatic visual trim
 18. XLSX/PDF/report linking
 19. Internationalization/productization

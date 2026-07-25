@@ -24,12 +24,29 @@ internal static class TimberElementRenumberingService
         var entries = ReadValidEntries(database, transaction, metadataStore, roundingStepMm);
         var assignments = TimberElementItemNumbering.RenumberElementIdsByCuttingLength(
             entries.Select(entry => entry.Measurement));
+        var circleNormalizationIds =
+            ElementLabelService.FindCircleNormalizationSourceIds(
+                database,
+                transaction,
+                entries.Select(entry => entry.Id).ToList());
         var changedEntries = new List<ChangedEntry>();
+        var annotationEntries = new List<ChangedEntry>();
 
         for (var index = 0; index < entries.Count; index++)
         {
             var entry = entries[index];
             var assignment = assignments[index];
+            var updatedData = entry.Measurement.Data with
+            {
+                ElementId = assignment.ElementId,
+            };
+            if (assignment.IsChanged || circleNormalizationIds.Contains(entry.Id))
+            {
+                annotationEntries.Add(new ChangedEntry(
+                    entry.Id,
+                    assignment.PreviousElementId,
+                    updatedData));
+            }
             if (!assignment.IsChanged)
             {
                 continue;
@@ -46,7 +63,6 @@ internal static class TimberElementRenumberingService
                 throw new InvalidOperationException(UiStrings.ErrorRenumberEntityUnavailable);
             }
 
-            var updatedData = entry.Measurement.Data with { ElementId = assignment.ElementId };
             metadataStore.Write(entity, updatedData);
             changedEntries.Add(new ChangedEntry(
                 entry.Id,
@@ -54,7 +70,7 @@ internal static class TimberElementRenumberingService
                 updatedData));
         }
 
-        foreach (var entry in changedEntries)
+        foreach (var entry in annotationEntries)
         {
             if (!AutoCadObjectIdAccess.TryGetObject<Entity>(
                     transaction,

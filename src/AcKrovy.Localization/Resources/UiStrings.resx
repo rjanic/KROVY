@@ -107,6 +107,8 @@
   <data name="Command_PostFootprint_UnsupportedPlane" xml:space="preserve"><value>&#xA;Čiary musia ležať v rovnakej podporovanej pôdorysnej rovine a výške.</value></data>
   <data name="Command_Layers_ElementSkippedFormat" xml:space="preserve"><value>&#xA;Preskočený prvok pri nastavovaní hladiny: {0}</value></data>
   <data name="Command_Layers_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: prvky presunuté na hladiny: {0}. Preskočené: {1}.</value></data>
+  <data name="Warning_Linetype_FallbackFormat" xml:space="preserve"><value>&#xA;Nepodarilo sa načítať typ čiary „{0}“. Použitý bol {1}.</value></data>
+  <data name="Warning_ExistingLayerPreservedFormat" xml:space="preserve"><value>&#xA;Vrstva „{0}“ už existuje s inými vlastnosťami. Aby sa nezmenili existujúce objekty, vrstva nebola upravená. Použite Aplikovať na všetky alebo nový názov vrstvy.</value></data>
   <data name="Command_Settings_ApplyElementSkippedFormat" xml:space="preserve"><value>&#xA;Preskočený prvok pri aplikovaní nastavení: {0}</value></data>
   <data name="Command_Settings_ApplyResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: výrobné prídavky aplikované na {0} prvkov. Preskočené: {1}.</value></data>
   <data name="Command_Labels_Shown" xml:space="preserve"><value>&#xA;ACAD KROVY: popisy na hladine KROV_POPIS sú zobrazené.</value></data>
@@ -122,6 +124,8 @@
   <data name="Dialog_Edit_PositiveNumberFormat" xml:space="preserve"><value>Pole „{0}“ musí obsahovať kladné číslo.</value></data>
   <data name="Dialog_Layers_ErrorFormat" xml:space="preserve"><value>{0}: {1}</value></data>
   <data name="Dialog_Layers_DuplicateFormat" xml:space="preserve"><value>Hladina „{0}“ je zadaná viackrát. Každý typ prvku musí mať vlastnú hladinu.</value></data>
+  <data name="Dialog_Layers_ConflictFormat" xml:space="preserve"><value>Hladina „{0}“ je použitá s rozdielnou farbou alebo typom čiary. Pre rovnakú hladinu zvoľ rovnaké hodnoty.</value></data>
+  <data name="Dialog_Layers_LinetypeScaleFormat" xml:space="preserve"><value>{0}: mierka typu čiary musí byť konečné číslo od {1:0.##} do {2:0.##} a väčšie než nula.</value></data>
   <data name="Dialog_Settings_RoundingStepFormat" xml:space="preserve"><value>Krok zaokrúhľovania výrobnej dĺžky musí byť celé kladné číslo v milimetroch, najviac {0:0}.</value></data>
   <data name="Dialog_Settings_CuttingAllowanceFormat" xml:space="preserve"><value>{0}: prídavok na rez musí byť nezáporné číslo v milimetroch, najviac {1:0}.</value></data>
   <data name="Error_LayerName_Empty" xml:space="preserve"><value>Názov hladiny nesmie byť prázdny.</value></data>
@@ -155,6 +159,23 @@
   <data name="SettingsWindow_Layers_ElementTypeColumn" xml:space="preserve"><value>Typ prvku</value></data>
   <data name="SettingsWindow_Layers_LayerNameColumn" xml:space="preserve"><value>Názov hladiny</value></data>
   <data name="SettingsWindow_Layers_LayerColorColumn" xml:space="preserve"><value>Farba hladiny</value></data>
+  <data name="SettingsWindow_Layers_LinetypeColumn" xml:space="preserve"><value>Typ čiary</value></data>
+  <data name="SettingsWindow_Layers_LinetypeScaleColumn" xml:space="preserve"><value>Mierka typu čiary</value></data>
+  <data name="SettingsWindow_Apply" xml:space="preserve"><value>Použiť</value></data>
+  <data name="SettingsWindow_Close" xml:space="preserve"><value>Zavrieť</value></data>
+  <data name="SettingsWindow_SettingsApplied" xml:space="preserve"><value>Nastavenia boli použité.</value></data>
+  <data name="SettingsWindow_NoChanges" xml:space="preserve"><value>Neboli zistené žiadne zmeny.</value></data>
+  <data name="SettingsWindow_ProfileSavedNewOnly" xml:space="preserve"><value>Profil bol uložený iba pre nové prvky.</value></data>
+  <data name="SettingsWindow_DefaultsRestored" xml:space="preserve"><value>Predvolené hodnoty boli obnovené.</value></data>
+  <data name="SettingsWindow_LinetypeFallbackFormat" xml:space="preserve"><value>Nepodarilo sa načítať typ čiary „{0}“. Použitý bol náhradný typ čiary {1}.</value></data>
+  <data name="SettingsWindow_SelectedElementsApplied" xml:space="preserve"><value>Nastavenia boli aplikované na vybrané prvky.</value></data>
+  <data name="SettingsWindow_SelectedElementsAlreadyMatch" xml:space="preserve"><value>Vybrané prvky už zodpovedajú nastaveniam.</value></data>
+  <data name="SettingsWindow_NoSmartElementsSelected" xml:space="preserve"><value>Neboli vybrané žiadne inteligentné prvky.</value></data>
+  <data name="SettingsWindow_SelectionCancelled" xml:space="preserve"><value>Výber bol zrušený.</value></data>
+  <data name="SettingsWindow_AllElementsApplied" xml:space="preserve"><value>Nastavenia boli aplikované na všetky prvky.</value></data>
+  <data name="SettingsWindow_AllElementsAlreadyMatch" xml:space="preserve"><value>Všetky prvky už zodpovedajú nastaveniam.</value></data>
+  <data name="SettingsWindow_ExistingLayerInfoFormat" xml:space="preserve"><value>Vrstvy {0} už existujú s inými vlastnosťami a neboli zmenené. Pre odlišné vlastnosti iba nových prvkov použite nový názov vrstvy alebo explicitné Aplikovať.</value></data>
+  <data name="SettingsWindow_ValidationFailed" xml:space="preserve"><value>Opravte neplatné hodnoty. Nastavenia neboli použité.</value></data>
   <data name="SettingsWindow_Manufacturing_Tab" xml:space="preserve"><value>Výrobné prídavky</value></data>
   <data name="SettingsWindow_Manufacturing_Description" xml:space="preserve"><value>Predvolený prídavok na rez sa použije pri novom priradení prvku. Pri uložení si môžeš vybrať, či sa má premietnuť aj do existujúcich prvkov.</value></data>
   <data name="SettingsWindow_Manufacturing_RoundingStep" xml:space="preserve"><value>Zaokrúhľovať výrobnú dĺžku nahor na [mm]</value></data>

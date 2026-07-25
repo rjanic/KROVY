@@ -22,6 +22,34 @@ Aktuálne číslo aplikácie je definované výhradne v [`Directory.Build.props`
 - Ribbon aj klasický dokovateľný panel,
 - runtime lokalizácia SK, CS, EN, DE, PL a FR bez zmeny technických DWG dát.
 
+## Vrstvy a typy čiar
+
+`AK_SETTINGS` nastavuje pre každý built-in timber typ a spoločný profil `KROV_CUSTOM`
+názov vrstvy, farbu a typ čiary. Timber geometria používa `Color = ByLayer` aj
+`Linetype = ByLayer`; annotation vrstvy `KROV_POPIS`, `KROV_SKLON` a samostatná
+Post `⊥ 90°` anotácia sa týmto nastavením nemenia.
+
+Nový profil používa pre Krokvu štandardný metrický AutoCAD typ `DASHDOT`
+a entity linetype scale `0.5`; ostatné typy vrátane Custom používajú
+`Continuous` a scale `1.0`. Chýbajúci `DASHDOT` sa
+načíta cez AutoCAD support paths z `acadiso.lin`; pri neúspechu sa bezpečne
+použije `Continuous` a ostatné nastavenia sa dokončia. Otvorenie alebo zatvorenie
+dialógu nemení DWG. Režim iba pre nové prvky nikdy neprepisuje existujúcu
+vrstvu: pri rozdielnej farbe alebo linetype ju nový prvok použije bez zmeny,
+zostane ByLayer a používateľ dostane upozornenie. Odlišný vzhľad iba nových
+prvkov preto vyžaduje nový názov vrstvy. Existujúce prvky a vrstvy sa
+aktualizujú iba explicitným Apply na výber alebo celý výkres; zmena fyzickej
+vrstvy môže ovplyvniť aj ostatné CAD entity na nej. `AK_SETTINGS` po Apply
+zostáva otvorené. Opakované Apply na výber alebo všetky vždy vykoná nový
+výber/kontrolu aktuálneho DWG, ale zapisuje iba skutočné rozdiely; režim iba
+pre nové prvky zostáva pri nezmenenom profile no-op.
+Runtime zmena jazyka obnoví aj dynamické zoznamy bez straty rozpracovaných
+hodnôt alebo stabilných enum výberov. Bežný výsledok Apply sa zobrazí v
+neblokujúcom lokalizovanom overlay banneri, ktorý po 2 sekundách zmizne.
+Definícia typu čiary sa uloží v DWG a zostáva
+prenosná cez SAVE/REOPEN, COPY/COPYCLIP a WBLOCK. Globálny `LTSCALE` ani entity
+linetype scale doplnok nemení; mení iba per-entity `LinetypeScale` z profilu.
+
 ## Post / Stĺpik
 
 Nový Stĺpik je reprezentovaný jednou uzavretou rectangular Polyline. Kliknutá strana určuje orientáciu `Width`, susedná strana `Height`; skutočná dĺžka pochádza z manuálnej dĺžky, nie z obvodu footprintu. Doplnok vytvára samostatný trojriadkový label a anotáciu `⊥ 90°`.
@@ -41,6 +69,8 @@ Custom je slope-aware lineárny typ: v automatickom režime používa rovnaký c
 ## Režimy popisu a kótovania
 
 `AK_SETTINGS` ponúka tri jazykovo neutrálne režimy hlavnej anotácie: `FullLabel`, `ItemNumberLeader` a `DimensionsLeader`. `ItemNumberLeader` má štyri varianty: `Plain`, `Circle`, `Slot` a `Rectangle`. Plain a DimensionsLeader používajú priamy natívny AutoCAD MLeader; rámčekové varianty používajú natívny Spline MLeader s prenosným `BlockContent`, atribútom `ITEM_NO`, insertion-point attachmentom, uhlom 40° a dodatočným offsetom 350 mm. Rámček je self-contained v DWG a jeho ručne upravená poloha sa po klasickom STRETCH zachováva pri refreshi aj renumberingu. Zvolený default sa používa na nové prvky; existujúce prvky sa zmenia iba explicitnou akciou pre výber alebo celý výkres.
+Všetky Circle varianty používajú jednotný priemer 520 mm a `BlockScale = 1`;
+veľkosť nezávisí od typu prvku, prefixu ani čísla položky.
 
 Každý prvok si režim aj štýl čísla uchováva vo vlastných XData metadata schema v4, takže SAVE/REOPEN, COPY, COPYCLIP a WBLOCK nemenia jeho nastavenie. Staršie prvky bez režimu používajú pôvodný `FullLabel`; chýbajúci štýl čísla znamená `Plain`. Hlavná MText/MLeader anotácia zostáva viazaná cez `SourceHandle`, používa `KROV_POPIS`; `AK_LABELS`, `AK_LABELSELECTED`, live refresh a `AK_RENUMBER` vždy zosúladia práve jednu správnu reprezentáciu. Slope anotácie a samostatné `⊥ 90°` označenie Stĺpika zostávajú nezávislé.
 

@@ -3,9 +3,9 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:localization="clr-namespace:AcKrovy.AutoCAD.UI.Localization"
         Title="{localization:Loc SettingsWindow_Title}"
-        Width="900"
+        Width="1200"
         Height="485"
-        MinWidth="860"
+        MinWidth="1120"
         MinHeight="430"
         WindowStartupLocation="CenterOwner">
     <Grid Margin="18">
@@ -63,6 +63,22 @@
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellEditingTemplate>
                         </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Header="{localization:Loc SettingsWindow_Layers_LinetypeColumn}" Width="180">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock VerticalAlignment="Center" Text="{Binding SelectedLinetypeName}" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                            <DataGridTemplateColumn.CellEditingTemplate>
+                                <DataTemplate>
+                                    <ComboBox ItemsSource="{Binding DataContext.LinetypeOptions, RelativeSource={RelativeSource AncestorType={x:Type Window}}}"
+                                              SelectedItem="{Binding SelectedLinetypeName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellEditingTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTextColumn Header="{localization:Loc SettingsWindow_Layers_LinetypeScaleColumn}"
+                                            Binding="{Binding LinetypeScaleText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                            Width="155" />
                     </DataGrid.Columns>
                 </DataGrid>
             </TabItem>
@@ -157,22 +173,57 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <Button x:Name="RestoreDefaultsButton" Grid.Column="0" Width="165" HorizontalAlignment="Left" Padding="8,4" Click="RestoreDefaults_Click" Content="{localization:Loc SettingsWindow_RestoreDefaults}" />
-            <StackPanel Grid.Column="1" Orientation="Horizontal">
-                <Button Width="90" Margin="0,0,8,0" Padding="8,4" Click="Cancel_Click" IsCancel="True" Content="{localization:Loc SettingsWindow_Cancel}" />
-                <StackPanel x:Name="StandardSettingsActionsPanel" Orientation="Horizontal">
-                    <Button Width="185" Margin="0,0,8,0" Padding="8,4" Click="SaveNewElementsOnly_Click" Content="{localization:Loc SettingsWindow_SaveNewElementsOnly}" />
-                    <Button Width="175" Margin="0,0,8,0" Padding="8,4" Click="SaveAndApplySelected_Click" Content="{localization:Loc SettingsWindow_SaveApplySelection}" />
-                    <Button x:Name="SaveAndApplyAllButton" Width="175" Padding="8,4" Click="SaveAndApply_Click" IsDefault="True" Content="{localization:Loc SettingsWindow_SaveApplyAll}" />
-                </StackPanel>
-                <Button x:Name="LanguageSaveButton"
-                        Width="120"
+            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                <Button x:Name="RestoreDefaultsButton"
+                        Width="165"
+                        Margin="0,0,14,0"
                         Padding="8,4"
-                        Click="SaveLanguage_Click"
+                        Click="RestoreDefaults_Click"
+                        Content="{localization:Loc SettingsWindow_RestoreDefaults}" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                <StackPanel x:Name="ApplyModePanel" Margin="0,0,8,0" Orientation="Horizontal">
+                    <ComboBox Width="210"
+                              ItemsSource="{Binding ApplyModeOptions}"
+                              DisplayMemberPath="DisplayName"
+                              SelectedValuePath="Mode"
+                              SelectedValue="{Binding SelectedApplyMode, Mode=TwoWay}" />
+                </StackPanel>
+                <Button x:Name="ApplyButton"
+                        Width="120"
+                        Margin="0,0,8,0"
+                        Padding="8,4"
+                        Click="Apply_Click"
                         IsDefault="True"
-                        Visibility="Collapsed"
-                        Content="{localization:Loc SettingsWindow_Save}" />
+                        Content="{localization:Loc SettingsWindow_Apply}" />
+                <Button Width="100"
+                        Padding="8,4"
+                        Click="Close_Click"
+                        IsCancel="True"
+                        Content="{localization:Loc SettingsWindow_Close}" />
             </StackPanel>
         </Grid>
+
+        <Border x:Name="StatusBanner"
+                Grid.RowSpan="7"
+                Panel.ZIndex="100"
+                Margin="36"
+                Padding="24,18"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Center"
+                Background="#E7F4E8"
+                BorderBrush="#4E8D56"
+                BorderThickness="1"
+                CornerRadius="6"
+                IsHitTestVisible="False"
+                Visibility="Collapsed">
+            <TextBlock x:Name="StatusBannerText"
+                       FontSize="19"
+                       FontWeight="SemiBold"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"
+                       TextAlignment="Center"
+                       TextWrapping="Wrap" />
+        </Border>
     </Grid>
 </Window>

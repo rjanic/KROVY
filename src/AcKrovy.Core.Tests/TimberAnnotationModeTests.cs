@@ -660,10 +660,9 @@ public sealed class TimberAnnotationModeTests
     }
 
     [Theory]
-    [InlineData(ItemNumberLeaderStyle.Circle)]
     [InlineData(ItemNumberLeaderStyle.Slot)]
     [InlineData(ItemNumberLeaderStyle.Rectangle)]
-    public void BlockDefinitions_SelectPortableSizeVariantForLongItemNumbers(
+    public void LinearBlockDefinitions_SelectPortableSizeVariantForLongItemNumbers(
         ItemNumberLeaderStyle style)
     {
         var shortDefinition = TimberItemLeaderBlockDefinitionRules.Resolve(style, "K1");
@@ -674,6 +673,131 @@ public sealed class TimberAnnotationModeTests
         Assert.NotEqual(shortDefinition.Size, longDefinition.Size);
         Assert.EndsWith("_L", longDefinition.BlockName, StringComparison.Ordinal);
         Assert.True(longDefinition.WidthMm > shortDefinition.WidthMm);
+    }
+
+    [Theory]
+    [InlineData("K1")]
+    [InlineData("KL1")]
+    [InlineData("V1")]
+    [InlineData("VT1")]
+    [InlineData("S1")]
+    public void CircleDefinition_UsesOneReferenceDiameterAndBlockScale(string itemNumber)
+    {
+        var definition = TimberItemLeaderBlockDefinitionRules.Resolve(
+            ItemNumberLeaderStyle.Circle,
+            itemNumber);
+
+        Assert.Equal(TimberItemLeaderBlockSize.Small, definition.Size);
+        Assert.Equal("ACAD_KROVY_ITEM_CIRCLE", definition.BlockName);
+        Assert.Equal(TimberItemLeaderBlockDefinitionRules.CircleDiameterMm, definition.WidthMm);
+        Assert.Equal(definition.WidthMm, definition.HeightMm);
+        Assert.Equal(520d, definition.WidthMm);
+        Assert.Equal(1d, TimberItemLeaderBlockDefinitionRules.BlockScale);
+    }
+
+    [Theory]
+    [InlineData("K")]
+    [InlineData("K1")]
+    [InlineData("KL1")]
+    public void CircleDefinition_DoesNotDependOnNormalItemNumberLength(string itemNumber)
+    {
+        var reference = TimberItemLeaderBlockDefinitionRules.Resolve(
+            ItemNumberLeaderStyle.Circle,
+            "K1");
+        var actual = TimberItemLeaderBlockDefinitionRules.Resolve(
+            ItemNumberLeaderStyle.Circle,
+            itemNumber);
+
+        Assert.Equal(reference, actual);
+    }
+
+    [Theory]
+    [InlineData(TimberElementType.Rafter, "K1")]
+    [InlineData(TimberElementType.WallPlate, "P1")]
+    [InlineData(TimberElementType.Post, "S1")]
+    [InlineData(TimberElementType.CollarTie, "KL1")]
+    [InlineData(TimberElementType.Brace, "V1")]
+    [InlineData(TimberElementType.Custom, "VT1")]
+    public void CircleDefinition_DoesNotDependOnElementType(
+        TimberElementType elementType,
+        string itemNumber)
+    {
+        _ = elementType;
+        var reference = TimberItemLeaderBlockDefinitionRules.Resolve(
+            ItemNumberLeaderStyle.Circle,
+            "K1");
+
+        Assert.Equal(reference, TimberItemLeaderBlockDefinitionRules.Resolve(
+            ItemNumberLeaderStyle.Circle,
+            itemNumber));
+    }
+
+    [Fact]
+    public void CircleCompatibility_RejectsLegacyExpandedDiameter()
+    {
+        Assert.True(TimberItemLeaderBlockDefinitionRules.HasExpectedCircleDiameter(520d));
+        Assert.False(TimberItemLeaderBlockDefinitionRules.HasExpectedCircleDiameter(760d));
+        Assert.False(TimberItemLeaderBlockDefinitionRules.HasExpectedCircleDiameter(1800d));
+    }
+
+    [Fact]
+    public void RenumberAndCopyTexts_KeepTheSameCircleDefinition()
+    {
+        var reference = TimberItemLeaderBlockDefinitionRules.Resolve(
+            ItemNumberLeaderStyle.Circle,
+            "K1");
+
+        Assert.Equal(reference, TimberItemLeaderBlockDefinitionRules.Resolve(
+            ItemNumberLeaderStyle.Circle,
+            "K99"));
+        Assert.Equal(reference, TimberItemLeaderBlockDefinitionRules.Resolve(
+            ItemNumberLeaderStyle.Circle,
+            "KL1"));
+        Assert.Equal(reference, TimberItemLeaderBlockDefinitionRules.Resolve(
+            ItemNumberLeaderStyle.Circle,
+            "VT1"));
+    }
+
+    [Fact]
+    public void CircleFix_DoesNotChangeSlotOrRectangleSizing()
+    {
+        var shortSlot = TimberItemLeaderBlockDefinitionRules.Resolve(
+            ItemNumberLeaderStyle.Slot,
+            "K1");
+        var shortRectangle = TimberItemLeaderBlockDefinitionRules.Resolve(
+            ItemNumberLeaderStyle.Rectangle,
+            "K1");
+        var longSlot = TimberItemLeaderBlockDefinitionRules.Resolve(
+            ItemNumberLeaderStyle.Slot,
+            "PREFIX123456");
+        var longRectangle = TimberItemLeaderBlockDefinitionRules.Resolve(
+            ItemNumberLeaderStyle.Rectangle,
+            "PREFIX123456");
+
+        Assert.Equal((600d, 360d, TimberItemLeaderBlockSize.Small),
+            (shortSlot.WidthMm, shortSlot.HeightMm, shortSlot.Size));
+        Assert.Equal((600d, 360d, TimberItemLeaderBlockSize.Small),
+            (shortRectangle.WidthMm, shortRectangle.HeightMm, shortRectangle.Size));
+        Assert.Equal((1600d, 360d, TimberItemLeaderBlockSize.Large),
+            (longSlot.WidthMm, longSlot.HeightMm, longSlot.Size));
+        Assert.Equal((1600d, 360d, TimberItemLeaderBlockSize.Large),
+            (longRectangle.WidthMm, longRectangle.HeightMm, longRectangle.Size));
+    }
+
+    [Fact]
+    public void CircleItemAttribute_RemainsCenteredAtTheExistingTextHeight()
+    {
+        var source = File.ReadAllText(Path.Combine(
+            FindRepositoryRoot(),
+            "src",
+            "AcKrovy.AutoCAD",
+            "Infrastructure",
+            "AcKrovyItemLeaderBlockService.cs"));
+
+        Assert.Contains("attribute.Height = textHeight;", source);
+        Assert.Contains("TextHorizontalMode.TextCenter", source);
+        Assert.Contains("TextVerticalMode.TextVerticalMid", source);
+        Assert.Contains("attribute.AlignmentPoint = Point3d.Origin;", source);
     }
 
     [Theory]
@@ -873,6 +997,19 @@ public sealed class TimberAnnotationModeTests
             endY - startY,
             localHorizontalX: 1d,
             localHorizontalY: 0d) * 180d / Math.PI;
+
+    private static string FindRepositoryRoot()
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null &&
+               !File.Exists(Path.Combine(directory.FullName, "AcKrovy.sln")))
+        {
+            directory = directory.Parent;
+        }
+
+        return directory?.FullName
+            ?? throw new DirectoryNotFoundException("Could not locate AcKrovy.sln.");
+    }
 
     [Theory]
     [InlineData("sk", "Bez rámčeka", "Kruh", "Slot", "Obdĺžnik")]

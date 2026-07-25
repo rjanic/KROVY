@@ -13,6 +13,7 @@ using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Geometry;
 using Autodesk.AutoCAD.Runtime;
 using AcApp = Autodesk.AutoCAD.ApplicationServices.Application;
+using System.Windows.Interop;
 
 namespace AcKrovy.AutoCAD.Commands;
 
@@ -69,77 +70,145 @@ public sealed class AcKrovyCommands
     public void OpenSettings()
     {
         var document = ActiveDocument();
-        var editor = document.Editor;
-        var dialog = new LayerSettingsWindow(
+        LayerSettingsWindow? dialog = null;
+        dialog = new LayerSettingsWindow(
             ElementLayerProfileStore.Load(),
             TimberElementDefaultProfileStore.Load(),
-            AppLanguageService.CurrentLanguageCode);
-        if (AcApp.ShowModalWindow(dialog) != true)
-        {
-            return;
-        }
+            AppLanguageService.CurrentLanguageCode,
+            ReadAvailableLinetypeNames(document.Database),
+            request => ApplySettingsFromWindow(
+                document,
+                request,
+                new WindowInteropHelper(dialog).Handle));
+        AcApp.ShowModalWindow(dialog);
+    }
 
-        if (!SettingsWindowActionRules.AppliesElementSettings(dialog.SaveMode))
-        {
-            try
-            {
-                AppLanguageSettingsStore.Save(CreateLanguageSettings(dialog.LanguageCode));
-            }
-            catch (System.Exception ex)
-            {
-                editor.WriteMessage(UiStrings.Format(UiStrings.CommandSettingsSaveFailedFormat, ex.Message));
-                return;
-            }
-
-            ApplySelectedLanguage(dialog.LanguageCode);
-            editor.WriteMessage(UiStrings.CommandSettingsSaved);
-            return;
-        }
-
-        if (dialog.Profile is null || dialog.DefaultProfile is null)
-        {
-            return;
-        }
-
+    private static SettingsApplyResponse ApplySettingsFromWindow(
+        Document document,
+        SettingsApplyRequest request,
+        IntPtr settingsWindowHandle)
+    {
+        var editor = document.Editor;
         try
         {
-            ElementLayerProfileStore.Save(dialog.Profile);
-            TimberElementDefaultProfileStore.Save(dialog.DefaultProfile);
-            AppLanguageSettingsStore.Save(CreateLanguageSettings(dialog.LanguageCode));
+            if (SettingsApplyDispatchRules.ShouldPersistProfile(request.ProfileChanged))
+            {
+                if (request.SaveMode != SettingsSaveMode.LanguageOnly)
+                {
+                    ElementLayerProfileStore.Save(request.Profile);
+                    TimberElementDefaultProfileStore.Save(request.DefaultProfile);
+                }
+
+                AppLanguageSettingsStore.Save(CreateLanguageSettings(request.LanguageCode));
+                ApplySelectedLanguage(request.LanguageCode);
+            }
         }
         catch (System.Exception ex)
         {
-            editor.WriteMessage(UiStrings.Format(UiStrings.CommandSettingsSaveFailedFormat, ex.Message));
-            return;
+            return new SettingsApplyResponse(
+                false,
+                false,
+                StatusBannerSeverity.Warning,
+                "Command_Settings_SaveFailedFormat",
+                [ex.Message],
+                ReadAvailableLinetypeNames(document.Database));
         }
 
-        ApplySelectedLanguage(dialog.LanguageCode);
-
-        editor.WriteMessage(UiStrings.CommandSettingsSaved);
-        switch (dialog.SaveMode)
+        if (request.SaveMode == SettingsSaveMode.LanguageOnly)
         {
-            case SettingsSaveMode.AllElements:
-                ApplySettingsToExistingElements(document, dialog.Profile, dialog.DefaultProfile, null);
-                break;
-            case SettingsSaveMode.SelectedElements:
-                var ids = PromptForEntities(editor, UiStrings.CommandSettingsPromptApplyAllowances);
-                if (ids.Count == 0)
-                {
-                    editor.WriteMessage(UiStrings.CommandSettingsSelectionCancelled);
-                    return;
-                }
-
-                ApplySettingsToExistingElements(document, dialog.Profile, dialog.DefaultProfile, ids);
-                break;
-            case SettingsSaveMode.NewElementsOnly:
-                if (dialog.ApplyToExistingElements)
-                {
-                    ApplyLayersToExistingElements(document, dialog.Profile);
-                }
-
-                break;
+            editor.WriteMessage(UiStrings.CommandSettingsSaved);
+            return SettingsResponse(
+                document.Database,
+                "SettingsWindow_SettingsApplied",
+                StatusBannerSeverity.Success);
         }
+
+        if (request.SaveMode == SettingsSaveMode.NewElementsOnly)
+        {
+            var conflicts = ReadExistingLayerConflicts(document.Database, request.Profile);
+            editor.WriteMessage(UiStrings.CommandSettingsSaved);
+            return conflicts.Count == 0
+                ? SettingsResponse(
+                    document.Database,
+                    "SettingsWindow_ProfileSavedNewOnly",
+                    StatusBannerSeverity.Success)
+                : SettingsResponse(
+                    document.Database,
+                    "SettingsWindow_ExistingLayerInfoFormat",
+                    StatusBannerSeverity.Warning,
+                    [string.Join(", ", conflicts)]);
+        }
+
+        IReadOnlyList<ObjectId>? targetIds = null;
+        if (request.SaveMode == SettingsSaveMode.SelectedElements)
+        {
+            SettingsSelectionResult selection;
+            using (editor.StartUserInteraction(settingsWindowHandle))
+            {
+                selection = PromptForSettingsEntities(
+                    editor,
+                    UiStrings.CommandSettingsPromptApplyAllowances);
+            }
+
+            if (selection.Status != SettingsSelectionStatus.Selected)
+            {
+                return SettingsResponse(
+                    document.Database,
+                    selection.Status == SettingsSelectionStatus.Cancelled
+                        ? "SettingsWindow_SelectionCancelled"
+                        : "SettingsWindow_NoSmartElementsSelected",
+                    StatusBannerSeverity.Information,
+                    success: false);
+            }
+
+            targetIds = selection.Ids;
+        }
+
+        SettingsDrawingApplyResult applyResult;
+        using (document.LockDocument())
+        {
+            applyResult = ApplySettingsToExistingElements(
+                document,
+                request.Profile,
+                request.DefaultProfile,
+                targetIds);
+        }
+
+        if (applyResult.Fallbacks.Count > 0)
+        {
+            var fallback = applyResult.Fallbacks[0];
+            return SettingsResponse(
+                document.Database,
+                "SettingsWindow_LinetypeFallbackFormat",
+                StatusBannerSeverity.Warning,
+                [fallback.Requested, fallback.Applied]);
+        }
+
+        var resultKey = SettingsApplyDispatchRules.GetDrawingResultResourceKey(
+            request.SaveMode,
+            applyResult.Changed,
+            applyResult.Eligible);
+        return SettingsResponse(
+            document.Database,
+            resultKey,
+            applyResult.Changed
+                ? StatusBannerSeverity.Success
+                : StatusBannerSeverity.Information);
     }
+
+    private static SettingsApplyResponse SettingsResponse(
+        Database database,
+        string resourceKey,
+        StatusBannerSeverity severity,
+        object[]? resourceArguments = null,
+        bool success = true) =>
+        new(
+            success,
+            true,
+            severity,
+            resourceKey,
+            resourceArguments ?? [],
+            ReadAvailableLinetypeNames(database));
 
     private static AppLanguageSettings CreateLanguageSettings(string languageCode) => new()
     {
@@ -377,7 +446,7 @@ public sealed class AcKrovyCommands
         var layerProfile = ElementLayerProfileStore.Load();
         using var transaction = document.Database.TransactionManager.StartTransaction();
         var metadataStore = new AutoCadTimberElementMetadataStore(transaction);
-        var layerService = new AutoCadTimberLayerService(document.Database, transaction);
+        var layerService = new AutoCadTimberLayerService(document.Database, transaction, editor);
         var changed = 0;
         var skipped = 0;
         var changedIds = new List<ObjectId>();
@@ -414,7 +483,7 @@ public sealed class AcKrovyCommands
                          transaction,
                          metadataStore))
             {
-                if (transaction.GetObject(id, OpenMode.ForWrite) is not Entity entity ||
+                if (transaction.GetObject(id, OpenMode.ForRead) is not Entity entity ||
                     !metadataStore.TryRead(entity, out var data) ||
                     data is null)
                 {
@@ -748,7 +817,7 @@ public sealed class AcKrovyCommands
         var layerProfile = ElementLayerProfileStore.Load();
         using var transaction = document.Database.TransactionManager.StartTransaction();
         var metadataStore = new AutoCadTimberElementMetadataStore(transaction);
-        var layerService = new AutoCadTimberLayerService(document.Database, transaction);
+        var layerService = new AutoCadTimberLayerService(document.Database, transaction, editor);
         var assigned = 0;
         var skipped = 0;
         var assignedIds = new List<ObjectId>();
@@ -948,7 +1017,7 @@ public sealed class AcKrovyCommands
         var editor = document.Editor;
         using var transaction = document.Database.TransactionManager.StartTransaction();
         var metadataStore = new AutoCadTimberElementMetadataStore(transaction);
-        var layerService = new AutoCadTimberLayerService(document.Database, transaction);
+        var layerService = new AutoCadTimberLayerService(document.Database, transaction, editor);
         var updated = 0;
         var skipped = 0;
 
@@ -965,8 +1034,15 @@ public sealed class AcKrovyCommands
                     continue;
                 }
 
-                layerService.ApplyLayerForTimberType(entity, data.ElementType, profile);
-                updated++;
+                var layerResult = layerService.ApplyLayerForTimberType(
+                    entity,
+                    data.ElementType,
+                    profile,
+                    CadLayerUpdateMode.UpdateExisting);
+                if (layerResult.DrawingChanged)
+                {
+                    updated++;
+                }
             }
             catch (System.Exception ex)
             {
@@ -979,7 +1055,7 @@ public sealed class AcKrovyCommands
         editor.WriteMessage(UiStrings.Format(UiStrings.CommandLayersResultFormat, updated, skipped));
     }
 
-    private static void ApplySettingsToExistingElements(
+    private static SettingsDrawingApplyResult ApplySettingsToExistingElements(
         Document document,
         ElementLayerProfile layerProfile,
         TimberElementDefaultProfile defaultProfile,
@@ -988,20 +1064,28 @@ public sealed class AcKrovyCommands
         var editor = document.Editor;
         using var transaction = document.Database.TransactionManager.StartTransaction();
         var metadataStore = new AutoCadTimberElementMetadataStore(transaction);
-        var layerService = new AutoCadTimberLayerService(document.Database, transaction);
+        var layerService = new AutoCadTimberLayerService(document.Database, transaction, editor);
         var ids = targetIds is null
             ? DrawingScanner.FindAllTimberElements(document.Database, transaction, metadataStore)
             : targetIds.Distinct().ToList();
+        var circleNormalizationIds =
+            ElementLabelService.FindCircleNormalizationSourceIds(
+                document.Database,
+                transaction,
+                ids);
         var updated = 0;
+        var eligible = 0;
         var skipped = 0;
         var changedIds = new List<ObjectId>();
         var previousElementIdById = new Dictionary<ObjectId, string>();
+        var drawingChanged = false;
+        var fallbacks = new List<SettingsLinetypeFallback>();
 
         foreach (var id in ids)
         {
             try
             {
-                if (transaction.GetObject(id, OpenMode.ForWrite) is not Entity entity ||
+                if (transaction.GetObject(id, OpenMode.ForRead) is not Entity entity ||
                     !AutoCadEntityHelpers.IsSupportedTimberGeometry(entity) ||
                     !metadataStore.TryRead(entity, out var data) ||
                     data is null)
@@ -1011,12 +1095,40 @@ public sealed class AcKrovyCommands
                 }
 
                 var updatedData = TimberElementDefaultApplicator.ApplyCuttingAllowance(data, defaultProfile);
+                eligible++;
                 updatedData = TimberElementDefaultApplicator.ApplyAnnotationMode(updatedData, defaultProfile);
-                previousElementIdById[id] = data.ElementId;
-                metadataStore.Write(entity, updatedData);
-                layerService.ApplyLayerForTimberType(entity, updatedData.ElementType, layerProfile);
-                changedIds.Add(id);
-                updated++;
+                var metadataChanged = updatedData != data;
+                var requiresCircleNormalization = circleNormalizationIds.Contains(id);
+                if (metadataChanged)
+                {
+                    entity.UpgradeOpen();
+                    previousElementIdById[id] = data.ElementId;
+                    metadataStore.Write(entity, updatedData);
+                    changedIds.Add(id);
+                }
+                else if (requiresCircleNormalization)
+                {
+                    changedIds.Add(id);
+                }
+
+                var layerResult = layerService.ApplyLayerForTimberType(
+                    entity,
+                    updatedData.ElementType,
+                    layerProfile,
+                    CadLayerUpdateMode.UpdateExisting);
+                if (layerResult.UsedFallback)
+                {
+                    fallbacks.Add(new(
+                        layerResult.RequestedLinetypeName,
+                        layerResult.AppliedLinetypeName));
+                }
+                if (metadataChanged ||
+                    layerResult.DrawingChanged ||
+                    requiresCircleNormalization)
+                {
+                    drawingChanged = true;
+                    updated++;
+                }
             }
             catch (System.Exception ex)
             {
@@ -1036,6 +1148,41 @@ public sealed class AcKrovyCommands
 
         transaction.Commit();
         editor.WriteMessage(UiStrings.Format(UiStrings.CommandSettingsApplyResultFormat, updated, skipped));
+        return new SettingsDrawingApplyResult(
+            updated,
+            skipped,
+            eligible,
+            drawingChanged,
+            fallbacks
+                .Distinct()
+                .ToList());
+    }
+
+    private sealed record SettingsDrawingApplyResult(
+        int Updated,
+        int Skipped,
+        int Eligible,
+        bool Changed,
+        IReadOnlyList<SettingsLinetypeFallback> Fallbacks);
+
+    private sealed record SettingsLinetypeFallback(string Requested, string Applied);
+
+    private static IReadOnlyList<string> ReadAvailableLinetypeNames(Database database)
+    {
+        using var transaction = database.TransactionManager.StartOpenCloseTransaction();
+        var service = new AutoCadTimberLayerService(database, transaction);
+        return service.GetAvailableLinetypeNames();
+    }
+
+    private static IReadOnlyList<string> ReadExistingLayerConflicts(
+        Database database,
+        ElementLayerProfile profile)
+    {
+        using var transaction = database.TransactionManager.StartOpenCloseTransaction();
+        return TimberLayerService.GetConflictingExistingLayerNames(
+            database,
+            transaction,
+            profile);
     }
 
     private static void SetLabelsVisibility(bool visible)
@@ -1150,6 +1297,58 @@ public sealed class AcKrovyCommands
             ? selection.Value.GetObjectIds()
             : Array.Empty<ObjectId>();
     }
+
+    private static SettingsSelectionResult PromptForSettingsEntities(
+        Editor editor,
+        string message)
+    {
+        var implied = editor.SelectImplied();
+        if (implied.Status == PromptStatus.OK &&
+            implied.Value is not null &&
+            implied.Value.Count > 0)
+        {
+            var ids = implied.Value.GetObjectIds();
+            editor.SetImpliedSelection(Array.Empty<ObjectId>());
+            return new SettingsSelectionResult(
+                SettingsSelectionStatus.Selected,
+                ids);
+        }
+
+        var options = new PromptSelectionOptions
+        {
+            MessageForAdding = message,
+            MessageForRemoval = UiStrings.CommandPromptRemoveSelection,
+            AllowDuplicates = false,
+        };
+        var selection = editor.GetSelection(options);
+        if (selection.Status == PromptStatus.Cancel)
+        {
+            return new SettingsSelectionResult(
+                SettingsSelectionStatus.Cancelled,
+                []);
+        }
+
+        return selection.Status == PromptStatus.OK &&
+            selection.Value is not null &&
+            selection.Value.Count > 0
+                ? new SettingsSelectionResult(
+                    SettingsSelectionStatus.Selected,
+                    selection.Value.GetObjectIds())
+                : new SettingsSelectionResult(
+                    SettingsSelectionStatus.Empty,
+                    []);
+    }
+
+    private enum SettingsSelectionStatus
+    {
+        Selected,
+        Cancelled,
+        Empty,
+    }
+
+    private sealed record SettingsSelectionResult(
+        SettingsSelectionStatus Status,
+        IReadOnlyList<ObjectId> Ids);
 
     private static Document ActiveDocument() => AcApp.DocumentManager.MdiActiveDocument
         ?? throw new InvalidOperationException(UiStrings.ErrorNoActiveDrawing);

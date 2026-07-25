@@ -107,6 +107,8 @@
   <data name="Command_PostFootprint_UnsupportedPlane" xml:space="preserve"><value>&#xA;Die Linien müssen in derselben unterstützten Grundrissebene und Höhe liegen.</value></data>
   <data name="Command_Layers_ElementSkippedFormat" xml:space="preserve"><value>&#xA;Bauteil beim Festlegen des Layers übersprungen: {0}</value></data>
   <data name="Command_Layers_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: Bauteile auf Layer verschoben: {0}. Übersprungen: {1}.</value></data>
+  <data name="Warning_Linetype_FallbackFormat" xml:space="preserve"><value>&#xA;Der Linientyp „{0}“ konnte nicht geladen werden. {1} wurde verwendet.</value></data>
+  <data name="Warning_ExistingLayerPreservedFormat" xml:space="preserve"><value>&#xA;Der Layer „{0}“ ist bereits mit anderen Eigenschaften vorhanden. Zum Schutz vorhandener Objekte wurde er nicht geändert. Verwenden Sie Auf alle anwenden oder einen neuen Layernamen.</value></data>
   <data name="Command_Settings_ApplyElementSkippedFormat" xml:space="preserve"><value>&#xA;Bauteil beim Anwenden der Einstellungen übersprungen: {0}</value></data>
   <data name="Command_Settings_ApplyResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: Schnittzugaben auf {0} Bauteile angewendet. Übersprungen: {1}.</value></data>
   <data name="Command_Labels_Shown" xml:space="preserve"><value>&#xA;ACAD KROVY: Beschriftungen auf Layer KROV_POPIS sind sichtbar.</value></data>
@@ -122,6 +124,8 @@
   <data name="Dialog_Edit_PositiveNumberFormat" xml:space="preserve"><value>Das Feld „{0}“ muss eine positive Zahl enthalten.</value></data>
   <data name="Dialog_Layers_ErrorFormat" xml:space="preserve"><value>{0}: {1}</value></data>
   <data name="Dialog_Layers_DuplicateFormat" xml:space="preserve"><value>Der Layer „{0}“ wurde mehrfach angegeben. Jeder Bauteiltyp muss einen eigenen Layer haben.</value></data>
+  <data name="Dialog_Layers_ConflictFormat" xml:space="preserve"><value>Der Layer „{0}“ wird mit unterschiedlicher Farbe oder unterschiedlichem Linientyp verwendet. Wählen Sie für denselben Layer identische Werte.</value></data>
+  <data name="Dialog_Layers_LinetypeScaleFormat" xml:space="preserve"><value>{0}: Der Linientypfaktor muss eine endliche Zahl von {1:0.##} bis {2:0.##} und größer als null sein.</value></data>
   <data name="Dialog_Settings_RoundingStepFormat" xml:space="preserve"><value>Die Rundungsstufe der Fertigungslänge muss eine positive ganze Zahl in Millimetern sein, höchstens {0:0}.</value></data>
   <data name="Dialog_Settings_CuttingAllowanceFormat" xml:space="preserve"><value>{0}: Die Schnittzugabe muss eine nichtnegative Zahl in Millimetern sein, höchstens {1:0}.</value></data>
   <data name="Error_LayerName_Empty" xml:space="preserve"><value>Der Layername darf nicht leer sein.</value></data>
@@ -155,6 +159,23 @@
   <data name="SettingsWindow_Layers_ElementTypeColumn" xml:space="preserve"><value>Bauteiltyp</value></data>
   <data name="SettingsWindow_Layers_LayerNameColumn" xml:space="preserve"><value>Layername</value></data>
   <data name="SettingsWindow_Layers_LayerColorColumn" xml:space="preserve"><value>Layerfarbe</value></data>
+  <data name="SettingsWindow_Layers_LinetypeColumn" xml:space="preserve"><value>Linientyp</value></data>
+  <data name="SettingsWindow_Layers_LinetypeScaleColumn" xml:space="preserve"><value>Linientypfaktor</value></data>
+  <data name="SettingsWindow_Apply" xml:space="preserve"><value>Anwenden</value></data>
+  <data name="SettingsWindow_Close" xml:space="preserve"><value>Schließen</value></data>
+  <data name="SettingsWindow_SettingsApplied" xml:space="preserve"><value>Die Einstellungen wurden angewendet.</value></data>
+  <data name="SettingsWindow_NoChanges" xml:space="preserve"><value>Es wurden keine Änderungen erkannt.</value></data>
+  <data name="SettingsWindow_ProfileSavedNewOnly" xml:space="preserve"><value>Das Profil wurde nur für neue Bauteile gespeichert.</value></data>
+  <data name="SettingsWindow_DefaultsRestored" xml:space="preserve"><value>Die Standardwerte wurden wiederhergestellt.</value></data>
+  <data name="SettingsWindow_LinetypeFallbackFormat" xml:space="preserve"><value>Der Linientyp „{0}“ konnte nicht geladen werden. Der Ersatzlinientyp {1} wurde verwendet.</value></data>
+  <data name="SettingsWindow_SelectedElementsApplied" xml:space="preserve"><value>Die Einstellungen wurden auf die ausgewählten Bauteile angewendet.</value></data>
+  <data name="SettingsWindow_SelectedElementsAlreadyMatch" xml:space="preserve"><value>Die ausgewählten Bauteile entsprechen bereits den Einstellungen.</value></data>
+  <data name="SettingsWindow_NoSmartElementsSelected" xml:space="preserve"><value>Es wurden keine intelligenten Bauteile ausgewählt.</value></data>
+  <data name="SettingsWindow_SelectionCancelled" xml:space="preserve"><value>Die Auswahl wurde abgebrochen.</value></data>
+  <data name="SettingsWindow_AllElementsApplied" xml:space="preserve"><value>Die Einstellungen wurden auf alle Bauteile angewendet.</value></data>
+  <data name="SettingsWindow_AllElementsAlreadyMatch" xml:space="preserve"><value>Alle Bauteile entsprechen bereits den Einstellungen.</value></data>
+  <data name="SettingsWindow_ExistingLayerInfoFormat" xml:space="preserve"><value>Die Layer {0} sind bereits mit anderen Eigenschaften vorhanden und wurden nicht geändert. Verwenden Sie für abweichende Eigenschaften nur neuer Bauteile einen neuen Layernamen oder explizites Anwenden.</value></data>
+  <data name="SettingsWindow_ValidationFailed" xml:space="preserve"><value>Korrigieren Sie die ungültigen Werte. Die Einstellungen wurden nicht angewendet.</value></data>
   <data name="SettingsWindow_Manufacturing_Tab" xml:space="preserve"><value>Schnittzugaben</value></data>
   <data name="SettingsWindow_Manufacturing_Description" xml:space="preserve"><value>Die Standard-Schnittzugabe wird bei der Neuzuweisung eines Bauteils verwendet. Beim Speichern können Sie wählen, ob sie auch auf vorhandene Bauteile angewendet wird.</value></data>
   <data name="SettingsWindow_Manufacturing_RoundingStep" xml:space="preserve"><value>Fertigungslänge aufrunden auf [mm]</value></data>
