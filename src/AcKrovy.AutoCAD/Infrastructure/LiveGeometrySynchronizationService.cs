@@ -82,6 +82,7 @@ internal static class LiveGeometrySynchronizationService
     {
         private readonly Document _document;
         private readonly LiveGeometryRefreshCoordinator<ObjectId> _modifiedIds = new();
+        private readonly LiveGeometryRefreshCoordinator<ObjectId> _modifiedFramedLabelIds = new();
         private readonly LiveGeometryRefreshCoordinator<ObjectId> _appendedLabelIds = new();
         private readonly LiveGeometryRefreshCoordinator<ObjectId> _appendedSlopeArrowIds = new();
         private readonly LiveGeometryRefreshCoordinator<ObjectId> _appendedSlopeAngleTextIds = new();
@@ -118,6 +119,7 @@ internal static class LiveGeometrySynchronizationService
             _document.CommandCancelled -= CommandCancelled;
             _document.CommandFailed -= CommandFailed;
             _modifiedIds.Clear();
+            _modifiedFramedLabelIds.Clear();
             _appendedLabelIds.Clear();
             _appendedSlopeArrowIds.Clear();
             _appendedSlopeAngleTextIds.Clear();
@@ -150,13 +152,21 @@ internal static class LiveGeometrySynchronizationService
                 return;
             }
 
+            if (!_appendedLabelIds.IsSuppressed &&
+                ElementLabelStore.TryRead(entity, out _))
+            {
+                _appendedLabelIds.TryAdd(entity.ObjectId);
+                return;
+            }
+
             if (AutoCadEntityHelpers.IsSupportedTimberGeometry(entity))
             {
                 _modifiedIds.TryAdd(entity.ObjectId);
                 return;
             }
 
-            if (!_appendedLabelIds.IsSuppressed && entity is MText)
+            if (!_appendedLabelIds.IsSuppressed &&
+                entity is MText or MLeader or BlockReference)
             {
                 _appendedLabelIds.TryAdd(entity.ObjectId);
             }
@@ -177,6 +187,17 @@ internal static class LiveGeometrySynchronizationService
                 !PostFootprintPerpendicularAnnotationStore.TryRead(entity, out _) &&
                 !SlopeAngleTextStore.TryRead(entity, out _))
             {
+                // Do not inspect XData from ObjectModified. During native
+                // STRETCH AutoCAD can raise this event while the MLeader is in
+                // an evaluation/open state in which XData is unavailable.
+                // Classification is performed safely in the CommandEnded
+                // transaction by PersistFramedManualOffsets.
+                if (entity is MLeader)
+                {
+                    _modifiedFramedLabelIds.TryAdd(entity.ObjectId);
+                    return;
+                }
+
                 _modifiedIds.TryAdd(entity.ObjectId);
             }
         }
@@ -203,6 +224,7 @@ internal static class LiveGeometrySynchronizationService
             if (_ignoreCurrentCommand)
             {
                 _modifiedIds.Clear();
+                _modifiedFramedLabelIds.Clear();
                 _appendedLabelIds.Clear();
                 _appendedSlopeArrowIds.Clear();
                 _appendedSlopeAngleTextIds.Clear();
@@ -219,6 +241,7 @@ internal static class LiveGeometrySynchronizationService
             if (shouldIgnore)
             {
                 _modifiedIds.Clear();
+                _modifiedFramedLabelIds.Clear();
                 _appendedLabelIds.Clear();
                 _appendedSlopeArrowIds.Clear();
                 _appendedSlopeAngleTextIds.Clear();
@@ -233,6 +256,7 @@ internal static class LiveGeometrySynchronizationService
         {
             _ignoreCurrentCommand = false;
             _modifiedIds.Clear();
+            _modifiedFramedLabelIds.Clear();
             _appendedLabelIds.Clear();
             _appendedSlopeArrowIds.Clear();
             _appendedSlopeAngleTextIds.Clear();
@@ -244,6 +268,7 @@ internal static class LiveGeometrySynchronizationService
         {
             _ignoreCurrentCommand = false;
             _modifiedIds.Clear();
+            _modifiedFramedLabelIds.Clear();
             _appendedLabelIds.Clear();
             _appendedSlopeArrowIds.Clear();
             _appendedSlopeAngleTextIds.Clear();
@@ -254,11 +279,13 @@ internal static class LiveGeometrySynchronizationService
         private void RefreshCandidates(bool refreshAllTimberAnnotations)
         {
             var ids = _modifiedIds.Drain();
+            var modifiedFramedLabelIds = _modifiedFramedLabelIds.Drain();
             var appendedLabelIds = _appendedLabelIds.Drain();
             var appendedSlopeArrowIds = _appendedSlopeArrowIds.Drain();
             var appendedSlopeAngleTextIds = _appendedSlopeAngleTextIds.Drain();
             var erasedSourceHandles = _erasedSourceHandles.Drain();
             if (ids.Count == 0 &&
+                modifiedFramedLabelIds.Count == 0 &&
                 appendedLabelIds.Count == 0 &&
                 appendedSlopeArrowIds.Count == 0 &&
                 appendedSlopeAngleTextIds.Count == 0 &&
@@ -269,6 +296,7 @@ internal static class LiveGeometrySynchronizationService
             }
 
             using (_modifiedIds.Suppress())
+            using (_modifiedFramedLabelIds.Suppress())
             using (_appendedLabelIds.Suppress())
             using (_appendedSlopeArrowIds.Suppress())
             using (_appendedSlopeAngleTextIds.Suppress())
@@ -277,6 +305,7 @@ internal static class LiveGeometrySynchronizationService
                 RefreshTimberElements(
                     _document,
                     ids,
+                    modifiedFramedLabelIds,
                     appendedLabelIds,
                     appendedSlopeArrowIds,
                     appendedSlopeAngleTextIds,
@@ -288,6 +317,7 @@ internal static class LiveGeometrySynchronizationService
         private static void RefreshTimberElements(
             Document document,
             IReadOnlyList<ObjectId> ids,
+            IReadOnlyCollection<ObjectId> modifiedFramedLabelIds,
             IReadOnlyCollection<ObjectId> appendedLabelIds,
             IReadOnlyCollection<ObjectId> appendedSlopeArrowIds,
             IReadOnlyCollection<ObjectId> appendedSlopeAngleTextIds,
@@ -302,6 +332,10 @@ internal static class LiveGeometrySynchronizationService
                 using (var transaction = document.Database.TransactionManager.StartTransaction())
                 {
                     var metadataStore = new AutoCadTimberElementMetadataStore(transaction);
+                    ElementLabelService.PersistFramedManualOffsets(
+                        document.Database,
+                        transaction,
+                        modifiedFramedLabelIds);
                     TimberAnnotationService.DeleteForMissingSourceHandles(
                         document.Database,
                         transaction,

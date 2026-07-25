@@ -18,6 +18,8 @@ public static class TimberElementDefaults
             ElementType = type,
             RoofPlaneId = "R1",
             CuttingAllowanceMm = defaults.GetCuttingAllowanceMm(type),
+            AnnotationMode = defaults.DefaultAnnotationMode,
+            ItemNumberLeaderStyle = defaults.DefaultItemNumberLeaderStyle,
             Material = "Smrek C24",
             LengthCalculationMode = LengthCalculationMode.AutoByElementType,
         };

@@ -109,6 +109,41 @@ public sealed class TimberElementCopyInitializationRulesTests
         Assert.Equal(profile.GetCuttingAllowanceMm(TimberElementType.Rafter), copiedMetadata.CuttingAllowanceMm);
     }
 
+    [Theory]
+    [InlineData(TimberAnnotationMode.FullLabel)]
+    [InlineData(TimberAnnotationMode.ItemNumberLeader)]
+    [InlineData(TimberAnnotationMode.DimensionsLeader)]
+    public void CopiedElement_PreservesAnnotationMode(TimberAnnotationMode mode)
+    {
+        var original = TimberElementDefaults.For(TimberElementType.Rafter) with
+        {
+            ElementId = "K1",
+            AnnotationMode = mode,
+        };
+
+        var copiedMetadata = original;
+
+        Assert.Equal(mode, copiedMetadata.AnnotationMode);
+    }
+
+    [Theory]
+    [InlineData(ItemNumberLeaderStyle.Plain)]
+    [InlineData(ItemNumberLeaderStyle.Circle)]
+    [InlineData(ItemNumberLeaderStyle.Slot)]
+    [InlineData(ItemNumberLeaderStyle.Rectangle)]
+    public void CopiedElement_PreservesItemNumberLeaderStyle(ItemNumberLeaderStyle style)
+    {
+        var original = TimberElementDefaults.For(TimberElementType.Rafter) with
+        {
+            AnnotationMode = TimberAnnotationMode.ItemNumberLeader,
+            ItemNumberLeaderStyle = style,
+        };
+
+        var copiedMetadata = original;
+
+        Assert.Equal(style, copiedMetadata.ItemNumberLeaderStyle);
+    }
+
     [Fact]
     public void NewAssign_UsesCurrentDefaultByElementType()
     {

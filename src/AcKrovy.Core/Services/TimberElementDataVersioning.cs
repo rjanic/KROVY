@@ -27,9 +27,13 @@ public static class TimberElementDataVersioning
             throw new UnsupportedTimberElementDataSchemaException(version, TimberElementDataSchema.CurrentVersion);
         }
 
-        var normalized = data.SchemaVersion == version
-            ? data
-            : data with { SchemaVersion = version };
+        var normalized = data with
+        {
+            SchemaVersion = version,
+            AnnotationMode = TimberAnnotationModeRules.Normalize(data.AnnotationMode),
+            ItemNumberLeaderStyle =
+                ItemNumberLeaderStyleRules.Normalize(data.ItemNumberLeaderStyle),
+        };
         if (normalized.ElementType == TimberElementType.Custom &&
             !CustomElementDefinitionRules.TryFromElementData(normalized, out _))
         {

@@ -1,7 +1,7 @@
 # ACAD KROVY – BACKLOG
 
-**Aktualizované:** 23. 7. 2026
-**Stabilný základ pred v0.15.0:** `2ad55a49086ee8f656effb3e636e82937ed02bd4`
+**Aktualizované:** 25. 7. 2026
+**Stabilný základ pred v0.16.0:** `99b3f2c434aa813aa2f3d4138eab0b55d9720875`
 
 > Tento súbor je úplný zásobník nápadov. Poradie realizácie určuje `ACAD_KROVY_ROADMAP.md`.
 
@@ -42,10 +42,14 @@
 - `80x160`
 - `80/160`
 
-### Režimy popisu podľa PDF
-- súčasný label,
-- iba číslo položky s leader/kótovacou čiarou,
-- iba rozmer s leader/kótovacou čiarou.
+### Režimy popisu podľa PDF — dokončené vo v0.16.0
+- hotové: `FullLabel`, `ItemNumberLeader` a `DimensionsLeader`,
+- hotové: `Plain`, `Circle`, `Slot` a `Rectangle`,
+- hotové: rámčekové natívne Spline MLeadery s BlockContent/ITEM_NO,
+  insertion-point attachmentom, uhlom 40° a offsetom 350 mm,
+- hotové: persistentný lokálny framed offset po STRETCH, default pre nové prvky,
+  explicitné použitie na výber/všetky, Post/Custom, COPY/COPYCLIP/WBLOCK a live refresh,
+- budúce: reset manuálneho offsetu, výber `80x160`/`80/160` a annotation scale.
 
 ### Mierka anotácií
 - 1:25

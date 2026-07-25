@@ -101,6 +101,38 @@
                     </DataGrid>
                 </Grid>
             </TabItem>
+            <TabItem x:Name="AnnotationTab" Header="{localization:Loc SettingsWindow_Annotation_Tab}">
+                <StackPanel Margin="12">
+                    <TextBlock TextWrapping="Wrap"
+                               Foreground="#555555"
+                               Text="{localization:Loc SettingsWindow_Annotation_Description}" />
+                    <StackPanel Margin="0,18,0,0"
+                                Orientation="Horizontal"
+                                VerticalAlignment="Center">
+                        <TextBlock VerticalAlignment="Center"
+                                   Text="{localization:Loc SettingsWindow_Annotation_DefaultMode}" />
+                        <ComboBox Width="300"
+                                  Margin="14,0,0,0"
+                                  ItemsSource="{Binding AnnotationModeOptions}"
+                                  DisplayMemberPath="DisplayName"
+                                  SelectedValuePath="Mode"
+                                  SelectedValue="{Binding SelectedAnnotationMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                    </StackPanel>
+                    <StackPanel Margin="0,12,0,0"
+                                Orientation="Horizontal"
+                                VerticalAlignment="Center"
+                                IsEnabled="{Binding IsItemNumberLeaderStyleEnabled}">
+                        <TextBlock VerticalAlignment="Center"
+                                   Text="{localization:Loc SettingsWindow_Annotation_ItemStyle}" />
+                        <ComboBox Width="300"
+                                  Margin="14,0,0,0"
+                                  ItemsSource="{Binding ItemNumberLeaderStyleOptions}"
+                                  DisplayMemberPath="DisplayName"
+                                  SelectedValuePath="Style"
+                                  SelectedValue="{Binding SelectedItemNumberLeaderStyle, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                    </StackPanel>
+                </StackPanel>
+            </TabItem>
             <TabItem x:Name="LanguageTab" Header="{localization:Loc SettingsWindow_Language_Tab}">
                 <StackPanel Margin="12">
                     <TextBlock TextWrapping="Wrap"

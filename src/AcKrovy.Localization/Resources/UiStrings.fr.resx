@@ -217,7 +217,7 @@
   <data name="CommandUi_ReportAll_Label" xml:space="preserve"><value>Débit complet</value></data>
   <data name="CommandUi_ReportAll_Tooltip" xml:space="preserve"><value>Insère la liste de débit des bois pour tous les éléments ACAD KROVY du dessin.</value></data>
   <data name="CommandUi_Settings_Label" xml:space="preserve"><value>Paramètres</value></data>
-  <data name="CommandUi_Settings_Tooltip" xml:space="preserve"><value>Configure les noms de calque et les couleurs des types de charpente.</value></data>
+  <data name="CommandUi_Settings_Tooltip" xml:space="preserve"><value>Configure les calques, les couleurs, les valeurs de fabrication et le mode d’annotation.</value></data>
   <data name="CommandUi_Labels_Label" xml:space="preserve"><value>Actualiser</value></data>
   <data name="CommandUi_Labels_Tooltip" xml:space="preserve"><value>Crée ou actualise les étiquettes automatiques de tous les éléments de charpente.</value></data>
   <data name="CommandUi_Toolbar_Label" xml:space="preserve"><value>Barre classique</value></data>
@@ -258,4 +258,16 @@
   <data name="CustomRenameWindow_Title" xml:space="preserve"><value>ACAD KROVY – renommer la définition</value></data>
   <data name="CustomRenameWindow_Heading" xml:space="preserve"><value>Nouveau nom de la définition personnalisée</value></data>
   <data name="CustomRenameWindow_InvalidName" xml:space="preserve"><value>Saisissez un nom non vide de 80 caractères maximum.</value></data>
+  <data name="AnnotationMode_FullLabel" xml:space="preserve"><value>Étiquette complète</value></data>
+  <data name="AnnotationMode_ItemNumberLeader" xml:space="preserve"><value>Repère uniquement</value></data>
+  <data name="AnnotationMode_DimensionsLeader" xml:space="preserve"><value>Dimensions uniquement</value></data>
+  <data name="SettingsWindow_Annotation_Tab" xml:space="preserve"><value>Étiquette / cotation</value></data>
+  <data name="SettingsWindow_Annotation_Description" xml:space="preserve"><value>Choisissez le style d’annotation principale par défaut. L’enregistrement pour les nouveaux éléments ne modifie pas les éléments existants ; les autres actions appliquent le mode à la sélection ou à tous les éléments intelligents.</value></data>
+  <data name="SettingsWindow_Annotation_DefaultMode" xml:space="preserve"><value>Mode par défaut</value></data>
+  <data name="Help_AnnotationModesLine" xml:space="preserve"><value>&#xA;  AK_SETTINGS    – définit aussi le mode d’annotation principale des éléments nouveaux, sélectionnés ou de tous les éléments</value></data>
+  <data name="SettingsWindow_Annotation_ItemStyle" xml:space="preserve"><value>Style du repère</value></data>
+  <data name="ItemNumberLeaderStyle_Plain" xml:space="preserve"><value>Sans cadre</value></data>
+  <data name="ItemNumberLeaderStyle_Circle" xml:space="preserve"><value>Cercle</value></data>
+  <data name="ItemNumberLeaderStyle_Slot" xml:space="preserve"><value>Capsule</value></data>
+  <data name="ItemNumberLeaderStyle_Rectangle" xml:space="preserve"><value>Rectangle</value></data>
 </root>

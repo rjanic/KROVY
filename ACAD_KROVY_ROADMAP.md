@@ -1,7 +1,7 @@
 # ACAD KROVY – ROADMAP
 
-**Aktualizované:** 23. 7. 2026
-**Stabilný základ pred v0.15.0:** `2ad55a49086ee8f656effb3e636e82937ed02bd4`
+**Aktualizované:** 25. 7. 2026
+**Stabilný základ pred v0.16.0:** `99b3f2c434aa813aa2f3d4138eab0b55d9720875`
 
 Tento dokument určuje odporúčané poradie ďalšieho vývoja. Úplný zásobník nápadov je v `ACAD_KROVY_BACKLOG.md`.
 
@@ -92,15 +92,21 @@ Preferovať CAD text styles.
 Poznámka:
 V používateľskom PDF je pri bode o písme uvedené „default pre všetko 1:50“. Roadmap to interpretuje ako default mierky 1:50. Potrebné neskôr potvrdiť.
 
-## 9. Režimy kótovania a popisov
-Minimálne:
-1. súčasný automatický label,
-2. iba číslo položky, napr. `K1`, s leader/kótovacou čiarou,
-3. iba rozmery, napr. `80` nad `160`, s leader/kótovacou čiarou.
+## 9. Režimy kótovania a popisov — DOKONČENÉ VO v0.16.0
+- `FullLabel`: pôvodný automatický MText,
+- `ItemNumberLeader`: natívny MLeader iba s položkou, napr. `K1`,
+- `ItemNumberLeader` podporuje `Plain`, `Circle`, `Slot` a `Rectangle`,
+- Circle/Slot/Rectangle používajú natívny Spline MLeader s BlockContent,
+  atribútom `ITEM_NO`, insertion-point attachmentom, uhlom 40° a offsetom 350 mm,
+- ručne posunutá rámčeková anotácia zachováva lokálny offset pri refreshi,
+  AK_RENUMBER a zmenách source geometrie,
+- `DimensionsLeader`: rovnaká natívna MLeader reprezentácia iba s prierezom `80x160`,
+- default pre nové prvky a explicitné použitie na výber/všetky cez `AK_SETTINGS`,
+- per-element schema v4 persistence, COPY/COPYCLIP/WBLOCK a live reconcile,
+- footprint-aware Post placement a nezávislé slope/Post anotácie.
 
-Formát rozmerov:
-- `80x160`
-- `80/160`
+Budúce rozšírenie: voliteľný formát rozmerov `80/160`, reset manuálneho
+rámčekového offsetu a mierka anotácií.
 
 ## 10. Vlastný používateľský prvok / Custom Element — DOKONČENÉ
 - `AK_CUSTOM` pre lineárne LINE/LWPOLYLINE,

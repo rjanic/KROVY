@@ -38,7 +38,7 @@ public sealed partial class LocalizationLanguagePackTests
     public void SatelliteResourceFiles_MatchDefaultKeysAndContainNoEmptyValues()
     {
         var defaultResources = LoadResources(DefaultResourceFile);
-        Assert.Equal(254, defaultResources.Count);
+        Assert.Equal(266, defaultResources.Count);
         Assert.All(defaultResources, item => Assert.False(string.IsNullOrWhiteSpace(item.Value)));
 
         foreach (var fileName in SatelliteResourceFiles)

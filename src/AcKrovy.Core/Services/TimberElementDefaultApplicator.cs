@@ -23,4 +23,27 @@ public static class TimberElementDefaultApplicator
             CuttingAllowanceMm = profile.GetCuttingAllowanceMm(source.ElementType),
         };
     }
+
+    public static TimberElementData ApplyAnnotationMode(
+        TimberElementData source,
+        TimberElementDefaultProfile profile)
+    {
+        if (source is null)
+        {
+            throw new ArgumentNullException(nameof(source));
+        }
+
+        if (profile is null)
+        {
+            throw new ArgumentNullException(nameof(profile));
+        }
+
+        return source with
+        {
+            AnnotationMode = TimberAnnotationModeRules.Normalize(
+                profile.DefaultAnnotationMode),
+            ItemNumberLeaderStyle = ItemNumberLeaderStyleRules.Normalize(
+                profile.DefaultItemNumberLeaderStyle),
+        };
+    }
 }

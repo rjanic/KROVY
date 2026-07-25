@@ -1,19 +1,40 @@
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Autodesk.AutoCAD.DatabaseServices;
 
 namespace AcKrovy.AutoCAD.Infrastructure;
 
 /// <summary>
-/// Prenosné XData metadáta automatického textového štítku. Sú uložené priamo
-/// na MText objekte, preto ostávajú pri popise aj po COPY a WBLOCK.
+/// Prenosné XData metadáta hlavnej anotácie. Sú uložené priamo na MText,
+/// natívnom MLeader alebo dočasnom legacy BlockReference objekte, preto ostávajú pri anotácii
+/// aj po COPY a WBLOCK.
 /// </summary>
 internal sealed record ElementLabelData
 {
-    public int SchemaVersion { get; init; } = 1;
+    public int SchemaVersion { get; init; } = 3;
     public string ElementId { get; init; } = string.Empty;
     public string SourceHandle { get; init; } = string.Empty;
+    public AcKrovy.Core.Models.TimberAnnotationMode AnnotationMode { get; init; } =
+        AcKrovy.Core.Models.TimberAnnotationMode.FullLabel;
+    public AcKrovy.Core.Models.ItemNumberLeaderStyle ItemNumberLeaderStyle { get; init; } =
+        AcKrovy.Core.Models.ItemNumberLeaderStyle.Plain;
+    public string? Contents { get; init; }
+    public double? AnchorX { get; init; }
+    public double? AnchorY { get; init; }
+    public double? TextX { get; init; }
+    public double? TextY { get; init; }
+    public double? RotationRadians { get; init; }
+    public double? EnvelopeWidthMm { get; init; }
+    public double? EnvelopeHeightMm { get; init; }
+    public double? AutomaticTextX { get; init; }
+    public double? AutomaticTextY { get; init; }
+    public double? LocalManualOffsetAlongAxisMm { get; init; }
+    public double? LocalManualOffsetNormalAxisMm { get; init; }
+    public double? PlacementRotationRadians { get; init; }
+    public AcKrovy.Core.Models.TimberMainAnnotationComponentRole ComponentRole { get; init; } =
+        AcKrovy.Core.Models.TimberMainAnnotationComponentRole.Primary;
 }
 
 internal static class ElementLabelStore
@@ -26,6 +47,7 @@ internal static class ElementLabelStore
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         WriteIndented = false,
+        Converters = { new JsonStringEnumConverter() },
     };
 
     public static bool TryRead(Entity entity, out ElementLabelData? data)

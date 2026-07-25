@@ -12,6 +12,8 @@ public sealed record TimberElementData
     public string? CustomElementTypeId { get; init; }
     public string? CustomElementTypeName { get; init; }
     public string? CustomElementTypePrefix { get; init; }
+    public TimberAnnotationMode AnnotationMode { get; init; } = TimberAnnotationMode.FullLabel;
+    public ItemNumberLeaderStyle ItemNumberLeaderStyle { get; init; } = ItemNumberLeaderStyle.Plain;
     public double WidthMm { get; init; } = 80;
     public double HeightMm { get; init; } = 160;
     public int? FootprintWidthEdgeIndex { get; init; }

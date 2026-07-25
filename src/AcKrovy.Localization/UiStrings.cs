@@ -25,7 +25,8 @@ public static class UiStrings
         Format(GetString("Message_PluginLoaded"), ApplicationVersionProvider.DisplayVersion);
     public static string HelpCommandOverview =>
         Format(GetString("Help_CommandOverview"), ApplicationVersionProvider.DisplayVersion) +
-        GetActiveUiString("Help_CustomCommandLine");
+        GetActiveUiString("Help_CustomCommandLine") +
+        GetActiveUiString("Help_AnnotationModesLine");
     public static string CommandRibbonReady => GetString("Command_Ribbon_Ready");
     public static string CommandRibbonPending => GetString("Command_Ribbon_Pending");
     public static string CommandToolbarShown => GetString("Command_Toolbar_Shown");

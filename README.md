@@ -14,7 +14,7 @@ Aktuálne číslo aplikácie je definované výhradne v [`Directory.Build.props`
 - explicitný `AK_RENUMBER` na vedomé kompaktné prečíslovanie podľa finálnej reznej dĺžky,
 - centrálne výpočty skutočnej a reznej dĺžky, prídavkov, zaokrúhľovania a kubatúry,
 - automatický refresh po MOVE, ROTATE, STRETCH, TRIM, EXTEND a grip edit,
-- labely prvkov, collision-aware anotácia smeru sklonu a `AK_FLIPSLOPE`,
+- tri per-element režimy hlavnej anotácie, collision-aware anotácia smeru sklonu a `AK_FLIPSLOPE`,
 - report z výberu alebo celého výkresu s prirodzeným radením položiek a adaptívnymi stĺpcami,
 - rectangular footprint pre Stĺpik z jednej rectangular Polyline,
 - konverzia validného obdĺžnika zo štyroch samostatných LINE na jeden Post footprint,
@@ -37,6 +37,12 @@ Legacy line-based Post prvky zostávajú čitateľné a kompatibilné.
 Vlastné názvy sa neprekladajú. Každé stabilné ID má samostatnú výrobnú signatúru a numbering sériu, takže napríklad `KO1` a `PR1` zostávajú nezávislé aj pri rovnakom priereze a dĺžke. `AK_EDIT` umožňuje explicitne premenovať definíciu vo všetkých jej prvkoch v aktuálnom DWG bez zmeny stabilného ID, prefixu alebo položkových čísel. Automatický label zostáva stručný — položka, prierez a výrobná dĺžka — kým názov je dostupný v editácii, inspecte a reportoch.
 
 Custom je slope-aware lineárny typ: v automatickom režime používa rovnaký centrálny prepočet skutočnej a výrobnej dĺžky podľa sklonu ako Krokva. Zmena sklonu, geometrie alebo COPY/COPYCLIP preto prejde rovnakou synchronizáciou signatúry, numberingu, labelu a reportu.
+
+## Režimy popisu a kótovania
+
+`AK_SETTINGS` ponúka tri jazykovo neutrálne režimy hlavnej anotácie: `FullLabel`, `ItemNumberLeader` a `DimensionsLeader`. `ItemNumberLeader` má štyri varianty: `Plain`, `Circle`, `Slot` a `Rectangle`. Plain a DimensionsLeader používajú priamy natívny AutoCAD MLeader; rámčekové varianty používajú natívny Spline MLeader s prenosným `BlockContent`, atribútom `ITEM_NO`, insertion-point attachmentom, uhlom 40° a dodatočným offsetom 350 mm. Rámček je self-contained v DWG a jeho ručne upravená poloha sa po klasickom STRETCH zachováva pri refreshi aj renumberingu. Zvolený default sa používa na nové prvky; existujúce prvky sa zmenia iba explicitnou akciou pre výber alebo celý výkres.
+
+Každý prvok si režim aj štýl čísla uchováva vo vlastných XData metadata schema v4, takže SAVE/REOPEN, COPY, COPYCLIP a WBLOCK nemenia jeho nastavenie. Staršie prvky bez režimu používajú pôvodný `FullLabel`; chýbajúci štýl čísla znamená `Plain`. Hlavná MText/MLeader anotácia zostáva viazaná cez `SourceHandle`, používa `KROV_POPIS`; `AK_LABELS`, `AK_LABELSELECTED`, live refresh a `AK_RENUMBER` vždy zosúladia práve jednu správnu reprezentáciu. Slope anotácie a samostatné `⊥ 90°` označenie Stĺpika zostávajú nezávislé.
 
 ## Architektúra
 

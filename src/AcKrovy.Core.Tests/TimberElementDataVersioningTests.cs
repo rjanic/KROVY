@@ -15,9 +15,9 @@ public sealed class TimberElementDataVersioningTests
     };
 
     [Fact]
-    public void CurrentVersion_IsThree()
+    public void CurrentVersion_IsFour()
     {
-        Assert.Equal(3, TimberElementDataSchema.CurrentVersion);
+        Assert.Equal(4, TimberElementDataSchema.CurrentVersion);
     }
 
     [Fact]
@@ -60,6 +60,8 @@ public sealed class TimberElementDataVersioningTests
         Assert.Equal(data.ManualLengthMm, normalized.ManualLengthMm);
         Assert.Equal(data.Material, normalized.Material);
         Assert.Equal(data.Note, normalized.Note);
+        Assert.Equal(data.AnnotationMode, normalized.AnnotationMode);
+        Assert.Equal(data.ItemNumberLeaderStyle, normalized.ItemNumberLeaderStyle);
     }
 
     [Fact]
@@ -77,7 +79,7 @@ public sealed class TimberElementDataVersioningTests
 
         var exception = Assert.Throws<UnsupportedTimberElementDataSchemaException>(() =>
             TimberElementDataVersioning.Normalize(data));
-        Assert.Equal(4, exception.SchemaVersion);
+        Assert.Equal(5, exception.SchemaVersion);
         Assert.Equal(TimberElementDataSchema.CurrentVersion, exception.CurrentVersion);
     }
 
@@ -165,13 +167,13 @@ public sealed class TimberElementDataVersioningTests
     }
 
     [Fact]
-    public void Serialize_NewJson_IncludesVersionThree()
+    public void Serialize_NewJson_IncludesVersionFour()
     {
         var data = Sample();
 
         var json = JsonSerializer.Serialize(data, JsonOptions);
 
-        Assert.Contains("\"SchemaVersion\":3", json);
+        Assert.Contains("\"SchemaVersion\":4", json);
     }
 
     [Fact]
@@ -186,7 +188,7 @@ public sealed class TimberElementDataVersioningTests
 
         var prepared = TimberElementDataVersioning.PrepareForWrite(legacy);
 
-        Assert.Equal(3, prepared.SchemaVersion);
+        Assert.Equal(4, prepared.SchemaVersion);
         Assert.Null(prepared.FootprintWidthEdgeIndex);
         Assert.Equal(legacy.ElementId, prepared.ElementId);
         Assert.Equal(legacy.WidthMm, prepared.WidthMm);

@@ -207,6 +207,7 @@ public sealed class AppLanguageServiceTests
     [Theory]
     [InlineData(SettingsWindowTabKind.Layers)]
     [InlineData(SettingsWindowTabKind.Manufacturing)]
+    [InlineData(SettingsWindowTabKind.Annotation)]
     public void SettingsElementTabs_PreserveOriginalApplyActions(SettingsWindowTabKind tab)
     {
         var actions = SettingsWindowActionRules.ForTab(tab);

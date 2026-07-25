@@ -11,6 +11,8 @@ public sealed class TimberElementDefaultProfile
 
     public int Version { get; set; } = 1;
     public double CuttingLengthRoundingStepMm { get; set; } = FactoryCuttingLengthRoundingStepMm;
+    public TimberAnnotationMode DefaultAnnotationMode { get; set; } = TimberAnnotationMode.FullLabel;
+    public ItemNumberLeaderStyle DefaultItemNumberLeaderStyle { get; set; } = ItemNumberLeaderStyle.Plain;
     public List<TimberElementDefaultStyle> Styles { get; set; } = new();
 
     public double GetCuttingLengthRoundingStepMm() =>
@@ -37,6 +39,9 @@ public sealed class TimberElementDefaultProfile
         {
             Version = Version <= 0 ? 1 : Version,
             CuttingLengthRoundingStepMm = GetCuttingLengthRoundingStepMm(),
+            DefaultAnnotationMode = TimberAnnotationModeRules.Normalize(DefaultAnnotationMode),
+            DefaultItemNumberLeaderStyle =
+                ItemNumberLeaderStyleRules.Normalize(DefaultItemNumberLeaderStyle),
             Styles = Enum
                 .GetValues(typeof(TimberElementType))
                 .Cast<TimberElementType>()
@@ -47,6 +52,8 @@ public sealed class TimberElementDefaultProfile
 
     public static TimberElementDefaultProfile CreateDefault() => new()
     {
+            DefaultAnnotationMode = TimberAnnotationMode.FullLabel,
+            DefaultItemNumberLeaderStyle = ItemNumberLeaderStyle.Plain,
             Styles = Enum
                 .GetValues(typeof(TimberElementType))
                 .Cast<TimberElementType>()

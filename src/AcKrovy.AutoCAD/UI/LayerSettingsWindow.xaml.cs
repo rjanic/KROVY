@@ -23,11 +23,15 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
     private readonly CultureInfo _uiCulture;
     private string _roundingStepMmText = Format(TimberElementDefaultProfile.FactoryCuttingLengthRoundingStepMm);
     private string _selectedLanguageCode = AppLanguageService.DefaultLanguageCode;
+    private TimberAnnotationMode _selectedAnnotationMode = TimberAnnotationMode.FullLabel;
+    private ItemNumberLeaderStyle _selectedItemNumberLeaderStyle = ItemNumberLeaderStyle.Plain;
 
     public ObservableCollection<LayerSettingsRow> Rows { get; } = [];
     public ObservableCollection<ElementDefaultSettingsRow> DefaultRows { get; } = [];
     public IReadOnlyList<LayerColorOption> ColorOptions { get; }
     public IReadOnlyList<SupportedAppLanguage> LanguageOptions => AppLanguageService.SupportedLanguages;
+    public IReadOnlyList<AnnotationModeOption> AnnotationModeOptions { get; }
+    public IReadOnlyList<ItemNumberLeaderStyleOption> ItemNumberLeaderStyleOptions { get; }
 
     internal ElementLayerProfile? Profile { get; private set; }
     internal TimberElementDefaultProfile? DefaultProfile { get; private set; }
@@ -47,6 +51,42 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
             }
 
             _selectedLanguageCode = normalized;
+            OnPropertyChanged();
+        }
+    }
+
+    public TimberAnnotationMode SelectedAnnotationMode
+    {
+        get => _selectedAnnotationMode;
+        set
+        {
+            var normalized = TimberAnnotationModeRules.Normalize(value);
+            if (_selectedAnnotationMode == normalized)
+            {
+                return;
+            }
+
+            _selectedAnnotationMode = normalized;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(IsItemNumberLeaderStyleEnabled));
+        }
+    }
+
+    public bool IsItemNumberLeaderStyleEnabled =>
+        SelectedAnnotationMode == TimberAnnotationMode.ItemNumberLeader;
+
+    public ItemNumberLeaderStyle SelectedItemNumberLeaderStyle
+    {
+        get => _selectedItemNumberLeaderStyle;
+        set
+        {
+            var normalized = ItemNumberLeaderStyleRules.Normalize(value);
+            if (_selectedItemNumberLeaderStyle == normalized)
+            {
+                return;
+            }
+
+            _selectedItemNumberLeaderStyle = normalized;
             OnPropertyChanged();
         }
     }
@@ -78,7 +118,29 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
     {
         _uiCulture = AppLanguageService.CurrentUiCulture;
         ColorOptions = LayerColorOption.CreateDefaults(_uiCulture);
+        AnnotationModeOptions = Enum
+            .GetValues<TimberAnnotationMode>()
+            .Select(mode => new AnnotationModeOption(
+                mode,
+                TimberAnnotationModeDisplayNameProvider.GetDisplayName(
+                    mode,
+                    _uiCulture)))
+            .ToList();
+        ItemNumberLeaderStyleOptions = Enum
+            .GetValues<ItemNumberLeaderStyle>()
+            .Select(ItemNumberLeaderStyleRules.Normalize)
+            .Distinct()
+            .Select(style => new ItemNumberLeaderStyleOption(
+                style,
+                ItemNumberLeaderStyleDisplayNameProvider.GetDisplayName(
+                    style,
+                    _uiCulture)))
+            .ToList();
         _selectedLanguageCode = AppLanguageService.NormalizeLanguageCode(languageCode);
+        _selectedAnnotationMode =
+            TimberAnnotationModeRules.Normalize(defaultProfile.DefaultAnnotationMode);
+        _selectedItemNumberLeaderStyle = ItemNumberLeaderStyleRules.Normalize(
+            defaultProfile.DefaultItemNumberLeaderStyle);
         InitializeComponent();
         DataContext = this;
         SettingsTabControl.SelectionChanged += SettingsTabControl_SelectionChanged;
@@ -217,6 +279,8 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
         profile = new TimberElementDefaultProfile
         {
             CuttingLengthRoundingStepMm = roundingStepMm,
+            DefaultAnnotationMode = SelectedAnnotationMode,
+            DefaultItemNumberLeaderStyle = SelectedItemNumberLeaderStyle,
             Styles = styles,
         }.Normalize();
         return true;
@@ -241,6 +305,8 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
     private void ReplaceDefaultRows(TimberElementDefaultProfile profile)
     {
         RoundingStepMmText = Format(profile.GetCuttingLengthRoundingStepMm());
+        SelectedAnnotationMode = profile.DefaultAnnotationMode;
+        SelectedItemNumberLeaderStyle = profile.DefaultItemNumberLeaderStyle;
         DefaultRows.Clear();
         foreach (var type in Enum.GetValues<TimberElementType>())
         {
@@ -302,7 +368,9 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
             ? SettingsWindowTabKind.Language
             : ReferenceEquals(SettingsTabControl.SelectedItem, ManufacturingTab)
                 ? SettingsWindowTabKind.Manufacturing
-                : SettingsWindowTabKind.Layers;
+                : ReferenceEquals(SettingsTabControl.SelectedItem, AnnotationTab)
+                    ? SettingsWindowTabKind.Annotation
+                    : SettingsWindowTabKind.Layers;
         var actions = SettingsWindowActionRules.ForTab(tab);
 
         RestoreDefaultsButton.Visibility = actions.ShowRestoreDefaults ? Visibility.Visible : Visibility.Collapsed;
@@ -425,3 +493,11 @@ public sealed record LayerColorOption(int Index, string Label, MediaBrush Brush)
             brush);
     }
 }
+
+public sealed record AnnotationModeOption(
+    TimberAnnotationMode Mode,
+    string DisplayName);
+
+public sealed record ItemNumberLeaderStyleOption(
+    ItemNumberLeaderStyle Style,
+    string DisplayName);

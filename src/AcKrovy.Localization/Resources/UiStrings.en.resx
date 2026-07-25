@@ -217,7 +217,7 @@
   <data name="CommandUi_ReportAll_Label" xml:space="preserve"><value>Full schedule</value></data>
   <data name="CommandUi_ReportAll_Tooltip" xml:space="preserve"><value>Inserts a timber schedule for all ACAD KROVY elements in the drawing.</value></data>
   <data name="CommandUi_Settings_Label" xml:space="preserve"><value>Settings</value></data>
-  <data name="CommandUi_Settings_Tooltip" xml:space="preserve"><value>Configures layer names and colors for each roof-framing element type.</value></data>
+  <data name="CommandUi_Settings_Tooltip" xml:space="preserve"><value>Configures layers, colors, manufacturing defaults, and element annotation mode.</value></data>
   <data name="CommandUi_Labels_Label" xml:space="preserve"><value>Refresh labels</value></data>
   <data name="CommandUi_Labels_Tooltip" xml:space="preserve"><value>Creates or refreshes automatic labels for all roof-framing elements.</value></data>
   <data name="CommandUi_Toolbar_Label" xml:space="preserve"><value>Classic toolbar</value></data>
@@ -258,4 +258,16 @@
   <data name="CustomRenameWindow_Title" xml:space="preserve"><value>ACAD KROVY – rename definition</value></data>
   <data name="CustomRenameWindow_Heading" xml:space="preserve"><value>New custom definition name</value></data>
   <data name="CustomRenameWindow_InvalidName" xml:space="preserve"><value>Enter a non-empty name with no more than 80 characters.</value></data>
+  <data name="AnnotationMode_FullLabel" xml:space="preserve"><value>Full label</value></data>
+  <data name="AnnotationMode_ItemNumberLeader" xml:space="preserve"><value>Item number only</value></data>
+  <data name="AnnotationMode_DimensionsLeader" xml:space="preserve"><value>Dimensions only</value></data>
+  <data name="SettingsWindow_Annotation_Tab" xml:space="preserve"><value>Label / dimension</value></data>
+  <data name="SettingsWindow_Annotation_Description" xml:space="preserve"><value>Choose the default main annotation style. Saving for new elements does not change existing elements; the other actions apply the mode to the selection or to all intelligent elements.</value></data>
+  <data name="SettingsWindow_Annotation_DefaultMode" xml:space="preserve"><value>Default mode</value></data>
+  <data name="Help_AnnotationModesLine" xml:space="preserve"><value>&#xA;  AK_SETTINGS    – also sets the main annotation mode for new, selected, or all elements</value></data>
+  <data name="SettingsWindow_Annotation_ItemStyle" xml:space="preserve"><value>Item number style</value></data>
+  <data name="ItemNumberLeaderStyle_Plain" xml:space="preserve"><value>No frame</value></data>
+  <data name="ItemNumberLeaderStyle_Circle" xml:space="preserve"><value>Circle</value></data>
+  <data name="ItemNumberLeaderStyle_Slot" xml:space="preserve"><value>Slot</value></data>
+  <data name="ItemNumberLeaderStyle_Rectangle" xml:space="preserve"><value>Rectangle</value></data>
 </root>

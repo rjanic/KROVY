@@ -217,7 +217,7 @@
   <data name="CommandUi_ReportAll_Label" xml:space="preserve"><value>Výkaz všetkého</value></data>
   <data name="CommandUi_ReportAll_Tooltip" xml:space="preserve"><value>Vloží výkaz reziva zo všetkých prvkov ACAD KROVY vo výkrese.</value></data>
   <data name="CommandUi_Settings_Label" xml:space="preserve"><value>Nastavenia</value></data>
-  <data name="CommandUi_Settings_Tooltip" xml:space="preserve"><value>Nastaví názvy hladín a farby jednotlivých typov krovu.</value></data>
+  <data name="CommandUi_Settings_Tooltip" xml:space="preserve"><value>Nastaví hladiny, farby, výrobné defaulty a režim popisu prvkov.</value></data>
   <data name="CommandUi_Labels_Label" xml:space="preserve"><value>Obnoviť popisy</value></data>
   <data name="CommandUi_Labels_Tooltip" xml:space="preserve"><value>Vytvorí alebo obnoví automatické popisy všetkých prvkov krovu.</value></data>
   <data name="CommandUi_Toolbar_Label" xml:space="preserve"><value>Klasický panel</value></data>
@@ -258,4 +258,16 @@
   <data name="CustomRenameWindow_Title" xml:space="preserve"><value>ACAD KROVY – premenovanie definície</value></data>
   <data name="CustomRenameWindow_Heading" xml:space="preserve"><value>Nový názov vlastnej definície</value></data>
   <data name="CustomRenameWindow_InvalidName" xml:space="preserve"><value>Zadaj neprázdny názov s najviac 80 znakmi.</value></data>
+  <data name="AnnotationMode_FullLabel" xml:space="preserve"><value>Kompletný popis</value></data>
+  <data name="AnnotationMode_ItemNumberLeader" xml:space="preserve"><value>Iba číslo položky</value></data>
+  <data name="AnnotationMode_DimensionsLeader" xml:space="preserve"><value>Iba rozmery</value></data>
+  <data name="SettingsWindow_Annotation_Tab" xml:space="preserve"><value>Popis / kótovanie</value></data>
+  <data name="SettingsWindow_Annotation_Description" xml:space="preserve"><value>Zvoľ predvolený spôsob hlavnej anotácie prvkov. Uloženie pre nové prvky nemení existujúce prvky; ďalšie akcie použijú režim na výber alebo na všetky inteligentné prvky.</value></data>
+  <data name="SettingsWindow_Annotation_DefaultMode" xml:space="preserve"><value>Predvolený režim</value></data>
+  <data name="Help_AnnotationModesLine" xml:space="preserve"><value>&#xA;  AK_SETTINGS    – nastaví aj režim hlavnej anotácie pre nové, vybrané alebo všetky prvky</value></data>
+  <data name="SettingsWindow_Annotation_ItemStyle" xml:space="preserve"><value>Štýl čísla položky</value></data>
+  <data name="ItemNumberLeaderStyle_Plain" xml:space="preserve"><value>Bez rámčeka</value></data>
+  <data name="ItemNumberLeaderStyle_Circle" xml:space="preserve"><value>Kruh</value></data>
+  <data name="ItemNumberLeaderStyle_Slot" xml:space="preserve"><value>Slot</value></data>
+  <data name="ItemNumberLeaderStyle_Rectangle" xml:space="preserve"><value>Obdĺžnik</value></data>
 </root>

@@ -1011,6 +1011,7 @@ public sealed class AcKrovyCommands
                 }
 
                 var updatedData = TimberElementDefaultApplicator.ApplyCuttingAllowance(data, defaultProfile);
+                updatedData = TimberElementDefaultApplicator.ApplyAnnotationMode(updatedData, defaultProfile);
                 previousElementIdById[id] = data.ElementId;
                 metadataStore.Write(entity, updatedData);
                 layerService.ApplyLayerForTimberType(entity, updatedData.ElementType, layerProfile);

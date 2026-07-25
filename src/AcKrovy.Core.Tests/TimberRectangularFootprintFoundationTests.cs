@@ -246,7 +246,7 @@ public sealed class TimberRectangularFootprintFoundationTests
     }
 
     [Fact]
-    public void SchemaVersionTwo_NullFootprintIndexRoundTrips()
+    public void CurrentSchema_NullFootprintIndexRoundTrips()
     {
         var source = TimberElementDefaults.For(TimberElementType.Post) with
         {
@@ -257,7 +257,7 @@ public sealed class TimberRectangularFootprintFoundationTests
             JsonSerializer.Serialize(source, JsonOptions),
             JsonOptions));
 
-        Assert.Equal(3, loaded.SchemaVersion);
+        Assert.Equal(TimberElementDataSchema.CurrentVersion, loaded.SchemaVersion);
         Assert.Null(loaded.FootprintWidthEdgeIndex);
         Assert.True(TimberPostFootprintMetadataRules.HasPreferredFootprintMetadataShape(loaded));
     }
@@ -273,7 +273,7 @@ public sealed class TimberRectangularFootprintFoundationTests
 
         var prepared = TimberElementDataVersioning.PrepareForWrite(legacy);
 
-        Assert.Equal(3, prepared.SchemaVersion);
+        Assert.Equal(TimberElementDataSchema.CurrentVersion, prepared.SchemaVersion);
         Assert.Null(prepared.FootprintWidthEdgeIndex);
         Assert.Equal(legacy.WidthMm, prepared.WidthMm);
         Assert.Equal(legacy.HeightMm, prepared.HeightMm);

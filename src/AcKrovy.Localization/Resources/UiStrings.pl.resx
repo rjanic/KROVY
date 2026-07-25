@@ -217,7 +217,7 @@
   <data name="CommandUi_ReportAll_Label" xml:space="preserve"><value>Pełne zestawienie</value></data>
   <data name="CommandUi_ReportAll_Tooltip" xml:space="preserve"><value>Wstawia zestawienie drewna ze wszystkich elementów ACAD KROVY w rysunku.</value></data>
   <data name="CommandUi_Settings_Label" xml:space="preserve"><value>Ustawienia</value></data>
-  <data name="CommandUi_Settings_Tooltip" xml:space="preserve"><value>Konfiguruje nazwy warstw i kolory poszczególnych typów więźby.</value></data>
+  <data name="CommandUi_Settings_Tooltip" xml:space="preserve"><value>Konfiguruje warstwy, kolory, domyślne dane produkcyjne i tryb opisu elementów.</value></data>
   <data name="CommandUi_Labels_Label" xml:space="preserve"><value>Odśwież opisy</value></data>
   <data name="CommandUi_Labels_Tooltip" xml:space="preserve"><value>Tworzy lub odświeża automatyczne opisy wszystkich elementów więźby.</value></data>
   <data name="CommandUi_Toolbar_Label" xml:space="preserve"><value>Klasyczny pasek</value></data>
@@ -258,4 +258,16 @@
   <data name="CustomRenameWindow_Title" xml:space="preserve"><value>ACAD KROVY – zmiana nazwy definicji</value></data>
   <data name="CustomRenameWindow_Heading" xml:space="preserve"><value>Nowa nazwa definicji niestandardowej</value></data>
   <data name="CustomRenameWindow_InvalidName" xml:space="preserve"><value>Wprowadź niepustą nazwę o długości maksymalnie 80 znaków.</value></data>
+  <data name="AnnotationMode_FullLabel" xml:space="preserve"><value>Pełny opis</value></data>
+  <data name="AnnotationMode_ItemNumberLeader" xml:space="preserve"><value>Tylko numer pozycji</value></data>
+  <data name="AnnotationMode_DimensionsLeader" xml:space="preserve"><value>Tylko wymiary</value></data>
+  <data name="SettingsWindow_Annotation_Tab" xml:space="preserve"><value>Opis / wymiarowanie</value></data>
+  <data name="SettingsWindow_Annotation_Description" xml:space="preserve"><value>Wybierz domyślny sposób głównej adnotacji. Zapis dla nowych elementów nie zmienia istniejących elementów; pozostałe akcje stosują tryb do wyboru lub wszystkich inteligentnych elementów.</value></data>
+  <data name="SettingsWindow_Annotation_DefaultMode" xml:space="preserve"><value>Tryb domyślny</value></data>
+  <data name="Help_AnnotationModesLine" xml:space="preserve"><value>&#xA;  AK_SETTINGS    – ustawia też tryb głównej adnotacji dla nowych, wybranych lub wszystkich elementów</value></data>
+  <data name="SettingsWindow_Annotation_ItemStyle" xml:space="preserve"><value>Styl numeru pozycji</value></data>
+  <data name="ItemNumberLeaderStyle_Plain" xml:space="preserve"><value>Bez ramki</value></data>
+  <data name="ItemNumberLeaderStyle_Circle" xml:space="preserve"><value>Okrąg</value></data>
+  <data name="ItemNumberLeaderStyle_Slot" xml:space="preserve"><value>Kapsuła</value></data>
+  <data name="ItemNumberLeaderStyle_Rectangle" xml:space="preserve"><value>Prostokąt</value></data>
 </root>

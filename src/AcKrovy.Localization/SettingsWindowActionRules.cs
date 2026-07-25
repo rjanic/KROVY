@@ -4,6 +4,7 @@ public enum SettingsWindowTabKind
 {
     Layers,
     Manufacturing,
+    Annotation,
     Language,
 }
 

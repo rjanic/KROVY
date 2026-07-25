@@ -238,7 +238,7 @@ public sealed class TimberPostFootprintAssignmentWorkflowTests
     [Fact]
     public void CreatedMetadata_UsesCurrentSchemaVersion()
     {
-        Assert.Equal(3, CreateMetadata().SchemaVersion);
+        Assert.Equal(TimberElementDataSchema.CurrentVersion, CreateMetadata().SchemaVersion);
     }
 
     [Fact]

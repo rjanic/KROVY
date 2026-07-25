@@ -21,7 +21,7 @@ ZÁKLADNÝ WORKFLOW
 - AK_RENUMBER po potvrdení vedome prečísluje všetky výrobné položky podľa
   reznej dĺžky od najkratšej po najdlhšiu.
 - AK_REPORT / AK_REPORTALL vloží výrobný výkaz.
-- AK_SETTINGS nastaví jazyk, hladiny, farby a výrobné defaulty.
+- AK_SETTINGS nastaví jazyk, hladiny, farby, výrobné defaulty a režim anotácie.
 - AK_LABELS obnoví automatické popisy.
 
 ČÍSLOVANIE
@@ -49,6 +49,18 @@ definícia má vlastnú numbering sériu. V AK_EDIT možno názov definície vý
 zmeniť pre všetky jej prvky v aktuálnom DWG bez zmeny ID, prefixu a položiek.
 Automatický label obsahuje iba položku, prierez a výrobnú dĺžku. Custom prvok
 je v automatickom režime slope-aware rovnako ako Krokva.
+
+POPISY A KÓTOVANIE
+AK_SETTINGS ponúka FullLabel, ItemNumberLeader a DimensionsLeader.
+ItemNumberLeader má varianty Plain, Circle, Slot a Rectangle. Plain a
+DimensionsLeader používajú priamy natívny MLeader; rámčekové varianty používajú
+Spline MLeader s prenosným BlockContent a atribútom ITEM_NO. Ručne posunutý
+rámček zostane po STRETCH, refreshi aj AK_RENUMBER na zvolenom mieste.
+Default platí pre nové prvky; na existujúce prvky sa použije iba výslovne pre
+výber alebo celý výkres. Režim aj štýl sú uložené v každom prvku, preto ich
+zachovajú COPY, COPYCLIP, WBLOCK aj SAVE/REOPEN. Staré prvky bez uloženého
+režimu používajú FullLabel; chýbajúci štýl čísla znamená Plain.
+Slope anotácie a samostatné označenie Stĺpika ⊥ 90° zostávajú nezávislé.
 
 OVERENIE
 .\scripts\compatibility-gate.ps1 -Portable

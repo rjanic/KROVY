@@ -2,7 +2,7 @@
 
 **Aktualizované:** 23. 7. 2026
 
-**Stabilný základ pred v0.15.0:** `2ad55a49086ee8f656effb3e636e82937ed02bd4`
+**Stabilný základ pred v0.16.0:** `99b3f2c434aa813aa2f3d4138eab0b55d9720875`
 
 **Branch:** `main`
 
@@ -75,7 +75,9 @@ Runtime používateľské texty majú používať explicitnú aplikačnú kultú
 - `ElementId`: identita výrobnej položky.
 - Metadata schema je verzovaná.
 - Post rectangular footprint zostáva spätne čitateľný zo schema v2.
-- Custom element používa schema v3 a self-contained `CustomElementTypeId`, názov a prefix.
+- Custom element používa od schema v3 self-contained `CustomElementTypeId`, názov a prefix.
+- Schema v4 pridáva jazykovo neutrálne per-element `AnnotationMode` a
+  `ItemNumberLeaderStyle`; chýbajúce hodnoty znamenajú `FullLabel` a `Plain`.
 - Existujúce DWG sa nesmú deštruktívne migrovať bez potreby.
 
 ### Item signature
@@ -95,10 +97,19 @@ používateľský názov ani prefix signatúru nemenia.
 - default krok 100 mm.
 
 ### Labely
-- pri live refreshi sa label vracia na vypočítanú pozíciu,
-- ručný posun automatického labelu sa nezachováva,
+- `FullLabel` sa pri live refreshi vracia na vypočítanú pozíciu,
+- ručný lokálny offset rámčekového `ItemNumberLeader` sa ukladá v XData a
+  zachováva pri refreshi, MOVE/ROTATE, AK_RENUMBER, COPY/COPYCLIP a SAVE/REOPEN,
 - preferovaný rozmerový formát je `80x160`,
 - budúca voľba aj `80/160`.
+- hlavná anotácia je presne jeden MText (`FullLabel`) alebo jeden natívny MLeader
+  (`ItemNumberLeader`/`DimensionsLeader`) na `KROV_POPIS`,
+- `ItemNumberLeader` má `Plain`, `Circle`, `Slot` a `Rectangle`; rámčekové
+  varianty sú natívny Spline MLeader s BlockContent/ITEM_NO a insertion-point
+  attachmentom, kým Plain a DimensionsLeader zostávajú Straight,
+- MText aj MLeader nesú portable XData väzbu na `SourceHandle`; slope a Post 90°
+  anotácie zostávajú samostatné,
+- default režimu je používateľské nastavenie, konkrétny režim je uložený na prvku.
 
 ### Jazyk a technické dáta
 Nikdy nelokalizovať/prepisovať pri zmene jazyka:
@@ -213,6 +224,22 @@ Stabilný commit: `4a951041e2deef40a127ac9560cf6fb2ba4b6a5b`
 - automatický režim dĺžky je slope-aware cez rovnaký Core pipeline ako Krokva,
 - spoločná vrstva `KROV_CUSTOM` používa existujúce ByLayer pravidlá,
 - built-in typy, Post footprint, COPY/COPYCLIP/WBLOCK a live synchronization ostávajú v pôvodnom pipeline.
+
+### Annotation Modes / Režimy popisu a kótovania
+- `FullLabel` zachováva pôvodný viacriadkový MText,
+- `ItemNumberLeader` zobrazuje cez jeden natívny MLeader iba položkové označenie,
+- `Plain` používa priamy MLeader a rámčekové `Circle`, `Slot`, `Rectangle`
+  používajú self-contained BlockContent s atribútom `ITEM_NO`,
+- rámčekové MLeadery používajú Spline, insertion-point attachment, uhol 40°,
+  dodatočný offset 350 mm a persistentný lokálny manuálny offset,
+- `DimensionsLeader` zobrazuje cez rovnaký natívny MLeader iba prierez vo formáte `80x160`,
+- `AK_SETTINGS` ukladá default pre nové prvky a explicitne ho vie aplikovať na
+  výber alebo všetky prvky,
+- centrálny `TimberAnnotationService` a `ElementLabelService` konvertujú
+  reprezentácie bez duplicít a rešpektujú režim pri AK_LABELS, live refreshi,
+  COPY/COPYCLIP, WBLOCK a AK_RENUMBER,
+- Post používa footprint-aware anchor hlavnej anotácie; jeho `⊥ 90°` sa nemení,
+- Custom stručné režimy nezobrazujú používateľský názov definície.
 
 ## Povinné kompatibilitné pravidlá
 

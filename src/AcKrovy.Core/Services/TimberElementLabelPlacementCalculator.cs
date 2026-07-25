@@ -23,7 +23,11 @@ public static class TimberElementLabelPlacementCalculator
         var planarLength = Math.Sqrt(dx * dx + dy * dy);
         var rotation = planarLength < 0.001d ? 0d : Math.Atan2(dy, dx);
 
-        if (rotation > Math.PI / 2d || rotation <= -Math.PI / 2d)
+        if (rotation > Math.PI / 2d)
+        {
+            rotation -= Math.PI;
+        }
+        else if (rotation <= -Math.PI / 2d)
         {
             rotation += Math.PI;
         }

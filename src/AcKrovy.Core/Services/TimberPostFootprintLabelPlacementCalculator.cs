@@ -5,7 +5,7 @@ namespace AcKrovy.Core.Services;
 public static class TimberPostFootprintLabelPlacementCalculator
 {
     public const double VerticalGapMm = 80d;
-    public const double TextHeightMm = 180d;
+    public const double TextHeightMm = TimberMainAnnotationTextRules.TextHeightMm;
     public const double LineSpacingFactor = 1d;
 
     public static TimberPostFootprintLabelPlacement Calculate(

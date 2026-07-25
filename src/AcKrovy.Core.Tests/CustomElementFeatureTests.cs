@@ -51,7 +51,7 @@ public sealed class CustomElementFeatureTests
     }
 
     [Fact]
-    public void SchemaVersionThree_RoundTripsSelfContainedCustomDefinition()
+    public void CurrentSchema_RoundTripsSelfContainedCustomDefinition()
     {
         var source = CustomData("KO1", "definition-a", "Konzola", "KO");
 
@@ -59,7 +59,7 @@ public sealed class CustomElementFeatureTests
         var loaded = Assert.IsType<TimberElementData>(
             JsonSerializer.Deserialize<TimberElementData>(json, JsonOptions));
 
-        Assert.Equal(3, loaded.SchemaVersion);
+        Assert.Equal(TimberElementDataSchema.CurrentVersion, loaded.SchemaVersion);
         Assert.Equal(TimberElementType.Custom, loaded.ElementType);
         Assert.Equal("definition-a", loaded.CustomElementTypeId);
         Assert.Equal("Konzola", loaded.CustomElementTypeName);
