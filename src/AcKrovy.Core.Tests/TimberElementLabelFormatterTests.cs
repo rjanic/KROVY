@@ -58,6 +58,15 @@ public sealed class TimberElementLabelFormatterTests
         Assert.Equal("80/160", result);
     }
 
+    [Fact]
+    public void FormatStackedDimensions_UsesWidthAboveHeightAsMTextParagraphs()
+    {
+        var result = TimberElementLabelFormatter.FormatStackedDimensions(
+            Data() with { WidthMm = 100, HeightMm = 220 });
+
+        Assert.Equal("100\\P220", result);
+    }
+
     private static TimberElementData Data() => new()
     {
         ElementId = "K4",

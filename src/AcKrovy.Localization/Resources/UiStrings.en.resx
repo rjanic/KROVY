@@ -184,12 +184,35 @@
   <data name="SettingsWindow_Language_Tab" xml:space="preserve"><value>Language</value></data>
   <data name="SettingsWindow_Language_Description" xml:space="preserve"><value>Select the user interface language. The change is applied after the settings are saved.</value></data>
   <data name="SettingsWindow_Language_Label" xml:space="preserve"><value>Language</value></data>
+  <data name="SettingsWindow_Language_SelectFormat" xml:space="preserve"><value>Select language: {0}</value></data>
   <data name="SettingsWindow_RestoreDefaults" xml:space="preserve"><value>Restore defaults</value></data>
   <data name="SettingsWindow_Cancel" xml:space="preserve"><value>Cancel</value></data>
   <data name="SettingsWindow_Save" xml:space="preserve"><value>Save</value></data>
   <data name="SettingsWindow_SaveNewElementsOnly" xml:space="preserve"><value>Save for new elements only</value></data>
   <data name="SettingsWindow_SaveApplySelection" xml:space="preserve"><value>Save and apply to selection</value></data>
   <data name="SettingsWindow_SaveApplyAll" xml:space="preserve"><value>Save and apply to all</value></data>
+  <data name="SettingsWindow_Layers_Description" xml:space="preserve"><value>Set the layer, concrete ACI color, linetype, and scale for each element type. The preview is informative and does not modify the DWG.</value></data>
+  <data name="SettingsWindow_Layers_PreviewColumn" xml:space="preserve"><value>Preview</value></data>
+  <data name="SettingsWindow_Theme" xml:space="preserve"><value>Theme</value></data>
+  <data name="SettingsWindow_ThemeLight" xml:space="preserve"><value>Light</value></data>
+  <data name="SettingsWindow_ThemeDark" xml:space="preserve"><value>Dark</value></data>
+  <data name="SettingsWindow_UnitMillimetres" xml:space="preserve"><value>mm</value></data>
+  <data name="SettingsWindow_AciPicker_Open" xml:space="preserve"><value>Choose ACI color</value></data>
+  <data name="SettingsWindow_AciPicker_Title" xml:space="preserve"><value>Layer color</value></data>
+  <data name="SettingsWindow_AciPicker_IndexLabel" xml:space="preserve"><value>ACI index (1–255)</value></data>
+  <data name="SettingsWindow_AciPicker_Validation" xml:space="preserve"><value>Enter a whole number from 1 to 255.</value></data>
+  <data name="SettingsWindow_AciPicker_Palette" xml:space="preserve"><value>ACI color palette 1 to 255</value></data>
+  <data name="SettingsWindow_AciPicker_Confirm" xml:space="preserve"><value>Confirm</value></data>
+  <data name="SettingsWindow_AciPicker_Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="SettingsWindow_Accessibility_Navigation" xml:space="preserve"><value>Settings section navigation</value></data>
+  <data name="SettingsWindow_Accessibility_Theme" xml:space="preserve"><value>Settings theme selection</value></data>
+  <data name="SettingsWindow_Accessibility_ApplyMode" xml:space="preserve"><value>Settings apply mode</value></data>
+  <data name="SettingsWindow_Annotation_FullLabelHelp" xml:space="preserve"><value>Item number, section, and cutting length.</value></data>
+  <data name="SettingsWindow_Annotation_ItemNumberHelp" xml:space="preserve"><value>A dedicated leader with the item number.</value></data>
+  <data name="SettingsWindow_Annotation_DimensionsHelp" xml:space="preserve"><value>A dedicated leader with dimensions only.</value></data>
+  <data name="SettingsWindow_FormNoChanges" xml:space="preserve"><value>No changes</value></data>
+  <data name="SettingsWindow_FormUnsavedChanges" xml:space="preserve"><value>Unapplied changes</value></data>
+  <data name="SettingsWindow_FormApplied" xml:space="preserve"><value>Applied</value></data>
   <data name="LayerColor_Red" xml:space="preserve"><value>Red (1)</value></data>
   <data name="LayerColor_Yellow" xml:space="preserve"><value>Yellow (2)</value></data>
   <data name="LayerColor_Green" xml:space="preserve"><value>Green (3)</value></data>
@@ -291,4 +314,23 @@
   <data name="ItemNumberLeaderStyle_Circle" xml:space="preserve"><value>Circle</value></data>
   <data name="ItemNumberLeaderStyle_Slot" xml:space="preserve"><value>Slot</value></data>
   <data name="ItemNumberLeaderStyle_Rectangle" xml:space="preserve"><value>Rectangle</value></data>
+  <data name="AnnotationMode_NoAnnotations" xml:space="preserve"><value>No annotations</value></data>
+  <data name="SettingsWindow_Annotation_NoAnnotationsHelp" xml:space="preserve"><value>Creates no main, slope, or Post 90° annotation.</value></data>
+  <data name="SettingsWindow_NewLayerCreatedFormat" xml:space="preserve"><value>A new layer {0} was created with the new properties.</value></data>
+  <data name="SettingsWindow_NewLayersCreatedFormat" xml:space="preserve"><value>{0} new layers were created with modified properties.</value></data>
+  <data name="SettingsWindow_Layers_LayerNamePrompt" xml:space="preserve"><value>Select or enter a layer name</value></data>
+  <data name="SettingsWindow_AciPicker_BasicColors" xml:space="preserve"><value>Basic colors</value></data>
+  <data name="SettingsWindow_AciPicker_ColorPalette" xml:space="preserve"><value>Color palette</value></data>
+  <data name="SettingsWindow_AciPicker_Grayscale" xml:space="preserve"><value>Grayscale</value></data>
+  <data name="SettingsWindow_Layers_MixedLinetypeScale" xml:space="preserve"><value>Elements on the layer use different linetype scales. The current value was preserved.</value></data>
+  <data name="SettingsAnnotationPreset_NoAnnotations" xml:space="preserve"><value>No annotations</value></data>
+  <data name="SettingsAnnotationPreset_ItemPlain" xml:space="preserve"><value>Item only</value></data>
+  <data name="SettingsAnnotationPreset_ItemCircle" xml:space="preserve"><value>Item in circle</value></data>
+  <data name="SettingsAnnotationPreset_ItemRectangle" xml:space="preserve"><value>Item in rectangle</value></data>
+  <data name="SettingsAnnotationPreset_ItemSlot" xml:space="preserve"><value>Item in slot</value></data>
+  <data name="SettingsAnnotationPreset_DimensionsOnly" xml:space="preserve"><value>Dimensions only</value></data>
+  <data name="SettingsAnnotationPreset_FullLabel" xml:space="preserve"><value>Full label</value></data>
+  <data name="SettingsAnnotationPreset_DimensionsWithItemCircle" xml:space="preserve"><value>Dimensions and item in circle</value></data>
+  <data name="SettingsAnnotationPreset_DimensionsWithItemRectangle" xml:space="preserve"><value>Dimensions and item in rectangle</value></data>
+  <data name="SettingsAnnotationPreset_DimensionsWithItemSlot" xml:space="preserve"><value>Dimensions and item in slot</value></data>
 </root>

@@ -41,7 +41,7 @@ public sealed class TimberFramedLeaderPlacementTests
     [InlineData(ItemNumberLeaderStyle.Circle)]
     [InlineData(ItemNumberLeaderStyle.Slot)]
     [InlineData(ItemNumberLeaderStyle.Rectangle)]
-    public void FramedDefaultLayout_UsesFortyDegreeFirstSegment(
+    public void FramedDefaultLayout_UsesSixtyDegreeFirstSegment(
         ItemNumberLeaderStyle style)
     {
         var layout = TimberItemLeaderLayoutCalculator.CalculateBlock(
@@ -51,10 +51,104 @@ public sealed class TimberFramedLeaderPlacementTests
             TimberLeaderHorizontalSide.Right);
         var angle = Math.Atan2(layout.KneeY, layout.KneeX) * 180d / Math.PI;
 
-        Assert.Equal(40d, angle, 10);
+        Assert.Equal(60d, angle, 10);
         Assert.Equal(
-            40d,
+            60d,
             TimberNativeLeaderStyleRules.FramedSettings.FirstSegmentAngleDegrees);
+    }
+
+    [Theory]
+    [InlineData(ItemNumberLeaderStyle.Circle)]
+    [InlineData(ItemNumberLeaderStyle.Slot)]
+    [InlineData(ItemNumberLeaderStyle.Rectangle)]
+    public void StandaloneFramedLayout_UsesInsertionPointAsTerminalVertex(
+        ItemNumberLeaderStyle style)
+    {
+        var layout = TimberItemLeaderLayoutCalculator.CalculateBlock(
+            new TimberLeaderPlacement(0, 0, 0, 360, 0),
+            "K1",
+            style,
+            TimberLeaderHorizontalSide.Right);
+
+        Assert.Equal(layout.KneeX, layout.ContentX, 10);
+        Assert.Equal(layout.KneeY, layout.ContentY, 10);
+        Assert.Equal(
+            0d,
+            TimberItemLeaderLayoutCalculator.FramedItemLandingDistanceMm);
+    }
+
+    [Theory]
+    [InlineData(0, 100, 300, 100, 150, 100)]
+    [InlineData(0, 100, -300, 100, -150, 100)]
+    [InlineData(20, 500, 320, 500, 170, 500)]
+    [InlineData(20, -500, 320, -500, 170, -500)]
+    [InlineData(50, 250, -250, 250, -100, 250)]
+    public void CombinedDimensionsText_IsCenteredOnActualLandingEndpoints(
+        double startX,
+        double startY,
+        double endX,
+        double endY,
+        double expectedX,
+        double expectedY)
+    {
+        var position =
+            TimberItemLeaderLayoutCalculator.CalculateSegmentMidpoint(
+                startX,
+                startY,
+                endX,
+                endY);
+
+        Assert.Equal(expectedX, position.X, 10);
+        Assert.Equal(expectedY, position.Y, 10);
+    }
+
+    [Theory]
+    [InlineData(ItemNumberLeaderStyle.Circle)]
+    [InlineData(ItemNumberLeaderStyle.Slot)]
+    [InlineData(ItemNumberLeaderStyle.Rectangle)]
+    public void CombinedFramedLanding_UsesCentralizedThreeHundredFiftyMillimetres(
+        ItemNumberLeaderStyle style)
+    {
+        Assert.NotEqual(ItemNumberLeaderStyle.Plain, style);
+        Assert.Equal(
+            350d,
+            TimberItemLeaderLayoutCalculator.CombinedFramedLandingDistanceMm);
+        Assert.Equal(
+            0d,
+            TimberNativeLeaderStyleRules.FramedSettings.LandingDistance);
+        Assert.Equal(
+            350d,
+            TimberNativeLeaderStyleRules.CombinedFramedSettings.LandingDistance);
+    }
+
+    [Theory]
+    [InlineData(ItemNumberLeaderStyle.Circle)]
+    [InlineData(ItemNumberLeaderStyle.Slot)]
+    [InlineData(ItemNumberLeaderStyle.Rectangle)]
+    public void StandaloneFramedStyles_UseOriginalNativeContract(
+        ItemNumberLeaderStyle style)
+    {
+        Assert.True(TimberNativeLeaderStyleRules.UsesSplineLeader(style));
+        Assert.True(
+            TimberNativeLeaderStyleRules.UsesInsertionPointBlockAttachment(style));
+        Assert.False(TimberNativeLeaderStyleRules.FramedSettings.UsesStraightLeader);
+        Assert.False(TimberNativeLeaderStyleRules.FramedSettings.HasArrowhead);
+        Assert.False(TimberNativeLeaderStyleRules.FramedSettings.UsesAnnotationScale);
+    }
+
+    [Fact]
+    public void CombinedFramedStyle_IsIndependentFromStandaloneContract()
+    {
+        Assert.True(
+            TimberNativeLeaderStyleRules.CombinedFramedSettings.UsesStraightLeader);
+        Assert.True(TimberNativeLeaderStyleRules.CombinedFramedSettings.HasArrowhead);
+        Assert.Equal(
+            60,
+            TimberNativeLeaderStyleRules.CombinedFramedSettings
+                .FirstSegmentAngleDegrees);
+        Assert.NotEqual(
+            TimberNativeLeaderStyleRules.FramedSettings.StyleName,
+            TimberNativeLeaderStyleRules.CombinedFramedSettings.StyleName);
     }
 
     [Fact]

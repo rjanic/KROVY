@@ -13,7 +13,8 @@ internal static class AcKrovyItemLeaderBlockService
         Database database,
         Transaction transaction,
         ItemNumberLeaderStyle style,
-        string itemText)
+        string itemText,
+        bool preserveExistingDefinition = false)
     {
         ArgumentNullException.ThrowIfNull(database);
         ArgumentNullException.ThrowIfNull(transaction);
@@ -29,8 +30,22 @@ internal static class AcKrovyItemLeaderBlockService
             blockId = blockTable[definition.BlockName];
             block = (BlockTableRecord)transaction.GetObject(
                 blockId,
-                OpenMode.ForWrite);
+                preserveExistingDefinition ? OpenMode.ForRead : OpenMode.ForWrite);
             var existingAttributeId = FindItemNumberAttribute(block, transaction);
+            if (preserveExistingDefinition)
+            {
+                if (existingAttributeId.IsNull)
+                {
+                    throw new InvalidOperationException(
+                        $"Existing item leader block '{definition.BlockName}' has no ITEM_NO attribute.");
+                }
+
+                return new ItemLeaderBlockReference(
+                    blockId,
+                    existingAttributeId,
+                    definition);
+            }
+
             if (!existingAttributeId.IsNull &&
                 IsCompatibleDefinition(
                     database,

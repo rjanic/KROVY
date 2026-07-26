@@ -1,0 +1,41 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=System.Runtime">
+    <sys:String x:Key="SettingsThemeDictionaryKind">Light</sys:String>
+    <SolidColorBrush x:Key="SettingsWindowBackgroundBrush" Color="#F4F6F8" />
+    <SolidColorBrush x:Key="SettingsSidebarBackgroundBrush" Color="#17212B" />
+    <SolidColorBrush x:Key="SettingsSidebarTextBrush" Color="#E9EEF3" />
+    <SolidColorBrush x:Key="SettingsSidebarMutedTextBrush" Color="#AEBAC5" />
+    <SolidColorBrush x:Key="SettingsPanelBackgroundBrush" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="SettingsCardBackgroundBrush" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="SettingsTextPrimaryBrush" Color="#1C2733" />
+    <SolidColorBrush x:Key="SettingsTextSecondaryBrush" Color="#5A6875" />
+    <SolidColorBrush x:Key="SettingsAccentBrush" Color="#1976D2" />
+    <SolidColorBrush x:Key="SettingsAccentHoverBrush" Color="#1565C0" />
+    <SolidColorBrush x:Key="SettingsAccentPressedBrush" Color="#0D47A1" />
+    <SolidColorBrush x:Key="SettingsBorderBrush" Color="#D8DEE5" />
+    <SolidColorBrush x:Key="SettingsHoverBrush" Color="#EDF3F9" />
+    <SolidColorBrush x:Key="SettingsSelectedBrush" Color="#DCEBFA" />
+    <SolidColorBrush x:Key="SettingsFocusBrush" Color="#0B68C4" />
+    <SolidColorBrush x:Key="SettingsDisabledBrush" Color="#84919C" />
+    <SolidColorBrush x:Key="SettingsAnnotationPreviewBackgroundBrush" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="SettingsFlagCardBackgroundBrush" Color="#E7ECF1" />
+    <SolidColorBrush x:Key="SettingsBadgeBackgroundBrush" Color="#F7FAFD" />
+    <SolidColorBrush x:Key="SettingsBadgeTextBrush" Color="#163A59" />
+    <SolidColorBrush x:Key="SettingsToolTipBackgroundBrush" Color="#1F2933" />
+    <SolidColorBrush x:Key="SettingsToolTipTextBrush" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="SettingsValidationBrush" Color="#C62828" />
+    <SolidColorBrush x:Key="SettingsSuccessBackgroundBrush" Color="#E5F4E8" />
+    <SolidColorBrush x:Key="SettingsSuccessBorderBrush" Color="#3C8248" />
+    <SolidColorBrush x:Key="SettingsSuccessTextBrush" Color="#185C27" />
+    <SolidColorBrush x:Key="SettingsInfoBackgroundBrush" Color="#E2F0FC" />
+    <SolidColorBrush x:Key="SettingsInfoBorderBrush" Color="#43749D" />
+    <SolidColorBrush x:Key="SettingsInfoTextBrush" Color="#1D527E" />
+    <SolidColorBrush x:Key="SettingsWarningBackgroundBrush" Color="#FFF4D6" />
+    <SolidColorBrush x:Key="SettingsWarningBorderBrush" Color="#B47A19" />
+    <SolidColorBrush x:Key="SettingsWarningTextBrush" Color="#6F4500" />
+    <SolidColorBrush x:Key="SettingsErrorBackgroundBrush" Color="#FCE8E8" />
+    <SolidColorBrush x:Key="SettingsErrorBorderBrush" Color="#B3261E" />
+    <SolidColorBrush x:Key="SettingsErrorTextBrush" Color="#7D1712" />
+    <Color x:Key="SettingsShadowColor">#42000000</Color>
+</ResourceDictionary>

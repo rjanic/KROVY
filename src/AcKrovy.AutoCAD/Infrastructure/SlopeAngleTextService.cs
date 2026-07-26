@@ -16,7 +16,8 @@ internal static class SlopeAngleTextService
         Transaction transaction,
         Entity sourceEntity,
         TimberElementData data,
-        SlopeAnnotationGeometryData geometry)
+        SlopeAnnotationGeometryData geometry,
+        bool copySourcePreservation = false)
     {
         ArgumentNullException.ThrowIfNull(database);
         ArgumentNullException.ThrowIfNull(transaction);
@@ -58,13 +59,22 @@ internal static class SlopeAngleTextService
             angleText = (DBText)transaction.GetObject(matchingTexts[0].Id, OpenMode.ForWrite);
         }
 
-        ApplyAppearance(database, transaction, angleText, geometry, data);
+        ApplyAppearance(
+            database,
+            transaction,
+            angleText,
+            geometry,
+            data,
+            updateExistingLayer: !copySourcePreservation);
         SlopeAngleTextStore.Write(
             angleText,
             transaction,
             new SlopeAngleTextData { SourceHandle = sourceHandle });
         DeleteTexts(transaction, matchingTexts.Skip(1).Select(text => text.Id));
-        DeleteDuplicateTextsForExistingSourceHandles(database, transaction);
+        if (!copySourcePreservation)
+        {
+            DeleteDuplicateTextsForExistingSourceHandles(database, transaction);
+        }
         return isCreated;
     }
 
@@ -140,7 +150,8 @@ internal static class SlopeAngleTextService
         Transaction transaction,
         DBText angleText,
         SlopeAnnotationGeometryData geometry,
-        TimberElementData data)
+        TimberElementData data,
+        bool updateExistingLayer)
     {
         var isPost = data.ElementType == TimberElementType.Post;
         var placement = isPost
@@ -179,7 +190,8 @@ internal static class SlopeAngleTextService
             angleText,
             SlopeArrowService.ArrowLayerName,
             AngleTextLayerColorIndex,
-            isPlottable: false);
+            isPlottable: false,
+            updateExistingLayer: updateExistingLayer);
         angleText.LineWeight = LineWeight.ByLayer;
         angleText.AdjustAlignment(database);
     }

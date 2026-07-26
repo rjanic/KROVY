@@ -21,7 +21,8 @@ internal static class SlopeArrowService
         Transaction transaction,
         Entity sourceEntity,
         TimberElementData data,
-        SlopeAnnotationGeometryData geometry)
+        SlopeAnnotationGeometryData geometry,
+        bool copySourcePreservation = false)
     {
         ArgumentNullException.ThrowIfNull(database);
         ArgumentNullException.ThrowIfNull(transaction);
@@ -76,17 +77,33 @@ internal static class SlopeArrowService
         if (glyph is Polyline arrow)
         {
             var placement = CalculatePlacement(geometry, data.IsSlopeDirectionReversed);
-            ApplyArrowAppearance(database, transaction, arrow, placement.Geometry, placement.Elevation);
+            ApplyArrowAppearance(
+                database,
+                transaction,
+                arrow,
+                placement.Geometry,
+                placement.Elevation,
+                updateExistingLayer: !copySourcePreservation);
         }
         else if (glyph is BlockReference marker)
         {
             if (glyphKind == TimberSlopeGlyphKind.PostPerpendicularMarker)
             {
-                ApplyPostPerpendicularMarkerAppearance(database, transaction, marker, geometry);
+                ApplyPostPerpendicularMarkerAppearance(
+                    database,
+                    transaction,
+                    marker,
+                    geometry,
+                    updateExistingLayer: !copySourcePreservation);
             }
             else
             {
-                ApplyHorizontalMarkerAppearance(database, transaction, marker, geometry);
+                ApplyHorizontalMarkerAppearance(
+                    database,
+                    transaction,
+                    marker,
+                    geometry,
+                    updateExistingLayer: !copySourcePreservation);
             }
         }
 
@@ -94,7 +111,10 @@ internal static class SlopeArrowService
         DeleteGlyphs(transaction, matchingGlyphs
             .Where(item => item.Id != glyph.ObjectId)
             .Select(item => item.Id));
-        DeleteDuplicateArrowsForExistingSourceHandles(database, transaction);
+        if (!copySourcePreservation)
+        {
+            DeleteDuplicateArrowsForExistingSourceHandles(database, transaction);
+        }
         return isCreated;
     }
 
@@ -181,7 +201,8 @@ internal static class SlopeArrowService
         Transaction transaction,
         Polyline arrow,
         TimberSlopeArrowPlacement placement,
-        double elevation)
+        double elevation,
+        bool updateExistingLayer)
     {
         var points = new[]
         {
@@ -218,7 +239,8 @@ internal static class SlopeArrowService
             arrow,
             ArrowLayerName,
             ArrowLayerColorIndex,
-            isPlottable: false);
+            isPlottable: false,
+            updateExistingLayer: updateExistingLayer);
         arrow.LineWeight = LineWeight.ByLayer;
     }
 
@@ -226,7 +248,8 @@ internal static class SlopeArrowService
         Database database,
         Transaction transaction,
         BlockReference marker,
-        SlopeAnnotationGeometryData geometry)
+        SlopeAnnotationGeometryData geometry,
+        bool updateExistingLayer)
     {
         marker.Position = geometry.AnnotationPoint;
         marker.Rotation = Math.Atan2(
@@ -239,7 +262,8 @@ internal static class SlopeArrowService
             marker,
             ArrowLayerName,
             ArrowLayerColorIndex,
-            isPlottable: false);
+            isPlottable: false,
+            updateExistingLayer: updateExistingLayer);
         marker.LineWeight = LineWeight.ByLayer;
     }
 
@@ -247,7 +271,8 @@ internal static class SlopeArrowService
         Database database,
         Transaction transaction,
         BlockReference marker,
-        SlopeAnnotationGeometryData geometry)
+        SlopeAnnotationGeometryData geometry,
+        bool updateExistingLayer)
     {
         var symbol = TimberPostAnnotationGeometryCalculator.Calculate(
             geometry.Start.X,
@@ -268,7 +293,8 @@ internal static class SlopeArrowService
             marker,
             ArrowLayerName,
             ArrowLayerColorIndex,
-            isPlottable: false);
+            isPlottable: false,
+            updateExistingLayer: updateExistingLayer);
         marker.LineWeight = LineWeight.ByLayer;
     }
 

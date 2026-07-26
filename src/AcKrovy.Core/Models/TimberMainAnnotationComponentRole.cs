@@ -6,4 +6,5 @@ public enum TimberMainAnnotationComponentRole
     CircleText,
     CircleFrame,
     CircleLeaderLine,
+    FramedItem,
 }

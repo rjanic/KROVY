@@ -53,7 +53,7 @@ public static class TimberElementLabelCleanupRules
         }
 
         var existingHandles = CreateHandleSet(existingTimberSourceHandles);
-        var seenSourceHandles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var seenComponents = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var keysToDelete = new List<string>();
 
         foreach (var candidate in candidates)
@@ -70,7 +70,8 @@ public static class TimberElementLabelCleanupRules
                 continue;
             }
 
-            if (seenSourceHandles.Add(sourceHandle))
+            var logicalComponentKey = $"{sourceHandle}|{candidate.ComponentRole}";
+            if (seenComponents.Add(logicalComponentKey))
             {
                 continue;
             }

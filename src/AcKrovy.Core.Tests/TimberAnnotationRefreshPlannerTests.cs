@@ -88,4 +88,43 @@ public sealed class TimberAnnotationRefreshPlannerTests
             expected,
             LiveGeometryCommandRules.RequiresFullTimberAnnotationRefresh(commandName));
     }
+
+    [Theory]
+    [InlineData("COPY")]
+    [InlineData("_COPY")]
+    [InlineData(".COPYCLIP")]
+    [InlineData("PASTECLIP")]
+    [Trait("Feature", "CopySourcePreservation")]
+    public void CopyCommands_PreservePreExistingSources(string commandName)
+    {
+        Assert.True(LiveGeometryCommandRules.IsCopySourcePreservingCommand(commandName));
+    }
+
+    [Fact]
+    [Trait("Feature", "CopySourcePreservation")]
+    public void MultiCopy_ReconcilesOnlyAppendedTimberObjects()
+    {
+        var sourceIds = new[] { 11, 12, 13, 14, 15 };
+        var appendedIds = new[] { 101, 102, 103, 104, 105, 105 };
+
+        var candidates = LiveGeometryCommandRules.SelectIncrementalCandidates(
+            preserveCopySources: true,
+            modifiedIds: sourceIds.Concat(appendedIds),
+            appendedIds);
+
+        Assert.Equal([101, 102, 103, 104, 105], candidates);
+        Assert.DoesNotContain(candidates, id => sourceIds.Contains(id));
+    }
+
+    [Fact]
+    [Trait("Feature", "CopySourcePreservation")]
+    public void OrdinaryModification_StillReconcilesModifiedObjects()
+    {
+        Assert.Equal(
+            [11, 12],
+            LiveGeometryCommandRules.SelectIncrementalCandidates(
+                preserveCopySources: false,
+                modifiedIds: new[] { 11, 12, 12 },
+                appendedIds: new[] { 101 }));
+    }
 }

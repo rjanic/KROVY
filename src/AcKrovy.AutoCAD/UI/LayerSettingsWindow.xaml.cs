@@ -7,10 +7,6 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
 using WpfMessageBox = System.Windows.MessageBox;
-using MediaBrush = System.Windows.Media.Brush;
-using MediaColor = System.Windows.Media.Color;
-using MediaColorConverter = System.Windows.Media.ColorConverter;
-using MediaSolidColorBrush = System.Windows.Media.SolidColorBrush;
 using AcKrovy.Cad.Abstractions.Layers;
 using AcKrovy.AutoCAD.ClassicToolbar;
 using AcKrovy.AutoCAD.Ribbon;
@@ -18,6 +14,10 @@ using AcKrovy.AutoCAD.Settings;
 using AcKrovy.Core.Models;
 using AcKrovy.Core.Services;
 using AcKrovy.Localization;
+using WpfBrush = System.Windows.Media.Brush;
+using WpfKey = System.Windows.Input.Key;
+using WpfKeyEventArgs = System.Windows.Input.KeyEventArgs;
+using WpfKeyboardFocusChangedEventArgs = System.Windows.Input.KeyboardFocusChangedEventArgs;
 
 namespace AcKrovy.AutoCAD.UI;
 
@@ -29,15 +29,20 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
     private readonly SettingsApplyChangeTracker _applyChangeTracker = new();
     private readonly StatusBannerState _statusBannerState = new();
     private readonly DispatcherTimer _statusBannerTimer;
+    private readonly SettingsUiPreferences _loadedUiPreferences;
     private ObservableCollection<LayerColorOption> _colorOptions = [];
     private ObservableCollection<AnnotationModeOption> _annotationModeOptions = [];
+    private ObservableCollection<AnnotationPresetOption> _annotationPresetOptions = [];
     private ObservableCollection<ItemNumberLeaderStyleOption> _itemNumberLeaderStyleOptions = [];
-    private ObservableCollection<SettingsApplyModeOption> _applyModeOptions = [];
+    private IReadOnlyDictionary<string, CadLayerPreset> _layerPresets =
+        new Dictionary<string, CadLayerPreset>(StringComparer.OrdinalIgnoreCase);
     private string _roundingStepMmText = Format(TimberElementDefaultProfile.FactoryCuttingLengthRoundingStepMm);
     private string _selectedLanguageCode = AppLanguageService.DefaultLanguageCode;
     private TimberAnnotationMode _selectedAnnotationMode = TimberAnnotationMode.FullLabel;
     private ItemNumberLeaderStyle _selectedItemNumberLeaderStyle = ItemNumberLeaderStyle.Plain;
-    private SettingsSaveMode _selectedApplyMode = SettingsSaveMode.NewElementsOnly;
+    private SettingsAnnotationPreset _selectedAnnotationPreset =
+        SettingsAnnotationPreset.FullLabel;
+    private string? _acceptedUiFingerprint;
     private long _statusBannerTimerVersion;
 
     public ObservableCollection<LayerSettingsRow> Rows { get; } = [];
@@ -52,13 +57,30 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
         }
     }
     public ObservableCollection<string> LinetypeOptions { get; } = [];
-    public IReadOnlyList<SupportedAppLanguage> LanguageOptions => AppLanguageService.SupportedLanguages;
+    public ObservableCollection<string> LayerNameOptions { get; } = [];
+    public ObservableCollection<LanguageCardOption> LanguageOptions { get; } =
+        new(AppLanguageService.SupportedLanguages.Select(language =>
+            new LanguageCardOption(
+                language.Code,
+                language.UpperCode,
+                language.NativeName)));
+    public SettingsVisualStateViewModel Visual { get; }
     public ObservableCollection<AnnotationModeOption> AnnotationModeOptions
     {
         get => _annotationModeOptions;
         private set
         {
             _annotationModeOptions = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public ObservableCollection<AnnotationPresetOption> AnnotationPresetOptions
+    {
+        get => _annotationPresetOptions;
+        private set
+        {
+            _annotationPresetOptions = value;
             OnPropertyChanged();
         }
     }
@@ -73,37 +95,11 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
         }
     }
 
-    public ObservableCollection<SettingsApplyModeOption> ApplyModeOptions
-    {
-        get => _applyModeOptions;
-        private set
-        {
-            _applyModeOptions = value;
-            OnPropertyChanged();
-        }
-    }
-
     internal ElementLayerProfile? Profile { get; private set; }
     internal TimberElementDefaultProfile? DefaultProfile { get; private set; }
     internal bool ApplyToExistingElements { get; private set; }
     internal SettingsSaveMode SaveMode { get; private set; }
     internal string LanguageCode { get; private set; } = AppLanguageService.DefaultLanguageCode;
-
-    public SettingsSaveMode SelectedApplyMode
-    {
-        get => _selectedApplyMode;
-        set
-        {
-            var normalized = SettingsSelectionRules.NormalizeApplyMode(value);
-            if (_selectedApplyMode == normalized)
-            {
-                return;
-            }
-
-            _selectedApplyMode = normalized;
-            OnPropertyChanged();
-        }
-    }
 
     public string SelectedLanguageCode
     {
@@ -118,6 +114,7 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
 
             _selectedLanguageCode = normalized;
             OnPropertyChanged();
+            UpdateFormState();
             PreviewLanguage(normalized);
         }
     }
@@ -136,11 +133,15 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
             _selectedAnnotationMode = normalized;
             OnPropertyChanged();
             OnPropertyChanged(nameof(IsItemNumberLeaderStyleEnabled));
+            SynchronizeSelectedAnnotationPreset();
+            UpdateFormState();
         }
     }
 
     public bool IsItemNumberLeaderStyleEnabled =>
-        SelectedAnnotationMode == TimberAnnotationMode.ItemNumberLeader;
+        SelectedAnnotationMode is
+            TimberAnnotationMode.ItemNumberLeader or
+            TimberAnnotationMode.DimensionsWithItemNumber;
 
     public ItemNumberLeaderStyle SelectedItemNumberLeaderStyle
     {
@@ -155,6 +156,32 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
 
             _selectedItemNumberLeaderStyle = normalized;
             OnPropertyChanged();
+            SynchronizeSelectedAnnotationPreset();
+            UpdateFormState();
+        }
+    }
+
+    public SettingsAnnotationPreset SelectedAnnotationPreset
+    {
+        get => _selectedAnnotationPreset;
+        set
+        {
+            var definition = SettingsAnnotationPresetRules.Get(value);
+            if (_selectedAnnotationPreset == definition.Preset &&
+                _selectedAnnotationMode == definition.AnnotationMode &&
+                _selectedItemNumberLeaderStyle == definition.ItemNumberLeaderStyle)
+            {
+                return;
+            }
+
+            _selectedAnnotationPreset = definition.Preset;
+            _selectedAnnotationMode = definition.AnnotationMode;
+            _selectedItemNumberLeaderStyle = definition.ItemNumberLeaderStyle;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(SelectedAnnotationMode));
+            OnPropertyChanged(nameof(SelectedItemNumberLeaderStyle));
+            OnPropertyChanged(nameof(IsItemNumberLeaderStyleEnabled));
+            UpdateFormState();
         }
     }
 
@@ -170,6 +197,7 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
 
             _roundingStepMmText = value;
             OnPropertyChanged();
+            UpdateFormState();
         }
     }
 
@@ -183,17 +211,25 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
         TimberElementDefaultProfile defaultProfile,
         string languageCode,
         IReadOnlyList<string> availableLinetypeNames,
+        IReadOnlyList<CadLayerPreset> availableLayerPresets,
         Func<SettingsApplyRequest, SettingsApplyResponse> applySettings)
     {
         _applySettings = applySettings ?? throw new ArgumentNullException(nameof(applySettings));
+        _loadedUiPreferences = SettingsUiPreferencesStore.Load();
         var normalizedDefaultProfile = defaultProfile.Normalize();
         _selectedAnnotationMode = SettingsSelectionRules.NormalizeAnnotationMode(
             normalizedDefaultProfile.DefaultAnnotationMode);
         _selectedItemNumberLeaderStyle = SettingsSelectionRules.NormalizeItemNumberLeaderStyle(
             normalizedDefaultProfile.DefaultItemNumberLeaderStyle);
-        _selectedApplyMode = SettingsSaveMode.NewElementsOnly;
+        _selectedAnnotationPreset = SettingsAnnotationPresetRules.FromProduction(
+            _selectedAnnotationMode,
+            _selectedItemNumberLeaderStyle);
         _selectedLanguageCode = AppLanguageService.NormalizeLanguageCode(languageCode);
         _uiCulture = AppLanguageService.CurrentUiCulture;
+        Visual = new SettingsVisualStateViewModel(
+            _uiCulture,
+            _loadedUiPreferences.SelectedSection,
+            _loadedUiPreferences.Theme);
         RefreshLocalizedSources();
         RefreshLinetypeOptions(availableLinetypeNames
             .Concat(CadLinetypeNames.SupportedStandardNames)
@@ -201,8 +237,13 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
             .ToList());
+        RefreshLayerNameOptions(availableLayerPresets, profile);
         InitializeComponent();
         DataContext = this;
+        ApplyWindowPreferences(_loadedUiPreferences);
+        ApplyTheme(Visual.SelectedTheme);
+        Visual.SectionChanged += Visual_SectionChanged;
+        Visual.ThemeChanged += Visual_ThemeChanged;
         _statusBannerTimer = new DispatcherTimer(DispatcherPriority.Normal, Dispatcher)
         {
             Interval = TimeSpan.FromSeconds(2),
@@ -210,9 +251,9 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
         _statusBannerTimer.Tick += StatusBannerTimer_Tick;
         AppLanguageService.LanguageChanged += AppLanguageService_LanguageChanged;
         Closed += LayerSettingsWindow_Closed;
-        SettingsTabControl.SelectionChanged += SettingsTabControl_SelectionChanged;
         UpdateActionButtons();
         ReplaceRows(profile.Normalize());
+        InitializeExistingLayerBaselines();
         ReplaceDefaultRows(normalizedDefaultProfile);
         StylesDataGrid.ItemsSource = Rows;
         DefaultsDataGrid.ItemsSource = DefaultRows;
@@ -220,16 +261,31 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
             profile.Normalize(),
             normalizedDefaultProfile,
             _selectedLanguageCode));
+        _acceptedUiFingerprint = CreateUiFingerprint();
+        Visual.SetFormState(SettingsFormState.NoChanges);
     }
 
     private void RestoreDefaults_Click(object sender, RoutedEventArgs e)
     {
         ReplaceRows(ElementLayerProfile.CreateDefault());
+        InitializeExistingLayerBaselines();
         ReplaceDefaultRows(TimberElementDefaultProfile.CreateDefault());
         ShowStatus("SettingsWindow_DefaultsRestored", StatusBannerSeverity.Information);
     }
 
-    private void Apply_Click(object sender, RoutedEventArgs e)
+    private void SaveNewElements_Click(object sender, RoutedEventArgs e) =>
+        ApplySettings(SettingsSaveMode.NewElementsOnly);
+
+    private void Apply_Click(object sender, RoutedEventArgs e) =>
+        ApplySettings(SettingsSaveMode.NewElementsOnly);
+
+    private void SaveApplySelection_Click(object sender, RoutedEventArgs e) =>
+        ApplySettings(SettingsSaveMode.SelectedElements);
+
+    private void SaveApplyAll_Click(object sender, RoutedEventArgs e) =>
+        ApplySettings(SettingsSaveMode.AllElements);
+
+    private void ApplySettings(SettingsSaveMode saveMode)
     {
         StylesDataGrid.CommitEdit();
         StylesDataGrid.CommitEdit();
@@ -242,9 +298,6 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
             return;
         }
 
-        var saveMode = ReferenceEquals(SettingsTabControl.SelectedItem, LanguageTab)
-            ? SettingsSaveMode.LanguageOnly
-            : SelectedApplyMode;
         var languageCode = AppLanguageService.NormalizeLanguageCode(SelectedLanguageCode);
         var fingerprint = CreateProfileFingerprint(profile, defaultProfile, languageCode);
         var profileChanged = _applyChangeTracker.HasProfileChanged(fingerprint);
@@ -259,15 +312,36 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
             defaultProfile,
             languageCode,
             saveMode,
-            profileChanged);
-        var response = _applySettings(request);
+            profileChanged,
+            Rows.Select(row => new CadLayerOverrideIntent(
+                    row.ElementType,
+                    row.SelectedExistingLayerName,
+                    row.HasExplicitPropertyChanges))
+                .ToArray());
+        SetFooterActionsEnabled(false);
+        SettingsApplyResponse response;
+        try
+        {
+            response = _applySettings(request);
+        }
+        finally
+        {
+            SetFooterActionsEnabled(true);
+            Activate();
+        }
         RefreshLinetypeOptions(response.AvailableLinetypeNames);
+        var acceptedProfile = response.AppliedProfile ?? profile;
+        RefreshLayerNameOptions(response.AvailableLayerPresets, acceptedProfile);
         if (response.ProfileAccepted)
         {
-            Profile = profile;
+            ApplyAcceptedLayerNames(acceptedProfile);
+            Profile = acceptedProfile;
             DefaultProfile = defaultProfile;
             LanguageCode = languageCode;
+            fingerprint = CreateProfileFingerprint(acceptedProfile, defaultProfile, languageCode);
             _applyChangeTracker.AcceptProfile(fingerprint);
+            _acceptedUiFingerprint = CreateUiFingerprint();
+            Visual.SetFormState(SettingsFormState.Applied);
         }
 
         if (!response.Success)
@@ -398,19 +472,26 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
 
     private void ReplaceRows(ElementLayerProfile profile)
     {
+        foreach (var existing in Rows)
+        {
+            existing.PropertyChanged -= EditableRow_PropertyChanged;
+        }
+
         Rows.Clear();
         foreach (var type in Enum.GetValues<TimberElementType>())
         {
             var style = profile.GetStyle(type);
             var color = ColorOptions.FirstOrDefault(option => option.Index == style.ColorIndex)
                 ?? ColorOptions.First(option => option.Index == 8);
-            Rows.Add(new LayerSettingsRow(
+            var row = new LayerSettingsRow(
                 type,
                 TimberElementTypeDisplayNameProvider.GetDisplayName(type, _uiCulture),
                 style.LayerName,
                 color,
                 style.LinetypeName,
-                FormatLinetypeScale(style.LinetypeScale)));
+                FormatLinetypeScale(style.LinetypeScale));
+            row.PropertyChanged += EditableRow_PropertyChanged;
+            Rows.Add(row);
         }
     }
 
@@ -419,13 +500,20 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
         RoundingStepMmText = Format(profile.GetCuttingLengthRoundingStepMm());
         SelectedAnnotationMode = profile.DefaultAnnotationMode;
         SelectedItemNumberLeaderStyle = profile.DefaultItemNumberLeaderStyle;
+        foreach (var existing in DefaultRows)
+        {
+            existing.PropertyChanged -= EditableRow_PropertyChanged;
+        }
+
         DefaultRows.Clear();
         foreach (var type in Enum.GetValues<TimberElementType>())
         {
-            DefaultRows.Add(new ElementDefaultSettingsRow(
+            var row = new ElementDefaultSettingsRow(
                 type,
                 TimberElementTypeDisplayNameProvider.GetDisplayName(type, _uiCulture),
-                Format(profile.GetCuttingAllowanceMm(type))));
+                Format(profile.GetCuttingAllowanceMm(type)));
+            row.PropertyChanged += EditableRow_PropertyChanged;
+            DefaultRows.Add(row);
         }
     }
 
@@ -481,6 +569,21 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
 
     private void Close_Click(object sender, RoutedEventArgs e) => Close();
 
+    private void AnnotationPresetSelector_PreviewKeyDown(
+        object sender,
+        WpfKeyEventArgs e)
+    {
+        if (e.Key != WpfKey.Enter ||
+            sender is not System.Windows.Controls.ListBox
+                { SelectedItem: AnnotationPresetOption option })
+        {
+            return;
+        }
+
+        SelectedAnnotationPreset = option.Preset;
+        e.Handled = true;
+    }
+
     private void RefreshLinetypeOptions(IEnumerable<string> names)
     {
         var merged = LinetypeOptions
@@ -495,9 +598,139 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
         }
     }
 
+    private void RefreshLayerNameOptions(
+        IEnumerable<CadLayerPreset> presets,
+        ElementLayerProfile profile)
+    {
+        var presetArray = presets.ToArray();
+        _layerPresets = presetArray
+            .GroupBy(preset => preset.Name, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(
+                group => group.Key,
+                group => group.First(),
+                StringComparer.OrdinalIgnoreCase);
+        var candidates = presetArray
+            .Select(preset => preset.Name)
+            .Concat(profile.Normalize().Styles.Select(style => style.LayerName))
+            .Select(name => new CadLayerNameCandidate(name));
+        var sorted = CadLayerNameRules.SelectUsableLocalNames(candidates);
+        LayerNameOptions.Clear();
+        foreach (var name in sorted)
+        {
+            LayerNameOptions.Add(name);
+        }
+    }
+
+    private void ApplyAcceptedLayerNames(ElementLayerProfile profile)
+    {
+        foreach (var row in Rows)
+        {
+            row.LayerName = profile.GetStyle(row.ElementType).LayerName;
+        }
+
+        InitializeExistingLayerBaselines();
+    }
+
+    private void InitializeExistingLayerBaselines()
+    {
+        foreach (var row in Rows)
+        {
+            if (_layerPresets.TryGetValue(row.LayerName, out var preset) &&
+                TryReadLinetypeScale(row.LinetypeScaleText, out var currentScale))
+            {
+                row.SetExistingLayerBaseline(preset, currentScale);
+            }
+        }
+    }
+
+    private void LayerNameComboBox_SelectionChanged(
+        object sender,
+        SelectionChangedEventArgs e)
+    {
+        if (sender is not System.Windows.Controls.ComboBox
+            {
+                DataContext: LayerSettingsRow row,
+            } ||
+            e.AddedItems.Count == 0 ||
+            e.AddedItems[0] is not string selectedName)
+        {
+            return;
+        }
+
+        HydrateExistingLayer(row, selectedName);
+    }
+
+    private void LayerNameComboBox_LostKeyboardFocus(
+        object sender,
+        WpfKeyboardFocusChangedEventArgs e)
+    {
+        if (sender is System.Windows.Controls.ComboBox
+            {
+                DataContext: LayerSettingsRow row,
+            } comboBox)
+        {
+            HydrateExistingLayer(row, comboBox.Text);
+        }
+    }
+
+    private void HydrateExistingLayer(LayerSettingsRow row, string layerName)
+    {
+        if (!_layerPresets.TryGetValue(layerName.Trim(), out var preset))
+        {
+            return;
+        }
+
+        var currentScale = TryReadLinetypeScale(row.LinetypeScaleText, out var parsedScale)
+            ? parsedScale
+            : ElementLayerProfile.GetDefaultLinetypeScale(row.ElementType);
+        var scaleResolution = preset.HasMixedEntityLinetypeScales
+            ? new CadLayerScaleHydrationResult(
+                currentScale,
+                loadedFromEntities: false,
+                hasMixedValues: true)
+            : preset.UniformEntityLinetypeScale is { } scale
+                ? new CadLayerScaleHydrationResult(
+                    scale,
+                    loadedFromEntities: true,
+                    hasMixedValues: false)
+                : new CadLayerScaleHydrationResult(
+                    currentScale,
+                    loadedFromEntities: false,
+                    hasMixedValues: false);
+        var color = ColorOptions.FirstOrDefault(option =>
+            option.Index == preset.AciColorIndex) ??
+            LayerColorOption.Create(preset.AciColorIndex, _uiCulture);
+        row.HydrateFromExistingLayer(
+            preset,
+            color,
+            FormatLinetypeScale(scaleResolution.Value),
+            scaleResolution.Value);
+
+        if (scaleResolution.HasMixedValues)
+        {
+            ShowStatus(
+                "SettingsWindow_Layers_MixedLinetypeScale",
+                StatusBannerSeverity.Information);
+        }
+    }
+
     private void PreviewLanguage(string languageCode)
     {
         AppLanguageService.Apply(languageCode);
+        try
+        {
+            AppLanguageSettingsStore.Save(new AppLanguageSettings
+            {
+                LanguageCode = AppLanguageService.NormalizeLanguageCode(
+                    languageCode),
+            });
+        }
+        catch
+        {
+            // Language preference persistence is UI-only and must never touch
+            // or block the active DWG.
+        }
+
         if (!AcKrovyRibbon.RebuildLocalizedUi(activateTab: false))
         {
             AcKrovyRibbon.ScheduleCreation();
@@ -521,31 +754,50 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
             _uiCulture,
             SelectedAnnotationMode,
             SelectedItemNumberLeaderStyle,
-            SelectedApplyMode);
+            SettingsSaveMode.NewElementsOnly);
 
         var colorOptions = new ObservableCollection<LayerColorOption>(
-            LayerColorOption.CreateDefaults(_uiCulture));
+            LayerColorOption.CreateAll(_uiCulture));
         var annotationModeOptions = new ObservableCollection<AnnotationModeOption>(
             selectionSet.AnnotationModes
                 .Select(option => new AnnotationModeOption(
                     option.Value,
-                    option.DisplayName)));
+                    option.DisplayName,
+                    UiStrings.GetString(
+                        option.Value switch
+                        {
+                            TimberAnnotationMode.ItemNumberLeader =>
+                                "SettingsWindow_Annotation_ItemNumberHelp",
+                            TimberAnnotationMode.DimensionsLeader =>
+                                "SettingsWindow_Annotation_DimensionsHelp",
+                            TimberAnnotationMode.NoAnnotations =>
+                                "SettingsWindow_Annotation_NoAnnotationsHelp",
+                            _ => "SettingsWindow_Annotation_FullLabelHelp",
+                        },
+                        _uiCulture))));
+        var annotationPresetOptions = new ObservableCollection<AnnotationPresetOption>(
+            SettingsAnnotationPresetRules.All.Select(definition =>
+                AnnotationPresetOption.Create(definition, _uiCulture)));
         var itemNumberLeaderStyleOptions =
             new ObservableCollection<ItemNumberLeaderStyleOption>(
                 selectionSet.ItemNumberLeaderStyles
                     .Select(option => new ItemNumberLeaderStyleOption(
                         option.Value,
                         option.DisplayName)));
-        var applyModeOptions = new ObservableCollection<SettingsApplyModeOption>(
-            selectionSet.ApplyModes
-                .Select(option => new SettingsApplyModeOption(
-                    option.Value,
-                    option.DisplayName)));
-
+        foreach (var language in LanguageOptions)
+        {
+            language.AccessibilityName = string.Format(
+                _uiCulture,
+                UiStrings.GetString(
+                    "SettingsWindow_Language_SelectFormat",
+                    _uiCulture),
+                language.NativeName);
+        }
         ColorOptions = colorOptions;
         AnnotationModeOptions = annotationModeOptions;
+        AnnotationPresetOptions = annotationPresetOptions;
         ItemNumberLeaderStyleOptions = itemNumberLeaderStyleOptions;
-        ApplyModeOptions = applyModeOptions;
+        Visual.RefreshLocalization(_uiCulture);
 
         foreach (var row in Rows)
         {
@@ -555,11 +807,27 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
 
         _selectedAnnotationMode = selectionSet.SelectedAnnotationMode;
         _selectedItemNumberLeaderStyle = selectionSet.SelectedItemNumberLeaderStyle;
-        _selectedApplyMode = selectionSet.SelectedApplyMode;
+        _selectedAnnotationPreset = SettingsAnnotationPresetRules.FromProduction(
+            _selectedAnnotationMode,
+            _selectedItemNumberLeaderStyle);
         OnPropertyChanged(nameof(SelectedAnnotationMode));
         OnPropertyChanged(nameof(IsItemNumberLeaderStyleEnabled));
         OnPropertyChanged(nameof(SelectedItemNumberLeaderStyle));
-        OnPropertyChanged(nameof(SelectedApplyMode));
+        OnPropertyChanged(nameof(SelectedAnnotationPreset));
+    }
+
+    private void SynchronizeSelectedAnnotationPreset()
+    {
+        var preset = SettingsAnnotationPresetRules.FromProduction(
+            _selectedAnnotationMode,
+            _selectedItemNumberLeaderStyle);
+        if (_selectedAnnotationPreset == preset)
+        {
+            return;
+        }
+
+        _selectedAnnotationPreset = preset;
+        OnPropertyChanged(nameof(SelectedAnnotationPreset));
     }
 
     private void RefreshLocalizedRowLabels()
@@ -599,18 +867,28 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
         }
 
         StatusBannerText.Text = _statusBannerState.Resolve(_uiCulture);
-        (StatusBanner.Background, StatusBanner.BorderBrush) = _statusBannerState.Severity switch
+        var (backgroundKey, borderKey, textKey) = _statusBannerState.Severity switch
         {
+            StatusBannerSeverity.Error => (
+                "SettingsErrorBackgroundBrush",
+                "SettingsErrorBorderBrush",
+                "SettingsErrorTextBrush"),
             StatusBannerSeverity.Warning => (
-                new MediaSolidColorBrush(MediaColor.FromRgb(255, 244, 214)),
-                new MediaSolidColorBrush(MediaColor.FromRgb(180, 122, 25))),
+                "SettingsWarningBackgroundBrush",
+                "SettingsWarningBorderBrush",
+                "SettingsWarningTextBrush"),
             StatusBannerSeverity.Information => (
-                new MediaSolidColorBrush(MediaColor.FromRgb(226, 240, 252)),
-                new MediaSolidColorBrush(MediaColor.FromRgb(67, 116, 157))),
+                "SettingsInfoBackgroundBrush",
+                "SettingsInfoBorderBrush",
+                "SettingsInfoTextBrush"),
             _ => (
-                new MediaSolidColorBrush(MediaColor.FromRgb(231, 244, 232)),
-                new MediaSolidColorBrush(MediaColor.FromRgb(78, 141, 86))),
+                "SettingsSuccessBackgroundBrush",
+                "SettingsSuccessBorderBrush",
+                "SettingsSuccessTextBrush"),
         };
+        StatusBanner.Background = (WpfBrush)FindResource(backgroundKey);
+        StatusBanner.BorderBrush = (WpfBrush)FindResource(borderKey);
+        StatusBannerText.Foreground = (WpfBrush)FindResource(textKey);
         StatusBanner.Visibility = Visibility.Visible;
     }
 
@@ -625,36 +903,156 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
 
     private void LayerSettingsWindow_Closed(object? sender, EventArgs e)
     {
+        SaveWindowPreferences();
         _statusBannerTimer.Stop();
         _statusBannerTimer.Tick -= StatusBannerTimer_Tick;
         AppLanguageService.LanguageChanged -= AppLanguageService_LanguageChanged;
+        Visual.SectionChanged -= Visual_SectionChanged;
+        Visual.ThemeChanged -= Visual_ThemeChanged;
         Closed -= LayerSettingsWindow_Closed;
         _statusBannerState.Clear();
     }
 
-    private void SettingsTabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    private void UpdateActionButtons()
     {
-        if (ReferenceEquals(e.OriginalSource, SettingsTabControl))
+        var section = Visual.SelectedSection;
+        RestoreDefaultsButton.Visibility =
+            section is SettingsWindowTabKind.Layers or
+                SettingsWindowTabKind.Manufacturing
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+        LayersFooterActions.Visibility =
+            section == SettingsWindowTabKind.Layers
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+        ManufacturingFooterActions.Visibility =
+            section == SettingsWindowTabKind.Manufacturing
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+        AnnotationFooterActions.Visibility =
+            section == SettingsWindowTabKind.Annotation
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+        LanguageFooterActions.Visibility =
+            section == SettingsWindowTabKind.Language
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+        LayersApplyButton.IsDefault =
+            section == SettingsWindowTabKind.Layers;
+        ManufacturingApplyButton.IsDefault =
+            section == SettingsWindowTabKind.Manufacturing;
+        SaveNewElementsButton.IsDefault =
+            section == SettingsWindowTabKind.Annotation;
+    }
+
+    private void SetFooterActionsEnabled(bool isEnabled)
+    {
+        LayersFooterActions.IsEnabled = isEnabled;
+        ManufacturingFooterActions.IsEnabled = isEnabled;
+        AnnotationFooterActions.IsEnabled = isEnabled;
+        LanguageFooterActions.IsEnabled = isEnabled;
+    }
+
+    private void EditableRow_PropertyChanged(object? sender, PropertyChangedEventArgs e) =>
+        UpdateFormState();
+
+    private string CreateUiFingerprint() =>
+        JsonSerializer.Serialize(new
         {
-            UpdateActionButtons();
+            Layers = Rows.Select(row => new
+            {
+                row.ElementType,
+                row.LayerName,
+                ColorIndex = row.SelectedColor.Index,
+                row.SelectedLinetypeName,
+                row.LinetypeScaleText,
+            }),
+            Defaults = DefaultRows.Select(row => new
+            {
+                row.ElementType,
+                row.CuttingAllowanceMmText,
+            }),
+            RoundingStepMmText,
+            SelectedAnnotationMode,
+            SelectedItemNumberLeaderStyle,
+            LanguageCode = AppLanguageService.NormalizeLanguageCode(SelectedLanguageCode),
+        });
+
+    private void UpdateFormState()
+    {
+        if (_acceptedUiFingerprint is null || Rows.Count == 0)
+        {
+            return;
+        }
+
+        Visual.SetFormState(string.Equals(
+            _acceptedUiFingerprint,
+            CreateUiFingerprint(),
+            StringComparison.Ordinal)
+                ? SettingsFormState.NoChanges
+                : SettingsFormState.UnsavedChanges);
+    }
+
+    private void ApplyTheme(SettingsTheme theme)
+    {
+        var source = theme == SettingsTheme.Dark
+            ? "Design/SettingsColors.Dark.xaml"
+            : "Design/SettingsColors.Light.xaml";
+        Resources.MergedDictionaries[0] = new ResourceDictionary
+        {
+            Source = new Uri(
+                $"/AcKrovy.AutoCAD;component/UI/{source}",
+                UriKind.RelativeOrAbsolute),
+        };
+        RenderStatusBanner();
+    }
+
+    private void ApplyWindowPreferences(SettingsUiPreferences preferences)
+    {
+        Width = preferences.Width;
+        Height = preferences.Height;
+        WindowStartupLocation = WindowStartupLocation.CenterScreen;
+
+        if (preferences.IsMaximized)
+        {
+            WindowState = WindowState.Maximized;
         }
     }
 
-    private void UpdateActionButtons()
+    private void SaveWindowPreferences()
     {
-        var tab = ReferenceEquals(SettingsTabControl.SelectedItem, LanguageTab)
-            ? SettingsWindowTabKind.Language
-            : ReferenceEquals(SettingsTabControl.SelectedItem, ManufacturingTab)
-                ? SettingsWindowTabKind.Manufacturing
-                : ReferenceEquals(SettingsTabControl.SelectedItem, AnnotationTab)
-                    ? SettingsWindowTabKind.Annotation
-                    : SettingsWindowTabKind.Layers;
-        var actions = SettingsWindowActionRules.ForTab(tab);
-
-        RestoreDefaultsButton.Visibility = actions.ShowRestoreDefaults ? Visibility.Visible : Visibility.Collapsed;
-        ApplyModePanel.Visibility = actions.ShowApplyActions ? Visibility.Visible : Visibility.Collapsed;
-        ApplyButton.IsDefault = true;
+        try
+        {
+            var bounds = WindowState == WindowState.Normal
+                ? new Rect(Left, Top, ActualWidth, ActualHeight)
+                : RestoreBounds;
+            SettingsUiPreferencesStore.Save(new SettingsUiPreferences
+            {
+                Theme = Visual.SelectedTheme,
+                SelectedSection = Visual.SelectedSection,
+                Width = Math.Max(bounds.Width, SettingsFashionLookRules.MinimumWindowWidth),
+                Height = Math.Max(bounds.Height, SettingsFashionLookRules.MinimumWindowHeight),
+                Left = bounds.Left,
+                Top = bounds.Top,
+                IsMaximized = WindowState == WindowState.Maximized,
+            });
+        }
+        catch
+        {
+            // UI preference persistence must never block closing or touch the DWG.
+        }
     }
+
+    private void Visual_SectionChanged(object? sender, EventArgs e) => UpdateActionButtons();
+
+    private void Visual_ThemeChanged(object? sender, EventArgs e) =>
+        ApplyTheme(Visual.SelectedTheme);
+
+    private void LightTheme_Click(object sender, RoutedEventArgs e) =>
+        Visual.SelectedTheme = SettingsTheme.Light;
+
+    private void DarkTheme_Click(object sender, RoutedEventArgs e) =>
+        Visual.SelectedTheme = SettingsTheme.Dark;
 }
 
 public sealed class LayerSettingsRow : INotifyPropertyChanged
@@ -664,6 +1062,12 @@ public sealed class LayerSettingsRow : INotifyPropertyChanged
     private LayerColorOption _selectedColor;
     private string _selectedLinetypeName;
     private string _linetypeScaleText;
+    private bool _hydratingLayerPreset;
+    private string? _selectedExistingLayerName;
+    private int? _loadedLayerAciIndex;
+    private string? _loadedLayerLinetypeName;
+    private double? _loadedEntityLinetypeScale;
+    private bool _hasLayerPropertyOverrides;
 
     public LayerSettingsRow(
         TimberElementType elementType,
@@ -682,6 +1086,27 @@ public sealed class LayerSettingsRow : INotifyPropertyChanged
     }
 
     public TimberElementType ElementType { get; }
+    public string? SelectedExistingLayerName => _selectedExistingLayerName;
+    public int? LoadedLayerAciIndex => _loadedLayerAciIndex;
+    public string? LoadedLayerLinetypeName => _loadedLayerLinetypeName;
+    public double? LoadedEntityLinetypeScale => _loadedEntityLinetypeScale;
+    public bool HasExplicitPropertyChanges => _hasLayerPropertyOverrides;
+    public bool HasLayerPropertyOverrides
+    {
+        get => _hasLayerPropertyOverrides;
+        private set
+        {
+            if (_hasLayerPropertyOverrides == value)
+            {
+                return;
+            }
+
+            _hasLayerPropertyOverrides = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(HasExplicitPropertyChanges));
+        }
+    }
+
     public string ElementLabel
     {
         get => _elementLabel;
@@ -708,6 +1133,14 @@ public sealed class LayerSettingsRow : INotifyPropertyChanged
             }
 
             _layerName = value;
+            if (!_hydratingLayerPreset &&
+                !string.Equals(
+                    _selectedExistingLayerName,
+                    value,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                ClearExistingLayerBaseline();
+            }
             OnPropertyChanged();
         }
     }
@@ -724,6 +1157,27 @@ public sealed class LayerSettingsRow : INotifyPropertyChanged
 
             _selectedColor = value;
             OnPropertyChanged();
+            OnPropertyChanged(nameof(AciColorIndex));
+            OnPropertyChanged(nameof(PreviewToolTip));
+            RecalculateLayerOverrides();
+        }
+    }
+
+    public int AciColorIndex
+    {
+        get => _selectedColor.Index;
+        set
+        {
+            if (!AciColorPickerRules.IsValid(value) || _selectedColor.Index == value)
+            {
+                return;
+            }
+
+            _selectedColor = LayerColorOption.Create(value, AppLanguageService.CurrentUiCulture);
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(SelectedColor));
+            OnPropertyChanged(nameof(PreviewToolTip));
+            RecalculateLayerOverrides();
         }
     }
 
@@ -740,6 +1194,8 @@ public sealed class LayerSettingsRow : INotifyPropertyChanged
 
             _selectedLinetypeName = normalized;
             OnPropertyChanged();
+            OnPropertyChanged(nameof(PreviewToolTip));
+            RecalculateLayerOverrides();
         }
     }
 
@@ -755,10 +1211,113 @@ public sealed class LayerSettingsRow : INotifyPropertyChanged
 
             _linetypeScaleText = value;
             OnPropertyChanged();
+            OnPropertyChanged(nameof(PreviewToolTip));
+            RecalculateLayerOverrides();
         }
     }
 
+    public string PreviewToolTip =>
+        $"{SelectedLinetypeName} · × {LinetypeScaleText} · ACI {SelectedColor.Index}";
+
     public event PropertyChangedEventHandler? PropertyChanged;
+
+    public void SetExistingLayerBaseline(CadLayerPreset preset, double currentScale)
+    {
+        _selectedExistingLayerName = preset.Name;
+        _loadedLayerAciIndex = preset.AciColorIndex;
+        _loadedLayerLinetypeName = preset.LinetypeName;
+        _loadedEntityLinetypeScale =
+            preset.UniformEntityLinetypeScale ?? currentScale;
+        NotifyLayerBaselineChanged();
+        RecalculateLayerOverrides();
+    }
+
+    public void HydrateFromExistingLayer(
+        CadLayerPreset preset,
+        LayerColorOption color,
+        string linetypeScaleText,
+        double effectiveScale)
+    {
+        _hydratingLayerPreset = true;
+        LayerName = preset.Name;
+        SelectedColor = color;
+        SelectedLinetypeName = preset.LinetypeName;
+        LinetypeScaleText = linetypeScaleText;
+        _hydratingLayerPreset = false;
+
+        _selectedExistingLayerName = preset.Name;
+        _loadedLayerAciIndex = preset.AciColorIndex;
+        _loadedLayerLinetypeName = preset.LinetypeName;
+        _loadedEntityLinetypeScale = effectiveScale;
+        NotifyLayerBaselineChanged();
+        HasLayerPropertyOverrides = false;
+    }
+
+    private void ClearExistingLayerBaseline()
+    {
+        _selectedExistingLayerName = null;
+        _loadedLayerAciIndex = null;
+        _loadedLayerLinetypeName = null;
+        _loadedEntityLinetypeScale = null;
+        NotifyLayerBaselineChanged();
+        HasLayerPropertyOverrides = false;
+    }
+
+    private void RecalculateLayerOverrides()
+    {
+        if (_hydratingLayerPreset ||
+            (_selectedExistingLayerName is not null &&
+             (_loadedLayerAciIndex is null ||
+              _loadedLayerLinetypeName is null ||
+              _loadedEntityLinetypeScale is null)))
+        {
+            return;
+        }
+
+        if (_selectedExistingLayerName is null)
+        {
+            HasLayerPropertyOverrides = true;
+            return;
+        }
+
+        var loadedAciIndex = _loadedLayerAciIndex.GetValueOrDefault();
+        var loadedLinetypeName = _loadedLayerLinetypeName!;
+        var loadedLinetypeScale = _loadedEntityLinetypeScale.GetValueOrDefault();
+        HasLayerPropertyOverrides =
+            AciColorIndex != loadedAciIndex ||
+            !string.Equals(
+                SelectedLinetypeName,
+                loadedLinetypeName,
+                StringComparison.OrdinalIgnoreCase) ||
+            !TryParseScale(LinetypeScaleText, out var currentScale) ||
+            Math.Abs(currentScale - loadedLinetypeScale) >
+                CadLayerScaleHydrationRules.ComparisonTolerance;
+    }
+
+    private void NotifyLayerBaselineChanged()
+    {
+        OnPropertyChanged(nameof(SelectedExistingLayerName));
+        OnPropertyChanged(nameof(LoadedLayerAciIndex));
+        OnPropertyChanged(nameof(LoadedLayerLinetypeName));
+        OnPropertyChanged(nameof(LoadedEntityLinetypeScale));
+    }
+
+    private static bool TryParseScale(string text, out double scale) =>
+        double.TryParse(
+            text,
+            NumberStyles.Float,
+            AppLanguageService.CurrentUiCulture,
+            out scale) ||
+        double.TryParse(
+            text,
+            NumberStyles.Float,
+            CultureInfo.InvariantCulture,
+            out scale) ||
+        double.TryParse(
+            text,
+            NumberStyles.Float,
+            CultureInfo.GetCultureInfo("sk-SK"),
+            out scale);
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
@@ -777,6 +1336,7 @@ public sealed class ElementDefaultSettingsRow : INotifyPropertyChanged
     }
 
     public TimberElementType ElementType { get; }
+    public string UnitLabel => "mm";
     public string ElementLabel
     {
         get => _elementLabel;
@@ -813,50 +1373,117 @@ public sealed class ElementDefaultSettingsRow : INotifyPropertyChanged
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 }
 
-public sealed record LayerColorOption(int Index, string Label, MediaBrush Brush)
-{
-    public static IReadOnlyList<LayerColorOption> CreateDefaults(CultureInfo? culture = null) =>
-    [
-        Create(1, "#FF0000", culture),
-        Create(2, "#FFFF00", culture),
-        Create(3, "#00CC00", culture),
-        Create(4, "#00CCCC", culture),
-        Create(5, "#3366FF", culture),
-        Create(6, "#CC00CC", culture),
-        Create(30, "#FF7F00", culture),
-        Create(8, "#777777", culture),
-        Create(9, "#B5B5B5", culture),
-    ];
-
-    private static LayerColorOption Create(int index, string hex, CultureInfo? culture)
-    {
-        var brush = new MediaSolidColorBrush((MediaColor)MediaColorConverter.ConvertFromString(hex)!);
-        brush.Freeze();
-        return new LayerColorOption(
-            index,
-            LayerColorDisplayNameProvider.GetDisplayName(index, culture),
-            brush);
-    }
-}
-
 public sealed record AnnotationModeOption(
     TimberAnnotationMode Mode,
-    string DisplayName);
+    string DisplayName,
+    string Description);
+
+public sealed record AnnotationPresetOption(
+    SettingsAnnotationPreset Preset,
+    string StableId,
+    string PreviewResourceUri,
+    string DisplayName,
+    string AccessibilityName,
+    string PreviewItemText,
+    bool ShowsLeader,
+    bool ShowsDisabledSymbol,
+    bool ShowsFullLabel,
+    bool ShowsStandaloneItem,
+    bool ShowsDimensionsOnly,
+    bool ShowsCombined)
+{
+    public static AnnotationPresetOption Create(
+        SettingsAnnotationPresetDefinition definition,
+        CultureInfo culture)
+    {
+        var displayName = SettingsAnnotationPresetDisplayNameProvider.GetDisplayName(
+            definition.Preset,
+            culture);
+        return new AnnotationPresetOption(
+            definition.Preset,
+            definition.StableId,
+            AnnotationPreviewResourceMap.GetPackUri(definition.Preset),
+            displayName,
+            displayName,
+            definition.Preset switch
+            {
+                SettingsAnnotationPreset.ItemPlain => "K1",
+                SettingsAnnotationPreset.ItemCircle => "K3",
+                SettingsAnnotationPreset.ItemRectangle => "K4",
+                SettingsAnnotationPreset.ItemSlot => "K5",
+                SettingsAnnotationPreset.DimensionsWithItemCircle => "K6",
+                SettingsAnnotationPreset.DimensionsWithItemRectangle => "K7",
+                SettingsAnnotationPreset.DimensionsWithItemSlot => "K8",
+                _ => "K2",
+            },
+            definition.Preset is not
+                SettingsAnnotationPreset.NoAnnotations and not
+                SettingsAnnotationPreset.FullLabel,
+            definition.Preset == SettingsAnnotationPreset.NoAnnotations,
+            definition.Preset == SettingsAnnotationPreset.FullLabel,
+            definition.Preset is
+                SettingsAnnotationPreset.ItemPlain or
+                SettingsAnnotationPreset.ItemCircle or
+                SettingsAnnotationPreset.ItemRectangle or
+                SettingsAnnotationPreset.ItemSlot,
+            definition.Preset == SettingsAnnotationPreset.DimensionsOnly,
+            definition.Preset is
+                SettingsAnnotationPreset.DimensionsWithItemCircle or
+                SettingsAnnotationPreset.DimensionsWithItemRectangle or
+                SettingsAnnotationPreset.DimensionsWithItemSlot);
+    }
+}
 
 public sealed record ItemNumberLeaderStyleOption(
     ItemNumberLeaderStyle Style,
     string DisplayName);
 
-public sealed record SettingsApplyModeOption(
-    SettingsSaveMode Mode,
-    string DisplayName);
+public sealed class LanguageCardOption : INotifyPropertyChanged
+{
+    private string _accessibilityName = string.Empty;
+
+    public LanguageCardOption(string code, string upperCode, string nativeName)
+    {
+        var flags = LanguageFlagResourceMap.Get(code);
+        Code = code;
+        UpperCode = upperCode;
+        NativeName = nativeName;
+        ColorFlagUri = flags.ColorPackUri;
+        BlackFlagUri = flags.BlackPackUri;
+    }
+
+    public string Code { get; }
+    public string UpperCode { get; }
+    public string NativeName { get; }
+    public string ColorFlagUri { get; }
+    public string BlackFlagUri { get; }
+    public string AccessibilityName
+    {
+        get => _accessibilityName;
+        set
+        {
+            if (string.Equals(_accessibilityName, value, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            _accessibilityName = value;
+            PropertyChanged?.Invoke(
+                this,
+                new PropertyChangedEventArgs(nameof(AccessibilityName)));
+        }
+    }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+}
 
 internal sealed record SettingsApplyRequest(
     ElementLayerProfile Profile,
     TimberElementDefaultProfile DefaultProfile,
     string LanguageCode,
     SettingsSaveMode SaveMode,
-    bool ProfileChanged);
+    bool ProfileChanged,
+    IReadOnlyList<CadLayerOverrideIntent> LayerOverrideIntents);
 
 internal sealed record SettingsApplyResponse(
     bool Success,
@@ -864,4 +1491,6 @@ internal sealed record SettingsApplyResponse(
     StatusBannerSeverity Severity,
     string ResourceKey,
     object[] ResourceArguments,
-    IReadOnlyList<string> AvailableLinetypeNames);
+    IReadOnlyList<string> AvailableLinetypeNames,
+    IReadOnlyList<CadLayerPreset> AvailableLayerPresets,
+    ElementLayerProfile? AppliedProfile = null);

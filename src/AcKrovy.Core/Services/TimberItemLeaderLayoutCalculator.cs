@@ -16,8 +16,9 @@ public static class TimberItemLeaderLayoutCalculator
     public const double FirstSegmentAngleRadians = Math.PI / 3d;
     public const double FirstSegmentLengthMm = 360d;
     public const double FramedLeaderAdditionalOffsetMm = 350d;
-    public const double FramedFirstSegmentAngleRadians = Math.PI * 40d / 180d;
-    public const double BlockLandingLengthMm = 180d;
+    public const double FramedFirstSegmentAngleRadians = Math.PI / 3d;
+    public const double FramedItemLandingDistanceMm = 0d;
+    public const double CombinedFramedLandingDistanceMm = 350d;
     public const double AngleToleranceRadians = 1e-8d;
 
     public static TimberItemLeaderLayout Calculate(
@@ -171,6 +172,15 @@ public static class TimberItemLeaderLayoutCalculator
             anchorX + segmentLengthMm * directionX,
             anchorY + segmentLengthMm * directionY);
     }
+
+    public static (double X, double Y) CalculateSegmentMidpoint(
+        double startX,
+        double startY,
+        double endX,
+        double endY) =>
+        (
+            startX + (endX - startX) / 2d,
+            startY + (endY - startY) / 2d);
 
     public static double MeasureAcuteAngleRadians(
         double segmentX,

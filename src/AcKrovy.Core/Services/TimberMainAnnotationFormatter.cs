@@ -26,6 +26,9 @@ public static class TimberMainAnnotationFormatter
             TimberAnnotationMode.ItemNumberLeader => data.ElementId,
             TimberAnnotationMode.DimensionsLeader =>
                 TimberElementLabelFormatter.FormatDimensions(data, options),
+            TimberAnnotationMode.DimensionsWithItemNumber =>
+                TimberElementLabelFormatter.FormatDimensions(data, options),
+            TimberAnnotationMode.NoAnnotations => string.Empty,
             _ => throw new InvalidOperationException(),
         };
     }

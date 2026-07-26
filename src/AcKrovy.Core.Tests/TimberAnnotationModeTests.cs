@@ -626,12 +626,14 @@ public sealed class TimberAnnotationModeTests
     [InlineData(ItemNumberLeaderStyle.Circle)]
     [InlineData(ItemNumberLeaderStyle.Slot)]
     [InlineData(ItemNumberLeaderStyle.Rectangle)]
-    public void FramedItemLeadersUseSplineAndInsertionPointAttachment(
+    public void StandaloneFramedItemLeadersUseSplineAndInsertionPointAttachment(
         ItemNumberLeaderStyle style)
     {
         Assert.True(TimberNativeLeaderStyleRules.UsesSplineLeader(style));
         Assert.True(
             TimberNativeLeaderStyleRules.UsesInsertionPointBlockAttachment(style));
+        Assert.False(
+            TimberNativeLeaderStyleRules.UsesCenterExtentsBlockAttachment(style));
     }
 
     [Fact]
@@ -642,6 +644,9 @@ public sealed class TimberAnnotationModeTests
                 ItemNumberLeaderStyle.Plain));
         Assert.False(
             TimberNativeLeaderStyleRules.UsesInsertionPointBlockAttachment(
+                ItemNumberLeaderStyle.Plain));
+        Assert.False(
+            TimberNativeLeaderStyleRules.UsesCenterExtentsBlockAttachment(
                 ItemNumberLeaderStyle.Plain));
     }
 
@@ -804,7 +809,7 @@ public sealed class TimberAnnotationModeTests
     [InlineData(ItemNumberLeaderStyle.Circle)]
     [InlineData(ItemNumberLeaderStyle.Slot)]
     [InlineData(ItemNumberLeaderStyle.Rectangle)]
-    public void BlockLayout_FirstSegmentUsesFortyDegrees(
+    public void BlockLayout_FirstSegmentUsesSixtyDegrees(
         ItemNumberLeaderStyle style)
     {
         var right = TimberItemLeaderLayoutCalculator.CalculateBlock(
@@ -818,9 +823,9 @@ public sealed class TimberAnnotationModeTests
             style,
             TimberLeaderHorizontalSide.Left);
 
-        Assert.Equal(40d, MeasureAngleDegrees(
+        Assert.Equal(60d, MeasureAngleDegrees(
             right.AnchorX, right.AnchorY, right.KneeX, right.KneeY), 10);
-        Assert.Equal(140d, MeasureAngleDegrees(
+        Assert.Equal(120d, MeasureAngleDegrees(
             left.AnchorX, left.AnchorY, left.KneeX, left.KneeY), 10);
         Assert.Equal(right.KneeY, right.ContentY, 10);
         Assert.Equal(left.KneeY, left.ContentY, 10);
@@ -913,6 +918,31 @@ public sealed class TimberAnnotationModeTests
         Assert.Equal(
             TimberNativeLeaderTextAttachment.UnderlineBottomLine,
             settings.RightTextAttachment);
+    }
+
+    [Fact]
+    public void StandaloneFramedNativeLeaderStyleUsesOriginalSplineContract()
+    {
+        var settings = TimberNativeLeaderStyleRules.FramedSettings;
+
+        Assert.False(settings.UsesStraightLeader);
+        Assert.False(settings.HasArrowhead);
+        Assert.Equal(0.08d, settings.ArrowheadSize);
+        Assert.True(settings.HasHorizontalLanding);
+        Assert.Equal(0d, settings.LandingDistance);
+        Assert.False(settings.ExtendsLeaderToText);
+    }
+
+    [Fact]
+    public void CombinedFramedNativeLeaderStyleUsesStraightClosedFilledLeader()
+    {
+        var settings = TimberNativeLeaderStyleRules.CombinedFramedSettings;
+
+        Assert.True(settings.UsesStraightLeader);
+        Assert.True(settings.HasArrowhead);
+        Assert.Equal(350d, settings.LandingDistance);
+        Assert.Equal(60, settings.FirstSegmentAngleDegrees);
+        Assert.True(settings.ExtendsLeaderToText);
     }
 
     [Theory]

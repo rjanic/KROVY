@@ -13,7 +13,9 @@ public static class TimberAnnotationRefreshPlanner
             throw new ArgumentNullException(nameof(data));
         }
 
-        if (isRectangularFootprintPost)
+        if (isRectangularFootprintPost ||
+            TimberAnnotationModeRules.Normalize(data.AnnotationMode) ==
+                TimberAnnotationMode.NoAnnotations)
         {
             return new TimberAnnotationRefreshPlan(
                 EnsureLabel: false,

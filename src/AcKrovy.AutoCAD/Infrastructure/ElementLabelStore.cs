@@ -33,6 +33,8 @@ internal sealed record ElementLabelData
     public double? LocalManualOffsetAlongAxisMm { get; init; }
     public double? LocalManualOffsetNormalAxisMm { get; init; }
     public double? PlacementRotationRadians { get; init; }
+    public double? CombinedDoglegDirectionX { get; init; }
+    public double? CombinedDoglegDirectionY { get; init; }
     public AcKrovy.Core.Models.TimberMainAnnotationComponentRole ComponentRole { get; init; } =
         AcKrovy.Core.Models.TimberMainAnnotationComponentRole.Primary;
 }

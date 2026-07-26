@@ -30,13 +30,26 @@ public static class TimberNativeLeaderStyleRules
         {
             StyleName = "ACAD_KROVY_FRAMED_LEADER",
             UsesStraightLeader = false,
-            FirstSegmentAngleDegrees = 40,
+            FirstSegmentAngleDegrees = 60,
+        };
+
+    public static TimberNativeLeaderStyleSettings CombinedFramedSettings { get; } =
+        Settings with
+        {
+            StyleName = "ACAD_KROVY_COMBINED_FRAMED_LEADER",
+            UsesStraightLeader = true,
+            FirstSegmentAngleDegrees = 60,
+            HasArrowhead = true,
+            LandingDistance =
+                TimberItemLeaderLayoutCalculator.CombinedFramedLandingDistanceMm,
+            ExtendsLeaderToText = true,
         };
 
     public static bool UsesDedicatedStyle(TimberAnnotationMode mode) =>
         TimberAnnotationModeRules.Normalize(mode) is
             TimberAnnotationMode.ItemNumberLeader or
-            TimberAnnotationMode.DimensionsLeader;
+            TimberAnnotationMode.DimensionsLeader or
+            TimberAnnotationMode.DimensionsWithItemNumber;
 
     public static bool RequiresExplicitDoglegDirection =>
         Settings.HasHorizontalLanding &&
@@ -47,6 +60,9 @@ public static class TimberNativeLeaderStyleRules
 
     public static bool UsesInsertionPointBlockAttachment(ItemNumberLeaderStyle style) =>
         ItemNumberLeaderStyleRules.Normalize(style) != ItemNumberLeaderStyle.Plain;
+
+    public static bool UsesCenterExtentsBlockAttachment(ItemNumberLeaderStyle style) =>
+        false;
 
     public static TimberNativeLeaderTextAttachment GetTextAttachment(
         TimberLeaderHorizontalSide contentSide) =>

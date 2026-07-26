@@ -124,16 +124,17 @@
 
 ## F. Nastavenia a internacionalizácia
 
-### v0.18.0 – Settings Fashion Look
-- moderný vizuálny systém WPF okien,
-- ľavá navigácia alebo modernizované sekcie,
-- lepšia typografia, spacing a DPI,
-- malé vektorové ikony,
-- ACI výber farieb 1–255,
-- vizuálne náhľady anotácií,
-- príprava svetlej/tmavej témy.
+### v0.18.0 – Settings Fashion Look — dokončené
+- centralizovaný moderný WPF dizajnový systém Light/Dark,
+- ľavá navigácia, vektorové ikony, karty, sticky action bar a DPI-safe layout,
+- ACI picker 1–255 s deterministickým preview RGB a iba indexovou persistenciou,
+- editable layer hydration bez zápisu a idempotentné suffix reuse/create pri Apply,
+- 10 PNG annotation presetov (5 × 2), NoAnnotations a oddelené standalone/
+  combined framed workflowy,
+- sekčné footery a AI vývojárska dokumentácia `AGENTS.md` + `.ai/`,
+- zachovaný opakovaný Apply, runtime lokalizácia, DBMOD a schema hranice.
 
-Fashion Look sa vo v0.17.0 neimplementuje.
+Budúce: Follow AutoCAD theme až po potvrdení stabilného verejného API kontraktu.
 
 ### Default language onboarding
 - Windows UI language,

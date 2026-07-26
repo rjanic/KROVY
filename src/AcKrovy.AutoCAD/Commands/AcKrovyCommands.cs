@@ -76,6 +76,7 @@ public sealed class AcKrovyCommands
             TimberElementDefaultProfileStore.Load(),
             AppLanguageService.CurrentLanguageCode,
             ReadAvailableLinetypeNames(document.Database),
+            ReadAvailableLayerPresets(document.Database),
             request => ApplySettingsFromWindow(
                 document,
                 request,
@@ -89,56 +90,6 @@ public sealed class AcKrovyCommands
         IntPtr settingsWindowHandle)
     {
         var editor = document.Editor;
-        try
-        {
-            if (SettingsApplyDispatchRules.ShouldPersistProfile(request.ProfileChanged))
-            {
-                if (request.SaveMode != SettingsSaveMode.LanguageOnly)
-                {
-                    ElementLayerProfileStore.Save(request.Profile);
-                    TimberElementDefaultProfileStore.Save(request.DefaultProfile);
-                }
-
-                AppLanguageSettingsStore.Save(CreateLanguageSettings(request.LanguageCode));
-                ApplySelectedLanguage(request.LanguageCode);
-            }
-        }
-        catch (System.Exception ex)
-        {
-            return new SettingsApplyResponse(
-                false,
-                false,
-                StatusBannerSeverity.Warning,
-                "Command_Settings_SaveFailedFormat",
-                [ex.Message],
-                ReadAvailableLinetypeNames(document.Database));
-        }
-
-        if (request.SaveMode == SettingsSaveMode.LanguageOnly)
-        {
-            editor.WriteMessage(UiStrings.CommandSettingsSaved);
-            return SettingsResponse(
-                document.Database,
-                "SettingsWindow_SettingsApplied",
-                StatusBannerSeverity.Success);
-        }
-
-        if (request.SaveMode == SettingsSaveMode.NewElementsOnly)
-        {
-            var conflicts = ReadExistingLayerConflicts(document.Database, request.Profile);
-            editor.WriteMessage(UiStrings.CommandSettingsSaved);
-            return conflicts.Count == 0
-                ? SettingsResponse(
-                    document.Database,
-                    "SettingsWindow_ProfileSavedNewOnly",
-                    StatusBannerSeverity.Success)
-                : SettingsResponse(
-                    document.Database,
-                    "SettingsWindow_ExistingLayerInfoFormat",
-                    StatusBannerSeverity.Warning,
-                    [string.Join(", ", conflicts)]);
-        }
-
         IReadOnlyList<ObjectId>? targetIds = null;
         if (request.SaveMode == SettingsSaveMode.SelectedElements)
         {
@@ -164,12 +115,91 @@ public sealed class AcKrovyCommands
             targetIds = selection.Ids;
         }
 
+        var appliedProfile = request.Profile;
+        var persistedProfile = ElementLayerProfileStore.Load();
+        IReadOnlyList<string> createdLayerNames = [];
+        if (request.SaveMode != SettingsSaveMode.LanguageOnly)
+        {
+            using (document.LockDocument())
+            using (var transaction = document.Database.TransactionManager.StartTransaction())
+            {
+                var resolution = TimberLayerService.ResolveNewElementsOnlyProfile(
+                    document.Database,
+                    transaction,
+                    request.Profile,
+                    persistedProfile,
+                    request.LayerOverrideIntents);
+                appliedProfile = resolution.Profile;
+                createdLayerNames = resolution.CreatedLayerNames;
+                transaction.Commit();
+            }
+        }
+
+        try
+        {
+            if (SettingsApplyDispatchRules.ShouldPersistProfile(request.ProfileChanged))
+            {
+                if (request.SaveMode != SettingsSaveMode.LanguageOnly)
+                {
+                    ElementLayerProfileStore.Save(appliedProfile);
+                    TimberElementDefaultProfileStore.Save(request.DefaultProfile);
+                }
+
+                AppLanguageSettingsStore.Save(CreateLanguageSettings(request.LanguageCode));
+                ApplySelectedLanguage(request.LanguageCode);
+            }
+        }
+        catch (System.Exception ex)
+        {
+            return new SettingsApplyResponse(
+                false,
+                false,
+                StatusBannerSeverity.Warning,
+                "Command_Settings_SaveFailedFormat",
+                [ex.Message],
+                ReadAvailableLinetypeNames(document.Database),
+                ReadAvailableLayerPresets(document.Database),
+                appliedProfile);
+        }
+
+        if (request.SaveMode == SettingsSaveMode.LanguageOnly)
+        {
+            editor.WriteMessage(UiStrings.CommandSettingsSaved);
+            return SettingsResponse(
+                document.Database,
+                "SettingsWindow_SettingsApplied",
+                StatusBannerSeverity.Success);
+        }
+
+        if (request.SaveMode == SettingsSaveMode.NewElementsOnly)
+        {
+            editor.WriteMessage(UiStrings.CommandSettingsSaved);
+            return createdLayerNames.Count == 0
+                ? SettingsResponse(
+                    document.Database,
+                    "SettingsWindow_ProfileSavedNewOnly",
+                    StatusBannerSeverity.Success,
+                    appliedProfile: appliedProfile)
+                : SettingsResponse(
+                    document.Database,
+                    createdLayerNames.Count == 1
+                        ? "SettingsWindow_NewLayerCreatedFormat"
+                        : "SettingsWindow_NewLayersCreatedFormat",
+                    StatusBannerSeverity.Success,
+                    [
+                        createdLayerNames.Count == 1
+                            ? createdLayerNames[0]
+                            : createdLayerNames.Count,
+                    ],
+                    appliedProfile: appliedProfile);
+        }
+
         SettingsDrawingApplyResult applyResult;
         using (document.LockDocument())
         {
             applyResult = ApplySettingsToExistingElements(
                 document,
-                request.Profile,
+                appliedProfile,
                 request.DefaultProfile,
                 targetIds);
         }
@@ -181,7 +211,24 @@ public sealed class AcKrovyCommands
                 document.Database,
                 "SettingsWindow_LinetypeFallbackFormat",
                 StatusBannerSeverity.Warning,
-                [fallback.Requested, fallback.Applied]);
+                [fallback.Requested, fallback.Applied],
+                appliedProfile: appliedProfile);
+        }
+
+        if (createdLayerNames.Count > 0)
+        {
+            return SettingsResponse(
+                document.Database,
+                createdLayerNames.Count == 1
+                    ? "SettingsWindow_NewLayerCreatedFormat"
+                    : "SettingsWindow_NewLayersCreatedFormat",
+                StatusBannerSeverity.Success,
+                [
+                    createdLayerNames.Count == 1
+                        ? createdLayerNames[0]
+                        : createdLayerNames.Count,
+                ],
+                appliedProfile: appliedProfile);
         }
 
         var resultKey = SettingsApplyDispatchRules.GetDrawingResultResourceKey(
@@ -193,7 +240,8 @@ public sealed class AcKrovyCommands
             resultKey,
             applyResult.Changed
                 ? StatusBannerSeverity.Success
-                : StatusBannerSeverity.Information);
+                : StatusBannerSeverity.Information,
+            appliedProfile: appliedProfile);
     }
 
     private static SettingsApplyResponse SettingsResponse(
@@ -201,14 +249,17 @@ public sealed class AcKrovyCommands
         string resourceKey,
         StatusBannerSeverity severity,
         object[]? resourceArguments = null,
-        bool success = true) =>
+        bool success = true,
+        ElementLayerProfile? appliedProfile = null) =>
         new(
             success,
             true,
             severity,
             resourceKey,
             resourceArguments ?? [],
-            ReadAvailableLinetypeNames(database));
+            ReadAvailableLinetypeNames(database),
+            ReadAvailableLayerPresets(database),
+            appliedProfile);
 
     private static AppLanguageSettings CreateLanguageSettings(string languageCode) => new()
     {
@@ -598,11 +649,22 @@ public sealed class AcKrovyCommands
                 data.IsSlopeDirectionReversed),
         };
         metadataStore.Write(sourceEntity, updated);
-        SlopeAnnotationService.EnsureForElement(
-            document.Database,
-            transaction,
-            sourceEntity,
-            updated);
+        if (updated.AnnotationMode == TimberAnnotationMode.NoAnnotations)
+        {
+            TimberAnnotationService.EnsureForElement(
+                document.Database,
+                transaction,
+                sourceEntity,
+                updated);
+        }
+        else
+        {
+            SlopeAnnotationService.EnsureForElement(
+                document.Database,
+                transaction,
+                sourceEntity,
+                updated);
+        }
         transaction.Commit();
 
         editor.WriteMessage(updated.IsSlopeDirectionReversed
@@ -1172,6 +1234,18 @@ public sealed class AcKrovyCommands
         using var transaction = database.TransactionManager.StartOpenCloseTransaction();
         var service = new AutoCadTimberLayerService(database, transaction);
         return service.GetAvailableLinetypeNames();
+    }
+
+    private static IReadOnlyList<string> ReadAvailableLayerNames(Database database)
+    {
+        using var transaction = database.TransactionManager.StartOpenCloseTransaction();
+        return TimberLayerService.GetAvailableLayerNames(database, transaction);
+    }
+
+    private static IReadOnlyList<CadLayerPreset> ReadAvailableLayerPresets(Database database)
+    {
+        using var transaction = database.TransactionManager.StartOpenCloseTransaction();
+        return TimberLayerService.GetAvailableLayerPresets(database, transaction);
     }
 
     private static IReadOnlyList<string> ReadExistingLayerConflicts(

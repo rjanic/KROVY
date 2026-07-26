@@ -101,16 +101,21 @@ Preferovať CAD text styles.
 Poznámka:
 V používateľskom PDF je pri bode o písme uvedené „default pre všetko 1:50“. Roadmap to interpretuje ako default mierky 1:50. Potrebné neskôr potvrdiť.
 
-## v0.18.0 – Settings Fashion Look
-- moderný vizuálny systém WPF okien,
-- ľavá navigácia alebo modernizované sekcie,
-- lepšia typografia, spacing a DPI,
-- malé vektorové ikony,
-- ACI výber farieb 1–255,
-- vizuálne náhľady anotácií,
-- príprava svetlej/tmavej témy.
+## v0.18.0 – Settings Fashion Look — IMPLEMENTOVANÉ
+- centralizované Light/Dark ResourceDictionary, dizajnové tokeny a reusable styles,
+- moderná ľavá navigácia so stabilnými section ID a vektorovými ikonami,
+- resizable 1180 × 720 okno, minimum 980 × 620, wrapping, DPI a keyboard focus,
+- plná ACI paleta 1–255 s popup pickerom, priamym indexom a preview,
+- moderná layer tabuľka s read-only hydration a idempotentným suffix reuse/create,
+- presne 10 embedded PNG annotation presetov (5 × 2), NoAnnotations a oddelené
+  standalone/combined framed workflowy,
+- sekčné footery, formulárový stav a zjednotený dvojsekundový overlay banner,
+- lokálna persistence Light/Dark, sekcie a window bounds mimo DWG,
+- zachovaný Apply callback, DBMOD pravidlá, profile v3 a metadata schema v4.
+- AI vývojárska dokumentácia v `AGENTS.md` a `.ai/`.
 
-Tento vizuálny míľnik nie je súčasťou v0.17.0.
+Automatický Follow AutoCAD režim zostáva budúce rozšírenie, kým nebude
+potvrdený stabilný verejný hostiteľský theme kontrakt.
 
 ## 9. Režimy kótovania a popisov — DOKONČENÉ VO v0.16.0
 - `FullLabel`: pôvodný automatický MText,

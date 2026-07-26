@@ -184,12 +184,35 @@
   <data name="SettingsWindow_Language_Tab" xml:space="preserve"><value>Jazyk</value></data>
   <data name="SettingsWindow_Language_Description" xml:space="preserve"><value>Vyber jazyk používateľského rozhrania. Zmena sa použije po uložení nastavení.</value></data>
   <data name="SettingsWindow_Language_Label" xml:space="preserve"><value>Jazyk</value></data>
+  <data name="SettingsWindow_Language_SelectFormat" xml:space="preserve"><value>Vybrať jazyk: {0}</value></data>
   <data name="SettingsWindow_RestoreDefaults" xml:space="preserve"><value>Obnoviť predvolené</value></data>
   <data name="SettingsWindow_Cancel" xml:space="preserve"><value>Zrušiť</value></data>
   <data name="SettingsWindow_Save" xml:space="preserve"><value>Uložiť</value></data>
   <data name="SettingsWindow_SaveNewElementsOnly" xml:space="preserve"><value>Uložiť iba pre nové prvky</value></data>
   <data name="SettingsWindow_SaveApplySelection" xml:space="preserve"><value>Uložiť a aplikovať na výber</value></data>
   <data name="SettingsWindow_SaveApplyAll" xml:space="preserve"><value>Uložiť a aplikovať na všetky</value></data>
+  <data name="SettingsWindow_Layers_Description" xml:space="preserve"><value>Nastavte vrstvu, konkrétnu ACI farbu, typ čiary a mierku pre každý typ prvku. Náhľad je informatívny a nemení DWG.</value></data>
+  <data name="SettingsWindow_Layers_PreviewColumn" xml:space="preserve"><value>Náhľad</value></data>
+  <data name="SettingsWindow_Theme" xml:space="preserve"><value>Téma</value></data>
+  <data name="SettingsWindow_ThemeLight" xml:space="preserve"><value>Svetlý</value></data>
+  <data name="SettingsWindow_ThemeDark" xml:space="preserve"><value>Tmavý</value></data>
+  <data name="SettingsWindow_UnitMillimetres" xml:space="preserve"><value>mm</value></data>
+  <data name="SettingsWindow_AciPicker_Open" xml:space="preserve"><value>Vybrať ACI farbu</value></data>
+  <data name="SettingsWindow_AciPicker_Title" xml:space="preserve"><value>Farba vrstvy</value></data>
+  <data name="SettingsWindow_AciPicker_IndexLabel" xml:space="preserve"><value>ACI index (1–255)</value></data>
+  <data name="SettingsWindow_AciPicker_Validation" xml:space="preserve"><value>Zadajte celé číslo od 1 do 255.</value></data>
+  <data name="SettingsWindow_AciPicker_Palette" xml:space="preserve"><value>Paleta ACI farieb 1 až 255</value></data>
+  <data name="SettingsWindow_AciPicker_Confirm" xml:space="preserve"><value>Potvrdiť</value></data>
+  <data name="SettingsWindow_AciPicker_Cancel" xml:space="preserve"><value>Zrušiť</value></data>
+  <data name="SettingsWindow_Accessibility_Navigation" xml:space="preserve"><value>Navigácia sekcií nastavení</value></data>
+  <data name="SettingsWindow_Accessibility_Theme" xml:space="preserve"><value>Výber témy nastavení</value></data>
+  <data name="SettingsWindow_Accessibility_ApplyMode" xml:space="preserve"><value>Režim použitia nastavení</value></data>
+  <data name="SettingsWindow_Annotation_FullLabelHelp" xml:space="preserve"><value>Položka, prierez a výrobná dĺžka.</value></data>
+  <data name="SettingsWindow_Annotation_ItemNumberHelp" xml:space="preserve"><value>Samostatný leader s číslom položky.</value></data>
+  <data name="SettingsWindow_Annotation_DimensionsHelp" xml:space="preserve"><value>Samostatný leader iba s rozmermi.</value></data>
+  <data name="SettingsWindow_FormNoChanges" xml:space="preserve"><value>Bez zmien</value></data>
+  <data name="SettingsWindow_FormUnsavedChanges" xml:space="preserve"><value>Neaplikované zmeny</value></data>
+  <data name="SettingsWindow_FormApplied" xml:space="preserve"><value>Aplikované</value></data>
   <data name="LayerColor_Red" xml:space="preserve"><value>Červená (1)</value></data>
   <data name="LayerColor_Yellow" xml:space="preserve"><value>Žltá (2)</value></data>
   <data name="LayerColor_Green" xml:space="preserve"><value>Zelená (3)</value></data>
@@ -291,4 +314,23 @@
   <data name="ItemNumberLeaderStyle_Circle" xml:space="preserve"><value>Kruh</value></data>
   <data name="ItemNumberLeaderStyle_Slot" xml:space="preserve"><value>Slot</value></data>
   <data name="ItemNumberLeaderStyle_Rectangle" xml:space="preserve"><value>Obdĺžnik</value></data>
+  <data name="AnnotationMode_NoAnnotations" xml:space="preserve"><value>Bez popisov</value></data>
+  <data name="SettingsWindow_Annotation_NoAnnotationsHelp" xml:space="preserve"><value>Nevytvorí hlavný, sklonový ani Post 90° popis.</value></data>
+  <data name="SettingsWindow_NewLayerCreatedFormat" xml:space="preserve"><value>Bola vytvorená nová hladina {0} s novými vlastnosťami.</value></data>
+  <data name="SettingsWindow_NewLayersCreatedFormat" xml:space="preserve"><value>Bolo vytvorených {0} nových hladín s upravenými vlastnosťami.</value></data>
+  <data name="SettingsWindow_Layers_LayerNamePrompt" xml:space="preserve"><value>Vyberte alebo zadajte názov hladiny</value></data>
+  <data name="SettingsWindow_AciPicker_BasicColors" xml:space="preserve"><value>Základné farby</value></data>
+  <data name="SettingsWindow_AciPicker_ColorPalette" xml:space="preserve"><value>Farebná paleta</value></data>
+  <data name="SettingsWindow_AciPicker_Grayscale" xml:space="preserve"><value>Odtiene sivej</value></data>
+  <data name="SettingsWindow_Layers_MixedLinetypeScale" xml:space="preserve"><value>Prvky na hladine používajú rôzne mierky typu čiary. Bola zachovaná aktuálna hodnota.</value></data>
+  <data name="SettingsAnnotationPreset_NoAnnotations" xml:space="preserve"><value>Bez popisov</value></data>
+  <data name="SettingsAnnotationPreset_ItemPlain" xml:space="preserve"><value>Iba položka</value></data>
+  <data name="SettingsAnnotationPreset_ItemCircle" xml:space="preserve"><value>Položka v kruhu</value></data>
+  <data name="SettingsAnnotationPreset_ItemRectangle" xml:space="preserve"><value>Položka v obdĺžniku</value></data>
+  <data name="SettingsAnnotationPreset_ItemSlot" xml:space="preserve"><value>Položka v slote</value></data>
+  <data name="SettingsAnnotationPreset_DimensionsOnly" xml:space="preserve"><value>Iba rozmery</value></data>
+  <data name="SettingsAnnotationPreset_FullLabel" xml:space="preserve"><value>Kompletný popis</value></data>
+  <data name="SettingsAnnotationPreset_DimensionsWithItemCircle" xml:space="preserve"><value>Rozmery a položka v kruhu</value></data>
+  <data name="SettingsAnnotationPreset_DimensionsWithItemRectangle" xml:space="preserve"><value>Rozmery a položka v obdĺžniku</value></data>
+  <data name="SettingsAnnotationPreset_DimensionsWithItemSlot" xml:space="preserve"><value>Rozmery a položka v slote</value></data>
 </root>

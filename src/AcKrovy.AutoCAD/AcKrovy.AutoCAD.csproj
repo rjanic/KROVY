@@ -22,6 +22,10 @@
     <ProjectReference Include="..\AcKrovy.Localization\AcKrovy.Localization.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="AcKrovy.Wpf.Tests" />
+  </ItemGroup>
+
   <!-- DLL sa referencujú z lokálnej inštalácie AutoCADu. Do balíka sa nekopírujú. -->
   <ItemGroup>
     <Reference Include="AcCoreMgd">
@@ -48,6 +52,8 @@
     <Content Include="Resources\Icons\*.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Resource Include="UI\Assets\Flags\*.png" />
+    <Resource Include="UI\Assets\AnnotationPreviews\*.png" />
   </ItemGroup>
 
   <Target Name="ValidateAutoCadReferences" BeforeTargets="ResolveReferences">

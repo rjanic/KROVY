@@ -11,6 +11,7 @@ public sealed class SupportedAppLanguage
     }
 
     public string Code { get; }
+    public string UpperCode => Code.ToUpperInvariant();
     public string NativeName { get; }
 }
 

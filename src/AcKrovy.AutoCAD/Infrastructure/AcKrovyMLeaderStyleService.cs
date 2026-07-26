@@ -9,41 +9,75 @@ internal static class AcKrovyMLeaderStyleService
 {
     public static ObjectId Ensure(
         Database database,
-        Transaction transaction) =>
-        Ensure(database, transaction, framed: false);
+        Transaction transaction,
+        bool updateExisting = true) =>
+        Ensure(database, transaction, framed: false, updateExisting);
 
     public static ObjectId EnsureFramed(
         Database database,
-        Transaction transaction) =>
-        Ensure(database, transaction, framed: true);
+        Transaction transaction,
+        bool updateExisting = true) =>
+        Ensure(database, transaction, framed: true, updateExisting);
+
+    public static ObjectId EnsureCombinedFramed(
+        Database database,
+        Transaction transaction,
+        bool updateExisting = true) =>
+        Ensure(
+            database,
+            transaction,
+            framed: true,
+            updateExisting,
+            combinedFramed: true);
 
     private static ObjectId Ensure(
         Database database,
         Transaction transaction,
-        bool framed)
+        bool framed,
+        bool updateExisting,
+        bool combinedFramed = false)
     {
         ArgumentNullException.ThrowIfNull(database);
         ArgumentNullException.ThrowIfNull(transaction);
 
-        var arrowSymbolId = EnsureNoneArrowBlock(database, transaction);
+        var arrowSymbolId = combinedFramed
+            ? ObjectId.Null
+            : EnsureNoneArrowBlock(database, transaction);
         var dictionary = (DBDictionary)transaction.GetObject(
             database.MLeaderStyleDictionaryId,
             OpenMode.ForRead);
-        var settings = framed
-            ? TimberNativeLeaderStyleRules.FramedSettings
-            : TimberNativeLeaderStyleRules.Settings;
+        var settings = combinedFramed
+            ? TimberNativeLeaderStyleRules.CombinedFramedSettings
+            : framed
+                ? TimberNativeLeaderStyleRules.FramedSettings
+                : TimberNativeLeaderStyleRules.Settings;
         if (dictionary.Contains(settings.StyleName))
         {
             var existingId = dictionary.GetAt(settings.StyleName);
+            if (!updateExisting)
+            {
+                return existingId;
+            }
+
             var existing = (MLeaderStyle)transaction.GetObject(
                 existingId,
                 OpenMode.ForWrite);
-            ApplyStyleProperties(existing, database, arrowSymbolId, framed);
+            ApplyStyleProperties(
+                existing,
+                database,
+                arrowSymbolId,
+                framed,
+                combinedFramed);
             return existingId;
         }
 
         var style = new MLeaderStyle();
-        ApplyStyleProperties(style, database, arrowSymbolId, framed);
+        ApplyStyleProperties(
+            style,
+            database,
+            arrowSymbolId,
+            framed,
+            combinedFramed);
         var styleId = style.PostMLeaderStyleToDb(
             database,
             settings.StyleName);
@@ -108,12 +142,13 @@ internal static class AcKrovyMLeaderStyleService
         ObjectId arrowSymbolId,
         int leaderIndex,
         int leaderLineIndex,
-        AcKrovy.Core.Models.TimberLeaderHorizontalSide contentSide)
+        AcKrovy.Core.Models.TimberLeaderHorizontalSide contentSide,
+        Autodesk.AutoCAD.Geometry.Vector3d? doglegDirectionOverride = null)
     {
         ArgumentNullException.ThrowIfNull(leader);
         ArgumentNullException.ThrowIfNull(database);
 
-        var settings = TimberNativeLeaderStyleRules.Settings;
+        var settings = TimberNativeLeaderStyleRules.FramedSettings;
         leader.Scale = settings.Scale;
         leader.EnableAnnotationScale = settings.UsesAnnotationScale;
         leader.LeaderLineType = LeaderType.SplineLeader;
@@ -134,11 +169,55 @@ internal static class AcKrovyMLeaderStyleService
         leader.DoglegLength = settings.LandingDistance;
         leader.ExtendLeaderToText = settings.ExtendsLeaderToText;
         leader.LandingGap = 0d;
+        if (settings.LandingDistance > 0d)
+        {
+            leader.SetDogleg(
+                leaderIndex,
+                doglegDirectionOverride ??
+                    (contentSide == AcKrovy.Core.Models.TimberLeaderHorizontalSide.Left
+                        ? -Autodesk.AutoCAD.Geometry.Vector3d.XAxis
+                        : Autodesk.AutoCAD.Geometry.Vector3d.XAxis));
+        }
+    }
+
+    public static void ApplyCombinedBlockInstanceProperties(
+        MLeader leader,
+        Database database,
+        int leaderIndex,
+        int leaderLineIndex,
+        AcKrovy.Core.Models.TimberLeaderHorizontalSide contentSide,
+        Autodesk.AutoCAD.Geometry.Vector3d? doglegDirectionOverride = null)
+    {
+        ArgumentNullException.ThrowIfNull(leader);
+        ArgumentNullException.ThrowIfNull(database);
+
+        var settings = TimberNativeLeaderStyleRules.CombinedFramedSettings;
+        leader.Scale = settings.Scale;
+        leader.EnableAnnotationScale = settings.UsesAnnotationScale;
+        leader.LeaderLineType = LeaderType.StraightLeader;
+        leader.LeaderLineColor = AcColor.FromColorIndex(ColorMethod.ByBlock, 0);
+        leader.LeaderLineTypeId = database.ByBlockLinetype;
+        leader.LeaderLineWeight = LineWeight.ByBlock;
+        leader.SetLeaderLineType(leaderLineIndex, LeaderType.StraightLeader);
+        leader.SetLeaderLineColor(
+            leaderLineIndex,
+            AcColor.FromColorIndex(ColorMethod.ByBlock, 0));
+        leader.SetLeaderLineTypeId(leaderLineIndex, database.ByBlockLinetype);
+        leader.SetLeaderLineWeight(leaderLineIndex, LineWeight.ByBlock);
+        leader.ArrowSymbolId = ObjectId.Null;
+        leader.ArrowSize = settings.ArrowheadSize;
+        leader.BlockConnectionType = BlockConnectionType.ConnectExtents;
+        leader.EnableLanding = settings.HasHorizontalLanding;
+        leader.EnableDogleg = settings.HasHorizontalLanding;
+        leader.DoglegLength = settings.LandingDistance;
+        leader.ExtendLeaderToText = settings.ExtendsLeaderToText;
+        leader.LandingGap = 0d;
         leader.SetDogleg(
             leaderIndex,
-            contentSide == AcKrovy.Core.Models.TimberLeaderHorizontalSide.Left
-                ? -Autodesk.AutoCAD.Geometry.Vector3d.XAxis
-                : Autodesk.AutoCAD.Geometry.Vector3d.XAxis);
+            doglegDirectionOverride ??
+                (contentSide == AcKrovy.Core.Models.TimberLeaderHorizontalSide.Left
+                    ? -Autodesk.AutoCAD.Geometry.Vector3d.XAxis
+                    : Autodesk.AutoCAD.Geometry.Vector3d.XAxis));
     }
 
     public static ObjectId GetNoneArrowBlockId(
@@ -150,11 +229,18 @@ internal static class AcKrovyMLeaderStyleService
         MLeaderStyle style,
         Database database,
         ObjectId arrowSymbolId,
-        bool framed)
+        bool framed,
+        bool combinedFramed)
     {
-        var settings = TimberNativeLeaderStyleRules.Settings;
+        var settings = combinedFramed
+            ? TimberNativeLeaderStyleRules.CombinedFramedSettings
+            : framed
+                ? TimberNativeLeaderStyleRules.FramedSettings
+                : TimberNativeLeaderStyleRules.Settings;
         style.ContentType = framed ? ContentType.BlockContent : ContentType.MTextContent;
-        style.LeaderLineType = framed ? LeaderType.SplineLeader : LeaderType.StraightLeader;
+        style.LeaderLineType = combinedFramed || !framed
+            ? LeaderType.StraightLeader
+            : LeaderType.SplineLeader;
         style.LeaderLineColor = AcColor.FromColorIndex(ColorMethod.ByBlock, 0);
         style.LeaderLineTypeId = database.ByBlockLinetype;
         style.LeaderLineWeight = LineWeight.ByBlock;

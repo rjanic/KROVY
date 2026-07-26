@@ -14,6 +14,9 @@ public static class TimberAnnotationModeDisplayNameProvider
                 TimberAnnotationMode.FullLabel => "AnnotationMode_FullLabel",
                 TimberAnnotationMode.ItemNumberLeader => "AnnotationMode_ItemNumberLeader",
                 TimberAnnotationMode.DimensionsLeader => "AnnotationMode_DimensionsLeader",
+                TimberAnnotationMode.NoAnnotations => "AnnotationMode_NoAnnotations",
+                TimberAnnotationMode.DimensionsWithItemNumber =>
+                    "AnnotationMode_DimensionsLeader",
                 _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, null),
             },
             culture);

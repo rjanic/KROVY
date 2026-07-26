@@ -237,16 +237,17 @@ public sealed class SettingsRuntimeLocalizationTests
             .Descendants(presentation + "Border")
             .Single(element => (string?)element.Attribute(x + "Name") == "StatusBanner");
 
-        Assert.Equal("7", (string?)banner.Attribute("Grid.RowSpan"));
+        Assert.Equal("2", (string?)banner.Attribute("Grid.RowSpan"));
+        Assert.Equal("2", (string?)banner.Attribute("Grid.ColumnSpan"));
         Assert.Equal("100", (string?)banner.Attribute("Panel.ZIndex"));
         Assert.Equal("False", (string?)banner.Attribute("IsHitTestVisible"));
         Assert.Equal("Collapsed", (string?)banner.Attribute("Visibility"));
-        Assert.Equal("Stretch", (string?)banner.Attribute("HorizontalAlignment"));
+        Assert.Equal("Center", (string?)banner.Attribute("HorizontalAlignment"));
         Assert.Equal("Center", (string?)banner.Attribute("VerticalAlignment"));
     }
 
     [Fact]
-    public void SettingsComboBoxes_BindSelectedValueToStableProperties()
+    public void SettingsSelectors_BindSelectedValueToStableProperties()
     {
         var xaml = XDocument.Load(Path.Combine(
             FindRepositoryRoot(),
@@ -255,17 +256,26 @@ public sealed class SettingsRuntimeLocalizationTests
             "UI",
             "LayerSettingsWindow.xaml"));
         XNamespace presentation = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
-        var comboBoxes = xaml.Descendants(presentation + "ComboBox").ToList();
+        var listBoxes = xaml.Descendants(presentation + "ListBox").ToList();
+        XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
+        var namedButtons = xaml
+            .Descendants(presentation + "Button")
+            .Select(button => (string?)button.Attribute(x + "Name"))
+            .Where(name => name is not null)
+            .ToHashSet(StringComparer.Ordinal);
 
-        Assert.Contains(comboBoxes, combo =>
-            (string?)combo.Attribute("SelectedValuePath") == "Mode" &&
-            ((string?)combo.Attribute("SelectedValue"))?.Contains("SelectedAnnotationMode") == true);
-        Assert.Contains(comboBoxes, combo =>
-            (string?)combo.Attribute("SelectedValuePath") == "Style" &&
-            ((string?)combo.Attribute("SelectedValue"))?.Contains("SelectedItemNumberLeaderStyle") == true);
-        Assert.Contains(comboBoxes, combo =>
-            (string?)combo.Attribute("SelectedValuePath") == "Mode" &&
-            ((string?)combo.Attribute("SelectedValue"))?.Contains("SelectedApplyMode") == true);
+        Assert.Contains(listBoxes, listBox =>
+            (string?)listBox.Attribute("SelectedValuePath") == "Preset" &&
+            ((string?)listBox.Attribute("SelectedValue"))?.Contains("SelectedAnnotationPreset") == true);
+        Assert.Contains(listBoxes, listBox =>
+            (string?)listBox.Attribute("SelectedValuePath") == "Code" &&
+            ((string?)listBox.Attribute("SelectedValue"))?.Contains("SelectedLanguageCode") == true);
+        Assert.Contains("LightThemeButton", namedButtons);
+        Assert.Contains("DarkThemeButton", namedButtons);
+        Assert.Contains("SaveNewElementsButton", namedButtons);
+        Assert.Contains("SaveApplySelectionButton", namedButtons);
+        Assert.Contains("SaveApplyAllButton", namedButtons);
+        Assert.DoesNotContain("ApplyButton", namedButtons);
     }
 
     private static void AssertStableValuesAndChangedText<T>(

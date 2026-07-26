@@ -5,4 +5,5 @@ public enum TimberMainAnnotationRepresentation
     FullLabel,
     Leader,
     BlockLeader,
+    None,
 }

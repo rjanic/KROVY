@@ -10,7 +10,8 @@ internal static class SlopeAnnotationService
         Database database,
         Transaction transaction,
         Entity sourceEntity,
-        TimberElementData data)
+        TimberElementData data,
+        bool copySourcePreservation = false)
     {
         var preferredGeometry = SlopeAnnotationGeometry.CalculatePreferred(sourceEntity);
         TimberSlopeAnnotationLongitudinalInterval? labelInterval = null;
@@ -35,8 +36,20 @@ internal static class SlopeAnnotationService
             annotationHalfExtentMm);
         var geometry = SlopeAnnotationGeometry.Calculate(sourceEntity, placement.AnchorDistanceMm);
 
-        SlopeArrowService.UpsertForElement(database, transaction, sourceEntity, data, geometry);
-        SlopeAngleTextService.UpsertForElement(database, transaction, sourceEntity, data, geometry);
+        SlopeArrowService.UpsertForElement(
+            database,
+            transaction,
+            sourceEntity,
+            data,
+            geometry,
+            copySourcePreservation);
+        SlopeAngleTextService.UpsertForElement(
+            database,
+            transaction,
+            sourceEntity,
+            data,
+            geometry,
+            copySourcePreservation);
     }
 
     public static void DeleteForMissingSourceHandles(

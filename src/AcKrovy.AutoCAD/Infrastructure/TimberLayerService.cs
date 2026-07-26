@@ -79,7 +79,8 @@ internal static class TimberLayerService
         Entity entity,
         string layerName,
         int colorIndex,
-        bool isPlottable = true)
+        bool isPlottable = true,
+        bool updateExistingLayer = true)
     {
         ArgumentNullException.ThrowIfNull(database);
         ArgumentNullException.ThrowIfNull(transaction);
@@ -103,10 +104,15 @@ internal static class TimberLayerService
             normalizedLayerName,
             colorIndex,
             ObjectId.Null,
-            CadLayerUpdateMode.UpdateExisting).LayerId;
+            updateExistingLayer
+                ? CadLayerUpdateMode.UpdateExisting
+                : CadLayerUpdateMode.PreserveExisting).LayerId;
         entity.Color = AcColor.FromColorIndex(ColorMethod.ByLayer, 256);
-        var layer = (LayerTableRecord)transaction.GetObject(entity.LayerId, OpenMode.ForWrite);
-        layer.IsPlottable = isPlottable;
+        if (updateExistingLayer)
+        {
+            var layer = (LayerTableRecord)transaction.GetObject(entity.LayerId, OpenMode.ForWrite);
+            layer.IsPlottable = isPlottable;
+        }
     }
 
     private static LayerEnsureResult EnsureLayer(
@@ -214,6 +220,222 @@ internal static class TimberLayerService
             .ToList();
     }
 
+    internal static IReadOnlyList<string> GetAvailableLayerNames(
+        Database database,
+        Transaction transaction)
+    {
+        var candidates = GetAvailableLayerPresets(database, transaction)
+            .Select(preset => new CadLayerNameCandidate(preset.Name));
+        return CadLayerNameRules.SelectUsableLocalNames(candidates);
+    }
+
+    internal static IReadOnlyList<CadLayerPreset> GetAvailableLayerPresets(
+        Database database,
+        Transaction transaction)
+    {
+        ArgumentNullException.ThrowIfNull(database);
+        ArgumentNullException.ThrowIfNull(transaction);
+
+        var metadataStore = new AutoCadTimberElementMetadataStore(transaction);
+        var scalesByLayer = new Dictionary<string, List<double>>(
+            StringComparer.OrdinalIgnoreCase);
+        foreach (var id in DrawingScanner.FindAllTimberElements(
+                     database,
+                     transaction,
+                     metadataStore))
+        {
+            if (transaction.GetObject(id, OpenMode.ForRead, false) is not Entity entity ||
+                entity.IsErased)
+            {
+                continue;
+            }
+
+            if (!scalesByLayer.TryGetValue(entity.Layer, out var scales))
+            {
+                scales = [];
+                scalesByLayer.Add(entity.Layer, scales);
+            }
+
+            scales.Add(entity.LinetypeScale);
+        }
+
+        var table = (LayerTable)transaction.GetObject(
+            database.LayerTableId,
+            OpenMode.ForRead);
+        var presets = new List<CadLayerPreset>();
+        foreach (ObjectId id in table)
+        {
+            if (id.IsErased ||
+                transaction.GetObject(id, OpenMode.ForRead, false) is not LayerTableRecord layer ||
+                layer.IsErased ||
+                layer.IsDependent)
+            {
+                continue;
+            }
+
+            scalesByLayer.TryGetValue(layer.Name, out var layerScales);
+            var scaleResolution = CadLayerScaleHydrationRules.Resolve(
+                currentProfileValue: 1d,
+                layerScales ?? []);
+            presets.Add(new CadLayerPreset(
+                layer.Name,
+                layer.Color.ColorIndex,
+                GetCanonicalLinetypeName(transaction, layer.LinetypeObjectId),
+                scaleResolution.LoadedFromEntities ? scaleResolution.Value : null,
+                scaleResolution.HasMixedValues));
+        }
+
+        return presets
+            .OrderBy(preset =>
+                string.Equals(preset.Name, "0", StringComparison.OrdinalIgnoreCase) ? 0 :
+                string.Equals(preset.Name, "Defpoints", StringComparison.OrdinalIgnoreCase) ? 1 :
+                2)
+            .ThenBy(preset => preset.Name, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
+
+    internal static NewOnlyLayerResolutionResult ResolveNewElementsOnlyProfile(
+        Database database,
+        Transaction transaction,
+        ElementLayerProfile profile,
+        ElementLayerProfile persistedProfile,
+        IReadOnlyCollection<CadLayerOverrideIntent> overrideIntents)
+    {
+        ArgumentNullException.ThrowIfNull(database);
+        ArgumentNullException.ThrowIfNull(transaction);
+        ArgumentNullException.ThrowIfNull(profile);
+        ArgumentNullException.ThrowIfNull(persistedProfile);
+        ArgumentNullException.ThrowIfNull(overrideIntents);
+
+        var normalized = profile.Normalize();
+        var persistedScaleByLayer = persistedProfile.Normalize().Styles
+            .GroupBy(style => style.LayerName, StringComparer.OrdinalIgnoreCase)
+            .Where(group =>
+            {
+                var first = group.First().LinetypeScale;
+                return group.All(style =>
+                    Math.Abs(style.LinetypeScale - first) <=
+                    CadLayerScaleHydrationRules.ComparisonTolerance);
+            })
+            .ToDictionary(
+                group => group.Key,
+                group => group.First().LinetypeScale,
+                StringComparer.OrdinalIgnoreCase);
+        var intentByType = overrideIntents
+            .GroupBy(intent => intent.ElementType)
+            .ToDictionary(group => group.Key, group => group.Last());
+        var table = (LayerTable)transaction.GetObject(
+            database.LayerTableId,
+            OpenMode.ForRead);
+        var occupied = GetAvailableLayerNames(database, transaction)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        foreach (ObjectId id in table)
+        {
+            if (transaction.GetObject(id, OpenMode.ForRead, false) is LayerTableRecord layer)
+            {
+                occupied.Add(layer.Name);
+            }
+        }
+        var presets = GetAvailableLayerPresets(database, transaction);
+
+        var generatedByAppearance = new Dictionary<string, string>(
+            StringComparer.OrdinalIgnoreCase);
+        var createdNames = new List<string>();
+        var resolvedStyles = new List<ElementLayerStyle>();
+        foreach (var style in normalized.Styles)
+        {
+            if (!table.Has(style.LayerName))
+            {
+                var (linetypeId, _, _) = EnsureLinetype(
+                    database,
+                    transaction,
+                    style.LinetypeName);
+                _ = EnsureLayer(
+                    database,
+                    transaction,
+                    style.LayerName,
+                    style.ColorIndex,
+                    linetypeId,
+                    CadLayerUpdateMode.UpdateExisting);
+                occupied.Add(style.LayerName);
+                createdNames.Add(style.LayerName);
+                resolvedStyles.Add(CloneStyle(style, style.LayerName));
+                continue;
+            }
+
+            var existing = (LayerTableRecord)transaction.GetObject(
+                table[style.LayerName],
+                OpenMode.ForRead);
+            intentByType.TryGetValue(style.ElementType, out var intent);
+            var requiresSuffix = CadLayerOverrideRules.RequiresSuffix(
+                style.LayerName,
+                LayerMatches(existing, transaction, style),
+                intent);
+            if (!requiresSuffix)
+            {
+                resolvedStyles.Add(CloneStyle(style, style.LayerName));
+                continue;
+            }
+
+            var canonicalBaseName = CadLayerNameRules.GetCanonicalBaseName(
+                style.LayerName);
+            var matchingPreset = presets
+                .Where(preset => CadLayerNameRules.IsCanonicalOrGeneratedVariant(
+                    preset.Name,
+                    canonicalBaseName))
+                .OrderBy(preset =>
+                    string.Equals(
+                        preset.Name,
+                        canonicalBaseName,
+                        StringComparison.OrdinalIgnoreCase)
+                            ? 0
+                            : 1)
+                .ThenBy(preset => preset.Name, StringComparer.OrdinalIgnoreCase)
+                .FirstOrDefault(preset => LayerPresetMatches(
+                    preset,
+                    style,
+                    persistedScaleByLayer));
+            if (matchingPreset is not null)
+            {
+                resolvedStyles.Add(CloneStyle(style, matchingPreset.Name));
+                continue;
+            }
+
+            var appearanceKey = string.Join(
+                "\u001f",
+                canonicalBaseName,
+                style.ColorIndex,
+                CadLinetypeNames.Normalize(style.LinetypeName),
+                style.LinetypeScale);
+            if (!generatedByAppearance.TryGetValue(appearanceKey, out var generatedName))
+            {
+                generatedName = CadLayerNameRules.NextConflictFreeName(
+                    canonicalBaseName,
+                    occupied);
+                var (linetypeId, _, _) = EnsureLinetype(
+                    database,
+                    transaction,
+                    style.LinetypeName);
+                _ = EnsureLayer(
+                    database,
+                    transaction,
+                    generatedName,
+                    style.ColorIndex,
+                    linetypeId,
+                    CadLayerUpdateMode.UpdateExisting);
+                generatedByAppearance.Add(appearanceKey, generatedName);
+                occupied.Add(generatedName);
+                createdNames.Add(generatedName);
+            }
+
+            resolvedStyles.Add(CloneStyle(style, generatedName));
+        }
+
+        return new NewOnlyLayerResolutionResult(
+            new ElementLayerProfile { Styles = resolvedStyles }.Normalize(),
+            createdNames);
+    }
+
     internal static IReadOnlyList<string> GetConflictingExistingLayerNames(
         Database database,
         Transaction transaction,
@@ -296,9 +518,60 @@ internal static class TimberLayerService
         ObjectId id) =>
         ((LinetypeTableRecord)transaction.GetObject(id, OpenMode.ForRead)).Name;
 
+    private static bool LayerMatches(
+        LayerTableRecord layer,
+        Transaction transaction,
+        ElementLayerStyle style) =>
+        layer.Color.ColorIndex == style.ColorIndex &&
+        string.Equals(
+            GetCanonicalLinetypeName(transaction, layer.LinetypeObjectId),
+            CadLinetypeNames.Normalize(style.LinetypeName),
+            StringComparison.OrdinalIgnoreCase);
+
+    private static bool LayerPresetMatches(
+        CadLayerPreset preset,
+        ElementLayerStyle style,
+        IReadOnlyDictionary<string, double> persistedScaleByLayer)
+    {
+        if (preset.AciColorIndex != style.ColorIndex ||
+            !string.Equals(
+                preset.LinetypeName,
+                CadLinetypeNames.Normalize(style.LinetypeName),
+                StringComparison.OrdinalIgnoreCase) ||
+            preset.HasMixedEntityLinetypeScales)
+        {
+            return false;
+        }
+
+        var candidateScale = preset.UniformEntityLinetypeScale;
+        if (candidateScale is null &&
+            persistedScaleByLayer.TryGetValue(preset.Name, out var persistedScale))
+        {
+            candidateScale = persistedScale;
+        }
+
+        return candidateScale is not null &&
+            Math.Abs(candidateScale.Value - style.LinetypeScale) <=
+            CadLayerScaleHydrationRules.ComparisonTolerance;
+    }
+
+    private static ElementLayerStyle CloneStyle(
+        ElementLayerStyle style,
+        string layerName) =>
+        new(
+            style.ElementType,
+            layerName,
+            style.ColorIndex,
+            style.LinetypeName,
+            style.LinetypeScale);
+
     private sealed record LayerEnsureResult(
         ObjectId LayerId,
         string AppliedLinetypeName,
         bool PreservedConflict,
         bool Changed);
+
+    internal sealed record NewOnlyLayerResolutionResult(
+        ElementLayerProfile Profile,
+        IReadOnlyList<string> CreatedLayerNames);
 }

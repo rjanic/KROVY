@@ -10,7 +10,8 @@ public static class TimberElementLabelMatchRules
         string? previousElementId,
         IReadOnlyList<TimberElementLabelCandidate> candidates,
         int currentElementOwnerCount,
-        int previousElementOwnerCount)
+        int previousElementOwnerCount,
+        bool allowElementIdFallback = true)
     {
         if (candidates is null)
         {
@@ -34,6 +35,11 @@ public static class TimberElementLabelMatchRules
                     .Select(candidate => candidate.LabelKey)
                     .ToList(),
             };
+        }
+
+        if (!allowElementIdFallback)
+        {
+            return new TimberElementLabelSelection();
         }
 
         var currentFallback = SelectUniqueElementIdFallback(candidates, currentElementId, currentElementOwnerCount, 1);

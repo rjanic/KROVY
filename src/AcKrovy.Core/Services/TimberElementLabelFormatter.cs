@@ -35,4 +35,14 @@ public static class TimberElementLabelFormatter
         var formatOptions = options ?? TimberElementLabelFormatOptions.Default;
         return $"{data.WidthMm:0}{formatOptions.DimensionSeparator}{data.HeightMm:0}";
     }
+
+    public static string FormatStackedDimensions(TimberElementData data)
+    {
+        if (data is null)
+        {
+            throw new ArgumentNullException(nameof(data));
+        }
+
+        return $"{data.WidthMm:0}\\P{data.HeightMm:0}";
+    }
 }

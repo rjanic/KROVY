@@ -12,8 +12,22 @@ internal static class TimberAnnotationService
         Entity sourceEntity,
         TimberElementData data,
         string? previousElementId = null,
-        double roundingStepMm = TimberCuttingLengthCalculator.DefaultRoundingStepMm)
+        double roundingStepMm = TimberCuttingLengthCalculator.DefaultRoundingStepMm,
+        bool copySourcePreservation = false)
     {
+        if (TimberAnnotationModeRules.Normalize(data.AnnotationMode) ==
+            TimberAnnotationMode.NoAnnotations)
+        {
+            var sourceHandle = sourceEntity.Handle.ToString();
+            ElementLabelService.DeleteForSourceHandle(database, transaction, sourceHandle);
+            SlopeAnnotationService.DeleteForSourceHandle(database, transaction, sourceHandle);
+            PostFootprintPerpendicularAnnotationService.DeleteForSourceHandle(
+                database,
+                transaction,
+                sourceHandle);
+            return false;
+        }
+
         var isRectangularFootprintPost =
             TimberPostFootprintMetadataRules.IsValidNewFootprintPost(data);
         var hasResolvedFootprintGeometry = PostFootprintRuntimeGeometryResolver.TryResolve(
@@ -38,7 +52,8 @@ internal static class TimberAnnotationService
                 effectiveData,
                 footprintGeometry,
                 previousElementId,
-                roundingStepMm);
+                roundingStepMm,
+                copySourcePreservation);
             SlopeAnnotationService.DeleteForSourceHandle(
                 database,
                 transaction,
@@ -47,7 +62,8 @@ internal static class TimberAnnotationService
                 database,
                 transaction,
                 footprintPolyline,
-                footprintGeometry);
+                footprintGeometry,
+                copySourcePreservation);
             return footprintLabelCreated;
         }
 
@@ -70,10 +86,16 @@ internal static class TimberAnnotationService
                 sourceEntity,
                 data,
                 previousElementId,
-                roundingStepMm);
+                roundingStepMm,
+                copySourcePreservation);
         if (plan.ReconcileSlopeArrow && plan.ReconcileSlopeAngleText)
         {
-            SlopeAnnotationService.EnsureForElement(database, transaction, sourceEntity, data);
+            SlopeAnnotationService.EnsureForElement(
+                database,
+                transaction,
+                sourceEntity,
+                data,
+                copySourcePreservation);
         }
 
         return labelCreated;

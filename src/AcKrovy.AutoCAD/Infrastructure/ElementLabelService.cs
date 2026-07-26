@@ -31,7 +31,8 @@ internal static class ElementLabelService
         Entity sourceEntity,
         TimberElementData data,
         string? previousElementId = null,
-        double roundingStepMm = TimberCuttingLengthCalculator.DefaultRoundingStepMm)
+        double roundingStepMm = TimberCuttingLengthCalculator.DefaultRoundingStepMm,
+        bool copySourcePreservation = false)
     {
         ArgumentNullException.ThrowIfNull(database);
         ArgumentNullException.ThrowIfNull(transaction);
@@ -45,6 +46,25 @@ internal static class ElementLabelService
 
         var measurement = TimberCalculator.Measure(data, AutoCadEntityHelpers.GetPlanLengthMm(sourceEntity), roundingStepMm);
         var labelText = TimberMainAnnotationFormatter.Format(data, measurement);
+        if (TimberAnnotationModeRules.Normalize(data.AnnotationMode) ==
+            TimberAnnotationMode.DimensionsWithItemNumber)
+        {
+            labelText = TimberElementLabelFormatter.FormatStackedDimensions(data);
+            var framedPlacement = CalculateShortLeaderPlacement(
+                sourceEntity,
+                data.ElementId,
+                data.ItemNumberLeaderStyle);
+            return UpsertCombinedLeader(
+                database,
+                transaction,
+                sourceEntity,
+                data,
+                previousElementId,
+                framedPlacement,
+                labelText,
+                copySourcePreservation);
+        }
+
         if (TimberAnnotationModeRules.GetRepresentation(
                 data.AnnotationMode,
                 data.ItemNumberLeaderStyle) !=
@@ -63,7 +83,8 @@ internal static class ElementLabelService
                 data,
                 previousElementId,
                 leaderPlacement,
-                labelText);
+                labelText,
+                copySourcePreservation);
         }
 
         var placement = CalculatePlacement(sourceEntity);
@@ -77,7 +98,8 @@ internal static class ElementLabelService
             labelText,
             AttachmentPoint.MiddleCenter,
             DefaultTextHeightMm,
-            lineSpacingFactor: null);
+            lineSpacingFactor: null,
+            copySourcePreservation);
     }
 
     public static bool UpsertForPostFootprint(
@@ -87,7 +109,8 @@ internal static class ElementLabelService
         TimberElementData data,
         TimberRectangularFootprintGeometry geometry,
         string? previousElementId = null,
-        double roundingStepMm = TimberCuttingLengthCalculator.DefaultRoundingStepMm)
+        double roundingStepMm = TimberCuttingLengthCalculator.DefaultRoundingStepMm,
+        bool copySourcePreservation = false)
     {
         ArgumentNullException.ThrowIfNull(database);
         ArgumentNullException.ThrowIfNull(transaction);
@@ -108,6 +131,26 @@ internal static class ElementLabelService
         var labelText = normalizedMode == TimberAnnotationMode.FullLabel
             ? TimberPostFootprintLabelFormatter.Format(data, measurement.ActualLengthMm)
             : TimberMainAnnotationFormatter.Format(data, measurement);
+        if (normalizedMode == TimberAnnotationMode.DimensionsWithItemNumber)
+        {
+            labelText = TimberElementLabelFormatter.FormatStackedDimensions(data);
+            var leaderPlacement = TimberLeaderPlacementCalculator.CalculatePost(geometry.Bounds);
+            var framedPlacement = CalculateShortLeaderPlacement(
+                leaderPlacement,
+                sourcePolyline.Elevation,
+                data.ElementId,
+                data.ItemNumberLeaderStyle);
+            return UpsertCombinedLeader(
+                database,
+                transaction,
+                sourcePolyline,
+                data,
+                previousElementId,
+                framedPlacement,
+                labelText,
+                copySourcePreservation);
+        }
+
         if (TimberAnnotationModeRules.GetRepresentation(
                 normalizedMode,
                 data.ItemNumberLeaderStyle) !=
@@ -128,7 +171,8 @@ internal static class ElementLabelService
                 data,
                 previousElementId,
                 itemPlacement,
-                labelText);
+                labelText,
+                copySourcePreservation);
         }
 
         var footprintPlacement = TimberPostFootprintLabelPlacementCalculator.Calculate(geometry.Bounds);
@@ -147,7 +191,8 @@ internal static class ElementLabelService
             labelText,
             AttachmentPoint.BottomCenter,
             TimberPostFootprintLabelPlacementCalculator.TextHeightMm,
-            TimberPostFootprintLabelPlacementCalculator.LineSpacingFactor);
+            TimberPostFootprintLabelPlacementCalculator.LineSpacingFactor,
+            copySourcePreservation);
     }
 
     private static bool UpsertLabel(
@@ -160,7 +205,14 @@ internal static class ElementLabelService
         string labelText,
         AttachmentPoint attachment,
         double textHeightMm,
-        double? lineSpacingFactor)
+        double? lineSpacingFactor,
+        bool copySourcePreservation,
+        TimberAnnotationMode annotationMode =
+            TimberAnnotationMode.FullLabel,
+        TimberMainAnnotationComponentRole componentRole =
+            TimberMainAnnotationComponentRole.Primary,
+        bool preserveCompositeSiblings = false,
+        bool useCurrentAnnotationScale = false)
     {
         var sourceHandle = sourceEntity.Handle.ToString();
         var existingLabelId = FindExistingLabelId(
@@ -170,6 +222,9 @@ internal static class ElementLabelService
             sourceHandle,
             previousElementId,
             TimberMainAnnotationRepresentation.FullLabel,
+            componentRole,
+            preserveCompositeSiblings,
+            allowElementIdFallback: !copySourcePreservation,
             out var obsoleteLabelIds);
         var isCreated = existingLabelId.IsNull;
 
@@ -197,19 +252,30 @@ internal static class ElementLabelService
             labelText,
             attachment,
             textHeightMm,
-            lineSpacingFactor);
+            lineSpacingFactor,
+            updateExistingLayer: !copySourcePreservation);
+        if (useCurrentAnnotationScale)
+        {
+            ApplyCurrentAnnotationScale(database, label);
+        }
         ElementLabelStore.Write(label, transaction, new ElementLabelData
         {
             ElementId = data.ElementId,
             SourceHandle = sourceHandle,
-            AnnotationMode = TimberAnnotationMode.FullLabel,
+            AnnotationMode = TimberAnnotationModeRules.Normalize(annotationMode),
+            ItemNumberLeaderStyle = ItemNumberLeaderStyleRules.Normalize(
+                data.ItemNumberLeaderStyle),
             Contents = labelText,
             TextX = placement.Location.X,
             TextY = placement.Location.Y,
             RotationRadians = placement.RotationRadians,
+            ComponentRole = componentRole,
         });
         DeleteObsoleteLabels(transaction, obsoleteLabelIds, label.ObjectId);
-        DeleteDuplicateLabelsForExistingSourceHandles(database, transaction);
+        if (!copySourcePreservation)
+        {
+            DeleteDuplicateLabelsForExistingSourceHandles(database, transaction);
+        }
 
         return isCreated;
     }
@@ -221,12 +287,20 @@ internal static class ElementLabelService
         TimberElementData data,
         string? previousElementId,
         LeaderPlacement placement,
-        string contents)
+        string contents,
+        bool copySourcePreservation,
+        TimberMainAnnotationComponentRole componentRole =
+            TimberMainAnnotationComponentRole.Primary,
+        TimberMainAnnotationRepresentation? representationOverride = null,
+        bool preserveCompositeSiblings = false,
+        Action<LeaderPlacement>? effectivePlacementObserver = null,
+        bool useCurrentAnnotationScale = false)
     {
         var sourceHandle = sourceEntity.Handle.ToString();
-        var desiredRepresentation = TimberAnnotationModeRules.GetRepresentation(
-            data.AnnotationMode,
-            data.ItemNumberLeaderStyle);
+        var desiredRepresentation = representationOverride ??
+            TimberAnnotationModeRules.GetRepresentation(
+                data.AnnotationMode,
+                data.ItemNumberLeaderStyle);
         var existingId = FindExistingLabelId(
             database,
             transaction,
@@ -234,6 +308,9 @@ internal static class ElementLabelService
             sourceHandle,
             previousElementId,
             desiredRepresentation,
+            componentRole,
+            preserveCompositeSiblings,
+            allowElementIdFallback: !copySourcePreservation,
             out var obsoleteIds);
         var existingData = existingId.IsNull
             ? null
@@ -272,13 +349,33 @@ internal static class ElementLabelService
                     manualPosition.X,
                     manualPosition.Y,
                     placement.TextLocation.Z),
-                // Insertion-point-connected BlockContent is evaluated from
-                // the terminal leader vertex. Move that vertex by the same
+                // BlockContent is evaluated from the terminal leader vertex.
+                // Move that vertex by the same
                 // manual delta; changing BlockPosition alone is discarded by
                 // AutoCAD during MLeader evaluation.
                 Knee = placement.Knee + manualDelta,
             };
         }
+        if (existingData is not null &&
+            TimberAnnotationModeRules.Normalize(data.AnnotationMode) ==
+                TimberAnnotationMode.DimensionsWithItemNumber &&
+            componentRole == TimberMainAnnotationComponentRole.FramedItem &&
+            TryCreateDoglegDirection(
+                existingData.CombinedDoglegDirectionX,
+                existingData.CombinedDoglegDirectionY,
+                out var persistedDoglegDirection))
+        {
+            placement = placement with
+            {
+                Knee = placement.TextLocation -
+                    persistedDoglegDirection * (
+                        placement.EnvelopeWidthMm / 2d +
+                        TimberItemLeaderLayoutCalculator
+                            .CombinedFramedLandingDistanceMm),
+                DoglegDirection = persistedDoglegDirection,
+            };
+        }
+        effectivePlacementObserver?.Invoke(placement);
         var geometryMatches = existingData is not null &&
             LeaderGeometryMatches(existingData, data.AnnotationMode, placement);
 
@@ -293,7 +390,8 @@ internal static class ElementLabelService
                 transaction,
                 existingLeader,
                 placement,
-                contents))
+                contents,
+                updateExistingDefinitions: !copySourcePreservation))
         {
             leader = existingLeader;
         }
@@ -312,12 +410,15 @@ internal static class ElementLabelService
                     transaction,
                     placement,
                     contents,
-                    data.ItemNumberLeaderStyle)
+                    data.ItemNumberLeaderStyle,
+                    updateExistingDefinitions: !copySourcePreservation,
+                    useCurrentAnnotationScale: useCurrentAnnotationScale)
                 : CreateNativeMLeader(
                     database,
                     transaction,
                     placement,
-                    contents);
+                    contents,
+                    updateExistingDefinitions: !copySourcePreservation);
             WriteLeaderMetadata(
                 leader,
                 transaction,
@@ -326,7 +427,8 @@ internal static class ElementLabelService
                 placement,
                 automaticPlacement,
                 manualOffset,
-                contents);
+                contents,
+                componentRole);
             metadataWritten = true;
 
             if (replacedAnnotation is not null)
@@ -345,12 +447,109 @@ internal static class ElementLabelService
                 placement,
                 automaticPlacement,
                 manualOffset,
-                contents);
+                contents,
+                componentRole);
         }
 
         DeleteObsoleteLabels(transaction, obsoleteIds, leader.ObjectId);
-        DeleteDuplicateLabelsForExistingSourceHandles(database, transaction);
+        if (!copySourcePreservation)
+        {
+            DeleteDuplicateLabelsForExistingSourceHandles(database, transaction);
+        }
         return isCreated;
+    }
+
+    private static bool UpsertCombinedLeader(
+        Database database,
+        Transaction transaction,
+        Entity sourceEntity,
+        TimberElementData data,
+        string? previousElementId,
+        LeaderPlacement framedPlacement,
+        string dimensionsContents,
+        bool copySourcePreservation)
+    {
+        var combinedFramedPlacement = ApplyCombinedLandingDistance(
+            framedPlacement);
+        var effectiveFramedPlacement = combinedFramedPlacement;
+        var framedCreated = UpsertLeader(
+            database,
+            transaction,
+            sourceEntity,
+            data,
+            previousElementId,
+            combinedFramedPlacement,
+            data.ElementId,
+            copySourcePreservation,
+            TimberMainAnnotationComponentRole.FramedItem,
+            TimberMainAnnotationRepresentation.BlockLeader,
+            preserveCompositeSiblings: true,
+            effectivePlacementObserver: placement =>
+                effectiveFramedPlacement = placement,
+            useCurrentAnnotationScale: true);
+        var dimensionsPlacement = CalculateCombinedDimensionsTextPlacement(
+            database,
+            transaction,
+            sourceEntity.Handle.ToString(),
+            effectiveFramedPlacement);
+        var primaryCreated = UpsertLabel(
+            database,
+            transaction,
+            sourceEntity,
+            data,
+            previousElementId,
+            dimensionsPlacement,
+            dimensionsContents,
+            AttachmentPoint.MiddleCenter,
+            DefaultTextHeightMm,
+            lineSpacingFactor: null,
+            copySourcePreservation: copySourcePreservation,
+            annotationMode: TimberAnnotationMode.DimensionsWithItemNumber,
+            componentRole: TimberMainAnnotationComponentRole.Primary,
+            preserveCompositeSiblings: true,
+            useCurrentAnnotationScale: true);
+        DeleteUnexpectedCompositeComponents(
+            database,
+            transaction,
+            sourceEntity.Handle.ToString());
+        return primaryCreated || framedCreated;
+    }
+
+    private static void DeleteUnexpectedCompositeComponents(
+        Database database,
+        Transaction transaction,
+        string sourceHandle)
+    {
+        var matchingEntries = ReadAnnotationEntities(database, transaction)
+            .Where(entry => string.Equals(
+                entry.Data.SourceHandle,
+                sourceHandle,
+                StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+        var keysToDelete =
+            TimberCompositeAnnotationLifecycleRules.SelectUnexpectedComponentKeys(
+                TimberAnnotationMode.DimensionsWithItemNumber,
+                matchingEntries.Select(entry => new TimberElementLabelCandidate
+                {
+                    LabelKey = entry.Id.ToString(),
+                    ElementId = entry.Data.ElementId,
+                    SourceHandle = entry.Data.SourceHandle,
+                    ComponentRole = entry.Data.ComponentRole,
+                }).ToArray());
+        foreach (var entry in matchingEntries.Where(entry =>
+            keysToDelete.Contains(entry.Id.ToString(), StringComparer.OrdinalIgnoreCase)))
+        {
+            if (AutoCadObjectIdAccess.TryGetObject<Entity>(
+                    transaction,
+                    entry.Id,
+                    OpenMode.ForWrite,
+                    out var annotation) &&
+                annotation is not null &&
+                !annotation.IsErased)
+            {
+                EraseMainAnnotation(transaction, annotation);
+            }
+        }
     }
 
     private static void WriteLeaderMetadata(
@@ -361,7 +560,8 @@ internal static class ElementLabelService
         LeaderPlacement placement,
         LeaderPlacement automaticPlacement,
         TimberFramedLeaderManualOffset manualOffset,
-        string contents)
+        string contents,
+        TimberMainAnnotationComponentRole componentRole)
     {
         ElementLabelStore.Write(leader, transaction, new ElementLabelData
         {
@@ -383,6 +583,9 @@ internal static class ElementLabelService
             LocalManualOffsetAlongAxisMm = manualOffset.AlongAxisMm,
             LocalManualOffsetNormalAxisMm = manualOffset.NormalAxisMm,
             PlacementRotationRadians = placement.RotationRadians,
+            CombinedDoglegDirectionX = placement.DoglegDirection?.X,
+            CombinedDoglegDirectionY = placement.DoglegDirection?.Y,
+            ComponentRole = componentRole,
         });
     }
 
@@ -435,6 +638,7 @@ internal static class ElementLabelService
                 LabelKey = label.Id.ToString(),
                 ElementId = label.Data.ElementId,
                 SourceHandle = label.Data.SourceHandle,
+                ComponentRole = label.Data.ComponentRole,
             })
             .ToList();
     }
@@ -546,6 +750,28 @@ internal static class ElementLabelService
                 actualBlockPosition.X,
                 actualBlockPosition.Y,
                 rotation);
+            var isCombinedFramedItem =
+                TimberAnnotationModeRules.Normalize(data.AnnotationMode) ==
+                    TimberAnnotationMode.DimensionsWithItemNumber &&
+                data.ComponentRole ==
+                    TimberMainAnnotationComponentRole.FramedItem;
+            Vector3d? actualDoglegDirection = null;
+            Point3d? actualLandingStartPoint = null;
+            Point3d? actualLandingEndPoint = null;
+            if (isCombinedFramedItem &&
+                TryGetLandingSegment(
+                    leader,
+                    out var landingStartPoint,
+                    out var landingEndPoint))
+            {
+                actualDoglegDirection =
+                    (landingEndPoint - landingStartPoint).GetNormal();
+                actualLandingStartPoint = landingStartPoint;
+                actualLandingEndPoint = landingStartPoint +
+                    actualDoglegDirection.Value *
+                        TimberItemLeaderLayoutCalculator
+                            .CombinedFramedLandingDistanceMm;
+            }
             ElementLabelStore.Write(leader, transaction, data with
             {
                 TextX = actualBlockPosition.X,
@@ -553,12 +779,83 @@ internal static class ElementLabelService
                 LocalManualOffsetAlongAxisMm = offset.AlongAxisMm,
                 LocalManualOffsetNormalAxisMm = offset.NormalAxisMm,
                 PlacementRotationRadians = rotation,
+                CombinedDoglegDirectionX =
+                    actualDoglegDirection?.X ??
+                    data.CombinedDoglegDirectionX,
+                CombinedDoglegDirectionY =
+                    actualDoglegDirection?.Y ??
+                    data.CombinedDoglegDirectionY,
             });
             // Assigning XData can force an MLeader reevaluation. Restore the
             // user-observed position after the metadata write so CommandEnded
             // cannot snap BlockContent back to its preceding evaluated point.
             leader.BlockPosition = actualBlockPosition;
+            if (isCombinedFramedItem &&
+                actualDoglegDirection.HasValue &&
+                actualLandingStartPoint.HasValue &&
+                actualLandingEndPoint.HasValue)
+            {
+                var leaderIndex = leader.GetLeaderIndexes().Cast<int>().Single();
+                var leaderLineIndex = leader
+                    .GetLeaderLineIndexes(leaderIndex)
+                    .Cast<int>()
+                    .Single();
+                leader.DoglegLength =
+                    TimberItemLeaderLayoutCalculator
+                        .CombinedFramedLandingDistanceMm;
+                leader.SetDogleg(leaderIndex, actualDoglegDirection.Value);
+                leader.SetLastVertex(
+                    leaderLineIndex,
+                    actualLandingStartPoint.Value);
+                leader.BlockPosition = actualBlockPosition;
+                RecenterCombinedDimensionsText(
+                    database,
+                    transaction,
+                    data.SourceHandle,
+                    actualLandingStartPoint.Value,
+                    actualLandingEndPoint.Value);
+            }
         }
+    }
+
+    private static void RecenterCombinedDimensionsText(
+        Database database,
+        Transaction transaction,
+        string sourceHandle,
+        Point3d landingStartPoint,
+        Point3d landingEndPoint)
+    {
+        var dimensionsEntry = ReadAnnotationEntities(database, transaction)
+            .FirstOrDefault(entry =>
+                entry.EntityType == MainAnnotationEntityType.MText &&
+                entry.Data.ComponentRole == TimberMainAnnotationComponentRole.Primary &&
+                TimberAnnotationModeRules.Normalize(entry.Data.AnnotationMode) ==
+                    TimberAnnotationMode.DimensionsWithItemNumber &&
+                string.Equals(
+                    entry.Data.SourceHandle,
+                    sourceHandle,
+                    StringComparison.OrdinalIgnoreCase));
+        if (dimensionsEntry is null ||
+            !AutoCadObjectIdAccess.TryGetObject<MText>(
+                transaction,
+                dimensionsEntry.Id,
+                OpenMode.ForWrite,
+                out var dimensionsText,
+                database) ||
+            dimensionsText is null)
+        {
+            return;
+        }
+
+        var movedLocation = landingStartPoint +
+            (landingEndPoint - landingStartPoint) / 2d;
+        dimensionsText.Location = movedLocation;
+        ElementLabelStore.Write(dimensionsText, transaction, dimensionsEntry.Data with
+        {
+            TextX = movedLocation.X,
+            TextY = movedLocation.Y,
+        });
+        dimensionsText.Location = movedLocation;
     }
 
     internal static bool TryGetLongitudinalInterval(
@@ -711,6 +1008,7 @@ internal static class ElementLabelService
                     LabelKey = label.Id.ToString(),
                     ElementId = label.Data.ElementId,
                     SourceHandle = label.Data.SourceHandle,
+                    ComponentRole = label.Data.ComponentRole,
                 })
                 .ToList(),
             ReadTimberSourceHandles(database, transaction));
@@ -744,6 +1042,7 @@ internal static class ElementLabelService
                     LabelKey = label.Id.ToString(),
                     ElementId = label.Data.ElementId,
                     SourceHandle = label.Data.SourceHandle,
+                    ComponentRole = label.Data.ComponentRole,
                 })
                 .ToList(),
             ReadTimberSourceHandles(database, transaction));
@@ -859,6 +1158,9 @@ internal static class ElementLabelService
         string sourceHandle,
         string? previousElementId,
         TimberMainAnnotationRepresentation desiredRepresentation,
+        TimberMainAnnotationComponentRole desiredComponentRole,
+        bool preserveCompositeSiblings,
+        bool allowElementIdFallback,
         out IReadOnlyList<ObjectId> obsoleteLabelIds)
     {
         obsoleteLabelIds = Array.Empty<ObjectId>();
@@ -866,7 +1168,9 @@ internal static class ElementLabelService
 
         var labelKeys = labels.ToDictionary(label => label.Id.ToString(), label => label.Id);
         var matchingRepresentation = labels
-            .Where(label => label.Representation == desiredRepresentation)
+            .Where(label =>
+                label.Representation == desiredRepresentation &&
+                label.Data.ComponentRole == desiredComponentRole)
             .ToList();
         var selection = TimberElementLabelMatchRules.SelectLabelForUpsert(
             sourceHandle,
@@ -878,17 +1182,22 @@ internal static class ElementLabelService
                     LabelKey = label.Id.ToString(),
                     ElementId = label.Data.ElementId,
                     SourceHandle = label.Data.SourceHandle,
+                    ComponentRole = label.Data.ComponentRole,
                 })
                 .ToList(),
             CountTimberElementsWithElementId(database, transaction, elementId),
-            CountTimberElementsWithElementId(database, transaction, previousElementId));
+            CountTimberElementsWithElementId(database, transaction, previousElementId),
+            allowElementIdFallback);
 
         obsoleteLabelIds = selection.LabelKeysToDelete
             .Where(labelKeys.ContainsKey)
             .Select(labelKey => labelKeys[labelKey])
             .Concat(labels
                 .Where(label =>
-                    label.Representation != desiredRepresentation &&
+                    (!preserveCompositeSiblings ||
+                     label.Data.ComponentRole == desiredComponentRole) &&
+                    (label.Representation != desiredRepresentation ||
+                     label.Data.ComponentRole != desiredComponentRole) &&
                     string.Equals(label.Data.SourceHandle, sourceHandle, StringComparison.OrdinalIgnoreCase))
                 .Select(label => label.Id))
             .Distinct()
@@ -907,11 +1216,14 @@ internal static class ElementLabelService
             .Where(entry =>
                 entry.Data.ComponentRole is
                     TimberMainAnnotationComponentRole.Primary or
-                    TimberMainAnnotationComponentRole.CircleText)
+                    TimberMainAnnotationComponentRole.CircleText or
+                    TimberMainAnnotationComponentRole.FramedItem)
             .Select(entry => new MainAnnotationEntry(
                 entry.Id,
                 entry.Data,
-                entry.Data.ComponentRole == TimberMainAnnotationComponentRole.CircleText ||
+                entry.Data.ComponentRole is
+                    TimberMainAnnotationComponentRole.CircleText or
+                    TimberMainAnnotationComponentRole.FramedItem ||
                 entry.EntityType == MainAnnotationEntityType.MLeader &&
                 TimberAnnotationModeRules.GetRepresentation(
                     entry.Data.AnnotationMode,
@@ -1160,9 +1472,10 @@ internal static class ElementLabelService
         string contents,
         AttachmentPoint attachment,
         double textHeightMm,
-        double? lineSpacingFactor)
+        double? lineSpacingFactor,
+        bool updateExistingLayer)
     {
-        var labelLayerId = EnsureLabelLayer(database, transaction);
+        var labelLayerId = EnsureLabelLayer(database, transaction, updateExistingLayer);
         label.LayerId = labelLayerId;
         label.Color = AcColor.FromColorIndex(ColorMethod.ByLayer, 256);
         label.Attachment = attachment;
@@ -1176,13 +1489,45 @@ internal static class ElementLabelService
         label.Contents = contents;
     }
 
-    private static ObjectId EnsureLabelLayer(Database database, Transaction transaction)
+    private static void ApplyCurrentAnnotationScale(
+        Database database,
+        Entity annotation)
+    {
+        const string annotationScaleCollectionName = "ACDB_ANNOTATIONSCALES";
+        switch (annotation)
+        {
+            case MLeader leader:
+                leader.EnableAnnotationScale = true;
+                break;
+            case MText text:
+                text.Annotative = AnnotativeStates.True;
+                break;
+        }
+
+        var contexts = database.ObjectContextManager.GetContextCollection(
+            annotationScaleCollectionName);
+        var currentContext = contexts.CurrentContext;
+        if (currentContext is not null && !annotation.HasContext(currentContext))
+        {
+            annotation.AddContext(currentContext);
+        }
+    }
+
+    private static ObjectId EnsureLabelLayer(
+        Database database,
+        Transaction transaction,
+        bool updateExisting = true)
     {
         var layerTable = (LayerTable)transaction.GetObject(database.LayerTableId, OpenMode.ForRead);
         LayerTableRecord layer;
 
         if (layerTable.Has(LabelLayerName))
         {
+            if (!updateExisting)
+            {
+                return layerTable[LabelLayerName];
+            }
+
             layer = (LayerTableRecord)transaction.GetObject(layerTable[LabelLayerName], OpenMode.ForWrite);
         }
         else
@@ -1325,13 +1670,142 @@ internal static class ElementLabelService
             layout.EnvelopeHeightMm);
     }
 
+    private static LeaderPlacement ApplyCombinedLandingDistance(
+        LeaderPlacement framedPlacement)
+    {
+        var contentDirection = framedPlacement.TextLocation - framedPlacement.Knee;
+        var normalizedDirection = contentDirection.Length > PlacementToleranceMm
+            ? contentDirection.GetNormal()
+            : framedPlacement.Side == TimberLeaderHorizontalSide.Left
+                ? -Vector3d.XAxis
+                : Vector3d.XAxis;
+        var contentDistance =
+            framedPlacement.EnvelopeWidthMm / 2d +
+            TimberItemLeaderLayoutCalculator.CombinedFramedLandingDistanceMm;
+        return framedPlacement with
+        {
+            TextLocation = framedPlacement.Knee +
+                normalizedDirection * contentDistance,
+            DoglegDirection = normalizedDirection,
+        };
+    }
+
+    private static LabelPlacement CalculateCombinedDimensionsTextPlacement(
+        Database database,
+        Transaction transaction,
+        string sourceHandle,
+        LeaderPlacement fallbackPlacement)
+    {
+        var framedEntry = ReadAnnotationEntities(database, transaction)
+            .FirstOrDefault(entry =>
+                entry.EntityType == MainAnnotationEntityType.MLeader &&
+                entry.Data.ComponentRole == TimberMainAnnotationComponentRole.FramedItem &&
+                TimberAnnotationModeRules.Normalize(entry.Data.AnnotationMode) ==
+                    TimberAnnotationMode.DimensionsWithItemNumber &&
+                string.Equals(
+                    entry.Data.SourceHandle,
+                    sourceHandle,
+                    StringComparison.OrdinalIgnoreCase));
+        if (framedEntry is not null &&
+            AutoCadObjectIdAccess.TryGetObject<MLeader>(
+                transaction,
+                framedEntry.Id,
+                OpenMode.ForRead,
+                out var framedLeader,
+                database) &&
+            framedLeader is not null &&
+            TryGetLandingSegment(
+                framedLeader,
+                out var landingStartPoint,
+                out var landingEndPoint))
+        {
+            return new LabelPlacement(
+                landingStartPoint +
+                    (landingEndPoint - landingStartPoint) / 2d,
+                RotationRadians: 0d);
+        }
+
+        var fallbackDirection = fallbackPlacement.DoglegDirection ??
+            (fallbackPlacement.TextLocation - fallbackPlacement.Knee).GetNormal();
+        var fallbackEnd = fallbackPlacement.Knee +
+            fallbackDirection *
+                TimberItemLeaderLayoutCalculator.CombinedFramedLandingDistanceMm;
+        return new LabelPlacement(
+            fallbackPlacement.Knee +
+                (fallbackEnd - fallbackPlacement.Knee) / 2d,
+            RotationRadians: 0d);
+    }
+
+    private static bool TryGetLandingSegment(
+        MLeader leader,
+        out Point3d landingStartPoint,
+        out Point3d landingEndPoint)
+    {
+        landingStartPoint = Point3d.Origin;
+        landingEndPoint = Point3d.Origin;
+        var leaderIndexes = leader.GetLeaderIndexes().Cast<int>().ToArray();
+        if (leaderIndexes.Length != 1)
+        {
+            return false;
+        }
+
+        var leaderLineIndexes = leader
+            .GetLeaderLineIndexes(leaderIndexes[0])
+            .Cast<int>()
+            .ToArray();
+        if (leaderLineIndexes.Length != 1 ||
+            leader.VerticesCount(leaderLineIndexes[0]) != 2)
+        {
+            return false;
+        }
+
+        var doglegDirection = leader.GetDogleg(leaderIndexes[0]);
+        if (doglegDirection.Length <= PlacementToleranceMm)
+        {
+            return false;
+        }
+
+        landingStartPoint = leader.GetLastVertex(leaderLineIndexes[0]);
+        landingEndPoint = landingStartPoint +
+            doglegDirection.GetNormal() * leader.DoglegLength;
+        return true;
+    }
+
+    private static bool TryCreateDoglegDirection(
+        double? directionX,
+        double? directionY,
+        out Vector3d direction)
+    {
+        direction = new Vector3d(0d, 0d, 0d);
+        if (!directionX.HasValue || !directionY.HasValue)
+        {
+            return false;
+        }
+
+        var candidate = new Vector3d(
+            directionX.Value,
+            directionY.Value,
+            0d);
+        if (candidate.Length <= PlacementToleranceMm)
+        {
+            return false;
+        }
+
+        direction = candidate.GetNormal();
+        return true;
+    }
+
     private static MLeader CreateNativeMLeader(
         Database database,
         Transaction transaction,
         LeaderPlacement placement,
-        string contents)
+        string contents,
+        bool updateExistingDefinitions)
     {
-        var styleId = AcKrovyMLeaderStyleService.Ensure(database, transaction);
+        var styleId = AcKrovyMLeaderStyleService.Ensure(
+            database,
+            transaction,
+            updateExistingDefinitions);
         var noneArrowId = AcKrovyMLeaderStyleService.GetNoneArrowBlockId(
             database,
             transaction);
@@ -1362,8 +1836,10 @@ internal static class ElementLabelService
         var modelSpace = (BlockTableRecord)transaction.GetObject(
             blockTable[BlockTableRecord.ModelSpace],
             OpenMode.ForWrite);
-        leader.LayerId = EnsureLabelLayer(database, transaction);
+        leader.LayerId = EnsureLabelLayer(database, transaction, updateExistingDefinitions);
         leader.Color = AcColor.FromColorIndex(ColorMethod.ByLayer, 256);
+        leader.LinetypeId = database.ByLayerLinetype;
+        leader.LinetypeScale = 1d;
         leader.LineWeight = LineWeight.ByLayer;
         modelSpace.AppendEntity(leader);
         transaction.AddNewlyCreatedDBObject(leader, true);
@@ -1380,23 +1856,34 @@ internal static class ElementLabelService
         Transaction transaction,
         LeaderPlacement placement,
         string contents,
-        ItemNumberLeaderStyle itemStyle)
+        ItemNumberLeaderStyle itemStyle,
+        bool updateExistingDefinitions,
+        bool useCurrentAnnotationScale)
     {
-        var styleId = AcKrovyMLeaderStyleService.EnsureFramed(database, transaction);
-        var noneArrowId = AcKrovyMLeaderStyleService.GetNoneArrowBlockId(
-            database,
-            transaction);
+        var combinedFramed = useCurrentAnnotationScale;
+        var styleId = combinedFramed
+            ? AcKrovyMLeaderStyleService.EnsureCombinedFramed(
+                database,
+                transaction,
+                updateExistingDefinitions)
+            : AcKrovyMLeaderStyleService.EnsureFramed(
+                database,
+                transaction,
+                updateExistingDefinitions);
         var block = AcKrovyItemLeaderBlockService.Ensure(
             database,
             transaction,
             itemStyle,
-            contents);
+            contents,
+            preserveExistingDefinition: !updateExistingDefinitions);
         var leader = new MLeader();
         leader.SetDatabaseDefaults(database);
         leader.MLeaderStyle = styleId;
         leader.ContentType = ContentType.BlockContent;
         leader.BlockContentId = block.BlockId;
-        leader.BlockConnectionType = BlockConnectionType.ConnectBase;
+        leader.BlockConnectionType = combinedFramed
+            ? BlockConnectionType.ConnectExtents
+            : BlockConnectionType.ConnectBase;
         leader.BlockScale = new Scale3d(
             TimberItemLeaderBlockDefinitionRules.BlockScale);
         leader.BlockRotation = 0d;
@@ -1406,13 +1893,29 @@ internal static class ElementLabelService
         var leaderLineIndex = leader.AddLeaderLine(leaderIndex);
         leader.AddFirstVertex(leaderLineIndex, placement.Anchor);
         leader.AddLastVertex(leaderLineIndex, placement.Knee);
-        AcKrovyMLeaderStyleService.ApplyBlockInstanceProperties(
-            leader,
-            database,
-            noneArrowId,
-            leaderIndex,
-            leaderLineIndex,
-            placement.Side);
+        if (combinedFramed)
+        {
+            AcKrovyMLeaderStyleService.ApplyCombinedBlockInstanceProperties(
+                leader,
+                database,
+                leaderIndex,
+                leaderLineIndex,
+                placement.Side,
+                placement.DoglegDirection);
+        }
+        else
+        {
+            var noneArrowId = AcKrovyMLeaderStyleService.GetNoneArrowBlockId(
+                database,
+                transaction);
+            AcKrovyMLeaderStyleService.ApplyBlockInstanceProperties(
+                leader,
+                database,
+                noneArrowId,
+                leaderIndex,
+                leaderLineIndex,
+                placement.Side);
+        }
 
         var attributeDefinition = (AttributeDefinition)transaction.GetObject(
             block.AttributeDefinitionId,
@@ -1432,13 +1935,19 @@ internal static class ElementLabelService
         var modelSpace = (BlockTableRecord)transaction.GetObject(
             blockTable[BlockTableRecord.ModelSpace],
             OpenMode.ForWrite);
-        leader.LayerId = EnsureLabelLayer(database, transaction);
+        leader.LayerId = EnsureLabelLayer(database, transaction, updateExistingDefinitions);
         leader.Color = AcColor.FromColorIndex(ColorMethod.ByLayer, 256);
+        leader.LinetypeId = database.ByLayerLinetype;
+        leader.LinetypeScale = 1d;
         leader.LineWeight = LineWeight.ByLayer;
         modelSpace.AppendEntity(leader);
         transaction.AddNewlyCreatedDBObject(leader, true);
         leader.SetFirstVertex(leaderLineIndex, placement.Anchor);
         leader.SetLastVertex(leaderLineIndex, placement.Knee);
+        if (useCurrentAnnotationScale)
+        {
+            ApplyCurrentAnnotationScale(database, leader);
+        }
         return leader;
     }
 
@@ -1463,7 +1972,8 @@ internal static class ElementLabelService
         Transaction transaction,
         MLeader leader,
         LeaderPlacement placement,
-        string contents)
+        string contents,
+        bool updateExistingDefinitions)
     {
         if (leader.ContentType != ContentType.MTextContent)
         {
@@ -1482,7 +1992,10 @@ internal static class ElementLabelService
             return false;
         }
 
-        var styleId = AcKrovyMLeaderStyleService.Ensure(database, transaction);
+        var styleId = AcKrovyMLeaderStyleService.Ensure(
+            database,
+            transaction,
+            updateExistingDefinitions);
         var noneArrowId = AcKrovyMLeaderStyleService.GetNoneArrowBlockId(
             database,
             transaction);
@@ -1584,7 +2097,8 @@ internal static class ElementLabelService
         ItemNumberLeaderStyle? ItemStyle = null,
         TimberLeaderHorizontalSide Side = TimberLeaderHorizontalSide.Right,
         double EnvelopeWidthMm = 0d,
-        double EnvelopeHeightMm = 0d);
+        double EnvelopeHeightMm = 0d,
+        Vector3d? DoglegDirection = null);
     private sealed record MainAnnotationEntry(
         ObjectId Id,
         ElementLabelData Data,

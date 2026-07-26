@@ -1,0 +1,40 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=System.Runtime">
+    <FontFamily x:Key="SettingsFontFamily">Segoe UI</FontFamily>
+    <sys:Double x:Key="SettingsFontSizeCaption">12</sys:Double>
+    <sys:Double x:Key="SettingsFontSizeBody">14</sys:Double>
+    <sys:Double x:Key="SettingsFontSizeSection">18</sys:Double>
+    <sys:Double x:Key="SettingsFontSizeTitle">26</sys:Double>
+    <FontWeight x:Key="SettingsFontWeightRegular">Regular</FontWeight>
+    <FontWeight x:Key="SettingsFontWeightSemiBold">SemiBold</FontWeight>
+    <sys:Double x:Key="SettingsSpacingXs">4</sys:Double>
+    <sys:Double x:Key="SettingsSpacingSm">8</sys:Double>
+    <sys:Double x:Key="SettingsSpacingMd">12</sys:Double>
+    <sys:Double x:Key="SettingsSpacingLg">18</sys:Double>
+    <sys:Double x:Key="SettingsSpacingXl">24</sys:Double>
+    <sys:Double x:Key="SettingsControlHeight">36</sys:Double>
+    <GridLength x:Key="SettingsNavigationColumnWidth">236</GridLength>
+    <CornerRadius x:Key="SettingsCornerRadiusSmall">4</CornerRadius>
+    <CornerRadius x:Key="SettingsCornerRadius">8</CornerRadius>
+    <CornerRadius x:Key="SettingsCornerRadiusLarge">12</CornerRadius>
+    <Thickness x:Key="SettingsCardPadding">20</Thickness>
+    <Thickness x:Key="SettingsSectionMargin">24,18,24,20</Thickness>
+    <sys:Double x:Key="SettingsDisabledOpacity">0.58</sys:Double>
+    <DropShadowEffect x:Key="SettingsCardElevation"
+                      Color="{DynamicResource SettingsShadowColor}"
+                      BlurRadius="12"
+                      ShadowDepth="2"
+                      Opacity="0.24" />
+
+    <Geometry x:Key="SettingsIconLayers">M2,4 L10,0 18,4 10,8 Z M2,9 L10,13 18,9 M2,14 L10,18 18,14</Geometry>
+    <Geometry x:Key="SettingsIconManufacturing">M2,3 L18,3 18,7 2,7 Z M4,10 L16,10 16,18 4,18 Z M7,10 L7,14 M11,10 L11,14</Geometry>
+    <Geometry x:Key="SettingsIconAnnotation">M2,2 L18,2 18,14 8,14 4,18 4,14 2,14 Z M6,6 L14,6 M6,10 L12,10</Geometry>
+    <Geometry x:Key="SettingsIconLanguage">M10,1 A9,9 0 1 0 10,19 A9,9 0 1 0 10,1 M1,10 L19,10 M10,1 C6,5 6,15 10,19 M10,1 C14,5 14,15 10,19</Geometry>
+    <Geometry x:Key="SettingsIconCheck">M2,8 L7,13 16,3</Geometry>
+    <Geometry x:Key="SettingsIconFullLabel">M2,3 L18,3 M2,8 L15,8 M2,13 L12,13</Geometry>
+    <Geometry x:Key="SettingsIconLeader">M2,16 L8,10 18,10 M14,6 L18,10 14,14</Geometry>
+    <Geometry x:Key="SettingsIconDimensions">M2,4 L2,16 M18,4 L18,16 M2,10 L18,10 M5,7 L2,10 5,13 M15,7 L18,10 15,13</Geometry>
+    <Geometry x:Key="SettingsIconNoAnnotations">M3,3 L17,17 M17,3 L3,17</Geometry>
+
+</ResourceDictionary>

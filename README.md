@@ -22,6 +22,41 @@ Aktuálne číslo aplikácie je definované výhradne v [`Directory.Build.props`
 - Ribbon aj klasický dokovateľný panel,
 - runtime lokalizácia SK, CS, EN, DE, PL a FR bez zmeny technických DWG dát.
 
+## Settings Fashion Look
+
+`AK_SETTINGS` vo v0.18.0 používa centralizovaný WPF dizajnový systém so
+svetlou a tmavou témou, ľavou navigáciou, vektorovými ikonami, kartami,
+viditeľným keyboard focusom a sticky spodnou akčnou lištou. Resizable okno
+má predvolenú veľkosť 1180 × 720, minimum 980 × 620 a wrapping pre dlhé
+lokalizované texty. Lokálne UI nastavenie si pamätá tému, sekciu, veľkosť,
+polohu a maximalizovaný stav; nie je súčasťou DWG ani layer profilu.
+
+Tabuľka hladín ponúka plnú ACI paletu 1–255. Picker podporuje myš,
+klávesnicu, priame zadanie indexu, Enter a bezpečný Esc. Persistuje sa iba
+ACI index; deterministický ACI → RGB prevod slúži výhradne WPF náhľadu.
+Linetype preview je informatívny a nemení AutoCAD definície ani DWG.
+Anotačné režimy a frame štýly sú zobrazené ako vizuálne karty, ale naďalej
+ukladajú pôvodné stabilné enumy.
+
+Sekcia popisov ponúka presne 10 presetov v mriežke 5 × 2 s originálnymi
+501 × 321 PNG náhľadmi. Zahŕňa režim bez anotácií, samostatné framed
+item leadery aj kombinované framed item + dimensions workflowy. Sekčné
+footery oddeľujú uloženie vrstiev a výrobných nastavení od NewOnly,
+Selection a All aplikovania anotácií. Výber existujúcej hladiny iba hydratuje
+ACI/linetype/scale; až Apply môže idempotentne znovu použiť alebo vytvoriť
+kanonický suffix.
+
+Light/Dark prepínanie je lokálne a okamžité. Automatické sledovanie AutoCAD
+témy sa nepoužíva, pretože aktuálny audit nepotvrdil stabilný verejný
+AutoCAD 2027 theme event/property kontrakt. Zmena témy, navigácie, preview,
+otvorenie pickeru alebo zatvorenie bez Apply neprechádzajú drawing callbackom
+a nemenia DBMOD. Existujúci opakovateľný Selection/All Apply, NewOnly guard,
+runtime lokalizácia a dvojsekundový overlay banner zostávajú zachované.
+Presný manuálny protokol je v
+[`docs/TEST_SCENARIO_007_SETTINGS_FASHION_LOOK.md`](docs/TEST_SCENARIO_007_SETTINGS_FASHION_LOOK.md).
+Vývojárske pravidlá pre Codex a ďalších AI agentov sú v [`.ai/`](.ai/);
+vstupný rozcestník je [`AGENTS.md`](AGENTS.md).
+
 ## Vrstvy a typy čiar
 
 `AK_SETTINGS` nastavuje pre každý built-in timber typ a spoločný profil `KROV_CUSTOM`

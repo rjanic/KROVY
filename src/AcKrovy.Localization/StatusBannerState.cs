@@ -7,6 +7,7 @@ public enum StatusBannerSeverity
     Information,
     Success,
     Warning,
+    Error,
 }
 
 /// <summary>Keeps status identity independent from its current translation.</summary>

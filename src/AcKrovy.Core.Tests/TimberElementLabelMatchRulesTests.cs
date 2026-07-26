@@ -99,6 +99,26 @@ public sealed class TimberElementLabelMatchRulesTests
     }
 
     [Fact]
+    [Trait("Feature", "CopySourcePreservation")]
+    public void CopySafeMatch_NeverUsesElementIdFallbackForDifferentSourceHandle()
+    {
+        var result = TimberElementLabelMatchRules.SelectLabelForUpsert(
+            sourceHandle: "NEW-COPY",
+            currentElementId: "K1",
+            previousElementId: "K1",
+            candidates:
+            [
+                Label("source-annotation", "K1", "ORIGINAL"),
+            ],
+            currentElementOwnerCount: 1,
+            previousElementOwnerCount: 1,
+            allowElementIdFallback: false);
+
+        Assert.Null(result.LabelKeyToUpdate);
+        Assert.Empty(result.LabelKeysToDelete);
+    }
+
+    [Fact]
     public void SelectLabelForUpsert_LabelWithoutSourceHandle_FallsBackToPreviousElementIdWhenUnique()
     {
         var result = TimberElementLabelMatchRules.SelectLabelForUpsert(

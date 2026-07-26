@@ -14,7 +14,8 @@ internal static class PostFootprintPerpendicularAnnotationService
         Database database,
         Transaction transaction,
         Polyline sourcePolyline,
-        TimberRectangularFootprintGeometry footprintGeometry)
+        TimberRectangularFootprintGeometry footprintGeometry,
+        bool copySourcePreservation = false)
     {
         ArgumentNullException.ThrowIfNull(database);
         ArgumentNullException.ThrowIfNull(transaction);
@@ -63,7 +64,8 @@ internal static class PostFootprintPerpendicularAnnotationService
             annotation,
             SlopeArrowService.ArrowLayerName,
             AnnotationLayerColorIndex,
-            isPlottable: false);
+            isPlottable: false,
+            updateExistingLayer: !copySourcePreservation);
         annotation.LineWeight = LineWeight.ByLayer;
         PostFootprintPerpendicularAnnotationStore.Write(
             annotation,
@@ -73,7 +75,10 @@ internal static class PostFootprintPerpendicularAnnotationService
         DeleteAnnotations(
             transaction,
             matching.Where(item => item.Id != annotation.ObjectId).Select(item => item.Id));
-        DeleteDuplicatesForExistingSourceHandles(database, transaction);
+        if (!copySourcePreservation)
+        {
+            DeleteDuplicatesForExistingSourceHandles(database, transaction);
+        }
         return isCreated;
     }
 

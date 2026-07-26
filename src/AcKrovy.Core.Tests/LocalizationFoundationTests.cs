@@ -83,6 +83,20 @@ public sealed class LocalizationFoundationTests
         "SettingsWindow_NoSmartElementsSelected", "SettingsWindow_SelectionCancelled",
         "SettingsWindow_AllElementsApplied", "SettingsWindow_AllElementsAlreadyMatch",
         "SettingsWindow_ExistingLayerInfoFormat", "SettingsWindow_ValidationFailed",
+        "SettingsWindow_Layers_Description", "SettingsWindow_Layers_PreviewColumn",
+        "SettingsWindow_Theme", "SettingsWindow_ThemeLight", "SettingsWindow_ThemeDark",
+        "SettingsWindow_UnitMillimetres",
+        "SettingsWindow_AciPicker_Open", "SettingsWindow_AciPicker_Title",
+        "SettingsWindow_AciPicker_IndexLabel", "SettingsWindow_AciPicker_Validation",
+        "SettingsWindow_AciPicker_Palette", "SettingsWindow_AciPicker_Confirm",
+        "SettingsWindow_AciPicker_Cancel",
+        "SettingsWindow_Accessibility_Navigation", "SettingsWindow_Accessibility_Theme",
+        "SettingsWindow_Accessibility_ApplyMode",
+        "SettingsWindow_Annotation_FullLabelHelp",
+        "SettingsWindow_Annotation_ItemNumberHelp",
+        "SettingsWindow_Annotation_DimensionsHelp",
+        "SettingsWindow_FormNoChanges", "SettingsWindow_FormUnsavedChanges",
+        "SettingsWindow_FormApplied",
         "LayerColor_Red", "LayerColor_Yellow", "LayerColor_Green",
         "LayerColor_Cyan", "LayerColor_Blue", "LayerColor_Magenta", "LayerColor_Orange", "LayerColor_Gray",
         "LayerColor_LightGray", "InspectWindow_Title", "InspectWindow_Heading", "InspectWindow_Close",
@@ -309,7 +323,7 @@ public sealed class LocalizationFoundationTests
     [Fact]
     public void WpfUiResourceKeys_ExistForAllSupportedCultures()
     {
-        Assert.Equal(71, WpfUiResourceKeys.Length);
+        Assert.Equal(93, WpfUiResourceKeys.Length);
 
         foreach (var key in WpfUiResourceKeys)
         {

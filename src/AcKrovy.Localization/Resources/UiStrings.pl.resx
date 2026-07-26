@@ -184,12 +184,35 @@
   <data name="SettingsWindow_Language_Tab" xml:space="preserve"><value>Język</value></data>
   <data name="SettingsWindow_Language_Description" xml:space="preserve"><value>Wybierz język interfejsu użytkownika. Zmiana zostanie zastosowana po zapisaniu ustawień.</value></data>
   <data name="SettingsWindow_Language_Label" xml:space="preserve"><value>Język</value></data>
+  <data name="SettingsWindow_Language_SelectFormat" xml:space="preserve"><value>Wybierz język: {0}</value></data>
   <data name="SettingsWindow_RestoreDefaults" xml:space="preserve"><value>Przywróć domyślne</value></data>
   <data name="SettingsWindow_Cancel" xml:space="preserve"><value>Anuluj</value></data>
   <data name="SettingsWindow_Save" xml:space="preserve"><value>Zapisz</value></data>
   <data name="SettingsWindow_SaveNewElementsOnly" xml:space="preserve"><value>Zapisz tylko dla nowych elementów</value></data>
   <data name="SettingsWindow_SaveApplySelection" xml:space="preserve"><value>Zapisz i zastosuj do wyboru</value></data>
   <data name="SettingsWindow_SaveApplyAll" xml:space="preserve"><value>Zapisz i zastosuj do wszystkich</value></data>
+  <data name="SettingsWindow_Layers_Description" xml:space="preserve"><value>Ustaw warstwę, konkretny kolor ACI, typ linii i skalę dla każdego typu elementu. Podgląd ma charakter informacyjny i nie zmienia pliku DWG.</value></data>
+  <data name="SettingsWindow_Layers_PreviewColumn" xml:space="preserve"><value>Podgląd</value></data>
+  <data name="SettingsWindow_Theme" xml:space="preserve"><value>Motyw</value></data>
+  <data name="SettingsWindow_ThemeLight" xml:space="preserve"><value>Jasny</value></data>
+  <data name="SettingsWindow_ThemeDark" xml:space="preserve"><value>Ciemny</value></data>
+  <data name="SettingsWindow_UnitMillimetres" xml:space="preserve"><value>mm</value></data>
+  <data name="SettingsWindow_AciPicker_Open" xml:space="preserve"><value>Wybierz kolor ACI</value></data>
+  <data name="SettingsWindow_AciPicker_Title" xml:space="preserve"><value>Kolor warstwy</value></data>
+  <data name="SettingsWindow_AciPicker_IndexLabel" xml:space="preserve"><value>Indeks ACI (1–255)</value></data>
+  <data name="SettingsWindow_AciPicker_Validation" xml:space="preserve"><value>Wprowadź liczbę całkowitą od 1 do 255.</value></data>
+  <data name="SettingsWindow_AciPicker_Palette" xml:space="preserve"><value>Paleta kolorów ACI od 1 do 255</value></data>
+  <data name="SettingsWindow_AciPicker_Confirm" xml:space="preserve"><value>Potwierdź</value></data>
+  <data name="SettingsWindow_AciPicker_Cancel" xml:space="preserve"><value>Anuluj</value></data>
+  <data name="SettingsWindow_Accessibility_Navigation" xml:space="preserve"><value>Nawigacja sekcji ustawień</value></data>
+  <data name="SettingsWindow_Accessibility_Theme" xml:space="preserve"><value>Wybór motywu ustawień</value></data>
+  <data name="SettingsWindow_Accessibility_ApplyMode" xml:space="preserve"><value>Tryb stosowania ustawień</value></data>
+  <data name="SettingsWindow_Annotation_FullLabelHelp" xml:space="preserve"><value>Numer pozycji, przekrój i długość produkcyjna.</value></data>
+  <data name="SettingsWindow_Annotation_ItemNumberHelp" xml:space="preserve"><value>Osobna linia odniesienia z numerem pozycji.</value></data>
+  <data name="SettingsWindow_Annotation_DimensionsHelp" xml:space="preserve"><value>Osobna linia odniesienia tylko z wymiarami.</value></data>
+  <data name="SettingsWindow_FormNoChanges" xml:space="preserve"><value>Brak zmian</value></data>
+  <data name="SettingsWindow_FormUnsavedChanges" xml:space="preserve"><value>Niezastosowane zmiany</value></data>
+  <data name="SettingsWindow_FormApplied" xml:space="preserve"><value>Zastosowano</value></data>
   <data name="LayerColor_Red" xml:space="preserve"><value>Czerwony (1)</value></data>
   <data name="LayerColor_Yellow" xml:space="preserve"><value>Żółty (2)</value></data>
   <data name="LayerColor_Green" xml:space="preserve"><value>Zielony (3)</value></data>
@@ -291,4 +314,23 @@
   <data name="ItemNumberLeaderStyle_Circle" xml:space="preserve"><value>Okrąg</value></data>
   <data name="ItemNumberLeaderStyle_Slot" xml:space="preserve"><value>Kapsuła</value></data>
   <data name="ItemNumberLeaderStyle_Rectangle" xml:space="preserve"><value>Prostokąt</value></data>
+  <data name="AnnotationMode_NoAnnotations" xml:space="preserve"><value>Bez opisów</value></data>
+  <data name="SettingsWindow_Annotation_NoAnnotationsHelp" xml:space="preserve"><value>Nie tworzy opisu głównego, spadku ani oznaczenia słupa 90°.</value></data>
+  <data name="SettingsWindow_NewLayerCreatedFormat" xml:space="preserve"><value>Utworzono nową warstwę {0} z nowymi właściwościami.</value></data>
+  <data name="SettingsWindow_NewLayersCreatedFormat" xml:space="preserve"><value>Utworzono {0} nowych warstw ze zmienionymi właściwościami.</value></data>
+  <data name="SettingsWindow_Layers_LayerNamePrompt" xml:space="preserve"><value>Wybierz lub wpisz nazwę warstwy</value></data>
+  <data name="SettingsWindow_AciPicker_BasicColors" xml:space="preserve"><value>Kolory podstawowe</value></data>
+  <data name="SettingsWindow_AciPicker_ColorPalette" xml:space="preserve"><value>Paleta kolorów</value></data>
+  <data name="SettingsWindow_AciPicker_Grayscale" xml:space="preserve"><value>Odcienie szarości</value></data>
+  <data name="SettingsWindow_Layers_MixedLinetypeScale" xml:space="preserve"><value>Elementy na warstwie używają różnych skal rodzaju linii. Zachowano bieżącą wartość.</value></data>
+  <data name="SettingsAnnotationPreset_NoAnnotations" xml:space="preserve"><value>Bez opisów</value></data>
+  <data name="SettingsAnnotationPreset_ItemPlain" xml:space="preserve"><value>Tylko pozycja</value></data>
+  <data name="SettingsAnnotationPreset_ItemCircle" xml:space="preserve"><value>Pozycja w okręgu</value></data>
+  <data name="SettingsAnnotationPreset_ItemRectangle" xml:space="preserve"><value>Pozycja w prostokącie</value></data>
+  <data name="SettingsAnnotationPreset_ItemSlot" xml:space="preserve"><value>Pozycja w slocie</value></data>
+  <data name="SettingsAnnotationPreset_DimensionsOnly" xml:space="preserve"><value>Tylko wymiary</value></data>
+  <data name="SettingsAnnotationPreset_FullLabel" xml:space="preserve"><value>Pełny opis</value></data>
+  <data name="SettingsAnnotationPreset_DimensionsWithItemCircle" xml:space="preserve"><value>Wymiary i pozycja w okręgu</value></data>
+  <data name="SettingsAnnotationPreset_DimensionsWithItemRectangle" xml:space="preserve"><value>Wymiary i pozycja w prostokącie</value></data>
+  <data name="SettingsAnnotationPreset_DimensionsWithItemSlot" xml:space="preserve"><value>Wymiary i pozycja w slocie</value></data>
 </root>

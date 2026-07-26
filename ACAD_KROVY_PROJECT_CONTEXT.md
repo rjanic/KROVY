@@ -269,9 +269,34 @@ Stabilný commit: `4a951041e2deef40a127ac9560cf6fb2ba4b6a5b`
   severity a argumentmi; jeden restartovaný `DispatcherTimer` ho skryje po 2 s,
 - rovnaký fyzický layer môže zdieľať viac profilov iba s identickou farbou
   a linetype; konflikt sa odmietne pred uložením,
-- vizuálny míľnik `v0.18.0 – Settings Fashion Look` zostáva iba v backlogu;
-  v0.17.0 nemení vizuálny systém WPF okien,
 - definícia linetype a entity scale sú súčasť DWG; globálne scale premenné sa nemenia.
+
+### Settings Fashion Look v0.18.0
+- `AK_SETTINGS` používa centralizované Light/Dark ResourceDictionary,
+  dizajnové tokeny a reusable control styles bez externého theme frameworku,
+- stabilná ľavá navigácia používa `SettingsWindowTabKind`; runtime preklad
+  obnoví názvy bez zmeny sekcie, rozpracovaných hodnôt alebo Apply,
+- ACI picker obsahuje presne indexy 1–255, drží dočasný výber do potvrdenia
+  a do profilu zapisuje iba pôvodný číselný `ColorIndex`,
+- CAD-neutrálna `AciColorPalette` poskytuje deterministický preview RGB;
+  Autodesk farba sa naďalej vytvára iba v AutoCAD adaptéri z ACI indexu,
+- annotation mode a frame style karty naďalej bindujú stabilné enumy;
+  framed leader geometria, BlockContent, STRETCH a metadata schema v4 sa nemenia,
+- presne 10 annotation presetov používa embedded PNG 501 × 321 v mriežke 5 × 2;
+  `NoAnnotations`, standalone framed a combined framed + dimensions zostávajú
+  samostatné produkčné workflowy,
+- sekčné footery oddeľujú layer/manufacturing Apply, annotation NewOnly,
+  Selection/All a language Close; repeated Apply zostáva podporovaný,
+- editovateľný layer ComboBox hydratuje lokálnu hladinu bez DWG zápisu;
+  kanonický suffix sa reuse/create rieši idempotentne až v Apply transakcii,
+- samostatný lokálny `settings-ui.json` uchová tému, poslednú sekciu a bounds;
+  nikdy nie je súčasť DWG, layer profile fingerprintu alebo Apply requestu,
+- zmena témy/navigácie/preview a otvorenie či zrušenie ACI pickeru nemajú
+  drawing callback ani DBMOD code path,
+- automatické sledovanie AutoCAD témy je odložené: audit nepotvrdil stabilný
+  verejný AutoCAD 2027 theme event/property kontrakt.
+- koreňový `AGENTS.md` a šesť dokumentov v `.ai/` zachytávajú architektúru,
+  CAD hranice, lokalizáciu, testovanie, release proces a AI roadmap.
 
 ## Povinné kompatibilitné pravidlá
 

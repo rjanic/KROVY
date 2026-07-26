@@ -24,6 +24,24 @@ ZÁKLADNÝ WORKFLOW
 - AK_SETTINGS nastaví jazyk, hladiny, farby, typy čiar, výrobné defaulty a režim anotácie.
 - AK_LABELS obnoví automatické popisy.
 
+SETTINGS FASHION LOOK v0.18.0
+AK_SETTINGS používa modernú ľavú navigáciu, svetlú/tmavú tému, vektorové ikony,
+karty a sticky spodnú lištu. Okno je resizable, pamätá si lokálne tému, sekciu,
+veľkosť, polohu a maximalizovaný stav a zalamuje dlhé lokalizované texty.
+Tieto UI údaje nie sú súčasťou DWG ani layer profilu.
+
+Farba vrstvy sa vyberá z celej ACI palety 1–255. Picker podporuje myš,
+klávesnicu, priamy index, Enter a bezpečný Esc. Ukladá sa iba ACI index;
+RGB slúži len na náhľad. Anotačné režimy a rámčekové štýly majú vizuálne
+karty, ale naďalej používajú pôvodné stabilné enumy. Téma, navigácia, preview
+a zrušený picker nemenia DBMOD ani nespúšťajú Apply. Automatické sledovanie
+AutoCAD témy je odložené, pretože nebol potvrdený stabilný verejný API kontrakt.
+Popisy používajú presne 10 PNG presetov v mriežke 5 × 2 vrátane Bez popisov,
+samostatných framed leaderov a kombinovaných framed item + dimensions režimov.
+Sekčné footery zachovávajú samostatné Apply workflowy. Výber existujúcej
+hladiny iba načíta jej vlastnosti; suffix sa rieši idempotentne až pri Apply.
+Pravidlá pre AI vývojových agentov sú v AGENTS.md a v šiestich súboroch .ai/.
+
 ČÍSLOVANIE
 Bežné automatické číslovanie je stabilné a zachováva medzery. Iba explicitný
 AK_RENUMBER vytvorí v každom type súvislé poradie od 1 podľa CuttingLengthMm.

@@ -11,9 +11,12 @@ public static class TimberAnnotationModeRules
 
     public static TimberMainAnnotationRepresentation GetRepresentation(
         TimberAnnotationMode mode) =>
-        Normalize(mode) == TimberAnnotationMode.FullLabel
-            ? TimberMainAnnotationRepresentation.FullLabel
-            : TimberMainAnnotationRepresentation.Leader;
+        Normalize(mode) switch
+        {
+            TimberAnnotationMode.FullLabel => TimberMainAnnotationRepresentation.FullLabel,
+            TimberAnnotationMode.NoAnnotations => TimberMainAnnotationRepresentation.None,
+            _ => TimberMainAnnotationRepresentation.Leader,
+        };
 
     public static TimberMainAnnotationRepresentation GetRepresentation(
         TimberAnnotationMode mode,
@@ -29,7 +32,12 @@ public static class TimberAnnotationModeRules
     public static bool IsFramedItemLeader(
         TimberAnnotationMode mode,
         ItemNumberLeaderStyle style) =>
-        GetRepresentation(mode, style) == TimberMainAnnotationRepresentation.BlockLeader;
+        (Normalize(mode) == TimberAnnotationMode.ItemNumberLeader ||
+         Normalize(mode) == TimberAnnotationMode.DimensionsWithItemNumber) &&
+        ItemNumberLeaderStyleRules.Normalize(style) is
+            ItemNumberLeaderStyle.Circle or
+            ItemNumberLeaderStyle.Slot or
+            ItemNumberLeaderStyle.Rectangle;
 
     public static bool RequiresReplacement(
         TimberMainAnnotationRepresentation existing,
@@ -55,7 +63,9 @@ public static class TimberAnnotationModeRules
             return true;
         }
 
-        return normalizedDesiredMode == TimberAnnotationMode.ItemNumberLeader &&
+        return (normalizedDesiredMode is
+            TimberAnnotationMode.ItemNumberLeader or
+            TimberAnnotationMode.DimensionsWithItemNumber) &&
             RequiresItemLeaderReplacement(existingStyle, desiredStyle);
     }
 }

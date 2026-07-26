@@ -1,0 +1,188 @@
+<Window x:Class="AcKrovy.AutoCAD.UI.AciColorPickerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:localization="clr-namespace:AcKrovy.AutoCAD.UI.Localization"
+        xmlns:automation="clr-namespace:System.Windows.Automation;assembly=PresentationCore"
+        Title="{localization:Loc SettingsWindow_AciPicker_Title}"
+        Width="820"
+        Height="700"
+        MinWidth="760"
+        MinHeight="580"
+        SizeToContent="Manual"
+        ResizeMode="CanResize"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource SettingsWindowBackgroundBrush}"
+        PreviewKeyDown="Window_PreviewKeyDown">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Design/SettingsColors.Light.xaml" />
+                <ResourceDictionary Source="Design/SettingsDesignSystem.xaml" />
+                <ResourceDictionary Source="Design/SettingsControls.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <Style x:Key="SettingsAciSwatchItemStyle" TargetType="ListBoxItem">
+                <Setter Property="Width" Value="28" />
+                <Setter Property="Height" Value="28" />
+                <Setter Property="Margin" Value="1" />
+                <Setter Property="Padding" Value="2" />
+                <Setter Property="ToolTip" Value="{Binding ToolTip}" />
+                <Setter Property="FocusVisualStyle" Value="{DynamicResource SettingsFocusVisualStyle}" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ListBoxItem">
+                            <Border x:Name="Selection"
+                                    Background="Transparent"
+                                    BorderBrush="Transparent"
+                                    BorderThickness="2"
+                                    CornerRadius="3"
+                                    Padding="{TemplateBinding Padding}">
+                                <Border Background="{Binding Brush}"
+                                        BorderBrush="#66000000"
+                                        BorderThickness="1"
+                                        CornerRadius="2" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Selection" Property="BorderBrush" Value="{DynamicResource SettingsFocusBrush}" />
+                                </Trigger>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter TargetName="Selection" Property="BorderBrush" Value="{DynamicResource SettingsAccentBrush}" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="14" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="12" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="16" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Grid x:Name="HeaderPanel">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="64" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="150" />
+            </Grid.ColumnDefinitions>
+            <Border x:Name="ColorPreview"
+                    Width="52"
+                    Height="52"
+                    BorderBrush="{DynamicResource SettingsBorderBrush}"
+                    BorderThickness="2"
+                    CornerRadius="{DynamicResource SettingsCornerRadiusSmall}"
+                    Background="{Binding PendingColor.Brush}" />
+            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                <TextBlock Style="{DynamicResource SettingsSectionTitleStyle}"
+                           Text="{localization:Loc SettingsWindow_AciPicker_Title}" />
+                <TextBlock Margin="0,3,0,0"
+                           Foreground="{DynamicResource SettingsTextSecondaryBrush}"
+                           Text="{Binding PendingColor.TechnicalLabel}" />
+            </StackPanel>
+            <StackPanel Grid.Column="2">
+                <TextBlock Margin="0,0,0,4"
+                           Text="{localization:Loc SettingsWindow_AciPicker_IndexLabel}" />
+                <TextBox x:Name="IndexInput"
+                         TextChanged="IndexInput_TextChanged"
+                         automation:AutomationProperties.Name="{localization:Loc SettingsWindow_AciPicker_IndexLabel}" />
+            </StackPanel>
+        </Grid>
+
+        <TextBlock x:Name="ValidationText"
+                   Grid.Row="2"
+                   HorizontalAlignment="Right"
+                   Foreground="{DynamicResource SettingsValidationBrush}"
+                   FontSize="{DynamicResource SettingsFontSizeCaption}"
+                   TextWrapping="Wrap"
+                   Visibility="Collapsed"
+                   Text="{localization:Loc SettingsWindow_AciPicker_Validation}" />
+
+        <ScrollViewer x:Name="PaletteScrollViewer"
+                      Grid.Row="4"
+                      VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled">
+            <StackPanel>
+                <TextBlock x:Name="BasicSectionTitle"
+                           Margin="0,0,0,5"
+                           FontWeight="SemiBold"
+                           Text="{localization:Loc SettingsWindow_AciPicker_BasicColors}" />
+                <ListBox x:Name="BasicColorList"
+                         SelectionChanged="ColorList_SelectionChanged"
+                         PreviewKeyDown="ColorList_PreviewKeyDown"
+                         Background="Transparent"
+                         BorderThickness="0"
+                         ItemContainerStyle="{StaticResource SettingsAciSwatchItemStyle}"
+                         automation:AutomationProperties.Name="{localization:Loc SettingsWindow_AciPicker_BasicColors}">
+                    <ListBox.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <UniformGrid Columns="9" HorizontalAlignment="Left" />
+                        </ItemsPanelTemplate>
+                    </ListBox.ItemsPanel>
+                </ListBox>
+
+                <TextBlock x:Name="PaletteSectionTitle"
+                           Margin="0,10,0,5"
+                           FontWeight="SemiBold"
+                           Text="{localization:Loc SettingsWindow_AciPicker_ColorPalette}" />
+                <ListBox x:Name="MainColorList"
+                         SelectionChanged="ColorList_SelectionChanged"
+                         PreviewKeyDown="ColorList_PreviewKeyDown"
+                         Background="Transparent"
+                         BorderThickness="0"
+                         ItemContainerStyle="{StaticResource SettingsAciSwatchItemStyle}"
+                         automation:AutomationProperties.Name="{localization:Loc SettingsWindow_AciPicker_ColorPalette}">
+                    <ListBox.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <UniformGrid Columns="24" Rows="10" />
+                        </ItemsPanelTemplate>
+                    </ListBox.ItemsPanel>
+                </ListBox>
+
+                <Border x:Name="PaletteEmptySpace" Height="10" Background="Transparent" />
+                <TextBlock Margin="0,0,0,5"
+                           FontWeight="SemiBold"
+                           Text="{localization:Loc SettingsWindow_AciPicker_Grayscale}" />
+                <ListBox x:Name="GrayscaleColorList"
+                         SelectionChanged="ColorList_SelectionChanged"
+                         PreviewKeyDown="ColorList_PreviewKeyDown"
+                         Background="Transparent"
+                         BorderThickness="0"
+                         ItemContainerStyle="{StaticResource SettingsAciSwatchItemStyle}"
+                         automation:AutomationProperties.Name="{localization:Loc SettingsWindow_AciPicker_Grayscale}">
+                    <ListBox.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <UniformGrid Columns="6" HorizontalAlignment="Left" />
+                        </ItemsPanelTemplate>
+                    </ListBox.ItemsPanel>
+                </ListBox>
+            </StackPanel>
+        </ScrollViewer>
+
+        <StackPanel Grid.Row="6"
+                    HorizontalAlignment="Right"
+                    Orientation="Horizontal">
+            <Button x:Name="CancelButton"
+                    MinWidth="100"
+                    Margin="0,0,8,0"
+                    Style="{DynamicResource SettingsSecondaryButtonStyle}"
+                    IsCancel="True"
+                    Click="Cancel_Click"
+                    Content="{localization:Loc SettingsWindow_AciPicker_Cancel}" />
+            <Button x:Name="ConfirmButton"
+                    MinWidth="100"
+                    Style="{DynamicResource SettingsPrimaryButtonStyle}"
+                    IsDefault="True"
+                    Click="Confirm_Click"
+                    Content="{localization:Loc SettingsWindow_AciPicker_Confirm}" />
+        </StackPanel>
+    </Grid>
+</Window>
