@@ -15,7 +15,7 @@ Give AI agents a compact sequencing and constraint snapshot. Product priorities 
 
 ## Current architecture or workflow
 
-Snapshot for v0.19.0 Productivity & Reliability: the stable v0.18.0 Settings Fashion Look remains unchanged, while the selected milestone adds CAD-neutral Select Similar filtering, deterministic localized CSV export, privacy-aware diagnostics and recoverable loading for all local JSON settings. The production adapter remains AutoCAD 2027-only.
+Snapshot for v0.20.0 First-run Language Onboarding: `AppLanguageService` defines `FirstRunFallbackLanguageCode = "en"` and `ResolveFirstRunLanguageCode(CultureInfo?)` with support for SK, CS, EN, DE, PL, FR (fallback EN). `AppLanguageSettingsStore.Load` uses `CultureInfo.InstalledUICulture` only when `SettingsFileState.Missing`; loaded and corrupt recovery states return `result.Value`. Load never calls Save automatically. The stable v0.18.0 Settings Fashion Look and v0.19.0 productivity tools remain unchanged, while the selected milestone completes the first-run language detection and recovery-aware persistence. The production adapter remains AutoCAD 2027-only.
 
 Near-term themes must be taken from `ACAD_KROVY_BACKLOG.md` and sequenced through `ACAD_KROVY_ROADMAP.md`. At this snapshot those documents remain the source for roof automation, reporting/manufacturing workflow, multilingual completion and compatibility expansion; implement only items that are still present and explicitly selected.
 
@@ -48,6 +48,9 @@ Known technical debt/limitations:
 - COPY/COPYCLIP/WBLOCK/SAVE-REOPEN and interactive STRETCH still require real AutoCAD release smoke tests.
 - The current production adapter targets AutoCAD 2027/.NET 10; other host/version targets need deliberate adapter/build work.
 - Some architecture regressions are guarded by source-contract tests and must not be mistaken for runtime API coverage.
+- Annotation scale and CAD text styles remain open features not yet implemented.
+- Multi-version AutoCAD 2021–2027 compatibility checkpoint remains open; the current production adapter targets AutoCAD 2027 only.
+- BricsCAD and ZWCAD adapters are planned but not yet built.
 
 Compatibility path: retain shared Core and abstractions, then add explicitly targeted AutoCAD 2021-2027 build adapters as required. BricsCAD and ZWCAD require separate host adapters for transactions, events, XData and geometry conversions, with the same portable contracts. Do not introduce vendor API types into Core to accelerate this work.
 

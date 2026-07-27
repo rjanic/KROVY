@@ -34,6 +34,7 @@ public sealed class AppLanguageChangedEventArgs : EventArgs
 public static class AppLanguageService
 {
     public const string DefaultLanguageCode = "sk";
+    public const string FirstRunFallbackLanguageCode = "en";
 
     private static readonly IReadOnlyList<SupportedAppLanguage> Languages =
     [
@@ -104,5 +105,32 @@ public static class AppLanguageService
         }
 
         return normalized;
+    }
+
+    public static string ResolveFirstRunLanguageCode(CultureInfo? windowsUiCulture)
+    {
+        if (windowsUiCulture == null || windowsUiCulture.Name == CultureInfo.InvariantCulture.Name)
+        {
+            return FirstRunFallbackLanguageCode;
+        }
+
+        var twoLetterIso = windowsUiCulture.TwoLetterISOLanguageName.ToLowerInvariant();
+        switch (twoLetterIso)
+        {
+            case "sk":
+                return "sk";
+            case "cs":
+                return "cs";
+            case "en":
+                return "en";
+            case "de":
+                return "de";
+            case "pl":
+                return "pl";
+            case "fr":
+                return "fr";
+            default:
+                return FirstRunFallbackLanguageCode;
+        }
     }
 }

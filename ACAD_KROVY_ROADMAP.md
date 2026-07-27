@@ -2,7 +2,8 @@
 
 **Aktualizované:** 27. 7. 2026
 **Predchádzajúci stabilný commit v0.18.0:** `46ad0cfe555f9f3177de2d47d13bdda33d9a91a0`
-**Aktuálny míľnik:** v0.19.0 „Productivity & Reliability“, dokončený a manuálne overený
+**Predchádzajúci stabilný commit v0.19.0:** `41373d235a357dee05033872a1df8fed8b3286d3`
+**Aktuálny míľnik:** v0.20.0 „First-run Language Onboarding“, dokončený, automaticky otestovaný a manuálne overený
 
 Tento dokument určuje odporúčané poradie ďalšieho vývoja. Úplný zásobník nápadov je v `ACAD_KROVY_BACKLOG.md`.
 
@@ -253,11 +254,19 @@ Implementovať až po stabilnom true-width systéme.
 - neznáme legacy hodnoty sa zachovávajú bez migrácie,
 - lokalizované `AK_INSPECT` a adaptívne dvojriadkové reporty.
 
-## 26. Default jazyk pri prvom spustení
-Odporúčanie:
-1. zistiť Windows UI language,
-2. ak je podporovaný, použiť ho,
-3. inak fallback EN.
+## 26. Default jazyk pri prvom spustení — DOKONČENÉ VO v0.20.0
+- Platný existujúci `application-settings.json` má prednosť,
+- iba `SettingsFileState.Missing` používa `CultureInfo.InstalledUICulture`,
+- podporované Windows UI jazyky: SK, CS, EN, DE, PL, FR,
+- nepodporovaný jazyk používa fallback EN,
+- poškodený JSON používa existujúci recovery/default mechanizmus,
+- poškodený JSON sa nepovažuje za prvé spustenie,
+- `Load` automaticky nevolá `Save`,
+- nový JSON vznikne až po vedomej zmene jazyka používateľom,
+- manuálne overené: chýbajúci JSON → SK, ručný výber DE → vytvorenie JSON, reštart zachoval DE, corrupt recovery fungovalo, DBMOD = 0,
+- ProductVersion 0.20.0, AssemblyVersion a FileVersion 0.20.0.0,
+- metadata schema zostáva 4, layer profile schema zostáva 3,
+- zostáva 406 lokalizačných kľúčov v každom zo 6 jazykov.
 
 ## 27. Default vrstvy pre nové inštalácie
 - neutrálne alebo EN názvy,

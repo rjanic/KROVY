@@ -21,7 +21,35 @@ public sealed class ApplicationLanguagePersistenceSourceContractTests
             "public static void Save");
 
         Assert.Contains("AcKrovyDiagnostics.Settings.Load(", load);
+        Assert.Equal(
+            1,
+            CountOccurrences(load, "AcKrovyDiagnostics.Settings.Load("));
         Assert.DoesNotContain("AcKrovyDiagnostics.Settings.Save(", load);
+    }
+
+    [Fact]
+    public void ApplicationLanguageLoad_UsesWindowsUiLanguageOnlyForMissingSettings()
+    {
+        var store = Source(
+            "src",
+            "AcKrovy.AutoCAD",
+            "Settings",
+            "AppLanguageSettingsStore.cs");
+        var load = Segment(
+            store,
+            "public static AppLanguageSettings Load()",
+            "public static void Save");
+
+        Assert.Contains(
+            "result.Status.State == SettingsFileState.Missing",
+            load);
+        Assert.Contains("CultureInfo.InstalledUICulture", load);
+        Assert.Contains(
+            "AppLanguageService.ResolveFirstRunLanguageCode(",
+            load);
+        Assert.Contains(": result.Value", load);
+        Assert.DoesNotContain("SettingsFileState.CorruptBackupCreated", load);
+        Assert.DoesNotContain("SettingsFileState.CorruptBackupFailed", load);
     }
 
     [Fact]

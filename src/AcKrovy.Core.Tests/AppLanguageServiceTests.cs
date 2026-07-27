@@ -42,6 +42,37 @@ public sealed class AppLanguageServiceTests
         Assert.Equal(expected, AppLanguageService.NormalizeLanguageCode(value));
 
     [Theory]
+    [InlineData("sk-SK", "sk")]
+    [InlineData("cs-CZ", "cs")]
+    [InlineData("en-US", "en")]
+    [InlineData("en-GB", "en")]
+    [InlineData("de-DE", "de")]
+    [InlineData("de-AT", "de")]
+    [InlineData("pl-PL", "pl")]
+    [InlineData("fr-FR", "fr")]
+    [InlineData("fr-CA", "fr")]
+    [InlineData("ja-JP", "en")]
+    public void ResolveFirstRunLanguageCode_UsesSupportedWindowsUiLanguageOrEnglishFallback(
+        string cultureName,
+        string expected) =>
+        Assert.Equal(
+            expected,
+            AppLanguageService.ResolveFirstRunLanguageCode(
+                CultureInfo.GetCultureInfo(cultureName)));
+
+    [Fact]
+    public void ResolveFirstRunLanguageCode_NullUsesEnglishFallback() =>
+        Assert.Equal(
+            "en",
+            AppLanguageService.ResolveFirstRunLanguageCode(null));
+
+    [Fact]
+    public void ResolveFirstRunLanguageCode_InvariantCultureUsesEnglishFallback() =>
+        Assert.Equal(
+            "en",
+            AppLanguageService.ResolveFirstRunLanguageCode(CultureInfo.InvariantCulture));
+
+    [Theory]
     [InlineData("sk")]
     [InlineData("cs")]
     [InlineData("en")]

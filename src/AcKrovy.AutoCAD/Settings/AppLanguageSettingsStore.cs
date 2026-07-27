@@ -1,7 +1,9 @@
+using System.Globalization;
 using System.IO;
 using System.Text.Json;
 using AcKrovy.AutoCAD.Diagnostics;
 using AcKrovy.Infrastructure.Diagnostics;
+using AcKrovy.Infrastructure.Settings;
 using AcKrovy.Localization;
 
 namespace AcKrovy.AutoCAD.Settings;
@@ -9,12 +11,22 @@ namespace AcKrovy.AutoCAD.Settings;
 /// <summary>Persists the global plug-in UI language outside every DWG.</summary>
 internal static class AppLanguageSettingsStore
 {
-    public static AppLanguageSettings Load() =>
-        AcKrovyDiagnostics.Settings.Load(
+    public static AppLanguageSettings Load()
+    {
+        var result = AcKrovyDiagnostics.Settings.Load(
             LocalSettingsPaths.ApplicationSettings,
             SettingsConfigurationSubject.ApplicationLanguage,
             DeserializeStrict,
-            () => new AppLanguageSettings()).Value;
+            () => new AppLanguageSettings());
+
+        return result.Status.State == SettingsFileState.Missing
+            ? new AppLanguageSettings
+            {
+                LanguageCode = AppLanguageService.ResolveFirstRunLanguageCode(
+                    CultureInfo.InstalledUICulture),
+            }
+            : result.Value;
+    }
 
     public static void Save(AppLanguageSettings settings)
     {

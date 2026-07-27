@@ -1,7 +1,8 @@
 # ACAD KROVY – BACKLOG
 
-**Aktualizované:** 26. 7. 2026
+**Aktualizované:** 27. 7. 2026
 **Stabilný commit v0.18.0:** `46ad0cfe555f9f3177de2d47d13bdda33d9a91a0`
+**Stabilný commit v0.19.0:** `41373d235a357dee05033872a1df8fed8b3286d3`
 
 > Tento súbor je úplný zásobník nápadov. Poradie realizácie určuje `ACAD_KROVY_ROADMAP.md`.
 
@@ -134,11 +135,6 @@
 
 Budúce: Follow AutoCAD theme až po potvrdení stabilného verejného API kontraktu.
 
-### Default language onboarding
-- Windows UI language,
-- podporovaný jazyk automaticky,
-- fallback EN.
-
 ### Default layer names
 - pre nové čisté inštalácie neutrálne/EN,
 - nikdy automaticky nepremenovávať existujúce DWG.
@@ -223,6 +219,14 @@ Priebežne:
 - thread-safe diagnostické logy, `AK_DIAGNOSTICS` a corrupt-settings recovery,
 - všetkých šesť jazykov a Light/Dark WPF smoke testy,
 - produkčný adapter zostáva AutoCAD 2027-only; metadata schema 4 a layer profile 3.
+
+### First-run Language Onboarding v0.20.0
+- `AppLanguageService.ResolveFirstRunLanguageCode` detekuje Windows UI jazyk,
+- iba pri `SettingsFileState.Missing` používa `CultureInfo.InstalledUICulture`,
+- podporované jazyky SK, CS, EN, DE, PL, FR, fallback EN,
+- loaded a corrupt recovery stavy vracajú `result.Value`,
+- `Load` automaticky nevolá `Save`,
+- ProductVersion 0.20.0, metadata schema 4, layer profile 3.
 
 ### Linetype settings v0.17.0
 - per-type `LinetypeName` a `LinetypeScale` v layer profile v3,
