@@ -7,6 +7,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
+using AcKrovy.AutoCAD.Settings;
 using AcKrovy.AutoCAD.UI;
 using AcKrovy.Cad.Abstractions.Layers;
 using AcKrovy.Core.Models;
@@ -57,6 +58,18 @@ public sealed class SettingsXamlRuntimeSmokeTests
 
                 var applyCallCount = 0;
                 var appliedModes = new List<SettingsSaveMode>();
+                var languageApplyCount = 0;
+                var languageSaveCount = 0;
+                var languageRefreshCount = 0;
+                var languageWorkflow = new ApplicationLanguageWorkflow(
+                    () => AppLanguageService.CurrentLanguageCode,
+                    languageCode =>
+                    {
+                        languageApplyCount++;
+                        AppLanguageService.Apply(languageCode);
+                    },
+                    _ => languageSaveCount++,
+                    () => languageRefreshCount++);
                 var window = new LayerSettingsWindow(
                     ElementLayerProfile.CreateDefault(),
                     TimberElementDefaultProfile.CreateDefault(),
@@ -82,7 +95,8 @@ public sealed class SettingsXamlRuntimeSmokeTests
                                 new CadLayerPreset("0", 7, CadLinetypeNames.Continuous),
                                 new CadLayerPreset("Defpoints", 7, CadLinetypeNames.Continuous),
                             ]);
-                    });
+                    },
+                    languageWorkflow);
 
                 window.Left = -30000;
                 window.Top = -30000;
@@ -90,6 +104,9 @@ public sealed class SettingsXamlRuntimeSmokeTests
                 window.WindowStyle = WindowStyle.None;
                 window.Show();
                 window.UpdateLayout();
+                Assert.Equal(0, languageApplyCount);
+                Assert.Equal(0, languageSaveCount);
+                Assert.Equal(0, languageRefreshCount);
                 Assert.NotNull(window.FindName("SettingsNavigation"));
                 Assert.Equal(10, window.AnnotationPresetOptions.Count);
                 var originalPreset = window.SelectedAnnotationPreset;
@@ -193,6 +210,9 @@ public sealed class SettingsXamlRuntimeSmokeTests
                             $"Language '{option.Code}' used '{image.Source}' instead of '{expectedFileName}'.");
                     }
                 }
+                Assert.Equal(6, languageApplyCount);
+                Assert.Equal(6, languageSaveCount);
+                Assert.Equal(6, languageRefreshCount);
                 Assert.Equal(6, window.LanguageOptions.Count);
                 Assert.All(
                     window.LanguageOptions,
@@ -202,6 +222,9 @@ public sealed class SettingsXamlRuntimeSmokeTests
                 window.SelectedAnnotationPreset = originalPreset;
                 window.LanguageSelector.SelectedValue = "en";
                 window.UpdateLayout();
+                Assert.Equal(7, languageApplyCount);
+                Assert.Equal(7, languageSaveCount);
+                Assert.Equal(7, languageRefreshCount);
                 window.Visual.SelectedSection = SettingsWindowTabKind.Layers;
                 window.UpdateLayout();
                 Assert.Equal(Visibility.Visible, window.LayersFooterActions.Visibility);

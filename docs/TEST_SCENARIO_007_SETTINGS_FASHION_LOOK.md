@@ -1,6 +1,6 @@
 # TEST SCENARIO 007 – SETTINGS FASHION LOOK v0.18.0
 
-Platforma: AutoCAD 2027, čistý Debug alebo Release build v0.18.0.
+Platforma: AutoCAD 2027, čistý Debug alebo Release build v0.19.0.
 
 Pred testom si priprav DWG s minimálne jednou Krokvou, ďalším timber typom,
 existujúcou konfliktnou vrstvou a framed anotáciami Circle/Slot/Rectangle.
@@ -8,15 +8,15 @@ Zapíš si počiatočnú hodnotu `DBMOD`.
 
 ## Manuálny vizuálny a funkčný test
 
-1. Pri 100 % DPI spusti `AK_SETTINGS`; over približne 1180 × 720 px okno,
-   modernú ľavú navigáciu a verziu `ACAD KROVY 0.18.0`.
+1. Pri 100 % DPI spusti `AK_SETTINGS`; over 1500 × 900 px predvolené okno,
+   modernú ľavú navigáciu a verziu `ACAD KROVY 0.19.0`.
 2. Preklikaj Hladiny, Výrobné prídavky, Popis/kótovanie a Jazyk; over hover,
    selected stav, accent pruh, vektorové ikony a keyboard focus.
 3. Zavri okno bez Apply a porovnaj `DBMOD` s počiatočnou hodnotou.
 4. Znovu otvor okno; over zachovanú poslednú sekciu.
 5. Zmeň veľkosť a polohu okna, maximalizuj ho, zavri a znovu otvor; over
    lokálne obnovenie geometrie.
-6. Zmenši okno na minimum 980 × 620; over wrapping a neprítomnosť
+6. Zmenši okno na minimum 1250 × 720; over wrapping a neprítomnosť
    horizontálneho chaosu alebo odrezaného obsahu.
 7. V Hladinách otvor ACI picker; over 255 vzoriek, aktuálnu veľkú vzorku,
    text `ACI n`, priamy vstup a tooltipy.
@@ -45,7 +45,8 @@ Zapíš si počiatočnú hodnotu `DBMOD`.
 19. Zvoľ NewElementsOnly s nezmeneným profilom; over no-op a zachovanie
     existujúcej konfliktnej vrstvy.
 20. Zopakuj kroky 1–16 pri 125 %, 150 % a 200 % DPI. Nakoniec over framed
-    Circle/Slot/Rectangle: Spline, insertion-point attachment, 40°, 350 mm,
+    Circle/Slot/Rectangle aj combined framed režimy: prvý segment 60°;
+    combined režimy majú LandingDistance 350 mm, horizontálny landing,
     Circle 520 mm, klasický STRETCH a persistentný manuálny offset.
 
 ## Screenshot checklist
@@ -73,10 +74,13 @@ Pri každom screenshote zaznamenaj DPI, tému, rozmer okna a výsledok `DBMOD`.
 8. Zadaj nový vlastný názov hladiny a over, že výber sám nemení DWG.
 9. V režime Iba nové prvky nastav pre existujúcu KROKVA odlišné vlastnosti.
 10. Klikni Použiť a over vytvorenie KROKVA_01 aj lokalizovaný banner.
-11. Zopakuj konflikt so základom KROKVA a over vytvorenie KROKVA_02.
-12. Over, že pôvodné entity zostali na KROKVA a nové predvolené nastavenie používa suffixovaný názov.
-13. Pre jeden vybraný inteligentný prvok nastav Bez popisov a použi režim Na výber.
-14. Podľa typu over odstránenie hlavného popisu, slope šípky/textu a Post 90° anotácie.
-15. Prepnúť prvok späť na FullLabel alebo ItemNumberLeader.
-16. Over korektnú regeneráciu, pôvodný frame style a absenciu duplicít alebo orphan anotácií.
-17. Over DBMOD: otvorenie pickeru, Cancel, zmena ComboBoxu a navigácia sú čisté; vytvorenie suffixovanej hladiny DBMOD zmení.
+11. Zopakuj rovnaký konflikt so základom KROKVA a over opätovné použitie
+    kompatibilnej KROKVA_01 bez vytvorenia ďalšej vrstvy.
+12. Zmeň aspoň jednu skutočnú appearance vlastnosť a znovu použi základ
+    KROKVA; až teraz over vytvorenie KROKVA_02.
+13. Over, že pôvodné entity zostali na KROKVA a nové predvolené nastavenie používa suffixovaný názov.
+14. Pre jeden vybraný inteligentný prvok nastav Bez popisov a použi režim Na výber.
+15. Podľa typu over odstránenie hlavného popisu, slope šípky/textu a Post 90° anotácie.
+16. Prepnúť prvok späť na FullLabel alebo ItemNumberLeader.
+17. Over korektnú regeneráciu, pôvodný frame style a absenciu duplicít alebo orphan anotácií.
+18. Over DBMOD: otvorenie pickeru, Cancel, zmena ComboBoxu a navigácia sú čisté; vytvorenie suffixovanej hladiny DBMOD zmení.

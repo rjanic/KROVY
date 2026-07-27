@@ -25,6 +25,8 @@ COPY/COPYCLIP/WBLOCK portability relies on data traveling with entities and on l
 
 `LiveGeometrySynchronizationService` subscribes to AutoCAD `ObjectModified` and `CommandEnded`. It records relevant user changes, then reconciles after the command. Programmatic annotation work is suppressed so it is not interpreted as STRETCH/manual offset.
 
+`AK_SELECTSIMILAR` and `AK_EXPORTCSV` use the existing model-space scanner and open candidate entities only for read. Setting an implied selection or writing an external CSV is not a DWG mutation; neither workflow may hydrate missing metadata or commit a database transaction.
+
 For a future BricsCAD or ZWCAD adapter, retain Core and CAD abstractions unchanged. Implement host locking, transactions, tables, event mapping, XData and geometry conversions behind a new adapter; do not add vendor conditionals to Core.
 
 ## Never do this

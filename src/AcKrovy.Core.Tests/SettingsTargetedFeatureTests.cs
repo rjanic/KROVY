@@ -339,7 +339,7 @@ public sealed class SettingsTargetedFeatureTests
             "private void LayerNameComboBox_SelectionChanged",
             StringComparison.Ordinal);
         var end = source.IndexOf(
-            "private void PreviewLanguage",
+            "private void LayerSettingsWindow_Loaded",
             start,
             StringComparison.Ordinal);
         var handler = source.Substring(start, end - start);

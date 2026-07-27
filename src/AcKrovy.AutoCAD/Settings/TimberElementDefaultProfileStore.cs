@@ -1,7 +1,9 @@
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using AcKrovy.AutoCAD.Diagnostics;
 using AcKrovy.Core.Models;
+using AcKrovy.Infrastructure.Diagnostics;
 
 namespace AcKrovy.AutoCAD.Settings;
 
@@ -15,39 +17,21 @@ internal static class TimberElementDefaultProfileStore
         Converters = { new JsonStringEnumConverter() },
     };
 
-    private static string SettingsDirectory => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-        "ACAD_KROVY");
-
-    private static string SettingsPath => Path.Combine(SettingsDirectory, "timber-element-default-profile.json");
-
-    public static TimberElementDefaultProfile Load()
-    {
-        try
-        {
-            if (!File.Exists(SettingsPath))
-            {
-                return TimberElementDefaultProfile.CreateDefault();
-            }
-
-            var json = File.ReadAllText(SettingsPath);
-            var profile = JsonSerializer.Deserialize<TimberElementDefaultProfile>(json, JsonOptions);
-            return profile?.Normalize() ?? TimberElementDefaultProfile.CreateDefault();
-        }
-        catch
-        {
-            return TimberElementDefaultProfile.CreateDefault();
-        }
-    }
+    public static TimberElementDefaultProfile Load() =>
+        AcKrovyDiagnostics.Settings.Load(
+            LocalSettingsPaths.TimberDefaults,
+            SettingsConfigurationSubject.TimberDefaults,
+            json => JsonSerializer.Deserialize<TimberElementDefaultProfile>(json, JsonOptions)?.Normalize(),
+            TimberElementDefaultProfile.CreateDefault).Value;
 
     public static void Save(TimberElementDefaultProfile profile)
     {
         ArgumentNullException.ThrowIfNull(profile);
 
-        Directory.CreateDirectory(SettingsDirectory);
         var normalized = profile.Normalize();
-        var temporaryPath = SettingsPath + ".tmp";
-        File.WriteAllText(temporaryPath, JsonSerializer.Serialize(normalized, JsonOptions));
-        File.Move(temporaryPath, SettingsPath, overwrite: true);
+        AcKrovyDiagnostics.Settings.Save(
+            LocalSettingsPaths.TimberDefaults,
+            SettingsConfigurationSubject.TimberDefaults,
+            JsonSerializer.Serialize(normalized, JsonOptions));
     }
 }

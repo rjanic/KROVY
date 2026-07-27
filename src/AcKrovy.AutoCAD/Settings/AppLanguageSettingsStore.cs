@@ -1,4 +1,7 @@
 using System.IO;
+using System.Text.Json;
+using AcKrovy.AutoCAD.Diagnostics;
+using AcKrovy.Infrastructure.Diagnostics;
 using AcKrovy.Localization;
 
 namespace AcKrovy.AutoCAD.Settings;
@@ -6,33 +9,31 @@ namespace AcKrovy.AutoCAD.Settings;
 /// <summary>Persists the global plug-in UI language outside every DWG.</summary>
 internal static class AppLanguageSettingsStore
 {
-    private static string SettingsDirectory => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-        "ACAD_KROVY");
-
-    private static string SettingsPath => Path.Combine(SettingsDirectory, "application-settings.json");
-
-    public static AppLanguageSettings Load()
-    {
-        try
-        {
-            return File.Exists(SettingsPath)
-                ? AppLanguageSettingsSerializer.Deserialize(File.ReadAllText(SettingsPath))
-                : new AppLanguageSettings();
-        }
-        catch
-        {
-            return new AppLanguageSettings();
-        }
-    }
+    public static AppLanguageSettings Load() =>
+        AcKrovyDiagnostics.Settings.Load(
+            LocalSettingsPaths.ApplicationSettings,
+            SettingsConfigurationSubject.ApplicationLanguage,
+            DeserializeStrict,
+            () => new AppLanguageSettings()).Value;
 
     public static void Save(AppLanguageSettings settings)
     {
         ArgumentNullException.ThrowIfNull(settings);
 
-        Directory.CreateDirectory(SettingsDirectory);
-        var temporaryPath = SettingsPath + ".tmp";
-        File.WriteAllText(temporaryPath, AppLanguageSettingsSerializer.Serialize(settings));
-        File.Move(temporaryPath, SettingsPath, overwrite: true);
+        AcKrovyDiagnostics.Settings.Save(
+            LocalSettingsPaths.ApplicationSettings,
+            SettingsConfigurationSubject.ApplicationLanguage,
+            AppLanguageSettingsSerializer.Serialize(settings));
+    }
+
+    private static AppLanguageSettings DeserializeStrict(string json)
+    {
+        using var document = JsonDocument.Parse(json);
+        if (document.RootElement.ValueKind != JsonValueKind.Object)
+        {
+            throw new JsonException("Application settings root must be a JSON object.");
+        }
+
+        return AppLanguageSettingsSerializer.Deserialize(json);
     }
 }

@@ -21,6 +21,14 @@ Keep all user-facing UI consistently localized while preserving stable domain va
 
 Display-name providers convert stable enum values to resources at the UI boundary. Settings rebuilds localized navigation, annotation presets, layer-color labels and language-card accessibility text without changing the underlying selected enums, codes or edited row values. Language cards use stable culture codes and embedded flag resources.
 
+Settings language selection uses a one-way presentation binding and the
+`ApplicationLanguageWorkflow` as the single persistence path. Loading,
+binding initialization and runtime refresh never save
+`application-settings.json`; only a real user change applies, persists and
+refreshes localized host UI once.
+
+Productivity command windows use the same six resource packs and Light/Dark theme dictionaries. `TimberCsvLocalizationProvider` supplies localized headers and display values at the localization boundary; the Core CSV formatter receives typed localization data and never references resources directly. Command names and canonical material values remain technical and invariant.
+
 To add a key:
 
 1. Add it to invariant `UiStrings.resx`.
@@ -60,6 +68,7 @@ To add a key:
 - `src/AcKrovy.Localization/Resources/UiStrings.fr.resx`
 - `src/AcKrovy.Localization/TimberAnnotationModeDisplayNameProvider.cs`
 - `src/AcKrovy.Localization/SettingsAnnotationPresetDisplayNameProvider.cs`
+- `src/AcKrovy.Localization/TimberCsvLocalizationProvider.cs`
 - `src/AcKrovy.AutoCAD/UI/LayerSettingsWindow.xaml.cs`
 - `src/AcKrovy.Core.Tests/LocalizationFoundationTests.cs`
 - `src/AcKrovy.Core.Tests/LocalizationLanguagePackTests.cs`

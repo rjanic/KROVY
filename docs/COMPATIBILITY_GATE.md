@@ -17,6 +17,7 @@ Spustenie:
 Kontroluje:
 
 - `AcKrovy.Core` restore/build s warnings-as-errors,
+- `AcKrovy.Infrastructure` restore/build s warnings-as-errors,
 - `AcKrovy.Cad.Abstractions` restore/build s warnings-as-errors,
 - všetky `AcKrovy.Core.Tests` testy,
 - `ProjectReference`, `Reference` a `PackageReference` v portable projektoch,
@@ -29,6 +30,9 @@ Portable projekty nesmú referencovať:
 - `AcDbMgd`,
 - `AcCoreMgd`,
 - `AcKrovy.AutoCAD`.
+
+`AcKrovy.Infrastructure` patrí do portable vrstvy: obsahuje diagnostiku,
+recovery lokálnych JSON nastavení a bezpečný zápis súborov bez Autodesk API.
 
 ## Full Local Gate
 
@@ -85,3 +89,8 @@ Zatiaľ zostávajú manuálnymi release smoke testami:
 - grip edit,
 - MOVE,
 - vizuálna kontrola labelov.
+- `AK_SELECTSIMILAR` a `AK_EXPORTCSV` s kontrolou DBMOD pred/po,
+- `AK_DIAGNOSTICS`, poškodený settings JSON a `.corrupt` recovery.
+
+Presný protokol pre v0.19.0 je v
+[`TEST_SCENARIO_008_PRODUCTIVITY_RELIABILITY.md`](TEST_SCENARIO_008_PRODUCTIVITY_RELIABILITY.md).

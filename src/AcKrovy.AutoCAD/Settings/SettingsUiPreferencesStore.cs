@@ -1,5 +1,7 @@
 using System.IO;
 using System.Text.Json;
+using AcKrovy.AutoCAD.Diagnostics;
+using AcKrovy.Infrastructure.Diagnostics;
 using AcKrovy.Localization;
 
 namespace AcKrovy.AutoCAD.Settings;
@@ -44,37 +46,20 @@ internal static class SettingsUiPreferencesStore
         WriteIndented = true,
     };
 
-    private static string SettingsDirectory => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-        "ACAD_KROVY");
-
-    private static string SettingsPath => Path.Combine(SettingsDirectory, "settings-ui.json");
-
-    public static SettingsUiPreferences Load()
-    {
-        try
-        {
-            return File.Exists(SettingsPath)
-                ? (JsonSerializer.Deserialize<SettingsUiPreferences>(
-                    File.ReadAllText(SettingsPath),
-                    JsonOptions) ?? new SettingsUiPreferences()).Normalize()
-                : new SettingsUiPreferences();
-        }
-        catch
-        {
-            return new SettingsUiPreferences();
-        }
-    }
+    public static SettingsUiPreferences Load() =>
+        AcKrovyDiagnostics.Settings.Load(
+            LocalSettingsPaths.UiPreferences,
+            SettingsConfigurationSubject.SettingsUiPreferences,
+            json => JsonSerializer.Deserialize<SettingsUiPreferences>(json, JsonOptions)?.Normalize(),
+            () => new SettingsUiPreferences()).Value;
 
     public static void Save(SettingsUiPreferences preferences)
     {
         ArgumentNullException.ThrowIfNull(preferences);
 
-        Directory.CreateDirectory(SettingsDirectory);
-        var temporaryPath = SettingsPath + ".tmp";
-        File.WriteAllText(
-            temporaryPath,
+        AcKrovyDiagnostics.Settings.Save(
+            LocalSettingsPaths.UiPreferences,
+            SettingsConfigurationSubject.SettingsUiPreferences,
             JsonSerializer.Serialize(preferences.Normalize(), JsonOptions));
-        File.Move(temporaryPath, SettingsPath, overwrite: true);
     }
 }

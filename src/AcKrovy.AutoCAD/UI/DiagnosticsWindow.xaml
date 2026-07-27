@@ -1,0 +1,124 @@
+<Window x:Class="AcKrovy.AutoCAD.UI.DiagnosticsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:localization="clr-namespace:AcKrovy.AutoCAD.UI.Localization"
+        Title="{localization:Loc DiagnosticsWindow_Title}"
+        Width="720"
+        SizeToContent="Height"
+        MinWidth="600"
+        MinHeight="420"
+        MaxWidth="960"
+        MaxHeight="760"
+        ResizeMode="CanResize"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        Background="{DynamicResource SettingsWindowBackgroundBrush}">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Design/SettingsColors.Light.xaml" />
+                <ResourceDictionary Source="Design/SettingsDesignSystem.xaml" />
+                <ResourceDictionary Source="Design/SettingsControls.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+    <Grid Margin="18">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <StackPanel>
+            <TextBlock Style="{DynamicResource SettingsSectionTitleStyle}"
+                       Text="{localization:Loc DiagnosticsWindow_Heading}" />
+            <TextBlock Margin="0,4,0,14"
+                       Style="{DynamicResource SettingsDescriptionStyle}"
+                       TextWrapping="Wrap"
+                       Text="{localization:Loc DiagnosticsWindow_Description}" />
+        </StackPanel>
+        <ScrollViewer x:Name="DiagnosticsContentScrollViewer"
+                      Grid.Row="1"
+                      HorizontalScrollBarVisibility="Disabled"
+                      VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <Border Style="{DynamicResource SettingsCardStyle}">
+                    <ItemsControl ItemsSource="{Binding InformationRows}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="0,3">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="190" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{Binding Label}"
+                                               Foreground="{DynamicResource SettingsTextSecondaryBrush}" />
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding Value}"
+                                               TextWrapping="Wrap"
+                                               FontWeight="SemiBold" />
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Border>
+                <TextBlock Margin="0,14,0,6"
+                           FontWeight="SemiBold"
+                           Text="{localization:Loc DiagnosticsWindow_SettingsStates}" />
+                <Border Style="{DynamicResource SettingsCardStyle}">
+                    <ItemsControl ItemsSource="{Binding SettingsRows}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="0,3">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="210" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{Binding Label}" />
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding Value}"
+                                               Foreground="{DynamicResource SettingsTextSecondaryBrush}" />
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Border>
+                <TextBlock Margin="0,14,0,6"
+                           FontWeight="SemiBold"
+                           Text="{localization:Loc DiagnosticsWindow_RecentEvents}" />
+                <Border Style="{DynamicResource SettingsCardStyle}">
+                    <ItemsControl ItemsSource="{Binding RecentEvents}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Margin="0,2"
+                                           Text="{Binding}"
+                                           TextWrapping="Wrap"
+                                           FontFamily="Consolas"
+                                           FontSize="11" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+        <WrapPanel x:Name="DiagnosticsFooterActions"
+                   Grid.Row="2"
+                   Margin="0,16,0,0"
+                   HorizontalAlignment="Right"
+                   Orientation="Horizontal">
+            <Button Margin="0,0,8,0"
+                    Style="{DynamicResource SettingsSecondaryButtonStyle}"
+                    Click="Copy_Click"
+                    Content="{localization:Loc DiagnosticsWindow_CopySummary}" />
+            <Button Margin="0,0,8,0"
+                    Style="{DynamicResource SettingsSecondaryButtonStyle}"
+                    Click="OpenLogs_Click"
+                    Content="{localization:Loc DiagnosticsWindow_OpenLogs}" />
+            <Button Style="{DynamicResource SettingsPrimaryButtonStyle}"
+                    IsDefault="True"
+                    Click="Close_Click"
+                    Content="{localization:Loc Common_Close}" />
+        </WrapPanel>
+    </Grid>
+</Window>

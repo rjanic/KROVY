@@ -21,12 +21,16 @@ ZÁKLADNÝ WORKFLOW
 - AK_RENUMBER po potvrdení vedome prečísluje všetky výrobné položky podľa
   reznej dĺžky od najkratšej po najdlhšiu.
 - AK_REPORT / AK_REPORTALL vloží výrobný výkaz.
+- AK_SELECTSIMILAR vyberie podobné inteligentné prvky bez zmeny DWG.
+- AK_EXPORTCSV uloží jednotlivý alebo súhrnný výrobný CSV výkaz.
+- AK_DIAGNOSTICS zobrazí technický stav, logy a lokálne settings.
 - AK_SETTINGS nastaví jazyk, hladiny, farby, typy čiar, výrobné defaulty a režim anotácie.
 - AK_LABELS obnoví automatické popisy.
 
 SETTINGS FASHION LOOK v0.18.0
 AK_SETTINGS používa modernú ľavú navigáciu, svetlú/tmavú tému, vektorové ikony,
-karty a sticky spodnú lištu. Okno je resizable, pamätá si lokálne tému, sekciu,
+karty a sticky spodnú lištu. Predvolený rozmer je 1500 × 900, minimum
+1250 × 720. Okno je resizable, pamätá si lokálne tému, sekciu,
 veľkosť, polohu a maximalizovaný stav a zalamuje dlhé lokalizované texty.
 Tieto UI údaje nie sú súčasťou DWG ani layer profilu.
 
@@ -85,16 +89,35 @@ Automatický label obsahuje iba položku, prierez a výrobnú dĺžku. Custom pr
 je v automatickom režime slope-aware rovnako ako Krokva.
 
 POPISY A KÓTOVANIE
-AK_SETTINGS ponúka FullLabel, ItemNumberLeader a DimensionsLeader.
+AK_SETTINGS ponúka FullLabel, ItemNumberLeader, DimensionsLeader,
+NoAnnotations a DimensionsWithItemNumber.
 ItemNumberLeader má varianty Plain, Circle, Slot a Rectangle. Plain a
 DimensionsLeader používajú priamy natívny MLeader; rámčekové varianty používajú
-Spline MLeader s prenosným BlockContent a atribútom ITEM_NO. Ručne posunutý
+Spline MLeader s prenosným BlockContent a atribútom ITEM_NO. Prvý leader
+segment standalone aj kombinovaných rámčekových režimov má 60°. Kombinované
+Circle/Rectangle/Slot majú LandingDistance 350 mm, horizontálny landing a
+rozmerový MText v strede landing čiary. Ručne posunutý
 rámček zostane po STRETCH, refreshi aj AK_RENUMBER na zvolenom mieste.
 Default platí pre nové prvky; na existujúce prvky sa použije iba výslovne pre
 výber alebo celý výkres. Režim aj štýl sú uložené v každom prvku, preto ich
 zachovajú COPY, COPYCLIP, WBLOCK aj SAVE/REOPEN. Staré prvky bez uloženého
 režimu používajú FullLabel; chýbajúci štýl čísla znamená Plain.
 Slope anotácie a samostatné označenie Stĺpika ⊥ 90° zostávajú nezávislé.
+
+PRODUCTIVITY & RELIABILITY v0.19.0
+AK_SELECTSIMILAR porovnáva typ, neotáčaný prierez, canonical materiál a podľa
+voľby položku, výrobnú dĺžku s toleranciou alebo Custom ID. Skenuje iba model
+space read-only a výsledok nastaví ako implied selection.
+
+AK_EXPORTCSV podporuje PickFirst, ručný výber alebo celý model space a režimy
+Individual/Summarized. CSV používa UTF-8 BOM, bodkočiarku, CRLF, lokalizované
+hlavičky s jednotkami a desatinný formát aktívneho jazyka ACAD KROVY.
+
+AK_DIAGNOSTICS používa Light/Dark Fashion Look a všetkých šesť jazykov.
+Logy sú v %LOCALAPPDATA%\ACAD_KROVY\Logs, max. 5 MB na súbor a 14 dní.
+Poškodené lokálne JSON nastavenie sa zálohuje ako
+<name>.corrupt.<yyyyMMdd-HHmmss>.json. Ak záloha zlyhá, originál sa neprepíše
+a bezpečné defaulty sa použijú iba v pamäti.
 
 OVERENIE
 .\scripts\compatibility-gate.ps1 -Portable

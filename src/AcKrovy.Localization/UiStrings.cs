@@ -26,7 +26,8 @@ public static class UiStrings
     public static string HelpCommandOverview =>
         Format(GetString("Help_CommandOverview"), ApplicationVersionProvider.DisplayVersion) +
         GetActiveUiString("Help_CustomCommandLine") +
-        GetActiveUiString("Help_AnnotationModesLine");
+        GetActiveUiString("Help_AnnotationModesLine") +
+        GetActiveUiString("Help_ProductivityCommands");
     public static string CommandRibbonReady => GetString("Command_Ribbon_Ready");
     public static string CommandRibbonPending => GetString("Command_Ribbon_Pending");
     public static string CommandToolbarShown => GetString("Command_Toolbar_Shown");
@@ -40,6 +41,7 @@ public static class UiStrings
     public static string CommandLabelsRefreshFailedFormat => GetString("Command_Labels_RefreshFailedFormat");
     public static string CommandEditPrompt => GetString("Command_Edit_Prompt");
     public static string CommandEditNoData => GetString("Command_Edit_NoData");
+    public static string CommandEditNoChanges => GetString("Command_Edit_NoChanges");
     public static string CommandEditTitleSingleFormat => GetString("Command_Edit_TitleSingleFormat");
     public static string CommandEditTitleMultipleFormat => GetString("Command_Edit_TitleMultipleFormat");
     public static string CommandEditResultFormat => GetString("Command_Edit_ResultFormat");

@@ -15,7 +15,7 @@ Give AI agents a compact sequencing and constraint snapshot. Product priorities 
 
 ## Current architecture or workflow
 
-Snapshot after successful v0.18.0 closure: Settings Fashion Look provides Light/Dark design tokens, section-specific apply workflows, editable/hydrated layer selection with idempotent suffix resolution, the ACI 1-255 picker, six runtime languages, ten PNG annotation presets, NoAnnotations, and separate standalone versus combined framed annotation lifecycles. The release also introduces `.ai` developer guidance.
+Snapshot for v0.19.0 Productivity & Reliability: the stable v0.18.0 Settings Fashion Look remains unchanged, while the selected milestone adds CAD-neutral Select Similar filtering, deterministic localized CSV export, privacy-aware diagnostics and recoverable loading for all local JSON settings. The production adapter remains AutoCAD 2027-only.
 
 Near-term themes must be taken from `ACAD_KROVY_BACKLOG.md` and sequenced through `ACAD_KROVY_ROADMAP.md`. At this snapshot those documents remain the source for roof automation, reporting/manufacturing workflow, multilingual completion and compatibility expansion; implement only items that are still present and explicitly selected.
 
@@ -39,6 +39,12 @@ Do not rework without explicit instruction:
 
 Known technical debt/limitations:
 
+- AutoCAD 2027 release smoke testing confirmed read-only DBMOD behavior for
+  Select Similar/CSV export and the diagnostics layout, event localization and
+  anonymized clipboard summary.
+- Corrupt-settings permission failures, log rotation/retention and the remaining
+  protocol edge cases continue to rely on automated coverage unless explicitly
+  recorded as manually tested.
 - COPY/COPYCLIP/WBLOCK/SAVE-REOPEN and interactive STRETCH still require real AutoCAD release smoke tests.
 - The current production adapter targets AutoCAD 2027/.NET 10; other host/version targets need deliberate adapter/build work.
 - Some architecture regressions are guarded by source-contract tests and must not be mistaken for runtime API coverage.

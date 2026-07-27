@@ -48,6 +48,7 @@
   <data name="Command_Labels_RefreshFailedFormat" xml:space="preserve"><value>&#xA;Nie utworzono ani nie odświeżono opisu elementu {0}: {1}</value></data>
   <data name="Command_Edit_Prompt" xml:space="preserve"><value>&#xA;Wybierz inteligentne elementy więźby do edycji: </value></data>
   <data name="Command_Edit_NoData" xml:space="preserve"><value>&#xA;Wybrany obiekt nie zawiera danych ACAD KROVY. Najpierw użyj AK_ASSIGN lub ikony typu elementu.</value></data>
+  <data name="Command_Edit_NoChanges" xml:space="preserve"><value>&#xA;ACAD KROVY: nie wybrano żadnej zmiany.</value></data>
   <data name="Command_Edit_TitleSingleFormat" xml:space="preserve"><value>ACAD KROVY – edycja elementu – {0} – {1}</value></data>
   <data name="Command_Edit_TitleMultipleFormat" xml:space="preserve"><value>ACAD KROVY – edycja {0} elementów</value></data>
   <data name="Command_Edit_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: zaktualizowane elementy: {0}. Pominięte: {1}.</value></data>
@@ -333,4 +334,80 @@
   <data name="SettingsAnnotationPreset_DimensionsWithItemCircle" xml:space="preserve"><value>Wymiary i pozycja w okręgu</value></data>
   <data name="SettingsAnnotationPreset_DimensionsWithItemRectangle" xml:space="preserve"><value>Wymiary i pozycja w prostokącie</value></data>
   <data name="SettingsAnnotationPreset_DimensionsWithItemSlot" xml:space="preserve"><value>Wymiary i pozycja w slocie</value></data>
+  <data name="Common_Cancel" xml:space="preserve"><value>Anuluj</value></data>
+  <data name="Common_Close" xml:space="preserve"><value>Zamknij</value></data>
+  <data name="Common_Unknown" xml:space="preserve"><value>Nieznane</value></data>
+  <data name="Command_UnexpectedFailure" xml:space="preserve"><value>&#xA;ACAD KROVY: polecenie nie powiodło się. Szczegóły są w dzienniku diagnostycznym.</value></data>
+  <data name="SelectSimilarWindow_Title" xml:space="preserve"><value>ACAD KROVY – wybierz podobne</value></data>
+  <data name="SelectSimilarWindow_Heading" xml:space="preserve"><value>Kryteria podobieństwa</value></data>
+  <data name="SelectSimilarWindow_Description" xml:space="preserve"><value>Wybierz właściwości, które muszą być zgodne z elementem wzorcowym.</value></data>
+  <data name="SelectSimilarWindow_ElementType" xml:space="preserve"><value>Typ elementu</value></data>
+  <data name="SelectSimilarWindow_CrossSection" xml:space="preserve"><value>Przekrój (szerokość × wysokość)</value></data>
+  <data name="SelectSimilarWindow_Material" xml:space="preserve"><value>Materiał</value></data>
+  <data name="SelectSimilarWindow_ElementId" xml:space="preserve"><value>Numer pozycji</value></data>
+  <data name="SelectSimilarWindow_CuttingLength" xml:space="preserve"><value>Długość cięcia</value></data>
+  <data name="SelectSimilarWindow_CustomDefinition" xml:space="preserve"><value>Definicja niestandardowa</value></data>
+  <data name="SelectSimilarWindow_ToleranceMm" xml:space="preserve"><value>Tolerancja długości cięcia [mm]</value></data>
+  <data name="SelectSimilarWindow_InvalidTolerance" xml:space="preserve"><value>Wprowadź liczbę nieujemną.</value></data>
+  <data name="SelectSimilarWindow_Select" xml:space="preserve"><value>Wybierz</value></data>
+  <data name="Command_SelectSimilar_PromptSeed" xml:space="preserve"><value>&#xA;Wybierz jeden inteligentny element drewniany jako wzorzec: </value></data>
+  <data name="Command_SelectSimilar_SelectOne" xml:space="preserve"><value>&#xA;ACAD KROVY: wybierz dokładnie jeden element wzorcowy.</value></data>
+  <data name="Command_SelectSimilar_InvalidSeed" xml:space="preserve"><value>&#xA;ACAD KROVY: wybrany obiekt nie jest prawidłowym inteligentnym elementem drewnianym.</value></data>
+  <data name="Command_SelectSimilar_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: wybrano podobnych elementów: {0}.</value></data>
+  <data name="CsvExportWindow_Title" xml:space="preserve"><value>ACAD KROVY – eksport CSV</value></data>
+  <data name="CsvExportWindow_Heading" xml:space="preserve"><value>Eksport zestawienia produkcyjnego</value></data>
+  <data name="CsvExportWindow_Description" xml:space="preserve"><value>Wybierz źródło elementów i tryb pliku CSV.</value></data>
+  <data name="CsvExportWindow_Source" xml:space="preserve"><value>Źródło</value></data>
+  <data name="CsvExportWindow_PickFirstFormat" xml:space="preserve"><value>Bieżący wybór ({0} obiektów)</value></data>
+  <data name="CsvExportWindow_ManualSelection" xml:space="preserve"><value>Wybierz obiekty w programie AutoCAD</value></data>
+  <data name="CsvExportWindow_ModelSpace" xml:space="preserve"><value>Cała przestrzeń modelu</value></data>
+  <data name="CsvExportWindow_Mode" xml:space="preserve"><value>Tryb</value></data>
+  <data name="CsvExportWindow_Individual" xml:space="preserve"><value>Pojedyncze elementy</value></data>
+  <data name="CsvExportWindow_Summarized" xml:space="preserve"><value>Zestawienie zbiorcze</value></data>
+  <data name="CsvExportWindow_Continue" xml:space="preserve"><value>Kontynuuj</value></data>
+  <data name="Command_ExportCsv_PromptSelection" xml:space="preserve"><value>&#xA;Wybierz obiekty do eksportu CSV: </value></data>
+  <data name="Command_ExportCsv_NoValidElements" xml:space="preserve"><value>&#xA;ACAD KROVY: nie znaleziono prawidłowych inteligentnych elementów do eksportu.</value></data>
+  <data name="Command_ExportCsv_WriteFailedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: nie można zapisać pliku CSV. {0}</value></data>
+  <data name="Command_ExportCsv_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: utworzono CSV: {0}. Wiersze: {1}, pominięte obiekty: {2}.</value></data>
+  <data name="CsvExport_SaveDialogTitle" xml:space="preserve"><value>Zapisz zestawienie ACAD KROVY jako CSV</value></data>
+  <data name="CsvExport_SaveDialogFilter" xml:space="preserve"><value>Pliki CSV (*.csv)|*.csv</value></data>
+  <data name="Csv_Header_ElementId" xml:space="preserve"><value>Pozycja</value></data>
+  <data name="Csv_Header_ElementType" xml:space="preserve"><value>Typ elementu</value></data>
+  <data name="Csv_Header_Material" xml:space="preserve"><value>Materiał</value></data>
+  <data name="Csv_Header_WidthMm" xml:space="preserve"><value>Szerokość [mm]</value></data>
+  <data name="Csv_Header_HeightMm" xml:space="preserve"><value>Wysokość [mm]</value></data>
+  <data name="Csv_Header_CuttingLengthMm" xml:space="preserve"><value>Długość cięcia [mm]</value></data>
+  <data name="Csv_Header_Quantity" xml:space="preserve"><value>Liczba [szt.]</value></data>
+  <data name="Csv_Header_TotalLengthM" xml:space="preserve"><value>Łączna długość [m]</value></data>
+  <data name="Csv_Header_VolumeM3" xml:space="preserve"><value>Objętość [m³]</value></data>
+  <data name="Csv_Header_Note" xml:space="preserve"><value>Uwaga</value></data>
+  <data name="DiagnosticsWindow_Title" xml:space="preserve"><value>ACAD KROVY – diagnostyka</value></data>
+  <data name="DiagnosticsWindow_Heading" xml:space="preserve"><value>Informacje diagnostyczne</value></data>
+  <data name="DiagnosticsWindow_Description" xml:space="preserve"><value>Techniczne podsumowanie aplikacji bez zawartości ani geometrii rysunku.</value></data>
+  <data name="DiagnosticsWindow_ProductVersion" xml:space="preserve"><value>Wersja produktu</value></data>
+  <data name="DiagnosticsWindow_MetadataSchema" xml:space="preserve"><value>Schemat metadanych</value></data>
+  <data name="DiagnosticsWindow_LayerProfileSchema" xml:space="preserve"><value>Schemat profilu warstw</value></data>
+  <data name="DiagnosticsWindow_Host" xml:space="preserve"><value>Host CAD</value></data>
+  <data name="DiagnosticsWindow_Runtime" xml:space="preserve"><value>Środowisko uruchomieniowe</value></data>
+  <data name="DiagnosticsWindow_Language" xml:space="preserve"><value>Język i kultura</value></data>
+  <data name="DiagnosticsWindow_LogPath" xml:space="preserve"><value>Folder dzienników</value></data>
+  <data name="DiagnosticsWindow_SettingsStates" xml:space="preserve"><value>Stan ustawień lokalnych</value></data>
+  <data name="DiagnosticsWindow_RecentEvents" xml:space="preserve"><value>Ostatnie zdarzenia diagnostyczne</value></data>
+  <data name="DiagnosticsWindow_CopySummary" xml:space="preserve"><value>Kopiuj podsumowanie</value></data>
+  <data name="DiagnosticsWindow_OpenLogs" xml:space="preserve"><value>Otwórz dzienniki</value></data>
+  <data name="DiagnosticsWindow_StateMissing" xml:space="preserve"><value>Brak pliku; aktywne wartości domyślne</value></data>
+  <data name="DiagnosticsWindow_StateLoaded" xml:space="preserve"><value>Wczytano</value></data>
+  <data name="DiagnosticsWindow_StateRecovered" xml:space="preserve"><value>Uszkodzony plik zapisano jako kopię; aktywne wartości domyślne</value></data>
+  <data name="DiagnosticsWindow_StateMemoryOnly" xml:space="preserve"><value>Kopia nie powiodła się; wartości domyślne tylko w pamięci</value></data>
+  <data name="DiagnosticsWindow_StateSaveFailed" xml:space="preserve"><value>Zapis nie powiódł się</value></data>
+  <data name="Help_ProductivityCommands" xml:space="preserve"><value>&#xA;  AK_SELECTSIMILAR – wybiera podobne inteligentne elementy&#xA;  AK_EXPORTCSV     – eksportuje zestawienie produkcyjne do CSV&#xA;  AK_DIAGNOSTICS   – wyświetla podsumowanie diagnostyczne</value></data>
+  <data name="DiagnosticsLevel_Information" xml:space="preserve"><value>Informacja</value></data>
+  <data name="DiagnosticsLevel_Warning" xml:space="preserve"><value>Ostrzeżenie</value></data>
+  <data name="DiagnosticsLevel_Error" xml:space="preserve"><value>Błąd</value></data>
+  <data name="DiagnosticsEvent_SubjectApplicationLanguage" xml:space="preserve"><value>Język aplikacji</value></data>
+  <data name="DiagnosticsEvent_SubjectSettingsUiPreferences" xml:space="preserve"><value>Preferencje interfejsu ustawień</value></data>
+  <data name="DiagnosticsEvent_SubjectLayerProfile" xml:space="preserve"><value>Profil warstw</value></data>
+  <data name="DiagnosticsEvent_SubjectTimberDefaults" xml:space="preserve"><value>Domyślne wartości elementów</value></data>
+  <data name="DiagnosticsEvent_SubjectCustomElementDefinitions" xml:space="preserve"><value>Definicje elementów niestandardowych</value></data>
+  <data name="DiagnosticsEvent_ActionSaved" xml:space="preserve"><value>Zapisano</value></data>
 </root>

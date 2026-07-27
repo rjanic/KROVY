@@ -1,14 +1,15 @@
 # ACAD KROVY – PROJECT CONTEXT
 
-**Aktualizované:** 25. 7. 2026
+**Aktualizované:** 27. 7. 2026
 
-**Stabilný základ pred v0.17.0:** `b4833746dc0b66a2c22ecdebb4f6f048877c75fe`
+**Predchádzajúci stabilný commit v0.18.0:** `46ad0cfe555f9f3177de2d47d13bdda33d9a91a0`
 
 **Branch:** `main`
 
 **Verzia aplikácie:** autoritatívne v `Directory.Build.props`
 
-**Stav baseline:** pracovný strom čistý, `HEAD == origin/main`
+**Aktuálny míľnik:** v0.19.0 „Productivity & Reliability“, dokončený a
+manuálne overený v AutoCADe 2027
 
 **Overovanie:** Debug/Release build, kompletné automatické testy a Portable/Full Compatibility Gate
 
@@ -41,6 +42,11 @@ Core nesmie obsahovať `Autodesk.AutoCAD.*`.
 
 ### CAD abstractions
 Rozhrania medzi doménou a konkrétnym CAD prostredím.
+
+### Infrastructure
+Prenosná, hostiteľsky neutrálna implementácia diagnostického logovania,
+bezpečného zápisu súborov a obnovy poškodených lokálnych JSON nastavení.
+Nemá Autodesk ani WPF závislosti a je testovateľná mimo AutoCADu.
 
 ### AutoCAD adapter
 Obsahuje:
@@ -228,10 +234,14 @@ Stabilný commit: `4a951041e2deef40a127ac9560cf6fb2ba4b6a5b`
 ### Annotation Modes / Režimy popisu a kótovania
 - `FullLabel` zachováva pôvodný viacriadkový MText,
 - `ItemNumberLeader` zobrazuje cez jeden natívny MLeader iba položkové označenie,
+- `NoAnnotations` odstráni rodinu anotácií bez odstránenia timber metadata,
+- `DimensionsWithItemNumber` používa samostatný composite lifecycle: framed
+  položku a rozmerový MText pod sebou v strede horizontálnej landing čiary,
 - `Plain` používa priamy MLeader a rámčekové `Circle`, `Slot`, `Rectangle`
   používajú self-contained BlockContent s atribútom `ITEM_NO`,
-- rámčekové MLeadery používajú Spline, insertion-point attachment, uhol 40°,
-  dodatočný offset 350 mm a persistentný lokálny manuálny offset,
+- standalone aj combined framed MLeadery používajú prvý segment 60°;
+  combined `Circle`/`Rectangle`/`Slot` majú centralizovanú
+  `LandingDistance = 350 mm`, horizontálny landing a persistentný manuálny offset,
 - Circle používa jednu definíciu s priemerom 520 mm a BlockScale 1 bez
   textovo alebo typovo závislých veľkostí; staré 760/1800 mm varianty sa pri
   reconcile cielene normalizujú so zachovaním manuálneho offsetu,
@@ -298,6 +308,22 @@ Stabilný commit: `4a951041e2deef40a127ac9560cf6fb2ba4b6a5b`
 - koreňový `AGENTS.md` a šesť dokumentov v `.ai/` zachytávajú architektúru,
   CAD hranice, lokalizáciu, testovanie, release proces a AI roadmap.
 
+### Productivity & Reliability v0.19.0
+- `AK_SELECTSIMILAR` používa CAD-neutrálny Core filter pre typ, neotáčaný
+  prierez, canonical materiál, položku, výrobnú dĺžku s toleranciou a Custom ID;
+  AutoCAD adapter iba read-only skenuje model space a nastaví implied selection,
+- `AK_EXPORTCSV` exportuje PickFirst, ručný výber alebo celý model space
+  v režime Individual/Summarized; Core formatter používa `;`, CRLF, UTF-8 BOM,
+  lokalizované hlavičky, aplikačnú kultúru a zoskupovanie `TimberReportBuilder`,
+- `AK_DIAGNOSTICS` zobrazuje verzie, hostiteľa/runtime, jazyk, stav lokálnych
+  nastavení, log path a posledné udalosti v Light/Dark Fashion Look okne,
+- logy sú v `%LOCALAPPDATA%\ACAD_KROVY\Logs`, rotujú denne a pri 5 MB,
+  uchovávajú sa 14 dní a neobsahujú obsah/geometriu výkresu ani plnú DWG cestu,
+- všetkých päť lokálnych JSON stores používa deterministickú `.corrupt`
+  zálohu; pri zlyhaní zálohy zostáva originál nedotknutý a defaults iba v pamäti,
+- produkčný adapter zostáva AutoCAD 2027 / .NET 10; metadata schema zostáva 4
+  a layer profile schema zostáva 3.
+
 ## Povinné kompatibilitné pravidlá
 
 1. Výpočty a geometrické rozhodovanie preferovať v Core.
@@ -323,12 +349,9 @@ Poradie:
 Multi-CAD kompatibilita sa má overiť ešte pred tým, než projekt prerastie do príliš veľkého AutoCAD-špecifického roof automation modulu.
 
 ## Najbližšia priorita
-1. Select Similar / filtre,
-2. CSV export,
-3. diagnostika a servis,
-4. prezentačné a škálovacie nastavenia,
-5. Custom element,
-6. kompatibilitný checkpoint,
-7. potom veľký modul automatickej geometrie strechy.
+1. kompatibilitný checkpoint AutoCAD 2021–2027,
+2. BricsCAD Proof of Concept,
+3. prezentačné a škálovacie nastavenia až po samostatnom rozhodnutí,
+4. potom veľký modul automatickej geometrie strechy.
 
 Presné poradie je v `ACAD_KROVY_ROADMAP.md`, úplný zásobník nápadov v `ACAD_KROVY_BACKLOG.md`.

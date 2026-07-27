@@ -48,6 +48,7 @@
   <data name="Command_Labels_RefreshFailedFormat" xml:space="preserve"><value>&#xA;Die Beschriftung für Bauteil {0} wurde nicht erstellt oder aktualisiert: {1}</value></data>
   <data name="Command_Edit_Prompt" xml:space="preserve"><value>&#xA;Wählen Sie intelligente Dachstuhlbauteile zur Bearbeitung aus: </value></data>
   <data name="Command_Edit_NoData" xml:space="preserve"><value>&#xA;Das ausgewählte Objekt enthält keine ACAD KROVY-Daten. Verwenden Sie zuerst AK_ASSIGN oder ein Bauteiltyp-Symbol.</value></data>
+  <data name="Command_Edit_NoChanges" xml:space="preserve"><value>&#xA;ACAD KROVY: Es wurde keine Änderung ausgewählt.</value></data>
   <data name="Command_Edit_TitleSingleFormat" xml:space="preserve"><value>ACAD KROVY – Bauteil bearbeiten – {0} – {1}</value></data>
   <data name="Command_Edit_TitleMultipleFormat" xml:space="preserve"><value>ACAD KROVY – {0} Bauteile bearbeiten</value></data>
   <data name="Command_Edit_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: Bauteile aktualisiert: {0}. Übersprungen: {1}.</value></data>
@@ -333,4 +334,80 @@
   <data name="SettingsAnnotationPreset_DimensionsWithItemCircle" xml:space="preserve"><value>Abmessungen und Position im Kreis</value></data>
   <data name="SettingsAnnotationPreset_DimensionsWithItemRectangle" xml:space="preserve"><value>Abmessungen und Position im Rechteck</value></data>
   <data name="SettingsAnnotationPreset_DimensionsWithItemSlot" xml:space="preserve"><value>Abmessungen und Position im Langloch</value></data>
+  <data name="Common_Cancel" xml:space="preserve"><value>Abbrechen</value></data>
+  <data name="Common_Close" xml:space="preserve"><value>Schließen</value></data>
+  <data name="Common_Unknown" xml:space="preserve"><value>Unbekannt</value></data>
+  <data name="Command_UnexpectedFailure" xml:space="preserve"><value>&#xA;ACAD KROVY: Der Befehl ist fehlgeschlagen. Details stehen im Diagnoseprotokoll.</value></data>
+  <data name="SelectSimilarWindow_Title" xml:space="preserve"><value>ACAD KROVY – Ähnliche auswählen</value></data>
+  <data name="SelectSimilarWindow_Heading" xml:space="preserve"><value>Ähnlichkeitskriterien</value></data>
+  <data name="SelectSimilarWindow_Description" xml:space="preserve"><value>Wählen Sie die Eigenschaften, die dem Musterelement entsprechen müssen.</value></data>
+  <data name="SelectSimilarWindow_ElementType" xml:space="preserve"><value>Bauteiltyp</value></data>
+  <data name="SelectSimilarWindow_CrossSection" xml:space="preserve"><value>Querschnitt (Breite × Höhe)</value></data>
+  <data name="SelectSimilarWindow_Material" xml:space="preserve"><value>Material</value></data>
+  <data name="SelectSimilarWindow_ElementId" xml:space="preserve"><value>Positionsnummer</value></data>
+  <data name="SelectSimilarWindow_CuttingLength" xml:space="preserve"><value>Zuschnittlänge</value></data>
+  <data name="SelectSimilarWindow_CustomDefinition" xml:space="preserve"><value>Benutzerdefinierte Definition</value></data>
+  <data name="SelectSimilarWindow_ToleranceMm" xml:space="preserve"><value>Toleranz der Zuschnittlänge [mm]</value></data>
+  <data name="SelectSimilarWindow_InvalidTolerance" xml:space="preserve"><value>Geben Sie eine nichtnegative Zahl ein.</value></data>
+  <data name="SelectSimilarWindow_Select" xml:space="preserve"><value>Auswählen</value></data>
+  <data name="Command_SelectSimilar_PromptSeed" xml:space="preserve"><value>&#xA;Wählen Sie ein intelligentes Holzelement als Muster: </value></data>
+  <data name="Command_SelectSimilar_SelectOne" xml:space="preserve"><value>&#xA;ACAD KROVY: Wählen Sie genau ein Musterelement.</value></data>
+  <data name="Command_SelectSimilar_InvalidSeed" xml:space="preserve"><value>&#xA;ACAD KROVY: Das gewählte Objekt ist kein gültiges intelligentes Holzelement.</value></data>
+  <data name="Command_SelectSimilar_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: Ausgewählte ähnliche Elemente: {0}.</value></data>
+  <data name="CsvExportWindow_Title" xml:space="preserve"><value>ACAD KROVY – CSV-Export</value></data>
+  <data name="CsvExportWindow_Heading" xml:space="preserve"><value>Fertigungsliste exportieren</value></data>
+  <data name="CsvExportWindow_Description" xml:space="preserve"><value>Wählen Sie Elementquelle und CSV-Ausgabemodus.</value></data>
+  <data name="CsvExportWindow_Source" xml:space="preserve"><value>Quelle</value></data>
+  <data name="CsvExportWindow_PickFirstFormat" xml:space="preserve"><value>Aktuelle Auswahl ({0} Objekte)</value></data>
+  <data name="CsvExportWindow_ManualSelection" xml:space="preserve"><value>Objekte in AutoCAD auswählen</value></data>
+  <data name="CsvExportWindow_ModelSpace" xml:space="preserve"><value>Gesamter Modellbereich</value></data>
+  <data name="CsvExportWindow_Mode" xml:space="preserve"><value>Modus</value></data>
+  <data name="CsvExportWindow_Individual" xml:space="preserve"><value>Einzelne Elemente</value></data>
+  <data name="CsvExportWindow_Summarized" xml:space="preserve"><value>Zusammengefasste Liste</value></data>
+  <data name="CsvExportWindow_Continue" xml:space="preserve"><value>Weiter</value></data>
+  <data name="Command_ExportCsv_PromptSelection" xml:space="preserve"><value>&#xA;Objekte für den CSV-Export auswählen: </value></data>
+  <data name="Command_ExportCsv_NoValidElements" xml:space="preserve"><value>&#xA;ACAD KROVY: Keine gültigen intelligenten Elemente für den Export gefunden.</value></data>
+  <data name="Command_ExportCsv_WriteFailedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: Die CSV-Datei konnte nicht geschrieben werden. {0}</value></data>
+  <data name="Command_ExportCsv_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: CSV erstellt: {0}. Zeilen: {1}, übersprungene Objekte: {2}.</value></data>
+  <data name="CsvExport_SaveDialogTitle" xml:space="preserve"><value>ACAD-KROVY-Liste als CSV speichern</value></data>
+  <data name="CsvExport_SaveDialogFilter" xml:space="preserve"><value>CSV-Dateien (*.csv)|*.csv</value></data>
+  <data name="Csv_Header_ElementId" xml:space="preserve"><value>Position</value></data>
+  <data name="Csv_Header_ElementType" xml:space="preserve"><value>Bauteiltyp</value></data>
+  <data name="Csv_Header_Material" xml:space="preserve"><value>Material</value></data>
+  <data name="Csv_Header_WidthMm" xml:space="preserve"><value>Breite [mm]</value></data>
+  <data name="Csv_Header_HeightMm" xml:space="preserve"><value>Höhe [mm]</value></data>
+  <data name="Csv_Header_CuttingLengthMm" xml:space="preserve"><value>Zuschnittlänge [mm]</value></data>
+  <data name="Csv_Header_Quantity" xml:space="preserve"><value>Anzahl [Stk.]</value></data>
+  <data name="Csv_Header_TotalLengthM" xml:space="preserve"><value>Gesamtlänge [m]</value></data>
+  <data name="Csv_Header_VolumeM3" xml:space="preserve"><value>Volumen [m³]</value></data>
+  <data name="Csv_Header_Note" xml:space="preserve"><value>Notiz</value></data>
+  <data name="DiagnosticsWindow_Title" xml:space="preserve"><value>ACAD KROVY – Diagnose</value></data>
+  <data name="DiagnosticsWindow_Heading" xml:space="preserve"><value>Diagnoseinformationen</value></data>
+  <data name="DiagnosticsWindow_Description" xml:space="preserve"><value>Technische Anwendungsübersicht ohne Zeichnungsinhalt oder Geometrie.</value></data>
+  <data name="DiagnosticsWindow_ProductVersion" xml:space="preserve"><value>Produktversion</value></data>
+  <data name="DiagnosticsWindow_MetadataSchema" xml:space="preserve"><value>Metadatenschema</value></data>
+  <data name="DiagnosticsWindow_LayerProfileSchema" xml:space="preserve"><value>Layerprofilschema</value></data>
+  <data name="DiagnosticsWindow_Host" xml:space="preserve"><value>CAD-Host</value></data>
+  <data name="DiagnosticsWindow_Runtime" xml:space="preserve"><value>Laufzeit</value></data>
+  <data name="DiagnosticsWindow_Language" xml:space="preserve"><value>Sprache und Kultur</value></data>
+  <data name="DiagnosticsWindow_LogPath" xml:space="preserve"><value>Protokollordner</value></data>
+  <data name="DiagnosticsWindow_SettingsStates" xml:space="preserve"><value>Status der lokalen Einstellungen</value></data>
+  <data name="DiagnosticsWindow_RecentEvents" xml:space="preserve"><value>Letzte Diagnoseereignisse</value></data>
+  <data name="DiagnosticsWindow_CopySummary" xml:space="preserve"><value>Übersicht kopieren</value></data>
+  <data name="DiagnosticsWindow_OpenLogs" xml:space="preserve"><value>Protokolle öffnen</value></data>
+  <data name="DiagnosticsWindow_StateMissing" xml:space="preserve"><value>Datei fehlt; Standardwerte aktiv</value></data>
+  <data name="DiagnosticsWindow_StateLoaded" xml:space="preserve"><value>Geladen</value></data>
+  <data name="DiagnosticsWindow_StateRecovered" xml:space="preserve"><value>Beschädigte Datei gesichert; Standardwerte aktiv</value></data>
+  <data name="DiagnosticsWindow_StateMemoryOnly" xml:space="preserve"><value>Sicherung fehlgeschlagen; Standardwerte nur im Speicher</value></data>
+  <data name="DiagnosticsWindow_StateSaveFailed" xml:space="preserve"><value>Speichern fehlgeschlagen</value></data>
+  <data name="Help_ProductivityCommands" xml:space="preserve"><value>&#xA;  AK_SELECTSIMILAR – wählt ähnliche intelligente Elemente&#xA;  AK_EXPORTCSV     – exportiert eine Fertigungsliste als CSV&#xA;  AK_DIAGNOSTICS   – zeigt eine Diagnoseübersicht</value></data>
+  <data name="DiagnosticsLevel_Information" xml:space="preserve"><value>Information</value></data>
+  <data name="DiagnosticsLevel_Warning" xml:space="preserve"><value>Warnung</value></data>
+  <data name="DiagnosticsLevel_Error" xml:space="preserve"><value>Fehler</value></data>
+  <data name="DiagnosticsEvent_SubjectApplicationLanguage" xml:space="preserve"><value>Anwendungssprache</value></data>
+  <data name="DiagnosticsEvent_SubjectSettingsUiPreferences" xml:space="preserve"><value>Einstellungen der Benutzeroberfläche</value></data>
+  <data name="DiagnosticsEvent_SubjectLayerProfile" xml:space="preserve"><value>Layerprofil</value></data>
+  <data name="DiagnosticsEvent_SubjectTimberDefaults" xml:space="preserve"><value>Standardwerte der Holzbauteile</value></data>
+  <data name="DiagnosticsEvent_SubjectCustomElementDefinitions" xml:space="preserve"><value>Definitionen benutzerdefinierter Bauteile</value></data>
+  <data name="DiagnosticsEvent_ActionSaved" xml:space="preserve"><value>Gespeichert</value></data>
 </root>

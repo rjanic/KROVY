@@ -48,6 +48,7 @@
   <data name="Command_Labels_RefreshFailedFormat" xml:space="preserve"><value>&#xA;The label for element {0} was not created or refreshed: {1}</value></data>
   <data name="Command_Edit_Prompt" xml:space="preserve"><value>&#xA;Select smart roof-framing elements to edit: </value></data>
   <data name="Command_Edit_NoData" xml:space="preserve"><value>&#xA;The selected object has no ACAD KROVY data. Use AK_ASSIGN or an element-type icon first.</value></data>
+  <data name="Command_Edit_NoChanges" xml:space="preserve"><value>&#xA;ACAD KROVY: no change was selected.</value></data>
   <data name="Command_Edit_TitleSingleFormat" xml:space="preserve"><value>ACAD KROVY – edit element – {0} – {1}</value></data>
   <data name="Command_Edit_TitleMultipleFormat" xml:space="preserve"><value>ACAD KROVY – edit {0} elements</value></data>
   <data name="Command_Edit_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: elements updated: {0}. Skipped: {1}.</value></data>
@@ -333,4 +334,80 @@
   <data name="SettingsAnnotationPreset_DimensionsWithItemCircle" xml:space="preserve"><value>Dimensions and item in circle</value></data>
   <data name="SettingsAnnotationPreset_DimensionsWithItemRectangle" xml:space="preserve"><value>Dimensions and item in rectangle</value></data>
   <data name="SettingsAnnotationPreset_DimensionsWithItemSlot" xml:space="preserve"><value>Dimensions and item in slot</value></data>
+  <data name="Common_Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Common_Close" xml:space="preserve"><value>Close</value></data>
+  <data name="Common_Unknown" xml:space="preserve"><value>Unknown</value></data>
+  <data name="Command_UnexpectedFailure" xml:space="preserve"><value>&#xA;ACAD KROVY: the command failed. Details are available in the diagnostic log.</value></data>
+  <data name="SelectSimilarWindow_Title" xml:space="preserve"><value>ACAD KROVY – select similar</value></data>
+  <data name="SelectSimilarWindow_Heading" xml:space="preserve"><value>Similarity criteria</value></data>
+  <data name="SelectSimilarWindow_Description" xml:space="preserve"><value>Select the properties that must match the sample element.</value></data>
+  <data name="SelectSimilarWindow_ElementType" xml:space="preserve"><value>Element type</value></data>
+  <data name="SelectSimilarWindow_CrossSection" xml:space="preserve"><value>Cross-section (width × height)</value></data>
+  <data name="SelectSimilarWindow_Material" xml:space="preserve"><value>Material</value></data>
+  <data name="SelectSimilarWindow_ElementId" xml:space="preserve"><value>Item number</value></data>
+  <data name="SelectSimilarWindow_CuttingLength" xml:space="preserve"><value>Cutting length</value></data>
+  <data name="SelectSimilarWindow_CustomDefinition" xml:space="preserve"><value>Custom definition</value></data>
+  <data name="SelectSimilarWindow_ToleranceMm" xml:space="preserve"><value>Cutting-length tolerance [mm]</value></data>
+  <data name="SelectSimilarWindow_InvalidTolerance" xml:space="preserve"><value>Enter a nonnegative number.</value></data>
+  <data name="SelectSimilarWindow_Select" xml:space="preserve"><value>Select</value></data>
+  <data name="Command_SelectSimilar_PromptSeed" xml:space="preserve"><value>&#xA;Select one smart timber element as the sample: </value></data>
+  <data name="Command_SelectSimilar_SelectOne" xml:space="preserve"><value>&#xA;ACAD KROVY: select exactly one sample element.</value></data>
+  <data name="Command_SelectSimilar_InvalidSeed" xml:space="preserve"><value>&#xA;ACAD KROVY: the selected object is not a valid smart timber element.</value></data>
+  <data name="Command_SelectSimilar_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: similar elements selected: {0}.</value></data>
+  <data name="CsvExportWindow_Title" xml:space="preserve"><value>ACAD KROVY – CSV export</value></data>
+  <data name="CsvExportWindow_Heading" xml:space="preserve"><value>Export manufacturing schedule</value></data>
+  <data name="CsvExportWindow_Description" xml:space="preserve"><value>Select the element source and CSV output mode.</value></data>
+  <data name="CsvExportWindow_Source" xml:space="preserve"><value>Source</value></data>
+  <data name="CsvExportWindow_PickFirstFormat" xml:space="preserve"><value>Current selection ({0} objects)</value></data>
+  <data name="CsvExportWindow_ManualSelection" xml:space="preserve"><value>Select objects in AutoCAD</value></data>
+  <data name="CsvExportWindow_ModelSpace" xml:space="preserve"><value>Entire model space</value></data>
+  <data name="CsvExportWindow_Mode" xml:space="preserve"><value>Mode</value></data>
+  <data name="CsvExportWindow_Individual" xml:space="preserve"><value>Individual elements</value></data>
+  <data name="CsvExportWindow_Summarized" xml:space="preserve"><value>Summarized schedule</value></data>
+  <data name="CsvExportWindow_Continue" xml:space="preserve"><value>Continue</value></data>
+  <data name="Command_ExportCsv_PromptSelection" xml:space="preserve"><value>&#xA;Select objects for CSV export: </value></data>
+  <data name="Command_ExportCsv_NoValidElements" xml:space="preserve"><value>&#xA;ACAD KROVY: no valid smart elements were found for export.</value></data>
+  <data name="Command_ExportCsv_WriteFailedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: the CSV file could not be written. {0}</value></data>
+  <data name="Command_ExportCsv_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: CSV created: {0}. Rows: {1}, skipped objects: {2}.</value></data>
+  <data name="CsvExport_SaveDialogTitle" xml:space="preserve"><value>Save ACAD KROVY schedule as CSV</value></data>
+  <data name="CsvExport_SaveDialogFilter" xml:space="preserve"><value>CSV files (*.csv)|*.csv</value></data>
+  <data name="Csv_Header_ElementId" xml:space="preserve"><value>Item</value></data>
+  <data name="Csv_Header_ElementType" xml:space="preserve"><value>Element type</value></data>
+  <data name="Csv_Header_Material" xml:space="preserve"><value>Material</value></data>
+  <data name="Csv_Header_WidthMm" xml:space="preserve"><value>Width [mm]</value></data>
+  <data name="Csv_Header_HeightMm" xml:space="preserve"><value>Height [mm]</value></data>
+  <data name="Csv_Header_CuttingLengthMm" xml:space="preserve"><value>Cutting length [mm]</value></data>
+  <data name="Csv_Header_Quantity" xml:space="preserve"><value>Quantity [pcs]</value></data>
+  <data name="Csv_Header_TotalLengthM" xml:space="preserve"><value>Total length [m]</value></data>
+  <data name="Csv_Header_VolumeM3" xml:space="preserve"><value>Volume [m³]</value></data>
+  <data name="Csv_Header_Note" xml:space="preserve"><value>Note</value></data>
+  <data name="DiagnosticsWindow_Title" xml:space="preserve"><value>ACAD KROVY – diagnostics</value></data>
+  <data name="DiagnosticsWindow_Heading" xml:space="preserve"><value>Diagnostic information</value></data>
+  <data name="DiagnosticsWindow_Description" xml:space="preserve"><value>Technical application summary without drawing content or geometry.</value></data>
+  <data name="DiagnosticsWindow_ProductVersion" xml:space="preserve"><value>Product version</value></data>
+  <data name="DiagnosticsWindow_MetadataSchema" xml:space="preserve"><value>Metadata schema</value></data>
+  <data name="DiagnosticsWindow_LayerProfileSchema" xml:space="preserve"><value>Layer profile schema</value></data>
+  <data name="DiagnosticsWindow_Host" xml:space="preserve"><value>CAD host</value></data>
+  <data name="DiagnosticsWindow_Runtime" xml:space="preserve"><value>Runtime</value></data>
+  <data name="DiagnosticsWindow_Language" xml:space="preserve"><value>Language and culture</value></data>
+  <data name="DiagnosticsWindow_LogPath" xml:space="preserve"><value>Log folder</value></data>
+  <data name="DiagnosticsWindow_SettingsStates" xml:space="preserve"><value>Local settings status</value></data>
+  <data name="DiagnosticsWindow_RecentEvents" xml:space="preserve"><value>Recent diagnostic events</value></data>
+  <data name="DiagnosticsWindow_CopySummary" xml:space="preserve"><value>Copy summary</value></data>
+  <data name="DiagnosticsWindow_OpenLogs" xml:space="preserve"><value>Open logs</value></data>
+  <data name="DiagnosticsWindow_StateMissing" xml:space="preserve"><value>File missing; defaults active</value></data>
+  <data name="DiagnosticsWindow_StateLoaded" xml:space="preserve"><value>Loaded</value></data>
+  <data name="DiagnosticsWindow_StateRecovered" xml:space="preserve"><value>Corrupt file backed up; defaults active</value></data>
+  <data name="DiagnosticsWindow_StateMemoryOnly" xml:space="preserve"><value>Backup failed; defaults are memory-only</value></data>
+  <data name="DiagnosticsWindow_StateSaveFailed" xml:space="preserve"><value>Save failed</value></data>
+  <data name="Help_ProductivityCommands" xml:space="preserve"><value>&#xA;  AK_SELECTSIMILAR – selects similar smart elements&#xA;  AK_EXPORTCSV     – exports a manufacturing schedule to CSV&#xA;  AK_DIAGNOSTICS   – displays a diagnostic summary</value></data>
+  <data name="DiagnosticsLevel_Information" xml:space="preserve"><value>Information</value></data>
+  <data name="DiagnosticsLevel_Warning" xml:space="preserve"><value>Warning</value></data>
+  <data name="DiagnosticsLevel_Error" xml:space="preserve"><value>Error</value></data>
+  <data name="DiagnosticsEvent_SubjectApplicationLanguage" xml:space="preserve"><value>Application language</value></data>
+  <data name="DiagnosticsEvent_SubjectSettingsUiPreferences" xml:space="preserve"><value>Settings UI preferences</value></data>
+  <data name="DiagnosticsEvent_SubjectLayerProfile" xml:space="preserve"><value>Layer profile</value></data>
+  <data name="DiagnosticsEvent_SubjectTimberDefaults" xml:space="preserve"><value>Timber defaults</value></data>
+  <data name="DiagnosticsEvent_SubjectCustomElementDefinitions" xml:space="preserve"><value>Custom element definitions</value></data>
+  <data name="DiagnosticsEvent_ActionSaved" xml:space="preserve"><value>Saved</value></data>
 </root>

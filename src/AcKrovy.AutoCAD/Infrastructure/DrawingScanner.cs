@@ -6,6 +6,10 @@ namespace AcKrovy.AutoCAD.Infrastructure;
 
 internal static class DrawingScanner
 {
+    public sealed record TimberElementScanItem(
+        ObjectId ObjectId,
+        TimberElementSnapshot Snapshot);
+
     public static IReadOnlyList<ObjectId> FindAllTimberElements(
         Database database,
         Transaction transaction,
@@ -37,6 +41,33 @@ internal static class DrawingScanner
             {
                 result.Add(id);
             }
+        }
+
+        return result;
+    }
+
+    public static IReadOnlyList<TimberElementScanItem> ReadAllTimberElements(
+        Database database,
+        Transaction transaction,
+        ITimberElementMetadataStore<Entity> metadataStore)
+    {
+        var result = new List<TimberElementScanItem>();
+        foreach (var id in FindAllTimberElements(database, transaction, metadataStore))
+        {
+            if (!AutoCadObjectIdAccess.TryGetObject<Entity>(
+                    transaction,
+                    id,
+                    OpenMode.ForRead,
+                    out var entity,
+                    database) ||
+                entity is null ||
+                !AutoCadEntityReader.TryReadTimberElement(entity, metadataStore, out var snapshot) ||
+                snapshot is null)
+            {
+                continue;
+            }
+
+            result.Add(new TimberElementScanItem(id, snapshot));
         }
 
         return result;

@@ -15,6 +15,7 @@ $repoRoot = Split-Path -Parent $PSScriptRoot
 $coreProject = Join-Path $repoRoot "src/AcKrovy.Core/AcKrovy.Core.csproj"
 $abstractionsProject = Join-Path $repoRoot "src/AcKrovy.Cad.Abstractions/AcKrovy.Cad.Abstractions.csproj"
 $localizationProject = Join-Path $repoRoot "src/AcKrovy.Localization/AcKrovy.Localization.csproj"
+$infrastructureProject = Join-Path $repoRoot "src/AcKrovy.Infrastructure/AcKrovy.Infrastructure.csproj"
 $testsProject = Join-Path $repoRoot "src/AcKrovy.Core.Tests/AcKrovy.Core.Tests.csproj"
 $solution = Join-Path $repoRoot "AcKrovy.sln"
 $buildMetadata = Join-Path $repoRoot "Directory.Build.props"
@@ -153,9 +154,11 @@ function Invoke-ArchitectureChecks {
     Assert-NoForbiddenProjectReferences $coreProject "AcKrovy.Core"
     Assert-NoForbiddenProjectReferences $abstractionsProject "AcKrovy.Cad.Abstractions"
     Assert-NoForbiddenProjectReferences $localizationProject "AcKrovy.Localization" $forbiddenCadReferences
+    Assert-NoForbiddenProjectReferences $infrastructureProject "AcKrovy.Infrastructure"
     Assert-NoForbiddenSourceDependencies (Join-Path $repoRoot "src/AcKrovy.Core") "AcKrovy.Core"
     Assert-NoForbiddenSourceDependencies (Join-Path $repoRoot "src/AcKrovy.Cad.Abstractions") "AcKrovy.Cad.Abstractions"
     Assert-NoForbiddenSourceDependencies (Join-Path $repoRoot "src/AcKrovy.Localization") "AcKrovy.Localization" $forbiddenCadSourcePatterns
+    Assert-NoForbiddenSourceDependencies (Join-Path $repoRoot "src/AcKrovy.Infrastructure") "AcKrovy.Infrastructure"
     Pass-Step "Architecture dependency rules"
 }
 
@@ -189,6 +192,9 @@ function Invoke-PortableGate {
 
     Invoke-CheckedCommand "AcKrovy.Localization restore" "dotnet" @("restore", $localizationProject)
     Invoke-CheckedCommand "AcKrovy.Localization build warnings-as-errors" "dotnet" @("build", $localizationProject, "--no-restore", "-warnaserror")
+
+    Invoke-CheckedCommand "AcKrovy.Infrastructure restore" "dotnet" @("restore", $infrastructureProject)
+    Invoke-CheckedCommand "AcKrovy.Infrastructure build warnings-as-errors" "dotnet" @("build", $infrastructureProject, "--no-restore", "-warnaserror")
 
     Invoke-CheckedCommand "AcKrovy.Core.Tests restore" "dotnet" @("restore", $testsProject)
     Invoke-CheckedCommand "Automated tests" "dotnet" @("test", $testsProject, "--no-restore", "-warnaserror")

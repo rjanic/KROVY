@@ -1,21 +1,16 @@
 # ACAD KROVY – BACKLOG
 
-**Aktualizované:** 25. 7. 2026
-**Stabilný základ pred v0.17.0:** `b4833746dc0b66a2c22ecdebb4f6f048877c75fe`
+**Aktualizované:** 26. 7. 2026
+**Stabilný commit v0.18.0:** `46ad0cfe555f9f3177de2d47d13bdda33d9a91a0`
 
 > Tento súbor je úplný zásobník nápadov. Poradie realizácie určuje `ACAD_KROVY_ROADMAP.md`.
 
 ## A. Produktivita
 
-### Select Similar / filtre
-- typ,
-- prierez,
-- materiál,
-- ElementId,
-- item number,
-- dĺžka,
-- chyby,
-- chýbajúce metadata.
+### Select Similar / filtre — dokončené vo v0.19.0
+- `AK_SELECTSIMILAR`: typ, neotáčaný prierez, canonical materiál, ElementId,
+  CuttingLength s toleranciou a CustomElementTypeId,
+- read-only model-space scan, implied selection a bezpečné missing/invalid metadata.
 
 ### Prepojenie report ↔ DWG
 - riadok reportu zvýrazní prvky,
@@ -23,9 +18,10 @@
 
 ## B. Exporty a výkazy
 
-### CSV
-- výber alebo celý DWG,
-- individual/summarized rows.
+### CSV — dokončené vo v0.19.0
+- PickFirst, ručný výber alebo celý model space,
+- individual/summarized rows, UTF-8 BOM, `;`, CRLF, lokalizované hlavičky,
+  kultúrne desatinné čísla a bezpečný zápis.
 
 ### XLSX
 
@@ -46,7 +42,9 @@
 - hotové: `FullLabel`, `ItemNumberLeader` a `DimensionsLeader`,
 - hotové: `Plain`, `Circle`, `Slot` a `Rectangle`,
 - hotové: rámčekové natívne Spline MLeadery s BlockContent/ITEM_NO,
-  insertion-point attachmentom, uhlom 40° a offsetom 350 mm,
+  insertion-point attachmentom a prvým segmentom 60°,
+- hotové: NoAnnotations a combined framed Circle/Rectangle/Slot s
+  `LandingDistance = 350 mm`,
 - hotové: persistentný lokálny framed offset po STRETCH, default pre nové prvky,
   explicitné použitie na výber/všetky, Post/Custom, COPY/COPYCLIP/WBLOCK a live refresh,
 - budúce: reset manuálneho offsetu, výber `80x160`/`80/160` a annotation scale.
@@ -168,21 +166,17 @@ Budúce: Follow AutoCAD theme až po potvrdení stabilného verejného API kontr
 Pravidlo:
 Core zostáva bez konkrétneho CAD API.
 
-## H. Diagnostika
+## H. Diagnostika — dokončené vo v0.19.0
 
 ### Logging
-- `%APPDATA%\ACAD_KROVY\logs`,
-- stack trace,
-- verzia,
-- príkaz,
-- čas.
+- `%LOCALAPPDATA%\ACAD_KROVY\Logs`,
+- denný log, 5 MB, 14 dní, stack trace, verzia, príkaz, čas a sanitizácia.
 
-### `AK_DIAGNOSTICS`
+### `AK_DIAGNOSTICS` — dokončené
 
-### Corrupt settings handling
-- `.corrupt` backup,
-- safe defaults,
-- informovanie používateľa.
+### Corrupt settings handling — dokončené
+- `.corrupt.<yyyyMMdd-HHmmss>.json` backup pre všetkých päť lokálnych JSON stores,
+- safe defaults; pri zlyhaní zálohy iba v pamäti a bez prepísania originálu.
 
 ## I. Inštalácia a distribúcia
 
@@ -222,6 +216,13 @@ Priebežne:
 - runtime localization audit.
 
 ## M. Dokončené položky, ktoré už nie sú otvorený backlog
+
+### Productivity & Reliability v0.19.0
+- `AK_SELECTSIMILAR`, CAD-neutrálny filter a read-only model-space selection,
+- `AK_EXPORTCSV`, individual/summarized Core CSV formatter a bezpečný zápis,
+- thread-safe diagnostické logy, `AK_DIAGNOSTICS` a corrupt-settings recovery,
+- všetkých šesť jazykov a Light/Dark WPF smoke testy,
+- produkčný adapter zostáva AutoCAD 2027-only; metadata schema 4 a layer profile 3.
 
 ### Linetype settings v0.17.0
 - per-type `LinetypeName` a `LinetypeScale` v layer profile v3,

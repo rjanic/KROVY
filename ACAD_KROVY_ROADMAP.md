@@ -1,7 +1,8 @@
 # ACAD KROVY – ROADMAP
 
-**Aktualizované:** 25. 7. 2026
-**Stabilný základ pred v0.17.0:** `b4833746dc0b66a2c22ecdebb4f6f048877c75fe`
+**Aktualizované:** 27. 7. 2026
+**Predchádzajúci stabilný commit v0.18.0:** `46ad0cfe555f9f3177de2d47d13bdda33d9a91a0`
+**Aktuálny míľnik:** v0.19.0 „Productivity & Reliability“, dokončený a manuálne overený
 
 Tento dokument určuje odporúčané poradie ďalšieho vývoja. Úplný zásobník nápadov je v `ACAD_KROVY_BACKLOG.md`.
 
@@ -23,38 +24,25 @@ Pri budúcom About okne použiť existujúci version provider, nie nový literal
 - aktualizuje XData položkové označenie a existujúce labely v jednej transakcii,
 - bežné automatické číslovanie zostáva stabilné a medzery nekompaktuje.
 
-## 3. Select Similar / filtre
-Výber podľa:
-- typu,
-- prierezu,
-- materiálu,
-- ElementId / výrobnej položky,
-- označenia,
-- dĺžky,
-- chybných alebo neúplných dát.
+## 3. Select Similar / filtre — DOKONČENÉ VO v0.19.0
+- `AK_SELECTSIMILAR` filtruje typ, neotáčaný prierez, canonical materiál,
+  ElementId, CuttingLength s nezápornou toleranciou a Custom ID,
+- CAD-neutrálny filter bezpečne odmieta chýbajúce alebo neplatné metadata,
+- AutoCAD adapter iba read-only skenuje model space a nastaví implied selection.
 
-Neskôr prepojiť s reportom.
+## 4. CSV export — DOKONČENÉ VO v0.19.0
+- `AK_EXPORTCSV` podporuje PickFirst, ručný výber a celý model space,
+- Individual a Summarized používajú typované dáta a `TimberReportBuilder`,
+- UTF-8 BOM, `;`, CRLF, CSV escaping, lokalizované hlavičky a aplikačná kultúra,
+- bezpečný dočasný zápis a štandardné potvrdenie prepísania; bez zmeny DWG.
 
-## 4. CSV export
-- výber alebo celý DWG,
-- položka,
-- typ,
-- materiál,
-- rozmery,
-- actual length,
-- cutting length,
-- množstvo,
-- celková dĺžka,
-- kubatúra.
-
-Report/export model držať v Core.
-
-## 5. Diagnostika a servis
-- logy do `%APPDATA%\ACAD_KROVY\logs`,
-- čas, verzia, príkaz, stack trace,
-- bezpečné spracovanie poškodených settings,
-- `.corrupt` záloha,
-- `AK_DIAGNOSTICS`.
+## 5. Diagnostika a servis — DOKONČENÉ VO v0.19.0
+- logy v `%LOCALAPPDATA%\ACAD_KROVY\Logs`, denne, najviac 5 MB na súbor,
+  retencia 14 dní a bezpečné čistenie,
+- `AK_DIAGNOSTICS` zobrazuje verzie, hostiteľa/runtime, jazyk, settings stavy
+  a posledné udalosti,
+- všetkých päť lokálnych JSON stores používa `.corrupt` recovery; ak záloha
+  zlyhá, originál sa neprepíše a defaults zostanú iba v pamäti.
 
 # FÁZA B – PREZENTAČNÉ A VÝKRESOVÉ NASTAVENIA
 
@@ -101,10 +89,10 @@ Preferovať CAD text styles.
 Poznámka:
 V používateľskom PDF je pri bode o písme uvedené „default pre všetko 1:50“. Roadmap to interpretuje ako default mierky 1:50. Potrebné neskôr potvrdiť.
 
-## v0.18.0 – Settings Fashion Look — IMPLEMENTOVANÉ
+## 9. v0.18.0 – Settings Fashion Look — IMPLEMENTOVANÉ
 - centralizované Light/Dark ResourceDictionary, dizajnové tokeny a reusable styles,
 - moderná ľavá navigácia so stabilnými section ID a vektorovými ikonami,
-- resizable 1180 × 720 okno, minimum 980 × 620, wrapping, DPI a keyboard focus,
+- resizable 1500 × 900 okno, minimum 1250 × 720, wrapping, DPI a keyboard focus,
 - plná ACI paleta 1–255 s popup pickerom, priamym indexom a preview,
 - moderná layer tabuľka s read-only hydration a idempotentným suffix reuse/create,
 - presne 10 embedded PNG annotation presetov (5 × 2), NoAnnotations a oddelené
@@ -117,12 +105,14 @@ V používateľskom PDF je pri bode o písme uvedené „default pre všetko 1:5
 Automatický Follow AutoCAD režim zostáva budúce rozšírenie, kým nebude
 potvrdený stabilný verejný hostiteľský theme kontrakt.
 
-## 9. Režimy kótovania a popisov — DOKONČENÉ VO v0.16.0
+## 10. Režimy kótovania a popisov — DOKONČENÉ VO v0.16.0
 - `FullLabel`: pôvodný automatický MText,
 - `ItemNumberLeader`: natívny MLeader iba s položkou, napr. `K1`,
 - `ItemNumberLeader` podporuje `Plain`, `Circle`, `Slot` a `Rectangle`,
 - Circle/Slot/Rectangle používajú natívny Spline MLeader s BlockContent,
-  atribútom `ITEM_NO`, insertion-point attachmentom, uhlom 40° a offsetom 350 mm,
+  atribútom `ITEM_NO`, insertion-point attachmentom a prvým segmentom 60°,
+- hotové: `NoAnnotations` a combined framed `DimensionsWithItemNumber`
+  (`Circle`, `Rectangle`, `Slot`) s `LandingDistance = 350 mm`,
 - ručne posunutá rámčeková anotácia zachováva lokálny offset pri refreshi,
   AK_RENUMBER a zmenách source geometrie,
 - `DimensionsLeader`: rovnaká natívna MLeader reprezentácia iba s prierezom `80x160`,
@@ -133,7 +123,7 @@ potvrdený stabilný verejný hostiteľský theme kontrakt.
 Budúce rozšírenie: voliteľný formát rozmerov `80/160`, reset manuálneho
 rámčekového offsetu a mierka anotácií.
 
-## 10. Vlastný používateľský prvok / Custom Element — DOKONČENÉ
+## 11. Vlastný používateľský prvok / Custom Element — DOKONČENÉ
 - `AK_CUSTOM` pre lineárne LINE/LWPOLYLINE,
 - stabilné Custom ID, persistentný používateľský názov a validovaný prefix,
 - self-contained schema v3 metadata plus opakovane použiteľný AppData katalóg,
@@ -147,14 +137,14 @@ Budúce rozšírenia: samostatný správca definícií a per-definition layer/li
 
 # FÁZA C – KOMPATIBILITNÝ CHECKPOINT
 
-## 11. AutoCAD 2021–2027 Compatibility Milestone
+## 12. AutoCAD 2021–2027 Compatibility Milestone
 - build/package stratégia,
 - API rozdiely,
 - smoke test na podporovaných verziách,
 - autoloader manifesty,
 - rozšírenie Compatibility Gate.
 
-## 12. BricsCAD Proof of Concept
+## 13. BricsCAD Proof of Concept
 Minimálne:
 - načítanie pluginu,
 - XData metadata,
@@ -169,7 +159,7 @@ overiť abstractions pred veľkým roof automation modulom.
 
 # FÁZA D – AUTOMATICKÁ GEOMETRIA STRECHY
 
-## 13. Roof Domain Foundation
+## 14. Roof Domain Foundation
 Pracovný príkaz:
 `AK_ROOF`
 
@@ -184,7 +174,7 @@ CAD-neutrálne modely:
 - sklon,
 - `RoofPlaneId`.
 
-## 14. Automatické vytvorenie strechy zadaním bodov
+## 15. Automatické vytvorenie strechy zadaním bodov
 Používateľ:
 - zadá body obrysu,
 - zvolí typ strechy cez názov a ikonku.
@@ -207,13 +197,13 @@ Typy podľa PDF:
 UI:
 ikonky podobné referencii v PDF.
 
-## 15. Strešné roviny
+## 16. Strešné roviny
 - výber konkrétnej strešnej roviny,
 - stabilný `RoofPlaneId`,
 - sklon,
 - použitie ako vstup pre automatické krokvy.
 
-## 16. Automatické kreslenie krokiev
+## 17. Automatické kreslenie krokiev
 Tri režimy:
 
 ### A. Začiatok prvej krokvy + rozostup
@@ -224,16 +214,16 @@ Tri režimy:
 
 Výsledné krokvy majú byť okamžite inteligentné prvky.
 
-## 17. Nárožné a údolnicové krokvy
+## 18. Nárožné a údolnicové krokvy
 - automatické alebo asistované vytvorenie,
 - skutočná dĺžka podľa strešných rovín,
 - report a numbering.
 
-## 18. True-width zobrazenie prvkov
+## 19. True-width zobrazenie prvkov
 - obdĺžnik/obrys okolo centerline podľa šírky prvku,
 - oddeliť nosnú centerline geometriu od prezentačného obrysu.
 
-## 19. Automatický trim / vizuálne prekrytie
+## 20. Automatický trim / vizuálne prekrytie
 - vizuálne orezanie prezentačných obrysov,
 - hlavne pri prvkoch pod krokvami a pri krížení.
 
@@ -241,46 +231,46 @@ Implementovať až po stabilnom true-width systéme.
 
 # FÁZA E – VÝKAZY A PRODUKČNÉ VÝSTUPY
 
-## 20. XLSX export
+## 21. XLSX export
 
-## 21. PDF výrobný výkaz
+## 22. PDF výrobný výkaz
 
-## 22. Prepojenie reportu s výkresom
+## 23. Prepojenie reportu s výkresom
 - riadok reportu → zvýrazniť prvky,
 - prvok → nájsť reportovú položku.
 
-## 23. Používateľské šablóny výstupov
+## 24. Používateľské šablóny výstupov
 - voliteľné stĺpce,
 - poradie,
 - firemné šablóny.
 
 # FÁZA F – INTERNACIONALIZÁCIA A PRODUKTIZÁCIA
 
-## 24. Material catalog — DOKONČENÉ
+## 25. Material catalog — DOKONČENÉ
 - šesť stabilných canonical material hodnôt,
 - lokalizované display názvy pre SK/CS/EN/DE/PL/FR,
 - výber cez `AK_EDIT` bez lokalizovaných textov v metadata alebo signatúre,
 - neznáme legacy hodnoty sa zachovávajú bez migrácie,
 - lokalizované `AK_INSPECT` a adaptívne dvojriadkové reporty.
 
-## 25. Default jazyk pri prvom spustení
+## 26. Default jazyk pri prvom spustení
 Odporúčanie:
 1. zistiť Windows UI language,
 2. ak je podporovaný, použiť ho,
 3. inak fallback EN.
 
-## 26. Default vrstvy pre nové inštalácie
+## 27. Default vrstvy pre nové inštalácie
 - neutrálne alebo EN názvy,
 - existujúce DWG nikdy automaticky nepremenovávať.
 
-## 27. Jednotkové systémy
+## 28. Jednotkové systémy
 - Metric
 - US
 - GB
 
 Interná kanonická geometria zostáva jednoznačná. Jazyk UI a jednotkový systém sú oddelené.
 
-## 28. Medzinárodný názov produktu
+## 29. Medzinárodný názov produktu
 Pracovný návrh:
 `RoofCAD`
 
@@ -294,19 +284,19 @@ Rebranding nesmie meniť historické metadata ani `AK_...` commands.
 
 # FÁZA G – DISTRIBÚCIA A PODPORA
 
-## 29. AutoCAD Autoloader `.bundle`
+## 30. AutoCAD Autoloader `.bundle`
 - odstrániť ručný NETLOAD,
 - PackageContents,
 - verzovanie,
 - podporované AutoCAD verzie.
 
-## 30. Inštalátor
+## 31. Inštalátor
 - install,
 - upgrade,
 - uninstall,
 - zachovanie settings.
 
-## 31. Video návody priamo v programe
+## 32. Video návody priamo v programe
 Požiadavka z PDF:
 - video pre každú hlavnú funkciu,
 - Help/Video action priamo v UI.
@@ -315,9 +305,9 @@ Realizovať až keď sa hlavné workflow prestanú výrazne meniť.
 
 # FÁZA H – ĎALŠIE CAD PLATFORMY
 
-## 32. BricsCAD plný adapter
+## 33. BricsCAD plný adapter
 
-## 33. ZWCAD Proof of Concept + adapter
+## 34. ZWCAD Proof of Concept + adapter
 
 # FÁZA I – PRIEBEŽNÝ TECHNICKÝ DLH
 
@@ -332,23 +322,12 @@ Priebežne pri dotyku s danou oblasťou:
 
 # ODPORÚČANÉ NAJBLIŽŠIE PORADIE
 
-1. Select Similar / filtre
-2. CSV export
-3. Diagnostika/logovanie
-4. Annotation scale
-5. Fonts/text styles
-6. AutoCAD 2021–2027 compatibility checkpoint
-7. BricsCAD PoC
-8. Roof Domain Foundation
-9. Automatic roof from points + roof types
-10. Roof planes
-11. Automatic rafters
-12. Hip/valley rafters
-13. True-width element outlines
-17. Automatic visual trim
-18. XLSX/PDF/report linking
-19. Internationalization/productization
-20. Autoloader + installer
-21. Video tutorials
-22. BricsCAD full adapter
-23. ZWCAD adapter
+1. AutoCAD 2021–2027 compatibility checkpoint.
+2. BricsCAD PoC.
+3. Samostatne rozhodnúť o annotation scale a text styles.
+4. Roof Domain Foundation.
+5. Automatická strecha z bodov a strešné roviny.
+6. Automatické, nárožné a údolnicové krokvy.
+7. True-width a automatický vizuálny trim.
+8. XLSX/PDF/report linking.
+9. Internacionalizácia, distribúcia a ďalšie CAD adaptéry.

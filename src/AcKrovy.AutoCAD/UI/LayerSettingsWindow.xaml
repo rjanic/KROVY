@@ -487,7 +487,8 @@
                             <ListBox x:Name="LanguageSelector"
                                      ItemsSource="{Binding LanguageOptions}"
                                      SelectedValuePath="Code"
-                                     SelectedValue="{Binding SelectedLanguageCode, Mode=TwoWay}"
+                                     SelectedValue="{Binding SelectedLanguageCode, Mode=OneWay}"
+                                     SelectionChanged="LanguageSelector_SelectionChanged"
                                      Background="Transparent"
                                      BorderThickness="0"
                                      ItemContainerStyle="{StaticResource SettingsLanguageCardItemStyle}">

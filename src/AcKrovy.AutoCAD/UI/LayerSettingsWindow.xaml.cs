@@ -8,8 +8,6 @@ using System.Windows.Controls;
 using System.Windows.Threading;
 using WpfMessageBox = System.Windows.MessageBox;
 using AcKrovy.Cad.Abstractions.Layers;
-using AcKrovy.AutoCAD.ClassicToolbar;
-using AcKrovy.AutoCAD.Ribbon;
 using AcKrovy.AutoCAD.Settings;
 using AcKrovy.Core.Models;
 using AcKrovy.Core.Services;
@@ -30,6 +28,7 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
     private readonly StatusBannerState _statusBannerState = new();
     private readonly DispatcherTimer _statusBannerTimer;
     private readonly SettingsUiPreferences _loadedUiPreferences;
+    private readonly IApplicationLanguageWorkflow _languageWorkflow;
     private ObservableCollection<LayerColorOption> _colorOptions = [];
     private ObservableCollection<AnnotationModeOption> _annotationModeOptions = [];
     private ObservableCollection<AnnotationPresetOption> _annotationPresetOptions = [];
@@ -44,6 +43,8 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
         SettingsAnnotationPreset.FullLabel;
     private string? _acceptedUiFingerprint;
     private long _statusBannerTimerVersion;
+    private bool _languageSelectionReady;
+    private bool _synchronizingLanguageSelection;
 
     public ObservableCollection<LayerSettingsRow> Rows { get; } = [];
     public ObservableCollection<ElementDefaultSettingsRow> DefaultRows { get; } = [];
@@ -115,7 +116,6 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
             _selectedLanguageCode = normalized;
             OnPropertyChanged();
             UpdateFormState();
-            PreviewLanguage(normalized);
         }
     }
 
@@ -212,9 +212,12 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
         string languageCode,
         IReadOnlyList<string> availableLinetypeNames,
         IReadOnlyList<CadLayerPreset> availableLayerPresets,
-        Func<SettingsApplyRequest, SettingsApplyResponse> applySettings)
+        Func<SettingsApplyRequest, SettingsApplyResponse> applySettings,
+        IApplicationLanguageWorkflow? languageWorkflow = null)
     {
         _applySettings = applySettings ?? throw new ArgumentNullException(nameof(applySettings));
+        _languageWorkflow = languageWorkflow ??
+            AutoCadApplicationLanguageWorkflow.Shared;
         _loadedUiPreferences = SettingsUiPreferencesStore.Load();
         var normalizedDefaultProfile = defaultProfile.Normalize();
         _selectedAnnotationMode = SettingsSelectionRules.NormalizeAnnotationMode(
@@ -250,6 +253,7 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
         };
         _statusBannerTimer.Tick += StatusBannerTimer_Tick;
         AppLanguageService.LanguageChanged += AppLanguageService_LanguageChanged;
+        Loaded += LayerSettingsWindow_Loaded;
         Closed += LayerSettingsWindow_Closed;
         UpdateActionButtons();
         ReplaceRows(profile.Normalize());
@@ -714,33 +718,36 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
         }
     }
 
-    private void PreviewLanguage(string languageCode)
+    private void LayerSettingsWindow_Loaded(object sender, RoutedEventArgs e) =>
+        _languageSelectionReady = true;
+
+    private void LanguageSelector_SelectionChanged(
+        object sender,
+        SelectionChangedEventArgs e)
     {
-        AppLanguageService.Apply(languageCode);
-        try
+        if (!_languageSelectionReady ||
+            _synchronizingLanguageSelection ||
+            LanguageSelector.SelectedValue is not string languageCode)
         {
-            AppLanguageSettingsStore.Save(new AppLanguageSettings
-            {
-                LanguageCode = AppLanguageService.NormalizeLanguageCode(
-                    languageCode),
-            });
-        }
-        catch
-        {
-            // Language preference persistence is UI-only and must never touch
-            // or block the active DWG.
+            return;
         }
 
-        if (!AcKrovyRibbon.RebuildLocalizedUi(activateTab: false))
-        {
-            AcKrovyRibbon.ScheduleCreation();
-        }
-
-        ClassicToolbarManager.RefreshLocalizedContent();
+        SelectedLanguageCode = languageCode;
+        _languageWorkflow.TryApplyUserSelection(languageCode);
     }
 
     private void AppLanguageService_LanguageChanged(object? sender, AppLanguageChangedEventArgs e)
     {
+        _synchronizingLanguageSelection = true;
+        try
+        {
+            SelectedLanguageCode = e.LanguageCode;
+        }
+        finally
+        {
+            _synchronizingLanguageSelection = false;
+        }
+
         _uiCulture = AppLanguageService.CurrentUiCulture;
         RefreshLocalizedSources();
         RefreshLocalizedRowLabels();
@@ -907,6 +914,7 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
         _statusBannerTimer.Stop();
         _statusBannerTimer.Tick -= StatusBannerTimer_Tick;
         AppLanguageService.LanguageChanged -= AppLanguageService_LanguageChanged;
+        Loaded -= LayerSettingsWindow_Loaded;
         Visual.SectionChanged -= Visual_SectionChanged;
         Visual.ThemeChanged -= Visual_ThemeChanged;
         Closed -= LayerSettingsWindow_Closed;

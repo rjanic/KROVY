@@ -1,4 +1,5 @@
 using AcKrovy.AutoCAD.Infrastructure;
+using AcKrovy.AutoCAD.Diagnostics;
 using AcKrovy.AutoCAD.Ribbon;
 using AcKrovy.AutoCAD.ClassicToolbar;
 using AcKrovy.AutoCAD.Settings;
@@ -7,6 +8,9 @@ using AcKrovy.Cad.Abstractions.Layers;
 using AcKrovy.Core.Models;
 using AcKrovy.Core.Services;
 using AcKrovy.Localization;
+using AcKrovy.Infrastructure.Diagnostics;
+using AcKrovy.Infrastructure.IO;
+using AcKrovy.Infrastructure.Settings;
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
@@ -14,6 +18,8 @@ using Autodesk.AutoCAD.Geometry;
 using Autodesk.AutoCAD.Runtime;
 using AcApp = Autodesk.AutoCAD.ApplicationServices.Application;
 using System.Windows.Interop;
+using System.Runtime.InteropServices;
+using Microsoft.Win32;
 
 namespace AcKrovy.AutoCAD.Commands;
 
@@ -144,9 +150,6 @@ public sealed class AcKrovyCommands
                     ElementLayerProfileStore.Save(appliedProfile);
                     TimberElementDefaultProfileStore.Save(request.DefaultProfile);
                 }
-
-                AppLanguageSettingsStore.Save(CreateLanguageSettings(request.LanguageCode));
-                ApplySelectedLanguage(request.LanguageCode);
             }
         }
         catch (System.Exception ex)
@@ -261,30 +264,27 @@ public sealed class AcKrovyCommands
             ReadAvailableLayerPresets(database),
             appliedProfile);
 
-    private static AppLanguageSettings CreateLanguageSettings(string languageCode) => new()
-    {
-        LanguageCode = languageCode,
-    };
+    [CommandMethod(AcKrovyCommandNames.Diagnostics, CommandFlags.Modal)]
+    public void Diagnostics() =>
+        CommandExecutionBoundary.Execute(
+            AcKrovyCommandNames.Diagnostics,
+            ShowDiagnostics);
 
-    private static void ApplySelectedLanguage(string languageCode)
-    {
-        var languageChanged = !string.Equals(
-            AppLanguageService.CurrentLanguageCode,
-            languageCode,
-            StringComparison.Ordinal);
-        if (!languageChanged)
-        {
-            return;
-        }
+    [CommandMethod(
+        AcKrovyCommandNames.SelectSimilar,
+        CommandFlags.Modal | CommandFlags.UsePickSet | CommandFlags.Redraw)]
+    public void SelectSimilar() =>
+        CommandExecutionBoundary.Execute(
+            AcKrovyCommandNames.SelectSimilar,
+            SelectSimilarCore);
 
-        AppLanguageService.Apply(languageCode);
-        if (!AcKrovyRibbon.RebuildLocalizedUi(activateTab: false))
-        {
-            AcKrovyRibbon.ScheduleCreation();
-        }
-
-        ClassicToolbarManager.RefreshLocalizedContent();
-    }
+    [CommandMethod(
+        AcKrovyCommandNames.ExportCsv,
+        CommandFlags.Modal | CommandFlags.UsePickSet)]
+    public void ExportCsv() =>
+        CommandExecutionBoundary.Execute(
+            AcKrovyCommandNames.ExportCsv,
+            ExportCsvCore);
 
     [CommandMethod(AcKrovyCommandNames.ApplyLayers, CommandFlags.Modal)]
     public void ApplyLayers()
@@ -436,9 +436,11 @@ public sealed class AcKrovyCommands
         var document = ActiveDocument();
         var editor = document.Editor;
         var uiCulture = AppLanguageService.CurrentUiCulture;
-        var ids = PromptForEntities(
+        var selection = ResolveEditSelection(
+            document.Database,
             editor,
             UiStrings.GetString("Command_Edit_Prompt", uiCulture));
+        var ids = selection.Ids;
         if (ids.Count == 0)
         {
             return;
@@ -494,18 +496,28 @@ public sealed class AcKrovyCommands
             return;
         }
 
+        if (!TimberElementEditRules.HasRequestedChange(dialog.Patch) &&
+            !dialog.UseDefaultCuttingAllowanceByType &&
+            dialog.RenamedCustomDefinition is null)
+        {
+            editor.WriteMessage(UiStrings.GetString(
+                "Command_Edit_NoChanges",
+                uiCulture));
+            return;
+        }
+
         var layerProfile = ElementLayerProfileStore.Load();
         using var transaction = document.Database.TransactionManager.StartTransaction();
         var metadataStore = new AutoCadTimberElementMetadataStore(transaction);
         var layerService = new AutoCadTimberLayerService(document.Database, transaction, editor);
         var changed = 0;
-        var skipped = 0;
+        var skipped = selection.RejectedImpliedItems;
         var changedIds = new List<ObjectId>();
         var previousElementIdById = new Dictionary<ObjectId, string>();
 
         foreach (var id in ids)
         {
-            if (transaction.GetObject(id, OpenMode.ForWrite) is not Entity entity ||
+            if (transaction.GetObject(id, OpenMode.ForRead) is not Entity entity ||
                 !AutoCadEntityHelpers.IsSupportedTimberGeometry(entity) ||
                 !metadataStore.TryRead(entity, out var original) ||
                 original is null)
@@ -514,10 +526,14 @@ public sealed class AcKrovyCommands
                 continue;
             }
 
-            var merged = TimberElementPatcher.Apply(original, dialog.Patch);
-            if (dialog.UseDefaultCuttingAllowanceByType)
+            if (!TimberElementEditRules.TryCreateEffectiveChange(
+                    original,
+                    dialog.Patch,
+                    dialog.UseDefaultCuttingAllowanceByType,
+                    defaultProfile,
+                    out var merged))
             {
-                merged = TimberElementDefaultApplicator.ApplyCuttingAllowance(merged, defaultProfile);
+                continue;
             }
 
             previousElementIdById.TryAdd(id, original.ElementId);
@@ -558,14 +574,16 @@ public sealed class AcKrovyCommands
             }
         }
 
-        UpdateLabelsForChangedEntities(
-            document.Database,
-            transaction,
-            metadataStore,
-            changedIds.ToList(),
-            previousElementIdById);
-
-        transaction.Commit();
+        if (changedIds.Count > 0)
+        {
+            UpdateLabelsForChangedEntities(
+                document.Database,
+                transaction,
+                metadataStore,
+                changedIds.ToList(),
+                previousElementIdById);
+            transaction.Commit();
+        }
 
         if (dialog.RenamedCustomDefinition is { } catalogRename)
         {
@@ -1259,6 +1277,341 @@ public sealed class AcKrovyCommands
             profile);
     }
 
+    private static void ShowDiagnostics()
+    {
+        _ = AppLanguageSettingsStore.Load();
+        var preferences = SettingsUiPreferencesStore.Load();
+        _ = ElementLayerProfileStore.Load();
+        _ = TimberElementDefaultProfileStore.Load();
+        _ = CustomElementDefinitionCatalogStore.Load();
+
+        var culture = AppLanguageService.CurrentUiCulture;
+        var hostVersion =
+            typeof(AcApp).Assembly.GetName().Version?.ToString() ??
+            UiStrings.GetString("Common_Unknown", culture);
+        var informationRows = new[]
+        {
+            new DiagnosticsInfoRow(
+                UiStrings.GetString("DiagnosticsWindow_ProductVersion", culture),
+                ApplicationVersionProvider.DisplayVersion),
+            new DiagnosticsInfoRow(
+                UiStrings.GetString("DiagnosticsWindow_MetadataSchema", culture),
+                TimberElementDataSchema.CurrentVersion.ToString(culture)),
+            new DiagnosticsInfoRow(
+                UiStrings.GetString("DiagnosticsWindow_LayerProfileSchema", culture),
+                ElementLayerProfile.CurrentVersion.ToString(culture)),
+            new DiagnosticsInfoRow(
+                UiStrings.GetString("DiagnosticsWindow_Host", culture),
+                $"AutoCAD {hostVersion}"),
+            new DiagnosticsInfoRow(
+                UiStrings.GetString("DiagnosticsWindow_Runtime", culture),
+                RuntimeInformation.FrameworkDescription),
+            new DiagnosticsInfoRow(
+                UiStrings.GetString("DiagnosticsWindow_Language", culture),
+                $"{AppLanguageService.CurrentLanguageCode} ({culture.Name})"),
+            new DiagnosticsInfoRow(
+                UiStrings.GetString("DiagnosticsWindow_LogPath", culture),
+                AcKrovyDiagnostics.LogDirectory),
+        };
+
+        var settingsRows = AcKrovyDiagnostics.Settings.GetStatuses()
+            .Select(status => new DiagnosticsInfoRow(
+                status.FileName,
+                LocalizeSettingsState(status, culture)))
+            .ToArray();
+        var events = AcKrovyDiagnostics.Logger.GetRecentEvents(12)
+            .Select(diagnosticEvent =>
+                DiagnosticsRecentEventFormatter.Format(diagnosticEvent, culture))
+            .ToArray();
+        var summary = DiagnosticsSupportSummaryBuilder.Build(
+            informationRows,
+            settingsRows,
+            events,
+            UiStrings.GetString("DiagnosticsWindow_SettingsStates", culture),
+            UiStrings.GetString("DiagnosticsWindow_RecentEvents", culture));
+        AcApp.ShowModalWindow(new DiagnosticsWindow(
+            informationRows,
+            settingsRows,
+            events,
+            summary,
+            AcKrovyDiagnostics.LogDirectory,
+            preferences.Theme));
+    }
+
+    private static string LocalizeSettingsState(
+        SettingsFileStatus status,
+        System.Globalization.CultureInfo culture)
+    {
+        var stateKey = status.State switch
+        {
+            SettingsFileState.Missing => "DiagnosticsWindow_StateMissing",
+            SettingsFileState.Loaded => "DiagnosticsWindow_StateLoaded",
+            SettingsFileState.CorruptBackupCreated => "DiagnosticsWindow_StateRecovered",
+            SettingsFileState.CorruptBackupFailed => "DiagnosticsWindow_StateMemoryOnly",
+            SettingsFileState.SaveFailed => "DiagnosticsWindow_StateSaveFailed",
+            _ => "Common_Unknown",
+        };
+        var state = UiStrings.GetString(stateKey, culture);
+        return string.IsNullOrWhiteSpace(status.BackupFileName)
+            ? state
+            : $"{state} ({status.BackupFileName})";
+    }
+
+    private static void SelectSimilarCore()
+    {
+        var document = ActiveDocument();
+        var editor = document.Editor;
+        var seedId = PromptForSeedEntity(editor);
+        if (seedId.IsNull)
+        {
+            return;
+        }
+
+        TimberElementSnapshot? seed;
+        using (var transaction = document.Database.TransactionManager.StartTransaction())
+        {
+            var metadataStore = new AutoCadTimberElementMetadataStore(transaction);
+            seed = AutoCadObjectIdAccess.TryGetObject<Entity>(
+                    transaction,
+                    seedId,
+                    OpenMode.ForRead,
+                    out var entity,
+                    document.Database) &&
+                entity is not null &&
+                AutoCadEntityReader.TryReadTimberElement(entity, metadataStore, out var snapshot)
+                    ? snapshot
+                    : null;
+        }
+
+        if (seed is null)
+        {
+            editor.WriteMessage(UiStrings.GetString("Command_SelectSimilar_InvalidSeed"));
+            return;
+        }
+
+        var preferences = SettingsUiPreferencesStore.Load();
+        var dialog = new SelectSimilarWindow(seed, preferences.Theme);
+        if (AcApp.ShowModalWindow(dialog) != true || dialog.Criteria is null)
+        {
+            return;
+        }
+
+        var roundingStepMm = TimberElementDefaultProfileStore
+            .Load()
+            .GetCuttingLengthRoundingStepMm();
+        IReadOnlyList<ObjectId> matches;
+        using (var transaction = document.Database.TransactionManager.StartTransaction())
+        {
+            var metadataStore = new AutoCadTimberElementMetadataStore(transaction);
+            matches = DrawingScanner
+                .ReadAllTimberElements(document.Database, transaction, metadataStore)
+                .Where(item => TimberElementSimilarityFilter.Matches(
+                    seed,
+                    item.Snapshot,
+                    dialog.Criteria,
+                    roundingStepMm))
+                .Select(item => item.ObjectId)
+                .ToArray();
+        }
+
+        editor.SetImpliedSelection(matches.Count == 0
+            ? Array.Empty<ObjectId>()
+            : matches.ToArray());
+        editor.WriteMessage(UiStrings.Format(
+            UiStrings.GetString("Command_SelectSimilar_ResultFormat"),
+            matches.Count));
+    }
+
+    private static ObjectId PromptForSeedEntity(Editor editor)
+    {
+        var implied = editor.SelectImplied();
+        if (implied.Status == PromptStatus.OK &&
+            implied.Value is not null &&
+            implied.Value.Count > 0)
+        {
+            if (implied.Value.Count != 1)
+            {
+                editor.WriteMessage(UiStrings.GetString(
+                    "Command_SelectSimilar_SelectOne"));
+                return ObjectId.Null;
+            }
+
+            return implied.Value.GetObjectIds()[0];
+        }
+
+        var options = new PromptEntityOptions(
+            UiStrings.GetString("Command_SelectSimilar_PromptSeed"));
+        var result = editor.GetEntity(options);
+        return result.Status == PromptStatus.OK
+            ? result.ObjectId
+            : ObjectId.Null;
+    }
+
+    private static void ExportCsvCore()
+    {
+        var document = ActiveDocument();
+        var editor = document.Editor;
+        var pickFirst = editor.SelectImplied();
+        var pickFirstIds = pickFirst.Status == PromptStatus.OK &&
+            pickFirst.Value is not null
+                ? pickFirst.Value.GetObjectIds()
+                : Array.Empty<ObjectId>();
+        var preferences = SettingsUiPreferencesStore.Load();
+        var optionsDialog = new CsvExportWindow(
+            pickFirstIds.Length,
+            preferences.Theme);
+        if (AcApp.ShowModalWindow(optionsDialog) != true)
+        {
+            return;
+        }
+
+        IReadOnlyList<ObjectId> ids;
+        switch (optionsDialog.Source)
+        {
+            case CsvExportSource.PickFirst:
+                ids = pickFirstIds;
+                break;
+            case CsvExportSource.ManualSelection:
+                ids = PromptForManualEntities(
+                    editor,
+                    UiStrings.GetString("Command_ExportCsv_PromptSelection"));
+                if (ids.Count == 0)
+                {
+                    return;
+                }
+
+                break;
+            case CsvExportSource.ModelSpace:
+                using (var transaction = document.Database.TransactionManager.StartTransaction())
+                {
+                    var metadataStore = new AutoCadTimberElementMetadataStore(transaction);
+                    ids = DrawingScanner.FindAllTimberElements(
+                        document.Database,
+                        transaction,
+                        metadataStore);
+                }
+
+                break;
+            default:
+                throw new InvalidOperationException("Unsupported CSV export source.");
+        }
+
+        var measurements = ReadMeasurements(
+            document.Database,
+            ids,
+            out var skippedCount);
+        if (measurements.Count == 0)
+        {
+            editor.WriteMessage(UiStrings.GetString("Command_ExportCsv_NoValidElements"));
+            return;
+        }
+
+        var culture = AppLanguageService.CurrentUiCulture;
+        var saveDialog = new Microsoft.Win32.SaveFileDialog
+        {
+            Title = UiStrings.GetString("CsvExport_SaveDialogTitle", culture),
+            Filter = UiStrings.GetString("CsvExport_SaveDialogFilter", culture),
+            AddExtension = true,
+            DefaultExt = ".csv",
+            OverwritePrompt = true,
+            FileName = $"ACAD_KROVY_{DateTime.Now:yyyyMMdd}.csv",
+        };
+        if (saveDialog.ShowDialog() != true)
+        {
+            return;
+        }
+
+        var csv = TimberCsvFormatter.Format(
+            measurements,
+            optionsDialog.Mode,
+            TimberCsvLocalizationProvider.Create(culture),
+            culture);
+        try
+        {
+            SafeFileWriter.WriteAllBytes(saveDialog.FileName, csv.ToUtf8WithBom());
+        }
+        catch (System.Exception exception)
+        {
+            AcKrovyDiagnostics.Warning(
+                "CsvExportWriteFailed",
+                "CSV file write failed.",
+                AcKrovyCommandNames.ExportCsv,
+                exception);
+            editor.WriteMessage(UiStrings.Format(
+                UiStrings.GetString("Command_ExportCsv_WriteFailedFormat"),
+                exception.Message));
+            return;
+        }
+
+        editor.WriteMessage(UiStrings.Format(
+            UiStrings.GetString("Command_ExportCsv_ResultFormat"),
+            saveDialog.FileName,
+            csv.RowCount,
+            skippedCount));
+    }
+
+    private static IReadOnlyList<TimberElementMeasurement> ReadMeasurements(
+        Database database,
+        IReadOnlyList<ObjectId> ids,
+        out int skippedCount)
+    {
+        var measurements = new List<TimberElementMeasurement>();
+        skippedCount = 0;
+        var roundingStepMm = TimberElementDefaultProfileStore
+            .Load()
+            .GetCuttingLengthRoundingStepMm();
+        using var transaction = database.TransactionManager.StartTransaction();
+        var metadataStore = new AutoCadTimberElementMetadataStore(transaction);
+        foreach (var id in ids)
+        {
+            if (!AutoCadObjectIdAccess.TryGetObject<Entity>(
+                    transaction,
+                    id,
+                    OpenMode.ForRead,
+                    out var entity,
+                    database) ||
+                entity is null ||
+                !AutoCadEntityReader.TryReadTimberElement(
+                    entity,
+                    metadataStore,
+                    out var snapshot) ||
+                snapshot is null)
+            {
+                skippedCount++;
+                continue;
+            }
+
+            try
+            {
+                measurements.Add(TimberElementMeasurer.Measure(
+                    snapshot,
+                    roundingStepMm));
+            }
+            catch
+            {
+                skippedCount++;
+            }
+        }
+
+        return measurements;
+    }
+
+    private static IReadOnlyList<ObjectId> PromptForManualEntities(
+        Editor editor,
+        string message)
+    {
+        var options = new PromptSelectionOptions
+        {
+            MessageForAdding = message,
+            MessageForRemoval = UiStrings.CommandPromptRemoveSelection,
+            AllowDuplicates = false,
+        };
+        var selection = editor.GetSelection(options);
+        return selection.Status == PromptStatus.OK && selection.Value is not null
+            ? selection.Value.GetObjectIds()
+            : Array.Empty<ObjectId>();
+    }
+
     private static void SetLabelsVisibility(bool visible)
     {
         var document = ActiveDocument();
@@ -1372,6 +1725,50 @@ public sealed class AcKrovyCommands
             : Array.Empty<ObjectId>();
     }
 
+    private static EditSelectionResult ResolveEditSelection(
+        Database database,
+        Editor editor,
+        string message)
+    {
+        var implied = editor.SelectImplied();
+        var impliedIds = implied.Status == PromptStatus.OK &&
+            implied.Value is not null
+                ? implied.Value.GetObjectIds()
+                : Array.Empty<ObjectId>();
+
+        if (impliedIds.Length > 0)
+        {
+            using var transaction = database.TransactionManager.StartTransaction();
+            var metadataStore = new AutoCadTimberElementMetadataStore(transaction);
+            var decision = TimberEditSelectionRules.Evaluate(
+                impliedIds,
+                id =>
+                    AutoCadObjectIdAccess.TryGetObject<Entity>(
+                        transaction,
+                        id,
+                        OpenMode.ForRead,
+                        out var entity,
+                        database) &&
+                    entity is not null &&
+                    AutoCadEntityHelpers.IsSupportedTimberGeometry(entity) &&
+                    metadataStore.TryRead(entity, out var data) &&
+                    data is not null);
+
+            if (decision.UseImpliedSelection)
+            {
+                return new EditSelectionResult(
+                    decision.ValidItems,
+                    decision.RejectedItems);
+            }
+
+            editor.SetImpliedSelection(Array.Empty<ObjectId>());
+        }
+
+        return new EditSelectionResult(
+            PromptForManualEntities(editor, message),
+            RejectedImpliedItems: 0);
+    }
+
     private static SettingsSelectionResult PromptForSettingsEntities(
         Editor editor,
         string message)
@@ -1423,6 +1820,10 @@ public sealed class AcKrovyCommands
     private sealed record SettingsSelectionResult(
         SettingsSelectionStatus Status,
         IReadOnlyList<ObjectId> Ids);
+
+    private sealed record EditSelectionResult(
+        IReadOnlyList<ObjectId> Ids,
+        int RejectedImpliedItems);
 
     private static Document ActiveDocument() => AcApp.DocumentManager.MdiActiveDocument
         ?? throw new InvalidOperationException(UiStrings.ErrorNoActiveDrawing);

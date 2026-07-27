@@ -1,7 +1,9 @@
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using AcKrovy.AutoCAD.Diagnostics;
 using AcKrovy.Cad.Abstractions.Layers;
+using AcKrovy.Infrastructure.Diagnostics;
 
 namespace AcKrovy.AutoCAD.Settings;
 
@@ -15,40 +17,21 @@ internal static class ElementLayerProfileStore
         Converters = { new JsonStringEnumConverter() },
     };
 
-    private static string SettingsDirectory => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-        "ACAD_KROVY");
-
-    private static string SettingsPath => Path.Combine(SettingsDirectory, "element-layer-profile.json");
-
-    public static ElementLayerProfile Load()
-    {
-        try
-        {
-            if (!File.Exists(SettingsPath))
-            {
-                return ElementLayerProfile.CreateDefault();
-            }
-
-            var json = File.ReadAllText(SettingsPath);
-            var profile = JsonSerializer.Deserialize<ElementLayerProfile>(json, JsonOptions);
-            return profile?.Normalize() ?? ElementLayerProfile.CreateDefault();
-        }
-        catch
-        {
-            // Poškodený lokálny profil nesmie zablokovať výkres. Použijeme bezpečné predvolené hodnoty.
-            return ElementLayerProfile.CreateDefault();
-        }
-    }
+    public static ElementLayerProfile Load() =>
+        AcKrovyDiagnostics.Settings.Load(
+            LocalSettingsPaths.LayerProfile,
+            SettingsConfigurationSubject.LayerProfile,
+            json => JsonSerializer.Deserialize<ElementLayerProfile>(json, JsonOptions)?.Normalize(),
+            ElementLayerProfile.CreateDefault).Value;
 
     public static void Save(ElementLayerProfile profile)
     {
         ArgumentNullException.ThrowIfNull(profile);
 
-        Directory.CreateDirectory(SettingsDirectory);
         var normalized = profile.Normalize();
-        var temporaryPath = SettingsPath + ".tmp";
-        File.WriteAllText(temporaryPath, JsonSerializer.Serialize(normalized, JsonOptions));
-        File.Move(temporaryPath, SettingsPath, overwrite: true);
+        AcKrovyDiagnostics.Settings.Save(
+            LocalSettingsPaths.LayerProfile,
+            SettingsConfigurationSubject.LayerProfile,
+            JsonSerializer.Serialize(normalized, JsonOptions));
     }
 }

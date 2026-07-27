@@ -1,7 +1,9 @@
 using System.IO;
 using System.Text.Json;
+using AcKrovy.AutoCAD.Diagnostics;
 using AcKrovy.Core.Models;
 using AcKrovy.Core.Services;
+using AcKrovy.Infrastructure.Diagnostics;
 
 namespace AcKrovy.AutoCAD.Settings;
 
@@ -17,41 +19,27 @@ internal static class CustomElementDefinitionCatalogStore
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
     };
 
-    private static string SettingsDirectory => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-        "ACAD_KROVY");
-
-    private static string SettingsPath =>
-        Path.Combine(SettingsDirectory, "custom-element-definitions.json");
-
-    public static IReadOnlyList<CustomElementDefinition> Load()
-    {
-        try
-        {
-            if (!File.Exists(SettingsPath))
+    public static IReadOnlyList<CustomElementDefinition> Load() =>
+        AcKrovyDiagnostics.Settings.Load(
+            LocalSettingsPaths.CustomDefinitions,
+            SettingsConfigurationSubject.CustomElementDefinitions,
+            json =>
             {
-                return [];
-            }
-
-            var definitions = JsonSerializer.Deserialize<List<CustomElementDefinition>>(
-                File.ReadAllText(SettingsPath),
-                JsonOptions);
-            return CustomElementDefinitionCatalogRules.Normalize(definitions);
-        }
-        catch
-        {
-            return [];
-        }
-    }
+                var definitions = JsonSerializer.Deserialize<List<CustomElementDefinition>>(
+                    json,
+                    JsonOptions);
+                return definitions is null
+                    ? null
+                    : CustomElementDefinitionCatalogRules.Normalize(definitions);
+            },
+            () => Array.Empty<CustomElementDefinition>()).Value;
 
     public static void Save(IEnumerable<CustomElementDefinition> definitions)
     {
         var normalized = CustomElementDefinitionCatalogRules.Normalize(definitions);
-        Directory.CreateDirectory(SettingsDirectory);
-        var temporaryPath = SettingsPath + ".tmp";
-        File.WriteAllText(
-            temporaryPath,
+        AcKrovyDiagnostics.Settings.Save(
+            LocalSettingsPaths.CustomDefinitions,
+            SettingsConfigurationSubject.CustomElementDefinitions,
             JsonSerializer.Serialize(normalized, JsonOptions));
-        File.Move(temporaryPath, SettingsPath, overwrite: true);
     }
 }

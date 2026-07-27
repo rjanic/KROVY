@@ -31,12 +31,16 @@ public static class AcKrovyCommandNames
     public const string ReportAll = "AK_REPORTALL";
     public const string Recalc = "AK_RECALC";
     public const string Renumber = "AK_RENUMBER";
+    public const string Diagnostics = "AK_DIAGNOSTICS";
+    public const string SelectSimilar = "AK_SELECTSIMILAR";
+    public const string ExportCsv = "AK_EXPORTCSV";
 
     public static IReadOnlyList<string> All { get; } =
     [
         Help, Ribbon, Toolbar, ToolbarShow, ToolbarHide, Settings, ApplyLayers, Labels, LabelSelected,
         LabelShow, LabelHide, Assign, Rafter, WallPlate, Purlin, Post, CollarTie, Brace, TieBeam, Custom,
         Edit, FlipSlope, Inspect, Report, ReportAll, Recalc, Renumber,
+        Diagnostics, SelectSimilar, ExportCsv,
     ];
 }
 

@@ -16,6 +16,9 @@ Aktuálne číslo aplikácie je definované výhradne v [`Directory.Build.props`
 - automatický refresh po MOVE, ROTATE, STRETCH, TRIM, EXTEND a grip edit,
 - tri per-element režimy hlavnej anotácie, collision-aware anotácia smeru sklonu a `AK_FLIPSLOPE`,
 - report z výberu alebo celého výkresu s prirodzeným radením položiek a adaptívnymi stĺpcami,
+- read-only `AK_SELECTSIMILAR` s kombinovateľnými výrobnými filtrami,
+- `AK_EXPORTCSV` pre jednotlivé prvky alebo súhrn z výberu/model space,
+- `AK_DIAGNOSTICS`, bezpečné logy a obnova poškodených lokálnych nastavení,
 - rectangular footprint pre Stĺpik z jednej rectangular Polyline,
 - konverzia validného obdĺžnika zo štyroch samostatných LINE na jeden Post footprint,
 - bezpečné správanie pri COPY, COPYCLIP/PASTECLIP, WBLOCK a SAVE/REOPEN,
@@ -27,7 +30,7 @@ Aktuálne číslo aplikácie je definované výhradne v [`Directory.Build.props`
 `AK_SETTINGS` vo v0.18.0 používa centralizovaný WPF dizajnový systém so
 svetlou a tmavou témou, ľavou navigáciou, vektorovými ikonami, kartami,
 viditeľným keyboard focusom a sticky spodnou akčnou lištou. Resizable okno
-má predvolenú veľkosť 1180 × 720, minimum 980 × 620 a wrapping pre dlhé
+má predvolenú veľkosť 1500 × 900, minimum 1250 × 720 a wrapping pre dlhé
 lokalizované texty. Lokálne UI nastavenie si pamätá tému, sekciu, veľkosť,
 polohu a maximalizovaný stav; nie je súčasťou DWG ani layer profilu.
 
@@ -103,7 +106,18 @@ Custom je slope-aware lineárny typ: v automatickom režime používa rovnaký c
 
 ## Režimy popisu a kótovania
 
-`AK_SETTINGS` ponúka tri jazykovo neutrálne režimy hlavnej anotácie: `FullLabel`, `ItemNumberLeader` a `DimensionsLeader`. `ItemNumberLeader` má štyri varianty: `Plain`, `Circle`, `Slot` a `Rectangle`. Plain a DimensionsLeader používajú priamy natívny AutoCAD MLeader; rámčekové varianty používajú natívny Spline MLeader s prenosným `BlockContent`, atribútom `ITEM_NO`, insertion-point attachmentom, uhlom 40° a dodatočným offsetom 350 mm. Rámček je self-contained v DWG a jeho ručne upravená poloha sa po klasickom STRETCH zachováva pri refreshi aj renumberingu. Zvolený default sa používa na nové prvky; existujúce prvky sa zmenia iba explicitnou akciou pre výber alebo celý výkres.
+`AK_SETTINGS` ponúka päť produkčných režimov: `FullLabel`,
+`ItemNumberLeader`, `DimensionsLeader`, `NoAnnotations` a composite
+`DimensionsWithItemNumber`. Desať vizuálnych presetov pokrýva Bez popisov,
+plain/framed položku, iba rozmery, kompletný popis a tri kombinované framed
+varianty. Standalone `ItemNumberLeader` má `Plain`, `Circle`, `Slot` a
+`Rectangle`; framed leader používa prvý segment 60°. Kombinované
+Circle/Rectangle/Slot držia rozmery pod sebou v samostatnom MText,
+middle-center na horizontálnej landing čiare, a používajú centralizovanú
+`LandingDistance = 350 mm`. Rámček je self-contained v DWG a ručne upravená
+poloha sa po klasickom STRETCH zachováva pri refreshi aj renumberingu.
+Zvolený default sa používa na nové prvky; existujúce prvky sa zmenia iba
+explicitnou akciou pre výber alebo celý výkres.
 Všetky Circle varianty používajú jednotný priemer 520 mm a `BlockScale = 1`;
 veľkosť nezávisí od typu prvku, prefixu ani čísla položky.
 
@@ -114,6 +128,7 @@ Každý prvok si režim aj štýl čísla uchováva vo vlastných XData metadata
 ```text
 AcKrovy.Core              CAD-neutrálne modely, výpočty a geometrické pravidlá
 AcKrovy.Cad.Abstractions  rozhrania medzi doménou a CAD adaptérom
+AcKrovy.Infrastructure    host-neutral logy, recovery a bezpečný zápis súborov
 AcKrovy.Localization      resources, jazyková služba a prezentačné názvy
 AcKrovy.AutoCAD           AutoCAD API, XData, výber, kreslenie, WPF a príkazy
 AcKrovy.Core.Tests        automatické regresné a architektonické testy
@@ -144,6 +159,29 @@ Preddefinovaný katalóg používa canonical hodnoty `Smrek C24`, `Smrek C16`, `
 
 `AK_REPORT` a `AK_REPORTALL` zobrazujú katalógový materiál stabilne v dvoch riadkoch: hlavný názov a lokalizovaná popisná časť. Stĺpce Typ a Materiál sa rozširujú iba podľa skutočného obsahu konkrétneho reportu, nerozdeľujú bežné slová uprostred a dátový riadok zostáva najviac dvojriadkový. Číselné stĺpce majú stabilné kompaktné šírky.
 
+## Productivity & Reliability v0.19.0
+
+`AK_SELECTSIMILAR` vyberie jeden inteligentný vzor a následne read-only
+prehľadá iba model space aktuálneho DWG. Predvolene porovná typ, neotáčaný
+prierez a canonical materiál; voliteľne položku, výrobnú dĺžku s nezápornou
+toleranciou a stabilné Custom ID. Výsledok nastaví ako AutoCAD implied
+selection bez zápisu metadata, anotácií alebo DWG.
+
+`AK_EXPORTCSV` používa existujúci PickFirst, nový ručný výber alebo celý model
+space. Režim Individual vytvorí riadok na prvok, Summarized používa rovnaké
+výrobné zoskupovanie ako `TimberReportBuilder`. Súbor má UTF-8 BOM, oddeľovač
+`;`, CRLF, korektné CSV escaping, lokalizované hlavičky s jednotkami a
+desatinné čísla podľa aktívnej kultúry ACAD KROVY. Zápis ide cez dočasný súbor.
+
+`AK_DIAGNOSTICS` zobrazí verziu produktu, metadata schema 4, layer profile
+schema 3, AutoCAD/runtime, jazyk, stav lokálnych JSON nastavení, log path a
+posledné udalosti. Logy sú v `%LOCALAPPDATA%\ACAD_KROVY\Logs`, rotujú denne
+a pri 5 MB a uchovávajú sa 14 dní. Nezapisujú obsah ani geometriu výkresu,
+názvy/hodnoty prvkov, plnú DWG cestu ani používateľské meno z profile path.
+Poškodený settings JSON sa pred použitím defaults presunie na
+`<name>.corrupt.<yyyyMMdd-HHmmss>.json`; ak záloha zlyhá, originál sa
+neprepíše a defaults ostanú iba v pamäti.
+
 ## Príkazy
 
 | Oblasť | Príkazy |
@@ -151,9 +189,10 @@ Preddefinovaný katalóg používa canonical hodnoty `Smrek C24`, `Smrek C16`, `
 | Pomoc a UI | `AK_HELP`, `AK_RIBBON`, `AK_TOOLBAR`, `AK_TOOLBARSHOW`, `AK_TOOLBARHIDE` |
 | Priradenie | `AK_ASSIGN`, `AK_CUSTOM`, `AK_KROKVA`, `AK_POMURNICA`, `AK_VAZNICA`, `AK_STLPIK`, `AK_KLIESTINA`, `AK_VZPERA`, `AK_VAZNYTRAM` |
 | Údaje | `AK_EDIT`, `AK_INSPECT`, `AK_RECALC`, `AK_RENUMBER`, `AK_FLIPSLOPE` |
+| Výber a export | `AK_SELECTSIMILAR`, `AK_EXPORTCSV` |
 | Reporty | `AK_REPORT`, `AK_REPORTALL` |
 | Labely | `AK_LABELS`, `AK_LABELSELECTED`, `AK_LABELSHOW`, `AK_LABELHIDE` |
-| Nastavenia | `AK_SETTINGS`, `AK_APPLYLAYERS` |
+| Nastavenia a servis | `AK_SETTINGS`, `AK_APPLYLAYERS`, `AK_DIAGNOSTICS` |
 
 Úplný lokalizovaný prehľad zobrazí `AK_HELP` priamo v AutoCADe.
 
@@ -197,6 +236,9 @@ Portable režim overuje CAD-neutrálne projekty, testy, zakázané závislosti a
 - [`ACAD_KROVY_PROJECT_CONTEXT.md`](ACAD_KROVY_PROJECT_CONTEXT.md) – stabilné architektonické pravidlá a aktuálny kontext,
 - [`ACAD_KROVY_ROADMAP.md`](ACAD_KROVY_ROADMAP.md) – odporúčané poradie ďalšieho vývoja,
 - [`ACAD_KROVY_BACKLOG.md`](ACAD_KROVY_BACKLOG.md) – úplný zásobník otvorených nápadov,
+- [`docs/TEST_SCENARIO_008_PRODUCTIVITY_RELIABILITY.md`](docs/TEST_SCENARIO_008_PRODUCTIVITY_RELIABILITY.md) – manuálny AutoCAD 2027 protokol pre v0.19.0,
 - [`README_SK.txt`](README_SK.txt) – stručný slovenský quick-start pre používateľa.
 
-Najbližšou plánovanou funkciou je Select Similar / filtre. Dokumentácia, centralizácia verzie a explicitný `AK_RENUMBER` sú už dokončené základy.
+Verzia v0.19.0 pridáva Select Similar, CSV export, diagnostiku a bezpečnú
+obnovu lokálnych nastavení. Produkčný adapter zostáva AutoCAD 2027-only;
+ďalšie hostiteľské verzie a CAD platformy sú samostatné budúce míľniky.

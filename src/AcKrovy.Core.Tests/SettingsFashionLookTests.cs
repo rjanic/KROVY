@@ -491,7 +491,8 @@ public sealed class SettingsFashionLookTests
     {
         var xaml = WindowXaml();
         Assert.Contains("SelectedValuePath=\"Code\"", xaml);
-        Assert.Contains("SelectedValue=\"{Binding SelectedLanguageCode, Mode=TwoWay}\"", xaml);
+        Assert.Contains("SelectedValue=\"{Binding SelectedLanguageCode, Mode=OneWay}\"", xaml);
+        Assert.Contains("SelectionChanged=\"LanguageSelector_SelectionChanged\"", xaml);
         Assert.Contains("x:Name=\"LightThemeButton\"", xaml);
         Assert.Contains("x:Name=\"DarkThemeButton\"", xaml);
         Assert.Contains("Click=\"LightTheme_Click\"", xaml);

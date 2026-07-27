@@ -19,6 +19,7 @@ Choose the smallest useful feedback loop during development and the complete man
 - Core unit tests: domain calculations, metadata, numbering, annotation planning/lifecycle, layer rules and profile migration in `AcKrovy.Core.Tests`.
 - Localization tests: key/placeholder parity, six language packs, display providers and runtime switching.
 - Architecture/compatibility tests: portable dependency rules plus version/manifest checks in `scripts/compatibility-gate.ps1`.
+- Productivity/reliability tests: CAD-neutral similarity filters and CSV formatting, settings recovery, logger concurrency/rotation/privacy, and AutoCAD source contracts.
 - XAML/BAML runtime smoke tests: instantiate compiled Settings and ACI picker resources in `AcKrovy.Wpf.Tests`; these catch runtime parsing and embedded-image failures.
 - AutoCAD Core Console/runtime probes: use when host APIs and DWG persistence can be exercised non-interactively.
 - Manual AutoCAD host tests: visual and command lifecycle cases that require a real document/editor.
@@ -80,7 +81,21 @@ Before a version commit:
 - `src/AcKrovy.Core.Tests/SettingsRuntimeLocalizationTests.cs`
 - `src/AcKrovy.Core.Tests/TimberAnnotationModeTests.cs`
 - `src/AcKrovy.Core.Tests/TimberFramedLeaderPlacementTests.cs`
+- `src/AcKrovy.Core.Tests/TimberElementSimilarityFilterTests.cs`
+- `src/AcKrovy.Core.Tests/TimberCsvFormatterTests.cs`
+- `src/AcKrovy.Core.Tests/RecoverableSettingsStoreTests.cs`
+- `src/AcKrovy.Core.Tests/FileDiagnosticLoggerTests.cs`
+- `src/AcKrovy.Core.Tests/SafeFileWriterTests.cs`
+- `src/AcKrovy.Core.Tests/ProductivityCommandSourceContractTests.cs`
+- `src/AcKrovy.Core.Tests/DiagnosticsWindowSourceContractTests.cs`
+- `src/AcKrovy.Core.Tests/EditCommandSourceContractTests.cs`
+- `src/AcKrovy.Core.Tests/TimberElementEditRulesTests.cs`
+- `src/AcKrovy.Core.Tests/TimberEditSelectionRulesTests.cs`
+- `src/AcKrovy.Core.Tests/ApplicationLanguagePersistenceSourceContractTests.cs`
 - `src/AcKrovy.Wpf.Tests/SettingsXamlRuntimeSmokeTests.cs`
+- `src/AcKrovy.Wpf.Tests/ApplicationLanguageWorkflowTests.cs`
+- `src/AcKrovy.Wpf.Tests/ProductivityWindowsSmokeTests.cs`
 - `src/AcKrovy.Wpf.Tests/LayerSettingsRowHydrationTests.cs`
 - `scripts/compatibility-gate.ps1`
 - `docs/COMPATIBILITY_GATE.md`
+- `docs/TEST_SCENARIO_008_PRODUCTIVITY_RELIABILITY.md`

@@ -415,10 +415,10 @@ public sealed class LocalizationFoundationTests
             "AK_APPLYLAYERS", "AK_LABELS", "AK_LABELSELECTED", "AK_LABELSHOW", "AK_LABELHIDE",
             "AK_ASSIGN", "AK_KROKVA", "AK_POMURNICA", "AK_VAZNICA", "AK_STLPIK", "AK_KLIESTINA",
             "AK_VZPERA", "AK_VAZNYTRAM", "AK_CUSTOM", "AK_EDIT", "AK_FLIPSLOPE", "AK_INSPECT", "AK_REPORT",
-            "AK_REPORTALL", "AK_RECALC", "AK_RENUMBER",
+            "AK_REPORTALL", "AK_RECALC", "AK_RENUMBER", "AK_DIAGNOSTICS", "AK_SELECTSIMILAR", "AK_EXPORTCSV",
         };
 
-        Assert.Equal(27, AcKrovyCommandNames.All.Count);
+        Assert.Equal(30, AcKrovyCommandNames.All.Count);
         Assert.Equal(expected, AcKrovyCommandNames.All);
         Assert.All(AcKrovyCommandNames.All, command => Assert.StartsWith("AK_", command, StringComparison.Ordinal));
     }

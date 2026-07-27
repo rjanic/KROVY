@@ -48,6 +48,7 @@
   <data name="Command_Labels_RefreshFailedFormat" xml:space="preserve"><value>&#xA;Popis prvku {0} nebyl vytvořen nebo obnoven: {1}</value></data>
   <data name="Command_Edit_Prompt" xml:space="preserve"><value>&#xA;Vyberte inteligentní prvky krovu k úpravě: </value></data>
   <data name="Command_Edit_NoData" xml:space="preserve"><value>&#xA;Vybraný objekt nemá data ACAD KROVY. Nejprve použijte AK_ASSIGN nebo ikonu typu prvku.</value></data>
+  <data name="Command_Edit_NoChanges" xml:space="preserve"><value>&#xA;ACAD KROVY: nebyla vybrána žádná změna.</value></data>
   <data name="Command_Edit_TitleSingleFormat" xml:space="preserve"><value>ACAD KROVY – úprava prvku – {0} – {1}</value></data>
   <data name="Command_Edit_TitleMultipleFormat" xml:space="preserve"><value>ACAD KROVY – úprava {0} prvků</value></data>
   <data name="Command_Edit_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: upravené prvky: {0}. Přeskočené: {1}.</value></data>
@@ -333,4 +334,80 @@
   <data name="SettingsAnnotationPreset_DimensionsWithItemCircle" xml:space="preserve"><value>Rozměry a položka v kruhu</value></data>
   <data name="SettingsAnnotationPreset_DimensionsWithItemRectangle" xml:space="preserve"><value>Rozměry a položka v obdélníku</value></data>
   <data name="SettingsAnnotationPreset_DimensionsWithItemSlot" xml:space="preserve"><value>Rozměry a položka ve slotu</value></data>
+  <data name="Common_Cancel" xml:space="preserve"><value>Zrušit</value></data>
+  <data name="Common_Close" xml:space="preserve"><value>Zavřít</value></data>
+  <data name="Common_Unknown" xml:space="preserve"><value>Neznámé</value></data>
+  <data name="Command_UnexpectedFailure" xml:space="preserve"><value>&#xA;ACAD KROVY: příkaz selhal. Podrobnosti jsou v diagnostickém protokolu.</value></data>
+  <data name="SelectSimilarWindow_Title" xml:space="preserve"><value>ACAD KROVY – vybrat podobné</value></data>
+  <data name="SelectSimilarWindow_Heading" xml:space="preserve"><value>Kritéria podobnosti</value></data>
+  <data name="SelectSimilarWindow_Description" xml:space="preserve"><value>Vyberte vlastnosti, které se mají shodovat se vzorovým prvkem.</value></data>
+  <data name="SelectSimilarWindow_ElementType" xml:space="preserve"><value>Typ prvku</value></data>
+  <data name="SelectSimilarWindow_CrossSection" xml:space="preserve"><value>Průřez (šířka × výška)</value></data>
+  <data name="SelectSimilarWindow_Material" xml:space="preserve"><value>Materiál</value></data>
+  <data name="SelectSimilarWindow_ElementId" xml:space="preserve"><value>Číslo položky</value></data>
+  <data name="SelectSimilarWindow_CuttingLength" xml:space="preserve"><value>Výrobní délka</value></data>
+  <data name="SelectSimilarWindow_CustomDefinition" xml:space="preserve"><value>Vlastní definice</value></data>
+  <data name="SelectSimilarWindow_ToleranceMm" xml:space="preserve"><value>Tolerance výrobní délky [mm]</value></data>
+  <data name="SelectSimilarWindow_InvalidTolerance" xml:space="preserve"><value>Zadejte nezáporné číslo.</value></data>
+  <data name="SelectSimilarWindow_Select" xml:space="preserve"><value>Vybrat</value></data>
+  <data name="Command_SelectSimilar_PromptSeed" xml:space="preserve"><value>&#xA;Vyberte jeden inteligentní dřevěný prvek jako vzor: </value></data>
+  <data name="Command_SelectSimilar_SelectOne" xml:space="preserve"><value>&#xA;ACAD KROVY: vyberte přesně jeden vzorový prvek.</value></data>
+  <data name="Command_SelectSimilar_InvalidSeed" xml:space="preserve"><value>&#xA;ACAD KROVY: vybraný objekt není platný inteligentní dřevěný prvek.</value></data>
+  <data name="Command_SelectSimilar_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: vybráno podobných prvků: {0}.</value></data>
+  <data name="CsvExportWindow_Title" xml:space="preserve"><value>ACAD KROVY – export CSV</value></data>
+  <data name="CsvExportWindow_Heading" xml:space="preserve"><value>Export výrobního výkazu</value></data>
+  <data name="CsvExportWindow_Description" xml:space="preserve"><value>Vyberte zdroj prvků a podobu CSV výstupu.</value></data>
+  <data name="CsvExportWindow_Source" xml:space="preserve"><value>Zdroj</value></data>
+  <data name="CsvExportWindow_PickFirstFormat" xml:space="preserve"><value>Aktuální výběr ({0} objektů)</value></data>
+  <data name="CsvExportWindow_ManualSelection" xml:space="preserve"><value>Vybrat objekty v AutoCADu</value></data>
+  <data name="CsvExportWindow_ModelSpace" xml:space="preserve"><value>Celý modelový prostor</value></data>
+  <data name="CsvExportWindow_Mode" xml:space="preserve"><value>Režim</value></data>
+  <data name="CsvExportWindow_Individual" xml:space="preserve"><value>Jednotlivé prvky</value></data>
+  <data name="CsvExportWindow_Summarized" xml:space="preserve"><value>Souhrnný výkaz</value></data>
+  <data name="CsvExportWindow_Continue" xml:space="preserve"><value>Pokračovat</value></data>
+  <data name="Command_ExportCsv_PromptSelection" xml:space="preserve"><value>&#xA;Vyberte objekty pro export CSV: </value></data>
+  <data name="Command_ExportCsv_NoValidElements" xml:space="preserve"><value>&#xA;ACAD KROVY: nebyly nalezeny žádné platné inteligentní prvky pro export.</value></data>
+  <data name="Command_ExportCsv_WriteFailedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: soubor CSV se nepodařilo zapsat. {0}</value></data>
+  <data name="Command_ExportCsv_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: CSV vytvořeno: {0}. Řádků: {1}, přeskočených objektů: {2}.</value></data>
+  <data name="CsvExport_SaveDialogTitle" xml:space="preserve"><value>Uložit výkaz ACAD KROVY jako CSV</value></data>
+  <data name="CsvExport_SaveDialogFilter" xml:space="preserve"><value>Soubory CSV (*.csv)|*.csv</value></data>
+  <data name="Csv_Header_ElementId" xml:space="preserve"><value>Položka</value></data>
+  <data name="Csv_Header_ElementType" xml:space="preserve"><value>Typ prvku</value></data>
+  <data name="Csv_Header_Material" xml:space="preserve"><value>Materiál</value></data>
+  <data name="Csv_Header_WidthMm" xml:space="preserve"><value>Šířka [mm]</value></data>
+  <data name="Csv_Header_HeightMm" xml:space="preserve"><value>Výška [mm]</value></data>
+  <data name="Csv_Header_CuttingLengthMm" xml:space="preserve"><value>Výrobní délka [mm]</value></data>
+  <data name="Csv_Header_Quantity" xml:space="preserve"><value>Počet [ks]</value></data>
+  <data name="Csv_Header_TotalLengthM" xml:space="preserve"><value>Celková délka [m]</value></data>
+  <data name="Csv_Header_VolumeM3" xml:space="preserve"><value>Objem [m³]</value></data>
+  <data name="Csv_Header_Note" xml:space="preserve"><value>Poznámka</value></data>
+  <data name="DiagnosticsWindow_Title" xml:space="preserve"><value>ACAD KROVY – diagnostika</value></data>
+  <data name="DiagnosticsWindow_Heading" xml:space="preserve"><value>Diagnostické informace</value></data>
+  <data name="DiagnosticsWindow_Description" xml:space="preserve"><value>Technický souhrn aplikace bez obsahu nebo geometrie výkresu.</value></data>
+  <data name="DiagnosticsWindow_ProductVersion" xml:space="preserve"><value>Verze produktu</value></data>
+  <data name="DiagnosticsWindow_MetadataSchema" xml:space="preserve"><value>Schéma metadat</value></data>
+  <data name="DiagnosticsWindow_LayerProfileSchema" xml:space="preserve"><value>Schéma profilu hladin</value></data>
+  <data name="DiagnosticsWindow_Host" xml:space="preserve"><value>CAD hostitel</value></data>
+  <data name="DiagnosticsWindow_Runtime" xml:space="preserve"><value>Runtime</value></data>
+  <data name="DiagnosticsWindow_Language" xml:space="preserve"><value>Jazyk a kultura</value></data>
+  <data name="DiagnosticsWindow_LogPath" xml:space="preserve"><value>Složka protokolů</value></data>
+  <data name="DiagnosticsWindow_SettingsStates" xml:space="preserve"><value>Stav místních nastavení</value></data>
+  <data name="DiagnosticsWindow_RecentEvents" xml:space="preserve"><value>Poslední diagnostické události</value></data>
+  <data name="DiagnosticsWindow_CopySummary" xml:space="preserve"><value>Kopírovat souhrn</value></data>
+  <data name="DiagnosticsWindow_OpenLogs" xml:space="preserve"><value>Otevřít protokoly</value></data>
+  <data name="DiagnosticsWindow_StateMissing" xml:space="preserve"><value>Soubor chybí; použity výchozí hodnoty</value></data>
+  <data name="DiagnosticsWindow_StateLoaded" xml:space="preserve"><value>Načteno</value></data>
+  <data name="DiagnosticsWindow_StateRecovered" xml:space="preserve"><value>Poškozený soubor zálohován; použity výchozí hodnoty</value></data>
+  <data name="DiagnosticsWindow_StateMemoryOnly" xml:space="preserve"><value>Záloha selhala; výchozí hodnoty pouze v paměti</value></data>
+  <data name="DiagnosticsWindow_StateSaveFailed" xml:space="preserve"><value>Uložení selhalo</value></data>
+  <data name="Help_ProductivityCommands" xml:space="preserve"><value>&#xA;  AK_SELECTSIMILAR – vybere podobné inteligentní prvky&#xA;  AK_EXPORTCSV     – exportuje výrobní výkaz do CSV&#xA;  AK_DIAGNOSTICS   – zobrazí diagnostický souhrn</value></data>
+  <data name="DiagnosticsLevel_Information" xml:space="preserve"><value>Informace</value></data>
+  <data name="DiagnosticsLevel_Warning" xml:space="preserve"><value>Upozornění</value></data>
+  <data name="DiagnosticsLevel_Error" xml:space="preserve"><value>Chyba</value></data>
+  <data name="DiagnosticsEvent_SubjectApplicationLanguage" xml:space="preserve"><value>Jazyk aplikace</value></data>
+  <data name="DiagnosticsEvent_SubjectSettingsUiPreferences" xml:space="preserve"><value>Předvolby uživatelského rozhraní</value></data>
+  <data name="DiagnosticsEvent_SubjectLayerProfile" xml:space="preserve"><value>Profil hladin</value></data>
+  <data name="DiagnosticsEvent_SubjectTimberDefaults" xml:space="preserve"><value>Výchozí hodnoty prvků</value></data>
+  <data name="DiagnosticsEvent_SubjectCustomElementDefinitions" xml:space="preserve"><value>Definice vlastních prvků</value></data>
+  <data name="DiagnosticsEvent_ActionSaved" xml:space="preserve"><value>Uloženo</value></data>
 </root>

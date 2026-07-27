@@ -20,6 +20,7 @@ Preserve the CAD-neutral domain model, stable persisted data, and the separation
 ### Project dependencies
 
 - `AcKrovy.Core`: CAD-neutral models, calculations, metadata versioning, numbering, annotation planning and lifecycle rules.
+- `AcKrovy.Infrastructure`: host-neutral diagnostics, recoverable local-settings loading and safe file replacement. It references no Autodesk project.
 - `AcKrovy.Cad.Abstractions`: portable CAD-facing contracts and values. It references Core.
 - `AcKrovy.Localization`: resource lookup, culture switching and display-name providers. It references Core but no CAD adapter.
 - `AcKrovy.AutoCAD`: AutoCAD commands, transactions, XData stores, geometry/annotation services, settings persistence and WPF UI. It references Core, CAD abstractions and localization.
@@ -28,9 +29,16 @@ Preserve the CAD-neutral domain model, stable persisted data, and the separation
 
 Allowed direction:
 
-`AcKrovy.AutoCAD -> AcKrovy.Localization / AcKrovy.Cad.Abstractions -> AcKrovy.Core`
+`AcKrovy.AutoCAD -> AcKrovy.Infrastructure / AcKrovy.Localization / AcKrovy.Cad.Abstractions -> AcKrovy.Core`
 
 Localization also depends directly on Core. Core never depends back on any of these projects.
+
+### Productivity and reliability
+
+- `TimberElementSimilarityFilter` and `TimberCsvFormatter` are CAD-neutral Core services. Host selection, scanning and save dialogs remain in the AutoCAD adapter.
+- `RecoverableSettingsStore` protects every local JSON store. A corrupt or unreadable original must be preserved before a later save may replace it; a failed backup blocks disk writes for that file while defaults remain usable in memory.
+- `FileDiagnosticLogger` writes sanitized daily logs under `%LOCALAPPDATA%\ACAD_KROVY\Logs`, rotates at 5 MB, retains 14 days and must never throw into plug-in code.
+- `AK_SELECTSIMILAR` and `AK_EXPORTCSV` are read-only with respect to the DWG. They may read model-space entities and change the editor implied selection, but must not create/repair metadata or open entities for write.
 
 ### Domain and persisted identity
 
@@ -84,6 +92,10 @@ Localization also depends directly on Core. Core never depends back on any of th
 - `src/AcKrovy.Core/Services/TimberElementDataVersioning.cs`
 - `src/AcKrovy.Core/Services/TimberAnnotationModeRules.cs`
 - `src/AcKrovy.Core/Services/TimberAnnotationRefreshPlanner.cs`
+- `src/AcKrovy.Core/Services/TimberElementSimilarityFilter.cs`
+- `src/AcKrovy.Core/Services/TimberCsvFormatter.cs`
+- `src/AcKrovy.Infrastructure/Diagnostics/FileDiagnosticLogger.cs`
+- `src/AcKrovy.Infrastructure/Settings/RecoverableSettingsStore.cs`
 - `src/AcKrovy.AutoCAD/Infrastructure/ElementLabelService.cs`
 - `src/AcKrovy.AutoCAD/Infrastructure/LiveGeometrySynchronizationService.cs`
 - `src/AcKrovy.AutoCAD/Commands/AcKrovyCommands.cs`
