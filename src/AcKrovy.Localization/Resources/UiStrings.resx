@@ -410,4 +410,19 @@
   <data name="DiagnosticsEvent_SubjectTimberDefaults" xml:space="preserve"><value>Predvolené hodnoty prvkov</value></data>
   <data name="DiagnosticsEvent_SubjectCustomElementDefinitions" xml:space="preserve"><value>Definície vlastných prvkov</value></data>
   <data name="DiagnosticsEvent_ActionSaved" xml:space="preserve"><value>Uložené</value></data>
+  <data name="SettingsWindow_AnnotationScale_Title" xml:space="preserve"><value>Mierka anotácií</value></data>
+  <data name="SettingsWindow_AnnotationScale_CurrentDrawing" xml:space="preserve"><value>Aktuálny výkres</value></data>
+  <data name="SettingsWindow_AnnotationScale_UserDefault" xml:space="preserve"><value>Predvolená pre nové výkresy</value></data>
+  <data name="SettingsWindow_AnnotationScale_UserDefaultHelp" xml:space="preserve"><value>Táto hodnota nemení mierku aktuálneho výkresu.</value></data>
+  <data name="SettingsWindow_AnnotationScale_UseDefault" xml:space="preserve"><value>Použiť predvolenú mierku</value></data>
+  <data name="SettingsWindow_AnnotationScale_StoredInDrawing" xml:space="preserve"><value>Uložená vo výkrese</value></data>
+  <data name="SettingsWindow_AnnotationScale_UsesDefault" xml:space="preserve"><value>Používa predvolenú mierku</value></data>
+  <data name="SettingsWindow_AnnotationScale_Custom" xml:space="preserve"><value>Vlastná…</value></data>
+  <data name="SettingsWindow_AnnotationScale_Denominator" xml:space="preserve"><value>Menovateľ mierky</value></data>
+  <data name="SettingsWindow_AnnotationScale_ValidationRange" xml:space="preserve"><value>Hodnota musí byť od 10 do 200</value></data>
+  <data name="SettingsWindow_AnnotationScale_Preview" xml:space="preserve"><value>Náhľad mierky</value></data>
+  <data name="SettingsWindow_AnnotationScale_DimensionHeight" xml:space="preserve"><value>Výška rozmerového textu</value></data>
+  <data name="SettingsWindow_AnnotationScale_ItemHeight" xml:space="preserve"><value>Výška čísla položky</value></data>
+  <data name="SettingsWindow_AnnotationScale_SlopeHeight" xml:space="preserve"><value>Výška textu sklonu</value></data>
+  <data name="SettingsWindow_AnnotationScale_BlockScale" xml:space="preserve"><value>Mierka rámika</value></data>
 </root>

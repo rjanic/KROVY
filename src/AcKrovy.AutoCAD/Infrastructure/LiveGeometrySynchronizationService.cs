@@ -378,6 +378,10 @@ internal static class LiveGeometrySynchronizationService
 
                     var defaultProfile = TimberElementDefaultProfileStore.Load();
                     var roundingStepMm = defaultProfile.GetCuttingLengthRoundingStepMm();
+                    var annotationScaleService = AutoCadAnnotationScaleService.Create(
+                        document.Database,
+                        transaction,
+                        defaultProfile);
                     var candidateIds = refreshAllTimberAnnotations && !preserveCopySources
                         ? DrawingScanner.FindAllTimberElements(
                             document.Database,
@@ -433,6 +437,7 @@ internal static class LiveGeometrySynchronizationService
                                 transaction,
                                 entity,
                                 data,
+                                annotationScaleService,
                                 previousElementId,
                                 roundingStepMm,
                                 copySourcePreservation: preserveCopySources);

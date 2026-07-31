@@ -10,7 +10,6 @@ internal static class SlopeArrowService
 {
     public const string ArrowLayerName = "KROV_SKLON";
 
-    private const int ArrowLayerColorIndex = 8;
     private const string HorizontalMarkerBlockName = "DECORAIR_ACADKROVY_HORIZONTAL_SLOPE_MARKER";
     private const string PostPerpendicularMarkerBlockName = "DECORAIR_ACADKROVY_POST_90_MARKER_V3";
     private const double HorizontalMarkerHalfLengthMm = 60d;
@@ -22,6 +21,7 @@ internal static class SlopeArrowService
         Entity sourceEntity,
         TimberElementData data,
         SlopeAnnotationGeometryData geometry,
+        double presentationScaleFactor,
         bool copySourcePreservation = false)
     {
         ArgumentNullException.ThrowIfNull(database);
@@ -76,7 +76,10 @@ internal static class SlopeArrowService
 
         if (glyph is Polyline arrow)
         {
-            var placement = CalculatePlacement(geometry, data.IsSlopeDirectionReversed);
+            var placement = CalculatePlacement(
+                geometry,
+                data.IsSlopeDirectionReversed,
+                presentationScaleFactor);
             ApplyArrowAppearance(
                 database,
                 transaction,
@@ -94,6 +97,7 @@ internal static class SlopeArrowService
                     transaction,
                     marker,
                     geometry,
+                    presentationScaleFactor,
                     updateExistingLayer: !copySourcePreservation);
             }
             else
@@ -103,6 +107,7 @@ internal static class SlopeArrowService
                     transaction,
                     marker,
                     geometry,
+                    presentationScaleFactor,
                     updateExistingLayer: !copySourcePreservation);
             }
         }
@@ -182,7 +187,8 @@ internal static class SlopeArrowService
 
     private static ArrowPlacement CalculatePlacement(
         SlopeAnnotationGeometryData geometry,
-        bool isReversed)
+        bool isReversed,
+        double presentationScaleFactor)
     {
         return new ArrowPlacement(
             TimberSlopeArrowCalculator.Calculate(
@@ -192,7 +198,8 @@ internal static class SlopeArrowService
                 geometry.End.Y,
                 geometry.AnnotationPoint.X,
                 geometry.AnnotationPoint.Y,
-                isReversed),
+                isReversed,
+                presentationScaleFactor),
             geometry.AnnotationPoint.Z);
     }
 
@@ -238,9 +245,9 @@ internal static class SlopeArrowService
             transaction,
             arrow,
             ArrowLayerName,
-            ArrowLayerColorIndex,
+            TimberSlopeAnnotationPresentationRules.DefaultLayerColorIndex,
             isPlottable: false,
-            updateExistingLayer: updateExistingLayer);
+            updateExistingLayer: false);
         arrow.LineWeight = LineWeight.ByLayer;
     }
 
@@ -249,21 +256,24 @@ internal static class SlopeArrowService
         Transaction transaction,
         BlockReference marker,
         SlopeAnnotationGeometryData geometry,
+        double presentationScaleFactor,
         bool updateExistingLayer)
     {
         marker.Position = geometry.AnnotationPoint;
         marker.Rotation = Math.Atan2(
             geometry.End.Y - geometry.Start.Y,
             geometry.End.X - geometry.Start.X);
-        marker.ScaleFactors = new Scale3d(1d);
+        marker.ScaleFactors = new Scale3d(
+            TimberSlopeAnnotationPresentationRules
+                .CalculateSpecialSymbolScale(presentationScaleFactor));
         TimberLayerService.ApplyToAnnotationEntity(
             database,
             transaction,
             marker,
             ArrowLayerName,
-            ArrowLayerColorIndex,
+            TimberSlopeAnnotationPresentationRules.DefaultLayerColorIndex,
             isPlottable: false,
-            updateExistingLayer: updateExistingLayer);
+            updateExistingLayer: false);
         marker.LineWeight = LineWeight.ByLayer;
     }
 
@@ -272,29 +282,34 @@ internal static class SlopeArrowService
         Transaction transaction,
         BlockReference marker,
         SlopeAnnotationGeometryData geometry,
+        double presentationScaleFactor,
         bool updateExistingLayer)
     {
+        var specialSymbolScale =
+            TimberSlopeAnnotationPresentationRules
+                .CalculateSpecialSymbolScale(presentationScaleFactor);
         var symbol = TimberPostAnnotationGeometryCalculator.Calculate(
             geometry.Start.X,
             geometry.Start.Y,
             geometry.End.X,
             geometry.End.Y,
             geometry.AnnotationPoint.X,
-            geometry.AnnotationPoint.Y);
+            geometry.AnnotationPoint.Y,
+            specialSymbolScale);
         marker.Position = new Point3d(
             symbol.Anchor.X,
             symbol.Anchor.Y,
             geometry.AnnotationPoint.Z);
         marker.Rotation = symbol.RotationRadians;
-        marker.ScaleFactors = new Scale3d(1d);
+        marker.ScaleFactors = new Scale3d(specialSymbolScale);
         TimberLayerService.ApplyToAnnotationEntity(
             database,
             transaction,
             marker,
             ArrowLayerName,
-            ArrowLayerColorIndex,
+            TimberSlopeAnnotationPresentationRules.DefaultLayerColorIndex,
             isPlottable: false,
-            updateExistingLayer: updateExistingLayer);
+            updateExistingLayer: false);
         marker.LineWeight = LineWeight.ByLayer;
     }
 

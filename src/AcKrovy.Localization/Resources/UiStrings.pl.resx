@@ -410,4 +410,19 @@
   <data name="DiagnosticsEvent_SubjectTimberDefaults" xml:space="preserve"><value>Domyślne wartości elementów</value></data>
   <data name="DiagnosticsEvent_SubjectCustomElementDefinitions" xml:space="preserve"><value>Definicje elementów niestandardowych</value></data>
   <data name="DiagnosticsEvent_ActionSaved" xml:space="preserve"><value>Zapisano</value></data>
+  <data name="SettingsWindow_AnnotationScale_Title" xml:space="preserve"><value>Skala opisów</value></data>
+  <data name="SettingsWindow_AnnotationScale_CurrentDrawing" xml:space="preserve"><value>Bieżący rysunek</value></data>
+  <data name="SettingsWindow_AnnotationScale_UserDefault" xml:space="preserve"><value>Domyślna dla nowych rysunków</value></data>
+  <data name="SettingsWindow_AnnotationScale_UserDefaultHelp" xml:space="preserve"><value>Ta wartość nie zmienia skali bieżącego rysunku.</value></data>
+  <data name="SettingsWindow_AnnotationScale_UseDefault" xml:space="preserve"><value>Użyj skali domyślnej</value></data>
+  <data name="SettingsWindow_AnnotationScale_StoredInDrawing" xml:space="preserve"><value>Zapisana w rysunku</value></data>
+  <data name="SettingsWindow_AnnotationScale_UsesDefault" xml:space="preserve"><value>Używa skali domyślnej</value></data>
+  <data name="SettingsWindow_AnnotationScale_Custom" xml:space="preserve"><value>Niestandardowa…</value></data>
+  <data name="SettingsWindow_AnnotationScale_Denominator" xml:space="preserve"><value>Mianownik skali</value></data>
+  <data name="SettingsWindow_AnnotationScale_ValidationRange" xml:space="preserve"><value>Wartość musi wynosić od 10 do 200</value></data>
+  <data name="SettingsWindow_AnnotationScale_Preview" xml:space="preserve"><value>Podgląd skali</value></data>
+  <data name="SettingsWindow_AnnotationScale_DimensionHeight" xml:space="preserve"><value>Wysokość tekstu wymiarów</value></data>
+  <data name="SettingsWindow_AnnotationScale_ItemHeight" xml:space="preserve"><value>Wysokość numeru pozycji</value></data>
+  <data name="SettingsWindow_AnnotationScale_SlopeHeight" xml:space="preserve"><value>Wysokość tekstu nachylenia</value></data>
+  <data name="SettingsWindow_AnnotationScale_BlockScale" xml:space="preserve"><value>Skala ramki</value></data>
 </root>

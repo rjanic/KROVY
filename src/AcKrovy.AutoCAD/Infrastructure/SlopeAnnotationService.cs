@@ -11,8 +11,12 @@ internal static class SlopeAnnotationService
         Transaction transaction,
         Entity sourceEntity,
         TimberElementData data,
+        AutoCadAnnotationScaleService annotationScaleService,
         bool copySourcePreservation = false)
     {
+        ArgumentNullException.ThrowIfNull(annotationScaleService);
+        var presentationScaleFactor =
+            annotationScaleService.Context.ScaleFactor;
         var preferredGeometry = SlopeAnnotationGeometry.CalculatePreferred(sourceEntity);
         TimberSlopeAnnotationLongitudinalInterval? labelInterval = null;
         if (ElementLabelService.TryGetLongitudinalInterval(
@@ -29,11 +33,21 @@ internal static class SlopeAnnotationService
             data.SlopeDegrees);
         var annotationHalfExtentMm = glyphKind == TimberSlopeGlyphKind.PostPerpendicularMarker
             ? TimberPostAnnotationGeometryCalculator.CollisionHalfExtentMm
-            : TimberSlopeAnnotationPlacementCalculator.SlopeAnnotationHalfExtentMm;
+            : TimberSlopeAnnotationPresentationRules.ScaleLength(
+                TimberSlopeAnnotationPlacementCalculator
+                    .SlopeAnnotationHalfExtentMm,
+                presentationScaleFactor);
         var placement = TimberSlopeAnnotationPlacementCalculator.Calculate(
             preferredGeometry.LengthMm,
             labelInterval,
-            annotationHalfExtentMm);
+            annotationHalfExtentMm,
+            TimberSlopeAnnotationPresentationRules.ScaleLength(
+                TimberSlopeAnnotationPlacementCalculator
+                    .SlopeAnnotationLabelClearanceMm,
+                presentationScaleFactor),
+            TimberSlopeAnnotationPresentationRules.ScaleLength(
+                TimberSlopeAnnotationPlacementCalculator.MinimumEndClearanceMm,
+                presentationScaleFactor));
         var geometry = SlopeAnnotationGeometry.Calculate(sourceEntity, placement.AnchorDistanceMm);
 
         SlopeArrowService.UpsertForElement(
@@ -42,6 +56,7 @@ internal static class SlopeAnnotationService
             sourceEntity,
             data,
             geometry,
+            presentationScaleFactor,
             copySourcePreservation);
         SlopeAngleTextService.UpsertForElement(
             database,
@@ -49,6 +64,7 @@ internal static class SlopeAnnotationService
             sourceEntity,
             data,
             geometry,
+            presentationScaleFactor,
             copySourcePreservation);
     }
 

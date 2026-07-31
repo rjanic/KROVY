@@ -410,4 +410,19 @@
   <data name="DiagnosticsEvent_SubjectTimberDefaults" xml:space="preserve"><value>Timber defaults</value></data>
   <data name="DiagnosticsEvent_SubjectCustomElementDefinitions" xml:space="preserve"><value>Custom element definitions</value></data>
   <data name="DiagnosticsEvent_ActionSaved" xml:space="preserve"><value>Saved</value></data>
+  <data name="SettingsWindow_AnnotationScale_Title" xml:space="preserve"><value>Annotation scale</value></data>
+  <data name="SettingsWindow_AnnotationScale_CurrentDrawing" xml:space="preserve"><value>Current drawing</value></data>
+  <data name="SettingsWindow_AnnotationScale_UserDefault" xml:space="preserve"><value>Default for new drawings</value></data>
+  <data name="SettingsWindow_AnnotationScale_UserDefaultHelp" xml:space="preserve"><value>This value does not change the current drawing scale.</value></data>
+  <data name="SettingsWindow_AnnotationScale_UseDefault" xml:space="preserve"><value>Use default scale</value></data>
+  <data name="SettingsWindow_AnnotationScale_StoredInDrawing" xml:space="preserve"><value>Stored in drawing</value></data>
+  <data name="SettingsWindow_AnnotationScale_UsesDefault" xml:space="preserve"><value>Uses default scale</value></data>
+  <data name="SettingsWindow_AnnotationScale_Custom" xml:space="preserve"><value>Custom…</value></data>
+  <data name="SettingsWindow_AnnotationScale_Denominator" xml:space="preserve"><value>Scale denominator</value></data>
+  <data name="SettingsWindow_AnnotationScale_ValidationRange" xml:space="preserve"><value>Value must be from 10 to 200</value></data>
+  <data name="SettingsWindow_AnnotationScale_Preview" xml:space="preserve"><value>Scale preview</value></data>
+  <data name="SettingsWindow_AnnotationScale_DimensionHeight" xml:space="preserve"><value>Dimension text height</value></data>
+  <data name="SettingsWindow_AnnotationScale_ItemHeight" xml:space="preserve"><value>Item number height</value></data>
+  <data name="SettingsWindow_AnnotationScale_SlopeHeight" xml:space="preserve"><value>Slope text height</value></data>
+  <data name="SettingsWindow_AnnotationScale_BlockScale" xml:space="preserve"><value>Frame scale</value></data>
 </root>

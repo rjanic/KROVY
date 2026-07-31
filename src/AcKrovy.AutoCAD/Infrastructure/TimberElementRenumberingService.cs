@@ -15,11 +15,17 @@ internal static class TimberElementRenumberingService
 {
     public static TimberElementRenumberingResult RenumberAll(
         Database database,
+        TimberElementDefaultProfile defaultProfile,
         double roundingStepMm = TimberCuttingLengthCalculator.DefaultRoundingStepMm)
     {
         ArgumentNullException.ThrowIfNull(database);
+        ArgumentNullException.ThrowIfNull(defaultProfile);
 
         using var transaction = database.TransactionManager.StartTransaction();
+        var annotationScaleService = AutoCadAnnotationScaleService.Create(
+            database,
+            transaction,
+            defaultProfile);
         var metadataStore = new AutoCadTimberElementMetadataStore(transaction);
         var entries = ReadValidEntries(database, transaction, metadataStore, roundingStepMm);
         var assignments = TimberElementItemNumbering.RenumberElementIdsByCuttingLength(
@@ -28,7 +34,8 @@ internal static class TimberElementRenumberingService
             ElementLabelService.FindCircleNormalizationSourceIds(
                 database,
                 transaction,
-                entries.Select(entry => entry.Id).ToList());
+                entries.Select(entry => entry.Id).ToList(),
+                annotationScaleService);
         var changedEntries = new List<ChangedEntry>();
         var annotationEntries = new List<ChangedEntry>();
 
@@ -88,6 +95,7 @@ internal static class TimberElementRenumberingService
                 transaction,
                 entity,
                 entry.Data,
+                annotationScaleService,
                 entry.PreviousElementId,
                 roundingStepMm);
         }

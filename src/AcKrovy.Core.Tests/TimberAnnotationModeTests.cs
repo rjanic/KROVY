@@ -618,7 +618,8 @@ public sealed class TimberAnnotationModeTests
         Assert.Equal(expectedName, definition.BlockName);
         Assert.Equal(TimberItemLeaderBlockSize.Small, definition.Size);
         Assert.Equal(
-            TimberMainAnnotationTextRules.TextHeightMm,
+            TimberItemLeaderBlockDefinitionRules
+                .BaseFramedItemTextHeightAtScale50Mm,
             definition.TextHeightMm);
     }
 
@@ -681,6 +682,25 @@ public sealed class TimberAnnotationModeTests
     }
 
     [Theory]
+    [InlineData(ItemNumberLeaderStyle.Slot)]
+    [InlineData(ItemNumberLeaderStyle.Rectangle)]
+    public void ItemTypographyChange_DoesNotChangeR4A3FrameVariantThresholds(
+        ItemNumberLeaderStyle style)
+    {
+        var medium = TimberItemLeaderBlockDefinitionRules.Resolve(
+            style,
+            "VT12");
+        var large = TimberItemLeaderBlockDefinitionRules.Resolve(
+            style,
+            "VT1234");
+
+        Assert.Equal(TimberItemLeaderBlockSize.Medium, medium.Size);
+        Assert.Equal(TimberItemLeaderBlockSize.Large, large.Size);
+        Assert.Equal(135d, medium.TextHeightMm);
+        Assert.Equal(135d, large.TextHeightMm);
+    }
+
+    [Theory]
     [InlineData("K1")]
     [InlineData("KL1")]
     [InlineData("V1")]
@@ -696,7 +716,7 @@ public sealed class TimberAnnotationModeTests
         Assert.Equal("ACAD_KROVY_ITEM_CIRCLE", definition.BlockName);
         Assert.Equal(TimberItemLeaderBlockDefinitionRules.CircleDiameterMm, definition.WidthMm);
         Assert.Equal(definition.WidthMm, definition.HeightMm);
-        Assert.Equal(520d, definition.WidthMm);
+        Assert.Equal(400d, definition.WidthMm);
         Assert.Equal(1d, TimberItemLeaderBlockDefinitionRules.BlockScale);
     }
 
@@ -740,7 +760,8 @@ public sealed class TimberAnnotationModeTests
     [Fact]
     public void CircleCompatibility_RejectsLegacyExpandedDiameter()
     {
-        Assert.True(TimberItemLeaderBlockDefinitionRules.HasExpectedCircleDiameter(520d));
+        Assert.True(TimberItemLeaderBlockDefinitionRules.HasExpectedCircleDiameter(400d));
+        Assert.False(TimberItemLeaderBlockDefinitionRules.HasExpectedCircleDiameter(520d));
         Assert.False(TimberItemLeaderBlockDefinitionRules.HasExpectedCircleDiameter(760d));
         Assert.False(TimberItemLeaderBlockDefinitionRules.HasExpectedCircleDiameter(1800d));
     }
@@ -764,7 +785,7 @@ public sealed class TimberAnnotationModeTests
     }
 
     [Fact]
-    public void CircleFix_DoesNotChangeSlotOrRectangleSizing()
+    public void FramedGeometryReduction_UsesOneFactorForSlotAndRectangle()
     {
         var shortSlot = TimberItemLeaderBlockDefinitionRules.Resolve(
             ItemNumberLeaderStyle.Slot,
@@ -779,13 +800,25 @@ public sealed class TimberAnnotationModeTests
             ItemNumberLeaderStyle.Rectangle,
             "PREFIX123456");
 
-        Assert.Equal((600d, 360d, TimberItemLeaderBlockSize.Small),
+        Assert.Equal((
+                TimberItemLeaderBlockDefinitionRules.SmallFrameWidthMm,
+                TimberItemLeaderBlockDefinitionRules.FrameHeightMm,
+                TimberItemLeaderBlockSize.Small),
             (shortSlot.WidthMm, shortSlot.HeightMm, shortSlot.Size));
-        Assert.Equal((600d, 360d, TimberItemLeaderBlockSize.Small),
+        Assert.Equal((
+                TimberItemLeaderBlockDefinitionRules.SmallFrameWidthMm,
+                TimberItemLeaderBlockDefinitionRules.FrameHeightMm,
+                TimberItemLeaderBlockSize.Small),
             (shortRectangle.WidthMm, shortRectangle.HeightMm, shortRectangle.Size));
-        Assert.Equal((1600d, 360d, TimberItemLeaderBlockSize.Large),
+        Assert.Equal((
+                TimberItemLeaderBlockDefinitionRules.LargeFrameWidthMm,
+                TimberItemLeaderBlockDefinitionRules.FrameHeightMm,
+                TimberItemLeaderBlockSize.Large),
             (longSlot.WidthMm, longSlot.HeightMm, longSlot.Size));
-        Assert.Equal((1600d, 360d, TimberItemLeaderBlockSize.Large),
+        Assert.Equal((
+                TimberItemLeaderBlockDefinitionRules.LargeFrameWidthMm,
+                TimberItemLeaderBlockDefinitionRules.FrameHeightMm,
+                TimberItemLeaderBlockSize.Large),
             (longRectangle.WidthMm, longRectangle.HeightMm, longRectangle.Size));
     }
 
@@ -851,10 +884,10 @@ public sealed class TimberAnnotationModeTests
     public void PlainAndDimensionsGeometry_RemainsIndependentOfCircleLayout()
     {
         var placement = new TimberLeaderPlacement(0, 0, 0, 360, 0);
-        var plain = TimberItemLeaderLayoutCalculator.Calculate(
+        var plain =
+            TimberItemLeaderLayoutCalculator.CalculatePlainItemNumber(
             placement,
             "K1",
-            ItemNumberLeaderStyle.Plain,
             TimberLeaderHorizontalSide.Right);
         _ = TimberItemLeaderLayoutCalculator.CalculateBlock(
             placement,
@@ -877,6 +910,10 @@ public sealed class TimberAnnotationModeTests
         Assert.Equal(
             TimberMainAnnotationTextRules.TextHeightMm,
             TimberItemLeaderLayoutCalculator.TextHeightMm);
+        Assert.Equal(
+            TimberItemNumberTypographyRules
+                .BaseItemNumberTextHeightAtScale50Mm,
+            plain.EnvelopeHeightMm);
     }
 
     [Theory]
@@ -948,7 +985,7 @@ public sealed class TimberAnnotationModeTests
     [Theory]
     [InlineData(TimberAnnotationMode.ItemNumberLeader)]
     [InlineData(TimberAnnotationMode.DimensionsLeader)]
-    public void NativeLeaderModes_UseFullLabelReferenceTextHeight(
+    public void NativeLeaderStyleKeepsPlainReferenceWhileDimensionsOverridePerInstance(
         TimberAnnotationMode mode)
     {
         Assert.True(TimberNativeLeaderStyleRules.UsesDedicatedStyle(mode));

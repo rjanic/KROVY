@@ -110,11 +110,16 @@ internal static class PostFootprintAssignmentWorkflow
         var assigned = synchronized.TryGetValue(targetId, out var finalData)
             ? finalData
             : merged;
+        var annotationScaleService = AutoCadAnnotationScaleService.Create(
+            document.Database,
+            transaction,
+            defaultProfile);
         TimberAnnotationService.EnsureForElement(
             document.Database,
             transaction,
             polyline,
             assigned,
+            annotationScaleService,
             roundingStepMm: defaultProfile.GetCuttingLengthRoundingStepMm());
         if (selection.RequiresLineConversion)
         {

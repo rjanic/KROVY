@@ -1,9 +1,10 @@
 # ACAD KROVY – ROADMAP
 
-**Aktualizované:** 27. 7. 2026
+**Aktualizované:** 31. 7. 2026
 **Predchádzajúci stabilný commit v0.18.0:** `46ad0cfe555f9f3177de2d47d13bdda33d9a91a0`
 **Predchádzajúci stabilný commit v0.19.0:** `41373d235a357dee05033872a1df8fed8b3286d3`
-**Aktuálny míľnik:** v0.20.0 „First-run Language Onboarding“, dokončený, automaticky otestovaný a manuálne overený
+**Predchádzajúci stabilný commit v0.20.0:** `6564fc930d98e3eca591bafcccef709af07dc9a5`
+**Aktuálny míľnik:** v0.21.0 „Annotation Scale Engine + Settings UI“, dokončený, automaticky otestovaný a manuálne overený
 
 Tento dokument určuje odporúčané poradie ďalšieho vývoja. Úplný zásobník nápadov je v `ACAD_KROVY_BACKLOG.md`.
 
@@ -62,22 +63,17 @@ Pri budúcom About okne použiť existujúci version provider, nie nový literal
 - typ čiary zostáva portable v DWG; `LTSCALE` sa nemení,
 - metadata timber prvku zostáva schema v4 a Core bez Autodesk dependencies.
 
-## 7. Mierka anotácií
-Podporovať:
-- 1:25
-- 1:50
-- 1:75
-- 1:100
-- vlastná hodnota
-
-Odporúčaný default:
-- 1:50
-
-Mierka má ovplyvňovať:
-- kóty,
-- leader popisy,
-- automatické labely,
-- reportovú tabuľku.
+## 7. Mierka anotácií — DOKONČENÉ VO v0.21.0
+- priorita Drawing > UserDefault > fallback 1:50,
+- drawing persistence `ACAD_KROVY / DRAWING_SETTINGS` schema 1,
+- `AK_SETTINGS` pre aktuálny DWG a default nových výkresov,
+- predvoľby 1:25, 1:50, 1:75, 1:100 a custom 10–200,
+- živý Core-based typography/BlockScale preview a odstránenie override,
+- automatický spoločný refresh existujúcich anotácií bez duplicít,
+- FullLabel, leadery, framed/combined, Post footprint, slope a 0°/90° symboly,
+- immutable context, scale presne raz, Core bez Autodesk a bez native
+  annotative contexts,
+- 421 lokalizačných kľúčov v každom zo 6 jazykov.
 
 ## 8. Písmo a text styles
 Nastavenia pre:
@@ -121,8 +117,8 @@ potvrdený stabilný verejný hostiteľský theme kontrakt.
 - per-element schema v4 persistence, COPY/COPYCLIP/WBLOCK a live reconcile,
 - footprint-aware Post placement a nezávislé slope/Post anotácie.
 
-Budúce rozšírenie: voliteľný formát rozmerov `80/160`, reset manuálneho
-rámčekového offsetu a mierka anotácií.
+Budúce rozšírenie: voliteľný formát rozmerov `80/160` a reset manuálneho
+rámčekového offsetu.
 
 ## 11. Vlastný používateľský prvok / Custom Element — DOKONČENÉ
 - `AK_CUSTOM` pre lineárne LINE/LWPOLYLINE,
@@ -333,7 +329,7 @@ Priebežne pri dotyku s danou oblasťou:
 
 1. AutoCAD 2021–2027 compatibility checkpoint.
 2. BricsCAD PoC.
-3. Samostatne rozhodnúť o annotation scale a text styles.
+3. Samostatne rozhodnúť o konfigurovateľných CAD text styles.
 4. Roof Domain Foundation.
 5. Automatická strecha z bodov a strešné roviny.
 6. Automatické, nárožné a údolnicové krokvy.

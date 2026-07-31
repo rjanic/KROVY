@@ -11,10 +11,13 @@ internal static class TimberAnnotationService
         Transaction transaction,
         Entity sourceEntity,
         TimberElementData data,
+        AutoCadAnnotationScaleService annotationScaleService,
         string? previousElementId = null,
         double roundingStepMm = TimberCuttingLengthCalculator.DefaultRoundingStepMm,
         bool copySourcePreservation = false)
     {
+        ArgumentNullException.ThrowIfNull(annotationScaleService);
+
         if (TimberAnnotationModeRules.Normalize(data.AnnotationMode) ==
             TimberAnnotationMode.NoAnnotations)
         {
@@ -51,6 +54,7 @@ internal static class TimberAnnotationService
                 footprintPolyline,
                 effectiveData,
                 footprintGeometry,
+                annotationScaleService,
                 previousElementId,
                 roundingStepMm,
                 copySourcePreservation);
@@ -63,6 +67,7 @@ internal static class TimberAnnotationService
                 transaction,
                 footprintPolyline,
                 footprintGeometry,
+                annotationScaleService,
                 copySourcePreservation);
             return footprintLabelCreated;
         }
@@ -85,6 +90,7 @@ internal static class TimberAnnotationService
                 transaction,
                 sourceEntity,
                 data,
+                annotationScaleService,
                 previousElementId,
                 roundingStepMm,
                 copySourcePreservation);
@@ -95,6 +101,7 @@ internal static class TimberAnnotationService
                 transaction,
                 sourceEntity,
                 data,
+                annotationScaleService,
                 copySourcePreservation);
         }
 

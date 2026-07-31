@@ -31,7 +31,8 @@ public static class TimberSlopeArrowCalculator
         double endY,
         double midpointX,
         double midpointY,
-        bool isReversed)
+        bool isReversed,
+        double presentationScaleFactor = 1d)
     {
         var dx = endX - startX;
         var dy = endY - startY;
@@ -46,13 +47,24 @@ public static class TimberSlopeArrowCalculator
         var directionSign = isReversed ? -1d : 1d;
         var directionX = sourceDirectionX * directionSign;
         var directionY = sourceDirectionY * directionSign;
-        var halfAxisLength = AxisLengthMm / 2d;
+        var halfAxisLength =
+            TimberSlopeAnnotationPresentationRules.ScaleLength(
+                AxisLengthMm,
+                presentationScaleFactor) / 2d;
         var tailX = midpointX - directionX * halfAxisLength;
         var tailY = midpointY - directionY * halfAxisLength;
         var tipX = midpointX + directionX * halfAxisLength;
         var tipY = midpointY + directionY * halfAxisLength;
-        var headBaseX = tipX - directionX * HeadLengthMm;
-        var headBaseY = tipY - directionY * HeadLengthMm;
+        var headLengthMm =
+            TimberSlopeAnnotationPresentationRules.ScaleLength(
+                HeadLengthMm,
+                presentationScaleFactor);
+        var headHalfWidthMm =
+            TimberSlopeAnnotationPresentationRules.ScaleLength(
+                HeadHalfWidthMm,
+                presentationScaleFactor);
+        var headBaseX = tipX - directionX * headLengthMm;
+        var headBaseY = tipY - directionY * headLengthMm;
         var headNormalX = -directionY;
         var headNormalY = directionX;
 
@@ -61,9 +73,9 @@ public static class TimberSlopeArrowCalculator
             tailY,
             tipX,
             tipY,
-            headBaseX + headNormalX * HeadHalfWidthMm,
-            headBaseY + headNormalY * HeadHalfWidthMm,
-            headBaseX - headNormalX * HeadHalfWidthMm,
-            headBaseY - headNormalY * HeadHalfWidthMm);
+            headBaseX + headNormalX * headHalfWidthMm,
+            headBaseY + headNormalY * headHalfWidthMm,
+            headBaseX - headNormalX * headHalfWidthMm,
+            headBaseY - headNormalY * headHalfWidthMm);
     }
 }

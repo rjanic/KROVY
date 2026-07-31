@@ -1,15 +1,15 @@
 # ACAD KROVY – PROJECT CONTEXT
 
-**Aktualizované:** 27. 7. 2026
+**Aktualizované:** 31. 7. 2026
 
-**Predchádzajúci stabilný commit v0.18.0:** `46ad0cfe555f9f3177de2d47d13bdda33d9a91a0`
+**Predchádzajúci stabilný commit v0.20.0:** `6564fc930d98e3eca591bafcccef709af07dc9a5`
 
 **Branch:** `main`
 
 **Verzia aplikácie:** autoritatívne v `Directory.Build.props`
 
-**Aktuálny míľnik:** v0.19.0 „Productivity & Reliability“, dokončený a
-manuálne overený v AutoCADe 2027
+**Aktuálny míľnik:** v0.21.0 „Annotation Scale Engine + Settings UI“,
+dokončený a manuálne overený v AutoCADe 2027
 
 **Overovanie:** Debug/Release build, kompletné automatické testy a Portable/Full Compatibility Gate
 
@@ -242,8 +242,8 @@ Stabilný commit: `4a951041e2deef40a127ac9560cf6fb2ba4b6a5b`
 - standalone aj combined framed MLeadery používajú prvý segment 60°;
   combined `Circle`/`Rectangle`/`Slot` majú centralizovanú
   `LandingDistance = 350 mm`, horizontálny landing a persistentný manuálny offset,
-- Circle používa jednu definíciu s priemerom 520 mm a BlockScale 1 bez
-  textovo alebo typovo závislých veľkostí; staré 760/1800 mm varianty sa pri
+- Circle používa jednu legacy definíciu a pri 1:50 výsledný priemer 400 mm
+  cez BlockScale 1; staré 760/1800 mm varianty sa pri
   reconcile cielene normalizujú so zachovaním manuálneho offsetu,
 - `DimensionsLeader` zobrazuje cez rovnaký natívny MLeader iba prierez vo formáte `80x160`,
 - `AK_SETTINGS` ukladá default pre nové prvky a explicitne ho vie aplikovať na
@@ -253,6 +253,21 @@ Stabilný commit: `4a951041e2deef40a127ac9560cf6fb2ba4b6a5b`
   COPY/COPYCLIP, WBLOCK a AK_RENUMBER,
 - Post používa footprint-aware anchor hlavnej anotácie; jeho `⊥ 90°` sa nemení,
 - Custom stručné režimy nezobrazujú používateľský názov definície.
+
+### Annotation Scale v0.21.0
+- immutable scale context používa prioritu Drawing > UserDefault > fallback 1:50,
+- drawing settings schema 1 je uložená idempotentne v NOD
+  `ACAD_KROVY / DRAWING_SETTINGS`; override má bezpečné idempotentné Remove,
+- `AK_SETTINGS` oddeľuje aktuálny DWG a default nových výkresov, podporuje
+  1:25, 1:50, 1:75, 1:100 a custom 10–200 a používa Core preview rules,
+- zmena iba UserDefault pripne doterajšiu efektívnu mierku aktuálneho DWG;
+  reálna drawing zmena spustí spoločný refresh `AK_LABELS` presne raz,
+- pri 1:50 sú dimension/FullLabel 125 mm, item number 135 mm, slope text
+  80 mm, slope offset 100 mm a Circle Ø400 mm,
+- faktor sa aplikuje presne raz na FullLabel, leadery, framed/combined
+  anotácie, Post footprint, slope arrow/text a symboly 0°/90°,
+- Core zostáva bez Autodesk typov, native annotative contexts sa nepoužívajú
+  a TextStyleId je deterministický.
 
 ### Layer Linetypes / Typy čiar timber vrstiev
 - CAD-neutrálny `ElementLayerProfile` v3 persistuje stabilný názov vrstvy,
@@ -351,7 +366,7 @@ Multi-CAD kompatibilita sa má overiť ešte pred tým, než projekt prerastie d
 ## Najbližšia priorita
 1. kompatibilitný checkpoint AutoCAD 2021–2027,
 2. BricsCAD Proof of Concept,
-3. prezentačné a škálovacie nastavenia až po samostatnom rozhodnutí,
+3. konfigurovateľné CAD text styles až po samostatnom rozhodnutí,
 4. potom veľký modul automatickej geometrie strechy.
 
 Presné poradie je v `ACAD_KROVY_ROADMAP.md`, úplný zásobník nápadov v `ACAD_KROVY_BACKLOG.md`.

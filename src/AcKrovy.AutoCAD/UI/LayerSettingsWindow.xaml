@@ -81,6 +81,7 @@
                     </DataTrigger>
                 </Style.Triggers>
             </Style>
+            <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         </ResourceDictionary>
     </Window.Resources>
 
@@ -393,7 +394,7 @@
 
                 <Border Style="{StaticResource AnnotationSectionHostStyle}">
                     <ScrollViewer HorizontalScrollBarVisibility="Disabled"
-                                  VerticalScrollBarVisibility="Disabled">
+                                  VerticalScrollBarVisibility="Auto">
                         <StackPanel>
                             <TextBlock Style="{DynamicResource SettingsSectionTitleStyle}"
                                        Text="{localization:Loc SettingsWindow_Annotation_Tab}" />
@@ -471,6 +472,133 @@
                                     </DataTemplate>
                                 </ListBox.ItemTemplate>
                             </ListBox>
+
+                            <Border Margin="0,18,0,0"
+                                    Style="{DynamicResource SettingsCardStyle}">
+                                <StackPanel>
+                                    <TextBlock Style="{DynamicResource SettingsSectionTitleStyle}"
+                                               Text="{localization:Loc SettingsWindow_AnnotationScale_Title}" />
+                                    <Grid Margin="0,14,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="18" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <Border Padding="16"
+                                                Background="{DynamicResource SettingsPanelBackgroundBrush}"
+                                                BorderBrush="{DynamicResource SettingsBorderBrush}"
+                                                BorderThickness="1"
+                                                CornerRadius="{DynamicResource SettingsCornerRadius}">
+                                            <StackPanel>
+                                                <TextBlock FontWeight="SemiBold"
+                                                           Text="{localization:Loc SettingsWindow_AnnotationScale_CurrentDrawing}" />
+                                                <TextBlock Margin="0,3,0,10"
+                                                           Style="{DynamicResource SettingsDescriptionStyle}"
+                                                           Text="{Binding DrawingScaleSourceText}" />
+                                                <ComboBox x:Name="DrawingAnnotationScaleSelector"
+                                                          IsEditable="False"
+                                                          ItemsSource="{Binding AnnotationScaleOptions}"
+                                                          DisplayMemberPath="DisplayName"
+                                                          SelectedValuePath="Preset"
+                                                          SelectedValue="{Binding SelectedDrawingScalePreset, Mode=TwoWay}" />
+                                                <StackPanel Margin="0,8,0,0"
+                                                            Visibility="{Binding IsDrawingCustomScale, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                    <TextBlock Text="{localization:Loc SettingsWindow_AnnotationScale_Denominator}" />
+                                                    <DockPanel Margin="0,4,0,0">
+                                                        <TextBlock Margin="0,0,7,0"
+                                                                   VerticalAlignment="Center"
+                                                                   Text="1 :" />
+                                                        <TextBox x:Name="DrawingCustomScaleTextBox"
+                                                                 MaxLength="3"
+                                                                 Text="{Binding DrawingCustomScaleText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                                    </DockPanel>
+                                                    <TextBlock Margin="0,4,0,0"
+                                                               Foreground="{DynamicResource SettingsValidationBrush}"
+                                                               Text="{Binding ScaleValidationText}"
+                                                               Visibility="{Binding HasDrawingScaleError, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                                </StackPanel>
+                                                <Button Margin="0,12,0,0"
+                                                        HorizontalAlignment="Left"
+                                                        Style="{DynamicResource SettingsSecondaryButtonStyle}"
+                                                        Click="UseDefaultAnnotationScale_Click"
+                                                        Content="{localization:Loc SettingsWindow_AnnotationScale_UseDefault}" />
+                                            </StackPanel>
+                                        </Border>
+
+                                        <Border Grid.Column="2"
+                                                Padding="16"
+                                                Background="{DynamicResource SettingsPanelBackgroundBrush}"
+                                                BorderBrush="{DynamicResource SettingsBorderBrush}"
+                                                BorderThickness="1"
+                                                CornerRadius="{DynamicResource SettingsCornerRadius}">
+                                            <StackPanel>
+                                                <TextBlock FontWeight="SemiBold"
+                                                           Text="{localization:Loc SettingsWindow_AnnotationScale_UserDefault}" />
+                                                <TextBlock Margin="0,3,0,10"
+                                                           Style="{DynamicResource SettingsDescriptionStyle}"
+                                                           Text="{localization:Loc SettingsWindow_AnnotationScale_UserDefaultHelp}" />
+                                                <ComboBox x:Name="UserDefaultAnnotationScaleSelector"
+                                                          IsEditable="False"
+                                                          ItemsSource="{Binding AnnotationScaleOptions}"
+                                                          DisplayMemberPath="DisplayName"
+                                                          SelectedValuePath="Preset"
+                                                          SelectedValue="{Binding SelectedUserDefaultScalePreset, Mode=TwoWay}" />
+                                                <StackPanel Margin="0,8,0,0"
+                                                            Visibility="{Binding IsUserDefaultCustomScale, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                    <TextBlock Text="{localization:Loc SettingsWindow_AnnotationScale_Denominator}" />
+                                                    <DockPanel Margin="0,4,0,0">
+                                                        <TextBlock Margin="0,0,7,0"
+                                                                   VerticalAlignment="Center"
+                                                                   Text="1 :" />
+                                                        <TextBox x:Name="UserDefaultCustomScaleTextBox"
+                                                                 MaxLength="3"
+                                                                 Text="{Binding UserDefaultCustomScaleText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                                    </DockPanel>
+                                                    <TextBlock Margin="0,4,0,0"
+                                                               Foreground="{DynamicResource SettingsValidationBrush}"
+                                                               Text="{Binding ScaleValidationText}"
+                                                               Visibility="{Binding HasUserDefaultScaleError, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                                </StackPanel>
+                                            </StackPanel>
+                                        </Border>
+                                    </Grid>
+
+                                    <Border Margin="0,14,0,0"
+                                            Padding="14"
+                                            Background="{DynamicResource SettingsPanelBackgroundBrush}"
+                                            BorderBrush="{DynamicResource SettingsBorderBrush}"
+                                            BorderThickness="1"
+                                            CornerRadius="{DynamicResource SettingsCornerRadius}">
+                                        <StackPanel>
+                                            <TextBlock FontWeight="SemiBold"
+                                                       Text="{localization:Loc SettingsWindow_AnnotationScale_Preview}" />
+                                            <UniformGrid Margin="0,10,0,0" Columns="4">
+                                                <StackPanel>
+                                                    <TextBlock Style="{DynamicResource SettingsDescriptionStyle}"
+                                                               Text="{localization:Loc SettingsWindow_AnnotationScale_DimensionHeight}" />
+                                                    <TextBlock FontWeight="SemiBold" Text="{Binding PreviewDimensionText}" />
+                                                </StackPanel>
+                                                <StackPanel>
+                                                    <TextBlock Style="{DynamicResource SettingsDescriptionStyle}"
+                                                               Text="{localization:Loc SettingsWindow_AnnotationScale_ItemHeight}" />
+                                                    <TextBlock FontWeight="SemiBold" Text="{Binding PreviewItemNumberText}" />
+                                                </StackPanel>
+                                                <StackPanel>
+                                                    <TextBlock Style="{DynamicResource SettingsDescriptionStyle}"
+                                                               Text="{localization:Loc SettingsWindow_AnnotationScale_SlopeHeight}" />
+                                                    <TextBlock FontWeight="SemiBold" Text="{Binding PreviewSlopeText}" />
+                                                </StackPanel>
+                                                <StackPanel>
+                                                    <TextBlock Style="{DynamicResource SettingsDescriptionStyle}"
+                                                               Text="{localization:Loc SettingsWindow_AnnotationScale_BlockScale}" />
+                                                    <TextBlock FontWeight="SemiBold" Text="{Binding PreviewBlockScale}" />
+                                                </StackPanel>
+                                            </UniformGrid>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+                            </Border>
 
                         </StackPanel>
                     </ScrollViewer>

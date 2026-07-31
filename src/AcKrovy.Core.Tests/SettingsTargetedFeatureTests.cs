@@ -884,10 +884,10 @@ public sealed class SettingsTargetedFeatureTests
         Assert.Contains("BlockConnectionType.ConnectBase", leaderStyles);
         Assert.Contains("leader.DoglegLength = settings.LandingDistance", leaderStyles);
         Assert.Contains("leader.EnableLanding = settings.HasHorizontalLanding", leaderStyles);
-        Assert.Contains("useCurrentAnnotationScale: true", service);
-        Assert.Contains("leader.EnableAnnotationScale = true", service);
-        Assert.Contains("text.Annotative = AnnotativeStates.True", service);
-        Assert.Contains("annotation.AddContext(currentContext)", service);
+        Assert.DoesNotContain("useCurrentAnnotationScale", service);
+        Assert.DoesNotContain("leader.EnableAnnotationScale = true", service);
+        Assert.DoesNotContain("text.Annotative = AnnotativeStates.True", service);
+        Assert.DoesNotContain("annotation.AddContext(", service);
         Assert.Contains("RecenterCombinedDimensionsText(", service);
         Assert.Contains("TryGetLandingSegment(", service);
         Assert.Contains("leader.GetLastVertex(leaderLineIndexes[0])", service);
@@ -898,7 +898,7 @@ public sealed class SettingsTargetedFeatureTests
             service);
         Assert.DoesNotContain("landingDistanceOverride", service);
         Assert.Contains(
-            "(landingEndPoint - landingStartPoint) / 2d",
+            "CalculateTextCenterOffsetFromLandingStartMm(",
             service);
         Assert.Contains("data.ElementId", service);
         Assert.Contains("SourceHandle = sourceHandle", service);

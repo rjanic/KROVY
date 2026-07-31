@@ -6,13 +6,35 @@ public static class TimberItemLeaderBlockDefinitionRules
 {
     public const string AttributeTag = "ITEM_NO";
     public const double BlockScale = 1d;
-    public const double HorizontalPaddingMm = 70d;
-    public const double VerticalPaddingMm = 50d;
-    public const double CircleDiameterMm = 520d;
-    public const double SmallFrameWidthMm = 600d;
-    public const double MediumFrameWidthMm = 900d;
-    public const double LargeFrameWidthMm = 1600d;
-    public const double FrameHeightMm = 360d;
+    public const double PreviousCircleDiameterMm = 520d;
+    public const double CircleDiameterMm = 400d;
+    public const double FramedGeometryReductionFactor =
+        CircleDiameterMm / PreviousCircleDiameterMm;
+    public const double BaseFramedItemTextHeightAtScale50Mm =
+        TimberItemNumberTypographyRules
+            .BaseItemNumberTextHeightAtScale50Mm;
+    // R4A3 selected linear frame variants from this reference width.
+    // Keep it independent from the rendered ITEM_NO height so R4A4 changes
+    // typography without changing any Slot/Rectangle geometry.
+    public const double FramedGeometrySizingTextHeightMm = 175d;
+    public const double PreviousHorizontalPaddingMm = 70d;
+    public const double PreviousVerticalPaddingMm = 50d;
+    public const double PreviousSmallFrameWidthMm = 600d;
+    public const double PreviousMediumFrameWidthMm = 900d;
+    public const double PreviousLargeFrameWidthMm = 1600d;
+    public const double PreviousFrameHeightMm = 360d;
+    public const double HorizontalPaddingMm =
+        PreviousHorizontalPaddingMm * FramedGeometryReductionFactor;
+    public const double VerticalPaddingMm =
+        PreviousVerticalPaddingMm * FramedGeometryReductionFactor;
+    public const double SmallFrameWidthMm =
+        PreviousSmallFrameWidthMm * FramedGeometryReductionFactor;
+    public const double MediumFrameWidthMm =
+        PreviousMediumFrameWidthMm * FramedGeometryReductionFactor;
+    public const double LargeFrameWidthMm =
+        PreviousLargeFrameWidthMm * FramedGeometryReductionFactor;
+    public const double FrameHeightMm =
+        PreviousFrameHeightMm * FramedGeometryReductionFactor;
     public const double EstimatedCharacterWidthFactor =
         TimberItemLeaderLayoutCalculator.EstimatedCharacterWidthFactor;
 
@@ -39,9 +61,9 @@ public static class TimberItemLeaderBlockDefinitionRules
 
         var normalizedText = itemText?.Trim() ?? string.Empty;
         var estimatedTextWidth = Math.Max(
-            TimberMainAnnotationTextRules.TextHeightMm,
+            FramedGeometrySizingTextHeightMm,
             normalizedText.Length *
-            TimberMainAnnotationTextRules.TextHeightMm *
+            FramedGeometrySizingTextHeightMm *
             EstimatedCharacterWidthFactor);
         var requiredWidth = estimatedTextWidth + 2d * HorizontalPaddingMm;
         return ResolveLinearFrame(normalizedStyle, requiredWidth);
@@ -97,6 +119,11 @@ public static class TimberItemLeaderBlockDefinitionRules
             GetBaseBlockName(style) + suffix,
             width,
             height,
-            TimberMainAnnotationTextRules.TextHeightMm);
+            BaseFramedItemTextHeightAtScale50Mm);
     }
+
+    public static bool HasExpectedFramedItemTextHeight(double textHeightMm) =>
+        Math.Abs(
+            textHeightMm -
+            BaseFramedItemTextHeightAtScale50Mm) <= 0.001d;
 }

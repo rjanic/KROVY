@@ -410,4 +410,19 @@
   <data name="DiagnosticsEvent_SubjectTimberDefaults" xml:space="preserve"><value>Valeurs par défaut des éléments</value></data>
   <data name="DiagnosticsEvent_SubjectCustomElementDefinitions" xml:space="preserve"><value>Définitions des éléments personnalisés</value></data>
   <data name="DiagnosticsEvent_ActionSaved" xml:space="preserve"><value>Enregistré</value></data>
+  <data name="SettingsWindow_AnnotationScale_Title" xml:space="preserve"><value>Échelle des annotations</value></data>
+  <data name="SettingsWindow_AnnotationScale_CurrentDrawing" xml:space="preserve"><value>Dessin actuel</value></data>
+  <data name="SettingsWindow_AnnotationScale_UserDefault" xml:space="preserve"><value>Valeur par défaut des nouveaux dessins</value></data>
+  <data name="SettingsWindow_AnnotationScale_UserDefaultHelp" xml:space="preserve"><value>Cette valeur ne modifie pas l’échelle du dessin actuel.</value></data>
+  <data name="SettingsWindow_AnnotationScale_UseDefault" xml:space="preserve"><value>Utiliser l’échelle par défaut</value></data>
+  <data name="SettingsWindow_AnnotationScale_StoredInDrawing" xml:space="preserve"><value>Enregistrée dans le dessin</value></data>
+  <data name="SettingsWindow_AnnotationScale_UsesDefault" xml:space="preserve"><value>Utilise l’échelle par défaut</value></data>
+  <data name="SettingsWindow_AnnotationScale_Custom" xml:space="preserve"><value>Personnalisée…</value></data>
+  <data name="SettingsWindow_AnnotationScale_Denominator" xml:space="preserve"><value>Dénominateur de l’échelle</value></data>
+  <data name="SettingsWindow_AnnotationScale_ValidationRange" xml:space="preserve"><value>La valeur doit être comprise entre 10 et 200</value></data>
+  <data name="SettingsWindow_AnnotationScale_Preview" xml:space="preserve"><value>Aperçu de l’échelle</value></data>
+  <data name="SettingsWindow_AnnotationScale_DimensionHeight" xml:space="preserve"><value>Hauteur du texte de cote</value></data>
+  <data name="SettingsWindow_AnnotationScale_ItemHeight" xml:space="preserve"><value>Hauteur du numéro de repère</value></data>
+  <data name="SettingsWindow_AnnotationScale_SlopeHeight" xml:space="preserve"><value>Hauteur du texte de pente</value></data>
+  <data name="SettingsWindow_AnnotationScale_BlockScale" xml:space="preserve"><value>Échelle du cadre</value></data>
 </root>

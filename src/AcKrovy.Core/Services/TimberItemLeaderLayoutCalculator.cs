@@ -5,10 +5,14 @@ namespace AcKrovy.Core.Services;
 public static class TimberItemLeaderLayoutCalculator
 {
     public const double TextHeightMm = TimberMainAnnotationTextRules.TextHeightMm;
-    public const double FramePaddingMm = 70d;
-    public const double MinimumCircleDiameterMm = 450d;
-    public const double MinimumSlotWidthMm = 500d;
-    public const double MinimumEnvelopeHeightMm = 360d;
+    public const double FramePaddingMm =
+        TimberItemLeaderBlockDefinitionRules.HorizontalPaddingMm;
+    public const double MinimumCircleDiameterMm =
+        TimberItemLeaderBlockDefinitionRules.CircleDiameterMm;
+    public const double MinimumSlotWidthMm =
+        TimberItemLeaderBlockDefinitionRules.SmallFrameWidthMm;
+    public const double MinimumEnvelopeHeightMm =
+        TimberItemLeaderBlockDefinitionRules.FrameHeightMm;
     public const double EnvelopeSizeStepMm = 20d;
     public const double EstimatedCharacterWidthFactor = 0.62d;
     public const double TextClearanceMm = 240d;
@@ -25,41 +29,38 @@ public static class TimberItemLeaderLayoutCalculator
         TimberLeaderPlacement placement,
         string itemText,
         ItemNumberLeaderStyle style,
-        TimberLeaderHorizontalSide? preferredSide = null)
+        TimberLeaderHorizontalSide? preferredSide = null,
+        double presentationScaleFactor = 1d)
     {
         if (placement is null)
         {
             throw new ArgumentNullException(nameof(placement));
         }
+        if (presentationScaleFactor <= 0d ||
+            double.IsNaN(presentationScaleFactor) ||
+            double.IsInfinity(presentationScaleFactor))
+        {
+            throw new ArgumentOutOfRangeException(nameof(presentationScaleFactor));
+        }
 
         var normalizedText = itemText?.Trim() ?? string.Empty;
         var normalizedStyle = ItemNumberLeaderStyleRules.Normalize(style);
-        var estimatedTextWidth = Math.Max(
-            TextHeightMm,
-            normalizedText.Length * TextHeightMm * EstimatedCharacterWidthFactor);
-        var paddedWidth = QuantizeUp(estimatedTextWidth + 2d * FramePaddingMm);
-        var envelopeWidth = normalizedStyle switch
-        {
-            ItemNumberLeaderStyle.Circle => Math.Max(MinimumCircleDiameterMm, paddedWidth),
-            ItemNumberLeaderStyle.Slot => Math.Max(MinimumSlotWidthMm, paddedWidth),
-            _ => estimatedTextWidth,
-        };
-        var envelopeHeight = normalizedStyle == ItemNumberLeaderStyle.Plain
-            ? TextHeightMm
-            : Math.Max(MinimumEnvelopeHeightMm, TextHeightMm + 2d * FramePaddingMm);
-        if (normalizedStyle == ItemNumberLeaderStyle.Circle)
-        {
-            envelopeHeight = envelopeWidth;
-        }
-
         if (normalizedStyle is not ItemNumberLeaderStyle.Plain)
         {
+            var definition =
+                TimberItemLeaderBlockDefinitionRules.Resolve(
+                    normalizedStyle,
+                    normalizedText);
+            var scaledEnvelopeWidth =
+                definition.WidthMm * presentationScaleFactor;
+            var scaledEnvelopeHeight =
+                definition.HeightMm * presentationScaleFactor;
             var axisX = Math.Cos(placement.RotationRadians);
             var axisY = Math.Sin(placement.RotationRadians);
             var existingOffset =
-                envelopeWidth / 2d +
-                TextClearanceMm +
-                MinimumLeaderRunMm;
+                scaledEnvelopeWidth / 2d +
+                TextClearanceMm * presentationScaleFactor +
+                MinimumLeaderRunMm * presentationScaleFactor;
             var existingContentX = placement.TextX + axisX * existingOffset;
             var existingContentY = placement.TextY + axisY * existingOffset;
             var existingSide = existingContentX < placement.AnchorX
@@ -73,8 +74,29 @@ public static class TimberItemLeaderLayoutCalculator
                 existingContentX,
                 existingContentY,
                 existingSide,
-                envelopeWidth,
-                envelopeHeight);
+                scaledEnvelopeWidth,
+                scaledEnvelopeHeight);
+        }
+
+        var effectiveTextHeight = normalizedStyle == ItemNumberLeaderStyle.Plain
+            ? TextHeightMm * presentationScaleFactor
+            : TextHeightMm;
+        var estimatedTextWidth = Math.Max(
+            effectiveTextHeight,
+            normalizedText.Length * effectiveTextHeight * EstimatedCharacterWidthFactor);
+        var paddedWidth = QuantizeUp(estimatedTextWidth + 2d * FramePaddingMm);
+        var envelopeWidth = normalizedStyle switch
+        {
+            ItemNumberLeaderStyle.Circle => Math.Max(MinimumCircleDiameterMm, paddedWidth),
+            ItemNumberLeaderStyle.Slot => Math.Max(MinimumSlotWidthMm, paddedWidth),
+            _ => estimatedTextWidth,
+        };
+        var envelopeHeight = normalizedStyle == ItemNumberLeaderStyle.Plain
+            ? effectiveTextHeight
+            : Math.Max(MinimumEnvelopeHeightMm, TextHeightMm + 2d * FramePaddingMm);
+        if (normalizedStyle == ItemNumberLeaderStyle.Circle)
+        {
+            envelopeHeight = envelopeWidth;
         }
 
         var side = preferredSide ?? (Math.Cos(placement.RotationRadians) < 0d
@@ -84,16 +106,16 @@ public static class TimberItemLeaderLayoutCalculator
             placement.AnchorX,
             placement.AnchorY,
             side,
-            FirstSegmentLengthMm,
+            FirstSegmentLengthMm * presentationScaleFactor,
             TimberLeaderPlaneBasis.WorldXY,
             TimberLeaderVerticalSide.Up);
         var horizontalDirection = side == TimberLeaderHorizontalSide.Left ? -1d : 1d;
         var alongAxisOffset =
             envelopeWidth / 2d +
-            TextClearanceMm +
-            MinimumLeaderRunMm;
+            TextClearanceMm * presentationScaleFactor +
+            MinimumLeaderRunMm * presentationScaleFactor;
         var contentX = placement.AnchorX + horizontalDirection * alongAxisOffset;
-        var contentY = knee.Y + TextHeightMm / 2d;
+        var contentY = knee.Y + effectiveTextHeight / 2d;
 
         return new TimberItemLeaderLayout(
             placement.AnchorX,
@@ -107,15 +129,100 @@ public static class TimberItemLeaderLayoutCalculator
             envelopeHeight);
     }
 
-    public static TimberItemLeaderLayout CalculateBlock(
+    public static TimberItemLeaderLayout CalculatePlainItemNumber(
         TimberLeaderPlacement placement,
         string itemText,
-        ItemNumberLeaderStyle style,
-        TimberLeaderHorizontalSide? preferredSide = null)
+        TimberLeaderHorizontalSide? preferredSide = null,
+        double presentationScaleFactor = 1d)
     {
         if (placement is null)
         {
             throw new ArgumentNullException(nameof(placement));
+        }
+        if (presentationScaleFactor <= 0d ||
+            double.IsNaN(presentationScaleFactor) ||
+            double.IsInfinity(presentationScaleFactor))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(presentationScaleFactor));
+        }
+
+        var effectiveTextHeight =
+            TimberItemNumberTypographyRules.CalculateTextHeightMm(
+                presentationScaleFactor);
+        var normalizedText = itemText?.Trim() ?? string.Empty;
+        var envelopeWidth = Math.Max(
+            effectiveTextHeight,
+            normalizedText.Length *
+            effectiveTextHeight *
+            EstimatedCharacterWidthFactor);
+        var side = preferredSide ??
+            (Math.Cos(placement.RotationRadians) < 0d
+                ? TimberLeaderHorizontalSide.Left
+                : TimberLeaderHorizontalSide.Right);
+        var knee = CalculateKnee(
+            placement.AnchorX,
+            placement.AnchorY,
+            side,
+            FirstSegmentLengthMm * presentationScaleFactor,
+            TimberLeaderPlaneBasis.WorldXY,
+            TimberLeaderVerticalSide.Up);
+
+        var normalX = placement.TextX - placement.AnchorX;
+        var normalY = placement.TextY - placement.AnchorY;
+        var normalLength = Math.Sqrt(
+            normalX * normalX +
+            normalY * normalY);
+        if (normalLength <= AngleToleranceRadians)
+        {
+            normalX = -Math.Sin(placement.RotationRadians);
+            normalY = Math.Cos(placement.RotationRadians);
+            normalLength = 1d;
+        }
+        normalX /= normalLength;
+        normalY /= normalLength;
+
+        // Native Plain item text remains horizontal. Use its projected
+        // half-envelope along the source normal so every orientation keeps
+        // the same edge clearance from the source axis.
+        var projectedHalfEnvelope =
+            Math.Abs(normalX) * envelopeWidth / 2d +
+            Math.Abs(normalY) * effectiveTextHeight / 2d;
+        var centerOffset =
+            projectedHalfEnvelope +
+            TimberItemNumberTypographyRules.CalculatePlainTextClearanceMm(
+                presentationScaleFactor);
+        var contentX = placement.AnchorX + normalX * centerOffset;
+        var contentY = placement.AnchorY + normalY * centerOffset;
+
+        return new TimberItemLeaderLayout(
+            placement.AnchorX,
+            placement.AnchorY,
+            knee.X,
+            knee.Y,
+            contentX,
+            contentY,
+            side,
+            envelopeWidth,
+            effectiveTextHeight);
+    }
+
+    public static TimberItemLeaderLayout CalculateBlock(
+        TimberLeaderPlacement placement,
+        string itemText,
+        ItemNumberLeaderStyle style,
+        TimberLeaderHorizontalSide? preferredSide = null,
+        double presentationScaleFactor = 1d)
+    {
+        if (placement is null)
+        {
+            throw new ArgumentNullException(nameof(placement));
+        }
+        if (presentationScaleFactor <= 0d ||
+            double.IsNaN(presentationScaleFactor) ||
+            double.IsInfinity(presentationScaleFactor))
+        {
+            throw new ArgumentOutOfRangeException(nameof(presentationScaleFactor));
         }
 
         var definition = TimberItemLeaderBlockDefinitionRules.Resolve(style, itemText);
@@ -127,7 +234,7 @@ public static class TimberItemLeaderLayoutCalculator
             placement.AnchorX,
             placement.AnchorY,
             side,
-            FirstSegmentLengthMm + FramedLeaderAdditionalOffsetMm,
+            (FirstSegmentLengthMm + FramedLeaderAdditionalOffsetMm) * presentationScaleFactor,
             TimberLeaderPlaneBasis.WorldXY,
             TimberLeaderVerticalSide.Up,
             FramedFirstSegmentAngleRadians);
@@ -139,8 +246,8 @@ public static class TimberItemLeaderLayoutCalculator
             knee.X,
             knee.Y,
             side,
-            definition.WidthMm,
-            definition.HeightMm);
+            definition.WidthMm * presentationScaleFactor,
+            definition.HeightMm * presentationScaleFactor);
     }
 
     public static (double X, double Y) CalculateKnee(

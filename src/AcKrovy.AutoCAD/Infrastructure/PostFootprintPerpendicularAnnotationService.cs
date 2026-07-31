@@ -8,19 +8,19 @@ namespace AcKrovy.AutoCAD.Infrastructure;
 internal static class PostFootprintPerpendicularAnnotationService
 {
     private const string BlockName = "DECORAIR_ACADKROVY_POST_FOOTPRINT_90_V2";
-    private const int AnnotationLayerColorIndex = 8;
-
     public static bool UpsertForFootprint(
         Database database,
         Transaction transaction,
         Polyline sourcePolyline,
         TimberRectangularFootprintGeometry footprintGeometry,
+        AutoCadAnnotationScaleService annotationScaleService,
         bool copySourcePreservation = false)
     {
         ArgumentNullException.ThrowIfNull(database);
         ArgumentNullException.ThrowIfNull(transaction);
         ArgumentNullException.ThrowIfNull(sourcePolyline);
         ArgumentNullException.ThrowIfNull(footprintGeometry);
+        ArgumentNullException.ThrowIfNull(annotationScaleService);
 
         var sourceHandle = sourcePolyline.Handle.ToString();
         var blockId = EnsureBlockDefinition(database, transaction);
@@ -57,15 +57,18 @@ internal static class PostFootprintPerpendicularAnnotationService
             placement.AnchorY,
             sourcePolyline.GetPoint3dAt(0).Z);
         annotation.Rotation = placement.RotationRadians;
-        annotation.ScaleFactors = new Scale3d(1d);
+        annotation.ScaleFactors = new Scale3d(
+            TimberSlopeAnnotationPresentationRules
+                .CalculateSpecialSymbolScale(
+                    annotationScaleService.Context.ScaleFactor));
         TimberLayerService.ApplyToAnnotationEntity(
             database,
             transaction,
             annotation,
             SlopeArrowService.ArrowLayerName,
-            AnnotationLayerColorIndex,
+            TimberSlopeAnnotationPresentationRules.DefaultLayerColorIndex,
             isPlottable: false,
-            updateExistingLayer: !copySourcePreservation);
+            updateExistingLayer: false);
         annotation.LineWeight = LineWeight.ByLayer;
         PostFootprintPerpendicularAnnotationStore.Write(
             annotation,

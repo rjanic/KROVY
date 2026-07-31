@@ -15,7 +15,7 @@ Give AI agents a compact sequencing and constraint snapshot. Product priorities 
 
 ## Current architecture or workflow
 
-Snapshot for v0.20.0 First-run Language Onboarding: `AppLanguageService` defines `FirstRunFallbackLanguageCode = "en"` and `ResolveFirstRunLanguageCode(CultureInfo?)` with support for SK, CS, EN, DE, PL, FR (fallback EN). `AppLanguageSettingsStore.Load` uses `CultureInfo.InstalledUICulture` only when `SettingsFileState.Missing`; loaded and corrupt recovery states return `result.Value`. Load never calls Save automatically. The stable v0.18.0 Settings Fashion Look and v0.19.0 productivity tools remain unchanged, while the selected milestone completes the first-run language detection and recovery-aware persistence. The production adapter remains AutoCAD 2027-only.
+Snapshot for v0.21.0 Annotation Scale Engine + Settings UI: annotation presentation uses an immutable Core scale context with Drawing > UserDefault > fallback 1:50 priority. Drawing schema 1 is stored in `ACAD_KROVY / DRAWING_SETTINGS`; `AK_SETTINGS` independently controls the current DWG and defaults for new drawings, supports 1:25, 1:50, 1:75, 1:100 and custom 10–200, and refreshes existing annotations only when the effective drawing scale changes. The stable v0.18.0 Settings Fashion Look, v0.19.0 productivity tools and v0.20.0 language onboarding remain unchanged. The production adapter remains AutoCAD 2027-only.
 
 Near-term themes must be taken from `ACAD_KROVY_BACKLOG.md` and sequenced through `ACAD_KROVY_ROADMAP.md`. At this snapshot those documents remain the source for roof automation, reporting/manufacturing workflow, multilingual completion and compatibility expansion; implement only items that are still present and explicitly selected.
 
@@ -48,7 +48,7 @@ Known technical debt/limitations:
 - COPY/COPYCLIP/WBLOCK/SAVE-REOPEN and interactive STRETCH still require real AutoCAD release smoke tests.
 - The current production adapter targets AutoCAD 2027/.NET 10; other host/version targets need deliberate adapter/build work.
 - Some architecture regressions are guarded by source-contract tests and must not be mistaken for runtime API coverage.
-- Annotation scale and CAD text styles remain open features not yet implemented.
+- CAD text-style configuration remains open; deterministic production TextStyleId assignment is retained.
 - Multi-version AutoCAD 2021–2027 compatibility checkpoint remains open; the current production adapter targets AutoCAD 2027 only.
 - BricsCAD and ZWCAD adapters are planned but not yet built.
 

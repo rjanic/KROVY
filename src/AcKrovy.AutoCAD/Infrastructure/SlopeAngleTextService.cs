@@ -7,16 +7,13 @@ namespace AcKrovy.AutoCAD.Infrastructure;
 
 internal static class SlopeAngleTextService
 {
-    private const int AngleTextLayerColorIndex = 8;
-    private const double AngleTextHeightMm = 120d;
-    private const double AngleTextOffsetMm = 140d;
-
     public static bool UpsertForElement(
         Database database,
         Transaction transaction,
         Entity sourceEntity,
         TimberElementData data,
         SlopeAnnotationGeometryData geometry,
+        double presentationScaleFactor,
         bool copySourcePreservation = false)
     {
         ArgumentNullException.ThrowIfNull(database);
@@ -65,6 +62,7 @@ internal static class SlopeAngleTextService
             angleText,
             geometry,
             data,
+            presentationScaleFactor,
             updateExistingLayer: !copySourcePreservation);
         SlopeAngleTextStore.Write(
             angleText,
@@ -151,6 +149,7 @@ internal static class SlopeAngleTextService
         DBText angleText,
         SlopeAnnotationGeometryData geometry,
         TimberElementData data,
+        double presentationScaleFactor,
         bool updateExistingLayer)
     {
         var isPost = data.ElementType == TimberElementType.Post;
@@ -163,7 +162,8 @@ internal static class SlopeAngleTextService
                 geometry.End.Y,
                 geometry.AnnotationPoint.X,
                 geometry.AnnotationPoint.Y,
-                AngleTextOffsetMm);
+                TimberSlopeAnnotationPresentationRules.CalculateTextOffsetMm(
+                    presentationScaleFactor));
         var postGeometry = isPost
             ? TimberPostAnnotationGeometryCalculator.Calculate(
                 geometry.Start.X,
@@ -171,7 +171,10 @@ internal static class SlopeAngleTextService
                 geometry.End.X,
                 geometry.End.Y,
                 geometry.AnnotationPoint.X,
-                geometry.AnnotationPoint.Y)
+                geometry.AnnotationPoint.Y,
+                TimberSlopeAnnotationPresentationRules
+                    .CalculateSpecialSymbolScale(
+                        presentationScaleFactor))
             : null;
         var location = postGeometry is not null
             ? new Point3d(postGeometry.TextPosition.X, postGeometry.TextPosition.Y, geometry.AnnotationPoint.Z)
@@ -180,7 +183,10 @@ internal static class SlopeAngleTextService
         angleText.Position = location;
         angleText.Justify = AttachmentPoint.MiddleCenter;
         angleText.AlignmentPoint = location;
-        angleText.Height = AngleTextHeightMm;
+        angleText.Height =
+            TimberSlopeAnnotationPresentationRules.CalculateTextHeightMm(
+                presentationScaleFactor);
+        angleText.TextStyleId = database.Textstyle;
         angleText.Rotation = postGeometry?.RotationRadians ?? placement!.RotationRadians;
         angleText.TextString = TimberSlopeAngleFormatter.Format(
             TimberSlopeAnnotationRules.ResolveDisplayAngleDegrees(data.ElementType, data.SlopeDegrees));
@@ -189,9 +195,9 @@ internal static class SlopeAngleTextService
             transaction,
             angleText,
             SlopeArrowService.ArrowLayerName,
-            AngleTextLayerColorIndex,
+            TimberSlopeAnnotationPresentationRules.DefaultLayerColorIndex,
             isPlottable: false,
-            updateExistingLayer: updateExistingLayer);
+            updateExistingLayer: false);
         angleText.LineWeight = LineWeight.ByLayer;
         angleText.AdjustAlignment(database);
     }

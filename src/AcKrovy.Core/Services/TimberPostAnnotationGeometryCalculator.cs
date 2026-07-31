@@ -17,13 +17,33 @@ public static class TimberPostAnnotationGeometryCalculator
     public const double DisplayAngleDegrees = 90d;
 
     /// <summary>Geometry stored in the block definition, centred at its local origin.</summary>
-    public static TimberPostAnnotationGeometry CreateLocal() => new(
-        new TimberSlopeAnnotationPoint(0d, 0d),
-        new TimberSlopeAnnotationPoint(-CapHalfLengthMm, 0d),
-        new TimberSlopeAnnotationPoint(CapHalfLengthMm, 0d),
-        new TimberSlopeAnnotationPoint(0d, StemLengthMm),
-        new TimberSlopeAnnotationPoint(TextLongitudinalOffsetMm, TextNormalOffsetMm),
-        0d);
+    public static TimberPostAnnotationGeometry CreateLocal(
+        double presentationScaleFactor = 1d)
+    {
+        if (presentationScaleFactor <= 0d ||
+            double.IsNaN(presentationScaleFactor) ||
+            double.IsInfinity(presentationScaleFactor))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(presentationScaleFactor));
+        }
+
+        return new TimberPostAnnotationGeometry(
+            new TimberSlopeAnnotationPoint(0d, 0d),
+            new TimberSlopeAnnotationPoint(
+                -CapHalfLengthMm * presentationScaleFactor,
+                0d),
+            new TimberSlopeAnnotationPoint(
+                CapHalfLengthMm * presentationScaleFactor,
+                0d),
+            new TimberSlopeAnnotationPoint(
+                0d,
+                StemLengthMm * presentationScaleFactor),
+            new TimberSlopeAnnotationPoint(
+                TextLongitudinalOffsetMm * presentationScaleFactor,
+                TextNormalOffsetMm * presentationScaleFactor),
+            0d);
+    }
 
     public static TimberPostAnnotationGeometry Calculate(
         double startX,
@@ -31,7 +51,8 @@ public static class TimberPostAnnotationGeometryCalculator
         double endX,
         double endY,
         double anchorX,
-        double anchorY)
+        double anchorY,
+        double presentationScaleFactor = 1d)
     {
         var readablePlacement = TimberElementLabelPlacementCalculator.Calculate(
             startX,
@@ -44,10 +65,14 @@ public static class TimberPostAnnotationGeometryCalculator
         var rotation = readablePlacement.RotationRadians;
         var normalX = -Math.Sin(rotation);
         var normalY = Math.Cos(rotation);
-        var groupAnchorX = anchorX + normalX * AnnotationNormalOffsetMm;
-        var groupAnchorY = anchorY + normalY * AnnotationNormalOffsetMm;
+        var groupAnchorX =
+            anchorX +
+            normalX * AnnotationNormalOffsetMm * presentationScaleFactor;
+        var groupAnchorY =
+            anchorY +
+            normalY * AnnotationNormalOffsetMm * presentationScaleFactor;
         return TransformLocalToWorld(
-            CreateLocal(),
+            CreateLocal(presentationScaleFactor),
             groupAnchorX,
             groupAnchorY,
             rotation);

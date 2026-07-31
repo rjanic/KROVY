@@ -92,7 +92,9 @@ internal static class AcKrovyMLeaderStyleService
         ObjectId arrowSymbolId,
         int leaderIndex,
         int leaderLineIndex,
-        AcKrovy.Core.Models.TimberLeaderHorizontalSide contentSide)
+        AcKrovy.Core.Models.TimberLeaderHorizontalSide contentSide,
+        double textHeightMm,
+        double presentationScaleFactor)
     {
         ArgumentNullException.ThrowIfNull(leader);
         ArgumentNullException.ThrowIfNull(database);
@@ -111,13 +113,13 @@ internal static class AcKrovyMLeaderStyleService
         leader.SetLeaderLineTypeId(leaderLineIndex, database.ByBlockLinetype);
         leader.SetLeaderLineWeight(leaderLineIndex, LineWeight.ByBlock);
         leader.ArrowSymbolId = arrowSymbolId;
-        leader.ArrowSize = settings.ArrowheadSize;
+        leader.ArrowSize = settings.ArrowheadSize * presentationScaleFactor;
         leader.EnableLanding = settings.HasHorizontalLanding;
         leader.EnableDogleg = settings.HasHorizontalLanding;
-        leader.DoglegLength = settings.LandingDistance;
+        leader.DoglegLength = settings.LandingDistance * presentationScaleFactor;
         leader.ExtendLeaderToText = settings.ExtendsLeaderToText;
         leader.EnableFrameText = false;
-        leader.LandingGap = 0d;
+        leader.LandingGap = 0d * presentationScaleFactor;
         leader.TextAttachmentDirection = TextAttachmentDirection.AttachmentHorizontal;
         leader.SetTextAttachmentType(
             TextAttachmentType.AttachmentBottomLine,
@@ -125,6 +127,7 @@ internal static class AcKrovyMLeaderStyleService
         leader.SetTextAttachmentType(
             TextAttachmentType.AttachmentBottomLine,
             LeaderDirectionType.RightLeader);
+        leader.TextStyleId = database.Textstyle;
         if (TimberNativeLeaderStyleRules.RequiresExplicitDoglegDirection)
         {
             leader.SetDogleg(
@@ -133,7 +136,7 @@ internal static class AcKrovyMLeaderStyleService
                     ? -Autodesk.AutoCAD.Geometry.Vector3d.XAxis
                     : Autodesk.AutoCAD.Geometry.Vector3d.XAxis);
         }
-        ApplyTextHeight(leader, settings.TextHeightMm);
+        ApplyTextHeight(leader, textHeightMm);
     }
 
     public static void ApplyBlockInstanceProperties(
@@ -143,6 +146,7 @@ internal static class AcKrovyMLeaderStyleService
         int leaderIndex,
         int leaderLineIndex,
         AcKrovy.Core.Models.TimberLeaderHorizontalSide contentSide,
+        double presentationScaleFactor,
         Autodesk.AutoCAD.Geometry.Vector3d? doglegDirectionOverride = null)
     {
         ArgumentNullException.ThrowIfNull(leader);
@@ -162,13 +166,13 @@ internal static class AcKrovyMLeaderStyleService
         leader.SetLeaderLineTypeId(leaderLineIndex, database.ByBlockLinetype);
         leader.SetLeaderLineWeight(leaderLineIndex, LineWeight.ByBlock);
         leader.ArrowSymbolId = arrowSymbolId;
-        leader.ArrowSize = settings.ArrowheadSize;
+        leader.ArrowSize = settings.ArrowheadSize * presentationScaleFactor;
         leader.BlockConnectionType = BlockConnectionType.ConnectBase;
         leader.EnableLanding = settings.HasHorizontalLanding;
         leader.EnableDogleg = settings.HasHorizontalLanding;
-        leader.DoglegLength = settings.LandingDistance;
+        leader.DoglegLength = settings.LandingDistance * presentationScaleFactor;
         leader.ExtendLeaderToText = settings.ExtendsLeaderToText;
-        leader.LandingGap = 0d;
+        leader.LandingGap = 0d * presentationScaleFactor;
         if (settings.LandingDistance > 0d)
         {
             leader.SetDogleg(
@@ -186,6 +190,7 @@ internal static class AcKrovyMLeaderStyleService
         int leaderIndex,
         int leaderLineIndex,
         AcKrovy.Core.Models.TimberLeaderHorizontalSide contentSide,
+        double presentationScaleFactor,
         Autodesk.AutoCAD.Geometry.Vector3d? doglegDirectionOverride = null)
     {
         ArgumentNullException.ThrowIfNull(leader);
@@ -205,13 +210,13 @@ internal static class AcKrovyMLeaderStyleService
         leader.SetLeaderLineTypeId(leaderLineIndex, database.ByBlockLinetype);
         leader.SetLeaderLineWeight(leaderLineIndex, LineWeight.ByBlock);
         leader.ArrowSymbolId = ObjectId.Null;
-        leader.ArrowSize = settings.ArrowheadSize;
+        leader.ArrowSize = settings.ArrowheadSize * presentationScaleFactor;
         leader.BlockConnectionType = BlockConnectionType.ConnectExtents;
         leader.EnableLanding = settings.HasHorizontalLanding;
         leader.EnableDogleg = settings.HasHorizontalLanding;
-        leader.DoglegLength = settings.LandingDistance;
+        leader.DoglegLength = settings.LandingDistance * presentationScaleFactor;
         leader.ExtendLeaderToText = settings.ExtendsLeaderToText;
-        leader.LandingGap = 0d;
+        leader.LandingGap = 0d * presentationScaleFactor;
         leader.SetDogleg(
             leaderIndex,
             doglegDirectionOverride ??

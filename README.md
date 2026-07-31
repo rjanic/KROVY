@@ -15,6 +15,7 @@ Aktuálne číslo aplikácie je definované výhradne v [`Directory.Build.props`
 - centrálne výpočty skutočnej a reznej dĺžky, prídavkov, zaokrúhľovania a kubatúry,
 - automatický refresh po MOVE, ROTATE, STRETCH, TRIM, EXTEND a grip edit,
 - tri per-element režimy hlavnej anotácie, collision-aware anotácia smeru sklonu a `AK_FLIPSLOPE`,
+- mierka anotácií s prioritou Drawing > UserDefault > fallback 1:50 a vizuálnym nastavením v `AK_SETTINGS`,
 - report z výberu alebo celého výkresu s prirodzeným radením položiek a adaptívnymi stĺpcami,
 - read-only `AK_SELECTSIMILAR` s kombinovateľnými výrobnými filtrami,
 - `AK_EXPORTCSV` pre jednotlivé prvky alebo súhrn z výberu/model space,
@@ -118,10 +119,30 @@ middle-center na horizontálnej landing čiare, a používajú centralizovanú
 poloha sa po klasickom STRETCH zachováva pri refreshi aj renumberingu.
 Zvolený default sa používa na nové prvky; existujúce prvky sa zmenia iba
 explicitnou akciou pre výber alebo celý výkres.
-Všetky Circle varianty používajú jednotný priemer 520 mm a `BlockScale = 1`;
-veľkosť nezávisí od typu prvku, prefixu ani čísla položky.
+Pri základnej mierke 1:50 používajú všetky Circle varianty priemer 400 mm a
+`BlockScale = 1`; framed geometria sa pri inej mierke škáluje iba cez
+`BlockScale`.
 
 Každý prvok si režim aj štýl čísla uchováva vo vlastných XData metadata schema v4, takže SAVE/REOPEN, COPY, COPYCLIP a WBLOCK nemenia jeho nastavenie. Staršie prvky bez režimu používajú pôvodný `FullLabel`; chýbajúci štýl čísla znamená `Plain`. Hlavná MText/MLeader anotácia zostáva viazaná cez `SourceHandle`, používa `KROV_POPIS`; `AK_LABELS`, `AK_LABELSELECTED`, live refresh a `AK_RENUMBER` vždy zosúladia práve jednu správnu reprezentáciu. Slope anotácie a samostatné `⊥ 90°` označenie Stĺpika zostávajú nezávislé.
+
+## Annotation Scale Engine + Settings UI v0.21.0
+
+Mierka anotácií používa prioritu drawing override v
+`ACAD_KROVY / DRAWING_SETTINGS`, používateľský default v
+`timber-element-default-profile.json` a bezpečný fallback 1:50.
+`AK_SETTINGS` oddeľuje mierku aktuálneho DWG od defaultu pre nové výkresy,
+ponúka 1:25, 1:50, 1:75, 1:100 a vlastný menovateľ 10–200, živý náhľad
+typografie a `BlockScale` aj idempotentné odstránenie drawing override.
+Reálna zmena mierky aktuálneho DWG automaticky použije spoločný refresh
+`AK_LABELS` bez duplicít.
+
+Základ 1:50 používa dimension/FullLabel text 125 mm, item-number text 135 mm,
+slope text 80 mm, slope text offset 100 mm a Circle Ø400 mm. Scale context je
+immutable, faktor sa aplikuje presne raz, Core zostáva bez Autodesk typov,
+natívne annotative contexts sa nepoužívajú a text style sa priraďuje
+deterministicky. Pokryté sú FullLabel, DimensionsLeader, ItemNumberLeader,
+framed a combined anotácie, Post footprint, slope arrow/text, 0° symbol aj
+celý 90° perpendicular block.
 
 ## Architektúra
 
@@ -239,6 +260,6 @@ Portable režim overuje CAD-neutrálne projekty, testy, zakázané závislosti a
 - [`docs/TEST_SCENARIO_008_PRODUCTIVITY_RELIABILITY.md`](docs/TEST_SCENARIO_008_PRODUCTIVITY_RELIABILITY.md) – manuálny AutoCAD 2027 protokol pre v0.19.0,
 - [`README_SK.txt`](README_SK.txt) – stručný slovenský quick-start pre používateľa.
 
-Verzia v0.19.0 pridáva Select Similar, CSV export, diagnostiku a bezpečnú
-obnovu lokálnych nastavení. Produkčný adapter zostáva AutoCAD 2027-only;
+Verzia v0.21.0 pridáva Annotation Scale Engine a vizuálne nastavenie mierky.
+Produkčný adapter zostáva AutoCAD 2027-only;
 ďalšie hostiteľské verzie a CAD platformy sú samostatné budúce míľniky.

@@ -1,3 +1,5 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using AcKrovy.Core.Models;
 using AcKrovy.Core.Services;
 using Xunit;
@@ -51,6 +53,141 @@ public sealed class TimberElementDefaultProfileTests
         var profile = TimberElementDefaultProfile.CreateDefault();
 
         Assert.Equal(200, profile.GetCuttingAllowanceMm(TimberElementType.Purlin));
+    }
+
+    [Fact]
+    public void CreateDefault_HasDefaultAnnotationScaleDenominator()
+    {
+        var profile = TimberElementDefaultProfile.CreateDefault();
+
+        Assert.Equal(
+            TimberAnnotationScaleRules.DefaultDenominator,
+            profile.AnnotationScaleDenominator);
+    }
+
+    [Theory]
+    [InlineData(25)]
+    [InlineData(100)]
+    public void Normalize_KeepsValidAnnotationScaleDenominator(int denominator)
+    {
+        var profile = new TimberElementDefaultProfile
+        {
+            AnnotationScaleDenominator = denominator,
+            Styles = TimberElementDefaultProfile.CreateDefault().Styles,
+        };
+
+        Assert.Equal(denominator, profile.Normalize().AnnotationScaleDenominator);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(9)]
+    [InlineData(201)]
+    [InlineData(-5)]
+    public void Normalize_InvalidAnnotationScaleDenominatorFallsBackToDefault(int denominator)
+    {
+        var profile = new TimberElementDefaultProfile
+        {
+            AnnotationScaleDenominator = denominator,
+            Styles = TimberElementDefaultProfile.CreateDefault().Styles,
+        };
+
+        Assert.Equal(
+            TimberAnnotationScaleRules.DefaultDenominator,
+            profile.Normalize().AnnotationScaleDenominator);
+    }
+
+    [Fact]
+    public void JsonDeserialize_OldProfileWithoutAnnotationScaleDenominatorDefaultsToDefault()
+    {
+        var profile = DeserializeProfileWithoutScaleDenominator();
+
+        Assert.Equal(
+            TimberAnnotationScaleRules.DefaultDenominator,
+            profile.AnnotationScaleDenominator);
+    }
+
+    [Theory]
+    [InlineData(10)]
+    [InlineData(200)]
+    public void JsonDeserialize_ValidAnnotationScaleDenominatorIsPreserved(int denominator)
+    {
+        var profile = DeserializeProfileWithScaleDenominator(denominator);
+
+        Assert.Equal(denominator, profile.AnnotationScaleDenominator);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(9)]
+    [InlineData(201)]
+    [InlineData(-5)]
+    public void JsonDeserialize_InvalidAnnotationScaleDenominatorNormalizesToDefault(int denominator)
+    {
+        var profile = DeserializeProfileWithScaleDenominator(denominator);
+
+        Assert.Equal(
+            TimberAnnotationScaleRules.DefaultDenominator,
+            profile.AnnotationScaleDenominator);
+    }
+
+    [Fact]
+    public void JsonRoundtrip_PreservesExistingFieldsAndAnnotationScaleDenominator()
+    {
+        var profile = TimberElementDefaultProfile.CreateDefault();
+        profile.AnnotationScaleDenominator = 75;
+
+        var json = JsonSerializer.Serialize(profile.Normalize(), JsonOptions);
+        var persisted = JsonSerializer.Deserialize<TimberElementDefaultProfile>(json, JsonOptions)!
+            .Normalize();
+
+        Assert.Equal(75, persisted.AnnotationScaleDenominator);
+        Assert.Equal(profile.DefaultAnnotationMode, persisted.DefaultAnnotationMode);
+        Assert.Equal(profile.DefaultItemNumberLeaderStyle, persisted.DefaultItemNumberLeaderStyle);
+        Assert.Equal(profile.Styles.Count, persisted.Styles.Count);
+    }
+
+    [Fact]
+    public void JsonSerialize_NormalizesInvalidAnnotationScaleDenominatorToDefault()
+    {
+        var profile = new TimberElementDefaultProfile
+        {
+            AnnotationScaleDenominator = 0,
+            Styles = TimberElementDefaultProfile.CreateDefault().Styles,
+        };
+
+        var json = JsonSerializer.Serialize(profile.Normalize(), JsonOptions);
+
+        Assert.Contains(
+            $"\"annotationScaleDenominator\":{TimberAnnotationScaleRules.DefaultDenominator}",
+            json,
+            StringComparison.Ordinal);
+    }
+
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        Converters = { new JsonStringEnumConverter() },
+    };
+
+    private static TimberElementDefaultProfile DeserializeProfileWithScaleDenominator(int denominator)
+    {
+        var profile = TimberElementDefaultProfile.CreateDefault();
+        profile.AnnotationScaleDenominator = denominator;
+        var json = JsonSerializer.Serialize(profile, JsonOptions);
+        return JsonSerializer.Deserialize<TimberElementDefaultProfile>(json, JsonOptions)!.Normalize();
+    }
+
+    private static TimberElementDefaultProfile DeserializeProfileWithoutScaleDenominator()
+    {
+        var profile = TimberElementDefaultProfile.CreateDefault();
+        var json = JsonSerializer.Serialize(profile, JsonOptions)
+            .Replace(
+                ",\"annotationScaleDenominator\":50",
+                string.Empty,
+                StringComparison.Ordinal);
+
+        return JsonSerializer.Deserialize<TimberElementDefaultProfile>(json, JsonOptions)!.Normalize();
     }
 
     [Fact]

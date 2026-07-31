@@ -1,8 +1,9 @@
 # ACAD KROVY – BACKLOG
 
-**Aktualizované:** 27. 7. 2026
+**Aktualizované:** 31. 7. 2026
 **Stabilný commit v0.18.0:** `46ad0cfe555f9f3177de2d47d13bdda33d9a91a0`
 **Stabilný commit v0.19.0:** `41373d235a357dee05033872a1df8fed8b3286d3`
+**Stabilný commit v0.20.0:** `6564fc930d98e3eca591bafcccef709af07dc9a5`
 
 > Tento súbor je úplný zásobník nápadov. Poradie realizácie určuje `ACAD_KROVY_ROADMAP.md`.
 
@@ -48,15 +49,13 @@
   `LandingDistance = 350 mm`,
 - hotové: persistentný lokálny framed offset po STRETCH, default pre nové prvky,
   explicitné použitie na výber/všetky, Post/Custom, COPY/COPYCLIP/WBLOCK a live refresh,
-- budúce: reset manuálneho offsetu, výber `80x160`/`80/160` a annotation scale.
+- budúce: reset manuálneho offsetu a výber `80x160`/`80/160`.
 
-### Mierka anotácií
-- 1:25
-- 1:50
-- 1:75
-- 1:100
-- custom
-- odporúčaný default 1:50.
+### Mierka anotácií — dokončené vo v0.21.0
+- Drawing > UserDefault > fallback 1:50,
+- 1:25, 1:50, 1:75, 1:100 a custom 10–200,
+- Settings UI, live preview, drawing store/Remove a automatický refresh,
+- škálovanie hlavných, leader, framed/combined, Post a slope anotácií.
 
 ### Písmo/text styles
 - kóty,
@@ -227,6 +226,13 @@ Priebežne:
 - loaded a corrupt recovery stavy vracajú `result.Value`,
 - `Load` automaticky nevolá `Save`,
 - ProductVersion 0.20.0, metadata schema 4, layer profile 3.
+
+### Annotation Scale Engine + Settings UI v0.21.0
+- ProductVersion 0.21.0, AssemblyVersion/FileVersion 0.21.0.0,
+- drawing override schema 1 v `ACAD_KROVY / DRAWING_SETTINGS`,
+- samostatný UserDefault a aktuálny DWG, custom 10–200 a Core preview,
+- automatický refresh bez duplicít pre všetky produkčné anotácie,
+- metadata schema 4 a layer profile schema 3 zostávajú nezmenené.
 
 ### Linetype settings v0.17.0
 - per-type `LinetypeName` a `LinetypeScale` v layer profile v3,

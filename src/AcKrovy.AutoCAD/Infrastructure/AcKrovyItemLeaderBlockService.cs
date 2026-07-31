@@ -255,7 +255,9 @@ internal static class AcKrovyItemLeaderBlockService
             !HasByBlockAppearance(database, attribute) ||
             Math.Abs(attribute.Height - definition.TextHeightMm) > 0.001d ||
             attribute.HorizontalMode != TextHorizontalMode.TextCenter ||
-            attribute.VerticalMode != TextVerticalMode.TextVerticalMid)
+            attribute.VerticalMode != TextVerticalMode.TextVerticalMid ||
+            attribute.Position.DistanceTo(Point3d.Origin) > 0.001d ||
+            attribute.AlignmentPoint.DistanceTo(Point3d.Origin) > 0.001d)
         {
             return false;
         }

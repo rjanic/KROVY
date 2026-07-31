@@ -104,6 +104,18 @@ zachovajú COPY, COPYCLIP, WBLOCK aj SAVE/REOPEN. Staré prvky bez uloženého
 režimu používajú FullLabel; chýbajúci štýl čísla znamená Plain.
 Slope anotácie a samostatné označenie Stĺpika ⊥ 90° zostávajú nezávislé.
 
+MIERKA ANOTÁCIÍ v0.21.0
+AK_SETTINGS nastavuje samostatne mierku aktuálneho DWG a predvolenú mierku
+nových výkresov. Priorita je Drawing > UserDefault > fallback 1:50.
+Predvoľby sú 1:25, 1:50, 1:75, 1:100 a vlastný menovateľ 10–200. Náhľad
+zobrazuje výšku textov a BlockScale. Drawing override možno bezpečne odstrániť;
+reálna zmena mierky automaticky obnoví existujúce anotácie bez duplicít.
+
+Pri 1:50 má dimension/FullLabel text 125 mm, item-number text 135 mm, slope
+text 80 mm, slope offset 100 mm a Circle priemer 400 mm. Škálovanie pokrýva
+hlavné, leader, framed, combined, Post footprint a slope anotácie vrátane
+symbolov 0° a 90°.
+
 PRODUCTIVITY & RELIABILITY v0.19.0
 AK_SELECTSIMILAR porovnáva typ, neotáčaný prierez, canonical materiál a podľa
 voľby položku, výrobnú dĺžku s toleranciou alebo Custom ID. Skenuje iba model

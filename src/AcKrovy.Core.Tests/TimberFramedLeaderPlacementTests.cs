@@ -78,28 +78,29 @@ public sealed class TimberFramedLeaderPlacementTests
     }
 
     [Theory]
-    [InlineData(0, 100, 300, 100, 150, 100)]
-    [InlineData(0, 100, -300, 100, -150, 100)]
-    [InlineData(20, 500, 320, 500, 170, 500)]
-    [InlineData(20, -500, 320, -500, 170, -500)]
-    [InlineData(50, 250, -250, 250, -100, 250)]
-    public void CombinedDimensionsText_IsCenteredOnActualLandingEndpoints(
-        double startX,
-        double startY,
-        double endX,
-        double endY,
-        double expectedX,
-        double expectedY)
+    [InlineData(175d, 62.5d, 37.5d)]
+    [InlineData(350d, 125d, 75d)]
+    [InlineData(700d, 250d, 150d)]
+    public void CombinedDimensionsText_UsesTypographyGapBeforeFrame(
+        double landingDistance,
+        double textHeight,
+        double expectedGap)
     {
-        var position =
-            TimberItemLeaderLayoutCalculator.CalculateSegmentMidpoint(
-                startX,
-                startY,
-                endX,
-                endY);
+        var centerOffset =
+            TimberCombinedDimensionTypographyRules
+                .CalculateTextCenterOffsetFromLandingStartMm(
+                    landingDistance,
+                    textHeight,
+                    textHeight);
+        var gap =
+            landingDistance -
+            centerOffset -
+            textHeight / 2d;
 
-        Assert.Equal(expectedX, position.X, 10);
-        Assert.Equal(expectedY, position.Y, 10);
+        Assert.Equal(
+            expectedGap,
+            gap,
+            10);
     }
 
     [Theory]
