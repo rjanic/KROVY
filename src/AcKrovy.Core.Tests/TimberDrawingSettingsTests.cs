@@ -71,9 +71,9 @@ public sealed class TimberDrawingSettingsTests
                 userDefaultDenominator: 25));
 
     [Fact]
-    public void Resolver_MissingDrawingValueUsesUserDefault() =>
+    public void Resolver_MissingDrawingValueUsesFixedDefault() =>
         Assert.Equal(
-            75,
+            TimberAnnotationScaleRules.DefaultDenominator,
             TimberAnnotationScaleResolver.Resolve(
                 hasDrawingValue: false,
                 drawingDenominator: 100,
@@ -93,16 +93,16 @@ public sealed class TimberDrawingSettingsTests
     }
 
     [Fact]
-    public void ResolverContext_MissingDrawingReportsUserDefaultSource()
+    public void ResolverContext_MissingDrawingReportsFixedDefaultSource()
     {
         var context = TimberAnnotationScaleResolver.ResolveContext(
             hasDrawingValue: false,
             drawingDenominator: 100,
             userDefaultDenominator: 25);
 
-        Assert.Equal(25, context.Denominator);
-        Assert.Equal(0.5d, context.ScaleFactor);
-        Assert.Equal(TimberAnnotationScaleSource.UserDefault, context.Source);
+        Assert.Equal(50, context.Denominator);
+        Assert.Equal(1d, context.ScaleFactor);
+        Assert.Equal(TimberAnnotationScaleSource.FixedDefault, context.Source);
     }
 
     [Fact]

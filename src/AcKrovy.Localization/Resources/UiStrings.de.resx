@@ -423,6 +423,24 @@
   <data name="SettingsWindow_AnnotationScale_Preview" xml:space="preserve"><value>Maßstabsvorschau</value></data>
   <data name="SettingsWindow_AnnotationScale_DimensionHeight" xml:space="preserve"><value>Bemaßungstexthöhe</value></data>
   <data name="SettingsWindow_AnnotationScale_ItemHeight" xml:space="preserve"><value>Positionsnummernhöhe</value></data>
-  <data name="SettingsWindow_AnnotationScale_SlopeHeight" xml:space="preserve"><value>Neigungstexthöhe</value></data>
-  <data name="SettingsWindow_AnnotationScale_BlockScale" xml:space="preserve"><value>Rahmenmaßstab</value></data>
+  <data name="SettingsWindow_AnnotationScale_SlopeHeight" xml:space="preserve"><value>Höhe des Neigungswinkeltexts</value></data>
+<data name="SettingsWindow_AnnotationScale_BlockScale" xml:space="preserve"><value>Rahmenmaßstab</value></data>
+<data name="SettingsWindow_AnnotationScale_Model" xml:space="preserve"><value>In der Zeichnung im Modell</value></data>
+<data name="SettingsWindow_AnnotationScale_Paper" xml:space="preserve"><value>Auf der Zeichnung</value></data>
+<data name="SettingsWindow_AnnotationScale_RelativeSize" xml:space="preserve"><value>relative Größe</value></data>
+<data name="SettingsWindow_AnnotationScale_FixedDefault" xml:space="preserve"><value>Der Standardmaßstab neuer Zeichnungen ist 1:50</value></data>
+  <data name="SettingsWindow_AnnotationScale_Description" xml:space="preserve"><value>Legen Sie den Beschriftungsmaßstab für die aktuelle Zeichnung und den Standardmaßstab für neue Zeichnungen fest.</value></data>
+  <data name="SettingsWindow_AnnotationCategory_General" xml:space="preserve"><value>Allgemein</value></data>
+  <data name="SettingsWindow_AnnotationCategory_Scale" xml:space="preserve"><value>Maßstab</value></data>
+  <data name="SettingsWindow_AnnotationCategory_Texts" xml:space="preserve"><value>Texte</value></data>
+  <data name="SettingsWindow_AnnotationCategory_LineElements" xml:space="preserve"><value>Linienelemente</value></data>
+  <data name="SettingsWindow_AnnotationCategory_PostElements" xml:space="preserve"><value>Stützenelemente</value></data>
+  <data name="SettingsWindow_AnnotationCategory_Tags" xml:space="preserve"><value>Kennzeichnungen / Symbole</value></data>
+  <data name="SettingsWindow_AnnotationScale_PreviewTitle" xml:space="preserve"><value>Vorschau des Beschriftungsmaßstabs</value></data>
+  <data name="SettingsWindow_AnnotationScale_DrawingLevelHelp" xml:space="preserve"><value>Der Beschriftungsmaßstab ist eine Einstellung für die gesamte Zeichnung.</value></data>
+  <data name="SettingsWindow_AnnotationScale_ApplyDrawing" xml:space="preserve"><value>Maßstab auf aktuelle Zeichnung anwenden</value></data>
+  <data name="SettingsWindow_AnnotationScale_SelectionDoesNotApply" xml:space="preserve"><value>Das Anwenden auf eine Auswahl ändert den Zeichnungsmaßstab nicht. Die Maßstabsänderung bleibt ausstehend; verwenden Sie die globale Aktion auf der Registerkarte Maßstab.</value></data>
+  <data name="SettingsWindow_AnnotationScale_DrawingChangePending" xml:space="preserve"><value>Die Maßstabsänderung der aktuellen Zeichnung bleibt ausstehend. Verwenden Sie die globale Aktion auf der Registerkarte Maßstab.</value></data>
+  <data name="SettingsWindow_AnnotationCategory_ComingSoon" xml:space="preserve"><value>In Vorbereitung</value></data>
+  <data name="Command_Settings_PromptApplyAnnotations" xml:space="preserve"><value>Wählen Sie intelligente Elemente aus, auf die Beschriftungsmodus und -stil angewendet werden sollen:</value></data>
 </root>

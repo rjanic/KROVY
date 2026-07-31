@@ -292,7 +292,7 @@ public sealed class AnnotationScaleRegressionTests
     }
 
     [Fact]
-    public void SettingsWindow_PersistsSelectedUserDefaultScale()
+    public void SettingsWindow_KeepsLegacyScaleOnlyForSerializationCompatibility()
     {
         var source = Source(
             "src",
@@ -300,8 +300,10 @@ public sealed class AnnotationScaleRegressionTests
             "UI",
             "LayerSettingsWindow.xaml.cs");
 
-        Assert.Contains("SelectedUserDefaultScalePreset", source);
-        Assert.Contains("AnnotationScaleDenominator = userDefaultDenominator", source);
+        Assert.DoesNotContain("SelectedUserDefaultScalePreset", source);
+        Assert.Contains(
+            "AnnotationScaleDenominator = _legacyUserDefaultScaleDenominator",
+            source);
         Assert.Contains("normalizedDefaultProfile.AnnotationScaleDenominator", source);
     }
 

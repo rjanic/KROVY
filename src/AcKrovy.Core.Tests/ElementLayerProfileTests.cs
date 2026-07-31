@@ -60,6 +60,42 @@ public sealed class ElementLayerProfileTests
         Assert.Equal("KROKVA", normalized.GetStyle(TimberElementType.Rafter).LayerName);
     }
 
+    [Fact]
+    public void Normalize_PartialProfileFillsOnlyMissingNameAndPreservesAppearance()
+    {
+        var profile = new ElementLayerProfile
+        {
+            Styles =
+            [
+                new(
+                    TimberElementType.Rafter,
+                    string.Empty,
+                    91,
+                    CadLinetypeNames.Continuous,
+                    0.75),
+                new(
+                    TimberElementType.Post,
+                    "ROMAN_STLPIK",
+                    92,
+                    CadLinetypeNames.DashDot,
+                    1.25),
+            ],
+        };
+
+        var normalized = profile.Normalize();
+        var rafter = normalized.GetStyle(TimberElementType.Rafter);
+        var post = normalized.GetStyle(TimberElementType.Post);
+
+        Assert.Equal("KROKVA", rafter.LayerName);
+        Assert.Equal(91, rafter.ColorIndex);
+        Assert.Equal(CadLinetypeNames.Continuous, rafter.LinetypeName);
+        Assert.Equal(0.75, rafter.LinetypeScale);
+        Assert.Equal("ROMAN_STLPIK", post.LayerName);
+        Assert.Equal(92, post.ColorIndex);
+        Assert.Equal(CadLinetypeNames.DashDot, post.LinetypeName);
+        Assert.Equal(1.25, post.LinetypeScale);
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(256)]

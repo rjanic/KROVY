@@ -84,7 +84,10 @@ public sealed class SettingsFashionLookTests
     public void ThemeSwitch_IsExcludedFromProfileFingerprint()
     {
         var source = WindowCode();
-        var fingerprint = Slice(source, "private string CreateUiFingerprint()", "private void UpdateFormState()");
+        var fingerprint = Slice(
+            source,
+            "private string CreateLayersUiFingerprint()",
+            "private void UpdateFormState()");
 
         Assert.DoesNotContain("SelectedTheme", fingerprint);
         Assert.DoesNotContain("SelectedSection", fingerprint);
@@ -296,17 +299,24 @@ public sealed class SettingsFashionLookTests
     }
 
     [Fact]
-    public void AnnotationPresetSelector_BindsItsStableSelectedValue()
+    public void CurrentDrawingScaleSelector_BindsStablePresetValue()
     {
-        var xaml = WindowXaml();
-        var section = Slice(
-            xaml,
-            "ItemsSource=\"{Binding AnnotationPresetOptions}\"",
-            "</ListBox>");
-        Assert.Contains("SelectedValuePath=\"Preset\"", section);
+        var document = XDocument.Parse(WindowXaml());
+        XNamespace presentation = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
+        XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
+        var selectors = document.Descendants(presentation + "ListBox")
+            .Where(element =>
+                ((string?)element.Attribute(x + "Name")) is
+                    "DrawingAnnotationScaleSelector" or
+                    "UserDefaultAnnotationScaleSelector")
+            .ToArray();
+
+        var selector = Assert.Single(selectors);
+        Assert.Equal("Preset", (string?)selector.Attribute("SelectedValuePath"));
         Assert.Contains(
-            "SelectedValue=\"{Binding SelectedAnnotationPreset, Mode=TwoWay}\"",
-            section);
+            "SelectedDrawingScalePreset",
+            (string?)selector.Attribute("SelectedValue") ?? string.Empty);
+        Assert.Single(selector.Descendants(presentation + "StackPanel"));
     }
 
     [Theory]
@@ -505,6 +515,9 @@ public sealed class SettingsFashionLookTests
     {
         var xaml = WindowXaml();
         var code = WindowCode();
+        var owner = File.ReadAllText(Path.Combine(
+            UiDirectory,
+            "SettingsWindowOwner.cs"));
 
         Assert.Contains("Click=\"SaveNewElements_Click\"", xaml);
         Assert.Contains("Click=\"SaveApplySelection_Click\"", xaml);
@@ -517,16 +530,20 @@ public sealed class SettingsFashionLookTests
         Assert.Contains("x:Name=\"LanguageFooterActions\"", xaml);
         Assert.Contains("Click=\"Apply_Click\"", xaml);
         Assert.Contains("private void Apply_Click", code);
-        Assert.Contains("ApplySettings(SettingsSaveMode.NewElementsOnly)", code);
-        Assert.Contains("ApplySettings(SettingsSaveMode.SelectedElements)", code);
-        Assert.Contains("ApplySettings(SettingsSaveMode.AllElements)", code);
+        Assert.Contains("SettingsSaveMode.NewElementsOnly", code);
+        Assert.Contains("SettingsSaveMode.SelectedElements", code);
+        Assert.Contains("SettingsSaveMode.AllElements", code);
+        Assert.Contains("SettingsSectionScope.Layers", code);
+        Assert.Contains("SettingsSectionScope.Allowances", code);
+        Assert.Contains("SettingsSectionScope.Annotation", code);
+        Assert.Contains("Click=\"ApplyDrawingAnnotationScale_Click\"", xaml);
         Assert.Contains("SetFooterActionsEnabled(false)", code);
         Assert.Contains("SetFooterActionsEnabled(true)", code);
         Assert.Contains("section == SettingsWindowTabKind.Layers", code);
         Assert.Contains("section == SettingsWindowTabKind.Manufacturing", code);
         Assert.Contains("section == SettingsWindowTabKind.Annotation", code);
         Assert.Contains("section == SettingsWindowTabKind.Language", code);
-        Assert.Contains("Activate();", code);
+        Assert.Contains("window.Activate()", owner);
     }
 
     [Fact]

@@ -423,6 +423,24 @@
   <data name="SettingsWindow_AnnotationScale_Preview" xml:space="preserve"><value>Scale preview</value></data>
   <data name="SettingsWindow_AnnotationScale_DimensionHeight" xml:space="preserve"><value>Dimension text height</value></data>
   <data name="SettingsWindow_AnnotationScale_ItemHeight" xml:space="preserve"><value>Item number height</value></data>
-  <data name="SettingsWindow_AnnotationScale_SlopeHeight" xml:space="preserve"><value>Slope text height</value></data>
-  <data name="SettingsWindow_AnnotationScale_BlockScale" xml:space="preserve"><value>Frame scale</value></data>
+  <data name="SettingsWindow_AnnotationScale_SlopeHeight" xml:space="preserve"><value>Slope angle text height</value></data>
+<data name="SettingsWindow_AnnotationScale_BlockScale" xml:space="preserve"><value>Frame scale</value></data>
+<data name="SettingsWindow_AnnotationScale_Model" xml:space="preserve"><value>In drawing/model</value></data>
+<data name="SettingsWindow_AnnotationScale_Paper" xml:space="preserve"><value>On drawing/paper</value></data>
+<data name="SettingsWindow_AnnotationScale_RelativeSize" xml:space="preserve"><value>relative size</value></data>
+<data name="SettingsWindow_AnnotationScale_FixedDefault" xml:space="preserve"><value>The default scale for new drawings is 1:50</value></data>
+  <data name="SettingsWindow_AnnotationScale_Description" xml:space="preserve"><value>Set the annotation scale for the current drawing and the default scale for new drawings.</value></data>
+  <data name="SettingsWindow_AnnotationCategory_General" xml:space="preserve"><value>General</value></data>
+  <data name="SettingsWindow_AnnotationCategory_Scale" xml:space="preserve"><value>Scale</value></data>
+  <data name="SettingsWindow_AnnotationCategory_Texts" xml:space="preserve"><value>Texts</value></data>
+  <data name="SettingsWindow_AnnotationCategory_LineElements" xml:space="preserve"><value>Line elements</value></data>
+  <data name="SettingsWindow_AnnotationCategory_PostElements" xml:space="preserve"><value>Post elements</value></data>
+  <data name="SettingsWindow_AnnotationCategory_Tags" xml:space="preserve"><value>Tags / symbols</value></data>
+  <data name="SettingsWindow_AnnotationScale_PreviewTitle" xml:space="preserve"><value>Annotation scale preview</value></data>
+  <data name="SettingsWindow_AnnotationScale_DrawingLevelHelp" xml:space="preserve"><value>Annotation scale is a setting for the entire drawing.</value></data>
+  <data name="SettingsWindow_AnnotationScale_ApplyDrawing" xml:space="preserve"><value>Apply scale to current drawing</value></data>
+  <data name="SettingsWindow_AnnotationScale_SelectionDoesNotApply" xml:space="preserve"><value>Applying to a selection does not change the drawing scale. The scale change remains pending; use the global action on the Scale tab.</value></data>
+  <data name="SettingsWindow_AnnotationScale_DrawingChangePending" xml:space="preserve"><value>The current drawing scale change remains pending. Use the global action on the Scale tab.</value></data>
+  <data name="SettingsWindow_AnnotationCategory_ComingSoon" xml:space="preserve"><value>Coming soon</value></data>
+  <data name="Command_Settings_PromptApplyAnnotations" xml:space="preserve"><value>Select intelligent elements to apply the annotation mode and style to:</value></data>
 </root>

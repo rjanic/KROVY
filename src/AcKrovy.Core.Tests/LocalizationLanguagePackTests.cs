@@ -38,7 +38,7 @@ public sealed partial class LocalizationLanguagePackTests
     public void SatelliteResourceFiles_MatchDefaultKeysAndContainNoEmptyValues()
     {
         var defaultResources = LoadResources(DefaultResourceFile);
-        Assert.Equal(421, defaultResources.Count);
+        Assert.Equal(439, defaultResources.Count);
         Assert.All(defaultResources, item => Assert.False(string.IsNullOrWhiteSpace(item.Value)));
 
         foreach (var fileName in SatelliteResourceFiles)
@@ -90,6 +90,22 @@ public sealed partial class LocalizationLanguagePackTests
         Assert.Equal(expectedRafter, UiStrings.GetString("ElementType_Rafter", culture));
         Assert.Equal(expectedRafter, TimberElementTypeDisplayNameProvider.GetDisplayName(TimberElementType.Rafter, culture));
     }
+
+    [Theory]
+    [InlineData("sk-SK", "Výška textu uhla sklonu")]
+    [InlineData("cs-CZ", "Výška textu úhlu sklonu")]
+    [InlineData("en-US", "Slope angle text height")]
+    [InlineData("de-DE", "Höhe des Neigungswinkeltexts")]
+    [InlineData("pl-PL", "Wysokość tekstu kąta nachylenia")]
+    [InlineData("fr-FR", "Hauteur du texte de l’angle de pente")]
+    public void AnnotationScaleSlopeAngleLabel_ResolvesInAllSupportedCultures(
+        string cultureName,
+        string expected) =>
+        Assert.Equal(
+            expected,
+            UiStrings.GetString(
+                "SettingsWindow_AnnotationScale_SlopeHeight",
+                CultureInfo.GetCultureInfo(cultureName)));
 
     [Theory]
     [InlineData("sk-SK", "Označenie", "Typ prvku", "Režim manuálnej dĺžky", "Identifikátor CAD")]

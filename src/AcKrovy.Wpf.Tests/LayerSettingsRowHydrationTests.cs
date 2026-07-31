@@ -1,4 +1,5 @@
 using System.Globalization;
+using AcKrovy.AutoCAD.Settings;
 using AcKrovy.AutoCAD.UI;
 using AcKrovy.Cad.Abstractions.Layers;
 using AcKrovy.Core.Models;
@@ -8,6 +9,33 @@ namespace AcKrovy.Wpf.Tests;
 
 public sealed class LayerSettingsRowHydrationTests
 {
+    [Fact]
+    public void ExplicitLayerValidation_StillRejectsEmptyName()
+    {
+        Assert.False(LayerNameValidator.TryValidate(
+            string.Empty,
+            out _,
+            out var error));
+        Assert.False(string.IsNullOrWhiteSpace(error));
+    }
+
+    [Fact]
+    public void EmptyInitialLayerName_UsesCentralElementDefault()
+    {
+        var row = new LayerSettingsRow(
+            TimberElementType.Rafter,
+            "Rafter",
+            string.Empty,
+            LayerColorOption.Create(91, CultureInfo.GetCultureInfo("en-US")),
+            CadLinetypeNames.Continuous,
+            "0.75");
+
+        Assert.Equal("KROKVA", row.LayerName);
+        Assert.Equal(91, row.AciColorIndex);
+        Assert.Equal(CadLinetypeNames.Continuous, row.SelectedLinetypeName);
+        Assert.Equal("0.75", row.LinetypeScaleText);
+    }
+
     [Fact]
     [Trait("Feature", "ExistingLayerHydration")]
     public void ExistingLayerPreset_HydratesActualAciLinetypeAndUniformScale()

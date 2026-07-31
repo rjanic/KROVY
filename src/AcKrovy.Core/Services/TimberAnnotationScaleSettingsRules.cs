@@ -18,9 +18,22 @@ public enum TimberDrawingAnnotationScaleChange
 
 public sealed record TimberAnnotationScalePreview(
     double DimensionTextHeightMm,
+    double DimensionPaperTextHeightMm,
     double ItemNumberTextHeightMm,
+    double ItemNumberPaperTextHeightMm,
     double SlopeTextHeightMm,
+    double SlopePaperTextHeightMm,
     double FramedBlockScale);
+
+public sealed record TimberAnnotationScaleLegacyMigrationPlan(
+    bool WriteDrawingOverride,
+    int DrawingDenominator,
+    int PreviousEffectiveDenominator,
+    int NewEffectiveDenominator)
+{
+    public bool RefreshDrawing =>
+        PreviousEffectiveDenominator != NewEffectiveDenominator;
+}
 
 public sealed record TimberAnnotationScalePersistencePlan(
     bool WriteDrawingOverride,
@@ -64,12 +77,48 @@ public static class TimberAnnotationScaleSettingsRules
 
     public static TimberAnnotationScalePreview CreatePreview(int denominator)
     {
-        var scaleFactor = TimberAnnotationScaleRules.GetScaleFactor(denominator);
+        var normalizedDenominator =
+            TimberAnnotationScaleRules.NormalizeDenominator(denominator);
+        var scaleFactor = TimberAnnotationScaleRules.GetScaleFactor(
+            normalizedDenominator);
+        var dimensionModel =
+            TimberDimensionTypographyRules.CalculateTextHeightMm(scaleFactor);
+        var itemNumberModel =
+            TimberItemNumberTypographyRules.CalculateTextHeightMm(scaleFactor);
+        var slopeModel =
+            TimberSlopeAnnotationPresentationRules.CalculateTextHeightMm(scaleFactor);
         return new TimberAnnotationScalePreview(
-            TimberDimensionTypographyRules.CalculateTextHeightMm(scaleFactor),
-            TimberItemNumberTypographyRules.CalculateTextHeightMm(scaleFactor),
-            TimberSlopeAnnotationPresentationRules.CalculateTextHeightMm(scaleFactor),
+            dimensionModel,
+            dimensionModel / normalizedDenominator,
+            itemNumberModel,
+            itemNumberModel / normalizedDenominator,
+            slopeModel,
+            slopeModel / normalizedDenominator,
             scaleFactor);
+    }
+
+    public static TimberAnnotationScaleLegacyMigrationPlan CreateLegacyMigrationPlan(
+        bool hasDrawingOverride,
+        bool hasManagedTimberElements,
+        int legacyUserDefaultDenominator)
+    {
+        var legacyDenominator = TimberAnnotationScaleRules.NormalizeDenominator(
+            legacyUserDefaultDenominator);
+        var shouldPinLegacyValue =
+            !hasDrawingOverride &&
+            hasManagedTimberElements &&
+            legacyDenominator != TimberAnnotationScaleRules.DefaultDenominator;
+        var previousEffective = shouldPinLegacyValue
+            ? legacyDenominator
+            : TimberAnnotationScaleRules.DefaultDenominator;
+
+        return new(
+            shouldPinLegacyValue,
+            shouldPinLegacyValue
+                ? legacyDenominator
+                : TimberAnnotationScaleRules.DefaultDenominator,
+            previousEffective,
+            previousEffective);
     }
 
     public static TimberAnnotationScalePersistencePlan CreatePersistencePlan(
@@ -80,14 +129,12 @@ public static class TimberAnnotationScaleSettingsRules
         int requestedDrawingDenominator,
         int requestedUserDefaultDenominator)
     {
-        var oldDefault = TimberAnnotationScaleRules.NormalizeDenominator(
-            loadedUserDefaultDenominator);
-        var newDefault = TimberAnnotationScaleRules.NormalizeDenominator(
-            requestedUserDefaultDenominator);
+        _ = loadedUserDefaultDenominator;
+        _ = requestedUserDefaultDenominator;
+        var fixedDefault = TimberAnnotationScaleRules.DefaultDenominator;
         var oldDrawing = TimberAnnotationScaleRules.NormalizeDenominator(
             drawingDenominator);
-        var oldEffective = hasDrawingOverride ? oldDrawing : oldDefault;
-        var defaultChanged = oldDefault != newDefault;
+        var oldEffective = hasDrawingOverride ? oldDrawing : fixedDefault;
 
         if (drawingChange == TimberDrawingAnnotationScaleChange.SetOverride)
         {
@@ -97,8 +144,8 @@ public static class TimberAnnotationScaleSettingsRules
                 !hasDrawingOverride || oldDrawing != requested,
                 false,
                 requested,
-                defaultChanged,
-                newDefault,
+                false,
+                fixedDefault,
                 oldEffective,
                 requested);
         }
@@ -109,21 +156,18 @@ public static class TimberAnnotationScaleSettingsRules
                 false,
                 hasDrawingOverride,
                 oldEffective,
-                defaultChanged,
-                newDefault,
+                false,
+                fixedDefault,
                 oldEffective,
-                newDefault);
+                fixedDefault);
         }
 
-        // Changing a user default must not silently change a drawing which was
-        // inheriting the previous default. Pin its current effective value first.
-        var pinInheritedValue = defaultChanged && !hasDrawingOverride;
         return new(
-            pinInheritedValue,
+            false,
             false,
             oldEffective,
-            defaultChanged,
-            newDefault,
+            false,
+            fixedDefault,
             oldEffective,
             oldEffective);
     }

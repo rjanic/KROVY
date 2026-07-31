@@ -6,11 +6,13 @@ using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Interop;
 using System.Windows.Threading;
 using AcKrovy.AutoCAD.Settings;
 using AcKrovy.AutoCAD.UI;
 using AcKrovy.Cad.Abstractions.Layers;
 using AcKrovy.Core.Models;
+using AcKrovy.Core.Services;
 using AcKrovy.Localization;
 using Xunit;
 
@@ -58,6 +60,7 @@ public sealed class SettingsXamlRuntimeSmokeTests
 
                 var applyCallCount = 0;
                 var appliedModes = new List<SettingsSaveMode>();
+                var appliedRequests = new List<SettingsApplyRequest>();
                 var languageApplyCount = 0;
                 var languageSaveCount = 0;
                 var languageRefreshCount = 0;
@@ -70,8 +73,11 @@ public sealed class SettingsXamlRuntimeSmokeTests
                     },
                     _ => languageSaveCount++,
                     () => languageRefreshCount++);
+                var openingLayerProfile = ElementLayerProfile.CreateDefault();
+                openingLayerProfile.GetStyle(TimberElementType.Rafter).LayerName =
+                    "ROMAN_KROKVA";
                 var window = new LayerSettingsWindow(
-                    ElementLayerProfile.CreateDefault(),
+                    openingLayerProfile,
                     TimberElementDefaultProfile.CreateDefault(),
                     "en",
                     CadLinetypeNames.SupportedStandardNames,
@@ -83,6 +89,7 @@ public sealed class SettingsXamlRuntimeSmokeTests
                     {
                         applyCallCount++;
                         appliedModes.Add(request.SaveMode);
+                        appliedRequests.Add(request);
                         return new SettingsApplyResponse(
                             Success: true,
                             ProfileAccepted: true,
@@ -96,7 +103,20 @@ public sealed class SettingsXamlRuntimeSmokeTests
                                 new CadLayerPreset("Defpoints", 7, CadLinetypeNames.Continuous),
                             ]);
                     },
-                    languageWorkflow);
+                    languageWorkflow,
+                    annotationScaleState: new AnnotationScaleSettingsState(
+                        HasDrawingOverride: true,
+                        DrawingDenominator: 25,
+                        EffectiveDenominator: 25));
+
+                Assert.All(
+                    window.Rows,
+                    row => Assert.False(string.IsNullOrWhiteSpace(row.LayerName)));
+                Assert.Equal(
+                    "ROMAN_KROKVA",
+                    window.Rows.Single(row =>
+                        row.ElementType == TimberElementType.Rafter).LayerName);
+                window.Visual.SelectedSection = SettingsWindowTabKind.Layers;
 
                 window.Left = -30000;
                 window.Top = -30000;
@@ -104,46 +124,182 @@ public sealed class SettingsXamlRuntimeSmokeTests
                 window.WindowStyle = WindowStyle.None;
                 window.Show();
                 window.UpdateLayout();
+                Assert.All(
+                    window.Rows,
+                    row => Assert.False(string.IsNullOrWhiteSpace(row.LayerName)));
+                var layerNameEditors = FindVisualChildren<ComboBox>(
+                        window.StylesDataGrid)
+                    .Where(combo => combo.DataContext is LayerSettingsRow)
+                    .ToArray();
+                Assert.Equal(window.Rows.Count, layerNameEditors.Length);
+                Assert.All(
+                    layerNameEditors,
+                    editor => Assert.Equal(
+                        ((LayerSettingsRow)editor.DataContext).LayerName,
+                        editor.Text));
+                window.StylesDataGrid.CommitEdit();
+                window.StylesDataGrid.CommitEdit();
+                Assert.All(
+                    window.Rows,
+                    row => Assert.False(string.IsNullOrWhiteSpace(row.LayerName)));
+                window.Visual.SelectedSection = SettingsWindowTabKind.Annotation;
+                window.UpdateLayout();
                 Assert.Equal(0, languageApplyCount);
                 Assert.Equal(0, languageSaveCount);
                 Assert.Equal(0, languageRefreshCount);
                 Assert.NotNull(window.FindName("SettingsNavigation"));
-                Assert.Equal(10, window.AnnotationPresetOptions.Count);
                 var originalPreset = window.SelectedAnnotationPreset;
                 window.Visual.SelectedSection = SettingsWindowTabKind.Annotation;
+                window.UpdateLayout();
+                Assert.Equal(6, window.AnnotationCategoryTabs.Items.Count);
+                Assert.Equal(window.AnnotationScaleTab, window.AnnotationCategoryTabs.SelectedItem);
+                var annotationTabPanel = Assert.Single(
+                    FindVisualChildren<System.Windows.Controls.Primitives.TabPanel>(
+                        window.AnnotationCategoryTabs));
+                Assert.True(annotationTabPanel.IsVisible);
+                var annotationTabs = window.AnnotationCategoryTabs.Items
+                    .Cast<TabItem>()
+                    .ToArray();
+                Assert.Equal(6, annotationTabs.Length);
+                Assert.All(annotationTabs, tab =>
+                {
+                    Assert.True(tab.IsVisible);
+                    var headerPresenter = Assert.Single(
+                        FindVisualChildren<ContentPresenter>(tab));
+                    Assert.Same(tab.Header, headerPresenter.Content);
+                    Assert.True(headerPresenter.IsVisible);
+                });
+                var selectedContentPresenter = Assert.Single(
+                    FindVisualChildren<ContentPresenter>(window.AnnotationCategoryTabs),
+                    presenter => ReferenceEquals(
+                        presenter.TemplatedParent,
+                        window.AnnotationCategoryTabs));
+                Assert.Same(window.AnnotationScaleTab.Content, selectedContentPresenter.Content);
+                Assert.Equal(
+                    TimberAnnotationScalePreset.Scale25,
+                    window.SelectedDrawingScalePreset);
+                Assert.Equal(
+                    TimberAnnotationScalePreset.Scale25,
+                    window.DrawingAnnotationScaleSelector.SelectedValue);
+                Assert.All(
+                    annotationTabs.Skip(2),
+                    tab => Assert.False(((FrameworkElement)tab.Content).IsVisible));
+                window.AnnotationCategoryTabs.SelectedIndex = 0;
+                window.UpdateLayout();
+                Assert.Same(annotationTabs[0].Content, selectedContentPresenter.Content);
+                Assert.True(window.AnnotationPresetSelector.IsVisible);
+                Assert.Equal(10, window.AnnotationPresetSelector.Items.Count);
+                var pickerImages =
+                    FindVisualChildren<Image>(window.AnnotationPresetSelector).ToArray();
+                Assert.Equal(10, pickerImages.Length);
+                Assert.False(window.DrawingAnnotationScaleSelector.IsVisible);
+                window.AnnotationPresetSelector.SelectedValue =
+                    SettingsAnnotationPreset.ItemCircle;
+                Assert.Equal(
+                    TimberAnnotationMode.ItemNumberLeader,
+                    window.SelectedAnnotationMode);
+                Assert.Equal(
+                    ItemNumberLeaderStyle.Circle,
+                    window.SelectedItemNumberLeaderStyle);
+                window.AnnotationCategoryTabs.SelectedIndex = 1;
+                window.UpdateLayout();
+                Assert.Same(window.AnnotationScaleTab.Content, selectedContentPresenter.Content);
+                Assert.False(window.AnnotationPresetSelector.IsVisible);
+                Assert.True(window.DrawingAnnotationScaleSelector.IsVisible);
+                Assert.Equal(5, window.DrawingAnnotationScaleSelector.Items.Count);
+                var previewDimensionAt25 = window.PreviewDimensionText;
+                var scaleContent = Assert.IsAssignableFrom<FrameworkElement>(
+                    window.AnnotationScaleTab.Content);
+                Assert.True(
+                    scaleContent.DesiredSize.Height <= scaleContent.ActualHeight + 1d,
+                    $"Scale content requires {scaleContent.DesiredSize.Height:0.##} px " +
+                    $"but only {scaleContent.ActualHeight:0.##} px is available.");
+                var scaleCards = FindVisualChildren<ListBoxItem>(
+                    window.DrawingAnnotationScaleSelector).ToArray();
+                Assert.Equal(5, scaleCards.Length);
+                Assert.True(scaleCards.Zip(scaleCards.Skip(1))
+                    .All(pair => pair.First.TranslatePoint(
+                        new Point(),
+                        window.DrawingAnnotationScaleSelector).Y <
+                        pair.Second.TranslatePoint(
+                            new Point(),
+                            window.DrawingAnnotationScaleSelector).Y));
+
+                for (var tabIndex = 2; tabIndex < annotationTabs.Length; tabIndex++)
+                {
+                    window.AnnotationCategoryTabs.SelectedIndex = tabIndex;
+                    window.UpdateLayout();
+                    Assert.Same(
+                        annotationTabs[tabIndex].Content,
+                        selectedContentPresenter.Content);
+                    for (var placeholderIndex = 2;
+                         placeholderIndex < annotationTabs.Length;
+                         placeholderIndex++)
+                    {
+                        Assert.Equal(
+                            placeholderIndex == tabIndex,
+                            ((FrameworkElement)annotationTabs[placeholderIndex].Content)
+                                .IsVisible);
+                    }
+                    Assert.Empty(
+                        FindVisualChildren<Button>(
+                            (DependencyObject)annotationTabs[tabIndex].Content));
+                }
+                window.AnnotationCategoryTabs.SelectedIndex = 1;
+                window.UpdateLayout();
+
+                window.DrawingAnnotationScaleSelector.SelectedValue =
+                    TimberAnnotationScalePreset.Scale100;
+                Assert.Equal(
+                    TimberAnnotationScalePreset.Scale100,
+                    window.SelectedDrawingScalePreset);
+                window.DrawingAnnotationScaleSelector.SelectedValue =
+                    TimberAnnotationScalePreset.Custom;
+                window.DrawingCustomScaleText = "125";
+                window.UpdateLayout();
+                Assert.True(window.IsDrawingCustomScale);
+                Assert.True(window.DrawingCustomScaleTextBox.IsVisible);
+                Assert.False(window.HasDrawingScaleError);
+                Assert.Equal(1.35d, window.PreviewPresentationScale);
+                Assert.True(
+                    window.AnnotationScalePreviewImage.RenderTransform.Value.IsIdentity);
+                Assert.NotEqual(previewDimensionAt25, window.PreviewDimensionText);
+                Assert.Contains("312", window.PreviewDimensionModelText);
+                Assert.Contains("2", window.PreviewDimensionPaperText);
+                Assert.Contains("×2", window.PreviewBlockModelText);
+
                 window.SelectedAnnotationPreset =
                     SettingsAnnotationPreset.DimensionsWithItemRectangle;
                 window.UpdateLayout();
-                Assert.Equal(
-                    1,
-                    window.AnnotationPresetSelector.Items
-                        .Cast<object>()
-                        .Select(item =>
-                            window.AnnotationPresetSelector.ItemContainerGenerator
-                                .ContainerFromItem(item))
-                        .OfType<ListBoxItem>()
-                        .Count(item => item.IsSelected));
-                var previewImages =
-                    FindVisualChildren<Image>(window.AnnotationPresetSelector).ToArray();
-                Assert.Equal(10, previewImages.Length);
-                Assert.All(
-                    previewImages,
-                    image =>
-                    {
-                        Assert.Equal(Stretch.Uniform, image.Stretch);
-                        Assert.Contains(
-                            "/UI/Assets/AnnotationPreviews/",
-                            image.Source.ToString(),
-                            StringComparison.OrdinalIgnoreCase);
-                    });
+                Assert.Equal(Stretch.Uniform, window.AnnotationScalePreviewImage.Stretch);
+                Assert.EndsWith(
+                    "/09_rozmery_obdlznik.png",
+                    window.AnnotationScalePreviewImage.Source.ToString(),
+                    StringComparison.OrdinalIgnoreCase);
+                Assert.Single(
+                    FindVisualChildren<Image>(
+                        (DependencyObject)window.AnnotationScalePreviewImage.Parent));
                 Assert.DoesNotContain(
                     FindVisualChildren<System.Windows.Controls.Primitives.ScrollBar>(
-                        window.AnnotationPresetSelector),
+                        window.DrawingAnnotationScaleSelector),
                     scrollBar => scrollBar.IsVisible);
                 window.DarkThemeButton.RaiseEvent(
                     new RoutedEventArgs(Button.ClickEvent));
                 window.UpdateLayout();
                 Assert.Equal(SettingsTheme.Dark, window.Visual.SelectedTheme);
+                Assert.Equal(
+                    Colors.Black,
+                    ((SolidColorBrush)((Border)window.AnnotationScalePreviewImage.Parent)
+                        .Background).Color);
+                window.AnnotationCategoryTabs.SelectedIndex = 0;
+                window.UpdateLayout();
+                Assert.All(
+                    pickerImages,
+                    image => Assert.Equal(
+                        Colors.Black,
+                        ((SolidColorBrush)((Border)image.Parent).Background).Color));
+                window.AnnotationCategoryTabs.SelectedIndex = 1;
+                window.UpdateLayout();
                 Assert.Equal(
                     SettingsAnnotationPreset.DimensionsWithItemRectangle,
                     window.SelectedAnnotationPreset);
@@ -151,6 +307,19 @@ public sealed class SettingsXamlRuntimeSmokeTests
                     new RoutedEventArgs(Button.ClickEvent));
                 window.UpdateLayout();
                 Assert.Equal(SettingsTheme.Light, window.Visual.SelectedTheme);
+                Assert.Equal(
+                    Colors.White,
+                    ((SolidColorBrush)((Border)window.AnnotationScalePreviewImage.Parent)
+                        .Background).Color);
+                window.AnnotationCategoryTabs.SelectedIndex = 0;
+                window.UpdateLayout();
+                Assert.All(
+                    pickerImages,
+                    image => Assert.Equal(
+                        Colors.White,
+                        ((SolidColorBrush)((Border)image.Parent).Background).Color));
+                window.AnnotationCategoryTabs.SelectedIndex = 1;
+                window.UpdateLayout();
                 Assert.Equal(
                     SettingsAnnotationPreset.DimensionsWithItemRectangle,
                     window.SelectedAnnotationPreset);
@@ -162,6 +331,7 @@ public sealed class SettingsXamlRuntimeSmokeTests
                 var row = window.Rows.Single(candidate =>
                     candidate.ElementType == TimberElementType.Rafter);
                 var originalLayerName = row.LayerName;
+                Assert.Equal("ROMAN_KROKVA", originalLayerName);
                 var originalScaleText = row.LinetypeScaleText;
                 var languageCards = window.LanguageOptions.ToArray();
                 row.LayerName = "PENDING_LAYER";
@@ -229,6 +399,10 @@ public sealed class SettingsXamlRuntimeSmokeTests
                 window.UpdateLayout();
                 Assert.Equal(Visibility.Visible, window.LayersFooterActions.Visibility);
                 Assert.Equal(Visibility.Collapsed, window.AnnotationFooterActions.Visibility);
+                Assert.All(
+                    window.Rows,
+                    candidate => Assert.False(
+                        string.IsNullOrWhiteSpace(candidate.LayerName)));
                 row.LayerName = "KROVY_TEST_LAYER_APPLY";
                 window.LayersApplyButton.RaiseEvent(
                     new RoutedEventArgs(Button.ClickEvent));
@@ -251,13 +425,44 @@ public sealed class SettingsXamlRuntimeSmokeTests
                     SettingsAnnotationPreset.DimensionsOnly;
                 window.SaveNewElementsButton.RaiseEvent(
                     new RoutedEventArgs(Button.ClickEvent));
+                var acceptedLayerProfile = appliedRequests[^1].Profile.Normalize();
+                row.LayerName = string.Empty;
+                Assert.True(window.LayersDirty);
                 window.SaveApplySelectionButton.RaiseEvent(
                     new RoutedEventArgs(Button.ClickEvent));
                 window.SaveApplySelectionButton.RaiseEvent(
                     new RoutedEventArgs(Button.ClickEvent));
+                Assert.All(
+                    appliedRequests
+                        .Where(request => request.SaveMode ==
+                            SettingsSaveMode.SelectedElements),
+                    request =>
+                    {
+                        Assert.False(request.LayerProfileChanged);
+                        Assert.Equal(
+                            acceptedLayerProfile.Styles.Select(style => (
+                                style.ElementType,
+                                style.LayerName,
+                                style.ColorIndex,
+                                style.LinetypeName,
+                                style.LinetypeScale)),
+                            request.Profile.Normalize().Styles.Select(style => (
+                                style.ElementType,
+                                style.LayerName,
+                                style.ColorIndex,
+                                style.LinetypeName,
+                                style.LinetypeScale)));
+                    });
+                Assert.Equal(string.Empty, row.LayerName);
+                row.LayerName = acceptedLayerProfile
+                    .GetStyle(TimberElementType.Rafter).LayerName;
                 window.SaveApplyAllButton.RaiseEvent(
                     new RoutedEventArgs(Button.ClickEvent));
                 window.SaveApplyAllButton.RaiseEvent(
+                    new RoutedEventArgs(Button.ClickEvent));
+                window.DrawingAnnotationScaleSelector.SelectedValue =
+                    TimberAnnotationScalePreset.Scale75;
+                window.ApplyDrawingAnnotationScaleButton.RaiseEvent(
                     new RoutedEventArgs(Button.ClickEvent));
                 Assert.Equal(
                     [
@@ -268,8 +473,30 @@ public sealed class SettingsXamlRuntimeSmokeTests
                         SettingsSaveMode.SelectedElements,
                         SettingsSaveMode.AllElements,
                         SettingsSaveMode.AllElements,
+                        SettingsSaveMode.NewElementsOnly,
                     ],
                     appliedModes);
+                Assert.All(
+                    appliedRequests.Where(request =>
+                        request.SaveMode == SettingsSaveMode.SelectedElements),
+                    request =>
+                    {
+                        Assert.False(request.ApplyDrawingScale);
+                        Assert.Equal(
+                            TimberDrawingAnnotationScaleChange.SetOverride,
+                            request.DrawingScaleChange);
+                        Assert.Equal(
+                            TimberAnnotationScaleRules.DefaultDenominator,
+                            request.DefaultProfile.AnnotationScaleDenominator);
+                    });
+                Assert.All(
+                    appliedRequests.Where(request =>
+                        request.SaveMode == SettingsSaveMode.AllElements),
+                    request => Assert.True(request.ApplyDrawingScale));
+                Assert.True(appliedRequests[^1].ApplyDrawingScale);
+                Assert.Equal(
+                    TimberAnnotationScalePreset.Scale75,
+                    window.SelectedDrawingScalePreset);
                 Assert.True(window.IsVisible);
                 Assert.True(window.IsEnabled);
                 Assert.Equal(2, row.AciColorIndex);
@@ -523,6 +750,314 @@ public sealed class SettingsXamlRuntimeSmokeTests
                 Assert.IsType<GridLength>(
                     dictionary["SettingsNavigationColumnWidth"]);
             }
+
         }
+    }
+
+    [Fact]
+    public void SettingsOwner_CentersOnOwnerAndFallsBackToScreen()
+    {
+        Exception? failure = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                _ = Application.Current ?? new Application
+                {
+                    ShutdownMode = ShutdownMode.OnExplicitShutdown,
+                };
+                var owner = new Window
+                {
+                    Width = 400,
+                    Height = 300,
+                    Left = SystemParameters.WorkArea.Left + 120,
+                    Top = SystemParameters.WorkArea.Top + 100,
+                    ShowInTaskbar = false,
+                    WindowStyle = WindowStyle.None,
+                };
+                owner.Show();
+                var ownerHandle = new WindowInteropHelper(owner).Handle;
+                var owned = new Window
+                {
+                    Width = 200,
+                    Height = 120,
+                    ShowInTaskbar = false,
+                    WindowStyle = WindowStyle.None,
+                };
+
+                Assert.True(SettingsWindowOwner.TryAssign(owned, ownerHandle));
+                Assert.Equal(WindowStartupLocation.Manual, owned.WindowStartupLocation);
+                Assert.Equal(ownerHandle, new WindowInteropHelper(owned).Owner);
+                Assert.Equal(1d, owned.Opacity);
+                owned.Loaded += (_, _) =>
+                {
+                    // Simulate a modal host overriding WPF's initial placement.
+                    owned.Left = SystemParameters.WorkArea.Left;
+                    owned.Top = SystemParameters.WorkArea.Top;
+                };
+                owned.Show();
+                owned.UpdateLayout();
+                owned.Dispatcher.Invoke(
+                    DispatcherPriority.Render,
+                    new Action(() => { }));
+                owned.Dispatcher.Invoke(
+                    DispatcherPriority.ApplicationIdle,
+                    new Action(() => { }));
+                Assert.Equal(WindowStartupLocation.Manual, owned.WindowStartupLocation);
+                Assert.Equal(1d, owned.Opacity);
+                Assert.True(SettingsWindowOwner.TryGetWindowBounds(owner, out var ownerBounds));
+                Assert.True(SettingsWindowOwner.TryGetWindowBounds(owned, out var ownedBounds));
+                Assert.InRange(
+                    Math.Abs(
+                        (ownedBounds.Left + (ownedBounds.Width / 2)) -
+                        (ownerBounds.Left + (ownerBounds.Width / 2))),
+                    0,
+                    2);
+                Assert.InRange(
+                    Math.Abs(
+                        (ownedBounds.Top + (ownedBounds.Height / 2)) -
+                        (ownerBounds.Top + (ownerBounds.Height / 2))),
+                    0,
+                    2);
+
+                var preservedBounds = ownedBounds;
+                using (SettingsWindowOwner.PreserveCurrentPosition(owned))
+                {
+                    owned.Left = SystemParameters.WorkArea.Left + 10;
+                    owned.Top = SystemParameters.WorkArea.Top + 10;
+                    owned.UpdateLayout();
+                    Assert.True(SettingsWindowOwner.TryGetWindowBounds(
+                        owned,
+                        out var guardedBounds));
+                    Assert.Equal(preservedBounds.Left, guardedBounds.Left);
+                    Assert.Equal(preservedBounds.Top, guardedBounds.Top);
+                }
+
+                var placement = SettingsWindowOwner.CapturePlacement(owned);
+                Assert.True(placement.IsValid);
+                void AssertPlacementRestored()
+                {
+                    Assert.Equal(WindowStartupLocation.Manual, owned.WindowStartupLocation);
+                    Assert.Equal(placement.Left, owned.Left);
+                    Assert.Equal(placement.Top, owned.Top);
+                    Assert.Equal(placement.Width, owned.Width);
+                    Assert.Equal(placement.Height, owned.Height);
+                    Assert.Equal(placement.WindowState, owned.WindowState);
+                }
+                void DrainDeferredPlacementRestore(Window target)
+                {
+                    target.Dispatcher.Invoke(
+                        DispatcherPriority.ApplicationIdle,
+                        new Action(() => { }));
+                    target.Dispatcher.Invoke(
+                        DispatcherPriority.ContextIdle,
+                        new Action(() => { }));
+                }
+
+                var cancelled = SettingsWindowOwner.RunWithPreservedPlacement(
+                    owned,
+                    () =>
+                    {
+                        owned.Left += 75d;
+                        owned.Top += 60d;
+                        owned.Width += 40d;
+                        owned.Height += 30d;
+                        return false;
+                    });
+                Assert.False(cancelled);
+                DrainDeferredPlacementRestore(owned);
+                AssertPlacementRestored();
+
+                var succeeded = SettingsWindowOwner.RunWithPreservedPlacement(
+                    owned,
+                    () =>
+                    {
+                        owned.Left -= 55d;
+                        owned.Top -= 45d;
+                        owned.Width += 20d;
+                        owned.Height += 10d;
+                        return true;
+                    });
+                Assert.True(succeeded);
+                owned.Left = 0d;
+                owned.Top = 0d;
+                owned.Width += 50d;
+                owned.Height += 40d;
+                owned.UpdateLayout();
+                DrainDeferredPlacementRestore(owned);
+                AssertPlacementRestored();
+
+                Assert.Throws<InvalidOperationException>(() =>
+                    SettingsWindowOwner.RunWithPreservedPlacement<object>(
+                        owned,
+                        () =>
+                        {
+                            owned.Left = 0d;
+                            owned.Top = 0d;
+                            owned.Width += 10d;
+                            throw new InvalidOperationException("selection failed");
+                        }));
+                DrainDeferredPlacementRestore(owned);
+                AssertPlacementRestored();
+
+                var workflowWindow = new Window
+                {
+                    Width = 240,
+                    Height = 160,
+                    Left = SystemParameters.WorkArea.Left + 300,
+                    Top = SystemParameters.WorkArea.Top + 220,
+                    WindowStartupLocation = WindowStartupLocation.Manual,
+                    ShowInTaskbar = false,
+                    WindowStyle = WindowStyle.None,
+                };
+                workflowWindow.Show();
+                workflowWindow.UpdateLayout();
+                var workflowSnapshot = SettingsWindowOwner.CapturePlacement(
+                    workflowWindow);
+                Assert.True(workflowSnapshot.IsValid);
+                _ = SettingsWindowOwner.RunWithPreservedPlacement(
+                    workflowWindow,
+                    () => true);
+                workflowWindow.Left = 0d;
+                workflowWindow.Top = 0d;
+                workflowWindow.Width = 100d;
+                workflowWindow.Height = 100d;
+                workflowWindow.UpdateLayout();
+                Assert.True(SettingsWindowOwner.TryGetWindowBounds(
+                    workflowWindow,
+                    out var lockedBounds));
+                Assert.Equal(workflowSnapshot.NativeBounds.Left, lockedBounds.Left);
+                Assert.Equal(workflowSnapshot.NativeBounds.Top, lockedBounds.Top);
+                Assert.Equal(workflowSnapshot.NativeBounds.Width, lockedBounds.Width);
+                Assert.Equal(workflowSnapshot.NativeBounds.Height, lockedBounds.Height);
+                DrainDeferredPlacementRestore(workflowWindow);
+                Assert.Equal(workflowSnapshot.Left, workflowWindow.Left);
+                Assert.Equal(workflowSnapshot.Top, workflowWindow.Top);
+                Assert.Equal(workflowSnapshot.Width, workflowWindow.Width);
+                Assert.Equal(workflowSnapshot.Height, workflowWindow.Height);
+
+                workflowWindow.Left = SystemParameters.WorkArea.Left + 50;
+                workflowWindow.Top = SystemParameters.WorkArea.Top + 50;
+                workflowWindow.UpdateLayout();
+                Assert.True(SettingsWindowOwner.TryGetWindowBounds(
+                    workflowWindow,
+                    out var manuallyMovedBounds));
+                Assert.NotEqual(workflowSnapshot.NativeBounds.Left, manuallyMovedBounds.Left);
+                Assert.NotEqual(workflowSnapshot.NativeBounds.Top, manuallyMovedBounds.Top);
+                workflowWindow.Close();
+
+                var fallback = new Window
+                {
+                    Width = 200,
+                    Height = 120,
+                    ShowInTaskbar = false,
+                    WindowStyle = WindowStyle.None,
+                };
+                Assert.False(SettingsWindowOwner.TryAssign(fallback, IntPtr.Zero));
+                Assert.Equal(WindowStartupLocation.Manual, fallback.WindowStartupLocation);
+                Assert.Equal(1d, fallback.Opacity);
+                fallback.Show();
+                fallback.UpdateLayout();
+                fallback.Dispatcher.Invoke(
+                    DispatcherPriority.ApplicationIdle,
+                    new Action(() => { }));
+                Assert.Equal(WindowStartupLocation.Manual, fallback.WindowStartupLocation);
+                Assert.Equal(1d, fallback.Opacity);
+                fallback.Close();
+                owned.Close();
+                owner.Close();
+            }
+            catch (Exception exception)
+            {
+                failure = exception;
+            }
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        Assert.True(thread.Join(TimeSpan.FromSeconds(15)));
+        Assert.Null(failure);
+    }
+
+    [Theory]
+    [InlineData(100, 100, 900, 700, 400, 300, 300, 250)]
+    [InlineData(-1600, 0, 0, 900, 600, 400, -1100, 250)]
+    [InlineData(0, 0, 500, 400, 800, 600, 0, 0)]
+    public void SettingsOwner_CalculatesCenteredPositionInsideMonitorWorkArea(
+        int ownerLeft,
+        int ownerTop,
+        int ownerRight,
+        int ownerBottom,
+        int windowWidth,
+        int windowHeight,
+        int expectedLeft,
+        int expectedTop)
+    {
+        var workArea = new SettingsWindowOwner.NativeRect(
+            ownerLeft,
+            ownerTop,
+            ownerRight,
+            ownerBottom);
+
+        var position = SettingsWindowOwner.CalculateCenteredPosition(
+            workArea,
+            workArea,
+            windowWidth,
+            windowHeight);
+
+        Assert.Equal(expectedLeft, position.X);
+        Assert.Equal(expectedTop, position.Y);
+    }
+
+    [Theory]
+    [InlineData(-1500, 100, -1000, 600, -1920, 0, 0, 1080, -1500, 100)]
+    [InlineData(-2500, -500, -2000, 0, -1920, 0, 0, 1080, -1920, 0)]
+    [InlineData(2100, 100, 2600, 600, 1920, 0, 3840, 1080, 2100, 100)]
+    [InlineData(3700, 900, 4200, 1400, 1920, 0, 3840, 1080, 3340, 580)]
+    public void SettingsOwner_ClampsOnlyOffScreenPlacementToItsMonitor(
+        int left,
+        int top,
+        int right,
+        int bottom,
+        int workLeft,
+        int workTop,
+        int workRight,
+        int workBottom,
+        int expectedLeft,
+        int expectedTop)
+    {
+        var position = SettingsWindowOwner.CalculateClampedPosition(
+            new SettingsWindowOwner.NativeRect(left, top, right, bottom),
+            new SettingsWindowOwner.NativeRect(
+                workLeft,
+                workTop,
+                workRight,
+                workBottom));
+
+        Assert.Equal(expectedLeft, position.X);
+        Assert.Equal(expectedTop, position.Y);
+    }
+
+    [Theory]
+    [InlineData(TimberAnnotationMode.NoAnnotations, ItemNumberLeaderStyle.Plain, "01_bez_popisov.png")]
+    [InlineData(TimberAnnotationMode.ItemNumberLeader, ItemNumberLeaderStyle.Plain, "02_polozka_plain.png")]
+    [InlineData(TimberAnnotationMode.ItemNumberLeader, ItemNumberLeaderStyle.Circle, "03_polozka_kruh.png")]
+    [InlineData(TimberAnnotationMode.ItemNumberLeader, ItemNumberLeaderStyle.Rectangle, "04_polozka_obdlznik.png")]
+    [InlineData(TimberAnnotationMode.ItemNumberLeader, ItemNumberLeaderStyle.Slot, "05_polozka_slot.png")]
+    [InlineData(TimberAnnotationMode.DimensionsLeader, ItemNumberLeaderStyle.Plain, "06_iba_rozmery.png")]
+    [InlineData(TimberAnnotationMode.FullLabel, ItemNumberLeaderStyle.Plain, "07_kompletny_popis.png")]
+    [InlineData(TimberAnnotationMode.DimensionsWithItemNumber, ItemNumberLeaderStyle.Circle, "08_rozmery_kruh.png")]
+    [InlineData(TimberAnnotationMode.DimensionsWithItemNumber, ItemNumberLeaderStyle.Rectangle, "09_rozmery_obdlznik.png")]
+    [InlineData(TimberAnnotationMode.DimensionsWithItemNumber, ItemNumberLeaderStyle.Slot, "10_rozmery_slot.png")]
+    public void AnnotationModeAndStyle_MapToExistingPreviewAsset(
+        TimberAnnotationMode mode,
+        ItemNumberLeaderStyle style,
+        string expectedFileName)
+    {
+        var preset = SettingsAnnotationPresetRules.FromProduction(mode, style);
+
+        Assert.EndsWith(
+            expectedFileName,
+            AnnotationPreviewResourceMap.GetPackUri(preset),
+            StringComparison.OrdinalIgnoreCase);
     }
 }

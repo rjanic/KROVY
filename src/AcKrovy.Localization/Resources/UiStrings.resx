@@ -423,6 +423,24 @@
   <data name="SettingsWindow_AnnotationScale_Preview" xml:space="preserve"><value>Náhľad mierky</value></data>
   <data name="SettingsWindow_AnnotationScale_DimensionHeight" xml:space="preserve"><value>Výška rozmerového textu</value></data>
   <data name="SettingsWindow_AnnotationScale_ItemHeight" xml:space="preserve"><value>Výška čísla položky</value></data>
-  <data name="SettingsWindow_AnnotationScale_SlopeHeight" xml:space="preserve"><value>Výška textu sklonu</value></data>
-  <data name="SettingsWindow_AnnotationScale_BlockScale" xml:space="preserve"><value>Mierka rámika</value></data>
+  <data name="SettingsWindow_AnnotationScale_SlopeHeight" xml:space="preserve"><value>Výška textu uhla sklonu</value></data>
+<data name="SettingsWindow_AnnotationScale_BlockScale" xml:space="preserve"><value>Mierka rámika</value></data>
+<data name="SettingsWindow_AnnotationScale_Model" xml:space="preserve"><value>Vo výkrese v modeli</value></data>
+<data name="SettingsWindow_AnnotationScale_Paper" xml:space="preserve"><value>Na výkrese</value></data>
+<data name="SettingsWindow_AnnotationScale_RelativeSize" xml:space="preserve"><value>relatívna veľkosť</value></data>
+<data name="SettingsWindow_AnnotationScale_FixedDefault" xml:space="preserve"><value>Predvolená mierka nových výkresov je 1:50</value></data>
+  <data name="SettingsWindow_AnnotationScale_Description" xml:space="preserve"><value>Nastav mierku anotácií pre aktuálny výkres a predvolenú mierku pre nové výkresy.</value></data>
+  <data name="SettingsWindow_AnnotationCategory_General" xml:space="preserve"><value>Všeobecné</value></data>
+  <data name="SettingsWindow_AnnotationCategory_Scale" xml:space="preserve"><value>Mierka</value></data>
+  <data name="SettingsWindow_AnnotationCategory_Texts" xml:space="preserve"><value>Texty</value></data>
+  <data name="SettingsWindow_AnnotationCategory_LineElements" xml:space="preserve"><value>Líniové prvky</value></data>
+  <data name="SettingsWindow_AnnotationCategory_PostElements" xml:space="preserve"><value>Stĺpikové prvky</value></data>
+  <data name="SettingsWindow_AnnotationCategory_Tags" xml:space="preserve"><value>Štítky / značky</value></data>
+  <data name="SettingsWindow_AnnotationScale_PreviewTitle" xml:space="preserve"><value>Náhľad mierky anotácií</value></data>
+  <data name="SettingsWindow_AnnotationScale_DrawingLevelHelp" xml:space="preserve"><value>Mierka anotácií je nastavenie celého výkresu.</value></data>
+  <data name="SettingsWindow_AnnotationScale_ApplyDrawing" xml:space="preserve"><value>Použiť mierku na aktuálny výkres</value></data>
+  <data name="SettingsWindow_AnnotationScale_SelectionDoesNotApply" xml:space="preserve"><value>Výberová aplikácia nemení mierku výkresu. Zmena mierky zostáva neuložená; použi globálnu akciu na karte Mierka.</value></data>
+  <data name="SettingsWindow_AnnotationScale_DrawingChangePending" xml:space="preserve"><value>Zmena mierky aktuálneho výkresu zostáva neuložená. Použi globálnu akciu na karte Mierka.</value></data>
+  <data name="SettingsWindow_AnnotationCategory_ComingSoon" xml:space="preserve"><value>Pripravuje sa</value></data>
+  <data name="Command_Settings_PromptApplyAnnotations" xml:space="preserve"><value>Vyber inteligentné prvky, na ktoré sa má použiť režim a štýl anotácie:</value></data>
 </root>

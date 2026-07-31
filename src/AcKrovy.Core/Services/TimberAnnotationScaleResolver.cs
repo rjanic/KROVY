@@ -7,11 +7,14 @@ public static class TimberAnnotationScaleResolver
     public static int Resolve(
         bool hasDrawingValue,
         int drawingDenominator,
-        int userDefaultDenominator) =>
-        TimberAnnotationScaleRules.NormalizeDenominator(
+        int userDefaultDenominator)
+    {
+        _ = userDefaultDenominator;
+        return TimberAnnotationScaleRules.NormalizeDenominator(
             hasDrawingValue
                 ? drawingDenominator
-                : userDefaultDenominator);
+                : TimberAnnotationScaleRules.DefaultDenominator);
+    }
 
     public static TimberAnnotationScaleContext ResolveContext(
         bool hasDrawingValue,
@@ -24,5 +27,5 @@ public static class TimberAnnotationScaleResolver
                 userDefaultDenominator),
             hasDrawingValue
                 ? TimberAnnotationScaleSource.Drawing
-                : TimberAnnotationScaleSource.UserDefault);
+                : TimberAnnotationScaleSource.FixedDefault);
 }

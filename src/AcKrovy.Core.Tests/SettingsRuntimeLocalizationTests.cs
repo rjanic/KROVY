@@ -266,7 +266,10 @@ public sealed class SettingsRuntimeLocalizationTests
 
         Assert.Contains(listBoxes, listBox =>
             (string?)listBox.Attribute("SelectedValuePath") == "Preset" &&
-            ((string?)listBox.Attribute("SelectedValue"))?.Contains("SelectedAnnotationPreset") == true);
+            ((string?)listBox.Attribute("SelectedValue"))?.Contains("SelectedDrawingScalePreset") == true);
+        Assert.DoesNotContain(listBoxes, listBox =>
+            ((string?)listBox.Attribute("SelectedValue"))?
+                .Contains("SelectedUserDefaultScalePreset") == true);
         Assert.Contains(listBoxes, listBox =>
             (string?)listBox.Attribute("SelectedValuePath") == "Code" &&
             ((string?)listBox.Attribute("SelectedValue"))?.Contains("SelectedLanguageCode") == true);

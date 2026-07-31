@@ -321,7 +321,12 @@ public sealed class SettingsTargetedFeatureTests
         Assert.Equal("True", (string?)combo.Attribute("IsEditable"));
         Assert.Contains("LayerNameOptions", (string?)combo.Attribute("ItemsSource"));
         Assert.Contains("Mode=TwoWay", (string?)combo.Attribute("Text"));
-        Assert.Contains("UpdateSourceTrigger=PropertyChanged", (string?)combo.Attribute("Text"));
+        Assert.Contains("UpdateSourceTrigger=LostFocus", (string?)combo.Attribute("Text"));
+        Assert.Contains("LayerName", (string?)combo.Attribute("SelectedItem"));
+        Assert.Contains("Mode=OneWay", (string?)combo.Attribute("SelectedItem"));
+        Assert.Equal(
+            "False",
+            (string?)combo.Attribute("IsSynchronizedWithCurrentItem"));
         Assert.Equal(
             "LayerNameComboBox_LostKeyboardFocus",
             (string?)combo.Attribute("LostKeyboardFocus"));
@@ -467,6 +472,136 @@ public sealed class SettingsTargetedFeatureTests
         Assert.Contains("AutoCadEntityHelpers.IsSupportedTimberGeometry", applyBranch);
         Assert.Contains("metadataStore.TryRead", applyBranch);
         Assert.Contains("ApplyLayerForTimberType", applyBranch);
+    }
+
+    [Fact]
+    [Trait("Feature", "Selection")]
+    public void SelectionApply_IsAnnotationOnlyAndDrawingScaleRequiresGlobalScope()
+    {
+        var window = File.ReadAllText(Path.Combine(
+            UiDirectory(),
+            "LayerSettingsWindow.xaml.cs"));
+        var command = File.ReadAllText(Path.Combine(
+            RepositoryRoot(),
+            "src",
+            "AcKrovy.AutoCAD",
+            "Commands",
+            "AcKrovyCommands.cs"));
+        var applyStart = command.IndexOf(
+            "private static SettingsApplyResponse ApplySettingsFromWindow",
+            StringComparison.Ordinal);
+        var applyEnd = command.IndexOf(
+            "private static SettingsApplyResponse SettingsResponse",
+            applyStart,
+            StringComparison.Ordinal);
+        var applyWorkflow = command.Substring(applyStart, applyEnd - applyStart);
+
+        var selectionStart = window.IndexOf(
+            "private void SaveApplySelection_Click",
+            StringComparison.Ordinal);
+        var selectionEnd = window.IndexOf(
+            "private void SaveApplyAll_Click",
+            selectionStart,
+            StringComparison.Ordinal);
+        var selectionHandler = window.Substring(
+            selectionStart,
+            selectionEnd - selectionStart);
+        Assert.Contains("SettingsSaveMode.SelectedElements", selectionHandler);
+        Assert.Contains("SettingsSectionScope.Annotation", selectionHandler);
+        Assert.DoesNotContain("SettingsSectionScope.Layers", selectionHandler);
+        Assert.Contains("SettingsSaveMode.AllElements", window);
+        Assert.Contains("scope.HasFlag(SettingsSectionScope.Layers)", window);
+        Assert.Contains(
+            "if (request.ApplyDrawingScale)",
+            applyWorkflow);
+        Assert.DoesNotContain("preserveInheritedDrawingScale", applyWorkflow);
+        Assert.Contains(
+            "annotationOnly: request.SaveMode == SettingsSaveMode.SelectedElements",
+            applyWorkflow);
+        Assert.Contains("request.LayerProfileChanged", applyWorkflow);
+        Assert.Contains(
+            "SettingsSaveMode.LanguageOnly or SettingsSaveMode.SelectedElements",
+            applyWorkflow);
+        Assert.Contains("if (applyLayerProfileChange)", applyWorkflow);
+        Assert.Contains("if (request.DefaultProfileChanged", applyWorkflow);
+        var existingApply = applyWorkflow.Substring(applyWorkflow.IndexOf(
+            "SettingsDrawingApplyResult applyResult;",
+            StringComparison.Ordinal));
+        Assert.Equal(
+            1,
+            existingApply.Split(
+                "RefreshAllAnnotationsAfterScaleChange(document, scaleRefreshRequired)",
+                StringSplitOptions.None).Length - 1);
+        Assert.Contains(
+            "suppressAnnotationRefresh: scaleRefreshRequired",
+            existingApply);
+
+        var refreshStart = command.IndexOf(
+            "private static void RefreshAllAnnotationsAfterScaleChange",
+            StringComparison.Ordinal);
+        var refreshEnd = command.IndexOf(
+            "private static IReadOnlyList<string> ReadAvailableLinetypeNames",
+            refreshStart,
+            StringComparison.Ordinal);
+        var refreshHelper = command.Substring(refreshStart, refreshEnd - refreshStart);
+        Assert.Contains("if (!refreshRequired)", refreshHelper);
+        Assert.Equal(
+            1,
+            refreshHelper.Split(
+                "ElementLabelService.UpdateAll",
+                StringSplitOptions.None).Length - 1);
+        Assert.True(
+            applyWorkflow.IndexOf("selection.Status != SettingsSelectionStatus.Selected", StringComparison.Ordinal) <
+            applyWorkflow.IndexOf("ElementLayerProfileStore.Save", StringComparison.Ordinal));
+        Assert.Contains("profileAccepted: false", applyWorkflow);
+    }
+
+    [Fact]
+    [Trait("Feature", "Settings")]
+    public void SettingsWindow_OwnsAutoCadMainWindowWithCenterScreenFallback()
+    {
+        var command = File.ReadAllText(Path.Combine(
+            RepositoryRoot(),
+            "src",
+            "AcKrovy.AutoCAD",
+            "Commands",
+            "AcKrovyCommands.cs"));
+        var owner = File.ReadAllText(Path.Combine(
+            UiDirectory(),
+            "SettingsWindowOwner.cs"));
+        var settingsWindow = File.ReadAllText(Path.Combine(
+            UiDirectory(),
+            "LayerSettingsWindow.xaml.cs"));
+
+        Assert.Contains("AcApp.MainWindow?.Handle", command);
+        Assert.Contains("SettingsWindowOwner.TryAssign", command);
+        Assert.Contains("WindowStartupLocation.CenterOwner", owner);
+        Assert.Contains("WindowStartupLocation.CenterScreen", owner);
+        Assert.Contains("GetWindowRect", owner);
+        Assert.Contains("MonitorFromWindow", owner);
+        Assert.Contains("SetWindowPos", owner);
+        Assert.Contains("EnsureHandle", owner);
+        Assert.Contains("WindowPositionChanging", owner);
+        Assert.Contains("source.AddHook", owner);
+        Assert.Contains("PreserveCurrentPosition", owner);
+        Assert.Contains(
+            "SettingsWindowOwner.RunWithPreservedPlacement",
+            settingsWindow);
+        Assert.Contains("CapturePlacement(window)", owner);
+        Assert.Contains("ScheduleDeferredRestore(window, snapshot, placementGuard)", owner);
+        Assert.Contains("RestoreShowAndActivate(window, snapshot)", owner);
+        Assert.Contains("finally", owner);
+        Assert.Contains("MonitorFromPoint", owner);
+        Assert.DoesNotContain("PrepareInitialPlacement(window", settingsWindow);
+        Assert.Contains("window.ContentRendered", owner);
+        Assert.Contains("DispatcherPriority.ApplicationIdle", owner);
+        Assert.Contains("DispatcherPriority.ContextIdle", owner);
+        Assert.Contains("placementGuard.Dispose()", owner);
+        Assert.DoesNotContain("DispatcherTimer", owner);
+        Assert.DoesNotContain("window.Opacity = 0d", owner);
+        Assert.DoesNotMatch(
+            @"window\.(Left|Top)\s*=\s*-?\d",
+            owner);
     }
 
     [Fact]
@@ -765,9 +900,12 @@ public sealed class SettingsTargetedFeatureTests
 
     [Fact]
     [Trait("Feature", "AnnotationPreview")]
-    public void AnnotationCards_UseDwgLikeScenesAndAllFrameShapes()
+    public void AnnotationScalePreview_UsesOneDwgLikeSceneAndAllExistingAssets()
     {
         var xaml = File.ReadAllText(Path.Combine(UiDirectory(), "LayerSettingsWindow.xaml"));
+        var document = XDocument.Parse(xaml);
+        XNamespace presentation = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
+        XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
         var project = File.ReadAllText(Path.Combine(
             RepositoryRoot(),
             "src",
@@ -788,17 +926,96 @@ public sealed class SettingsTargetedFeatureTests
 
         Assert.DoesNotContain("Text=\"35°\"", xaml);
         Assert.DoesNotContain("M0,6 L10,0 7,5 11,8 Z", xaml);
-        Assert.Contains("x:Name=\"AnnotationPresetSelector\"", xaml);
+        var previewImages = document.Descendants(presentation + "Image")
+            .Where(image => (string?)image.Attribute(x + "Name") ==
+                "AnnotationScalePreviewImage")
+            .ToArray();
+        Assert.Single(previewImages);
+        Assert.Equal(
+            "{Binding SelectedAnnotationPreviewResourceUri}",
+            (string?)previewImages[0].Attribute("Source"));
+        Assert.Equal("Uniform", (string?)previewImages[0].Attribute("Stretch"));
+        Assert.Empty(previewImages[0].Descendants(presentation + "ScaleTransform"));
+        var categoryTabControls = document.Descendants(presentation + "TabControl")
+            .Where(control => (string?)control.Attribute(x + "Name") == "AnnotationCategoryTabs")
+            .ToArray();
+        Assert.Single(categoryTabControls);
+        var categoryTabStyle = document.Descendants(presentation + "Style")
+            .Single(style => (string?)style.Attribute(x + "Key") ==
+                "AnnotationCategoryTabStyle");
+        var headerPresenters = categoryTabStyle
+            .Descendants(presentation + "ContentPresenter")
+            .Where(presenter => (string?)presenter.Attribute("ContentSource") == "Header")
+            .ToArray();
+        Assert.Single(headerPresenters);
+        Assert.Equal(
+            "True",
+            (string?)headerPresenters[0].Attribute("RecognizesAccessKey"));
+        var categoryTabControlStyle = document.Descendants(presentation + "Style")
+            .Single(style => (string?)style.Attribute(x + "Key") ==
+                "AnnotationCategoryTabControlStyle");
+        var tabPanels = categoryTabControlStyle
+            .Descendants(presentation + "TabPanel")
+            .Where(panel => (string?)panel.Attribute("IsItemsHost") == "True")
+            .ToArray();
+        Assert.Single(tabPanels);
+        var selectedContentPresenters = categoryTabControlStyle
+            .Descendants(presentation + "ContentPresenter")
+            .Where(presenter => (string?)presenter.Attribute("ContentSource") ==
+                "SelectedContent")
+            .ToArray();
+        Assert.Single(selectedContentPresenters);
+        var categoryTabs = categoryTabControls[0]
+            .Elements(presentation + "TabItem")
+            .ToArray();
+        Assert.Equal(6, categoryTabs.Length);
+        Assert.Equal("1", (string?)categoryTabControls[0].Attribute("SelectedIndex"));
+        var generalTab = categoryTabs[0];
+        var scaleTab = categoryTabs[1];
+        var picker = generalTab.Descendants(presentation + "ListBox")
+            .Single(list => (string?)list.Attribute(x + "Name") == "AnnotationPresetSelector");
+        Assert.Equal("Preset", (string?)picker.Attribute("SelectedValuePath"));
+        Assert.Contains(
+            "SelectedAnnotationPreset",
+            (string?)picker.Attribute("SelectedValue") ?? string.Empty);
+        Assert.DoesNotContain(
+            scaleTab.Descendants(presentation + "ListBox"),
+            list => (string?)list.Attribute(x + "Name") == "AnnotationPresetSelector");
+        Assert.DoesNotContain(
+            generalTab.Descendants(presentation + "ListBox"),
+            list => ((string?)list.Attribute(x + "Name")) is
+                "DrawingAnnotationScaleSelector" or "UserDefaultAnnotationScaleSelector");
+        var scaleSelectors = scaleTab.Descendants(presentation + "ListBox")
+            .Where(list => ((string?)list.Attribute(x + "Name")) is
+                "DrawingAnnotationScaleSelector" or "UserDefaultAnnotationScaleSelector")
+            .ToArray();
+        Assert.Single(scaleSelectors);
+        Assert.Equal(
+            "DrawingAnnotationScaleSelector",
+            (string?)scaleSelectors[0].Attribute(x + "Name"));
+        Assert.Single(scaleSelectors[0].Descendants(presentation + "StackPanel"));
+        Assert.DoesNotContain("UserDefaultAnnotationScaleSelector", xaml);
+        Assert.Contains("PreviewDimensionModelText", xaml);
+        Assert.Contains("PreviewDimensionPaperText", xaml);
+        Assert.Contains("PreviewBlockPaperText", xaml);
+        Assert.Single(generalTab.Elements(presentation + "ScrollViewer"));
+        Assert.Empty(scaleTab.Elements(presentation + "ScrollViewer"));
+        Assert.Contains(
+            scaleTab.Descendants(presentation + "RowDefinition"),
+            row => (string?)row.Attribute("Height") == "182");
+        Assert.All(
+            categoryTabs.Skip(2),
+            tab => Assert.Empty(tab.Descendants(presentation + "Button")));
+        var annotationHost = document.Descendants(presentation + "Border")
+            .Single(border => (string?)border.Attribute("Style") ==
+                "{StaticResource AnnotationSectionHostStyle}");
+        Assert.Single(annotationHost.Elements(presentation + "Grid"));
+        Assert.Empty(annotationHost.Elements(presentation + "ScrollViewer"));
         Assert.Contains("Width=\"1500\"", xaml);
         Assert.Contains("Height=\"900\"", xaml);
         Assert.Contains("MinWidth=\"1250\"", xaml);
         Assert.Contains("MinHeight=\"720\"", xaml);
         Assert.Contains("WindowStartupLocation=\"CenterScreen\"", xaml);
-        Assert.Contains("ItemsSource=\"{Binding AnnotationPresetOptions}\"", xaml);
-        Assert.Contains("SelectedValue=\"{Binding SelectedAnnotationPreset, Mode=TwoWay}\"", xaml);
-        Assert.Contains("<UniformGrid Rows=\"2\" Columns=\"5\" />", xaml);
-        Assert.Contains("Source=\"{Binding PreviewResourceUri}\"", xaml);
-        Assert.Contains("Stretch=\"Uniform\"", xaml);
         Assert.Contains("SettingsAnnotationPreviewBackgroundBrush", xaml);
         Assert.Contains("ScrollViewer.HorizontalScrollBarVisibility=\"Disabled\"", xaml);
         Assert.Contains("ScrollViewer.VerticalScrollBarVisibility=\"Disabled\"", xaml);
@@ -818,8 +1035,6 @@ public sealed class SettingsTargetedFeatureTests
             SettingsAnnotationPresetRules.All,
             definition => Assert.True(
                 new FileInfo(Path.Combine(assets, definition.ReferenceFileName)).Length > 0));
-        Assert.Contains("AutomationProperties.Name=\"{Binding AccessibilityName}\"", xaml);
-        Assert.Contains("SettingsIconCheck", xaml);
         Assert.False(File.Exists(Path.Combine(UiDirectory(), "AnnotationPresetPreview.xaml")));
         Assert.False(File.Exists(Path.Combine(
             UiDirectory(),

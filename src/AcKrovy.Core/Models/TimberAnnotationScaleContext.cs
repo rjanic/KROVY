@@ -4,6 +4,7 @@ public enum TimberAnnotationScaleSource
 {
     Drawing = 0,
     UserDefault = 1,
+    FixedDefault = 2,
 }
 
 public sealed record TimberAnnotationScaleContext

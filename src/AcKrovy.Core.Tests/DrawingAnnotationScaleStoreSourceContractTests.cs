@@ -138,7 +138,7 @@ public sealed class DrawingAnnotationScaleStoreSourceContractTests
     }
 
     [Fact]
-    public void SettingsPath_ExposesSeparateDrawingAndUserDefaultSelectors()
+    public void SettingsPath_ExposesOnlyCurrentDrawingScaleSelector()
     {
         var commands = Source(
             "src",
@@ -158,10 +158,11 @@ public sealed class DrawingAnnotationScaleStoreSourceContractTests
 
         Assert.DoesNotContain("WriteAnnotationScaleToDrawing", commands);
         Assert.Contains("TimberDrawingAnnotationScaleChange", window);
-        Assert.Contains("AnnotationScaleDenominator = userDefaultDenominator", window);
+        Assert.Contains("AnnotationScaleDenominator = _legacyUserDefaultScaleDenominator", window);
         Assert.Contains("DrawingAnnotationScaleSelector", xaml);
-        Assert.Contains("UserDefaultAnnotationScaleSelector", xaml);
-        Assert.Contains("UseDefaultAnnotationScale_Click", xaml);
+        Assert.DoesNotContain("UserDefaultAnnotationScaleSelector", xaml);
+        Assert.DoesNotContain("UseDefaultAnnotationScale_Click", xaml);
+        Assert.Contains("ReadAndMigrateAnnotationScaleSettingsState", commands);
     }
 
     private static string StoreSource() => Source(

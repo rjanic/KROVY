@@ -423,6 +423,24 @@
   <data name="SettingsWindow_AnnotationScale_Preview" xml:space="preserve"><value>Podgląd skali</value></data>
   <data name="SettingsWindow_AnnotationScale_DimensionHeight" xml:space="preserve"><value>Wysokość tekstu wymiarów</value></data>
   <data name="SettingsWindow_AnnotationScale_ItemHeight" xml:space="preserve"><value>Wysokość numeru pozycji</value></data>
-  <data name="SettingsWindow_AnnotationScale_SlopeHeight" xml:space="preserve"><value>Wysokość tekstu nachylenia</value></data>
-  <data name="SettingsWindow_AnnotationScale_BlockScale" xml:space="preserve"><value>Skala ramki</value></data>
+  <data name="SettingsWindow_AnnotationScale_SlopeHeight" xml:space="preserve"><value>Wysokość tekstu kąta nachylenia</value></data>
+<data name="SettingsWindow_AnnotationScale_BlockScale" xml:space="preserve"><value>Skala ramki</value></data>
+<data name="SettingsWindow_AnnotationScale_Model" xml:space="preserve"><value>W rysunku w modelu</value></data>
+<data name="SettingsWindow_AnnotationScale_Paper" xml:space="preserve"><value>Na rysunku</value></data>
+<data name="SettingsWindow_AnnotationScale_RelativeSize" xml:space="preserve"><value>rozmiar względny</value></data>
+<data name="SettingsWindow_AnnotationScale_FixedDefault" xml:space="preserve"><value>Domyślna skala nowych rysunków to 1:50</value></data>
+  <data name="SettingsWindow_AnnotationScale_Description" xml:space="preserve"><value>Ustaw skalę opisów dla bieżącego rysunku i skalę domyślną dla nowych rysunków.</value></data>
+  <data name="SettingsWindow_AnnotationCategory_General" xml:space="preserve"><value>Ogólne</value></data>
+  <data name="SettingsWindow_AnnotationCategory_Scale" xml:space="preserve"><value>Skala</value></data>
+  <data name="SettingsWindow_AnnotationCategory_Texts" xml:space="preserve"><value>Teksty</value></data>
+  <data name="SettingsWindow_AnnotationCategory_LineElements" xml:space="preserve"><value>Elementy liniowe</value></data>
+  <data name="SettingsWindow_AnnotationCategory_PostElements" xml:space="preserve"><value>Elementy słupowe</value></data>
+  <data name="SettingsWindow_AnnotationCategory_Tags" xml:space="preserve"><value>Etykiety / symbole</value></data>
+  <data name="SettingsWindow_AnnotationScale_PreviewTitle" xml:space="preserve"><value>Podgląd skali opisów</value></data>
+  <data name="SettingsWindow_AnnotationScale_DrawingLevelHelp" xml:space="preserve"><value>Skala opisów jest ustawieniem całego rysunku.</value></data>
+  <data name="SettingsWindow_AnnotationScale_ApplyDrawing" xml:space="preserve"><value>Zastosuj skalę do bieżącego rysunku</value></data>
+  <data name="SettingsWindow_AnnotationScale_SelectionDoesNotApply" xml:space="preserve"><value>Zastosowanie do wyboru nie zmienia skali rysunku. Zmiana skali pozostaje oczekująca; użyj globalnej akcji na karcie Skala.</value></data>
+  <data name="SettingsWindow_AnnotationScale_DrawingChangePending" xml:space="preserve"><value>Zmiana skali bieżącego rysunku pozostaje oczekująca. Użyj globalnej akcji na karcie Skala.</value></data>
+  <data name="SettingsWindow_AnnotationCategory_ComingSoon" xml:space="preserve"><value>W przygotowaniu</value></data>
+  <data name="Command_Settings_PromptApplyAnnotations" xml:space="preserve"><value>Wybierz inteligentne elementy, do których ma zostać zastosowany tryb i styl opisu:</value></data>
 </root>
