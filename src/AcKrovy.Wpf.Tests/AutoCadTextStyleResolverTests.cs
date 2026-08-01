@@ -5,6 +5,78 @@ namespace AcKrovy.Wpf.Tests;
 
 public sealed class AutoCadTextStyleResolverTests
 {
+    [Theory]
+    [InlineData((int)AutoCadTextStyleAnnotativeState.False, true)]
+    [InlineData((int)AutoCadTextStyleAnnotativeState.NotApplicable, true)]
+    [InlineData((int)AutoCadTextStyleAnnotativeState.True, false)]
+    [InlineData((int)AutoCadTextStyleAnnotativeState.Unknown, false)]
+    public void AnnotativeStateMapping_AcceptsOnlyKnownNonannotativeStates(
+        int stateValue,
+        bool expectedAccepted)
+    {
+        var state = (AutoCadTextStyleAnnotativeState)stateValue;
+        var result = AutoCadTextStyleAnnotativeStateRules.Evaluate(state);
+
+        Assert.Equal(expectedAccepted, result.Accepted);
+        Assert.Contains(
+            state.ToString(),
+            result.Reason,
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Theory]
+    [InlineData(0d, true)]
+    [InlineData(0.001d, false)]
+    [InlineData(-0.001d, false)]
+    [InlineData(double.NaN, false)]
+    [InlineData(double.PositiveInfinity, false)]
+    [InlineData(double.NegativeInfinity, false)]
+    public void Compatibility_TextSizeMustBeExactlyZeroAndFinite(
+        double textSize,
+        bool expectedAccepted)
+    {
+        var result = AutoCadTextStyleCompatibilityRules.Evaluate(
+            Style("Style", textSize: textSize));
+
+        Assert.Equal(expectedAccepted, result.Accepted);
+    }
+
+    [Fact]
+    public void Catalog_ValidHostMappedDescriptorDoesNotBecomeEmpty()
+    {
+        var catalog = Catalog(Style("AK_PROOF_ARIAL"));
+
+        var style = Assert.Single(catalog.CompatibleStyles);
+        Assert.Equal("AK_PROOF_ARIAL", style.CanonicalName);
+    }
+
+    [Fact]
+    public void DiagnosticEntry_PreservesExactRejectionReason()
+    {
+        var evaluation = AutoCadTextStyleCompatibilityRules.Evaluate(
+            Style("Fixed", textSize: 2.5d));
+        var entry = new AutoCadTextStyleDiagnosticEntry(
+            "Fixed",
+            "2A",
+            true,
+            false,
+            2.5d,
+            "False",
+            1,
+            true,
+            "0x000000000000002A",
+            "0x000000000000002A",
+            false,
+            true,
+            evaluation.Accepted,
+            evaluation.Reason);
+
+        Assert.False(entry.Accepted);
+        Assert.Equal(
+            "TextSize is nonzero (fixed-height style).",
+            entry.Reason);
+    }
+
     [Fact]
     public void ResolveExplicit_ExactMatchUsesRequestedStyle()
     {

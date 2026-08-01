@@ -54,19 +54,22 @@ public sealed class AnnotationTextAutoCadSourceContractTests
         var source = ResolverSource();
 
         Assert.Contains("StringComparer.OrdinalIgnoreCase", source);
-        Assert.Contains("descriptor.TextSize == 0d", source);
-        Assert.Contains("!descriptor.IsAnnotative", source);
+        Assert.Contains("!double.IsFinite(descriptor.TextSize)", source);
+        Assert.Contains("descriptor.TextSize != 0d", source);
+        Assert.Contains("if (descriptor.IsAnnotative)", source);
         Assert.Contains("descriptor.IsValid", source);
         Assert.Contains("!descriptor.IsErased", source);
-        Assert.Contains("record.Annotative == AnnotativeStates.True", source);
+        Assert.Contains("hostState = record.Annotative", source);
+        Assert.Contains("AnnotativeStates.True =>", source);
+        Assert.Contains("AnnotativeStates.False =>", source);
+        Assert.Contains("AnnotativeStates.NotApplicable =>", source);
+        Assert.Contains("ErrorStatus.NotApplicable", source);
         Assert.Contains("record.TextSize", source);
         Assert.Contains("record!.Name", source);
         Assert.Contains("id == currentStyleId", source);
         Assert.Contains("descriptor.TextStyleId.IsValid", source);
         Assert.Contains("!descriptor.TextStyleId.IsErased", source);
-        Assert.Contains(
-            "ReferenceEquals(descriptor.TextStyleId.Database, database)",
-            source);
+        Assert.Contains("AutoCadDatabaseIdentity.IsSame(", source);
     }
 
     [Fact]
@@ -87,6 +90,21 @@ public sealed class AnnotationTextAutoCadSourceContractTests
             source);
         Assert.DoesNotContain("bool isFallback", source);
         Assert.DoesNotContain("bool hasCompatibleStyle", source);
+    }
+
+    [Fact]
+    public void HostCatalog_DistinguishesTableFailureAndPerRecordRejection()
+    {
+        var source = ResolverSource();
+
+        Assert.Contains("ReadCatalogWithDiagnostics(", source);
+        Assert.Contains("bool TableReadSucceeded", source);
+        Assert.Contains("string? TableFailureReason", source);
+        Assert.Contains("TextStyleTable read failed:", source);
+        Assert.Contains("Record read failed:", source);
+        Assert.Contains("Annotative getter failed:", source);
+        Assert.Contains("AutoCadTextStyleDiagnosticEntry", source);
+        Assert.Contains("compatibility.Reason", source);
     }
 
     [Fact]
@@ -129,12 +147,8 @@ public sealed class AnnotationTextAutoCadSourceContractTests
 
         Assert.Contains("public Database Database { get; }", resolver);
         Assert.Contains("public Database Database { get; }", presentation);
-        Assert.Contains(
-            "ReferenceEquals(textStyleResolver.Database, database)",
-            presentation);
-        Assert.Contains(
-            "ReferenceEquals(textStyleCatalog.Database, database)",
-            presentation);
+        Assert.Contains("AutoCadDatabaseIdentity.IsSame(", resolver);
+        Assert.Contains("AutoCadDatabaseIdentity.IsSame(", presentation);
         Assert.Contains("public void EnsureDatabase(Database database)", presentation);
         Assert.DoesNotContain("private readonly Transaction", combined);
         Assert.DoesNotContain("private readonly DBObject", combined);
@@ -263,6 +277,68 @@ public sealed class AnnotationTextAutoCadSourceContractTests
         Assert.DoesNotContain("TextStyleTableRecord", PresentationSource());
     }
 
+    [Fact]
+    public void DatabaseIdentity_UsesOneNativeHostAuthorityWithoutCachingOrPersistence()
+    {
+        var identity = DatabaseIdentitySource();
+        var resolver = ResolverSource();
+        var presentation = PresentationSource();
+        var objectIdAccess = Source(
+            "src",
+            "AcKrovy.AutoCAD",
+            "Infrastructure",
+            "AutoCadObjectIdAccess.cs");
+
+        Assert.Contains("database.UnmanagedObject", identity);
+        Assert.Contains("database.IsDisposed", identity);
+        Assert.Contains("database.UnmanagedObject == IntPtr.Zero", identity);
+        Assert.Contains("expected.Value.Value == actual.Value.Value", identity);
+        Assert.Contains("ReferenceEquals(expected, actual)", identity);
+        Assert.DoesNotContain("FingerprintGuid", identity);
+        Assert.DoesNotContain("Filename", identity);
+        Assert.DoesNotContain("Document.Name", identity);
+        Assert.DoesNotContain("static readonly", identity);
+        Assert.DoesNotContain("Dictionary", identity);
+        Assert.DoesNotContain("JsonSerializer", identity);
+        Assert.DoesNotContain("Xrecord", identity);
+        Assert.Contains("AutoCadDatabaseIdentity.IsSame(", resolver);
+        Assert.Contains("AutoCadDatabaseIdentity.IsSame(", presentation);
+        Assert.Contains("AutoCadDatabaseIdentity.IsSame(", objectIdAccess);
+        Assert.DoesNotContain(
+            "ReferenceEquals(descriptor.TextStyleId.Database, database)",
+            resolver);
+        Assert.DoesNotContain(
+            "ReferenceEquals(textStyleResolver.Database, database)",
+            presentation);
+        Assert.DoesNotContain(
+            "ReferenceEquals(textStyleCatalog.Database, database)",
+            presentation);
+    }
+
+    [Fact]
+    public void CatalogResolverAndPresentation_KeepForeignDatabaseRejection()
+    {
+        var resolver = ResolverSource();
+        var presentation = PresentationSource();
+
+        Assert.Contains("private static bool IsBoundToDatabase(", resolver);
+        Assert.Contains("private static bool IsUsableInDatabase(", resolver);
+        Assert.Contains(
+            "Resolved text style belongs to a different database.",
+            presentation);
+        Assert.Contains(
+            "Text-style resolver belongs to a different database.",
+            presentation);
+        Assert.Contains(
+            "Annotation presentation context belongs to a different database.",
+            presentation);
+        Assert.Contains(
+            "Text-style catalog belongs to a different database.",
+            presentation);
+        Assert.True(
+            CountOccurrences(resolver + presentation, "AutoCadDatabaseIdentity.IsSame(") >= 6);
+    }
+
     private static string ResolverSource() => Source(
         "src",
         "AcKrovy.AutoCAD",
@@ -274,6 +350,12 @@ public sealed class AnnotationTextAutoCadSourceContractTests
         "AcKrovy.AutoCAD",
         "Infrastructure",
         "AutoCadAnnotationPresentationContext.cs");
+
+    private static string DatabaseIdentitySource() => Source(
+        "src",
+        "AcKrovy.AutoCAD",
+        "Infrastructure",
+        "AutoCadDatabaseIdentity.cs");
 
     private static string Source(params string[] segments) =>
         File.ReadAllText(Path.Combine([RepositoryRoot, .. segments]));

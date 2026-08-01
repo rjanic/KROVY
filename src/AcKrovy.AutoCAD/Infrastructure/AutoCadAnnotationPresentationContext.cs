@@ -91,7 +91,7 @@ internal sealed record AutoCadAnnotationPresentationContext
         ArgumentNullException.ThrowIfNull(textStyleResolution);
         _textStyleResolution = textStyleResolution;
         if (textStyleResolution.ResolvedTextStyleId is ObjectId textStyleId &&
-            !ReferenceEquals(textStyleId.Database, database))
+            !AutoCadDatabaseIdentity.IsSame(database, textStyleId))
         {
             throw new ArgumentException(
                 "Resolved text style belongs to a different database.",
@@ -121,7 +121,9 @@ internal sealed record AutoCadAnnotationPresentationContext
         ArgumentNullException.ThrowIfNull(annotationScaleContext);
         ArgumentNullException.ThrowIfNull(data);
         ArgumentNullException.ThrowIfNull(textStyleResolver);
-        if (!ReferenceEquals(textStyleResolver.Database, database))
+        if (!AutoCadDatabaseIdentity.IsSame(
+                database,
+                textStyleResolver.Database))
         {
             throw new ArgumentException(
                 "Text-style resolver belongs to a different database.",
@@ -145,7 +147,7 @@ internal sealed record AutoCadAnnotationPresentationContext
     public void EnsureDatabase(Database database)
     {
         ArgumentNullException.ThrowIfNull(database);
-        if (!ReferenceEquals(Database, database))
+        if (!AutoCadDatabaseIdentity.IsSame(Database, database))
         {
             throw new InvalidOperationException(
                 "Annotation presentation context belongs to a different database.");
@@ -175,7 +177,9 @@ internal sealed class AutoCadAnnotationPresentationBatchContext
             throw new ArgumentNullException(nameof(annotationScaleService));
         TextStyleCatalog = textStyleCatalog ??
             throw new ArgumentNullException(nameof(textStyleCatalog));
-        if (!ReferenceEquals(textStyleCatalog.Database, database))
+        if (!AutoCadDatabaseIdentity.IsSame(
+                database,
+                textStyleCatalog.Database))
         {
             throw new ArgumentException(
                 "Text-style catalog belongs to a different database.",

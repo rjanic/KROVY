@@ -22,7 +22,8 @@ internal static class AutoCadObjectIdAccess
             return false;
         }
 
-        if (expectedDatabase is not null && id.Database != expectedDatabase)
+        if (expectedDatabase is not null &&
+            !AutoCadDatabaseIdentity.IsSame(expectedDatabase, id))
         {
             return false;
         }

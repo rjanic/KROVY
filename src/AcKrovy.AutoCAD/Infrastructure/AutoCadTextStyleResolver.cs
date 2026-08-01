@@ -22,6 +22,75 @@ internal enum AutoCadTextStyleRequestStatus
     Incompatible,
 }
 
+internal enum AutoCadTextStyleAnnotativeState
+{
+    True,
+    False,
+    NotApplicable,
+    Unknown,
+}
+
+internal sealed record AutoCadTextStyleCompatibilityEvaluation(
+    bool Accepted,
+    string Reason);
+
+internal static class AutoCadTextStyleCompatibilityRules
+{
+    public static AutoCadTextStyleCompatibilityEvaluation Evaluate(
+        AutoCadTextStylePolicyDescriptor descriptor)
+    {
+        ArgumentNullException.ThrowIfNull(descriptor);
+        if (!descriptor.IsValid)
+        {
+            return Rejected("ObjectId is invalid.");
+        }
+        if (descriptor.IsErased)
+        {
+            return Rejected("TextStyleTableRecord is erased.");
+        }
+        if (string.IsNullOrWhiteSpace(descriptor.CanonicalName))
+        {
+            return Rejected("Canonical name is empty.");
+        }
+        if (!double.IsFinite(descriptor.TextSize))
+        {
+            return Rejected("TextSize is not finite.");
+        }
+        if (descriptor.TextSize != 0d)
+        {
+            return Rejected("TextSize is nonzero (fixed-height style).");
+        }
+        if (descriptor.IsAnnotative)
+        {
+            return Rejected("Annotative state is True.");
+        }
+
+        return new AutoCadTextStyleCompatibilityEvaluation(
+            true,
+            "Variable-height nonannotative style.");
+    }
+
+    private static AutoCadTextStyleCompatibilityEvaluation Rejected(
+        string reason) =>
+        new(false, reason);
+}
+
+internal static class AutoCadTextStyleAnnotativeStateRules
+{
+    public static AutoCadTextStyleCompatibilityEvaluation Evaluate(
+        AutoCadTextStyleAnnotativeState state) =>
+        state switch
+        {
+            AutoCadTextStyleAnnotativeState.False =>
+                new(true, "Annotative state is False."),
+            AutoCadTextStyleAnnotativeState.NotApplicable =>
+                new(true, "Annotative state is NotApplicable."),
+            AutoCadTextStyleAnnotativeState.True =>
+                new(false, "Annotative state is True."),
+            _ => new(false, "Annotative state is unknown or unsupported."),
+        };
+}
+
 internal sealed record AutoCadTextStylePolicyDescriptor(
     string CanonicalName,
     bool IsValid,
@@ -64,7 +133,7 @@ internal sealed class AutoCadTextStylePolicyCatalog
         foreach (var descriptor in orderedDescriptors)
         {
             _knownNames.Add(descriptor.CanonicalName);
-            if (!IsCompatible(descriptor) ||
+            if (!AutoCadTextStyleCompatibilityRules.Evaluate(descriptor).Accepted ||
                 _compatibleByName.ContainsKey(descriptor.CanonicalName))
             {
                 continue;
@@ -106,9 +175,6 @@ internal sealed class AutoCadTextStylePolicyCatalog
         !descriptor.IsErased &&
         !string.IsNullOrWhiteSpace(descriptor.CanonicalName);
 
-    private static bool IsCompatible(
-        AutoCadTextStylePolicyDescriptor descriptor) =>
-        descriptor.TextSize == 0d && !descriptor.IsAnnotative;
 }
 
 internal sealed record AutoCadTextStyleSelection
@@ -332,6 +398,28 @@ internal sealed record AutoCadTextStyleDescriptor(
             IsCurrent);
 }
 
+internal sealed record AutoCadTextStyleDiagnosticEntry(
+    string CanonicalName,
+    string Handle,
+    bool ObjectIdIsValid,
+    bool IsErased,
+    double? TextSize,
+    string AnnotativeStateName,
+    int? AnnotativeStateValue,
+    bool IsExpectedDatabase,
+    string ExpectedDatabaseNativeIdentity,
+    string ActualDatabaseNativeIdentity,
+    bool ManagedReferenceEquals,
+    bool HostDatabaseIdentityMatches,
+    bool Accepted,
+    string Reason);
+
+internal sealed record AutoCadTextStyleCatalogReadResult(
+    AutoCadTextStyleCatalog Catalog,
+    IReadOnlyList<AutoCadTextStyleDiagnosticEntry> Entries,
+    bool TableReadSucceeded,
+    string? TableFailureReason);
+
 internal sealed class AutoCadTextStyleCatalog
 {
     private readonly Dictionary<string, AutoCadTextStyleCatalogEntry>
@@ -364,8 +452,9 @@ internal sealed class AutoCadTextStyleCatalog
                     StringComparison.OrdinalIgnoreCase) &&
                 candidate.IsValid &&
                 !candidate.IsErased &&
-                candidate.TextSize == 0d &&
-                !candidate.IsAnnotative &&
+                AutoCadTextStyleCompatibilityRules
+                    .Evaluate(candidate.ToPolicyDescriptor())
+                    .Accepted &&
                 candidate.IsCurrent == policyEntry.IsCurrent);
             _compatibleByName.Add(
                 policyEntry.CanonicalName,
@@ -402,7 +491,9 @@ internal sealed class AutoCadTextStyleCatalog
                 !descriptor.TextStyleId.IsNull &&
                 descriptor.TextStyleId.IsValid &&
                 !descriptor.TextStyleId.IsErased &&
-                ReferenceEquals(descriptor.TextStyleId.Database, database);
+                AutoCadDatabaseIdentity.IsSame(
+                    database,
+                    descriptor.TextStyleId);
         }
         catch (AcadException)
         {
@@ -472,7 +563,9 @@ internal sealed record AutoCadTextStyleResolution
             return !resolved.TextStyleId.IsNull &&
                 resolved.TextStyleId.IsValid &&
                 !resolved.TextStyleId.IsErased &&
-                ReferenceEquals(resolved.TextStyleId.Database, database);
+                AutoCadDatabaseIdentity.IsSame(
+                    database,
+                    resolved.TextStyleId);
         }
         catch (AcadException)
         {
@@ -507,12 +600,18 @@ internal sealed class AutoCadTextStyleResolver
 
     public static AutoCadTextStyleCatalog ReadCatalog(
         Database database,
+        Transaction transaction) =>
+        ReadCatalogWithDiagnostics(database, transaction).Catalog;
+
+    public static AutoCadTextStyleCatalogReadResult ReadCatalogWithDiagnostics(
+        Database database,
         Transaction transaction)
     {
         ArgumentNullException.ThrowIfNull(database);
         ArgumentNullException.ThrowIfNull(transaction);
 
         var descriptors = new List<AutoCadTextStyleDescriptor>();
+        var diagnostics = new List<AutoCadTextStyleDiagnosticEntry>();
         try
         {
             if (transaction.GetObject(
@@ -520,7 +619,11 @@ internal sealed class AutoCadTextStyleResolver
                     OpenMode.ForRead,
                     false) is not TextStyleTable table)
             {
-                return AutoCadTextStyleCatalog.Create(database, descriptors);
+                return FailedRead(
+                    database,
+                    descriptors,
+                    diagnostics,
+                    "TextStyleTableId did not resolve to TextStyleTable.");
             }
 
             var currentStyleId = database.Textstyle;
@@ -531,15 +634,25 @@ internal sealed class AutoCadTextStyleResolver
                     database,
                     transaction,
                     id,
-                    currentStyleId);
+                    currentStyleId,
+                    diagnostics);
             }
         }
-        catch (AcadException)
+        catch (AcadException exception)
         {
-            return AutoCadTextStyleCatalog.Create(database, descriptors);
+            return FailedRead(
+                database,
+                descriptors,
+                diagnostics,
+                $"TextStyleTable read failed: {exception.ErrorStatus}: " +
+                    exception.Message);
         }
 
-        return AutoCadTextStyleCatalog.Create(database, descriptors);
+        return new AutoCadTextStyleCatalogReadResult(
+            AutoCadTextStyleCatalog.Create(database, descriptors),
+            diagnostics.AsReadOnly(),
+            true,
+            null);
     }
 
     private AutoCadTextStyleResolution Resolve(
@@ -559,8 +672,18 @@ internal sealed class AutoCadTextStyleResolver
         Database database,
         Transaction transaction,
         ObjectId id,
-        ObjectId currentStyleId)
+        ObjectId currentStyleId,
+        ICollection<AutoCadTextStyleDiagnosticEntry> diagnostics)
     {
+        var handle = ReadHandle(id);
+        var objectIdIsValid = ReadObjectIdIsValid(id);
+        var isErased = ReadObjectIdIsErased(id);
+        var databaseComparison = AutoCadDatabaseIdentity.Compare(database, id);
+        var isExpectedDatabase = databaseComparison.IsSameDatabase;
+        var canonicalName = "<unreadable>";
+        double? diagnosticTextSize = null;
+        var diagnosticAnnotativeName = "Unavailable";
+        int? diagnosticAnnotativeValue = null;
         try
         {
             if (!AutoCadObjectIdAccess.TryGetObject<TextStyleTableRecord>(
@@ -570,21 +693,213 @@ internal sealed class AutoCadTextStyleResolver
                     out var record,
                     database))
             {
+                diagnostics.Add(new AutoCadTextStyleDiagnosticEntry(
+                    "<unreadable>",
+                    handle,
+                    objectIdIsValid,
+                    isErased,
+                    null,
+                    "Unavailable",
+                    null,
+                    isExpectedDatabase,
+                    databaseComparison.ExpectedDiagnosticToken,
+                    databaseComparison.ActualDiagnosticToken,
+                    databaseComparison.ManagedReferenceEquals,
+                    databaseComparison.IsSameDatabase,
+                    false,
+                    "ObjectId could not be opened as TextStyleTableRecord."));
                 return;
             }
 
-            descriptors.Add(new AutoCadTextStyleDescriptor(
-                record!.Name,
+            canonicalName = record!.Name;
+            var textSize = record.TextSize;
+            diagnosticTextSize = textSize;
+            if (!TryReadAnnotativeState(
+                    record,
+                    out var annotativeState,
+                    out var annotativeStateName,
+                    out var annotativeStateValue,
+                    out var annotativeFailureReason))
+            {
+                diagnosticAnnotativeName = annotativeStateName;
+                diagnosticAnnotativeValue = annotativeStateValue;
+                diagnostics.Add(new AutoCadTextStyleDiagnosticEntry(
+                    canonicalName,
+                    handle,
+                    objectIdIsValid,
+                    isErased,
+                    textSize,
+                    annotativeStateName,
+                    annotativeStateValue,
+                    isExpectedDatabase,
+                    databaseComparison.ExpectedDiagnosticToken,
+                    databaseComparison.ActualDiagnosticToken,
+                    databaseComparison.ManagedReferenceEquals,
+                    databaseComparison.IsSameDatabase,
+                    false,
+                    annotativeFailureReason));
+                return;
+            }
+
+            diagnosticAnnotativeName = annotativeStateName;
+            diagnosticAnnotativeValue = annotativeStateValue;
+
+            var annotativeEvaluation =
+                AutoCadTextStyleAnnotativeStateRules.Evaluate(annotativeState);
+            var descriptor = new AutoCadTextStyleDescriptor(
+                canonicalName,
                 id,
-                id.IsValid,
-                record.IsErased,
-                record.TextSize,
-                record.Annotative == AnnotativeStates.True,
-                id == currentStyleId));
+                objectIdIsValid,
+                isErased,
+                textSize,
+                annotativeState == AutoCadTextStyleAnnotativeState.True,
+                id == currentStyleId);
+            var compatibility = annotativeEvaluation.Accepted
+                ? AutoCadTextStyleCompatibilityRules.Evaluate(
+                    descriptor.ToPolicyDescriptor())
+                : annotativeEvaluation;
+            if (isExpectedDatabase)
+            {
+                descriptors.Add(descriptor);
+            }
+
+            diagnostics.Add(new AutoCadTextStyleDiagnosticEntry(
+                canonicalName,
+                handle,
+                objectIdIsValid,
+                isErased,
+                textSize,
+                annotativeStateName,
+                annotativeStateValue,
+                isExpectedDatabase,
+                databaseComparison.ExpectedDiagnosticToken,
+                databaseComparison.ActualDiagnosticToken,
+                databaseComparison.ManagedReferenceEquals,
+                databaseComparison.IsSameDatabase,
+                compatibility.Accepted && isExpectedDatabase,
+                isExpectedDatabase
+                    ? compatibility.Reason
+                    : databaseComparison.Reason));
+        }
+        catch (AcadException exception)
+        {
+            diagnostics.Add(new AutoCadTextStyleDiagnosticEntry(
+                canonicalName,
+                handle,
+                objectIdIsValid,
+                isErased,
+                diagnosticTextSize,
+                diagnosticAnnotativeName,
+                diagnosticAnnotativeValue,
+                isExpectedDatabase,
+                databaseComparison.ExpectedDiagnosticToken,
+                databaseComparison.ActualDiagnosticToken,
+                databaseComparison.ManagedReferenceEquals,
+                databaseComparison.IsSameDatabase,
+                false,
+                $"Record read failed: {exception.ErrorStatus}: " +
+                    exception.Message));
+        }
+    }
+
+    private static bool TryReadAnnotativeState(
+        TextStyleTableRecord record,
+        out AutoCadTextStyleAnnotativeState state,
+        out string stateName,
+        out int? stateValue,
+        out string failureReason)
+    {
+        AnnotativeStates hostState;
+        try
+        {
+            hostState = record.Annotative;
+        }
+        catch (AcadException exception) when (
+            exception.ErrorStatus == ErrorStatus.NotApplicable)
+        {
+            state = AutoCadTextStyleAnnotativeState.NotApplicable;
+            stateName = $"{AnnotativeStates.NotApplicable} (getter eNotApplicable)";
+            stateValue = (int)AnnotativeStates.NotApplicable;
+            failureReason = string.Empty;
+            return true;
+        }
+        catch (AcadException exception)
+        {
+            state = AutoCadTextStyleAnnotativeState.Unknown;
+            stateName = $"GetterError:{exception.ErrorStatus}";
+            stateValue = null;
+            failureReason = $"Annotative getter failed: {exception.ErrorStatus}: " +
+                exception.Message;
+            return false;
+        }
+
+        stateName = hostState.ToString();
+        stateValue = (int)hostState;
+        failureReason = string.Empty;
+        state = hostState switch
+        {
+            AnnotativeStates.True => AutoCadTextStyleAnnotativeState.True,
+            AnnotativeStates.False => AutoCadTextStyleAnnotativeState.False,
+            AnnotativeStates.NotApplicable =>
+                AutoCadTextStyleAnnotativeState.NotApplicable,
+            _ => AutoCadTextStyleAnnotativeState.Unknown,
+        };
+        if (state != AutoCadTextStyleAnnotativeState.Unknown)
+        {
+            return true;
+        }
+
+        failureReason =
+            $"Annotative state is unknown or unsupported: {stateName} " +
+            $"({stateValue}).";
+        return false;
+    }
+
+    private static AutoCadTextStyleCatalogReadResult FailedRead(
+        Database database,
+        IEnumerable<AutoCadTextStyleDescriptor> descriptors,
+        List<AutoCadTextStyleDiagnosticEntry> diagnostics,
+        string reason) =>
+        new(
+            AutoCadTextStyleCatalog.Create(database, descriptors),
+            diagnostics.AsReadOnly(),
+            false,
+            reason);
+
+    private static string ReadHandle(ObjectId id)
+    {
+        try
+        {
+            return id.Handle.ToString();
+        }
+        catch (AcadException exception)
+        {
+            return $"<unavailable:{exception.ErrorStatus}>";
+        }
+    }
+
+    private static bool ReadObjectIdIsValid(ObjectId id)
+    {
+        try
+        {
+            return id.IsValid;
         }
         catch (AcadException)
         {
-            // A disappearing or malformed table record is simply unavailable.
+            return false;
         }
     }
+
+    private static bool ReadObjectIdIsErased(ObjectId id)
+    {
+        try
+        {
+            return id.IsErased;
+        }
+        catch (AcadException)
+        {
+            return false;
+        }
+    }
+
 }
