@@ -33,6 +33,9 @@ public static class TimberElementDataVersioning
             AnnotationMode = TimberAnnotationModeRules.Normalize(data.AnnotationMode),
             ItemNumberLeaderStyle =
                 ItemNumberLeaderStyleRules.Normalize(data.ItemNumberLeaderStyle),
+            AnnotationTextSettings =
+                TimberAnnotationTextSettingsRules.NormalizeStored(
+                    data.AnnotationTextSettings),
         };
         if (normalized.ElementType == TimberElementType.Custom &&
             !CustomElementDefinitionRules.TryFromElementData(normalized, out _))

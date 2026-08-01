@@ -2,7 +2,10 @@ namespace AcKrovy.Core.Services;
 
 public static class TimberDimensionTypographyRules
 {
-    public const double BaseDimensionTextHeightAtScale50Mm = 125d;
+    public const double BaseDimensionTextHeightAtScale50Mm =
+        TimberAnnotationTextSettingsRules
+            .DefaultLabelAndDimensionPaperHeightMm *
+        TimberAnnotationScaleRules.DefaultDenominator;
     public const double MTextLineAdvanceFactor = 5d / 3d;
 
     public static double CalculateTextHeightMm(double presentationScaleFactor)

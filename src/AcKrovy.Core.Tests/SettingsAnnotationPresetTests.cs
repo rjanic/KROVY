@@ -87,7 +87,7 @@ public sealed class SettingsAnnotationPresetTests
         Assert.NotNull(loaded);
         Assert.Equal(TimberAnnotationMode.DimensionsWithItemNumber, loaded!.AnnotationMode);
         Assert.Equal(ItemNumberLeaderStyle.Slot, loaded.ItemNumberLeaderStyle);
-        Assert.Equal(5, loaded.SchemaVersion);
+        Assert.Equal(TimberElementDataSchema.CurrentVersion, loaded.SchemaVersion);
         Assert.Equal(0, (int)TimberAnnotationMode.FullLabel);
         Assert.Equal(1, (int)TimberAnnotationMode.ItemNumberLeader);
         Assert.Equal(2, (int)TimberAnnotationMode.DimensionsLeader);

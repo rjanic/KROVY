@@ -44,6 +44,113 @@ public sealed class TimberAnnotationSettingsRequestTests
             Request(75, TimberAnnotationSettingsApplyScope.AllElements)
                 .CreateElementPatch().AnnotationScaleOverride.Change);
 
+    [Fact]
+    public void RequestWithoutTextSettingsLeavesTextPatchUnchangedForStagedCompatibility()
+    {
+        var patch = Request(
+            50,
+            TimberAnnotationSettingsApplyScope.SelectedElements)
+            .CreateElementPatch();
+
+        Assert.Equal(
+            TimberAnnotationTextSettingsChange.Unchanged,
+            patch.AnnotationTextSettings.Change);
+    }
+
+    [Fact]
+    public void NewElementsOnlyWithTextSettingsLeavesExistingTextUnchanged()
+    {
+        var request = RequestWithTextSettings(
+            TimberAnnotationSettingsApplyScope.NewElementsOnly);
+
+        Assert.Equal(TextSettings(), request.AnnotationTextSettings);
+        Assert.Equal(
+            TimberAnnotationTextSettingsChange.Unchanged,
+            request.CreateElementPatch().AnnotationTextSettings.Change);
+    }
+
+    [Theory]
+    [InlineData(TimberAnnotationSettingsApplyScope.SelectedElements)]
+    [InlineData(TimberAnnotationSettingsApplyScope.AllElements)]
+    public void ExistingElementScopesSetNormalizedTextSettings(
+        TimberAnnotationSettingsApplyScope scope)
+    {
+        var request = RequestWithTextSettings(scope);
+        var patch = request.CreateElementPatch().AnnotationTextSettings;
+
+        Assert.Equal(TimberAnnotationTextSettingsChange.Set, patch.Change);
+        Assert.Equal(TextSettings(), patch.Settings);
+    }
+
+    [Fact]
+    public void ConstructorRejectsInvalidTextSettingsWithoutClamping()
+    {
+        var invalid = TextSettings() with
+        {
+            ItemNumberPaperHeightMm = 3.51d,
+        };
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => new TimberAnnotationSettingsRequest(
+            TimberAnnotationMode.FullLabel,
+            ItemNumberLeaderStyle.Plain,
+            50,
+            TimberAnnotationSettingsApplyScope.SelectedElements,
+            annotationTextSettings: invalid));
+    }
+
+    [Fact]
+    public void PublicConstructors_PreserveFourArgumentApiAndUseExplicitFiveArgumentContract()
+    {
+        var type = typeof(TimberAnnotationSettingsRequest);
+        var fourArgumentConstructor = type.GetConstructor(
+        [
+            typeof(TimberAnnotationMode),
+            typeof(ItemNumberLeaderStyle),
+            typeof(int),
+            typeof(TimberAnnotationSettingsApplyScope),
+        ]);
+        var fiveArgumentConstructor = type.GetConstructor(
+        [
+            typeof(TimberAnnotationMode),
+            typeof(ItemNumberLeaderStyle),
+            typeof(int),
+            typeof(TimberAnnotationSettingsApplyScope),
+            typeof(TimberAnnotationTextSettings),
+        ]);
+
+        Assert.NotNull(fourArgumentConstructor);
+        Assert.NotNull(fiveArgumentConstructor);
+        Assert.All(
+            fiveArgumentConstructor!.GetParameters(),
+            parameter => Assert.False(parameter.IsOptional));
+
+        Assert.NotNull(typeof(TimberAnnotationSettingsPatch).GetConstructor(
+        [
+            typeof(TimberAnnotationMode),
+            typeof(ItemNumberLeaderStyle),
+            typeof(TimberAnnotationScaleOverridePatch),
+        ]));
+    }
+
+    [Fact]
+    public void ExplicitTextSettingsConstructorRejectsNull()
+    {
+        Assert.Throws<ArgumentNullException>(() =>
+            new TimberAnnotationSettingsRequest(
+                TimberAnnotationMode.FullLabel,
+                ItemNumberLeaderStyle.Plain,
+                50,
+                TimberAnnotationSettingsApplyScope.SelectedElements,
+                annotationTextSettings: null!));
+    }
+
+    [Fact]
+    public void TextSettingsPatchSetRejectsNull()
+    {
+        Assert.Throws<ArgumentNullException>(() =>
+            TimberAnnotationTextSettingsPatch.Set(null!));
+    }
+
     private static TimberAnnotationSettingsRequest Request(
         int denominator,
         TimberAnnotationSettingsApplyScope scope) =>
@@ -52,4 +159,16 @@ public sealed class TimberAnnotationSettingsRequestTests
             ItemNumberLeaderStyle.Rectangle,
             denominator,
             scope);
+
+    private static TimberAnnotationSettingsRequest RequestWithTextSettings(
+        TimberAnnotationSettingsApplyScope scope) =>
+        new(
+            TimberAnnotationMode.DimensionsWithItemNumber,
+            ItemNumberLeaderStyle.Rectangle,
+            50,
+            scope,
+            annotationTextSettings: TextSettings());
+
+    private static TimberAnnotationTextSettings TextSettings() =>
+        new("ISOCP", 3d, 3.1d, 2d);
 }

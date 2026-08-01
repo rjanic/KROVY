@@ -2,7 +2,9 @@ namespace AcKrovy.Core.Services;
 
 public static class TimberSlopeAnnotationPresentationRules
 {
-    public const double BaseTextHeightAtScale50Mm = 80d;
+    public const double BaseTextHeightAtScale50Mm =
+        TimberAnnotationTextSettingsRules.DefaultSlopeAnglePaperHeightMm *
+        TimberAnnotationScaleRules.DefaultDenominator;
     public const double BaseTextOffsetAtScale50Mm = 100d;
     public const double LegacySymbolTextHeightMm = 120d;
     public const double SpecialSymbolBaseReductionFactor =

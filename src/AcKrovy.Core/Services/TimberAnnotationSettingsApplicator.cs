@@ -24,6 +24,12 @@ public static class TimberAnnotationSettingsApplicator
                 "Annotation scale override patch is required.",
                 nameof(patch));
         }
+        if (patch.AnnotationTextSettings is null)
+        {
+            throw new ArgumentException(
+                "Annotation text settings patch is required.",
+                nameof(patch));
+        }
 
         return source with
         {
@@ -33,6 +39,9 @@ public static class TimberAnnotationSettingsApplicator
             AnnotationScaleDenominatorOverride = ApplyScaleOverride(
                 source.AnnotationScaleDenominatorOverride,
                 patch.AnnotationScaleOverride),
+            AnnotationTextSettings = ApplyTextSettings(
+                source.AnnotationTextSettings,
+                patch.AnnotationTextSettings),
         };
     }
 
@@ -44,6 +53,16 @@ public static class TimberAnnotationSettingsApplicator
             TimberAnnotationScaleOverrideChange.Unchanged => currentValue,
             TimberAnnotationScaleOverrideChange.Set => patch.Denominator,
             TimberAnnotationScaleOverrideChange.Clear => null,
+            _ => throw new ArgumentOutOfRangeException(nameof(patch)),
+        };
+
+    private static TimberAnnotationTextSettings? ApplyTextSettings(
+        TimberAnnotationTextSettings? currentValue,
+        TimberAnnotationTextSettingsPatch patch) =>
+        patch.Change switch
+        {
+            TimberAnnotationTextSettingsChange.Unchanged => currentValue,
+            TimberAnnotationTextSettingsChange.Set => patch.Settings,
             _ => throw new ArgumentOutOfRangeException(nameof(patch)),
         };
 }

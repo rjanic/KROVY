@@ -112,7 +112,7 @@ public sealed class TimberAnnotationSettingsApplicatorTests
     }
 
     [Fact]
-    public void Apply_ChangedSchemaFourDataPreparesSchemaFiveAndPreservesOtherMetadata()
+    public void Apply_ChangedSchemaFourDataPreparesSchemaSixAndPreservesOtherMetadata()
     {
         var source = Source() with
         {
@@ -128,7 +128,7 @@ public sealed class TimberAnnotationSettingsApplicatorTests
             TimberAnnotationScaleOverridePatch.Set(25));
         var prepared = TimberElementDataVersioning.PrepareForWrite(changed);
 
-        Assert.Equal(5, prepared.SchemaVersion);
+        Assert.Equal(6, prepared.SchemaVersion);
         Assert.Equal(25, prepared.AnnotationScaleDenominatorOverride);
         Assert.Equal(source.ElementId, prepared.ElementId);
         Assert.Equal(source.CuttingAllowanceMm, prepared.CuttingAllowanceMm);
@@ -167,6 +167,79 @@ public sealed class TimberAnnotationSettingsApplicatorTests
         var source = Source();
 
         var result = Apply(source, TimberAnnotationScaleOverridePatch.Clear);
+
+        Assert.Equal(source, result);
+    }
+
+    [Fact]
+    public void Apply_UnchangedTextSettingsPreservesLegacyNull()
+    {
+        var source = Source() with { AnnotationTextSettings = null };
+
+        var result = TimberAnnotationSettingsApplicator.Apply(
+            source,
+            new TimberAnnotationSettingsPatch(
+                source.AnnotationMode,
+                source.ItemNumberLeaderStyle,
+                TimberAnnotationScaleOverridePatch.Unchanged,
+                TimberAnnotationTextSettingsPatch.Unchanged));
+
+        Assert.Null(result.AnnotationTextSettings);
+        Assert.Equal(source, result);
+    }
+
+    [Fact]
+    public void Apply_SetStoresNormalizedTextSettingsAndPreservesOtherMetadata()
+    {
+        var source = Source() with
+        {
+            AnnotationScaleDenominatorOverride = 75,
+        };
+        var expected = new TimberAnnotationTextSettings(
+            "ISOCP",
+            3d,
+            3.1d,
+            2d);
+
+        var result = TimberAnnotationSettingsApplicator.Apply(
+            source,
+            new TimberAnnotationSettingsPatch(
+                source.AnnotationMode,
+                source.ItemNumberLeaderStyle,
+                TimberAnnotationScaleOverridePatch.Unchanged,
+                TimberAnnotationTextSettingsPatch.Set(
+                    expected with { TextStyleName = " ISOCP " })));
+
+        Assert.Equal(expected, result.AnnotationTextSettings);
+        Assert.Equal(source.AnnotationScaleDenominatorOverride,
+            result.AnnotationScaleDenominatorOverride);
+        Assert.Equal(source.ElementId, result.ElementId);
+        Assert.Equal(source.WidthMm, result.WidthMm);
+        Assert.Equal(source.HeightMm, result.HeightMm);
+        Assert.Equal(source.Material, result.Material);
+        Assert.Equal(source.Note, result.Note);
+        Assert.Equal(
+            source with { AnnotationTextSettings = expected },
+            result);
+    }
+
+    [Fact]
+    public void Apply_SameExplicitTextSettingsIsNoOpByValue()
+    {
+        var settings = new TimberAnnotationTextSettings(
+            "ISOCP",
+            3d,
+            3.1d,
+            2d);
+        var source = Source() with { AnnotationTextSettings = settings };
+
+        var result = TimberAnnotationSettingsApplicator.Apply(
+            source,
+            new TimberAnnotationSettingsPatch(
+                source.AnnotationMode,
+                source.ItemNumberLeaderStyle,
+                TimberAnnotationScaleOverridePatch.Unchanged,
+                TimberAnnotationTextSettingsPatch.Set(settings)));
 
         Assert.Equal(source, result);
     }

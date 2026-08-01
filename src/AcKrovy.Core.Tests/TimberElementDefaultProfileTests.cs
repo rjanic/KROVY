@@ -65,6 +65,79 @@ public sealed class TimberElementDefaultProfileTests
             profile.AnnotationScaleDenominator);
     }
 
+    [Fact]
+    public void CreateDefault_UsesVersionTwoAndFactoryAnnotationTextSettings()
+    {
+        var profile = TimberElementDefaultProfile.CreateDefault();
+
+        Assert.Equal(TimberElementDefaultProfile.CurrentVersion, profile.Version);
+        Assert.Equal(2, profile.Version);
+        Assert.Equal(
+            TimberAnnotationTextSettingsRules.Default,
+            profile.DefaultAnnotationTextSettings);
+    }
+
+    [Fact]
+    public void JsonDeserialize_LegacyVersionOneWithoutTextSettingsKeepsNull()
+    {
+        const string json = """
+            {
+              "version": 1,
+              "annotationScaleDenominator": 50,
+              "styles": []
+            }
+            """;
+
+        var profile = Assert.IsType<TimberElementDefaultProfile>(
+            JsonSerializer.Deserialize<TimberElementDefaultProfile>(
+                json,
+                JsonOptions)).Normalize();
+
+        Assert.Equal(1, profile.Version);
+        Assert.Null(profile.DefaultAnnotationTextSettings);
+    }
+
+    [Fact]
+    public void Normalize_AnnotationTextSettingsFallsBackPerInvalidFieldWithoutClamping()
+    {
+        var profile = TimberElementDefaultProfile.CreateDefault();
+        profile.DefaultAnnotationTextSettings = new TimberAnnotationTextSettings(
+            " ISOCP ",
+            11d,
+            3.2d,
+            0.5d);
+
+        var normalized = Assert.IsType<TimberAnnotationTextSettings>(
+            profile.Normalize().DefaultAnnotationTextSettings);
+
+        Assert.Equal("ISOCP", normalized.TextStyleName);
+        Assert.Equal(2.5d, normalized.LabelAndDimensionPaperHeightMm);
+        Assert.Equal(3.2d, normalized.ItemNumberPaperHeightMm);
+        Assert.Equal(1.6d, normalized.SlopeAnglePaperHeightMm);
+    }
+
+    [Fact]
+    public void JsonRoundtrip_VersionTwoPreservesAnnotationTextSettings()
+    {
+        var profile = TimberElementDefaultProfile.CreateDefault();
+        profile.DefaultAnnotationTextSettings = new TimberAnnotationTextSettings(
+            "ISOCP",
+            3d,
+            3.1d,
+            2d);
+
+        var json = JsonSerializer.Serialize(profile.Normalize(), JsonOptions);
+        var persisted = Assert.IsType<TimberElementDefaultProfile>(
+            JsonSerializer.Deserialize<TimberElementDefaultProfile>(
+                json,
+                JsonOptions)).Normalize();
+
+        Assert.Equal(2, persisted.Version);
+        Assert.Equal(
+            profile.DefaultAnnotationTextSettings,
+            persisted.DefaultAnnotationTextSettings);
+    }
+
     [Theory]
     [InlineData(5)]
     [InlineData(250)]
@@ -275,12 +348,36 @@ public sealed class TimberElementDefaultProfileTests
         profile.DefaultAnnotationMode = TimberAnnotationMode.DimensionsWithItemNumber;
         profile.DefaultItemNumberLeaderStyle = ItemNumberLeaderStyle.Rectangle;
         profile.AnnotationScaleDenominator = 25;
+        profile.DefaultAnnotationTextSettings = new TimberAnnotationTextSettings(
+            "ISOCP",
+            3d,
+            3.1d,
+            2d);
 
         var element = TimberElementDefaults.For(TimberElementType.Rafter, profile);
 
         Assert.Equal(profile.DefaultAnnotationMode, element.AnnotationMode);
         Assert.Equal(profile.DefaultItemNumberLeaderStyle, element.ItemNumberLeaderStyle);
         Assert.Equal(25, element.AnnotationScaleDenominatorOverride);
+        Assert.Equal(
+            profile.DefaultAnnotationTextSettings,
+            element.AnnotationTextSettings);
+    }
+
+    [Fact]
+    public void TimberElementDefaults_LegacyNullTextSettingsRemainNull()
+    {
+        var legacyProfile = new TimberElementDefaultProfile
+        {
+            Version = 1,
+            DefaultAnnotationTextSettings = null,
+        };
+
+        var element = TimberElementDefaults.For(
+            TimberElementType.Rafter,
+            legacyProfile);
+
+        Assert.Null(element.AnnotationTextSettings);
     }
 
     [Fact]

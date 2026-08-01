@@ -4,16 +4,18 @@ namespace AcKrovy.Core.Models;
 
 public sealed class TimberElementDefaultProfile
 {
+    public const int CurrentVersion = 2;
     public const double FactoryCuttingAllowanceMm = 100d;
     public const double FactoryCuttingLengthRoundingStepMm = TimberCuttingLengthCalculator.DefaultRoundingStepMm;
     public const double MaxCuttingAllowanceMm = 10000d;
     public const double MaxCuttingLengthRoundingStepMm = 10000d;
 
-    public int Version { get; set; } = 1;
+    public int Version { get; set; } = CurrentVersion;
     public double CuttingLengthRoundingStepMm { get; set; } = FactoryCuttingLengthRoundingStepMm;
     public TimberAnnotationMode DefaultAnnotationMode { get; set; } = TimberAnnotationMode.FullLabel;
     public ItemNumberLeaderStyle DefaultItemNumberLeaderStyle { get; set; } = ItemNumberLeaderStyle.Plain;
     public int AnnotationScaleDenominator { get; set; } = TimberAnnotationScaleRules.DefaultDenominator;
+    public TimberAnnotationTextSettings? DefaultAnnotationTextSettings { get; set; }
     public List<TimberElementDefaultStyle> Styles { get; set; } = new();
 
     public double GetCuttingLengthRoundingStepMm() =>
@@ -38,13 +40,16 @@ public sealed class TimberElementDefaultProfile
     {
         return new TimberElementDefaultProfile
         {
-            Version = Version <= 0 ? 1 : Version,
+            Version = Version <= 0 ? CurrentVersion : Version,
             CuttingLengthRoundingStepMm = GetCuttingLengthRoundingStepMm(),
             DefaultAnnotationMode = TimberAnnotationModeRules.Normalize(DefaultAnnotationMode),
             DefaultItemNumberLeaderStyle =
                 ItemNumberLeaderStyleRules.Normalize(DefaultItemNumberLeaderStyle),
             AnnotationScaleDenominator = TimberAnnotationScaleRules.NormalizeDenominator(
                 AnnotationScaleDenominator),
+            DefaultAnnotationTextSettings =
+                TimberAnnotationTextSettingsRules.NormalizeStored(
+                    DefaultAnnotationTextSettings),
             Styles = Enum
                 .GetValues(typeof(TimberElementType))
                 .Cast<TimberElementType>()
@@ -58,6 +63,7 @@ public sealed class TimberElementDefaultProfile
             DefaultAnnotationMode = TimberAnnotationMode.FullLabel,
             DefaultItemNumberLeaderStyle = ItemNumberLeaderStyle.Plain,
             AnnotationScaleDenominator = TimberAnnotationScaleRules.DefaultDenominator,
+            DefaultAnnotationTextSettings = TimberAnnotationTextSettingsRules.Default,
             Styles = Enum
                 .GetValues(typeof(TimberElementType))
                 .Cast<TimberElementType>()

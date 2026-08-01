@@ -2,7 +2,9 @@ namespace AcKrovy.Core.Services;
 
 public static class TimberItemNumberTypographyRules
 {
-    public const double BaseItemNumberTextHeightAtScale50Mm = 135d;
+    public const double BaseItemNumberTextHeightAtScale50Mm =
+        TimberAnnotationTextSettingsRules.DefaultItemNumberPaperHeightMm *
+        TimberAnnotationScaleRules.DefaultDenominator;
     public const double PlainItemNumberTextCenterOffsetAtScale50Mm =
         TimberLeaderPlacementCalculator.DefaultTextOffsetMm;
     public const double PlainItemNumberTextClearanceAtScale50Mm =

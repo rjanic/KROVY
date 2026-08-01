@@ -15,6 +15,7 @@ public sealed record TimberElementData
     public TimberAnnotationMode AnnotationMode { get; init; } = TimberAnnotationMode.FullLabel;
     public ItemNumberLeaderStyle ItemNumberLeaderStyle { get; init; } = ItemNumberLeaderStyle.Plain;
     public int? AnnotationScaleDenominatorOverride { get; init; }
+    public TimberAnnotationTextSettings? AnnotationTextSettings { get; init; }
     public double WidthMm { get; init; } = 80;
     public double HeightMm { get; init; } = 160;
     public int? FootprintWidthEdgeIndex { get; init; }

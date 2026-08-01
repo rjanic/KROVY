@@ -21,6 +21,7 @@ public static class TimberElementDefaults
             AnnotationMode = defaults.DefaultAnnotationMode,
             ItemNumberLeaderStyle = defaults.DefaultItemNumberLeaderStyle,
             AnnotationScaleDenominatorOverride = defaults.AnnotationScaleDenominator,
+            AnnotationTextSettings = defaults.DefaultAnnotationTextSettings,
             Material = "Smrek C24",
             LengthCalculationMode = LengthCalculationMode.AutoByElementType,
         };
