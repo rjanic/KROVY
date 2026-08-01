@@ -247,6 +247,10 @@ public sealed class DrawingAnnotationScaleStoreSourceContractTests
 
     private static string Segment(string source, string start, string end)
     {
+        source = NormalizeLineEndings(source);
+        start = NormalizeLineEndings(start);
+        end = NormalizeLineEndings(end);
+
         var startIndex = source.IndexOf(start, StringComparison.Ordinal);
         var endIndex = source.IndexOf(
             end,
@@ -256,6 +260,9 @@ public sealed class DrawingAnnotationScaleStoreSourceContractTests
         Assert.True(endIndex > startIndex, $"End marker not found: {end}");
         return source.Substring(startIndex, endIndex - startIndex);
     }
+
+    private static string NormalizeLineEndings(string source) =>
+        source.Replace("\r\n", "\n").Replace("\r", "\n");
 
     private static int CountOccurrences(string source, string value) =>
         source.Split(value, StringSplitOptions.None).Length - 1;

@@ -169,6 +169,42 @@ public sealed class AnnotationTextAutoCadSourceContractTests
     }
 
     [Fact]
+    public void Segment_IsLineEndingAgnostic()
+    {
+        const string sourceLf =
+            "public AutoCadAnnotationPresentationContext ResolveForElement(\n" +
+            "    TimberElementData data)\n" +
+            "{\n" +
+            "    return AutoCadAnnotationPresentationContext.Create(\n" +
+            "        Database,\n" +
+            "        annotationScaleContext,\n" +
+            "        data,\n" +
+            "        _textStyleResolver);\n" +
+            "}\n";
+
+        var reference = Segment(
+            sourceLf,
+            "public AutoCadAnnotationPresentationContext ResolveForElement(",
+            "}\n");
+
+        var sourceCrlf = sourceLf.Replace("\n", "\r\n");
+        Assert.Equal(
+            reference,
+            Segment(
+                sourceCrlf,
+                "public AutoCadAnnotationPresentationContext ResolveForElement(",
+                "}\n"));
+
+        var sourceCr = sourceLf.Replace("\n", "\r");
+        Assert.Equal(
+            reference,
+            Segment(
+                sourceCr,
+                "public AutoCadAnnotationPresentationContext ResolveForElement(",
+                "}\n"));
+    }
+
+    [Fact]
     public void RendererServices_AreNotConnectedToNewResolverOrPresentationContext()
     {
         string[] rendererFiles =
@@ -244,6 +280,10 @@ public sealed class AnnotationTextAutoCadSourceContractTests
 
     private static string Segment(string source, string start, string end)
     {
+        source = NormalizeLineEndings(source);
+        start = NormalizeLineEndings(start);
+        end = NormalizeLineEndings(end);
+
         var startIndex = source.IndexOf(start, StringComparison.Ordinal);
         var endIndex = source.IndexOf(
             end,
@@ -253,6 +293,9 @@ public sealed class AnnotationTextAutoCadSourceContractTests
         Assert.True(endIndex > startIndex, $"End marker not found: {end}");
         return source.Substring(startIndex, endIndex - startIndex);
     }
+
+    private static string NormalizeLineEndings(string source) =>
+        source.Replace("\r\n", "\n").Replace("\r", "\n");
 
     private static int CountOccurrences(string source, string value) =>
         source.Split(value, StringSplitOptions.None).Length - 1;

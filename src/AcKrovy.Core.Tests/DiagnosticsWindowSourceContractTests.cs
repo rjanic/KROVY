@@ -83,6 +83,10 @@ public sealed class DiagnosticsWindowSourceContractTests
 
     private static string Segment(string source, string start, string end)
     {
+        source = NormalizeLineEndings(source);
+        start = NormalizeLineEndings(start);
+        end = NormalizeLineEndings(end);
+
         var startIndex = source.IndexOf(start, StringComparison.Ordinal);
         var endIndex = source.IndexOf(
             end,
@@ -91,6 +95,9 @@ public sealed class DiagnosticsWindowSourceContractTests
         Assert.True(startIndex >= 0 && endIndex > startIndex);
         return source.Substring(startIndex, endIndex - startIndex);
     }
+
+    private static string NormalizeLineEndings(string source) =>
+        source.Replace("\r\n", "\n").Replace("\r", "\n");
 
     private static string RepositoryRoot()
     {
