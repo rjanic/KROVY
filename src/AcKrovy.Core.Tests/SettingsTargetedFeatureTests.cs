@@ -471,12 +471,13 @@ public sealed class SettingsTargetedFeatureTests
         Assert.Contains("targetIds.Distinct()", applyBranch);
         Assert.Contains("AutoCadEntityHelpers.IsSupportedTimberGeometry", applyBranch);
         Assert.Contains("metadataStore.TryRead", applyBranch);
-        Assert.Contains("ApplyLayerForTimberType", applyBranch);
+        Assert.Contains("TimberAnnotationSettingsApplicator.Apply", applyBranch);
+        Assert.DoesNotContain("ApplyLayerForTimberType", applyBranch);
     }
 
     [Fact]
     [Trait("Feature", "Selection")]
-    public void SelectionApply_IsAnnotationOnlyAndDrawingScaleRequiresGlobalScope()
+    public void AnnotationFooterScopesAreIsolatedAndApplyAllUsesOneRefreshBatch()
     {
         var window = File.ReadAllText(Path.Combine(
             UiDirectory(),
@@ -506,54 +507,31 @@ public sealed class SettingsTargetedFeatureTests
         var selectionHandler = window.Substring(
             selectionStart,
             selectionEnd - selectionStart);
-        Assert.Contains("SettingsSaveMode.SelectedElements", selectionHandler);
-        Assert.Contains("SettingsSectionScope.Annotation", selectionHandler);
+        Assert.Contains("TimberAnnotationSettingsApplyScope.SelectedElements", selectionHandler);
         Assert.DoesNotContain("SettingsSectionScope.Layers", selectionHandler);
-        Assert.Contains("SettingsSaveMode.AllElements", window);
+        Assert.Contains("TimberAnnotationSettingsApplyScope.AllElements", window);
         Assert.Contains("scope.HasFlag(SettingsSectionScope.Layers)", window);
-        Assert.Contains(
-            "if (request.ApplyDrawingScale)",
-            applyWorkflow);
+        Assert.DoesNotContain("ApplyDrawingScale", applyWorkflow);
         Assert.DoesNotContain("preserveInheritedDrawingScale", applyWorkflow);
-        Assert.Contains(
-            "annotationOnly: request.SaveMode == SettingsSaveMode.SelectedElements",
-            applyWorkflow);
+        Assert.Contains("annotationSettings", applyWorkflow);
         Assert.Contains("request.LayerProfileChanged", applyWorkflow);
         Assert.Contains(
             "SettingsSaveMode.LanguageOnly or SettingsSaveMode.SelectedElements",
             applyWorkflow);
         Assert.Contains("if (applyLayerProfileChange)", applyWorkflow);
         Assert.Contains("if (request.DefaultProfileChanged", applyWorkflow);
-        var existingApply = applyWorkflow.Substring(applyWorkflow.IndexOf(
-            "SettingsDrawingApplyResult applyResult;",
+        Assert.DoesNotContain("RefreshAllAnnotationsAfterScaleChange", command);
+        var existingApply = command.Substring(command.IndexOf(
+            "private static SettingsDrawingApplyResult ApplySettingsToExistingElements",
             StringComparison.Ordinal));
-        Assert.Equal(
-            1,
-            existingApply.Split(
-                "RefreshAllAnnotationsAfterScaleChange(document, scaleRefreshRequired)",
-                StringSplitOptions.None).Length - 1);
-        Assert.Contains(
-            "suppressAnnotationRefresh: scaleRefreshRequired",
-            existingApply);
-
-        var refreshStart = command.IndexOf(
-            "private static void RefreshAllAnnotationsAfterScaleChange",
-            StringComparison.Ordinal);
-        var refreshEnd = command.IndexOf(
-            "private static IReadOnlyList<string> ReadAvailableLinetypeNames",
-            refreshStart,
-            StringComparison.Ordinal);
-        var refreshHelper = command.Substring(refreshStart, refreshEnd - refreshStart);
-        Assert.Contains("if (!refreshRequired)", refreshHelper);
-        Assert.Equal(
-            1,
-            refreshHelper.Split(
-                "ElementLabelService.UpdateAll",
-                StringSplitOptions.None).Length - 1);
+        Assert.Equal(1, existingApply.Split(
+            "UpdateLabelsForChangedEntities(",
+            StringSplitOptions.None).Length - 1);
+        Assert.DoesNotContain("ElementLabelService.UpdateAll", existingApply);
         Assert.True(
             applyWorkflow.IndexOf("selection.Status != SettingsSelectionStatus.Selected", StringComparison.Ordinal) <
-            applyWorkflow.IndexOf("ElementLayerProfileStore.Save", StringComparison.Ordinal));
-        Assert.Contains("profileAccepted: false", applyWorkflow);
+            applyWorkflow.IndexOf("TimberElementDefaultProfileStore.Save", StringComparison.Ordinal));
+        Assert.Contains("profileAccepted: true", applyWorkflow);
     }
 
     [Fact]
@@ -1120,7 +1098,7 @@ public sealed class SettingsTargetedFeatureTests
         Assert.Contains("ComponentRole = componentRole", service);
         Assert.Contains("DeleteUnexpectedCompositeComponents(", service);
         Assert.Contains("public int SchemaVersion { get; init; } = 3;", store);
-        Assert.Equal(4, TimberElementDataSchema.CurrentVersion);
+        Assert.Equal(5, TimberElementDataSchema.CurrentVersion);
     }
 
     [Fact]

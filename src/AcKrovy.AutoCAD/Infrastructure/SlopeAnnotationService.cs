@@ -11,12 +11,12 @@ internal static class SlopeAnnotationService
         Transaction transaction,
         Entity sourceEntity,
         TimberElementData data,
-        AutoCadAnnotationScaleService annotationScaleService,
+        TimberAnnotationScaleContext annotationScaleContext,
         bool copySourcePreservation = false)
     {
-        ArgumentNullException.ThrowIfNull(annotationScaleService);
+        ArgumentNullException.ThrowIfNull(annotationScaleContext);
         var presentationScaleFactor =
-            annotationScaleService.Context.ScaleFactor;
+            annotationScaleContext.ScaleFactor;
         var preferredGeometry = SlopeAnnotationGeometry.CalculatePreferred(sourceEntity);
         TimberSlopeAnnotationLongitudinalInterval? labelInterval = null;
         if (ElementLabelService.TryGetLongitudinalInterval(

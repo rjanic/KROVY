@@ -18,6 +18,21 @@
     <SolidColorBrush x:Key="SettingsSelectedBrush" Color="#274B6E" />
     <SolidColorBrush x:Key="SettingsFocusBrush" Color="#7BC0FF" />
     <SolidColorBrush x:Key="SettingsDisabledBrush" Color="#A2ADB8" />
+    <SolidColorBrush x:Key="SaveNewActionBrush" Color="#287CC2" />
+    <SolidColorBrush x:Key="SaveNewActionHoverBrush" Color="#3995DE" />
+    <SolidColorBrush x:Key="SaveNewActionPressedBrush" Color="#1D5F98" />
+    <SolidColorBrush x:Key="SaveNewActionDisabledBrush" Color="#53616D" />
+    <SolidColorBrush x:Key="SaveNewActionFocusBorderBrush" Color="#8CC8FF" />
+    <SolidColorBrush x:Key="ApplySelectionActionBrush" Color="#398846" />
+    <SolidColorBrush x:Key="ApplySelectionActionHoverBrush" Color="#4CA35A" />
+    <SolidColorBrush x:Key="ApplySelectionActionPressedBrush" Color="#286432" />
+    <SolidColorBrush x:Key="ApplySelectionActionDisabledBrush" Color="#536158" />
+    <SolidColorBrush x:Key="ApplySelectionActionFocusBorderBrush" Color="#8DDA99" />
+    <SolidColorBrush x:Key="ApplyAllActionBrush" Color="#C86513" />
+    <SolidColorBrush x:Key="ApplyAllActionHoverBrush" Color="#E47A25" />
+    <SolidColorBrush x:Key="ApplyAllActionPressedBrush" Color="#974A0B" />
+    <SolidColorBrush x:Key="ApplyAllActionDisabledBrush" Color="#675C53" />
+    <SolidColorBrush x:Key="ApplyAllActionFocusBorderBrush" Color="#FFC078" />
     <SolidColorBrush x:Key="SettingsAnnotationPreviewBackgroundBrush" Color="#000000" />
     <SolidColorBrush x:Key="SettingsFlagCardBackgroundBrush" Color="#151A20" />
     <SolidColorBrush x:Key="SettingsBadgeBackgroundBrush" Color="#EAF2F9" />

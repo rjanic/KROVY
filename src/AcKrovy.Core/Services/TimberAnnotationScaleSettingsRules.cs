@@ -9,13 +9,6 @@ public enum TimberAnnotationScalePreset
     Custom,
 }
 
-public enum TimberDrawingAnnotationScaleChange
-{
-    None,
-    SetOverride,
-    ClearOverride,
-}
-
 public sealed record TimberAnnotationScalePreview(
     double DimensionTextHeightMm,
     double DimensionPaperTextHeightMm,
@@ -24,29 +17,6 @@ public sealed record TimberAnnotationScalePreview(
     double SlopeTextHeightMm,
     double SlopePaperTextHeightMm,
     double FramedBlockScale);
-
-public sealed record TimberAnnotationScaleLegacyMigrationPlan(
-    bool WriteDrawingOverride,
-    int DrawingDenominator,
-    int PreviousEffectiveDenominator,
-    int NewEffectiveDenominator)
-{
-    public bool RefreshDrawing =>
-        PreviousEffectiveDenominator != NewEffectiveDenominator;
-}
-
-public sealed record TimberAnnotationScalePersistencePlan(
-    bool WriteDrawingOverride,
-    bool RemoveDrawingOverride,
-    int DrawingDenominator,
-    bool SaveUserDefault,
-    int UserDefaultDenominator,
-    int PreviousEffectiveDenominator,
-    int NewEffectiveDenominator)
-{
-    public bool RefreshDrawing =>
-        PreviousEffectiveDenominator != NewEffectiveDenominator;
-}
 
 public static class TimberAnnotationScaleSettingsRules
 {
@@ -95,80 +65,5 @@ public static class TimberAnnotationScaleSettingsRules
             slopeModel,
             slopeModel / normalizedDenominator,
             scaleFactor);
-    }
-
-    public static TimberAnnotationScaleLegacyMigrationPlan CreateLegacyMigrationPlan(
-        bool hasDrawingOverride,
-        bool hasManagedTimberElements,
-        int legacyUserDefaultDenominator)
-    {
-        var legacyDenominator = TimberAnnotationScaleRules.NormalizeDenominator(
-            legacyUserDefaultDenominator);
-        var shouldPinLegacyValue =
-            !hasDrawingOverride &&
-            hasManagedTimberElements &&
-            legacyDenominator != TimberAnnotationScaleRules.DefaultDenominator;
-        var previousEffective = shouldPinLegacyValue
-            ? legacyDenominator
-            : TimberAnnotationScaleRules.DefaultDenominator;
-
-        return new(
-            shouldPinLegacyValue,
-            shouldPinLegacyValue
-                ? legacyDenominator
-                : TimberAnnotationScaleRules.DefaultDenominator,
-            previousEffective,
-            previousEffective);
-    }
-
-    public static TimberAnnotationScalePersistencePlan CreatePersistencePlan(
-        bool hasDrawingOverride,
-        int drawingDenominator,
-        int loadedUserDefaultDenominator,
-        TimberDrawingAnnotationScaleChange drawingChange,
-        int requestedDrawingDenominator,
-        int requestedUserDefaultDenominator)
-    {
-        _ = loadedUserDefaultDenominator;
-        _ = requestedUserDefaultDenominator;
-        var fixedDefault = TimberAnnotationScaleRules.DefaultDenominator;
-        var oldDrawing = TimberAnnotationScaleRules.NormalizeDenominator(
-            drawingDenominator);
-        var oldEffective = hasDrawingOverride ? oldDrawing : fixedDefault;
-
-        if (drawingChange == TimberDrawingAnnotationScaleChange.SetOverride)
-        {
-            var requested = TimberAnnotationScaleRules.NormalizeDenominator(
-                requestedDrawingDenominator);
-            return new(
-                !hasDrawingOverride || oldDrawing != requested,
-                false,
-                requested,
-                false,
-                fixedDefault,
-                oldEffective,
-                requested);
-        }
-
-        if (drawingChange == TimberDrawingAnnotationScaleChange.ClearOverride)
-        {
-            return new(
-                false,
-                hasDrawingOverride,
-                oldEffective,
-                false,
-                fixedDefault,
-                oldEffective,
-                fixedDefault);
-        }
-
-        return new(
-            false,
-            false,
-            oldEffective,
-            false,
-            fixedDefault,
-            oldEffective,
-            oldEffective);
     }
 }

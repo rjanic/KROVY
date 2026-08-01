@@ -1,10 +1,11 @@
 # ACAD KROVY – ROADMAP
 
-**Aktualizované:** 31. 7. 2026
+**Aktualizované:** 1. 8. 2026
 **Predchádzajúci stabilný commit v0.18.0:** `46ad0cfe555f9f3177de2d47d13bdda33d9a91a0`
 **Predchádzajúci stabilný commit v0.19.0:** `41373d235a357dee05033872a1df8fed8b3286d3`
 **Predchádzajúci stabilný commit v0.20.0:** `6564fc930d98e3eca591bafcccef709af07dc9a5`
-**Aktuálny míľnik:** v0.21.0 „Annotation Scale Engine + Settings UI“, dokončený, automaticky otestovaný a manuálne overený
+**Predchádzajúci stabilný commit v0.21.0:** `f98900c1bd257a8e5357f6e77eb6f118bd4930d3`
+**Aktuálny míľnik:** v0.22.0 „Per-Element Annotation Scale“, dokončený, automaticky otestovaný a manuálne overený
 
 Tento dokument určuje odporúčané poradie ďalšieho vývoja. Úplný zásobník nápadov je v `ACAD_KROVY_BACKLOG.md`.
 
@@ -63,17 +64,18 @@ Pri budúcom About okne použiť existujúci version provider, nie nový literal
 - typ čiary zostáva portable v DWG; `LTSCALE` sa nemení,
 - metadata timber prvku zostáva schema v4 a Core bez Autodesk dependencies.
 
-## 7. Mierka anotácií — DOKONČENÉ VO v0.21.0
-- priorita Drawing > UserDefault > fallback 1:50,
+## 7. Per-element mierka anotácií — ROZŠÍRENÉ VO v0.22.0
+- priorita platný Element override > Drawing scale > fixný fallback 1:50,
 - drawing persistence `ACAD_KROVY / DRAWING_SETTINGS` schema 1,
-- `AK_SETTINGS` pre aktuálny DWG a default nových výkresov,
-- predvoľby 1:25, 1:50, 1:75, 1:100 a custom 10–200,
+- metadata schema 5 s nullable per-element override a read-only kompatibilitou schema 4,
+- `AK_SETTINGS` Save New / Apply Selection / Apply All pre celú Annotation sekciu,
+- predvoľby 1:25, 1:50, 1:75, 1:100 a custom 5–250,
 - živý Core-based typography/BlockScale preview a odstránenie override,
-- automatický spoločný refresh existujúcich anotácií bez duplicít,
+- Apply All nastaví drawing scale, odstráni override a vykoná najviac jeden batch,
 - FullLabel, leadery, framed/combined, Post footprint, slope a 0°/90° symboly,
 - immutable context, scale presne raz, Core bez Autodesk a bez native
   annotative contexts,
-- 421 lokalizačných kľúčov v každom zo 6 jazykov.
+- 440 lokalizačných kľúčov v každom zo 6 jazykov.
 
 ## 8. Písmo a text styles
 Nastavenia pre:

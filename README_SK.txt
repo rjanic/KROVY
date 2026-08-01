@@ -104,12 +104,12 @@ zachovajú COPY, COPYCLIP, WBLOCK aj SAVE/REOPEN. Staré prvky bez uloženého
 režimu používajú FullLabel; chýbajúci štýl čísla znamená Plain.
 Slope anotácie a samostatné označenie Stĺpika ⊥ 90° zostávajú nezávislé.
 
-MIERKA ANOTÁCIÍ v0.21.0
-AK_SETTINGS nastavuje samostatne mierku aktuálneho DWG a predvolenú mierku
-nových výkresov. Priorita je Drawing > UserDefault > fallback 1:50.
-Predvoľby sú 1:25, 1:50, 1:75, 1:100 a vlastný menovateľ 10–200. Náhľad
-zobrazuje výšku textov a BlockScale. Drawing override možno bezpečne odstrániť;
-reálna zmena mierky automaticky obnoví existujúce anotácie bez duplicít.
+MIERKA ANOTÁCIÍ v0.22.0
+AK_SETTINGS používa prioritu platný element override > drawing scale > fixný
+fallback 1:50. Predvoľby sú 1:25, 1:50, 1:75, 1:100 a vlastný menovateľ
+5–250; hodnoty mimo rozsahu sa neorezávajú. Spodné akcie uložia nastavenie iba
+pre nové prvky, použijú ho na výber alebo na celý výkres. Apply All nastaví
+drawing scale, odstráni elementové override a obnoví anotácie jedným batchom.
 
 Pri 1:50 má dimension/FullLabel text 125 mm, item-number text 135 mm, slope
 text 80 mm, slope offset 100 mm a Circle priemer 400 mm. Škálovanie pokrýva

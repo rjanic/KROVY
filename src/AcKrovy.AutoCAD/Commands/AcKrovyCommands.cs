@@ -77,9 +77,7 @@ public sealed class AcKrovyCommands
     {
         var document = ActiveDocument();
         var defaultProfile = TimberElementDefaultProfileStore.Load();
-        var annotationScaleState = ReadAndMigrateAnnotationScaleSettingsState(
-            document,
-            defaultProfile);
+        var annotationScaleState = ReadAnnotationScaleSettingsState(document);
         LayerSettingsWindow? dialog = null;
         dialog = new LayerSettingsWindow(
             ElementLayerProfileStore.Load(),
@@ -114,8 +112,10 @@ public sealed class AcKrovyCommands
         IntPtr settingsWindowHandle)
     {
         var editor = document.Editor;
+        var annotationSettings = request.AnnotationSettings;
         IReadOnlyList<ObjectId>? targetIds = null;
-        if (request.SaveMode == SettingsSaveMode.SelectedElements)
+        if (annotationSettings?.ApplyScope ==
+            TimberAnnotationSettingsApplyScope.SelectedElements)
         {
             SettingsSelectionResult selection;
             using (editor.StartUserInteraction(settingsWindowHandle))
@@ -139,11 +139,23 @@ public sealed class AcKrovyCommands
                     profileAccepted: false);
             }
 
-            targetIds = selection.Ids;
+            targetIds = FilterSettingsTimberElementIds(
+                document.Database,
+                selection.Ids);
+            if (targetIds.Count == 0)
+            {
+                return SettingsResponse(
+                    document.Database,
+                    "SettingsWindow_NoSmartElementsSelected",
+                    StatusBannerSeverity.Information,
+                    success: false,
+                    profileAccepted: false);
+            }
         }
 
         var persistedProfile = ElementLayerProfileStore.Load();
         var applyLayerProfileChange =
+            annotationSettings is null &&
             request.LayerProfileChanged &&
             request.SaveMode is not
                 (SettingsSaveMode.LanguageOnly or SettingsSaveMode.SelectedElements);
@@ -193,40 +205,6 @@ public sealed class AcKrovyCommands
                 appliedProfile);
         }
 
-        var scaleRefreshRequired = false;
-        if (request.ApplyDrawingScale)
-        {
-            var scalePlan = TimberAnnotationScaleSettingsRules.CreatePersistencePlan(
-                request.LoadedHasDrawingScaleOverride,
-                request.LoadedDrawingScaleDenominator,
-                request.LoadedLegacyUserDefaultScaleDenominator,
-                request.ApplyDrawingScale
-                    ? request.DrawingScaleChange
-                    : TimberDrawingAnnotationScaleChange.None,
-                request.DrawingScaleDenominator,
-                request.DefaultProfile.AnnotationScaleDenominator);
-            if (scalePlan.WriteDrawingOverride || scalePlan.RemoveDrawingOverride)
-            {
-                using (document.LockDocument())
-                using (var transaction = document.Database.TransactionManager.StartTransaction())
-                {
-                    var drawingScaleStore = new AutoCadDrawingAnnotationScaleStore(
-                        document.Database,
-                        transaction);
-                    if (scalePlan.RemoveDrawingOverride)
-                    {
-                        drawingScaleStore.Remove();
-                    }
-                    else
-                    {
-                        drawingScaleStore.Write(scalePlan.DrawingDenominator);
-                    }
-                    transaction.Commit();
-                }
-                scaleRefreshRequired = scalePlan.RefreshDrawing;
-            }
-        }
-
         if (request.SaveMode == SettingsSaveMode.LanguageOnly)
         {
             editor.WriteMessage(UiStrings.CommandSettingsSaved);
@@ -238,9 +216,6 @@ public sealed class AcKrovyCommands
 
         if (request.SaveMode == SettingsSaveMode.NewElementsOnly)
         {
-            RefreshAllAnnotationsAfterScaleChange(
-                document,
-                scaleRefreshRequired);
             editor.WriteMessage(UiStrings.CommandSettingsSaved);
             return createdLayerNames.Count == 0
                 ? SettingsResponse(
@@ -262,30 +237,41 @@ public sealed class AcKrovyCommands
                     appliedProfile: appliedProfile);
         }
 
-        SettingsDrawingApplyResult applyResult;
-        using (document.LockDocument())
+        if (annotationSettings is null)
         {
-            applyResult = ApplySettingsToExistingElements(
-                document,
-                appliedProfile,
-                request.DefaultProfile,
-                targetIds,
-                annotationOnly: request.SaveMode == SettingsSaveMode.SelectedElements,
-                suppressAnnotationRefresh: scaleRefreshRequired);
-        }
-        RefreshAllAnnotationsAfterScaleChange(document, scaleRefreshRequired);
-
-        if (applyResult.Fallbacks.Count > 0)
-        {
-            var fallback = applyResult.Fallbacks[0];
             return SettingsResponse(
                 document.Database,
-                "SettingsWindow_LinetypeFallbackFormat",
+                "Command_Settings_SaveFailedFormat",
                 StatusBannerSeverity.Warning,
-                [fallback.Requested, fallback.Applied],
+                ["Annotation settings request is required for existing-element scopes."],
+                success: false,
+                profileAccepted: true,
                 appliedProfile: appliedProfile);
         }
 
+        SettingsDrawingApplyResult applyResult;
+        try
+        {
+            using (document.LockDocument())
+            {
+                applyResult = ApplySettingsToExistingElements(
+                    document,
+                    request.DefaultProfile,
+                    targetIds,
+                    annotationSettings);
+            }
+        }
+        catch (System.Exception ex)
+        {
+            return SettingsResponse(
+                document.Database,
+                "Command_Settings_SaveFailedFormat",
+                StatusBannerSeverity.Warning,
+                [ex.Message],
+                success: false,
+                profileAccepted: true,
+                appliedProfile: appliedProfile);
+        }
         if (createdLayerNames.Count > 0)
         {
             return SettingsResponse(
@@ -763,7 +749,7 @@ public sealed class AcKrovyCommands
                 transaction,
                 sourceEntity,
                 updated,
-                annotationScaleService);
+                annotationScaleService.ResolveForElement(updated));
         }
         transaction.Commit();
 
@@ -1242,42 +1228,53 @@ public sealed class AcKrovyCommands
 
     private static SettingsDrawingApplyResult ApplySettingsToExistingElements(
         Document document,
-        ElementLayerProfile layerProfile,
         TimberElementDefaultProfile defaultProfile,
         IReadOnlyList<ObjectId>? targetIds,
-        bool annotationOnly = false,
-        bool suppressAnnotationRefresh = false)
+        TimberAnnotationSettingsRequest annotationSettings)
     {
         var editor = document.Editor;
         using var transaction = document.Database.TransactionManager.StartTransaction();
+        var applyAll = annotationSettings.ApplyScope ==
+            TimberAnnotationSettingsApplyScope.AllElements;
+        var drawingScaleStore = new AutoCadDrawingAnnotationScaleStore(
+            document.Database,
+            transaction);
+        var hasDrawingScale = drawingScaleStore.TryRead(out var drawingScaleDenominator);
+        var drawingScaleChanged = applyAll &&
+            (!hasDrawingScale ||
+             drawingScaleDenominator != annotationSettings.ScaleDenominator);
+        if (applyAll)
+        {
+            drawingScaleStore.Write(annotationSettings.ScaleDenominator);
+        }
+
         var annotationScaleService = AutoCadAnnotationScaleService.Create(
             document.Database,
             transaction,
             defaultProfile);
         var metadataStore = new AutoCadTimberElementMetadataStore(transaction);
-        var layerService = new AutoCadTimberLayerService(document.Database, transaction, editor);
         var ids = targetIds is null
             ? DrawingScanner.FindAllTimberElements(document.Database, transaction, metadataStore)
             : targetIds.Distinct().ToList();
-        var circleNormalizationIds =
-            ElementLabelService.FindCircleNormalizationSourceIds(
-                document.Database,
-                transaction,
-                ids,
-                annotationScaleService);
         var updated = 0;
         var eligible = 0;
         var skipped = 0;
         var changedIds = new List<ObjectId>();
+        var eligibleIds = new List<ObjectId>();
         var previousElementIdById = new Dictionary<ObjectId, string>();
-        var drawingChanged = false;
-        var fallbacks = new List<SettingsLinetypeFallback>();
+        var annotationPatch = annotationSettings.CreateElementPatch();
 
         foreach (var id in ids)
         {
             try
             {
-                if (transaction.GetObject(id, OpenMode.ForRead) is not Entity entity ||
+                if (!AutoCadObjectIdAccess.TryGetObject<Entity>(
+                        transaction,
+                        id,
+                        OpenMode.ForRead,
+                        out var entity,
+                        document.Database) ||
+                    entity is null ||
                     !AutoCadEntityHelpers.IsSupportedTimberGeometry(entity) ||
                     !metadataStore.TryRead(entity, out var data) ||
                     data is null)
@@ -1286,69 +1283,40 @@ public sealed class AcKrovyCommands
                     continue;
                 }
 
-                var updatedData = annotationOnly
-                    ? data
-                    : TimberElementDefaultApplicator.ApplyCuttingAllowance(data, defaultProfile);
                 eligible++;
-                updatedData = TimberElementDefaultApplicator.ApplyAnnotationMode(updatedData, defaultProfile);
+                eligibleIds.Add(id);
+                var updatedData = TimberAnnotationSettingsApplicator.Apply(
+                    data,
+                    annotationPatch);
                 var metadataChanged = updatedData != data;
-                var requiresCircleNormalization = circleNormalizationIds.Contains(id);
                 if (metadataChanged)
                 {
                     entity.UpgradeOpen();
                     previousElementIdById[id] = data.ElementId;
                     metadataStore.Write(entity, updatedData);
                     changedIds.Add(id);
-                }
-                else if (requiresCircleNormalization)
-                {
-                    changedIds.Add(id);
-                }
-
-                var layerChanged = false;
-                if (!annotationOnly)
-                {
-                    var layerResult = layerService.ApplyLayerForTimberType(
-                        entity,
-                        updatedData.ElementType,
-                        layerProfile,
-                        CadLayerUpdateMode.UpdateExisting);
-                    layerChanged = layerResult.DrawingChanged;
-                    if (layerResult.UsedFallback)
-                    {
-                        fallbacks.Add(new(
-                            layerResult.RequestedLinetypeName,
-                            layerResult.AppliedLinetypeName));
-                    }
-                }
-                if (metadataChanged ||
-                    layerChanged ||
-                    requiresCircleNormalization)
-                {
-                    drawingChanged = true;
                     updated++;
                 }
             }
             catch (System.Exception ex)
             {
-                skipped++;
-                editor.WriteMessage(UiStrings.Format(
-                    UiStrings.CommandSettingsApplyElementSkippedFormat,
-                    ex.Message));
+                throw new InvalidOperationException(
+                    UiStrings.Format(
+                        UiStrings.CommandSettingsApplyElementSkippedFormat,
+                        ex.Message),
+                    ex);
             }
         }
 
-        if (!suppressAnnotationRefresh)
-        {
-            UpdateLabelsForChangedEntities(
-                document.Database,
-                transaction,
-                metadataStore,
-                changedIds,
-                previousElementIdById,
-                defaultProfile,
-                annotationScaleService);
-        }
+        var refreshIds = drawingScaleChanged ? eligibleIds : changedIds;
+        UpdateLabelsForChangedEntities(
+            document.Database,
+            transaction,
+            metadataStore,
+            refreshIds,
+            previousElementIdById,
+            defaultProfile,
+            annotationScaleService);
 
         transaction.Commit();
         editor.WriteMessage(UiStrings.Format(UiStrings.CommandSettingsApplyResultFormat, updated, skipped));
@@ -1356,82 +1324,30 @@ public sealed class AcKrovyCommands
             updated,
             skipped,
             eligible,
-            drawingChanged,
-            fallbacks
-                .Distinct()
-                .ToList());
+            drawingScaleChanged || changedIds.Count > 0);
     }
 
     private sealed record SettingsDrawingApplyResult(
         int Updated,
         int Skipped,
         int Eligible,
-        bool Changed,
-        IReadOnlyList<SettingsLinetypeFallback> Fallbacks);
+        bool Changed);
 
-    private sealed record SettingsLinetypeFallback(string Requested, string Applied);
-
-    private static AnnotationScaleSettingsState ReadAndMigrateAnnotationScaleSettingsState(
-        Document document,
-        TimberElementDefaultProfile defaultProfile)
+    private static AnnotationScaleSettingsState ReadAnnotationScaleSettingsState(
+        Document document)
     {
-        using var documentLock = document.LockDocument();
-        using var transaction = document.Database.TransactionManager.StartTransaction();
+        using var transaction = document.Database.TransactionManager.StartOpenCloseTransaction();
         var store = new AutoCadDrawingAnnotationScaleStore(
             document.Database,
             transaction);
         var hasDrawingOverride = store.TryRead(out var drawingDenominator);
-        var hasManagedTimberElements = false;
-        if (!hasDrawingOverride &&
-            TimberAnnotationScaleRules.NormalizeDenominator(
-                defaultProfile.AnnotationScaleDenominator) !=
-                TimberAnnotationScaleRules.DefaultDenominator)
-        {
-            var metadataStore = new AutoCadTimberElementMetadataStore(transaction);
-            hasManagedTimberElements = DrawingScanner.FindAllTimberElements(
-                document.Database,
-                transaction,
-                metadataStore).Count > 0;
-        }
-
-        var migrationPlan =
-            TimberAnnotationScaleSettingsRules.CreateLegacyMigrationPlan(
-                hasDrawingOverride,
-                hasManagedTimberElements,
-                defaultProfile.AnnotationScaleDenominator);
-        if (migrationPlan.WriteDrawingOverride)
-        {
-            store.Write(migrationPlan.DrawingDenominator);
-            transaction.Commit();
-            return new AnnotationScaleSettingsState(
-                true,
-                migrationPlan.DrawingDenominator,
-                migrationPlan.NewEffectiveDenominator);
-        }
-
-        var effectiveDenominator = TimberAnnotationScaleResolver.Resolve(
+        var effectiveDenominator = TimberAnnotationScaleResolver.ResolveDrawingContext(
             hasDrawingOverride,
-            drawingDenominator,
-            defaultProfile.AnnotationScaleDenominator);
+            drawingDenominator).Denominator;
         return new AnnotationScaleSettingsState(
             hasDrawingOverride,
             hasDrawingOverride ? drawingDenominator : effectiveDenominator,
             effectiveDenominator);
-    }
-
-    private static void RefreshAllAnnotationsAfterScaleChange(
-        Document document,
-        bool refreshRequired)
-    {
-        if (!refreshRequired)
-        {
-            return;
-        }
-
-        using (document.LockDocument())
-        {
-            ElementLabelService.UpdateAll(document.Database, document.Editor);
-        }
     }
 
     private static IReadOnlyList<string> ReadAvailableLinetypeNames(Database database)
@@ -1999,6 +1915,28 @@ public sealed class AcKrovyCommands
                 : new SettingsSelectionResult(
                     SettingsSelectionStatus.Empty,
                     []);
+    }
+
+    private static IReadOnlyList<ObjectId> FilterSettingsTimberElementIds(
+        Database database,
+        IEnumerable<ObjectId> candidateIds)
+    {
+        using var transaction = database.TransactionManager.StartOpenCloseTransaction();
+        var metadataStore = new AutoCadTimberElementMetadataStore(transaction);
+        return candidateIds
+            .Distinct()
+            .Where(id =>
+                AutoCadObjectIdAccess.TryGetObject<Entity>(
+                    transaction,
+                    id,
+                    OpenMode.ForRead,
+                    out var entity,
+                    database) &&
+                entity is not null &&
+                AutoCadEntityHelpers.IsSupportedTimberGeometry(entity) &&
+                metadataStore.TryRead(entity, out var data) &&
+                data is not null)
+            .ToList();
     }
 
     private enum SettingsSelectionStatus

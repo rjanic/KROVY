@@ -29,7 +29,7 @@ internal static class ElementLabelService
         Transaction transaction,
         Entity sourceEntity,
         TimberElementData data,
-        AutoCadAnnotationScaleService annotationScaleService,
+        TimberAnnotationScaleContext annotationScaleContext,
         string? previousElementId = null,
         double roundingStepMm = TimberCuttingLengthCalculator.DefaultRoundingStepMm,
         bool copySourcePreservation = false)
@@ -38,7 +38,7 @@ internal static class ElementLabelService
         ArgumentNullException.ThrowIfNull(transaction);
         ArgumentNullException.ThrowIfNull(sourceEntity);
         ArgumentNullException.ThrowIfNull(data);
-        ArgumentNullException.ThrowIfNull(annotationScaleService);
+        ArgumentNullException.ThrowIfNull(annotationScaleContext);
 
         if (!AutoCadEntityHelpers.IsSupportedTimberGeometry(sourceEntity) || string.IsNullOrWhiteSpace(data.ElementId))
         {
@@ -57,7 +57,7 @@ internal static class ElementLabelService
                 sourceEntity,
                 data.ElementId,
                 data.ItemNumberLeaderStyle,
-                annotationScaleService.Context.ScaleFactor);
+                annotationScaleContext.ScaleFactor);
             return UpsertCombinedLeader(
                 database,
                 transaction,
@@ -67,7 +67,7 @@ internal static class ElementLabelService
                 framedPlacement,
                 labelText,
                 copySourcePreservation,
-                annotationScaleService: annotationScaleService);
+                annotationScaleContext: annotationScaleContext);
         }
 
         if (TimberAnnotationModeRules.GetRepresentation(
@@ -81,7 +81,7 @@ internal static class ElementLabelService
                 data.AnnotationMode == TimberAnnotationMode.ItemNumberLeader
                     ? data.ItemNumberLeaderStyle
                     : null,
-                annotationScaleService.Context.ScaleFactor);
+                annotationScaleContext.ScaleFactor);
             return UpsertLeader(
                 database,
                 transaction,
@@ -91,7 +91,7 @@ internal static class ElementLabelService
                 leaderPlacement,
                 labelText,
                 copySourcePreservation,
-                annotationScaleService: annotationScaleService,
+                annotationScaleContext: annotationScaleContext,
                 baseTextHeightMm:
                     normalizedMode ==
                         TimberAnnotationMode.DimensionsLeader
@@ -109,7 +109,7 @@ internal static class ElementLabelService
 
         var textHeightMm =
             TimberDimensionTypographyRules.CalculateTextHeightMm(
-                annotationScaleService.Context.ScaleFactor);
+                annotationScaleContext.ScaleFactor);
         var placement = CalculatePlacement(sourceEntity, textHeightMm);
         return UpsertLabel(
             database,
@@ -131,7 +131,7 @@ internal static class ElementLabelService
         Polyline sourcePolyline,
         TimberElementData data,
         TimberRectangularFootprintGeometry geometry,
-        AutoCadAnnotationScaleService annotationScaleService,
+        TimberAnnotationScaleContext annotationScaleContext,
         string? previousElementId = null,
         double roundingStepMm = TimberCuttingLengthCalculator.DefaultRoundingStepMm,
         bool copySourcePreservation = false)
@@ -141,7 +141,7 @@ internal static class ElementLabelService
         ArgumentNullException.ThrowIfNull(sourcePolyline);
         ArgumentNullException.ThrowIfNull(data);
         ArgumentNullException.ThrowIfNull(geometry);
-        ArgumentNullException.ThrowIfNull(annotationScaleService);
+        ArgumentNullException.ThrowIfNull(annotationScaleContext);
 
         if (string.IsNullOrWhiteSpace(data.ElementId))
         {
@@ -154,7 +154,7 @@ internal static class ElementLabelService
             roundingIncrementMm: roundingStepMm);
         var normalizedMode = TimberAnnotationModeRules.Normalize(data.AnnotationMode);
         var presentationScaleFactor =
-            annotationScaleService.Context.ScaleFactor;
+            annotationScaleContext.ScaleFactor;
         var labelText = normalizedMode == TimberAnnotationMode.FullLabel
             ? TimberPostFootprintLabelFormatter.Format(data, measurement.ActualLengthMm)
             : TimberMainAnnotationFormatter.Format(data, measurement);
@@ -177,7 +177,7 @@ internal static class ElementLabelService
                 framedPlacement,
                 labelText,
                 copySourcePreservation,
-                annotationScaleService: annotationScaleService);
+                annotationScaleContext: annotationScaleContext);
         }
 
         if (TimberAnnotationModeRules.GetRepresentation(
@@ -203,7 +203,7 @@ internal static class ElementLabelService
                 itemPlacement,
                 labelText,
                 copySourcePreservation,
-                annotationScaleService,
+                annotationScaleContext,
                 baseTextHeightMm:
                     normalizedMode == TimberAnnotationMode.DimensionsLeader
                         ? TimberDimensionTypographyRules
@@ -336,7 +336,7 @@ internal static class ElementLabelService
         LeaderPlacement placement,
         string contents,
         bool copySourcePreservation,
-        AutoCadAnnotationScaleService annotationScaleService,
+        TimberAnnotationScaleContext annotationScaleContext,
         TimberMainAnnotationComponentRole componentRole =
             TimberMainAnnotationComponentRole.Primary,
         TimberMainAnnotationRepresentation? representationOverride = null,
@@ -345,7 +345,7 @@ internal static class ElementLabelService
         bool scaleNativePresentation = true,
         double baseTextHeightMm = DefaultTextHeightMm)
     {
-        ArgumentNullException.ThrowIfNull(annotationScaleService);
+        ArgumentNullException.ThrowIfNull(annotationScaleContext);
         var sourceHandle = sourceEntity.Handle.ToString();
         var desiredRepresentation = representationOverride ??
             TimberAnnotationModeRules.GetRepresentation(
@@ -422,7 +422,7 @@ internal static class ElementLabelService
                         placement.EnvelopeWidthMm / 2d +
                         TimberItemLeaderLayoutCalculator
                             .CombinedFramedLandingDistanceMm *
-                        annotationScaleService.Context.ScaleFactor),
+                        annotationScaleContext.ScaleFactor),
                 DoglegDirection = persistedDoglegDirection,
             };
         }
@@ -443,7 +443,7 @@ internal static class ElementLabelService
                 placement,
                 contents,
                 updateExistingDefinitions: !copySourcePreservation,
-                annotationScaleService,
+                annotationScaleContext,
                 scaleNativePresentation,
                 baseTextHeightMm))
         {
@@ -472,7 +472,7 @@ internal static class ElementLabelService
                         componentRole == TimberMainAnnotationComponentRole.FramedItem,
                     presentationScaleFactor:
                         scaleNativePresentation
-                            ? annotationScaleService.Context.ScaleFactor
+                            ? annotationScaleContext.ScaleFactor
                             : 1d)
                 : CreateNativeMLeader(
                     database,
@@ -480,7 +480,7 @@ internal static class ElementLabelService
                     placement,
                     contents,
                     updateExistingDefinitions: !copySourcePreservation,
-                    annotationScaleService,
+                    annotationScaleContext,
                     scaleNativePresentation,
                     baseTextHeightMm);
             WriteLeaderMetadata(
@@ -532,11 +532,11 @@ internal static class ElementLabelService
         LeaderPlacement framedPlacement,
         string dimensionsContents,
         bool copySourcePreservation,
-        AutoCadAnnotationScaleService annotationScaleService)
+        TimberAnnotationScaleContext annotationScaleContext)
     {
-        ArgumentNullException.ThrowIfNull(annotationScaleService);
+        ArgumentNullException.ThrowIfNull(annotationScaleContext);
         var presentationScaleFactor =
-            annotationScaleService.Context.ScaleFactor;
+            annotationScaleContext.ScaleFactor;
         var dimensionTextHeightMm =
             TimberCombinedDimensionTypographyRules.CalculateTextHeightMm(
                 presentationScaleFactor);
@@ -560,7 +560,7 @@ internal static class ElementLabelService
             combinedFramedPlacement,
             data.ElementId,
             copySourcePreservation,
-            annotationScaleService: annotationScaleService,
+            annotationScaleContext: annotationScaleContext,
             componentRole: TimberMainAnnotationComponentRole.FramedItem,
             representationOverride: ItemNumberLeaderStyleRules.Normalize(data.ItemNumberLeaderStyle) != ItemNumberLeaderStyle.Plain
                 ? TimberMainAnnotationRepresentation.BlockLeader
@@ -737,30 +737,42 @@ internal static class ElementLabelService
         IReadOnlyCollection<ObjectId> sourceIds,
         AutoCadAnnotationScaleService annotationScaleService)
     {
-        var sourceIdByHandle = sourceIds
-            .Distinct()
-            .Select(id => (
-                Id: id,
-                Entity: transaction.GetObject(id, OpenMode.ForRead, false) as Entity))
-            .Where(entry => entry.Entity is not null)
-            .ToDictionary(
-                entry => entry.Entity!.Handle.ToString(),
-                entry => entry.Id,
+        var metadataStore = new AutoCadTimberElementMetadataStore(transaction);
+        var sourceByHandle = new Dictionary<
+            string,
+            (ObjectId Id, TimberAnnotationScaleContext ScaleContext)>(
                 StringComparer.OrdinalIgnoreCase);
+        foreach (var id in sourceIds.Distinct())
+        {
+            if (transaction.GetObject(id, OpenMode.ForRead, false) is not Entity entity ||
+                !metadataStore.TryRead(entity, out var data) ||
+                data is null)
+            {
+                continue;
+            }
+
+            sourceByHandle[entity.Handle.ToString()] = (
+                id,
+                annotationScaleService.ResolveForElement(data));
+        }
+
         var result = new HashSet<ObjectId>();
 
         foreach (var annotation in ReadLabels(database, transaction))
         {
             if (annotation.Data.ItemNumberLeaderStyle != ItemNumberLeaderStyle.Circle ||
-                !sourceIdByHandle.TryGetValue(annotation.Data.SourceHandle, out var sourceId) ||
+                !sourceByHandle.TryGetValue(annotation.Data.SourceHandle, out var source) ||
                 transaction.GetObject(annotation.Id, OpenMode.ForRead, false) is not
                     MLeader leader ||
-                !RequiresCircleNormalization(transaction, leader, annotationScaleService.Context.ScaleFactor))
+                !RequiresCircleNormalization(
+                    transaction,
+                    leader,
+                    source.ScaleContext.ScaleFactor))
             {
                 continue;
             }
 
-            result.Add(sourceId);
+            result.Add(source.Id);
         }
 
         return result;
@@ -1945,12 +1957,12 @@ internal static class ElementLabelService
         LeaderPlacement placement,
         string contents,
         bool updateExistingDefinitions,
-        AutoCadAnnotationScaleService annotationScaleService,
+        TimberAnnotationScaleContext annotationScaleContext,
         bool scaleNativePresentation,
         double baseTextHeightMm)
     {
         var presentationScaleFactor = scaleNativePresentation
-            ? annotationScaleService.Context.ScaleFactor
+            ? annotationScaleContext.ScaleFactor
             : 1d;
         var effectiveTextHeight =
             baseTextHeightMm * presentationScaleFactor;
@@ -2131,7 +2143,7 @@ internal static class ElementLabelService
         LeaderPlacement placement,
         string contents,
         bool updateExistingDefinitions,
-        AutoCadAnnotationScaleService annotationScaleService,
+        TimberAnnotationScaleContext annotationScaleContext,
         bool scaleNativePresentation,
         double baseTextHeightMm)
     {
@@ -2165,7 +2177,7 @@ internal static class ElementLabelService
         }
 
         var presentationScaleFactor = scaleNativePresentation
-            ? annotationScaleService.Context.ScaleFactor
+            ? annotationScaleContext.ScaleFactor
             : 1d;
         var effectiveTextHeight =
             baseTextHeightMm * presentationScaleFactor;

@@ -24,12 +24,19 @@ internal sealed class AutoCadAnnotationScaleService
 
         var drawingStore = new AutoCadDrawingAnnotationScaleStore(database, transaction);
         var hasDrawingValue = drawingStore.TryRead(out var drawingDenominator);
-        var context = TimberAnnotationScaleResolver.ResolveContext(
+        var context = TimberAnnotationScaleResolver.ResolveDrawingContext(
             hasDrawingValue,
-            drawingDenominator,
-            defaultProfile.AnnotationScaleDenominator);
+            drawingDenominator);
 
         return new AutoCadAnnotationScaleService(context);
+    }
+
+    public TimberAnnotationScaleContext ResolveForElement(TimberElementData data)
+    {
+        ArgumentNullException.ThrowIfNull(data);
+        return TimberAnnotationScaleResolver.ResolveElementContext(
+            Context,
+            data.AnnotationScaleDenominatorOverride);
     }
 
     public double ScaleLength(double lengthMm) => Context.ScaleLength(lengthMm);

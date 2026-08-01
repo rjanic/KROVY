@@ -10,11 +10,21 @@ public sealed record TimberDrawingSettings
     public int AnnotationScaleDenominator { get; init; } =
         TimberAnnotationScaleRules.DefaultDenominator;
 
-    public static TimberDrawingSettings Create(int annotationScaleDenominator) => new()
+    public static TimberDrawingSettings Create(int annotationScaleDenominator)
     {
-        AnnotationScaleDenominator = TimberAnnotationScaleRules.NormalizeDenominator(
-            annotationScaleDenominator),
-    };
+        if (!TimberAnnotationScaleRules.IsValidDenominator(annotationScaleDenominator))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(annotationScaleDenominator),
+                annotationScaleDenominator,
+                $"Annotation scale denominator must be between {TimberAnnotationScaleRules.MinimumDenominator} and {TimberAnnotationScaleRules.MaximumDenominator}.");
+        }
+
+        return new TimberDrawingSettings
+        {
+            AnnotationScaleDenominator = annotationScaleDenominator,
+        };
+    }
 
     public static bool TryFromStoredValues(
         int schemaVersion,

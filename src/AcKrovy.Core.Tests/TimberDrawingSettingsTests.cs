@@ -11,11 +11,11 @@ public sealed class TimberDrawingSettingsTests
         Assert.Equal(1, TimberDrawingSettings.DrawingSettingsSchemaVersion);
 
     [Theory]
-    [InlineData(10)]
+    [InlineData(5)]
     [InlineData(25)]
     [InlineData(50)]
     [InlineData(100)]
-    [InlineData(200)]
+    [InlineData(250)]
     public void Create_PreservesValidAnnotationScaleDenominator(int denominator) =>
         Assert.Equal(
             denominator,
@@ -23,14 +23,13 @@ public sealed class TimberDrawingSettingsTests
 
     [Theory]
     [InlineData(0)]
-    [InlineData(9)]
-    [InlineData(201)]
+    [InlineData(4)]
+    [InlineData(251)]
     [InlineData(-1)]
-    public void Create_NormalizesInvalidAnnotationScaleDenominatorToDefault(
+    public void Create_RejectsInvalidAnnotationScaleDenominatorWithoutClamping(
         int denominator) =>
-        Assert.Equal(
-            TimberAnnotationScaleRules.DefaultDenominator,
-            TimberDrawingSettings.Create(denominator).AnnotationScaleDenominator);
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            TimberDrawingSettings.Create(denominator));
 
     [Fact]
     public void TryFromStoredValues_AcceptsSupportedSchemaAndValidDenominator()
@@ -48,8 +47,8 @@ public sealed class TimberDrawingSettingsTests
     [Theory]
     [InlineData(0, 100)]
     [InlineData(2, 100)]
-    [InlineData(1, 9)]
-    [InlineData(1, 201)]
+    [InlineData(1, 4)]
+    [InlineData(1, 251)]
     public void TryFromStoredValues_RejectsUnsupportedOrInvalidPayload(
         int schemaVersion,
         int denominator)
@@ -111,13 +110,13 @@ public sealed class TimberDrawingSettingsTests
             TimberAnnotationScaleRules.DefaultDenominator,
             TimberAnnotationScaleResolver.Resolve(
                 hasDrawingValue: true,
-                drawingDenominator: 201,
+                drawingDenominator: 251,
                 userDefaultDenominator: 75));
 
     [Theory]
     [InlineData(0)]
-    [InlineData(9)]
-    [InlineData(201)]
+    [InlineData(4)]
+    [InlineData(251)]
     [InlineData(-1)]
     public void Resolver_InvalidUserDefaultUsesFactoryDefault(int userDefaultDenominator) =>
         Assert.Equal(

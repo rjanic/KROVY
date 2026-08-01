@@ -13,14 +13,14 @@ internal static class PostFootprintPerpendicularAnnotationService
         Transaction transaction,
         Polyline sourcePolyline,
         TimberRectangularFootprintGeometry footprintGeometry,
-        AutoCadAnnotationScaleService annotationScaleService,
+        TimberAnnotationScaleContext annotationScaleContext,
         bool copySourcePreservation = false)
     {
         ArgumentNullException.ThrowIfNull(database);
         ArgumentNullException.ThrowIfNull(transaction);
         ArgumentNullException.ThrowIfNull(sourcePolyline);
         ArgumentNullException.ThrowIfNull(footprintGeometry);
-        ArgumentNullException.ThrowIfNull(annotationScaleService);
+        ArgumentNullException.ThrowIfNull(annotationScaleContext);
 
         var sourceHandle = sourcePolyline.Handle.ToString();
         var blockId = EnsureBlockDefinition(database, transaction);
@@ -60,7 +60,7 @@ internal static class PostFootprintPerpendicularAnnotationService
         annotation.ScaleFactors = new Scale3d(
             TimberSlopeAnnotationPresentationRules
                 .CalculateSpecialSymbolScale(
-                    annotationScaleService.Context.ScaleFactor));
+                    annotationScaleContext.ScaleFactor));
         TimberLayerService.ApplyToAnnotationEntity(
             database,
             transaction,

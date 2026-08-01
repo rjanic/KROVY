@@ -114,7 +114,7 @@ public sealed class DrawingAnnotationScaleStoreSourceContractTests
     }
 
     [Fact]
-    public void ElementAnnotationServices_DoNotResolveScalePerElement()
+    public void ElementAnnotationServices_DoNotReadDrawingScalePerElement()
     {
         var labels = Source(
             "src",
@@ -138,7 +138,76 @@ public sealed class DrawingAnnotationScaleStoreSourceContractTests
     }
 
     [Fact]
-    public void SettingsPath_ExposesOnlyCurrentDrawingScaleSelector()
+    public void ScaleService_ResolvesDrawingOnceAndDelegatesElementRulesToCore()
+    {
+        var service = Source(
+            "src",
+            "AcKrovy.AutoCAD",
+            "Infrastructure",
+            "AutoCadAnnotationScaleService.cs");
+        var create = Segment(
+            service,
+            "public static AutoCadAnnotationScaleService Create(",
+            "public TimberAnnotationScaleContext ResolveForElement(");
+        var resolveElement = Segment(
+            service,
+            "public TimberAnnotationScaleContext ResolveForElement(",
+            "public double ScaleLength(");
+
+        Assert.Equal(1, CountOccurrences(create, "new AutoCadDrawingAnnotationScaleStore("));
+        Assert.Equal(1, CountOccurrences(create, "drawingStore.TryRead("));
+        Assert.Contains("TimberAnnotationScaleResolver.ResolveDrawingContext(", create);
+        Assert.Contains("TimberAnnotationScaleResolver.ResolveElementContext(", resolveElement);
+        Assert.Contains("data.AnnotationScaleDenominatorOverride", resolveElement);
+        Assert.DoesNotContain("PrepareForWrite", service);
+        Assert.DoesNotContain("metadataStore.Write", service);
+    }
+
+    [Fact]
+    public void TimberAnnotationService_ResolvesOneContextAndPassesItToOwnedFlows()
+    {
+        var annotations = Source(
+            "src",
+            "AcKrovy.AutoCAD",
+            "Infrastructure",
+            "TimberAnnotationService.cs");
+        var ensure = Segment(
+            annotations,
+            "public static bool EnsureForElement(",
+            "public static void DeleteForMissingSourceHandles(");
+
+        Assert.Equal(1, CountOccurrences(ensure, "ResolveForElement(data)"));
+        Assert.Contains("ElementLabelService.UpsertForElement(", ensure);
+        Assert.Contains("ElementLabelService.UpsertForPostFootprint(", ensure);
+        Assert.Contains("SlopeAnnotationService.EnsureForElement(", ensure);
+        Assert.Contains("PostFootprintPerpendicularAnnotationService.UpsertForFootprint(", ensure);
+        Assert.True(CountOccurrences(ensure, "annotationScaleContext") >= 5);
+        Assert.DoesNotContain("PrepareForWrite", ensure);
+        Assert.DoesNotContain("metadataStore.Write", ensure);
+    }
+
+    [Fact]
+    public void MainLabelService_ConsumesExplicitElementContextWithoutResolvingAgain()
+    {
+        var labels = Source(
+            "src",
+            "AcKrovy.AutoCAD",
+            "Infrastructure",
+            "ElementLabelService.cs");
+        var upsert = Segment(
+            labels,
+            "public static bool UpsertForElement(",
+            "public static bool UpsertForPostFootprint(");
+
+        Assert.Contains("TimberAnnotationScaleContext annotationScaleContext", upsert);
+        Assert.Contains("annotationScaleContext.ScaleFactor", upsert);
+        Assert.DoesNotContain("AutoCadAnnotationScaleService", upsert);
+        Assert.DoesNotContain("ResolveForElement", upsert);
+        Assert.DoesNotContain("AutoCadDrawingAnnotationScaleStore", upsert);
+    }
+
+    [Fact]
+    public void SettingsPath_UsesFooterScopesAndHasNoScaleOnlyWorkflow()
     {
         var commands = Source(
             "src",
@@ -157,12 +226,14 @@ public sealed class DrawingAnnotationScaleStoreSourceContractTests
             "LayerSettingsWindow.xaml");
 
         Assert.DoesNotContain("WriteAnnotationScaleToDrawing", commands);
-        Assert.Contains("TimberDrawingAnnotationScaleChange", window);
-        Assert.Contains("AnnotationScaleDenominator = _legacyUserDefaultScaleDenominator", window);
+        Assert.Contains("TimberAnnotationSettingsRequest", window);
+        Assert.Contains("AnnotationScaleDenominator = includeAnnotation", window);
         Assert.Contains("DrawingAnnotationScaleSelector", xaml);
         Assert.DoesNotContain("UserDefaultAnnotationScaleSelector", xaml);
         Assert.DoesNotContain("UseDefaultAnnotationScale_Click", xaml);
-        Assert.Contains("ReadAndMigrateAnnotationScaleSettingsState", commands);
+        Assert.Contains("ReadAnnotationScaleSettingsState", commands);
+        Assert.DoesNotContain("ReadAndMigrateAnnotationScaleSettingsState", commands);
+        Assert.DoesNotContain("ApplyDrawingAnnotationScale", xaml);
     }
 
     private static string StoreSource() => Source(
@@ -185,6 +256,9 @@ public sealed class DrawingAnnotationScaleStoreSourceContractTests
         Assert.True(endIndex > startIndex, $"End marker not found: {end}");
         return source.Substring(startIndex, endIndex - startIndex);
     }
+
+    private static int CountOccurrences(string source, string value) =>
+        source.Split(value, StringSplitOptions.None).Length - 1;
 
     private static string FindRepositoryRoot()
     {

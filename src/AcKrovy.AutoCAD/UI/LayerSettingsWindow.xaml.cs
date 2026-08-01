@@ -42,14 +42,10 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
     private string _selectedLanguageCode = AppLanguageService.DefaultLanguageCode;
     private TimberAnnotationMode _selectedAnnotationMode = TimberAnnotationMode.FullLabel;
     private ItemNumberLeaderStyle _selectedItemNumberLeaderStyle = ItemNumberLeaderStyle.Plain;
-    private int _legacyUserDefaultScaleDenominator = TimberAnnotationScaleRules.DefaultDenominator;
     private int _loadedDrawingScaleDenominator = TimberAnnotationScaleRules.DefaultDenominator;
-    private bool _loadedHasDrawingScaleOverride;
-    private TimberDrawingAnnotationScaleChange _drawingScaleChange;
     private TimberAnnotationScalePreset _selectedDrawingScalePreset =
         TimberAnnotationScalePreset.Scale50;
     private string _drawingCustomScaleText = "50";
-    private bool _scaleSelectionReady;
     private SettingsAnnotationPreset _selectedAnnotationPreset =
         SettingsAnnotationPreset.FullLabel;
     private ElementLayerProfile _acceptedLayerProfile = ElementLayerProfile.CreateDefault();
@@ -141,10 +137,6 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
             }
 
             _selectedDrawingScalePreset = value;
-            if (_scaleSelectionReady)
-            {
-                _drawingScaleChange = TimberDrawingAnnotationScaleChange.SetOverride;
-            }
             OnScaleSelectionChanged();
         }
     }
@@ -160,10 +152,6 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
             }
 
             _drawingCustomScaleText = value;
-            if (_scaleSelectionReady)
-            {
-                _drawingScaleChange = TimberDrawingAnnotationScaleChange.SetOverride;
-            }
             OnScaleSelectionChanged();
         }
     }
@@ -172,21 +160,16 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
         SelectedDrawingScalePreset == TimberAnnotationScalePreset.Custom;
     public bool HasDrawingScaleError =>
         IsDrawingCustomScale && !TryReadScaleDenominator(DrawingCustomScaleText, out _);
-    public string DrawingScaleSourceText => UiStrings.GetString(
-        _drawingScaleChange switch
-        {
-            TimberDrawingAnnotationScaleChange.SetOverride =>
-                "SettingsWindow_AnnotationScale_StoredInDrawing",
-            TimberDrawingAnnotationScaleChange.ClearOverride =>
-                "SettingsWindow_AnnotationScale_UsesDefault",
-            _ when _loadedHasDrawingScaleOverride =>
-                "SettingsWindow_AnnotationScale_StoredInDrawing",
-            _ => "SettingsWindow_AnnotationScale_FixedDefault",
-        },
-        _uiCulture);
-    public string FixedDefaultScaleText => UiStrings.GetString(
-        "SettingsWindow_AnnotationScale_FixedDefault",
-        _uiCulture);
+    public string CurrentDrawingScaleText => UiStrings.Format(
+        UiStrings.GetString(
+            "SettingsWindow_AnnotationScale_CurrentDrawingFormat",
+            _uiCulture),
+        _loadedDrawingScaleDenominator);
+    public string DefaultNewElementScaleText => UiStrings.Format(
+        UiStrings.GetString(
+            "SettingsWindow_AnnotationScale_NewElementsDefaultFormat",
+            _uiCulture),
+        _acceptedDefaultProfile.AnnotationScaleDenominator);
     public string ScaleValidationText => UiStrings.GetString(
         "SettingsWindow_AnnotationScale_ValidationRange",
         _uiCulture);
@@ -372,20 +355,18 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
             AutoCadApplicationLanguageWorkflow.Shared;
         _loadedUiPreferences = SettingsUiPreferencesStore.Load();
         var normalizedDefaultProfile = defaultProfile.Normalize();
+        _acceptedDefaultProfile = normalizedDefaultProfile;
                 _selectedAnnotationMode = SettingsSelectionRules.NormalizeAnnotationMode(
             normalizedDefaultProfile.DefaultAnnotationMode);
         _selectedItemNumberLeaderStyle = SettingsSelectionRules.NormalizeItemNumberLeaderStyle(
             normalizedDefaultProfile.DefaultItemNumberLeaderStyle);
-        _legacyUserDefaultScaleDenominator =
-            normalizedDefaultProfile.AnnotationScaleDenominator;
         var scaleState = annotationScaleState ??
             new AnnotationScaleSettingsState(
                 false,
                 TimberAnnotationScaleRules.DefaultDenominator,
                 TimberAnnotationScaleRules.DefaultDenominator);
-        _loadedHasDrawingScaleOverride = scaleState.HasDrawingOverride;
         _loadedDrawingScaleDenominator = scaleState.EffectiveDenominator;
-        InitializeScaleSelections(scaleState.EffectiveDenominator);
+        InitializeScaleSelections(normalizedDefaultProfile.AnnotationScaleDenominator);
         _selectedAnnotationPreset = SettingsAnnotationPresetRules.FromProduction(
             _selectedAnnotationMode,
             _selectedItemNumberLeaderStyle);
@@ -419,7 +400,6 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
         Closed += LayerSettingsWindow_Closed;
         UpdateActionButtons();
         _acceptedLayerProfile = profile.Normalize();
-        _acceptedDefaultProfile = normalizedDefaultProfile;
         ReplaceRows(_acceptedLayerProfile);
         InitializeExistingLayerBaselines();
         ReplaceDefaultRows(normalizedDefaultProfile);
@@ -431,7 +411,6 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
             CreateDefaultProfileFingerprint(_acceptedDefaultProfile));
         AcceptUiSectionBaselines(SettingsSectionScope.AllEditable);
         Visual.SetFormState(SettingsFormState.NoChanges);
-        _scaleSelectionReady = true;
     }
 
     private void RestoreDefaults_Click(object sender, RoutedEventArgs e)
@@ -453,12 +432,7 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
     }
 
     private void SaveNewElements_Click(object sender, RoutedEventArgs e) =>
-        ApplySettings(
-            SettingsSaveMode.NewElementsOnly,
-            applyDrawingScale: false,
-            SettingsSectionScope.Annotation |
-            (LayersDirty ? SettingsSectionScope.Layers : SettingsSectionScope.None) |
-            (AllowancesDirty ? SettingsSectionScope.Allowances : SettingsSectionScope.None));
+        ApplyAnnotationSettings(TimberAnnotationSettingsApplyScope.NewElementsOnly);
 
     private void Apply_Click(object sender, RoutedEventArgs e)
     {
@@ -470,37 +444,32 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
         };
         ApplySettings(
             SettingsSaveMode.NewElementsOnly,
-            applyDrawingScale: false,
             scope);
     }
 
     private void SaveApplySelection_Click(object sender, RoutedEventArgs e) =>
-        ApplySettings(
-            SettingsSaveMode.SelectedElements,
-            applyDrawingScale: false,
-            SettingsSectionScope.Annotation);
+        ApplyAnnotationSettings(TimberAnnotationSettingsApplyScope.SelectedElements);
 
     private void SaveApplyAll_Click(object sender, RoutedEventArgs e) =>
-        ApplySettings(
-            SettingsSaveMode.AllElements,
-            applyDrawingScale: true,
-            SettingsSectionScope.Annotation |
-            (LayersDirty ? SettingsSectionScope.Layers : SettingsSectionScope.None) |
-            (AllowancesDirty ? SettingsSectionScope.Allowances : SettingsSectionScope.None));
+        ApplyAnnotationSettings(TimberAnnotationSettingsApplyScope.AllElements);
 
-    private void ApplyDrawingAnnotationScale_Click(object sender, RoutedEventArgs e)
-    {
-        _drawingScaleChange = TimberDrawingAnnotationScaleChange.SetOverride;
+    private void ApplyAnnotationSettings(TimberAnnotationSettingsApplyScope applyScope) =>
         ApplySettings(
-            SettingsSaveMode.NewElementsOnly,
-            applyDrawingScale: true,
-            SettingsSectionScope.Annotation);
-    }
+            applyScope switch
+            {
+                TimberAnnotationSettingsApplyScope.SelectedElements =>
+                    SettingsSaveMode.SelectedElements,
+                TimberAnnotationSettingsApplyScope.AllElements =>
+                    SettingsSaveMode.AllElements,
+                _ => SettingsSaveMode.NewElementsOnly,
+            },
+            SettingsSectionScope.Annotation,
+            applyScope);
 
     private void ApplySettings(
         SettingsSaveMode saveMode,
-        bool applyDrawingScale,
-        SettingsSectionScope scope)
+        SettingsSectionScope scope,
+        TimberAnnotationSettingsApplyScope? annotationApplyScope = null)
     {
         if (scope.HasFlag(SettingsSectionScope.Layers))
         {
@@ -528,15 +497,16 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
             return;
         }
 
-        var hasValidDrawingScale = TryGetDrawingScaleDenominator(
-            out var drawingScaleDenominator);
-        if (applyDrawingScale && !hasValidDrawingScale)
+        var hasValidSelectedScale = TryGetDrawingScaleDenominator(
+            out var selectedScaleDenominator);
+        if (scope.HasFlag(SettingsSectionScope.Annotation) &&
+            !hasValidSelectedScale)
         {
             return;
         }
-        if (!hasValidDrawingScale)
+        if (!hasValidSelectedScale)
         {
-            drawingScaleDenominator = _loadedDrawingScaleDenominator;
+            selectedScaleDenominator = _acceptedDefaultProfile.AnnotationScaleDenominator;
         }
 
         var languageCode = AppLanguageService.NormalizeLanguageCode(SelectedLanguageCode);
@@ -552,16 +522,20 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
         var profileChanged = layerProfileChanged || defaultProfileChanged;
         if (!SettingsApplyDispatchRules.ShouldDispatch(
                 saveMode,
-                profileChanged ||
-                applyDrawingScale &&
-                _drawingScaleChange != TimberDrawingAnnotationScaleChange.None))
+                profileChanged))
         {
-            ShowStatus(
-                _drawingScaleChange != TimberDrawingAnnotationScaleChange.None
-                    ? "SettingsWindow_AnnotationScale_DrawingChangePending"
-                    : "SettingsWindow_NoChanges",
-                StatusBannerSeverity.Information);
+            ShowStatus("SettingsWindow_NoChanges", StatusBannerSeverity.Information);
             return;
+        }
+
+        TimberAnnotationSettingsRequest? annotationSettings = null;
+        if (annotationApplyScope.HasValue)
+        {
+            annotationSettings = new TimberAnnotationSettingsRequest(
+                SelectedAnnotationMode,
+                SelectedItemNumberLeaderStyle,
+                selectedScaleDenominator,
+                annotationApplyScope.Value);
         }
 
         var request = new SettingsApplyRequest(
@@ -569,14 +543,9 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
             defaultProfile,
             languageCode,
             saveMode,
+            annotationSettings,
             layerProfileChanged,
             defaultProfileChanged,
-            applyDrawingScale,
-            _drawingScaleChange,
-            drawingScaleDenominator,
-            _loadedHasDrawingScaleOverride,
-            _loadedDrawingScaleDenominator,
-            _legacyUserDefaultScaleDenominator,
             layerProfileChanged
                 ? Rows.Select(row => new CadLayerOverrideIntent(
                         row.ElementType,
@@ -623,16 +592,9 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
                              SettingsSectionScope.Annotation));
             }
             LanguageCode = languageCode;
-            if (applyDrawingScale)
+            if (annotationApplyScope == TimberAnnotationSettingsApplyScope.AllElements)
             {
-                _loadedDrawingScaleDenominator = drawingScaleDenominator;
-                _loadedHasDrawingScaleOverride = _drawingScaleChange switch
-                {
-                    TimberDrawingAnnotationScaleChange.ClearOverride => false,
-                    TimberDrawingAnnotationScaleChange.SetOverride => true,
-                    _ => _loadedHasDrawingScaleOverride,
-                };
-                _drawingScaleChange = TimberDrawingAnnotationScaleChange.None;
+                _loadedDrawingScaleDenominator = selectedScaleDenominator;
             }
             NotifyScalePropertiesChanged();
             Visual.SetFormState(HasAnyPendingChanges
@@ -648,21 +610,10 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
 
         ApplyToExistingElements = saveMode is SettingsSaveMode.AllElements or SettingsSaveMode.SelectedElements;
         SaveMode = saveMode;
-        var drawingScaleStillPending =
-            !applyDrawingScale &&
-            _drawingScaleChange != TimberDrawingAnnotationScaleChange.None;
         ShowStatus(
-            drawingScaleStillPending
-                ? saveMode == SettingsSaveMode.SelectedElements
-                    ? "SettingsWindow_AnnotationScale_SelectionDoesNotApply"
-                    : "SettingsWindow_AnnotationScale_DrawingChangePending"
-                : response.ResourceKey,
+            response.ResourceKey,
             response.Severity,
             response.ResourceArguments);
-        if (drawingScaleStillPending)
-        {
-            Visual.SetFormState(SettingsFormState.UnsavedChanges);
-        }
     }
 
     private static string CreateLayerProfileFingerprint(ElementLayerProfile profile) =>
@@ -789,9 +740,10 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
             DefaultItemNumberLeaderStyle = includeAnnotation
                 ? SelectedItemNumberLeaderStyle
                 : accepted.DefaultItemNumberLeaderStyle,
-            // Kept only for profile serialization compatibility. Runtime scale
-            // resolution uses drawing override > fixed 1:50.
-            AnnotationScaleDenominator = _legacyUserDefaultScaleDenominator,
+            AnnotationScaleDenominator = includeAnnotation &&
+                TryGetDrawingScaleDenominator(out var annotationScaleDenominator)
+                    ? annotationScaleDenominator
+                    : accepted.AnnotationScaleDenominator,
             Styles = styles,
         }.Normalize();
         return true;
@@ -906,8 +858,8 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
         OnPropertyChanged(nameof(DrawingCustomScaleText));
         OnPropertyChanged(nameof(IsDrawingCustomScale));
         OnPropertyChanged(nameof(HasDrawingScaleError));
-        OnPropertyChanged(nameof(DrawingScaleSourceText));
-        OnPropertyChanged(nameof(FixedDefaultScaleText));
+        OnPropertyChanged(nameof(CurrentDrawingScaleText));
+        OnPropertyChanged(nameof(DefaultNewElementScaleText));
         OnPropertyChanged(nameof(ScaleValidationText));
         OnPropertyChanged(nameof(PreviewDimensionText));
         OnPropertyChanged(nameof(PreviewItemNumberText));
@@ -1423,6 +1375,8 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
         {
             SelectedAnnotationMode,
             SelectedItemNumberLeaderStyle,
+            SelectedDrawingScalePreset,
+            DrawingCustomScaleText,
         });
 
     internal bool LayersDirty =>
@@ -1449,8 +1403,7 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
     private bool HasAnyPendingChanges =>
         LayersDirty ||
         AllowancesDirty ||
-        AnnotationDirty ||
-        _drawingScaleChange != TimberDrawingAnnotationScaleChange.None;
+        AnnotationDirty;
 
     private void AcceptUiSectionBaselines(SettingsSectionScope scope)
     {
@@ -1982,14 +1935,9 @@ internal sealed record SettingsApplyRequest(
     TimberElementDefaultProfile DefaultProfile,
     string LanguageCode,
     SettingsSaveMode SaveMode,
+    TimberAnnotationSettingsRequest? AnnotationSettings,
     bool LayerProfileChanged,
     bool DefaultProfileChanged,
-    bool ApplyDrawingScale,
-    TimberDrawingAnnotationScaleChange DrawingScaleChange,
-    int DrawingScaleDenominator,
-    bool LoadedHasDrawingScaleOverride,
-    int LoadedDrawingScaleDenominator,
-    int LoadedLegacyUserDefaultScaleDenominator,
     IReadOnlyList<CadLayerOverrideIntent> LayerOverrideIntents);
 
 internal sealed record AnnotationScaleSettingsState(

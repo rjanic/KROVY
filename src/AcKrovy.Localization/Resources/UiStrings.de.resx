@@ -411,6 +411,9 @@
   <data name="DiagnosticsEvent_SubjectCustomElementDefinitions" xml:space="preserve"><value>Definitionen benutzerdefinierter Bauteile</value></data>
   <data name="DiagnosticsEvent_ActionSaved" xml:space="preserve"><value>Gespeichert</value></data>
   <data name="SettingsWindow_AnnotationScale_Title" xml:space="preserve"><value>Beschriftungsmaßstab</value></data>
+  <data name="SettingsWindow_AnnotationScale_SelectedTitle" xml:space="preserve"><value>Einzustellender Beschriftungsmaßstab</value></data>
+  <data name="SettingsWindow_AnnotationScale_CurrentDrawingFormat" xml:space="preserve"><value>Aktueller Zeichnungsmaßstab: 1:{0}</value></data>
+  <data name="SettingsWindow_AnnotationScale_NewElementsDefaultFormat" xml:space="preserve"><value>Standardmaßstab neuer Bauteile: 1:{0}</value></data>
   <data name="SettingsWindow_AnnotationScale_CurrentDrawing" xml:space="preserve"><value>Aktuelle Zeichnung</value></data>
   <data name="SettingsWindow_AnnotationScale_UserDefault" xml:space="preserve"><value>Standard für neue Zeichnungen</value></data>
   <data name="SettingsWindow_AnnotationScale_UserDefaultHelp" xml:space="preserve"><value>Dieser Wert ändert den Maßstab der aktuellen Zeichnung nicht.</value></data>
@@ -419,7 +422,7 @@
   <data name="SettingsWindow_AnnotationScale_UsesDefault" xml:space="preserve"><value>Verwendet den Standardmaßstab</value></data>
   <data name="SettingsWindow_AnnotationScale_Custom" xml:space="preserve"><value>Benutzerdefiniert…</value></data>
   <data name="SettingsWindow_AnnotationScale_Denominator" xml:space="preserve"><value>Maßstabsnenner</value></data>
-  <data name="SettingsWindow_AnnotationScale_ValidationRange" xml:space="preserve"><value>Der Wert muss zwischen 10 und 200 liegen</value></data>
+  <data name="SettingsWindow_AnnotationScale_ValidationRange" xml:space="preserve"><value>Der Wert muss zwischen 1:5 und 1:250 liegen</value></data>
   <data name="SettingsWindow_AnnotationScale_Preview" xml:space="preserve"><value>Maßstabsvorschau</value></data>
   <data name="SettingsWindow_AnnotationScale_DimensionHeight" xml:space="preserve"><value>Bemaßungstexthöhe</value></data>
   <data name="SettingsWindow_AnnotationScale_ItemHeight" xml:space="preserve"><value>Positionsnummernhöhe</value></data>
@@ -428,7 +431,6 @@
 <data name="SettingsWindow_AnnotationScale_Model" xml:space="preserve"><value>In der Zeichnung im Modell</value></data>
 <data name="SettingsWindow_AnnotationScale_Paper" xml:space="preserve"><value>Auf der Zeichnung</value></data>
 <data name="SettingsWindow_AnnotationScale_RelativeSize" xml:space="preserve"><value>relative Größe</value></data>
-<data name="SettingsWindow_AnnotationScale_FixedDefault" xml:space="preserve"><value>Der Standardmaßstab neuer Zeichnungen ist 1:50</value></data>
   <data name="SettingsWindow_AnnotationScale_Description" xml:space="preserve"><value>Legen Sie den Beschriftungsmaßstab für die aktuelle Zeichnung und den Standardmaßstab für neue Zeichnungen fest.</value></data>
   <data name="SettingsWindow_AnnotationCategory_General" xml:space="preserve"><value>Allgemein</value></data>
   <data name="SettingsWindow_AnnotationCategory_Scale" xml:space="preserve"><value>Maßstab</value></data>
@@ -437,8 +439,7 @@
   <data name="SettingsWindow_AnnotationCategory_PostElements" xml:space="preserve"><value>Stützenelemente</value></data>
   <data name="SettingsWindow_AnnotationCategory_Tags" xml:space="preserve"><value>Kennzeichnungen / Symbole</value></data>
   <data name="SettingsWindow_AnnotationScale_PreviewTitle" xml:space="preserve"><value>Vorschau des Beschriftungsmaßstabs</value></data>
-  <data name="SettingsWindow_AnnotationScale_DrawingLevelHelp" xml:space="preserve"><value>Der Beschriftungsmaßstab ist eine Einstellung für die gesamte Zeichnung.</value></data>
-  <data name="SettingsWindow_AnnotationScale_ApplyDrawing" xml:space="preserve"><value>Maßstab auf aktuelle Zeichnung anwenden</value></data>
+  <data name="SettingsWindow_AnnotationScale_DrawingLevelHelp" xml:space="preserve"><value>Der gewählte Maßstab wird je nach Geltungsbereich über eine der drei unteren Schaltflächen angewendet.</value></data>
   <data name="SettingsWindow_AnnotationScale_SelectionDoesNotApply" xml:space="preserve"><value>Das Anwenden auf eine Auswahl ändert den Zeichnungsmaßstab nicht. Die Maßstabsänderung bleibt ausstehend; verwenden Sie die globale Aktion auf der Registerkarte Maßstab.</value></data>
   <data name="SettingsWindow_AnnotationScale_DrawingChangePending" xml:space="preserve"><value>Die Maßstabsänderung der aktuellen Zeichnung bleibt ausstehend. Verwenden Sie die globale Aktion auf der Registerkarte Maßstab.</value></data>
   <data name="SettingsWindow_AnnotationCategory_ComingSoon" xml:space="preserve"><value>In Vorbereitung</value></data>

@@ -411,6 +411,9 @@
   <data name="DiagnosticsEvent_SubjectCustomElementDefinitions" xml:space="preserve"><value>Définitions des éléments personnalisés</value></data>
   <data name="DiagnosticsEvent_ActionSaved" xml:space="preserve"><value>Enregistré</value></data>
   <data name="SettingsWindow_AnnotationScale_Title" xml:space="preserve"><value>Échelle des annotations</value></data>
+  <data name="SettingsWindow_AnnotationScale_SelectedTitle" xml:space="preserve"><value>Échelle d’annotation à définir</value></data>
+  <data name="SettingsWindow_AnnotationScale_CurrentDrawingFormat" xml:space="preserve"><value>Échelle actuelle du dessin : 1:{0}</value></data>
+  <data name="SettingsWindow_AnnotationScale_NewElementsDefaultFormat" xml:space="preserve"><value>Échelle par défaut des nouveaux éléments : 1:{0}</value></data>
   <data name="SettingsWindow_AnnotationScale_CurrentDrawing" xml:space="preserve"><value>Dessin actuel</value></data>
   <data name="SettingsWindow_AnnotationScale_UserDefault" xml:space="preserve"><value>Valeur par défaut des nouveaux dessins</value></data>
   <data name="SettingsWindow_AnnotationScale_UserDefaultHelp" xml:space="preserve"><value>Cette valeur ne modifie pas l’échelle du dessin actuel.</value></data>
@@ -419,7 +422,7 @@
   <data name="SettingsWindow_AnnotationScale_UsesDefault" xml:space="preserve"><value>Utilise l’échelle par défaut</value></data>
   <data name="SettingsWindow_AnnotationScale_Custom" xml:space="preserve"><value>Personnalisée…</value></data>
   <data name="SettingsWindow_AnnotationScale_Denominator" xml:space="preserve"><value>Dénominateur de l’échelle</value></data>
-  <data name="SettingsWindow_AnnotationScale_ValidationRange" xml:space="preserve"><value>La valeur doit être comprise entre 10 et 200</value></data>
+  <data name="SettingsWindow_AnnotationScale_ValidationRange" xml:space="preserve"><value>La valeur doit être comprise entre 1:5 et 1:250</value></data>
   <data name="SettingsWindow_AnnotationScale_Preview" xml:space="preserve"><value>Aperçu de l’échelle</value></data>
   <data name="SettingsWindow_AnnotationScale_DimensionHeight" xml:space="preserve"><value>Hauteur du texte de cote</value></data>
   <data name="SettingsWindow_AnnotationScale_ItemHeight" xml:space="preserve"><value>Hauteur du numéro de repère</value></data>
@@ -428,7 +431,6 @@
 <data name="SettingsWindow_AnnotationScale_Model" xml:space="preserve"><value>Dans le dessin, dans le modèle</value></data>
 <data name="SettingsWindow_AnnotationScale_Paper" xml:space="preserve"><value>Sur le dessin</value></data>
 <data name="SettingsWindow_AnnotationScale_RelativeSize" xml:space="preserve"><value>taille relative</value></data>
-<data name="SettingsWindow_AnnotationScale_FixedDefault" xml:space="preserve"><value>L’échelle par défaut des nouveaux dessins est 1:50</value></data>
   <data name="SettingsWindow_AnnotationScale_Description" xml:space="preserve"><value>Définissez l’échelle des annotations du dessin actuel et l’échelle par défaut des nouveaux dessins.</value></data>
   <data name="SettingsWindow_AnnotationCategory_General" xml:space="preserve"><value>Général</value></data>
   <data name="SettingsWindow_AnnotationCategory_Scale" xml:space="preserve"><value>Échelle</value></data>
@@ -437,8 +439,7 @@
   <data name="SettingsWindow_AnnotationCategory_PostElements" xml:space="preserve"><value>Éléments de poteau</value></data>
   <data name="SettingsWindow_AnnotationCategory_Tags" xml:space="preserve"><value>Étiquettes / symboles</value></data>
   <data name="SettingsWindow_AnnotationScale_PreviewTitle" xml:space="preserve"><value>Aperçu de l’échelle des annotations</value></data>
-  <data name="SettingsWindow_AnnotationScale_DrawingLevelHelp" xml:space="preserve"><value>L’échelle des annotations est un paramètre de l’ensemble du dessin.</value></data>
-  <data name="SettingsWindow_AnnotationScale_ApplyDrawing" xml:space="preserve"><value>Appliquer l’échelle au dessin actuel</value></data>
+  <data name="SettingsWindow_AnnotationScale_DrawingLevelHelp" xml:space="preserve"><value>L’échelle choisie est appliquée par l’un des trois boutons inférieurs selon sa portée.</value></data>
   <data name="SettingsWindow_AnnotationScale_SelectionDoesNotApply" xml:space="preserve"><value>L’application à une sélection ne modifie pas l’échelle du dessin. La modification reste en attente ; utilisez l’action globale de l’onglet Échelle.</value></data>
   <data name="SettingsWindow_AnnotationScale_DrawingChangePending" xml:space="preserve"><value>La modification de l’échelle du dessin actuel reste en attente. Utilisez l’action globale de l’onglet Échelle.</value></data>
   <data name="SettingsWindow_AnnotationCategory_ComingSoon" xml:space="preserve"><value>En préparation</value></data>

@@ -1,14 +1,14 @@
 # ACAD KROVY – PROJECT CONTEXT
 
-**Aktualizované:** 31. 7. 2026
+**Aktualizované:** 1. 8. 2026
 
-**Predchádzajúci stabilný commit v0.20.0:** `6564fc930d98e3eca591bafcccef709af07dc9a5`
+**Predchádzajúci stabilný commit v0.21.0:** `f98900c1bd257a8e5357f6e77eb6f118bd4930d3`
 
 **Branch:** `main`
 
 **Verzia aplikácie:** autoritatívne v `Directory.Build.props`
 
-**Aktuálny míľnik:** v0.21.0 „Annotation Scale Engine + Settings UI“,
+**Aktuálny míľnik:** v0.22.0 „Per-Element Annotation Scale“,
 dokončený a manuálne overený v AutoCADe 2027
 
 **Overovanie:** Debug/Release build, kompletné automatické testy a Portable/Full Compatibility Gate
@@ -254,25 +254,31 @@ Stabilný commit: `4a951041e2deef40a127ac9560cf6fb2ba4b6a5b`
 - Post používa footprint-aware anchor hlavnej anotácie; jeho `⊥ 90°` sa nemení,
 - Custom stručné režimy nezobrazujú používateľský názov definície.
 
-### Annotation Scale v0.21.0
-- immutable scale context používa prioritu Drawing > UserDefault > fallback 1:50,
+### Per-Element Annotation Scale v0.22.0
+- každý prvok dostáva immutable scale context s prioritou platný Element
+  override > Drawing scale > fixný fallback 1:50,
 - drawing settings schema 1 je uložená idempotentne v NOD
   `ACAD_KROVY / DRAWING_SETTINGS`; override má bezpečné idempotentné Remove,
-- `AK_SETTINGS` oddeľuje aktuálny DWG a default nových výkresov, podporuje
-  1:25, 1:50, 1:75, 1:100 a custom 10–200 a používa Core preview rules,
-- zmena iba UserDefault pripne doterajšiu efektívnu mierku aktuálneho DWG;
-  reálna drawing zmena spustí spoločný refresh `AK_LABELS` presne raz,
+- metadata schema 5 persistuje nullable `AnnotationScaleDenominatorOverride`;
+  schema 4 sa číta bez zápisu a migruje sa iba pri reálnom write,
+- jeden Core kontrakt povoľuje 5–250 bez orezania; neplatný element override
+  prepadne na drawing context a neplatná drawing scale na fallback 1:50,
+- `AK_SETTINGS` používa spoločné Save New / Apply Selection / Apply All akcie
+  pre celú Annotation sekciu; Apply All nastaví drawing scale, odstráni všetky
+  elementové override a vykoná najviac jeden refresh batch,
+- predvoľby 1:25, 1:50, 1:75 a 1:100 zostávajú nezmenené,
 - pri 1:50 sú dimension/FullLabel 125 mm, item number 135 mm, slope text
   80 mm, slope offset 100 mm a Circle Ø400 mm,
 - faktor sa aplikuje presne raz na FullLabel, leadery, framed/combined
   anotácie, Post footprint, slope arrow/text a symboly 0°/90°,
-- Core zostáva bez Autodesk typov, native annotative contexts sa nepoužívajú
-  a TextStyleId je deterministický.
+- `AK_LABELS`, `AK_LABELSELECTED`, `AK_EDIT`, live refresh a COPY zachovávajú
+  elementové override a zmiešané mierky,
+- Core zostáva bez Autodesk typov, native annotative contexts sa nepoužívajú.
 
 ### Layer Linetypes / Typy čiar timber vrstiev
 - CAD-neutrálny `ElementLayerProfile` v3 persistuje stabilný názov vrstvy,
   ACI farbu, textový `LinetypeName` a číselný per-entity `LinetypeScale`;
-  timber metadata schema zostáva v4,
+  timber metadata schema je aktuálne v5; layer profile zostáva v3,
 - Krokva má default `DASHDOT`, ostatné built-in typy a spoločný `KROV_CUSTOM`
   používajú `Continuous`; scale je `0.5` pre Krokvu a `1.0` pre ostatné,
 - AutoCAD adapter rešpektuje už načítaný `LinetypeTableRecord`, chýbajúci
@@ -306,7 +312,7 @@ Stabilný commit: `4a951041e2deef40a127ac9560cf6fb2ba4b6a5b`
 - CAD-neutrálna `AciColorPalette` poskytuje deterministický preview RGB;
   Autodesk farba sa naďalej vytvára iba v AutoCAD adaptéri z ACI indexu,
 - annotation mode a frame style karty naďalej bindujú stabilné enumy;
-  framed leader geometria, BlockContent, STRETCH a metadata schema v4 sa nemenia,
+  framed leader geometria, BlockContent a STRETCH sa nemenia,
 - presne 10 annotation presetov používa embedded PNG 501 × 321 v mriežke 5 × 2;
   `NoAnnotations`, standalone framed a combined framed + dimensions zostávajú
   samostatné produkčné workflowy,
@@ -336,7 +342,7 @@ Stabilný commit: `4a951041e2deef40a127ac9560cf6fb2ba4b6a5b`
   uchovávajú sa 14 dní a neobsahujú obsah/geometriu výkresu ani plnú DWG cestu,
 - všetkých päť lokálnych JSON stores používa deterministickú `.corrupt`
   zálohu; pri zlyhaní zálohy zostáva originál nedotknutý a defaults iba v pamäti,
-- produkčný adapter zostáva AutoCAD 2027 / .NET 10; metadata schema zostáva 4
+- produkčný adapter zostáva AutoCAD 2027 / .NET 10; metadata schema je 5
   a layer profile schema zostáva 3.
 
 ## Povinné kompatibilitné pravidlá

@@ -94,6 +94,18 @@ public sealed class TimberElementPatcherTests
     }
 
     [Fact]
+    public void Apply_CuttingAllowancePreservesAnnotationScaleOverride()
+    {
+        var source = Source() with { AnnotationScaleDenominatorOverride = 25 };
+
+        var result = TimberElementPatcher.Apply(
+            source,
+            EmptyPatch() with { CuttingAllowanceMm = 150 });
+
+        Assert.Equal(25, result.AnnotationScaleDenominatorOverride);
+    }
+
+    [Fact]
     public void Apply_SameCuttingAllowanceCanBeAppliedToMultipleElements()
     {
         var first = Source() with { CuttingAllowanceMm = 100 };
@@ -218,6 +230,9 @@ public sealed class TimberElementPatcherTests
         Assert.Equal(source.ManualLengthMm, result.ManualLengthMm);
         Assert.Equal(source.Material, result.Material);
         Assert.Equal(source.Note, result.Note);
+        Assert.Equal(
+            source.AnnotationScaleDenominatorOverride,
+            result.AnnotationScaleDenominatorOverride);
     }
 
     [Fact]

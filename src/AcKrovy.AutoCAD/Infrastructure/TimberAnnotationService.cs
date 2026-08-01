@@ -31,6 +31,9 @@ internal static class TimberAnnotationService
             return false;
         }
 
+        var annotationScaleContext =
+            annotationScaleService.ResolveForElement(data);
+
         var isRectangularFootprintPost =
             TimberPostFootprintMetadataRules.IsValidNewFootprintPost(data);
         var hasResolvedFootprintGeometry = PostFootprintRuntimeGeometryResolver.TryResolve(
@@ -54,7 +57,7 @@ internal static class TimberAnnotationService
                 footprintPolyline,
                 effectiveData,
                 footprintGeometry,
-                annotationScaleService,
+                annotationScaleContext,
                 previousElementId,
                 roundingStepMm,
                 copySourcePreservation);
@@ -67,7 +70,7 @@ internal static class TimberAnnotationService
                 transaction,
                 footprintPolyline,
                 footprintGeometry,
-                annotationScaleService,
+                annotationScaleContext,
                 copySourcePreservation);
             return footprintLabelCreated;
         }
@@ -90,7 +93,7 @@ internal static class TimberAnnotationService
                 transaction,
                 sourceEntity,
                 data,
-                annotationScaleService,
+                annotationScaleContext,
                 previousElementId,
                 roundingStepMm,
                 copySourcePreservation);
@@ -101,7 +104,7 @@ internal static class TimberAnnotationService
                 transaction,
                 sourceEntity,
                 data,
-                annotationScaleService,
+                annotationScaleContext,
                 copySourcePreservation);
         }
 

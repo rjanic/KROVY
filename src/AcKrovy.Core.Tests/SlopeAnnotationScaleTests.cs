@@ -189,7 +189,7 @@ public sealed class SlopeAnnotationScaleTests
             "SlopeAngleTextService.cs"));
 
         Assert.Contains(
-            "annotationScaleService.Context.ScaleFactor",
+            "annotationScaleContext.ScaleFactor",
             annotations);
         Assert.Contains("presentationScaleFactor", arrows);
         Assert.Contains("presentationScaleFactor", text);
@@ -264,7 +264,7 @@ public sealed class SlopeAnnotationScaleTests
             "CalculateSpecialSymbolScale(",
             upsert);
         Assert.Contains(
-            "annotationScaleService.Context.ScaleFactor",
+            "annotationScaleContext.ScaleFactor",
             upsert);
         Assert.DoesNotContain("new Scale3d(1d)", upsert);
         Assert.DoesNotContain("ScaleBy(", service);

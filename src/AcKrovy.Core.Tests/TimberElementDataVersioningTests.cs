@@ -15,9 +15,9 @@ public sealed class TimberElementDataVersioningTests
     };
 
     [Fact]
-    public void CurrentVersion_IsFour()
+    public void CurrentVersion_IsFive()
     {
-        Assert.Equal(4, TimberElementDataSchema.CurrentVersion);
+        Assert.Equal(5, TimberElementDataSchema.CurrentVersion);
     }
 
     [Fact]
@@ -62,6 +62,9 @@ public sealed class TimberElementDataVersioningTests
         Assert.Equal(data.Note, normalized.Note);
         Assert.Equal(data.AnnotationMode, normalized.AnnotationMode);
         Assert.Equal(data.ItemNumberLeaderStyle, normalized.ItemNumberLeaderStyle);
+        Assert.Equal(
+            data.AnnotationScaleDenominatorOverride,
+            normalized.AnnotationScaleDenominatorOverride);
     }
 
     [Fact]
@@ -79,7 +82,7 @@ public sealed class TimberElementDataVersioningTests
 
         var exception = Assert.Throws<UnsupportedTimberElementDataSchemaException>(() =>
             TimberElementDataVersioning.Normalize(data));
-        Assert.Equal(5, exception.SchemaVersion);
+        Assert.Equal(6, exception.SchemaVersion);
         Assert.Equal(TimberElementDataSchema.CurrentVersion, exception.CurrentVersion);
     }
 
@@ -167,13 +170,13 @@ public sealed class TimberElementDataVersioningTests
     }
 
     [Fact]
-    public void Serialize_NewJson_IncludesVersionFour()
+    public void Serialize_NewJson_IncludesVersionFive()
     {
         var data = Sample();
 
         var json = JsonSerializer.Serialize(data, JsonOptions);
 
-        Assert.Contains("\"SchemaVersion\":4", json);
+        Assert.Contains("\"SchemaVersion\":5", json);
     }
 
     [Fact]
@@ -188,11 +191,74 @@ public sealed class TimberElementDataVersioningTests
 
         var prepared = TimberElementDataVersioning.PrepareForWrite(legacy);
 
-        Assert.Equal(4, prepared.SchemaVersion);
+        Assert.Equal(5, prepared.SchemaVersion);
         Assert.Null(prepared.FootprintWidthEdgeIndex);
         Assert.Equal(legacy.ElementId, prepared.ElementId);
         Assert.Equal(legacy.WidthMm, prepared.WidthMm);
         Assert.Equal(legacy.HeightMm, prepared.HeightMm);
+    }
+
+    [Fact]
+    public void Deserialize_SchemaFourWithoutOverride_KeepsNullAndDoesNotUpgrade()
+    {
+        const string json = """
+            {
+              "SchemaVersion": 4,
+              "ElementId": "K4",
+              "ElementType": "Rafter"
+            }
+            """;
+
+        var deserialized = Assert.IsType<TimberElementData>(
+            JsonSerializer.Deserialize<TimberElementData>(json, JsonOptions));
+        var normalized = TimberElementDataVersioning.Normalize(deserialized);
+
+        Assert.Equal(4, normalized.SchemaVersion);
+        Assert.Null(normalized.AnnotationScaleDenominatorOverride);
+    }
+
+    [Fact]
+    public void PrepareForWrite_SchemaFourUpgradesToFive()
+    {
+        var source = Sample() with
+        {
+            SchemaVersion = 4,
+            AnnotationScaleDenominatorOverride = null,
+        };
+
+        var result = TimberElementDataVersioning.PrepareForWrite(source);
+
+        Assert.Equal(5, result.SchemaVersion);
+        Assert.Null(result.AnnotationScaleDenominatorOverride);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData(5)]
+    [InlineData(250)]
+    public void Serialize_SchemaFive_RoundTripsOverride(int? denominator)
+    {
+        var source = Sample() with
+        {
+            AnnotationScaleDenominatorOverride = denominator,
+        };
+
+        var json = JsonSerializer.Serialize(source, JsonOptions);
+        var result = Assert.IsType<TimberElementData>(
+            JsonSerializer.Deserialize<TimberElementData>(json, JsonOptions));
+
+        Assert.Equal(5, result.SchemaVersion);
+        Assert.Equal(denominator, result.AnnotationScaleDenominatorOverride);
+    }
+
+    [Fact]
+    public void Normalize_InvalidStoredOverride_DoesNotRepairValue()
+    {
+        var source = Sample() with { AnnotationScaleDenominatorOverride = 4 };
+
+        var normalized = TimberElementDataVersioning.Normalize(source);
+
+        Assert.Equal(4, normalized.AnnotationScaleDenominatorOverride);
     }
 
     private static TimberElementData Sample() => new()

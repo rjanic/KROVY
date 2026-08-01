@@ -411,6 +411,9 @@
   <data name="DiagnosticsEvent_SubjectCustomElementDefinitions" xml:space="preserve"><value>Definice vlastních prvků</value></data>
   <data name="DiagnosticsEvent_ActionSaved" xml:space="preserve"><value>Uloženo</value></data>
   <data name="SettingsWindow_AnnotationScale_Title" xml:space="preserve"><value>Měřítko anotací</value></data>
+  <data name="SettingsWindow_AnnotationScale_SelectedTitle" xml:space="preserve"><value>Nastavované měřítko anotací</value></data>
+  <data name="SettingsWindow_AnnotationScale_CurrentDrawingFormat" xml:space="preserve"><value>Aktuální měřítko výkresu: 1:{0}</value></data>
+  <data name="SettingsWindow_AnnotationScale_NewElementsDefaultFormat" xml:space="preserve"><value>Výchozí měřítko nových prvků: 1:{0}</value></data>
   <data name="SettingsWindow_AnnotationScale_CurrentDrawing" xml:space="preserve"><value>Aktuální výkres</value></data>
   <data name="SettingsWindow_AnnotationScale_UserDefault" xml:space="preserve"><value>Výchozí pro nové výkresy</value></data>
   <data name="SettingsWindow_AnnotationScale_UserDefaultHelp" xml:space="preserve"><value>Tato hodnota nemění měřítko aktuálního výkresu.</value></data>
@@ -419,7 +422,7 @@
   <data name="SettingsWindow_AnnotationScale_UsesDefault" xml:space="preserve"><value>Používá výchozí měřítko</value></data>
   <data name="SettingsWindow_AnnotationScale_Custom" xml:space="preserve"><value>Vlastní…</value></data>
   <data name="SettingsWindow_AnnotationScale_Denominator" xml:space="preserve"><value>Jmenovatel měřítka</value></data>
-  <data name="SettingsWindow_AnnotationScale_ValidationRange" xml:space="preserve"><value>Hodnota musí být od 10 do 200</value></data>
+  <data name="SettingsWindow_AnnotationScale_ValidationRange" xml:space="preserve"><value>Hodnota musí být od 1:5 do 1:250</value></data>
   <data name="SettingsWindow_AnnotationScale_Preview" xml:space="preserve"><value>Náhled měřítka</value></data>
   <data name="SettingsWindow_AnnotationScale_DimensionHeight" xml:space="preserve"><value>Výška textu kót</value></data>
   <data name="SettingsWindow_AnnotationScale_ItemHeight" xml:space="preserve"><value>Výška čísla položky</value></data>
@@ -428,7 +431,6 @@
 <data name="SettingsWindow_AnnotationScale_Model" xml:space="preserve"><value>Ve výkresu v modelu</value></data>
 <data name="SettingsWindow_AnnotationScale_Paper" xml:space="preserve"><value>Na výkresu</value></data>
 <data name="SettingsWindow_AnnotationScale_RelativeSize" xml:space="preserve"><value>relativní velikost</value></data>
-<data name="SettingsWindow_AnnotationScale_FixedDefault" xml:space="preserve"><value>Výchozí měřítko nových výkresů je 1:50</value></data>
   <data name="SettingsWindow_AnnotationScale_Description" xml:space="preserve"><value>Nastavte měřítko anotací pro aktuální výkres a výchozí měřítko pro nové výkresy.</value></data>
   <data name="SettingsWindow_AnnotationCategory_General" xml:space="preserve"><value>Obecné</value></data>
   <data name="SettingsWindow_AnnotationCategory_Scale" xml:space="preserve"><value>Měřítko</value></data>
@@ -437,8 +439,7 @@
   <data name="SettingsWindow_AnnotationCategory_PostElements" xml:space="preserve"><value>Sloupkové prvky</value></data>
   <data name="SettingsWindow_AnnotationCategory_Tags" xml:space="preserve"><value>Štítky / značky</value></data>
   <data name="SettingsWindow_AnnotationScale_PreviewTitle" xml:space="preserve"><value>Náhled měřítka anotací</value></data>
-  <data name="SettingsWindow_AnnotationScale_DrawingLevelHelp" xml:space="preserve"><value>Měřítko anotací je nastavení celého výkresu.</value></data>
-  <data name="SettingsWindow_AnnotationScale_ApplyDrawing" xml:space="preserve"><value>Použít měřítko na aktuální výkres</value></data>
+  <data name="SettingsWindow_AnnotationScale_DrawingLevelHelp" xml:space="preserve"><value>Vybrané měřítko použije jedno ze tří spodních tlačítek podle zvoleného rozsahu.</value></data>
   <data name="SettingsWindow_AnnotationScale_SelectionDoesNotApply" xml:space="preserve"><value>Použití na výběr nemění měřítko výkresu. Změna měřítka zůstává neuložená; použijte globální akci na kartě Měřítko.</value></data>
   <data name="SettingsWindow_AnnotationScale_DrawingChangePending" xml:space="preserve"><value>Změna měřítka aktuálního výkresu zůstává neuložená. Použijte globální akci na kartě Měřítko.</value></data>
   <data name="SettingsWindow_AnnotationCategory_ComingSoon" xml:space="preserve"><value>Připravuje se</value></data>

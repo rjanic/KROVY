@@ -3,8 +3,8 @@ namespace AcKrovy.Core.Services;
 public static class TimberAnnotationScaleRules
 {
     public const int DefaultDenominator = 50;
-    public const int MinimumDenominator = 10;
-    public const int MaximumDenominator = 200;
+    public const int MinimumDenominator = 5;
+    public const int MaximumDenominator = 250;
 
     public static bool IsValidDenominator(int denominator) =>
         denominator >= MinimumDenominator &&

@@ -576,10 +576,10 @@
                                                 CornerRadius="{DynamicResource SettingsCornerRadius}">
                                             <StackPanel>
                                                 <TextBlock FontWeight="SemiBold"
-                                                           Text="{localization:Loc SettingsWindow_AnnotationScale_CurrentDrawing}" />
+                                                           Text="{localization:Loc SettingsWindow_AnnotationScale_SelectedTitle}" />
                                                 <TextBlock Margin="0,3,0,6"
                                                            Style="{DynamicResource SettingsDescriptionStyle}"
-                                                           Text="{Binding DrawingScaleSourceText}" />
+                                                           Text="{localization:Loc SettingsWindow_AnnotationScale_DrawingLevelHelp}" />
                                                 <ListBox x:Name="DrawingAnnotationScaleSelector"
                                                          ItemsSource="{Binding AnnotationScaleOptions}"
                                                          SelectedValuePath="Preset"
@@ -621,17 +621,11 @@
                                                 </StackPanel>
                                                 <TextBlock Margin="0,8,0,0"
                                                            Style="{DynamicResource SettingsDescriptionStyle}"
-                                                           Text="{localization:Loc SettingsWindow_AnnotationScale_DrawingLevelHelp}" />
+                                                           Text="{Binding CurrentDrawingScaleText}" />
                                                 <TextBlock Margin="0,4,0,0"
                                                            Foreground="{DynamicResource SettingsTextSecondaryBrush}"
-                                                           Text="{Binding FixedDefaultScaleText}"
+                                                           Text="{Binding DefaultNewElementScaleText}"
                                                            TextWrapping="Wrap" />
-                                                <Button x:Name="ApplyDrawingAnnotationScaleButton"
-                                                        Margin="0,10,0,0"
-                                                        HorizontalAlignment="Stretch"
-                                                        Style="{DynamicResource SettingsPrimaryButtonStyle}"
-                                                        Click="ApplyDrawingAnnotationScale_Click"
-                                                        Content="{localization:Loc SettingsWindow_AnnotationScale_ApplyDrawing}" />
                                             </StackPanel>
                                         </Border>
 
@@ -921,7 +915,7 @@
                             Orientation="Horizontal">
                     <Button x:Name="SaveNewElementsButton"
                             Margin="0,0,10,0"
-                            Style="{DynamicResource SettingsPrimaryButtonStyle}"
+                            Style="{DynamicResource SaveNewActionButtonStyle}"
                             Click="SaveNewElements_Click">
                         <TextBlock Text="{localization:Loc SettingsWindow_SaveNewElementsOnly}"
                                    TextAlignment="Center"
@@ -929,7 +923,7 @@
                     </Button>
                     <Button x:Name="SaveApplySelectionButton"
                             Margin="0,0,10,0"
-                            Style="{DynamicResource SettingsPrimaryButtonStyle}"
+                            Style="{DynamicResource ApplySelectionActionButtonStyle}"
                             Click="SaveApplySelection_Click">
                         <TextBlock Text="{localization:Loc SettingsWindow_SaveApplySelection}"
                                    TextAlignment="Center"
@@ -937,7 +931,7 @@
                     </Button>
                     <Button x:Name="SaveApplyAllButton"
                             Margin="0,0,10,0"
-                            Style="{DynamicResource SettingsPrimaryButtonStyle}"
+                            Style="{DynamicResource ApplyAllActionButtonStyle}"
                             Click="SaveApplyAll_Click">
                         <TextBlock Text="{localization:Loc SettingsWindow_SaveApplyAll}"
                                    TextAlignment="Center"

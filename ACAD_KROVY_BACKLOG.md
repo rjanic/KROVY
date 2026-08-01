@@ -1,9 +1,10 @@
 # ACAD KROVY – BACKLOG
 
-**Aktualizované:** 31. 7. 2026
+**Aktualizované:** 1. 8. 2026
 **Stabilný commit v0.18.0:** `46ad0cfe555f9f3177de2d47d13bdda33d9a91a0`
 **Stabilný commit v0.19.0:** `41373d235a357dee05033872a1df8fed8b3286d3`
 **Stabilný commit v0.20.0:** `6564fc930d98e3eca591bafcccef709af07dc9a5`
+**Stabilný commit v0.21.0:** `f98900c1bd257a8e5357f6e77eb6f118bd4930d3`
 
 > Tento súbor je úplný zásobník nápadov. Poradie realizácie určuje `ACAD_KROVY_ROADMAP.md`.
 
@@ -51,10 +52,11 @@
   explicitné použitie na výber/všetky, Post/Custom, COPY/COPYCLIP/WBLOCK a live refresh,
 - budúce: reset manuálneho offsetu a výber `80x160`/`80/160`.
 
-### Mierka anotácií — dokončené vo v0.21.0
-- Drawing > UserDefault > fallback 1:50,
-- 1:25, 1:50, 1:75, 1:100 a custom 10–200,
-- Settings UI, live preview, drawing store/Remove a automatický refresh,
+### Per-element mierka anotácií — rozšírené vo v0.22.0
+- platný Element override > Drawing scale > fixný fallback 1:50,
+- 1:25, 1:50, 1:75, 1:100 a custom 5–250 z jedného Core kontraktu,
+- metadata schema 5, schema 4 read-only kompatibilita a COPY preservation,
+- Save New / Apply Selection / Apply All pre celú Annotation sekciu,
 - škálovanie hlavných, leader, framed/combined, Post a slope anotácií.
 
 ### Písmo/text styles
@@ -233,6 +235,14 @@ Priebežne:
 - samostatný UserDefault a aktuálny DWG, custom 10–200 a Core preview,
 - automatický refresh bez duplicít pre všetky produkčné anotácie,
 - metadata schema 4 a layer profile schema 3 zostávajú nezmenené.
+
+### Per-Element Annotation Scale v0.22.0
+- ProductVersion 0.22.0, AssemblyVersion/FileVersion 0.22.0.0,
+- metadata schema 5, layer profile schema 3 a drawing settings schema 1,
+- nullable element override s prioritou Element > Drawing > fallback 1:50,
+- centralizovaný rozsah 5–250 bez orezania a bezpečný fallback invalid hodnôt,
+- spoločné Save New / Apply Selection / Apply All workflow a jeden refresh batch,
+- per-element context pre všetky produkčné anotácie vrátane slope a Post.
 
 ### Linetype settings v0.17.0
 - per-type `LinetypeName` a `LinetypeScale` v layer profile v3,

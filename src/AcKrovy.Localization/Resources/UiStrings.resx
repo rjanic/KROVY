@@ -411,6 +411,9 @@
   <data name="DiagnosticsEvent_SubjectCustomElementDefinitions" xml:space="preserve"><value>Definície vlastných prvkov</value></data>
   <data name="DiagnosticsEvent_ActionSaved" xml:space="preserve"><value>Uložené</value></data>
   <data name="SettingsWindow_AnnotationScale_Title" xml:space="preserve"><value>Mierka anotácií</value></data>
+  <data name="SettingsWindow_AnnotationScale_SelectedTitle" xml:space="preserve"><value>Nastavovaná mierka anotácií</value></data>
+  <data name="SettingsWindow_AnnotationScale_CurrentDrawingFormat" xml:space="preserve"><value>Aktuálna mierka výkresu: 1:{0}</value></data>
+  <data name="SettingsWindow_AnnotationScale_NewElementsDefaultFormat" xml:space="preserve"><value>Predvolená mierka nových prvkov: 1:{0}</value></data>
   <data name="SettingsWindow_AnnotationScale_CurrentDrawing" xml:space="preserve"><value>Aktuálny výkres</value></data>
   <data name="SettingsWindow_AnnotationScale_UserDefault" xml:space="preserve"><value>Predvolená pre nové výkresy</value></data>
   <data name="SettingsWindow_AnnotationScale_UserDefaultHelp" xml:space="preserve"><value>Táto hodnota nemení mierku aktuálneho výkresu.</value></data>
@@ -419,7 +422,7 @@
   <data name="SettingsWindow_AnnotationScale_UsesDefault" xml:space="preserve"><value>Používa predvolenú mierku</value></data>
   <data name="SettingsWindow_AnnotationScale_Custom" xml:space="preserve"><value>Vlastná…</value></data>
   <data name="SettingsWindow_AnnotationScale_Denominator" xml:space="preserve"><value>Menovateľ mierky</value></data>
-  <data name="SettingsWindow_AnnotationScale_ValidationRange" xml:space="preserve"><value>Hodnota musí byť od 10 do 200</value></data>
+  <data name="SettingsWindow_AnnotationScale_ValidationRange" xml:space="preserve"><value>Hodnota musí byť od 1:5 do 1:250</value></data>
   <data name="SettingsWindow_AnnotationScale_Preview" xml:space="preserve"><value>Náhľad mierky</value></data>
   <data name="SettingsWindow_AnnotationScale_DimensionHeight" xml:space="preserve"><value>Výška rozmerového textu</value></data>
   <data name="SettingsWindow_AnnotationScale_ItemHeight" xml:space="preserve"><value>Výška čísla položky</value></data>
@@ -428,7 +431,6 @@
 <data name="SettingsWindow_AnnotationScale_Model" xml:space="preserve"><value>Vo výkrese v modeli</value></data>
 <data name="SettingsWindow_AnnotationScale_Paper" xml:space="preserve"><value>Na výkrese</value></data>
 <data name="SettingsWindow_AnnotationScale_RelativeSize" xml:space="preserve"><value>relatívna veľkosť</value></data>
-<data name="SettingsWindow_AnnotationScale_FixedDefault" xml:space="preserve"><value>Predvolená mierka nových výkresov je 1:50</value></data>
   <data name="SettingsWindow_AnnotationScale_Description" xml:space="preserve"><value>Nastav mierku anotácií pre aktuálny výkres a predvolenú mierku pre nové výkresy.</value></data>
   <data name="SettingsWindow_AnnotationCategory_General" xml:space="preserve"><value>Všeobecné</value></data>
   <data name="SettingsWindow_AnnotationCategory_Scale" xml:space="preserve"><value>Mierka</value></data>
@@ -437,8 +439,7 @@
   <data name="SettingsWindow_AnnotationCategory_PostElements" xml:space="preserve"><value>Stĺpikové prvky</value></data>
   <data name="SettingsWindow_AnnotationCategory_Tags" xml:space="preserve"><value>Štítky / značky</value></data>
   <data name="SettingsWindow_AnnotationScale_PreviewTitle" xml:space="preserve"><value>Náhľad mierky anotácií</value></data>
-  <data name="SettingsWindow_AnnotationScale_DrawingLevelHelp" xml:space="preserve"><value>Mierka anotácií je nastavenie celého výkresu.</value></data>
-  <data name="SettingsWindow_AnnotationScale_ApplyDrawing" xml:space="preserve"><value>Použiť mierku na aktuálny výkres</value></data>
+  <data name="SettingsWindow_AnnotationScale_DrawingLevelHelp" xml:space="preserve"><value>Zvolenú mierku použije jedno z troch spodných tlačidiel podľa zvoleného rozsahu.</value></data>
   <data name="SettingsWindow_AnnotationScale_SelectionDoesNotApply" xml:space="preserve"><value>Výberová aplikácia nemení mierku výkresu. Zmena mierky zostáva neuložená; použi globálnu akciu na karte Mierka.</value></data>
   <data name="SettingsWindow_AnnotationScale_DrawingChangePending" xml:space="preserve"><value>Zmena mierky aktuálneho výkresu zostáva neuložená. Použi globálnu akciu na karte Mierka.</value></data>
   <data name="SettingsWindow_AnnotationCategory_ComingSoon" xml:space="preserve"><value>Pripravuje sa</value></data>

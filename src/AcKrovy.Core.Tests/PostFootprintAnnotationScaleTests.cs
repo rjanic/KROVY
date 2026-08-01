@@ -177,13 +177,13 @@ public sealed class PostFootprintAnnotationScaleTests
         var method = source.Substring(start, end - start);
 
         Assert.Contains(
-            "annotationScaleService.Context.ScaleFactor",
+            "annotationScaleContext.ScaleFactor",
             method);
         Assert.Equal(
             1,
             CountOccurrences(
                 method,
-                "annotationScaleService.Context.ScaleFactor"));
+                "annotationScaleContext.ScaleFactor"));
         Assert.DoesNotContain("scaleNativePresentation: false", method);
         Assert.Contains(
             "TimberDimensionTypographyRules.CalculateTextHeightMm",

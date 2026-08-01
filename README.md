@@ -123,18 +123,18 @@ Pri základnej mierke 1:50 používajú všetky Circle varianty priemer 400 mm a
 `BlockScale = 1`; framed geometria sa pri inej mierke škáluje iba cez
 `BlockScale`.
 
-Každý prvok si režim aj štýl čísla uchováva vo vlastných XData metadata schema v4, takže SAVE/REOPEN, COPY, COPYCLIP a WBLOCK nemenia jeho nastavenie. Staršie prvky bez režimu používajú pôvodný `FullLabel`; chýbajúci štýl čísla znamená `Plain`. Hlavná MText/MLeader anotácia zostáva viazaná cez `SourceHandle`, používa `KROV_POPIS`; `AK_LABELS`, `AK_LABELSELECTED`, live refresh a `AK_RENUMBER` vždy zosúladia práve jednu správnu reprezentáciu. Slope anotácie a samostatné `⊥ 90°` označenie Stĺpika zostávajú nezávislé.
+Každý prvok si režim, štýl čísla aj voliteľnú mierku anotácie uchováva vo vlastných XData metadata schema v5, takže SAVE/REOPEN, COPY, COPYCLIP a WBLOCK nemenia jeho nastavenie. Staršie prvky bez režimu používajú pôvodný `FullLabel`; chýbajúci štýl čísla znamená `Plain`. Hlavná MText/MLeader anotácia zostáva viazaná cez `SourceHandle`, používa `KROV_POPIS`; `AK_LABELS`, `AK_LABELSELECTED`, live refresh a `AK_RENUMBER` vždy zosúladia práve jednu správnu reprezentáciu. Slope anotácie a samostatné `⊥ 90°` označenie Stĺpika zostávajú nezávislé.
 
-## Annotation Scale Engine + Settings UI v0.21.0
+## Per-Element Annotation Scale v0.22.0
 
-Mierka anotácií používa prioritu drawing override v
-`ACAD_KROVY / DRAWING_SETTINGS`, používateľský default v
-`timber-element-default-profile.json` a bezpečný fallback 1:50.
-`AK_SETTINGS` oddeľuje mierku aktuálneho DWG od defaultu pre nové výkresy,
-ponúka 1:25, 1:50, 1:75, 1:100 a vlastný menovateľ 10–200, živý náhľad
-typografie a `BlockScale` aj idempotentné odstránenie drawing override.
-Reálna zmena mierky aktuálneho DWG automaticky použije spoločný refresh
-`AK_LABELS` bez duplicít.
+Mierka anotácií používa prioritu platný element override > drawing scale v
+`ACAD_KROVY / DRAWING_SETTINGS` > bezpečný fixný fallback 1:50. Vlastný
+menovateľ má jeden Core kontrakt 5–250; hodnoty mimo rozsahu sa neorezávajú a
+neplatný uložený override prepadne na drawing context.
+`AK_SETTINGS` ponúka predvoľby 1:25, 1:50, 1:75, 1:100 a vlastný menovateľ
+5–250. Spodné akcie ukladajú profil iba pre nové prvky, aplikujú ho na výber
+alebo na celý výkres. Apply All nastaví drawing scale, odstráni elementové
+override a vykoná najviac jeden spoločný refresh batch.
 
 Základ 1:50 používa dimension/FullLabel text 125 mm, item-number text 135 mm,
 slope text 80 mm, slope text offset 100 mm a Circle Ø400 mm. Scale context je
@@ -194,7 +194,7 @@ výrobné zoskupovanie ako `TimberReportBuilder`. Súbor má UTF-8 BOM, oddeľov
 `;`, CRLF, korektné CSV escaping, lokalizované hlavičky s jednotkami a
 desatinné čísla podľa aktívnej kultúry ACAD KROVY. Zápis ide cez dočasný súbor.
 
-`AK_DIAGNOSTICS` zobrazí verziu produktu, metadata schema 4, layer profile
+`AK_DIAGNOSTICS` zobrazí verziu produktu, metadata schema 5, layer profile
 schema 3, AutoCAD/runtime, jazyk, stav lokálnych JSON nastavení, log path a
 posledné udalosti. Logy sú v `%LOCALAPPDATA%\ACAD_KROVY\Logs`, rotujú denne
 a pri 5 MB a uchovávajú sa 14 dní. Nezapisujú obsah ani geometriu výkresu,
@@ -260,6 +260,6 @@ Portable režim overuje CAD-neutrálne projekty, testy, zakázané závislosti a
 - [`docs/TEST_SCENARIO_008_PRODUCTIVITY_RELIABILITY.md`](docs/TEST_SCENARIO_008_PRODUCTIVITY_RELIABILITY.md) – manuálny AutoCAD 2027 protokol pre v0.19.0,
 - [`README_SK.txt`](README_SK.txt) – stručný slovenský quick-start pre používateľa.
 
-Verzia v0.21.0 pridáva Annotation Scale Engine a vizuálne nastavenie mierky.
+Verzia v0.22.0 pridáva per-element mierku anotácií a jednotné Apply workflow.
 Produkčný adapter zostáva AutoCAD 2027-only;
 ďalšie hostiteľské verzie a CAD platformy sú samostatné budúce míľniky.

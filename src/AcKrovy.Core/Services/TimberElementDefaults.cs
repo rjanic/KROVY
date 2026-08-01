@@ -20,6 +20,7 @@ public static class TimberElementDefaults
             CuttingAllowanceMm = defaults.GetCuttingAllowanceMm(type),
             AnnotationMode = defaults.DefaultAnnotationMode,
             ItemNumberLeaderStyle = defaults.DefaultItemNumberLeaderStyle,
+            AnnotationScaleDenominatorOverride = defaults.AnnotationScaleDenominator,
             Material = "Smrek C24",
             LengthCalculationMode = LengthCalculationMode.AutoByElementType,
         };

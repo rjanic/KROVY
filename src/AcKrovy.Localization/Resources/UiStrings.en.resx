@@ -411,6 +411,9 @@
   <data name="DiagnosticsEvent_SubjectCustomElementDefinitions" xml:space="preserve"><value>Custom element definitions</value></data>
   <data name="DiagnosticsEvent_ActionSaved" xml:space="preserve"><value>Saved</value></data>
   <data name="SettingsWindow_AnnotationScale_Title" xml:space="preserve"><value>Annotation scale</value></data>
+  <data name="SettingsWindow_AnnotationScale_SelectedTitle" xml:space="preserve"><value>Annotation scale being set</value></data>
+  <data name="SettingsWindow_AnnotationScale_CurrentDrawingFormat" xml:space="preserve"><value>Current drawing scale: 1:{0}</value></data>
+  <data name="SettingsWindow_AnnotationScale_NewElementsDefaultFormat" xml:space="preserve"><value>Default scale for new elements: 1:{0}</value></data>
   <data name="SettingsWindow_AnnotationScale_CurrentDrawing" xml:space="preserve"><value>Current drawing</value></data>
   <data name="SettingsWindow_AnnotationScale_UserDefault" xml:space="preserve"><value>Default for new drawings</value></data>
   <data name="SettingsWindow_AnnotationScale_UserDefaultHelp" xml:space="preserve"><value>This value does not change the current drawing scale.</value></data>
@@ -419,7 +422,7 @@
   <data name="SettingsWindow_AnnotationScale_UsesDefault" xml:space="preserve"><value>Uses default scale</value></data>
   <data name="SettingsWindow_AnnotationScale_Custom" xml:space="preserve"><value>Custom…</value></data>
   <data name="SettingsWindow_AnnotationScale_Denominator" xml:space="preserve"><value>Scale denominator</value></data>
-  <data name="SettingsWindow_AnnotationScale_ValidationRange" xml:space="preserve"><value>Value must be from 10 to 200</value></data>
+  <data name="SettingsWindow_AnnotationScale_ValidationRange" xml:space="preserve"><value>Value must be from 1:5 to 1:250</value></data>
   <data name="SettingsWindow_AnnotationScale_Preview" xml:space="preserve"><value>Scale preview</value></data>
   <data name="SettingsWindow_AnnotationScale_DimensionHeight" xml:space="preserve"><value>Dimension text height</value></data>
   <data name="SettingsWindow_AnnotationScale_ItemHeight" xml:space="preserve"><value>Item number height</value></data>
@@ -428,7 +431,6 @@
 <data name="SettingsWindow_AnnotationScale_Model" xml:space="preserve"><value>In drawing/model</value></data>
 <data name="SettingsWindow_AnnotationScale_Paper" xml:space="preserve"><value>On drawing/paper</value></data>
 <data name="SettingsWindow_AnnotationScale_RelativeSize" xml:space="preserve"><value>relative size</value></data>
-<data name="SettingsWindow_AnnotationScale_FixedDefault" xml:space="preserve"><value>The default scale for new drawings is 1:50</value></data>
   <data name="SettingsWindow_AnnotationScale_Description" xml:space="preserve"><value>Set the annotation scale for the current drawing and the default scale for new drawings.</value></data>
   <data name="SettingsWindow_AnnotationCategory_General" xml:space="preserve"><value>General</value></data>
   <data name="SettingsWindow_AnnotationCategory_Scale" xml:space="preserve"><value>Scale</value></data>
@@ -437,8 +439,7 @@
   <data name="SettingsWindow_AnnotationCategory_PostElements" xml:space="preserve"><value>Post elements</value></data>
   <data name="SettingsWindow_AnnotationCategory_Tags" xml:space="preserve"><value>Tags / symbols</value></data>
   <data name="SettingsWindow_AnnotationScale_PreviewTitle" xml:space="preserve"><value>Annotation scale preview</value></data>
-  <data name="SettingsWindow_AnnotationScale_DrawingLevelHelp" xml:space="preserve"><value>Annotation scale is a setting for the entire drawing.</value></data>
-  <data name="SettingsWindow_AnnotationScale_ApplyDrawing" xml:space="preserve"><value>Apply scale to current drawing</value></data>
+  <data name="SettingsWindow_AnnotationScale_DrawingLevelHelp" xml:space="preserve"><value>The selected scale is used by one of the three footer buttons according to its scope.</value></data>
   <data name="SettingsWindow_AnnotationScale_SelectionDoesNotApply" xml:space="preserve"><value>Applying to a selection does not change the drawing scale. The scale change remains pending; use the global action on the Scale tab.</value></data>
   <data name="SettingsWindow_AnnotationScale_DrawingChangePending" xml:space="preserve"><value>The current drawing scale change remains pending. Use the global action on the Scale tab.</value></data>
   <data name="SettingsWindow_AnnotationCategory_ComingSoon" xml:space="preserve"><value>Coming soon</value></data>

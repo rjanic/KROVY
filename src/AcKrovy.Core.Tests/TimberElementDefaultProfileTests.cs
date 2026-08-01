@@ -66,8 +66,8 @@ public sealed class TimberElementDefaultProfileTests
     }
 
     [Theory]
-    [InlineData(25)]
-    [InlineData(100)]
+    [InlineData(5)]
+    [InlineData(250)]
     public void Normalize_KeepsValidAnnotationScaleDenominator(int denominator)
     {
         var profile = new TimberElementDefaultProfile
@@ -81,8 +81,8 @@ public sealed class TimberElementDefaultProfileTests
 
     [Theory]
     [InlineData(0)]
-    [InlineData(9)]
-    [InlineData(201)]
+    [InlineData(4)]
+    [InlineData(251)]
     [InlineData(-5)]
     public void Normalize_InvalidAnnotationScaleDenominatorFallsBackToDefault(int denominator)
     {
@@ -108,8 +108,8 @@ public sealed class TimberElementDefaultProfileTests
     }
 
     [Theory]
-    [InlineData(10)]
-    [InlineData(200)]
+    [InlineData(5)]
+    [InlineData(250)]
     public void JsonDeserialize_ValidAnnotationScaleDenominatorIsPreserved(int denominator)
     {
         var profile = DeserializeProfileWithScaleDenominator(denominator);
@@ -119,8 +119,8 @@ public sealed class TimberElementDefaultProfileTests
 
     [Theory]
     [InlineData(0)]
-    [InlineData(9)]
-    [InlineData(201)]
+    [InlineData(4)]
+    [InlineData(251)]
     [InlineData(-5)]
     public void JsonDeserialize_InvalidAnnotationScaleDenominatorNormalizesToDefault(int denominator)
     {
@@ -266,6 +266,21 @@ public sealed class TimberElementDefaultProfileTests
 
         Assert.Equal(150, rafter.CuttingAllowanceMm);
         Assert.Equal(75, brace.CuttingAllowanceMm);
+    }
+
+    [Fact]
+    public void TimberElementDefaults_UsesSavedAnnotationModeStyleAndScale()
+    {
+        var profile = TimberElementDefaultProfile.CreateDefault();
+        profile.DefaultAnnotationMode = TimberAnnotationMode.DimensionsWithItemNumber;
+        profile.DefaultItemNumberLeaderStyle = ItemNumberLeaderStyle.Rectangle;
+        profile.AnnotationScaleDenominator = 25;
+
+        var element = TimberElementDefaults.For(TimberElementType.Rafter, profile);
+
+        Assert.Equal(profile.DefaultAnnotationMode, element.AnnotationMode);
+        Assert.Equal(profile.DefaultItemNumberLeaderStyle, element.ItemNumberLeaderStyle);
+        Assert.Equal(25, element.AnnotationScaleDenominatorOverride);
     }
 
     [Fact]

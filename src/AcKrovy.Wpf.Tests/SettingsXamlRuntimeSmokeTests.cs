@@ -176,10 +176,10 @@ public sealed class SettingsXamlRuntimeSmokeTests
                         window.AnnotationCategoryTabs));
                 Assert.Same(window.AnnotationScaleTab.Content, selectedContentPresenter.Content);
                 Assert.Equal(
-                    TimberAnnotationScalePreset.Scale25,
+                    TimberAnnotationScalePreset.Scale50,
                     window.SelectedDrawingScalePreset);
                 Assert.Equal(
-                    TimberAnnotationScalePreset.Scale25,
+                    TimberAnnotationScalePreset.Scale50,
                     window.DrawingAnnotationScaleSelector.SelectedValue);
                 Assert.All(
                     annotationTabs.Skip(2),
@@ -425,11 +425,41 @@ public sealed class SettingsXamlRuntimeSmokeTests
                     SettingsAnnotationPreset.DimensionsOnly;
                 window.SaveNewElementsButton.RaiseEvent(
                     new RoutedEventArgs(Button.ClickEvent));
+                Assert.Equal(
+                    TimberAnnotationSettingsApplyScope.NewElementsOnly,
+                    appliedRequests[^1].AnnotationSettings!.ApplyScope);
                 var acceptedLayerProfile = appliedRequests[^1].Profile.Normalize();
                 row.LayerName = string.Empty;
                 Assert.True(window.LayersDirty);
+                window.DrawingAnnotationScaleSelector.SelectedValue =
+                    TimberAnnotationScalePreset.Custom;
+                window.DrawingCustomScaleText = "4";
+                Assert.True(window.HasDrawingScaleError);
+                var requestsBeforeInvalidScale = appliedRequests.Count;
                 window.SaveApplySelectionButton.RaiseEvent(
                     new RoutedEventArgs(Button.ClickEvent));
+                Assert.Equal(requestsBeforeInvalidScale, appliedRequests.Count);
+                window.DrawingCustomScaleText = "251";
+                Assert.True(window.HasDrawingScaleError);
+                window.SaveApplySelectionButton.RaiseEvent(
+                    new RoutedEventArgs(Button.ClickEvent));
+                Assert.Equal(requestsBeforeInvalidScale, appliedRequests.Count);
+                window.DrawingCustomScaleText = "5";
+                Assert.False(window.HasDrawingScaleError);
+                window.SaveNewElementsButton.RaiseEvent(
+                    new RoutedEventArgs(Button.ClickEvent));
+                Assert.Equal(5, appliedRequests[^1].AnnotationSettings!.ScaleDenominator);
+                window.DrawingCustomScaleText = "250";
+                Assert.False(window.HasDrawingScaleError);
+                window.SaveNewElementsButton.RaiseEvent(
+                    new RoutedEventArgs(Button.ClickEvent));
+                Assert.Equal(250, appliedRequests[^1].AnnotationSettings!.ScaleDenominator);
+                window.DrawingAnnotationScaleSelector.SelectedValue =
+                    TimberAnnotationScalePreset.Scale25;
+                window.SaveApplySelectionButton.RaiseEvent(
+                    new RoutedEventArgs(Button.ClickEvent));
+                window.DrawingAnnotationScaleSelector.SelectedValue =
+                    TimberAnnotationScalePreset.Scale100;
                 window.SaveApplySelectionButton.RaiseEvent(
                     new RoutedEventArgs(Button.ClickEvent));
                 Assert.All(
@@ -462,18 +492,20 @@ public sealed class SettingsXamlRuntimeSmokeTests
                     new RoutedEventArgs(Button.ClickEvent));
                 window.DrawingAnnotationScaleSelector.SelectedValue =
                     TimberAnnotationScalePreset.Scale75;
-                window.ApplyDrawingAnnotationScaleButton.RaiseEvent(
+                window.SaveApplyAllButton.RaiseEvent(
                     new RoutedEventArgs(Button.ClickEvent));
                 Assert.Equal(
                     [
                         SettingsSaveMode.NewElementsOnly,
                         SettingsSaveMode.NewElementsOnly,
                         SettingsSaveMode.NewElementsOnly,
-                        SettingsSaveMode.SelectedElements,
-                        SettingsSaveMode.SelectedElements,
-                        SettingsSaveMode.AllElements,
-                        SettingsSaveMode.AllElements,
                         SettingsSaveMode.NewElementsOnly,
+                        SettingsSaveMode.NewElementsOnly,
+                        SettingsSaveMode.SelectedElements,
+                        SettingsSaveMode.SelectedElements,
+                        SettingsSaveMode.AllElements,
+                        SettingsSaveMode.AllElements,
+                        SettingsSaveMode.AllElements,
                     ],
                     appliedModes);
                 Assert.All(
@@ -481,19 +513,27 @@ public sealed class SettingsXamlRuntimeSmokeTests
                         request.SaveMode == SettingsSaveMode.SelectedElements),
                     request =>
                     {
-                        Assert.False(request.ApplyDrawingScale);
                         Assert.Equal(
-                            TimberDrawingAnnotationScaleChange.SetOverride,
-                            request.DrawingScaleChange);
-                        Assert.Equal(
-                            TimberAnnotationScaleRules.DefaultDenominator,
-                            request.DefaultProfile.AnnotationScaleDenominator);
+                            TimberAnnotationSettingsApplyScope.SelectedElements,
+                            request.AnnotationSettings!.ApplyScope);
                     });
+                Assert.Equal(
+                    [25, 100],
+                    appliedRequests
+                        .Where(request => request.SaveMode ==
+                            SettingsSaveMode.SelectedElements)
+                        .Select(request =>
+                            request.AnnotationSettings!.ScaleDenominator));
                 Assert.All(
                     appliedRequests.Where(request =>
                         request.SaveMode == SettingsSaveMode.AllElements),
-                    request => Assert.True(request.ApplyDrawingScale));
-                Assert.True(appliedRequests[^1].ApplyDrawingScale);
+                    request =>
+                    {
+                        Assert.Equal(
+                            TimberAnnotationSettingsApplyScope.AllElements,
+                            request.AnnotationSettings!.ApplyScope);
+                    });
+                Assert.Equal(75, appliedRequests[^1].AnnotationSettings!.ScaleDenominator);
                 Assert.Equal(
                     TimberAnnotationScalePreset.Scale75,
                     window.SelectedDrawingScalePreset);

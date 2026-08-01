@@ -292,7 +292,7 @@ public sealed class AnnotationScaleRegressionTests
     }
 
     [Fact]
-    public void SettingsWindow_KeepsLegacyScaleOnlyForSerializationCompatibility()
+    public void SettingsWindowPersistsSelectedScaleAsTheNewElementDefault()
     {
         var source = Source(
             "src",
@@ -300,11 +300,9 @@ public sealed class AnnotationScaleRegressionTests
             "UI",
             "LayerSettingsWindow.xaml.cs");
 
-        Assert.DoesNotContain("SelectedUserDefaultScalePreset", source);
-        Assert.Contains(
-            "AnnotationScaleDenominator = _legacyUserDefaultScaleDenominator",
-            source);
-        Assert.Contains("normalizedDefaultProfile.AnnotationScaleDenominator", source);
+        Assert.Contains("TryGetDrawingScaleDenominator(out var annotationScaleDenominator)", source);
+        Assert.Contains("AnnotationScaleDenominator = includeAnnotation", source);
+        Assert.DoesNotContain("_legacyUserDefaultScaleDenominator", source);
     }
 
     [Fact]
@@ -690,7 +688,7 @@ public sealed class AnnotationScaleRegressionTests
     }
 
     [Fact]
-    public void FindCircleNormalizationSourceIds_UsesScaleFactorFromService()
+    public void FindCircleNormalizationSourceIds_UsesPerElementScaleContext()
     {
         var source = Source(
             "src",
@@ -707,7 +705,10 @@ public sealed class AnnotationScaleRegressionTests
             "Could not extract FindCircleNormalizationSourceIds.");
 
         Assert.Contains(
-            "annotationScaleService.Context.ScaleFactor",
+            "annotationScaleService.ResolveForElement(data)",
+            methodBody);
+        Assert.Contains(
+            "source.ScaleContext.ScaleFactor",
             methodBody);
     }
 
@@ -797,19 +798,12 @@ public sealed class AnnotationScaleRegressionTests
                 methodBody,
                 "AutoCadAnnotationScaleService.Create("));
 
-        var circleCall = methodBody.IndexOf(
-            "FindCircleNormalizationSourceIds(",
-            StringComparison.Ordinal);
         var updateCall = methodBody.IndexOf(
             "UpdateLabelsForChangedEntities(",
-            circleCall,
             StringComparison.Ordinal);
 
-        Assert.True(circleCall >= 0);
-        Assert.True(updateCall > circleCall);
-        Assert.Contains(
-            "annotationScaleService",
-            ExtractInvocation(methodBody, circleCall));
+        Assert.True(updateCall >= 0);
+        Assert.DoesNotContain("FindCircleNormalizationSourceIds(", methodBody);
         Assert.Contains(
             "annotationScaleService",
             ExtractInvocation(methodBody, updateCall));

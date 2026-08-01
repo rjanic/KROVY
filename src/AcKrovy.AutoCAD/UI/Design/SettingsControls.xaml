@@ -94,6 +94,51 @@
         <Setter Property="BorderThickness" Value="1" />
     </Style>
 
+    <Style x:Key="SaveNewActionButtonStyle"
+           TargetType="Button"
+           BasedOn="{StaticResource SettingsBaseButtonStyle}">
+        <Setter Property="Foreground" Value="White" />
+        <Setter Property="Background" Value="{DynamicResource SaveNewActionBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SaveNewActionFocusBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="{DynamicResource SaveNewActionHoverBrush}" /></Trigger>
+            <Trigger Property="IsPressed" Value="True"><Setter Property="Background" Value="{DynamicResource SaveNewActionPressedBrush}" /></Trigger>
+            <Trigger Property="IsEnabled" Value="False"><Setter Property="Background" Value="{DynamicResource SaveNewActionDisabledBrush}" /></Trigger>
+            <Trigger Property="IsKeyboardFocused" Value="True"><Setter Property="BorderBrush" Value="{DynamicResource SaveNewActionFocusBorderBrush}" /><Setter Property="BorderThickness" Value="2" /></Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="ApplySelectionActionButtonStyle"
+           TargetType="Button"
+           BasedOn="{StaticResource SettingsBaseButtonStyle}">
+        <Setter Property="Foreground" Value="White" />
+        <Setter Property="Background" Value="{DynamicResource ApplySelectionActionBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource ApplySelectionActionFocusBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="{DynamicResource ApplySelectionActionHoverBrush}" /></Trigger>
+            <Trigger Property="IsPressed" Value="True"><Setter Property="Background" Value="{DynamicResource ApplySelectionActionPressedBrush}" /></Trigger>
+            <Trigger Property="IsEnabled" Value="False"><Setter Property="Background" Value="{DynamicResource ApplySelectionActionDisabledBrush}" /></Trigger>
+            <Trigger Property="IsKeyboardFocused" Value="True"><Setter Property="BorderBrush" Value="{DynamicResource ApplySelectionActionFocusBorderBrush}" /><Setter Property="BorderThickness" Value="2" /></Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="ApplyAllActionButtonStyle"
+           TargetType="Button"
+           BasedOn="{StaticResource SettingsBaseButtonStyle}">
+        <Setter Property="Foreground" Value="White" />
+        <Setter Property="Background" Value="{DynamicResource ApplyAllActionBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource ApplyAllActionFocusBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="{DynamicResource ApplyAllActionHoverBrush}" /></Trigger>
+            <Trigger Property="IsPressed" Value="True"><Setter Property="Background" Value="{DynamicResource ApplyAllActionPressedBrush}" /></Trigger>
+            <Trigger Property="IsEnabled" Value="False"><Setter Property="Background" Value="{DynamicResource ApplyAllActionDisabledBrush}" /></Trigger>
+            <Trigger Property="IsKeyboardFocused" Value="True"><Setter Property="BorderBrush" Value="{DynamicResource ApplyAllActionFocusBorderBrush}" /><Setter Property="BorderThickness" Value="2" /></Trigger>
+        </Style.Triggers>
+    </Style>
+
     <Style TargetType="TextBox">
         <Setter Property="MinHeight" Value="{DynamicResource SettingsControlHeight}" />
         <Setter Property="Padding" Value="10,7" />

@@ -15,7 +15,7 @@ Give AI agents a compact sequencing and constraint snapshot. Product priorities 
 
 ## Current architecture or workflow
 
-Snapshot for v0.21.0 Annotation Scale Engine + Settings UI: annotation presentation uses an immutable Core scale context with Drawing > UserDefault > fallback 1:50 priority. Drawing schema 1 is stored in `ACAD_KROVY / DRAWING_SETTINGS`; `AK_SETTINGS` independently controls the current DWG and defaults for new drawings, supports 1:25, 1:50, 1:75, 1:100 and custom 10–200, and refreshes existing annotations only when the effective drawing scale changes. The stable v0.18.0 Settings Fashion Look, v0.19.0 productivity tools and v0.20.0 language onboarding remain unchanged. The production adapter remains AutoCAD 2027-only.
+Snapshot for v0.22.0 Per-Element Annotation Scale: annotation presentation uses an immutable Core scale context with valid Element override > Drawing scale > fixed fallback 1:50 priority. Metadata schema 5 persists the nullable override while schema 4 remains read-only compatible until a real write. Drawing schema 1 remains stored in `ACAD_KROVY / DRAWING_SETTINGS`; one Core contract validates custom denominators 5–250 without clamping. `AK_SETTINGS` uses shared Save New, Apply Selection and Apply All actions for the complete Annotation section; Apply All sets the drawing scale, clears element overrides and performs at most one refresh batch. The production adapter remains AutoCAD 2027-only.
 
 Near-term themes must be taken from `ACAD_KROVY_BACKLOG.md` and sequenced through `ACAD_KROVY_ROADMAP.md`. At this snapshot those documents remain the source for roof automation, reporting/manufacturing workflow, multilingual completion and compatibility expansion; implement only items that are still present and explicitly selected.
 
@@ -29,7 +29,7 @@ Architectural prerequisites for later stages:
 
 Do not rework without explicit instruction:
 
-- metadata schema 4 and its backward-compatible normalization,
+- metadata schema 5 and its backward-compatible schema 4 normalization,
 - layer profile version 3 and suffix-family/idempotency rules,
 - `ElementId` versus `SourceHandle` ownership,
 - stable item numbering by `TimberElementSignature`,

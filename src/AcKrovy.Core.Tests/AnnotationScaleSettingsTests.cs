@@ -10,9 +10,9 @@ public sealed class AnnotationScaleSettingsTests
     [InlineData(50, TimberAnnotationScalePreset.Scale50)]
     [InlineData(75, TimberAnnotationScalePreset.Scale75)]
     [InlineData(100, TimberAnnotationScalePreset.Scale100)]
-    [InlineData(60, TimberAnnotationScalePreset.Custom)]
-    [InlineData(125, TimberAnnotationScalePreset.Custom)]
-    public void PresetMapping_UsesLockedPresets(
+    [InlineData(5, TimberAnnotationScalePreset.Custom)]
+    [InlineData(250, TimberAnnotationScalePreset.Custom)]
+    public void PresetMappingKeepsFourFixedOptionsAndSupportsCustomRange(
         int denominator,
         TimberAnnotationScalePreset expected) =>
         Assert.Equal(expected, TimberAnnotationScaleSettingsRules.GetPreset(denominator));
@@ -22,7 +22,7 @@ public sealed class AnnotationScaleSettingsTests
     [InlineData(50, 125, 135, 80, 1)]
     [InlineData(75, 187.5, 202.5, 120, 1.5)]
     [InlineData(100, 250, 270, 160, 2)]
-    public void Preview_UsesProductionTypographyRules(
+    public void PreviewUsesProductionTypographyRules(
         int denominator,
         double dimensionHeight,
         double itemHeight,
@@ -41,7 +41,7 @@ public sealed class AnnotationScaleSettingsTests
     }
 
     [Fact]
-    public void CustomPreview_UsesGeneralModelToPaperCalculation()
+    public void CustomPreviewUsesGeneralModelToPaperCalculation()
     {
         var preview = TimberAnnotationScaleSettingsRules.CreatePreview(60);
 
@@ -53,130 +53,4 @@ public sealed class AnnotationScaleSettingsTests
         Assert.Equal(1.6d, preview.SlopePaperTextHeightMm);
         Assert.Equal(1.2d, preview.FramedBlockScale);
     }
-
-    [Fact]
-    public void DrawingOverrideChange_WritesOnlyDrawingAndRefreshes()
-    {
-        var plan = Plan(
-            hasOverride: true,
-            drawing: 50,
-            oldDefault: 50,
-            TimberDrawingAnnotationScaleChange.SetOverride,
-            requestedDrawing: 100,
-            newDefault: 50);
-
-        Assert.True(plan.WriteDrawingOverride);
-        Assert.False(plan.RemoveDrawingOverride);
-        Assert.False(plan.SaveUserDefault);
-        Assert.True(plan.RefreshDrawing);
-        Assert.Equal(100, plan.NewEffectiveDenominator);
-    }
-
-    [Fact]
-    public void SameDrawingOverride_IsNoOp()
-    {
-        var plan = Plan(
-            true, 75, 50,
-            TimberDrawingAnnotationScaleChange.SetOverride,
-            75, 50);
-
-        Assert.False(plan.WriteDrawingOverride);
-        Assert.False(plan.RemoveDrawingOverride);
-        Assert.False(plan.RefreshDrawing);
-    }
-
-    [Fact]
-    public void LegacyDefaultChange_DoesNotAffectDrawingOrFixedDefault()
-    {
-        var plan = Plan(
-            false, 50, 50,
-            TimberDrawingAnnotationScaleChange.None,
-            50, 100);
-
-        Assert.False(plan.WriteDrawingOverride);
-        Assert.Equal(50, plan.DrawingDenominator);
-        Assert.False(plan.SaveUserDefault);
-        Assert.False(plan.RefreshDrawing);
-        Assert.Equal(50, plan.NewEffectiveDenominator);
-    }
-
-    [Fact]
-    public void DefaultChange_DoesNotRewriteExistingDrawingOverride()
-    {
-        var plan = Plan(
-            true, 75, 50,
-            TimberDrawingAnnotationScaleChange.None,
-            75, 100);
-
-        Assert.False(plan.WriteDrawingOverride);
-        Assert.False(plan.SaveUserDefault);
-        Assert.False(plan.RefreshDrawing);
-        Assert.Equal(75, plan.NewEffectiveDenominator);
-    }
-
-    [Fact]
-    public void LegacyMigration_PinsVisibleDrawingScaleWithoutRefresh()
-    {
-        var plan = TimberAnnotationScaleSettingsRules.CreateLegacyMigrationPlan(
-            hasDrawingOverride: false,
-            hasManagedTimberElements: true,
-            legacyUserDefaultDenominator: 75);
-
-        Assert.True(plan.WriteDrawingOverride);
-        Assert.Equal(75, plan.DrawingDenominator);
-        Assert.Equal(75, plan.PreviousEffectiveDenominator);
-        Assert.Equal(75, plan.NewEffectiveDenominator);
-        Assert.False(plan.RefreshDrawing);
-    }
-
-    [Theory]
-    [InlineData(true, true, 75)]
-    [InlineData(false, false, 75)]
-    [InlineData(false, true, 50)]
-    public void LegacyMigration_IsIdempotentAndSkipsNewOrFixedDrawings(
-        bool hasDrawingOverride,
-        bool hasManagedTimberElements,
-        int legacyDenominator)
-    {
-        var plan = TimberAnnotationScaleSettingsRules.CreateLegacyMigrationPlan(
-            hasDrawingOverride,
-            hasManagedTimberElements,
-            legacyDenominator);
-
-        Assert.False(plan.WriteDrawingOverride);
-        Assert.False(plan.RefreshDrawing);
-    }
-
-    [Fact]
-    public void ClearOverride_RemovesValueAndRefreshesOnlyWhenEffectiveChanges()
-    {
-        var changed = Plan(
-            true, 100, 50,
-            TimberDrawingAnnotationScaleChange.ClearOverride,
-            100, 50);
-        var unchanged = Plan(
-            true, 50, 50,
-            TimberDrawingAnnotationScaleChange.ClearOverride,
-            50, 50);
-
-        Assert.True(changed.RemoveDrawingOverride);
-        Assert.True(changed.RefreshDrawing);
-        Assert.True(unchanged.RemoveDrawingOverride);
-        Assert.False(unchanged.RefreshDrawing);
-    }
-
-    private static TimberAnnotationScalePersistencePlan Plan(
-        bool hasOverride,
-        int drawing,
-        int oldDefault,
-        TimberDrawingAnnotationScaleChange change,
-        int requestedDrawing,
-        int newDefault) =>
-        TimberAnnotationScaleSettingsRules.CreatePersistencePlan(
-            hasOverride,
-            drawing,
-            oldDefault,
-            change,
-            requestedDrawing,
-            newDefault);
 }

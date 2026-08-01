@@ -536,7 +536,10 @@ public sealed class SettingsFashionLookTests
         Assert.Contains("SettingsSectionScope.Layers", code);
         Assert.Contains("SettingsSectionScope.Allowances", code);
         Assert.Contains("SettingsSectionScope.Annotation", code);
-        Assert.Contains("Click=\"ApplyDrawingAnnotationScale_Click\"", xaml);
+        Assert.DoesNotContain("ApplyDrawingAnnotationScale", xaml);
+        Assert.Contains("SaveNewActionButtonStyle", xaml);
+        Assert.Contains("ApplySelectionActionButtonStyle", xaml);
+        Assert.Contains("ApplyAllActionButtonStyle", xaml);
         Assert.Contains("SetFooterActionsEnabled(false)", code);
         Assert.Contains("SetFooterActionsEnabled(true)", code);
         Assert.Contains("section == SettingsWindowTabKind.Layers", code);
@@ -615,6 +618,15 @@ public sealed class SettingsFashionLookTests
             "SettingsInfoBackgroundBrush", "SettingsInfoBorderBrush",
             "SettingsWarningBackgroundBrush", "SettingsWarningBorderBrush",
             "SettingsErrorBackgroundBrush", "SettingsErrorBorderBrush",
+            "SaveNewActionBrush", "SaveNewActionHoverBrush",
+            "SaveNewActionPressedBrush", "SaveNewActionDisabledBrush",
+            "SaveNewActionFocusBorderBrush",
+            "ApplySelectionActionBrush", "ApplySelectionActionHoverBrush",
+            "ApplySelectionActionPressedBrush", "ApplySelectionActionDisabledBrush",
+            "ApplySelectionActionFocusBorderBrush",
+            "ApplyAllActionBrush", "ApplyAllActionHoverBrush",
+            "ApplyAllActionPressedBrush", "ApplyAllActionDisabledBrush",
+            "ApplyAllActionFocusBorderBrush",
             "SettingsShadowColor",
         };
         Assert.All(required, key => Assert.Contains(key, keys));
