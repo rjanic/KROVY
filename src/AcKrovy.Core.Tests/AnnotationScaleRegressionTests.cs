@@ -713,7 +713,7 @@ public sealed class AnnotationScaleRegressionTests
     }
 
     [Fact]
-    public void RenumberAll_UsesAnnotationScaleServiceForCircleNormalization()
+    public void RenumberAll_UsesBatchScaleServiceForCircleNormalization()
     {
         var source = Source(
             "src",
@@ -725,7 +725,7 @@ public sealed class AnnotationScaleRegressionTests
             source,
             "public static TimberElementRenumberingResult RenumberAll(");
 
-        Assert.Contains("annotationScaleService", methodBody);
+        Assert.Contains("presentationBatchContext", methodBody);
         Assert.Contains(
             "FindCircleNormalizationSourceIds(",
             methodBody);
@@ -733,12 +733,12 @@ public sealed class AnnotationScaleRegressionTests
             "FindCircleNormalizationSourceIds(",
             StringComparison.Ordinal);
         Assert.Contains(
-            "annotationScaleService",
+            "presentationBatchContext.AnnotationScaleService",
             ExtractInvocation(methodBody, invocationStart));
     }
 
     [Fact]
-    public void UpdateLabelsForChangedEntities_HasAnnotationScaleServiceParameter()
+    public void UpdateLabelsForChangedEntities_HasPresentationBatchParameter()
     {
         var source = Source(
             "src",
@@ -747,7 +747,7 @@ public sealed class AnnotationScaleRegressionTests
             "AcKrovyCommands.cs");
 
         Assert.Contains(
-            "AutoCadAnnotationScaleService annotationScaleService",
+            "AutoCadAnnotationPresentationBatchContext presentationBatchContext",
             Between(
                 source,
                 "private static void UpdateLabelsForChangedEntities(",
@@ -774,10 +774,13 @@ public sealed class AnnotationScaleRegressionTests
         Assert.DoesNotContain(
             "AutoCadAnnotationScaleService.Create(",
             methodBody);
+        Assert.DoesNotContain(
+            "AutoCadAnnotationPresentationBatchContext.Create(",
+            methodBody);
     }
 
     [Fact]
-    public void ApplySettingsToExistingElements_CreatesScaleServiceOnce()
+    public void ApplySettingsToExistingElements_CreatesPresentationBatchOnce()
     {
         var source = Source(
             "src",
@@ -796,7 +799,7 @@ public sealed class AnnotationScaleRegressionTests
             1,
             CountOccurrences(
                 methodBody,
-                "AutoCadAnnotationScaleService.Create("));
+                "AutoCadAnnotationPresentationBatchContext.Create("));
 
         var updateCall = methodBody.IndexOf(
             "UpdateLabelsForChangedEntities(",
@@ -805,12 +808,12 @@ public sealed class AnnotationScaleRegressionTests
         Assert.True(updateCall >= 0);
         Assert.DoesNotContain("FindCircleNormalizationSourceIds(", methodBody);
         Assert.Contains(
-            "annotationScaleService",
+            "presentationBatchContext",
             ExtractInvocation(methodBody, updateCall));
     }
 
     [Fact]
-    public void AllCallSites_PassAnnotationScaleServiceToUpdateLabels()
+    public void AllCallSites_PassPresentationBatchToUpdateLabels()
     {
         var source = Source(
             "src",
@@ -842,7 +845,7 @@ public sealed class AnnotationScaleRegressionTests
 
             var invocation = ExtractInvocation(source, pos);
             Assert.False(string.IsNullOrWhiteSpace(invocation));
-            Assert.Contains("annotationScaleService", invocation);
+            Assert.Contains("presentationBatchContext", invocation);
             pos += invocation.Length;
             count++;
         }

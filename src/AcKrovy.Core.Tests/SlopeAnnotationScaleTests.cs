@@ -274,7 +274,7 @@ public sealed class SlopeAnnotationScaleTests
     }
 
     [Fact]
-    public void FlipSlopePassesCurrentScaleServiceToSlopeRefresh()
+    public void FlipSlopePassesCurrentBatchScaleContextToSlopeRefresh()
     {
         var source = File.ReadAllText(Path.Combine(
             FindRepositoryRoot(),
@@ -295,11 +295,12 @@ public sealed class SlopeAnnotationScaleTests
             1,
             CountOccurrences(
                 method,
-                "AutoCadAnnotationScaleService.Create("));
+                "AutoCadAnnotationPresentationBatchContext.Create("));
         Assert.Contains(
             "SlopeAnnotationService.EnsureForElement(",
             method);
-        Assert.Contains("annotationScaleService", method);
+        Assert.Contains("presentationBatchContext.ResolveForElement(updated)", method);
+        Assert.Contains(".AnnotationScaleContext", method);
     }
 
     private static TimberAnnotationScaleContext Context(int denominator) =>

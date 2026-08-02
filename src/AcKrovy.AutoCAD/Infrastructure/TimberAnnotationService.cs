@@ -1,6 +1,7 @@
 using AcKrovy.Core.Models;
 using AcKrovy.Core.Services;
 using Autodesk.AutoCAD.DatabaseServices;
+using AcKrovy.AutoCAD.Diagnostics;
 
 namespace AcKrovy.AutoCAD.Infrastructure;
 
@@ -11,12 +12,21 @@ internal static class TimberAnnotationService
         Transaction transaction,
         Entity sourceEntity,
         TimberElementData data,
-        AutoCadAnnotationScaleService annotationScaleService,
+        AutoCadAnnotationPresentationBatchContext presentationBatchContext,
         string? previousElementId = null,
         double roundingStepMm = TimberCuttingLengthCalculator.DefaultRoundingStepMm,
-        bool copySourcePreservation = false)
+        bool copySourcePreservation = false,
+        Action<AutoCadItemLeaderBlockVariantResult>? variantResultObserver = null)
     {
-        ArgumentNullException.ThrowIfNull(annotationScaleService);
+        ArgumentNullException.ThrowIfNull(presentationBatchContext);
+        if (!AutoCadDatabaseIdentity.IsSame(
+                database,
+                presentationBatchContext.Database))
+        {
+            throw new ArgumentException(
+                "Annotation presentation batch belongs to a different database.",
+                nameof(presentationBatchContext));
+        }
 
         if (TimberAnnotationModeRules.Normalize(data.AnnotationMode) ==
             TimberAnnotationMode.NoAnnotations)
@@ -31,8 +41,20 @@ internal static class TimberAnnotationService
             return false;
         }
 
+        var presentationContext =
+            presentationBatchContext.ResolveForElement(data);
         var annotationScaleContext =
-            annotationScaleService.ResolveForElement(data);
+            presentationContext.AnnotationScaleContext;
+        void ObserveVariant(AutoCadItemLeaderBlockVariantResult result)
+        {
+            variantResultObserver?.Invoke(result);
+            if (!result.Succeeded)
+            {
+                AcKrovyDiagnostics.Warning(
+                    "FramedItemLeaderVariant",
+                    $"Kind={result.Kind}; Reason={result.DiagnosticReason}");
+            }
+        }
 
         var isRectangularFootprintPost =
             TimberPostFootprintMetadataRules.IsValidNewFootprintPost(data);
@@ -60,7 +82,10 @@ internal static class TimberAnnotationService
                 annotationScaleContext,
                 previousElementId,
                 roundingStepMm,
-                copySourcePreservation);
+                copySourcePreservation,
+                presentationContext,
+                presentationBatchContext.ItemLeaderVariantCatalog,
+                ObserveVariant);
             SlopeAnnotationService.DeleteForSourceHandle(
                 database,
                 transaction,
@@ -96,7 +121,10 @@ internal static class TimberAnnotationService
                 annotationScaleContext,
                 previousElementId,
                 roundingStepMm,
-                copySourcePreservation);
+                copySourcePreservation,
+                presentationContext,
+                presentationBatchContext.ItemLeaderVariantCatalog,
+                ObserveVariant);
         if (plan.ReconcileSlopeArrow && plan.ReconcileSlopeAngleText)
         {
             SlopeAnnotationService.EnsureForElement(

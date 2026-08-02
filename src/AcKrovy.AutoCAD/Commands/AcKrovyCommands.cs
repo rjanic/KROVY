@@ -563,7 +563,8 @@ public sealed class AcKrovyCommands
 
         var layerProfile = ElementLayerProfileStore.Load();
         using var transaction = document.Database.TransactionManager.StartTransaction();
-        var annotationScaleService = AutoCadAnnotationScaleService.Create(
+        var presentationBatchContext =
+            AutoCadAnnotationPresentationBatchContext.Create(
             document.Database,
             transaction,
             defaultProfile);
@@ -642,7 +643,7 @@ public sealed class AcKrovyCommands
                 changedIds.ToList(),
                 previousElementIdById,
                 defaultProfile,
-                annotationScaleService);
+                presentationBatchContext);
             transaction.Commit();
         }
 
@@ -729,7 +730,8 @@ public sealed class AcKrovyCommands
         };
         metadataStore.Write(sourceEntity, updated);
         var defaultProfile = TimberElementDefaultProfileStore.Load();
-        var annotationScaleService = AutoCadAnnotationScaleService.Create(
+        var presentationBatchContext =
+            AutoCadAnnotationPresentationBatchContext.Create(
             document.Database,
             transaction,
             defaultProfile);
@@ -740,7 +742,7 @@ public sealed class AcKrovyCommands
                 transaction,
                 sourceEntity,
                 updated,
-                annotationScaleService);
+                presentationBatchContext);
         }
         else
         {
@@ -749,7 +751,8 @@ public sealed class AcKrovyCommands
                 transaction,
                 sourceEntity,
                 updated,
-                annotationScaleService.ResolveForElement(updated));
+                presentationBatchContext.ResolveForElement(updated)
+                    .AnnotationScaleContext);
         }
         transaction.Commit();
 
@@ -972,7 +975,8 @@ public sealed class AcKrovyCommands
 
         var layerProfile = ElementLayerProfileStore.Load();
         using var transaction = document.Database.TransactionManager.StartTransaction();
-        var annotationScaleService = AutoCadAnnotationScaleService.Create(
+        var presentationBatchContext =
+            AutoCadAnnotationPresentationBatchContext.Create(
             document.Database,
             transaction,
             defaultProfile);
@@ -1029,7 +1033,7 @@ public sealed class AcKrovyCommands
             assignedIds,
             previousElementIdById,
             defaultProfile,
-            annotationScaleService);
+            presentationBatchContext);
 
         transaction.Commit();
         editor.WriteMessage(UiStrings.Format(
@@ -1152,9 +1156,9 @@ public sealed class AcKrovyCommands
         IReadOnlyList<ObjectId> changedIds,
         IReadOnlyDictionary<ObjectId, string> previousElementIdById,
         TimberElementDefaultProfile defaultProfile,
-        AutoCadAnnotationScaleService annotationScaleService)
+        AutoCadAnnotationPresentationBatchContext presentationBatchContext)
   {
-        ArgumentNullException.ThrowIfNull(annotationScaleService);
+        ArgumentNullException.ThrowIfNull(presentationBatchContext);
         var roundingStepMm = defaultProfile.GetCuttingLengthRoundingStepMm();
         var synchronizedDataById = TimberElementItemIdentityService.SynchronizeElementIds(
             database,
@@ -1177,7 +1181,7 @@ public sealed class AcKrovyCommands
                 transaction,
                 entity,
                 synchronizedData,
-                annotationScaleService,
+                presentationBatchContext,
                 previousElementId,
                 roundingStepMm);
         }
@@ -1248,7 +1252,8 @@ public sealed class AcKrovyCommands
             drawingScaleStore.Write(annotationSettings.ScaleDenominator);
         }
 
-        var annotationScaleService = AutoCadAnnotationScaleService.Create(
+        var presentationBatchContext =
+            AutoCadAnnotationPresentationBatchContext.Create(
             document.Database,
             transaction,
             defaultProfile);
@@ -1316,7 +1321,7 @@ public sealed class AcKrovyCommands
             refreshIds,
             previousElementIdById,
             defaultProfile,
-            annotationScaleService);
+            presentationBatchContext);
 
         transaction.Commit();
         editor.WriteMessage(UiStrings.Format(UiStrings.CommandSettingsApplyResultFormat, updated, skipped));

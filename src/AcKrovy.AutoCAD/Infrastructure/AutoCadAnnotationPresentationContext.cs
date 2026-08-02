@@ -166,6 +166,9 @@ internal sealed class AutoCadAnnotationPresentationBatchContext
 
     public Database Database { get; }
     public AutoCadTextStyleCatalog TextStyleCatalog { get; }
+    public AutoCadAnnotationScaleService AnnotationScaleService =>
+        _annotationScaleService;
+    public AutoCadItemLeaderBlockVariantBatchCatalog ItemLeaderVariantCatalog { get; }
 
     private AutoCadAnnotationPresentationBatchContext(
         Database database,
@@ -186,6 +189,8 @@ internal sealed class AutoCadAnnotationPresentationBatchContext
                 nameof(textStyleCatalog));
         }
         _textStyleResolver = new AutoCadTextStyleResolver(textStyleCatalog);
+        ItemLeaderVariantCatalog =
+            new AutoCadItemLeaderBlockVariantBatchCatalog(database);
     }
 
     public static AutoCadAnnotationPresentationBatchContext Create(

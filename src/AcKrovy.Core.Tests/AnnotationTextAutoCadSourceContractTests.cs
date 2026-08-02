@@ -219,19 +219,27 @@ public sealed class AnnotationTextAutoCadSourceContractTests
     }
 
     [Fact]
-    public void RendererServices_AreNotConnectedToNewResolverOrPresentationContext()
+    public void Stage4B_ConnectsPresentationContextOnlyToFramedRendererOrchestration()
     {
-        string[] rendererFiles =
+        var labels = Source(
+            "src", "AcKrovy.AutoCAD", "Infrastructure",
+            "ElementLabelService.cs");
+        var orchestration = Source(
+            "src", "AcKrovy.AutoCAD", "Infrastructure",
+            "TimberAnnotationService.cs");
+        Assert.Contains("AutoCadAnnotationPresentationContext", labels);
+        Assert.Contains("AutoCadAnnotationPresentationBatchContext", orchestration);
+        Assert.DoesNotContain("AutoCadTextStyleResolver", labels + orchestration);
+
+        string[] excludedRendererFiles =
         [
-            "ElementLabelService.cs",
-            "TimberAnnotationService.cs",
             "SlopeAnnotationService.cs",
             "SlopeAngleTextService.cs",
             "AcKrovyMLeaderStyleService.cs",
             "AcKrovyItemLeaderBlockService.cs",
         ];
 
-        foreach (var file in rendererFiles)
+        foreach (var file in excludedRendererFiles)
         {
             var source = Source(
                 "src",

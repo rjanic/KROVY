@@ -32,7 +32,10 @@ internal static class ElementLabelService
         TimberAnnotationScaleContext annotationScaleContext,
         string? previousElementId = null,
         double roundingStepMm = TimberCuttingLengthCalculator.DefaultRoundingStepMm,
-        bool copySourcePreservation = false)
+        bool copySourcePreservation = false,
+        AutoCadAnnotationPresentationContext? presentationContext = null,
+        AutoCadItemLeaderBlockVariantBatchCatalog? variantBatchCatalog = null,
+        Action<AutoCadItemLeaderBlockVariantResult>? variantResultObserver = null)
     {
         ArgumentNullException.ThrowIfNull(database);
         ArgumentNullException.ThrowIfNull(transaction);
@@ -67,7 +70,10 @@ internal static class ElementLabelService
                 framedPlacement,
                 labelText,
                 copySourcePreservation,
-                annotationScaleContext: annotationScaleContext);
+                annotationScaleContext: annotationScaleContext,
+                presentationContext: presentationContext,
+                variantBatchCatalog: variantBatchCatalog,
+                variantResultObserver: variantResultObserver);
         }
 
         if (TimberAnnotationModeRules.GetRepresentation(
@@ -104,7 +110,10 @@ internal static class ElementLabelService
                                 ItemNumberLeaderStyle.Plain
                             ? TimberItemNumberTypographyRules
                                 .BaseItemNumberTextHeightAtScale50Mm
-                            : DefaultTextHeightMm);
+                            : DefaultTextHeightMm,
+                presentationContext: presentationContext,
+                variantBatchCatalog: variantBatchCatalog,
+                variantResultObserver: variantResultObserver);
         }
 
         var textHeightMm =
@@ -134,7 +143,10 @@ internal static class ElementLabelService
         TimberAnnotationScaleContext annotationScaleContext,
         string? previousElementId = null,
         double roundingStepMm = TimberCuttingLengthCalculator.DefaultRoundingStepMm,
-        bool copySourcePreservation = false)
+        bool copySourcePreservation = false,
+        AutoCadAnnotationPresentationContext? presentationContext = null,
+        AutoCadItemLeaderBlockVariantBatchCatalog? variantBatchCatalog = null,
+        Action<AutoCadItemLeaderBlockVariantResult>? variantResultObserver = null)
     {
         ArgumentNullException.ThrowIfNull(database);
         ArgumentNullException.ThrowIfNull(transaction);
@@ -177,7 +189,10 @@ internal static class ElementLabelService
                 framedPlacement,
                 labelText,
                 copySourcePreservation,
-                annotationScaleContext: annotationScaleContext);
+                annotationScaleContext: annotationScaleContext,
+                presentationContext: presentationContext,
+                variantBatchCatalog: variantBatchCatalog,
+                variantResultObserver: variantResultObserver);
         }
 
         if (TimberAnnotationModeRules.GetRepresentation(
@@ -214,7 +229,10 @@ internal static class ElementLabelService
                           ItemNumberLeaderStyle.Plain
                             ? TimberItemNumberTypographyRules
                                 .BaseItemNumberTextHeightAtScale50Mm
-                            : DefaultTextHeightMm);
+                            : DefaultTextHeightMm,
+                presentationContext: presentationContext,
+                variantBatchCatalog: variantBatchCatalog,
+                variantResultObserver: variantResultObserver);
         }
 
         var footprintPlacement = TimberPostFootprintLabelPlacementCalculator.Calculate(
@@ -343,7 +361,10 @@ internal static class ElementLabelService
         bool preserveCompositeSiblings = false,
         Action<LeaderPlacement>? effectivePlacementObserver = null,
         bool scaleNativePresentation = true,
-        double baseTextHeightMm = DefaultTextHeightMm)
+        double baseTextHeightMm = DefaultTextHeightMm,
+        AutoCadAnnotationPresentationContext? presentationContext = null,
+        AutoCadItemLeaderBlockVariantBatchCatalog? variantBatchCatalog = null,
+        Action<AutoCadItemLeaderBlockVariantResult>? variantResultObserver = null)
     {
         ArgumentNullException.ThrowIfNull(annotationScaleContext);
         var sourceHandle = sourceEntity.Handle.ToString();
@@ -430,11 +451,60 @@ internal static class ElementLabelService
         var geometryMatches = existingData is not null &&
             LeaderGeometryMatches(existingData, data.AnnotationMode, placement);
 
+        AutoCadFramedItemLeaderPreparation? framedPreparation = null;
+        if (desiredRepresentation ==
+                TimberMainAnnotationRepresentation.BlockLeader &&
+            AutoCadFramedItemLeaderRendererPolicy.UsesImmutableVariant(
+                data.AnnotationMode,
+                data.ItemNumberLeaderStyle,
+                componentRole))
+        {
+            framedPreparation = PrepareFramedItemLeaderVariant(
+                database,
+                transaction,
+                data,
+                contents,
+                annotationScaleContext,
+                presentationContext,
+                variantBatchCatalog,
+                out var variantResult);
+            variantResultObserver?.Invoke(variantResult);
+            if (framedPreparation is null)
+            {
+                return false;
+            }
+        }
+
         MLeader leader;
         var isCreated = existingId.IsNull;
         var metadataWritten = false;
         if (!isCreated &&
             geometryMatches &&
+            desiredRepresentation ==
+                TimberMainAnnotationRepresentation.BlockLeader &&
+            framedPreparation is not null &&
+            transaction.GetObject(existingId, OpenMode.ForWrite, false) is
+                MLeader existingBlockLeader &&
+            TryUpdateBlockLeader(
+                database,
+                transaction,
+                existingBlockLeader,
+                placement,
+                contents,
+                updateExistingDefinitions: !copySourcePreservation,
+                combinedFramed:
+                    TimberAnnotationModeRules.Normalize(data.AnnotationMode) ==
+                        TimberAnnotationMode.DimensionsWithItemNumber &&
+                    componentRole ==
+                        TimberMainAnnotationComponentRole.FramedItem,
+                framedPreparation))
+        {
+            leader = existingBlockLeader;
+        }
+        else if (!isCreated &&
+            geometryMatches &&
+            desiredRepresentation !=
+                TimberMainAnnotationRepresentation.BlockLeader &&
             transaction.GetObject(existingId, OpenMode.ForWrite, false) is MLeader existingLeader &&
             TryUpdateNativeLeader(
                 database,
@@ -464,16 +534,13 @@ internal static class ElementLabelService
                     transaction,
                     placement,
                     contents,
-                    data.ItemNumberLeaderStyle,
                     updateExistingDefinitions: !copySourcePreservation,
                     combinedFramed:
                         TimberAnnotationModeRules.Normalize(data.AnnotationMode) ==
                             TimberAnnotationMode.DimensionsWithItemNumber &&
                         componentRole == TimberMainAnnotationComponentRole.FramedItem,
-                    presentationScaleFactor:
-                        scaleNativePresentation
-                            ? annotationScaleContext.ScaleFactor
-                            : 1d)
+                    framedPreparation ?? throw new InvalidOperationException(
+                        "A framed block leader requires a prepared immutable variant."))
                 : CreateNativeMLeader(
                     database,
                     transaction,
@@ -532,7 +599,10 @@ internal static class ElementLabelService
         LeaderPlacement framedPlacement,
         string dimensionsContents,
         bool copySourcePreservation,
-        TimberAnnotationScaleContext annotationScaleContext)
+        TimberAnnotationScaleContext annotationScaleContext,
+        AutoCadAnnotationPresentationContext? presentationContext,
+        AutoCadItemLeaderBlockVariantBatchCatalog? variantBatchCatalog,
+        Action<AutoCadItemLeaderBlockVariantResult>? variantResultObserver)
     {
         ArgumentNullException.ThrowIfNull(annotationScaleContext);
         var presentationScaleFactor =
@@ -551,6 +621,7 @@ internal static class ElementLabelService
             framedPlacement,
             presentationScaleFactor);
         var effectiveFramedPlacement = combinedFramedPlacement;
+        AutoCadItemLeaderBlockVariantResult? framedVariantResult = null;
         var framedCreated = UpsertLeader(
             database,
             transaction,
@@ -570,7 +641,18 @@ internal static class ElementLabelService
                 effectiveFramedPlacement = placement,
             baseTextHeightMm:
                 TimberItemNumberTypographyRules
-                    .BaseItemNumberTextHeightAtScale50Mm);
+                    .BaseItemNumberTextHeightAtScale50Mm,
+            presentationContext: presentationContext,
+            variantBatchCatalog: variantBatchCatalog,
+            variantResultObserver: result =>
+            {
+                framedVariantResult = result;
+                variantResultObserver?.Invoke(result);
+            });
+        if (framedVariantResult is { Succeeded: false })
+        {
+            return false;
+        }
         var dimensionsPlacement = CalculateCombinedDimensionsTextPlacement(
             database,
             transaction,
@@ -1199,7 +1281,8 @@ internal static class ElementLabelService
         var skipped = 0;
         var defaultProfile = TimberElementDefaultProfileStore.Load();
         var roundingStepMm = defaultProfile.GetCuttingLengthRoundingStepMm();
-        var annotationScaleService = AutoCadAnnotationScaleService.Create(
+        var presentationBatchContext =
+            AutoCadAnnotationPresentationBatchContext.Create(
             database,
             transaction,
             defaultProfile);
@@ -1242,7 +1325,7 @@ internal static class ElementLabelService
                         transaction,
                         entity,
                         data,
-                        annotationScaleService,
+                        presentationBatchContext,
                         previousElementId,
                         roundingStepMm))
                 {
@@ -2021,16 +2104,120 @@ internal static class ElementLabelService
         return leader;
     }
 
-    private static MLeader CreateBlockMLeader(
+    private static AutoCadFramedItemLeaderPreparation?
+        PrepareFramedItemLeaderVariant(
+            Database database,
+            Transaction transaction,
+            TimberElementData data,
+            string contents,
+            TimberAnnotationScaleContext annotationScaleContext,
+            AutoCadAnnotationPresentationContext? presentationContext,
+            AutoCadItemLeaderBlockVariantBatchCatalog? variantBatchCatalog,
+            out AutoCadItemLeaderBlockVariantResult result)
+    {
+        if (presentationContext is null || variantBatchCatalog is null)
+        {
+            result = AutoCadItemLeaderBlockVariantResult.InvalidRequest(
+                null,
+                null,
+                AutoCadDatabaseIdentity.TryGetIdentity(database),
+                "The production framed renderer requires a presentation " +
+                "context and a database-bound batch catalog.");
+            return null;
+        }
+        if (presentationContext.AnnotationScaleDenominator !=
+            annotationScaleContext.Denominator)
+        {
+            result = AutoCadItemLeaderBlockVariantResult.InvalidRequest(
+                null,
+                null,
+                AutoCadDatabaseIdentity.TryGetIdentity(database),
+                "Presentation and renderer scale contexts do not match.");
+            return null;
+        }
+
+        result = AcKrovyItemLeaderBlockVariantService.Ensure(
+            database,
+            transaction,
+            presentationContext,
+            data.ItemNumberLeaderStyle,
+            contents,
+            variantBatchCatalog);
+        if (!result.Succeeded ||
+            result.BlockTableRecordId is not ObjectId blockId ||
+            result.VariantKey is null)
+        {
+            return null;
+        }
+
+        var definition = transaction.GetObject(
+            blockId,
+            OpenMode.ForRead,
+            false) as BlockTableRecord;
+        var itemNumberDefinitions = definition is null
+            ? []
+            : definition
+                .Cast<ObjectId>()
+                .Select(id => transaction.GetObject(id, OpenMode.ForRead, false))
+                .OfType<AttributeDefinition>()
+                .Where(attribute => string.Equals(
+                    attribute.Tag,
+                    TimberItemLeaderBlockDefinitionRules.AttributeTag,
+                    StringComparison.OrdinalIgnoreCase))
+                .Select(attribute => attribute.ObjectId)
+                .ToArray();
+        if (itemNumberDefinitions.Length != 1)
+        {
+            result = AutoCadItemLeaderBlockVariantResult.ExistingDefinitionInvalid(
+                result.VariantKey,
+                result.CanonicalBlockName ??
+                    AutoCadItemLeaderBlockVariantNamePolicy.CreateCanonicalName(
+                        result.VariantKey),
+                AutoCadDatabaseIdentity.TryGetIdentity(database),
+                "The ensured variant does not expose exactly one ITEM_NO " +
+                "attribute definition.");
+            return null;
+        }
+
+        var blockScale =
+            AutoCadFramedItemLeaderRendererPolicy.CalculateBlockScale(
+                annotationScaleContext);
+        return new AutoCadFramedItemLeaderPreparation(
+            result,
+            itemNumberDefinitions[0],
+            blockScale,
+            presentationContext.ItemNumberModelHeight);
+    }
+
+    private static bool TryUpdateBlockLeader(
         Database database,
         Transaction transaction,
+        MLeader leader,
         LeaderPlacement placement,
         string contents,
-        ItemNumberLeaderStyle itemStyle,
         bool updateExistingDefinitions,
         bool combinedFramed,
-        double presentationScaleFactor)
+        AutoCadFramedItemLeaderPreparation preparation)
     {
+        if (leader.ContentType != ContentType.BlockContent)
+        {
+            return false;
+        }
+
+        var leaderIndexes = leader.GetLeaderIndexes().Cast<int>().ToArray();
+        if (leaderIndexes.Length != 1)
+        {
+            return false;
+        }
+        var lineIndexes = leader
+            .GetLeaderLineIndexes(leaderIndexes[0])
+            .Cast<int>()
+            .ToArray();
+        if (lineIndexes.Length != 1 || leader.VerticesCount(lineIndexes[0]) < 2)
+        {
+            return false;
+        }
+
         var styleId = combinedFramed
             ? AcKrovyMLeaderStyleService.EnsureCombinedFramed(
                 database,
@@ -2040,17 +2227,145 @@ internal static class ElementLabelService
                 database,
                 transaction,
                 updateExistingDefinitions);
-        var block = AcKrovyItemLeaderBlockService.Ensure(
-            database,
-            transaction,
-            itemStyle,
-            contents,
-            preserveExistingDefinition: !updateExistingDefinitions);
+        if (leader.MLeaderStyle != styleId)
+        {
+            leader.MLeaderStyle = styleId;
+        }
+
+        var contentMatches =
+            leader.BlockContentId == preparation.BlockTableRecordId;
+        var scaleMatches =
+            ScaleMatches(leader.BlockScale, preparation.BlockScale);
+        var tokenMatches = contentMatches && ItemNumberTokenMatches(
+            leader,
+            preparation.AttributeDefinitionId,
+            contents);
+        var mutationPlan = AutoCadFramedItemLeaderMutationPolicy.Create(
+            variantEnsureSucceeded: true,
+            hasExistingAnnotation: true,
+            contentMatches,
+            scaleMatches,
+            tokenMatches);
+        if (mutationPlan.ShouldReplaceBlockContent)
+        {
+            leader.BlockContentId = preparation.BlockTableRecordId;
+        }
+        if (mutationPlan.ShouldSetBlockScale)
+        {
+            leader.BlockScale = new Scale3d(preparation.BlockScale);
+        }
+        leader.BlockConnectionType = combinedFramed
+            ? BlockConnectionType.ConnectExtents
+            : BlockConnectionType.ConnectBase;
+        leader.BlockRotation = 0d;
+        leader.BlockPosition = placement.TextLocation;
+        leader.SetFirstVertex(lineIndexes[0], placement.Anchor);
+        leader.SetLastVertex(lineIndexes[0], placement.Knee);
+
+        if (combinedFramed)
+        {
+            AcKrovyMLeaderStyleService.ApplyCombinedBlockInstanceProperties(
+                leader,
+                database,
+                leaderIndexes[0],
+                lineIndexes[0],
+                placement.Side,
+                preparation.BlockScale,
+                placement.DoglegDirection);
+        }
+        else
+        {
+            var noneArrowId = AcKrovyMLeaderStyleService.GetNoneArrowBlockId(
+                database,
+                transaction);
+            AcKrovyMLeaderStyleService.ApplyBlockInstanceProperties(
+                leader,
+                database,
+                noneArrowId,
+                leaderIndexes[0],
+                lineIndexes[0],
+                placement.Side,
+                preparation.BlockScale);
+        }
+
+        if (mutationPlan.ShouldSetItemNumberToken)
+        {
+            SetItemNumberBlockAttribute(
+                transaction,
+                leader,
+                preparation.AttributeDefinitionId,
+                contents);
+        }
+        return true;
+    }
+
+    private static bool ScaleMatches(Scale3d scale, double expected) =>
+        Math.Abs(scale.X - expected) <= PlacementToleranceMm &&
+        Math.Abs(scale.Y - expected) <= PlacementToleranceMm &&
+        Math.Abs(scale.Z - expected) <= PlacementToleranceMm;
+
+    private static bool ItemNumberTokenMatches(
+        MLeader leader,
+        ObjectId attributeDefinitionId,
+        string contents)
+    {
+        try
+        {
+            using var attribute =
+                leader.GetBlockAttribute(attributeDefinitionId);
+            return string.Equals(
+                attribute.TextString,
+                contents,
+                StringComparison.Ordinal);
+        }
+        catch (Autodesk.AutoCAD.Runtime.Exception)
+        {
+            return false;
+        }
+    }
+
+    private static void SetItemNumberBlockAttribute(
+        Transaction transaction,
+        MLeader leader,
+        ObjectId attributeDefinitionId,
+        string contents)
+    {
+        var attributeDefinition = (AttributeDefinition)transaction.GetObject(
+            attributeDefinitionId,
+            OpenMode.ForRead);
+        using var attribute = new AttributeReference();
+        attribute.SetAttributeFromBlock(
+            attributeDefinition,
+            Matrix3d.Identity);
+        attribute.TextString = contents;
+        leader.SetBlockAttribute(attributeDefinitionId, attribute);
+    }
+
+    private static MLeader CreateBlockMLeader(
+        Database database,
+        Transaction transaction,
+        LeaderPlacement placement,
+        string contents,
+        bool updateExistingDefinitions,
+        bool combinedFramed,
+        AutoCadFramedItemLeaderPreparation preparation)
+    {
+        ArgumentNullException.ThrowIfNull(preparation);
+        var presentationScaleFactor = preparation.BlockScale;
+        var styleId = combinedFramed
+            ? AcKrovyMLeaderStyleService.EnsureCombinedFramed(
+                database,
+                transaction,
+                updateExistingDefinitions)
+            : AcKrovyMLeaderStyleService.EnsureFramed(
+                database,
+                transaction,
+                updateExistingDefinitions);
         var leader = new MLeader();
         leader.SetDatabaseDefaults(database);
         leader.MLeaderStyle = styleId;
         leader.ContentType = ContentType.BlockContent;
-        leader.BlockContentId = block.BlockId;
+        leader.BlockContentId = preparation.BlockTableRecordId;
         leader.BlockConnectionType = combinedFramed
             ? BlockConnectionType.ConnectExtents
             : BlockConnectionType.ConnectBase;
@@ -2088,17 +2403,11 @@ internal static class ElementLabelService
                 presentationScaleFactor);
         }
 
-        var attributeDefinition = (AttributeDefinition)transaction.GetObject(
-            block.AttributeDefinitionId,
-            OpenMode.ForRead);
-        using (var attribute = new AttributeReference())
-        {
-            attribute.SetAttributeFromBlock(
-                attributeDefinition,
-                Matrix3d.Identity);
-            attribute.TextString = contents;
-            leader.SetBlockAttribute(block.AttributeDefinitionId, attribute);
-        }
+        SetItemNumberBlockAttribute(
+            transaction,
+            leader,
+            preparation.AttributeDefinitionId,
+            contents);
 
         var blockTable = (BlockTable)transaction.GetObject(
             database.BlockTableId,

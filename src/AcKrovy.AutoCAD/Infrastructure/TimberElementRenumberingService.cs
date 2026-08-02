@@ -22,7 +22,8 @@ internal static class TimberElementRenumberingService
         ArgumentNullException.ThrowIfNull(defaultProfile);
 
         using var transaction = database.TransactionManager.StartTransaction();
-        var annotationScaleService = AutoCadAnnotationScaleService.Create(
+        var presentationBatchContext =
+            AutoCadAnnotationPresentationBatchContext.Create(
             database,
             transaction,
             defaultProfile);
@@ -35,7 +36,7 @@ internal static class TimberElementRenumberingService
                 database,
                 transaction,
                 entries.Select(entry => entry.Id).ToList(),
-                annotationScaleService);
+                presentationBatchContext.AnnotationScaleService);
         var changedEntries = new List<ChangedEntry>();
         var annotationEntries = new List<ChangedEntry>();
 
@@ -95,7 +96,7 @@ internal static class TimberElementRenumberingService
                 transaction,
                 entity,
                 entry.Data,
-                annotationScaleService,
+                presentationBatchContext,
                 entry.PreviousElementId,
                 roundingStepMm);
         }

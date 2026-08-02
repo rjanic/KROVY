@@ -69,6 +69,99 @@ public static class TimberItemLeaderBlockDefinitionRules
         return ResolveLinearFrame(normalizedStyle, requiredWidth);
     }
 
+    public static TimberItemLeaderTextFitResult EvaluateMeasuredTextWidth(
+        ItemNumberLeaderStyle style,
+        string itemText,
+        double measuredTextWidthMm)
+    {
+        var normalizedStyle = ItemNumberLeaderStyleRules.Normalize(style);
+        if (normalizedStyle == ItemNumberLeaderStyle.Plain)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(style),
+                "Plain item leaders do not use a block definition.");
+        }
+        if (string.IsNullOrWhiteSpace(itemText))
+        {
+            throw new ArgumentException(
+                "A non-empty ITEM_NO token is required.",
+                nameof(itemText));
+        }
+        if (double.IsNaN(measuredTextWidthMm) ||
+            double.IsInfinity(measuredTextWidthMm) ||
+            measuredTextWidthMm < 0d)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(measuredTextWidthMm),
+                "Measured ITEM_NO width must be finite and non-negative.");
+        }
+
+        var candidates = normalizedStyle == ItemNumberLeaderStyle.Circle
+            ? new[]
+            {
+                Create(
+                    ItemNumberLeaderStyle.Circle,
+                    TimberItemLeaderBlockSize.Small,
+                    CircleDiameterMm,
+                    CircleDiameterMm),
+            }
+            : new[]
+            {
+                Create(
+                    normalizedStyle,
+                    TimberItemLeaderBlockSize.Small,
+                    SmallFrameWidthMm,
+                    FrameHeightMm),
+                Create(
+                    normalizedStyle,
+                    TimberItemLeaderBlockSize.Medium,
+                    MediumFrameWidthMm,
+                    FrameHeightMm),
+                Create(
+                    normalizedStyle,
+                    TimberItemLeaderBlockSize.Large,
+                    LargeFrameWidthMm,
+                    FrameHeightMm),
+            };
+
+        foreach (var candidate in candidates)
+        {
+            var innerWidth = CalculateAvailableInnerWidthMm(candidate);
+            if (measuredTextWidthMm <= innerWidth)
+            {
+                return new TimberItemLeaderTextFitResult(
+                    true,
+                    itemText,
+                    candidate,
+                    measuredTextWidthMm,
+                    innerWidth,
+                    HorizontalPaddingMm,
+                    "Measured ITEM_NO width fits with the required horizontal padding.");
+            }
+        }
+
+        var largest = candidates[candidates.Length - 1];
+        var largestInnerWidth = CalculateAvailableInnerWidthMm(largest);
+        return new TimberItemLeaderTextFitResult(
+            false,
+            itemText,
+            largest,
+            measuredTextWidthMm,
+            largestInnerWidth,
+            HorizontalPaddingMm,
+            "Measured ITEM_NO width exceeds the largest permitted frame inner width.");
+    }
+
+    public static double CalculateAvailableInnerWidthMm(
+        TimberItemLeaderBlockDefinition definition)
+    {
+        if (definition is null)
+        {
+            throw new ArgumentNullException(nameof(definition));
+        }
+        return definition.WidthMm - 2d * HorizontalPaddingMm;
+    }
+
     public static string GetBaseBlockName(ItemNumberLeaderStyle style) =>
         ItemNumberLeaderStyleRules.Normalize(style) switch
         {

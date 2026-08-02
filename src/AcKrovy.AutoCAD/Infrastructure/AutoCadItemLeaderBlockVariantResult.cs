@@ -1,3 +1,4 @@
+using AcKrovy.Core.Models;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.Runtime;
 using AcadException = Autodesk.AutoCAD.Runtime.Exception;
@@ -14,6 +15,8 @@ internal enum AutoCadItemLeaderBlockVariantResultKind
     InvalidRequest,
     DatabaseMismatch,
     ExistingDefinitionInvalid,
+    TextMeasurementFailed,
+    TextOverflow,
 }
 
 internal sealed record AutoCadItemLeaderBlockVariantResult
@@ -36,6 +39,7 @@ internal sealed record AutoCadItemLeaderBlockVariantResult
         AutoCadItemLeaderBlockVariantResultKind.ReusedCollisionVariant or
         AutoCadItemLeaderBlockVariantResultKind.CreatedCollisionVariant;
     public string DiagnosticReason { get; }
+    public TimberItemLeaderTextFitResult? TextFit { get; }
 
     private AutoCadItemLeaderBlockVariantResult(
         AutoCadItemLeaderBlockVariantResultKind kind,
@@ -44,7 +48,8 @@ internal sealed record AutoCadItemLeaderBlockVariantResult
         string? resolvedBlockName,
         ObjectId? blockTableRecordId,
         AutoCadDatabaseIdentityToken? databaseIdentity,
-        string diagnosticReason)
+        string diagnosticReason,
+        TimberItemLeaderTextFitResult? textFit)
     {
         if (!Enum.IsDefined(kind))
         {
@@ -94,6 +99,7 @@ internal sealed record AutoCadItemLeaderBlockVariantResult
         BlockTableRecordId = blockTableRecordId;
         DatabaseIdentity = databaseIdentity;
         DiagnosticReason = diagnosticReason;
+        TextFit = textFit;
     }
 
     public static AutoCadItemLeaderBlockVariantResult Reused(
@@ -180,6 +186,38 @@ internal sealed record AutoCadItemLeaderBlockVariantResult
             databaseIdentity,
             reason);
 
+    public static AutoCadItemLeaderBlockVariantResult TextMeasurementFailed(
+        AutoCadDatabaseIdentityToken? databaseIdentity,
+        string reason) =>
+        Failure(
+            AutoCadItemLeaderBlockVariantResultKind.TextMeasurementFailed,
+            null,
+            null,
+            databaseIdentity,
+            reason);
+
+    public static AutoCadItemLeaderBlockVariantResult TextOverflow(
+        AutoCadDatabaseIdentityToken? databaseIdentity,
+        TimberItemLeaderTextFitResult textFit) =>
+        Failure(
+            AutoCadItemLeaderBlockVariantResultKind.TextOverflow,
+            null,
+            null,
+            databaseIdentity,
+            textFit.DiagnosticReason).WithTextFit(textFit);
+
+    public AutoCadItemLeaderBlockVariantResult WithTextFit(
+        TimberItemLeaderTextFitResult textFit) =>
+        new(
+            Kind,
+            VariantKey,
+            CanonicalBlockName,
+            ResolvedBlockName,
+            BlockTableRecordId,
+            DatabaseIdentity,
+            DiagnosticReason,
+            textFit ?? throw new ArgumentNullException(nameof(textFit)));
+
     private static AutoCadItemLeaderBlockVariantResult Success(
         AutoCadItemLeaderBlockVariantResultKind kind,
         AutoCadItemLeaderBlockVariantKey key,
@@ -195,7 +233,8 @@ internal sealed record AutoCadItemLeaderBlockVariantResult
             resolvedBlockName,
             blockId,
             databaseIdentity,
-            reason);
+            reason,
+            null);
 
     private static AutoCadItemLeaderBlockVariantResult Failure(
         AutoCadItemLeaderBlockVariantResultKind kind,
@@ -210,7 +249,8 @@ internal sealed record AutoCadItemLeaderBlockVariantResult
             null,
             null,
             databaseIdentity,
-            reason);
+            reason,
+            null);
 
     private static bool IsUsableObjectId(ObjectId id)
     {

@@ -200,18 +200,28 @@ public sealed class ItemLeaderBlockVariantSourceContractTests
     }
 
     [Fact]
-    public void ProductionRenderers_AreNotConnectedDuringStage4A()
+    public void Stage4B_ConnectsOnlyTheProductionFramedRenderer()
     {
-        string[] files =
+        var elementLabels = Source(
+            "src", "AcKrovy.AutoCAD", "Infrastructure",
+            "ElementLabelService.cs");
+        var orchestration = Source(
+            "src", "AcKrovy.AutoCAD", "Infrastructure",
+            "TimberAnnotationService.cs");
+        Assert.Contains(
+            "AcKrovyItemLeaderBlockVariantService.Ensure(",
+            elementLabels);
+        Assert.Contains(
+            "ItemLeaderVariantCatalog",
+            orchestration);
+
+        string[] excludedFiles =
         [
-            "ElementLabelService.cs",
-            "TimberAnnotationService.cs",
             "SlopeAnnotationService.cs",
             "SlopeAngleTextService.cs",
             "AcKrovyMLeaderStyleService.cs",
         ];
-
-        foreach (var file in files)
+        foreach (var file in excludedFiles)
         {
             var source = Source(
                 "src",

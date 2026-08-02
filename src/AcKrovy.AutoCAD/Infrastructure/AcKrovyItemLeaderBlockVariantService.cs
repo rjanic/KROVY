@@ -25,7 +25,10 @@ internal static class AcKrovyItemLeaderBlockVariantService
         string itemText,
         AutoCadItemLeaderBlockVariantBatchCatalog batchCatalog)
     {
+        ArgumentNullException.ThrowIfNull(database);
+        ArgumentNullException.ThrowIfNull(transaction);
         ArgumentNullException.ThrowIfNull(presentationContext);
+        ArgumentNullException.ThrowIfNull(batchCatalog);
         if (!AutoCadDatabaseIdentity.IsSame(
                 database,
                 presentationContext.Database))
@@ -36,16 +39,77 @@ internal static class AcKrovyItemLeaderBlockVariantService
                 AutoCadDatabaseIdentity.TryGetIdentity(database),
                 "Presentation context belongs to a different database.");
         }
+        var databaseIdentity = AutoCadDatabaseIdentity.TryGetIdentity(database);
+        if (!batchCatalog.IsBoundTo(database))
+        {
+            return AutoCadItemLeaderBlockVariantResult.DatabaseMismatch(
+                null,
+                null,
+                databaseIdentity,
+                "Batch catalog belongs to a different database.");
+        }
+        if (presentationContext.ResolvedTextStyleName is null ||
+            presentationContext.ResolvedTextStyleId is not ObjectId textStyleId)
+        {
+            return AutoCadItemLeaderBlockVariantResult.NoCompatibleTextStyle(
+                databaseIdentity,
+                "The Stage 2 resolution did not supply a compatible text style.");
+        }
+        if (!AutoCadDatabaseIdentity.IsSame(database, textStyleId))
+        {
+            return AutoCadItemLeaderBlockVariantResult.DatabaseMismatch(
+                null,
+                null,
+                databaseIdentity,
+                "Resolved text-style ObjectId belongs to a different database.");
+        }
 
-        return EnsureResolved(
+        var measurement = AutoCadItemLeaderTextMeasurementService.Measure(
             database,
-            transaction,
-            style,
-            itemText,
-            presentationContext.ResolvedTextStyleName,
-            presentationContext.ResolvedTextStyleId,
+            textStyleId,
             presentationContext.EffectiveTextSettings.ItemNumberPaperHeightMm,
-            batchCatalog);
+            itemText);
+        if (!measurement.Succeeded)
+        {
+            return AutoCadItemLeaderBlockVariantResult.TextMeasurementFailed(
+                databaseIdentity,
+                measurement.DiagnosticReason);
+        }
+
+        TimberItemLeaderTextFitResult textFit;
+        try
+        {
+            textFit = TimberItemLeaderBlockDefinitionRules
+                .EvaluateMeasuredTextWidth(
+                    style,
+                    itemText,
+                    measurement.MeasuredWidthMm);
+        }
+        catch (Exception exception) when (
+            exception is ArgumentException or InvalidOperationException)
+        {
+            return AutoCadItemLeaderBlockVariantResult.InvalidRequest(
+                null,
+                null,
+                databaseIdentity,
+                exception.Message);
+        }
+        if (!textFit.Fits)
+        {
+            return AutoCadItemLeaderBlockVariantResult.TextOverflow(
+                databaseIdentity,
+                textFit);
+        }
+
+        return EnsureDefinition(
+                database,
+                transaction,
+                textFit.EvaluatedDefinition,
+                presentationContext.ResolvedTextStyleName,
+                textStyleId,
+                presentationContext.EffectiveTextSettings.ItemNumberPaperHeightMm,
+                batchCatalog)
+            .WithTextFit(textFit);
     }
 
     internal static AutoCadItemLeaderBlockVariantResult EnsureResolved(
@@ -88,13 +152,46 @@ internal static class AcKrovyItemLeaderBlockVariantService
         }
 
         TimberItemLeaderBlockDefinition definition;
-        AutoCadItemLeaderBlockVariantKey key;
-        string canonicalName;
         try
         {
             definition = TimberItemLeaderBlockDefinitionRules.Resolve(
                 style,
                 itemText);
+        }
+        catch (Exception exception) when (
+            exception is ArgumentException or InvalidOperationException)
+        {
+            return AutoCadItemLeaderBlockVariantResult.InvalidRequest(
+                null,
+                null,
+                databaseIdentity,
+                exception.Message);
+        }
+
+        return EnsureDefinition(
+            database,
+            transaction,
+            definition,
+            resolvedCanonicalTextStyleName,
+            resolvedTextStyleId.Value,
+            itemNumberPaperHeightMm,
+            batchCatalog);
+    }
+
+    private static AutoCadItemLeaderBlockVariantResult EnsureDefinition(
+        Database database,
+        Transaction transaction,
+        TimberItemLeaderBlockDefinition definition,
+        string resolvedCanonicalTextStyleName,
+        ObjectId resolvedTextStyleId,
+        double itemNumberPaperHeightMm,
+        AutoCadItemLeaderBlockVariantBatchCatalog batchCatalog)
+    {
+        var databaseIdentity = AutoCadDatabaseIdentity.TryGetIdentity(database);
+        AutoCadItemLeaderBlockVariantKey key;
+        string canonicalName;
+        try
+        {
             key = AutoCadItemLeaderBlockVariantKey.FromDefinition(
                 definition,
                 resolvedCanonicalTextStyleName,
@@ -139,7 +236,7 @@ internal static class AcKrovyItemLeaderBlockVariantService
                     candidateId,
                     definition,
                     key,
-                    resolvedTextStyleId.Value,
+                    resolvedTextStyleId,
                     out var reason);
                 if (string.Equals(
                         candidateName,
@@ -168,7 +265,7 @@ internal static class AcKrovyItemLeaderBlockVariantService
                 key,
                 canonicalName,
                 decision.CandidateName,
-                resolvedTextStyleId.Value,
+                resolvedTextStyleId,
                 batchCatalog,
                 decision.IsCollision);
         }

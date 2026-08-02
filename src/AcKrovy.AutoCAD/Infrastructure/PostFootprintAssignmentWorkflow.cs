@@ -110,7 +110,8 @@ internal static class PostFootprintAssignmentWorkflow
         var assigned = synchronized.TryGetValue(targetId, out var finalData)
             ? finalData
             : merged;
-        var annotationScaleService = AutoCadAnnotationScaleService.Create(
+        var presentationBatchContext =
+            AutoCadAnnotationPresentationBatchContext.Create(
             document.Database,
             transaction,
             defaultProfile);
@@ -119,7 +120,7 @@ internal static class PostFootprintAssignmentWorkflow
             transaction,
             polyline,
             assigned,
-            annotationScaleService,
+            presentationBatchContext,
             roundingStepMm: defaultProfile.GetCuttingLengthRoundingStepMm());
         if (selection.RequiresLineConversion)
         {
