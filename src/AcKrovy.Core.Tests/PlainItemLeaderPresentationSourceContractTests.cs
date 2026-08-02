@@ -120,6 +120,7 @@ public sealed class PlainItemLeaderPresentationSourceContractTests
             StringComparison.Ordinal);
         Assert.True(prepare >= 0 && failure >= 0 && existingWrite >= 0);
         Assert.True(prepare < failure && failure < existingWrite);
+        Assert.Contains("usesPlainItemPresentation", upsert);
         Assert.Contains(
             "TimberAnnotationMode.ItemNumberLeader",
             upsert);
@@ -127,6 +128,7 @@ public sealed class PlainItemLeaderPresentationSourceContractTests
         Assert.Contains(
             "TimberMainAnnotationComponentRole.Primary",
             upsert);
+        Assert.Contains("preparedPlainItemPresentation", upsert);
         Assert.Contains("plainItemPresentation.ModelHeightMm", create);
         Assert.Contains("plainItemPresentation.ModelHeightMm", update);
         Assert.DoesNotContain(
@@ -147,11 +149,73 @@ public sealed class PlainItemLeaderPresentationSourceContractTests
     }
 
     [Fact]
-    public void DimensionsLeaderAndCombinedPlain_RemainOnLegacyNativePath()
+    public void CombinedPlainItem_PreparesBeforeUpsertLeaderAndPreservesDimensionsOnFailure()
     {
+        var combined = Member(
+            ElementLabelSource(),
+            "private static bool UpsertCombinedLeader(");
         var upsert = Member(
             ElementLabelSource(),
             "private static bool UpsertLeader(");
+
+        var prepare = combined.IndexOf(
+            "AutoCadPlainItemLeaderPresentationPolicy.TryPrepare(",
+            StringComparison.Ordinal);
+        var failure = combined.IndexOf(
+            "return false;",
+            prepare,
+            StringComparison.Ordinal);
+        var upsertLeader = combined.IndexOf(
+            "UpsertLeader(",
+            prepare,
+            StringComparison.Ordinal);
+        var upsertLabel = combined.IndexOf(
+            "UpsertLabel(",
+            upsertLeader,
+            StringComparison.Ordinal);
+        var deleteUnexpected = combined.IndexOf(
+            "DeleteUnexpectedCompositeComponents(",
+            upsertLabel,
+            StringComparison.Ordinal);
+        Assert.True(
+            prepare >= 0 &&
+            failure >= 0 &&
+            upsertLeader >= 0 &&
+            upsertLabel >= 0 &&
+            deleteUnexpected >= 0);
+        Assert.True(
+            prepare < failure &&
+            failure < upsertLeader &&
+            upsertLeader < upsertLabel &&
+            upsertLabel < deleteUnexpected);
+        Assert.Contains("isCombinedPlainItem", combined);
+        Assert.Contains("preparedPlainItemPresentation: plainItemPreparation", combined);
+        Assert.Contains("combinedLandingDistanceMm: combinedLandingDistanceMm", combined);
+        Assert.Contains(
+            "CombinedFramedLandingDistanceMm *",
+            combined);
+        Assert.Contains("preserveCompositeSiblings: true", combined);
+        Assert.Contains(
+            "TimberMainAnnotationComponentRole.FramedItem",
+            combined);
+        Assert.Contains(
+            "TimberMainAnnotationRepresentation.Leader",
+            combined);
+        Assert.Contains(
+            "TimberAnnotationMode.DimensionsWithItemNumber",
+            upsert);
+        Assert.Contains(
+            "TimberMainAnnotationComponentRole.FramedItem",
+            upsert);
+        Assert.Contains("usesPlainItemPresentation", upsert);
+        Assert.Contains(
+            "ResolveMainAnnotationRepresentation(",
+            ElementLabelSource());
+    }
+
+    [Fact]
+    public void DimensionsLeader_RemainsOnLegacyNativePath_AndFramedCombinedSkipsPlainPolicy()
+    {
         var combined = Member(
             ElementLabelSource(),
             "private static bool UpsertCombinedLeader(");
@@ -166,27 +230,12 @@ public sealed class PlainItemLeaderPresentationSourceContractTests
             "private static bool TryUpdateNativeLeader(");
 
         Assert.Contains(
-            "usesStandalonePlainItemPresentation",
-            upsert);
-        Assert.Contains(
-            "TimberAnnotationMode.ItemNumberLeader",
-            upsert);
-        Assert.Contains(
-            "TimberMainAnnotationComponentRole.Primary",
-            upsert);
-        Assert.Contains(
-            "componentRole: TimberMainAnnotationComponentRole.FramedItem",
-            combined);
-        Assert.DoesNotContain(
-            "AutoCadPlainItemLeaderPresentationPolicy.TryPrepare(",
-            combined);
-        Assert.Contains(
-            "TimberAnnotationMode.DimensionsWithItemNumber",
+            "TimberAnnotationMode.DimensionsLeader",
             upsertForElement);
         Assert.Contains("return UpsertCombinedLeader(", upsertForElement);
         Assert.Contains(
-            "TimberAnnotationMode.DimensionsLeader",
-            upsertForElement);
+            "TimberMainAnnotationRepresentation.BlockLeader",
+            combined);
         Assert.Contains(
             "baseTextHeightMm * presentationScaleFactor",
             create);
@@ -199,6 +248,9 @@ public sealed class PlainItemLeaderPresentationSourceContractTests
         Assert.Contains(
             "AutoCadPlainItemLeaderPresentationPreparation? plainItemPresentation = null",
             update);
+        Assert.DoesNotContain(
+            "LabelAndDimensionModelHeight",
+            combined);
     }
 
     [Fact]

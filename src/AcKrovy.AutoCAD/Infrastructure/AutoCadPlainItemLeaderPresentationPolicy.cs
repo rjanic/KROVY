@@ -15,9 +15,10 @@ internal sealed record AutoCadPlainItemLeaderPresentationPreparation(
     bool HasExplicitTextSettings);
 
 /// <summary>
-/// Validates Plain ItemNumberLeader native MLeader presentation before any
-/// ForWrite mutation. Used by standalone ItemNumberLeader + Plain production
-/// rendering (Etapa 5B2). Combined DimensionsWithItemNumber remains unwired.
+/// Validates Plain item native MLeader presentation before any ForWrite
+/// mutation. Used by standalone ItemNumberLeader + Plain (Etapa 5B2) and by
+/// the Plain item component of DimensionsWithItemNumber (Etapa 5B3). Primary
+/// combined dimensions MText remains outside this policy.
 /// </summary>
 internal static class AutoCadPlainItemLeaderPresentationPolicy
 {

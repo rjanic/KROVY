@@ -420,12 +420,24 @@ internal static class AutoCadPlainItemLeaderProofService
         ObjectId expectedMtextStyleId,
         Editor editor)
     {
-        // Architecture DWGs normally always resolve a compatible fallback, so
-        // NoCompatibleStyle cannot be forced without faking a false PASS.
+        var modelSpace = OpenModelSpace(database, transaction, OpenMode.ForRead);
+        var sourceHandle = source.Handle.ToString();
         var noCompatible =
             batch.TextStyleCatalog.CompatibleStyles.Count == 0
                 ? AutoCadPlainItemLeaderProofPolicy.FailureCasePreserved
                 : AutoCadPlainItemLeaderProofPolicy.FailureCaseNotTested;
+
+        AssertStandaloneUnchanged(
+            modelSpace,
+            transaction,
+            sourceHandle,
+            leaderId,
+            expectedHeight,
+            expectedLeaderStyleId,
+            expectedMtextStyleId,
+            checkpoint: "E1");
+        editor.WriteMessage(
+            $"\n    E1: ObjectId={leaderId.Handle}; before null-context TryPrepare");
 
         if (!AutoCadPlainItemLeaderPresentationPolicy.TryPrepare(
                 database,
@@ -442,9 +454,19 @@ internal static class AutoCadPlainItemLeaderProofService
                 "Null presentation context must fail Plain Item preparation.");
         }
 
-        // Re-run production Ensure after the failed prepare probe; leader must
-        // remain the same ObjectId with unchanged style/height snapshot fields
-        // when Ensure succeeds with the same compatible presentation.
+        AssertStandaloneUnchanged(
+            modelSpace,
+            transaction,
+            sourceHandle,
+            leaderId,
+            expectedHeight,
+            expectedLeaderStyleId,
+            expectedMtextStyleId,
+            checkpoint: "E2");
+        editor.WriteMessage(
+            "\n    E2 failure-preservation PASS: ObjectId/presentation identical " +
+            "from E1 to E2.");
+
         TimberAnnotationService.EnsureForElement(
             database,
             transaction,
@@ -452,15 +474,49 @@ internal static class AutoCadPlainItemLeaderProofService
             data,
             batch);
 
-        var modelSpace = OpenModelSpace(database, transaction, OpenMode.ForRead);
+        var recovered = FindPlainItemLeader(
+            modelSpace,
+            transaction,
+            sourceHandle);
+        if (recovered is null ||
+            !TryReadLeaderPresentation(
+                recovered,
+                out _,
+                out var recoveredLeaderStyle,
+                out var recoveredMtextStyle,
+                out var recoveredHeight) ||
+            recoveredLeaderStyle != recoveredMtextStyle ||
+            !AreClose(recoveredHeight, expectedHeight))
+        {
+            throw new InvalidOperationException(
+                "E3 recovery Ensure produced an invalid standalone Plain leader.");
+        }
+
+        editor.WriteMessage(
+            $"\n    E3: recovery ObjectId={recovered.ObjectId.Handle}; " +
+            $"sameAsBaseline={recovered.ObjectId == leaderId}; " +
+            $"NoCompatibleStyle={noCompatible}");
+        return noCompatible;
+    }
+
+    private static void AssertStandaloneUnchanged(
+        BlockTableRecord modelSpace,
+        Transaction transaction,
+        string sourceHandle,
+        ObjectId leaderId,
+        double expectedHeight,
+        ObjectId expectedLeaderStyleId,
+        ObjectId expectedMtextStyleId,
+        string checkpoint)
+    {
         var leader = FindPlainItemLeader(
             modelSpace,
             transaction,
-            source.Handle.ToString());
-        if (leader is null || leader.ObjectId != leaderId)
+            sourceHandle);
+        if (leader is null || leader.ObjectId != leaderId || leader.IsErased)
         {
             throw new InvalidOperationException(
-                "Failure preservation: existing Plain ItemNumberLeader changed ObjectId.");
+                $"Failure preservation {checkpoint}: Plain ItemNumberLeader ObjectId changed.");
         }
 
         if (!TryReadLeaderPresentation(
@@ -474,14 +530,8 @@ internal static class AutoCadPlainItemLeaderProofService
             !AreClose(textHeight, expectedHeight))
         {
             throw new InvalidOperationException(
-                "Failure preservation: existing Plain ItemNumberLeader presentation changed.");
+                $"Failure preservation {checkpoint}: Plain ItemNumberLeader presentation changed.");
         }
-
-        editor.WriteMessage(
-            $"\n    E NoCompatibleStyle={noCompatible}; " +
-            "existing leader preserved after null-context prepare failure and " +
-            "successful production Ensure refresh.");
-        return noCompatible;
     }
 
     private static bool VerifyCore(

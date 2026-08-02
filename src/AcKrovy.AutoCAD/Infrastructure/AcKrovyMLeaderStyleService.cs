@@ -95,7 +95,9 @@ internal static class AcKrovyMLeaderStyleService
         AcKrovy.Core.Models.TimberLeaderHorizontalSide contentSide,
         double textHeightMm,
         double presentationScaleFactor,
-        ObjectId? resolvedTextStyleId = null)
+        ObjectId? resolvedTextStyleId = null,
+        double? doglegLengthOverride = null,
+        Autodesk.AutoCAD.Geometry.Vector3d? doglegDirectionOverride = null)
     {
         ArgumentNullException.ThrowIfNull(leader);
         ArgumentNullException.ThrowIfNull(database);
@@ -117,7 +119,9 @@ internal static class AcKrovyMLeaderStyleService
         leader.ArrowSize = settings.ArrowheadSize * presentationScaleFactor;
         leader.EnableLanding = settings.HasHorizontalLanding;
         leader.EnableDogleg = settings.HasHorizontalLanding;
-        leader.DoglegLength = settings.LandingDistance * presentationScaleFactor;
+        var doglegLength = doglegLengthOverride ??
+            settings.LandingDistance * presentationScaleFactor;
+        leader.DoglegLength = doglegLength;
         leader.ExtendLeaderToText = settings.ExtendsLeaderToText;
         leader.EnableFrameText = false;
         leader.LandingGap = 0d * presentationScaleFactor;
@@ -129,13 +133,15 @@ internal static class AcKrovyMLeaderStyleService
             TextAttachmentType.AttachmentBottomLine,
             LeaderDirectionType.RightLeader);
         leader.TextStyleId = resolvedTextStyleId ?? database.Textstyle;
-        if (TimberNativeLeaderStyleRules.RequiresExplicitDoglegDirection)
+        if (doglegLength > 1e-9d ||
+            TimberNativeLeaderStyleRules.RequiresExplicitDoglegDirection)
         {
             leader.SetDogleg(
                 leaderIndex,
-                contentSide == AcKrovy.Core.Models.TimberLeaderHorizontalSide.Left
-                    ? -Autodesk.AutoCAD.Geometry.Vector3d.XAxis
-                    : Autodesk.AutoCAD.Geometry.Vector3d.XAxis);
+                doglegDirectionOverride ??
+                    (contentSide == AcKrovy.Core.Models.TimberLeaderHorizontalSide.Left
+                        ? -Autodesk.AutoCAD.Geometry.Vector3d.XAxis
+                        : Autodesk.AutoCAD.Geometry.Vector3d.XAxis));
         }
         ApplyTextHeight(leader, textHeightMm);
     }

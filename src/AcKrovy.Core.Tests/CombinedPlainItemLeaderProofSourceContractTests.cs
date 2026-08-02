@@ -2,7 +2,7 @@ using Xunit;
 
 namespace AcKrovy.Core.Tests;
 
-public sealed class PlainItemLeaderProofSourceContractTests
+public sealed class CombinedPlainItemLeaderProofSourceContractTests
 {
     private static readonly string RepositoryRoot = FindRepositoryRoot();
 
@@ -16,43 +16,32 @@ public sealed class PlainItemLeaderProofSourceContractTests
             Assert.EndsWith("#endif", trimmed, StringComparison.Ordinal);
         }
 
-        Assert.Contains("AK_DEV_PLAIN_ITEM_TEXT_CREATE", Commands());
-        Assert.Contains("AK_DEV_PLAIN_ITEM_TEXT_VERIFY", Commands());
-        Assert.Contains("AK_DEV_PLAIN_ITEM_TEXT_CLEAN", Commands());
+        Assert.Contains("AK_DEV_COMBINED_PLAIN_ITEM_TEXT_CREATE", Commands());
+        Assert.Contains("AK_DEV_COMBINED_PLAIN_ITEM_TEXT_VERIFY", Commands());
+        Assert.Contains("AK_DEV_COMBINED_PLAIN_ITEM_TEXT_CLEAN", Commands());
     }
 
     [Fact]
-    public void Create_UsesRealProductionPlainItemLeaderPath()
+    public void Create_UsesRealProductionCombinedAndStandalonePaths()
     {
         var create = Member(Service(), "public static void Create(");
 
         Assert.Contains("TimberAnnotationService.EnsureForElement(", create);
         Assert.Contains("AutoCadAnnotationPresentationBatchContext.Create(", create);
-        Assert.Contains("AnnotationMode = TimberAnnotationMode.ItemNumberLeader", Service());
-        Assert.Contains("ItemNumberLeaderStyle = ItemNumberLeaderStyle.Plain", Service());
+        Assert.Contains(
+            "TimberAnnotationMode.DimensionsWithItemNumber",
+            Service());
+        Assert.Contains(
+            "IsStandaloneRegressionCase",
+            Service());
+        Assert.Contains(
+            "TimberAnnotationMode.ItemNumberLeader",
+            Service());
+        Assert.Contains("ItemNumberLeaderStyle.Plain", Service());
         Assert.DoesNotContain("new MLeader()", create);
         Assert.Contains("transaction.Commit();", create);
-        Assert.Contains("StartOpenCloseTransaction()", create);
-        Assert.Contains("VerifyCore(", create);
         Assert.Contains("rolled back", create);
         Assert.Contains("No completed proof manifest", create);
-    }
-
-    [Fact]
-    public void Verify_IsReadOnlyAndReportsStyleParity()
-    {
-        var verify = Member(Service(), "public static void Verify(");
-        var core = Member(Service(), "private static bool VerifyCore(");
-
-        Assert.Contains("StartOpenCloseTransaction()", verify);
-        Assert.DoesNotContain("OpenMode.ForWrite", verify + core);
-        Assert.DoesNotContain("UpgradeOpen", verify + core);
-        Assert.DoesNotContain("Commit();", verify + core);
-        Assert.Contains("leader.TextStyleId", Service());
-        Assert.Contains("content.TextStyleId", Service());
-        Assert.Contains("NOT_TESTED", Service() + Policy());
-        Assert.Contains("DBMOD", verify);
-        Assert.Contains("RefreshToken", Policy());
     }
 
     [Fact]
@@ -60,14 +49,20 @@ public sealed class PlainItemLeaderProofSourceContractTests
     {
         var failure = Member(Service(), "private static string RunFailurePreservation(");
 
+        Assert.Contains("E0", failure);
+        Assert.Contains("E1", failure);
+        Assert.Contains("E2", failure);
+        Assert.Contains("E3", failure);
+        Assert.Contains("AssertCompositeUnchanged(", failure);
         Assert.Contains("checkpoint: \"E1\"", failure);
         Assert.Contains("checkpoint: \"E2\"", failure);
         Assert.Contains(
             "AutoCadPlainItemLeaderPresentationPolicy.TryPrepare(",
             failure);
         Assert.Contains("presentationContext: null", failure);
-        Assert.Contains("E2 failure-preservation PASS", failure);
         Assert.Contains("TimberAnnotationService.EnsureForElement(", failure);
+        Assert.Contains("create-before-erase OK", failure);
+        Assert.Contains("judged solely by E1→E2", failure);
 
         var tryPrepare = failure.IndexOf(
             "AutoCadPlainItemLeaderPresentationPolicy.TryPrepare(",
@@ -83,32 +78,49 @@ public sealed class PlainItemLeaderProofSourceContractTests
     }
 
     [Fact]
-    public void ProofCoversLegacyExplicitDenominatorRefreshAndFailure()
+    public void Verify_IsReadOnlyAndChecksBothCompositeComponents()
+    {
+        var verify = Member(Service(), "private static bool VerifyCore(");
+
+        Assert.DoesNotContain("OpenMode.ForWrite", verify);
+        Assert.DoesNotContain("UpgradeOpen", verify);
+        Assert.DoesNotContain("Commit();", verify);
+        Assert.Contains("FindCombinedPlainItemLeader(", verify);
+        Assert.Contains("FindCombinedDimensionsMText(", verify);
+        Assert.Contains("FindStandalonePlainItemLeader(", verify);
+        Assert.Contains("NOT_TESTED", Service() + Policy());
+        Assert.Contains("DBMOD", Service());
+        Assert.Contains("DimensionsModelHeightMm", Policy());
+    }
+
+    [Fact]
+    public void ProofCoversCombinedExplicitDenominatorRefreshFailureAndStandalone()
     {
         var policy = Policy();
         Assert.Contains("\"A\"", policy);
         Assert.Contains("\"B\"", policy);
         Assert.Contains("\"C\"", policy);
         Assert.Contains("\"E\"", policy);
+        Assert.Contains("\"F\"", policy);
         Assert.Contains("DenominatorOverride: 50", policy);
         Assert.Contains("DenominatorOverride: 100", policy);
         Assert.Contains("ExpectRefreshSameObjectId: true", policy);
         Assert.Contains("IsFailurePreservationCase: true", policy);
-        Assert.Contains("TextSettings: null", policy);
+        Assert.Contains("IsStandaloneRegressionCase: true", policy);
         Assert.Contains("3d,", policy);
     }
 
     private static string Commands() =>
         Source("src", "AcKrovy.AutoCAD", "Commands",
-            "AutoCadPlainItemLeaderProofCommands.cs");
+            "AutoCadCombinedPlainItemLeaderProofCommands.cs");
 
     private static string Policy() =>
         Source("src", "AcKrovy.AutoCAD", "Infrastructure",
-            "AutoCadPlainItemLeaderProofPolicy.cs");
+            "AutoCadCombinedPlainItemLeaderProofPolicy.cs");
 
     private static string Service() =>
         Source("src", "AcKrovy.AutoCAD", "Infrastructure",
-            "AutoCadPlainItemLeaderProofService.cs");
+            "AutoCadCombinedPlainItemLeaderProofService.cs");
 
     private static string Member(string source, string signature)
     {

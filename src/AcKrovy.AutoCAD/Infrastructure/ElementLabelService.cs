@@ -391,7 +391,9 @@ internal static class ElementLabelService
         double baseTextHeightMm = DefaultTextHeightMm,
         AutoCadAnnotationPresentationContext? presentationContext = null,
         AutoCadItemLeaderBlockVariantBatchCatalog? variantBatchCatalog = null,
-        Action<AutoCadItemLeaderBlockVariantResult>? variantResultObserver = null)
+        Action<AutoCadItemLeaderBlockVariantResult>? variantResultObserver = null,
+        AutoCadPlainItemLeaderPresentationPreparation? preparedPlainItemPresentation = null,
+        double? combinedLandingDistanceMm = null)
     {
         ArgumentNullException.ThrowIfNull(annotationScaleContext);
         var sourceHandle = sourceEntity.Handle.ToString();
@@ -503,21 +505,29 @@ internal static class ElementLabelService
         }
 
         AutoCadPlainItemLeaderPresentationPreparation? plainItemPreparation = null;
-        var usesStandalonePlainItemPresentation =
+        var normalizedAnnotationMode =
+            TimberAnnotationModeRules.Normalize(data.AnnotationMode);
+        var usesPlainItemPresentation =
             desiredRepresentation == TimberMainAnnotationRepresentation.Leader &&
-            TimberAnnotationModeRules.Normalize(data.AnnotationMode) ==
-                TimberAnnotationMode.ItemNumberLeader &&
             ItemNumberLeaderStyleRules.Normalize(data.ItemNumberLeaderStyle) ==
                 ItemNumberLeaderStyle.Plain &&
-            componentRole == TimberMainAnnotationComponentRole.Primary;
-        if (usesStandalonePlainItemPresentation)
+            ((normalizedAnnotationMode == TimberAnnotationMode.ItemNumberLeader &&
+              componentRole == TimberMainAnnotationComponentRole.Primary) ||
+             (normalizedAnnotationMode ==
+                  TimberAnnotationMode.DimensionsWithItemNumber &&
+              componentRole == TimberMainAnnotationComponentRole.FramedItem));
+        if (usesPlainItemPresentation)
         {
-            if (!AutoCadPlainItemLeaderPresentationPolicy.TryPrepare(
-                    database,
-                    presentationContext,
-                    out plainItemPreparation,
-                    out var plainItemDiagnostic) ||
-                plainItemPreparation is null)
+            if (preparedPlainItemPresentation is not null)
+            {
+                plainItemPreparation = preparedPlainItemPresentation;
+            }
+            else if (!AutoCadPlainItemLeaderPresentationPolicy.TryPrepare(
+                         database,
+                         presentationContext,
+                         out plainItemPreparation,
+                         out var plainItemDiagnostic) ||
+                     plainItemPreparation is null)
             {
                 AcKrovyDiagnostics.Warning(
                     "PlainItemLeaderPresentation",
@@ -567,7 +577,8 @@ internal static class ElementLabelService
                 annotationScaleContext,
                 scaleNativePresentation,
                 baseTextHeightMm,
-                plainItemPreparation))
+                plainItemPreparation,
+                combinedLandingDistanceMm))
         {
             leader = existingLeader;
         }
@@ -602,7 +613,8 @@ internal static class ElementLabelService
                     annotationScaleContext,
                     scaleNativePresentation,
                     baseTextHeightMm,
-                    plainItemPreparation);
+                    plainItemPreparation,
+                    combinedLandingDistanceMm);
             WriteLeaderMetadata(
                 leader,
                 transaction,
@@ -674,6 +686,30 @@ internal static class ElementLabelService
             framedPlacement,
             presentationScaleFactor);
         var effectiveFramedPlacement = combinedFramedPlacement;
+        var isCombinedPlainItem =
+            ItemNumberLeaderStyleRules.Normalize(data.ItemNumberLeaderStyle) ==
+                ItemNumberLeaderStyle.Plain;
+        var combinedLandingDistanceMm = isCombinedPlainItem
+            ? TimberItemLeaderLayoutCalculator.CombinedFramedLandingDistanceMm *
+              presentationScaleFactor
+            : (double?)null;
+        AutoCadPlainItemLeaderPresentationPreparation? plainItemPreparation = null;
+        if (isCombinedPlainItem)
+        {
+            if (!AutoCadPlainItemLeaderPresentationPolicy.TryPrepare(
+                    database,
+                    presentationContext,
+                    out plainItemPreparation,
+                    out var plainItemDiagnostic) ||
+                plainItemPreparation is null)
+            {
+                AcKrovyDiagnostics.Warning(
+                    "PlainItemLeaderPresentation",
+                    plainItemDiagnostic);
+                return false;
+            }
+        }
+
         AutoCadItemLeaderBlockVariantResult? framedVariantResult = null;
         var framedCreated = UpsertLeader(
             database,
@@ -686,9 +722,9 @@ internal static class ElementLabelService
             copySourcePreservation,
             annotationScaleContext: annotationScaleContext,
             componentRole: TimberMainAnnotationComponentRole.FramedItem,
-            representationOverride: ItemNumberLeaderStyleRules.Normalize(data.ItemNumberLeaderStyle) != ItemNumberLeaderStyle.Plain
-                ? TimberMainAnnotationRepresentation.BlockLeader
-                : TimberMainAnnotationRepresentation.Leader,
+            representationOverride: isCombinedPlainItem
+                ? TimberMainAnnotationRepresentation.Leader
+                : TimberMainAnnotationRepresentation.BlockLeader,
             preserveCompositeSiblings: true,
             effectivePlacementObserver: placement =>
                 effectiveFramedPlacement = placement,
@@ -701,7 +737,9 @@ internal static class ElementLabelService
             {
                 framedVariantResult = result;
                 variantResultObserver?.Invoke(result);
-            });
+            },
+            preparedPlainItemPresentation: plainItemPreparation,
+            combinedLandingDistanceMm: combinedLandingDistanceMm);
         if (framedVariantResult is { Succeeded: false })
         {
             return false;
@@ -1499,20 +1537,49 @@ internal static class ElementLabelService
             .Select(entry => new MainAnnotationEntry(
                 entry.Id,
                 entry.Data,
-                entry.Data.ComponentRole is
-                    TimberMainAnnotationComponentRole.CircleText or
-                    TimberMainAnnotationComponentRole.FramedItem ||
-                entry.EntityType == MainAnnotationEntityType.MLeader &&
-                TimberAnnotationModeRules.GetRepresentation(
-                    entry.Data.AnnotationMode,
-                    entry.Data.ItemNumberLeaderStyle) ==
-                TimberMainAnnotationRepresentation.BlockLeader
-                    ? TimberMainAnnotationRepresentation.BlockLeader
-                    : entry.EntityType is MainAnnotationEntityType.MLeader or
-                        MainAnnotationEntityType.BlockReference
-                        ? TimberMainAnnotationRepresentation.Leader
-                        : TimberMainAnnotationRepresentation.FullLabel))
+                ResolveMainAnnotationRepresentation(entry)))
             .ToList();
+    }
+
+    /// <summary>
+    /// Combined Plain item components use <see cref="TimberMainAnnotationComponentRole.FramedItem"/>
+    /// with native Leader representation. Framed Circle/Slot/Rectangle keep BlockLeader.
+    /// </summary>
+    private static TimberMainAnnotationRepresentation ResolveMainAnnotationRepresentation(
+        AnnotationEntityEntry entry)
+    {
+        if (entry.Data.ComponentRole ==
+            TimberMainAnnotationComponentRole.CircleText)
+        {
+            return TimberMainAnnotationRepresentation.BlockLeader;
+        }
+
+        if (entry.Data.ComponentRole ==
+            TimberMainAnnotationComponentRole.FramedItem)
+        {
+            return ItemNumberLeaderStyleRules.Normalize(
+                       entry.Data.ItemNumberLeaderStyle) ==
+                   ItemNumberLeaderStyle.Plain
+                ? TimberMainAnnotationRepresentation.Leader
+                : TimberMainAnnotationRepresentation.BlockLeader;
+        }
+
+        if (entry.EntityType == MainAnnotationEntityType.MLeader &&
+            TimberAnnotationModeRules.GetRepresentation(
+                entry.Data.AnnotationMode,
+                entry.Data.ItemNumberLeaderStyle) ==
+            TimberMainAnnotationRepresentation.BlockLeader)
+        {
+            return TimberMainAnnotationRepresentation.BlockLeader;
+        }
+
+        if (entry.EntityType is MainAnnotationEntityType.MLeader or
+            MainAnnotationEntityType.BlockReference)
+        {
+            return TimberMainAnnotationRepresentation.Leader;
+        }
+
+        return TimberMainAnnotationRepresentation.FullLabel;
     }
 
     private static IReadOnlyList<AnnotationEntityEntry> ReadAnnotationEntities(
@@ -1953,15 +2020,21 @@ internal static class ElementLabelService
         LeaderPlacement framedPlacement,
         double presentationScaleFactor)
     {
+        // Landing length and DoglegLength share CombinedFramedLandingDistanceMm *
+        // presentationScaleFactor. TextLocation adds envelope half-width once beyond
+        // that landing end; the landing distance itself is never applied twice.
         var contentDirection = framedPlacement.TextLocation - framedPlacement.Knee;
         var normalizedDirection = contentDirection.Length > PlacementToleranceMm
             ? contentDirection.GetNormal()
             : framedPlacement.Side == TimberLeaderHorizontalSide.Left
                 ? -Vector3d.XAxis
                 : Vector3d.XAxis;
+        var combinedLandingDistanceMm =
+            TimberItemLeaderLayoutCalculator.CombinedFramedLandingDistanceMm *
+            presentationScaleFactor;
         var contentDistance =
             framedPlacement.EnvelopeWidthMm / 2d +
-            TimberItemLeaderLayoutCalculator.CombinedFramedLandingDistanceMm * presentationScaleFactor;
+            combinedLandingDistanceMm;
         return framedPlacement with
         {
             TextLocation = framedPlacement.Knee +
@@ -2101,7 +2174,8 @@ internal static class ElementLabelService
         TimberAnnotationScaleContext annotationScaleContext,
         bool scaleNativePresentation,
         double baseTextHeightMm,
-        AutoCadPlainItemLeaderPresentationPreparation? plainItemPresentation = null)
+        AutoCadPlainItemLeaderPresentationPreparation? plainItemPresentation = null,
+        double? combinedLandingDistanceMm = null)
     {
         var presentationScaleFactor = scaleNativePresentation
             ? annotationScaleContext.ScaleFactor
@@ -2144,7 +2218,11 @@ internal static class ElementLabelService
             placement.Side,
             effectiveTextHeight,
             presentationScaleFactor,
-            resolvedTextStyleId);
+            resolvedTextStyleId,
+            doglegLengthOverride: combinedLandingDistanceMm,
+            doglegDirectionOverride: combinedLandingDistanceMm is not null
+                ? placement.DoglegDirection
+                : null);
 
         var blockTable = (BlockTable)transaction.GetObject(
             database.BlockTableId,
@@ -2519,7 +2597,8 @@ internal static class ElementLabelService
         TimberAnnotationScaleContext annotationScaleContext,
         bool scaleNativePresentation,
         double baseTextHeightMm,
-        AutoCadPlainItemLeaderPresentationPreparation? plainItemPresentation = null)
+        AutoCadPlainItemLeaderPresentationPreparation? plainItemPresentation = null,
+        double? combinedLandingDistanceMm = null)
     {
         if (leader.ContentType != ContentType.MTextContent)
         {
@@ -2577,7 +2656,11 @@ internal static class ElementLabelService
             placement.Side,
             effectiveTextHeight,
             presentationScaleFactor,
-            resolvedTextStyleId);
+            resolvedTextStyleId,
+            doglegLengthOverride: combinedLandingDistanceMm,
+            doglegDirectionOverride: combinedLandingDistanceMm is not null
+                ? placement.DoglegDirection
+                : null);
         SynchronizeNativeLeaderGeometry(
             leader,
             lineIndexes[0],
