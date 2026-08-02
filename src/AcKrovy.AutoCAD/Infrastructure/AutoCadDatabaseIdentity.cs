@@ -72,6 +72,9 @@ internal static class AutoCadDatabaseIdentityPolicy
 
 internal static class AutoCadDatabaseIdentity
 {
+    public static AutoCadDatabaseIdentityToken? TryGetIdentity(
+        Database? database) => TryGetToken(database);
+
     public static bool IsSame(Database? expected, Database? actual) =>
         Compare(expected, actual).IsSameDatabase;
 

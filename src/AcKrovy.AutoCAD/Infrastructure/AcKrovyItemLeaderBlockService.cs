@@ -87,7 +87,7 @@ internal static class AcKrovyItemLeaderBlockService
         return new ItemLeaderBlockReference(blockId, attributeId, definition);
     }
 
-    private static void AddFrameGeometry(
+    internal static void AddFrameGeometry(
         Database database,
         Transaction transaction,
         BlockTableRecord block,
@@ -174,11 +174,12 @@ internal static class AcKrovyItemLeaderBlockService
         }
     }
 
-    private static ObjectId AddItemNumberAttribute(
+    internal static ObjectId AddItemNumberAttribute(
         Database database,
         Transaction transaction,
         BlockTableRecord block,
-        double textHeight)
+        double textHeight,
+        ObjectId? textStyleId = null)
     {
         var attribute = new AttributeDefinition();
         attribute.SetDatabaseDefaults(database);
@@ -186,6 +187,10 @@ internal static class AcKrovyItemLeaderBlockService
         attribute.Prompt = TimberItemLeaderBlockDefinitionRules.AttributeTag;
         attribute.TextString = string.Empty;
         attribute.Height = textHeight;
+        if (textStyleId is ObjectId resolvedTextStyleId)
+        {
+            attribute.TextStyleId = resolvedTextStyleId;
+        }
         attribute.Position = Point3d.Origin;
         attribute.HorizontalMode = TextHorizontalMode.TextCenter;
         attribute.VerticalMode = TextVerticalMode.TextVerticalMid;
@@ -220,7 +225,7 @@ internal static class AcKrovyItemLeaderBlockService
         return id;
     }
 
-    private static ObjectId FindItemNumberAttribute(
+    internal static ObjectId FindItemNumberAttribute(
         BlockTableRecord block,
         Transaction transaction)
     {
