@@ -3,6 +3,7 @@ using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Geometry;
 using AcColor = Autodesk.AutoCAD.Colors.Color;
+using AcKrovy.AutoCAD.Diagnostics;
 using AcKrovy.AutoCAD.Settings;
 using AcKrovy.Core.Models;
 using AcKrovy.Core.Services;
@@ -116,9 +117,20 @@ internal static class ElementLabelService
                 variantResultObserver: variantResultObserver);
         }
 
-        var textHeightMm =
-            TimberDimensionTypographyRules.CalculateTextHeightMm(
-                annotationScaleContext.ScaleFactor);
+        if (!AutoCadFullLabelPresentationPolicy.TryPrepare(
+                database,
+                presentationContext,
+                out var fullLabelPresentation,
+                out var fullLabelDiagnostic) ||
+            fullLabelPresentation is null)
+        {
+            AcKrovyDiagnostics.Warning(
+                "FullLabelPresentation",
+                fullLabelDiagnostic);
+            return false;
+        }
+
+        var textHeightMm = fullLabelPresentation.ModelHeightMm;
         var placement = CalculatePlacement(sourceEntity, textHeightMm);
         return UpsertLabel(
             database,
@@ -131,7 +143,8 @@ internal static class ElementLabelService
             AttachmentPoint.MiddleCenter,
             textHeightMm,
             lineSpacingFactor: null,
-            copySourcePreservation);
+            copySourcePreservation,
+            resolvedTextStyleId: fullLabelPresentation.TextStyleId);
     }
 
     public static bool UpsertForPostFootprint(
@@ -235,6 +248,19 @@ internal static class ElementLabelService
                 variantResultObserver: variantResultObserver);
         }
 
+        if (!AutoCadFullLabelPresentationPolicy.TryPrepare(
+                database,
+                presentationContext,
+                out var fullLabelPresentation,
+                out var fullLabelDiagnostic) ||
+            fullLabelPresentation is null)
+        {
+            AcKrovyDiagnostics.Warning(
+                "FullLabelPresentation",
+                fullLabelDiagnostic);
+            return false;
+        }
+
         var footprintPlacement = TimberPostFootprintLabelPlacementCalculator.Calculate(
             geometry.Bounds,
             TimberPostFootprintLabelPlacementCalculator.VerticalGapMm *
@@ -243,9 +269,7 @@ internal static class ElementLabelService
         var placement = new LabelPlacement(
             new Point3d(footprintPlacement.AnchorX, footprintPlacement.AnchorY, elevation),
             footprintPlacement.RotationRadians);
-        var fullLabelTextHeightMm =
-            TimberDimensionTypographyRules.CalculateTextHeightMm(
-                presentationScaleFactor);
+        var fullLabelTextHeightMm = fullLabelPresentation.ModelHeightMm;
 
         return UpsertLabel(
             database,
@@ -258,7 +282,8 @@ internal static class ElementLabelService
             AttachmentPoint.BottomCenter,
             fullLabelTextHeightMm,
             TimberPostFootprintLabelPlacementCalculator.LineSpacingFactor,
-            copySourcePreservation);
+            copySourcePreservation,
+            resolvedTextStyleId: fullLabelPresentation.TextStyleId);
     }
 
     private static bool UpsertLabel(
@@ -279,7 +304,8 @@ internal static class ElementLabelService
             TimberMainAnnotationComponentRole.Primary,
         bool preserveCompositeSiblings = false,
         double? envelopeWidthMm = null,
-        double? envelopeHeightMm = null)
+        double? envelopeHeightMm = null,
+        ObjectId? resolvedTextStyleId = null)
     {
         var sourceHandle = sourceEntity.Handle.ToString();
         var existingLabelId = FindExistingLabelId(
@@ -320,7 +346,8 @@ internal static class ElementLabelService
             attachment,
             textHeightMm,
             lineSpacingFactor,
-            updateExistingLayer: !copySourcePreservation);
+            updateExistingLayer: !copySourcePreservation,
+            resolvedTextStyleId: resolvedTextStyleId);
         ElementLabelStore.Write(label, transaction, new ElementLabelData
         {
             ElementId = data.ElementId,
@@ -1698,13 +1725,18 @@ internal static class ElementLabelService
         AttachmentPoint attachment,
         double textHeightMm,
         double? lineSpacingFactor,
-        bool updateExistingLayer)
+        bool updateExistingLayer,
+        ObjectId? resolvedTextStyleId = null)
     {
         var labelLayerId = EnsureLabelLayer(database, transaction, updateExistingLayer);
         label.LayerId = labelLayerId;
         label.Color = AcColor.FromColorIndex(ColorMethod.ByLayer, 256);
         label.Attachment = attachment;
         label.TextHeight = textHeightMm;
+        if (resolvedTextStyleId is ObjectId textStyleId)
+        {
+            label.TextStyleId = textStyleId;
+        }
         if (lineSpacingFactor.HasValue)
         {
             label.LineSpacingFactor = lineSpacingFactor.Value;

@@ -186,6 +186,12 @@ public sealed class PostFootprintAnnotationScaleTests
                 "annotationScaleContext.ScaleFactor"));
         Assert.DoesNotContain("scaleNativePresentation: false", method);
         Assert.Contains(
+            "AutoCadFullLabelPresentationPolicy.TryPrepare(",
+            method);
+        Assert.Contains(
+            "fullLabelPresentation.ModelHeightMm",
+            method);
+        Assert.DoesNotContain(
             "TimberDimensionTypographyRules.CalculateTextHeightMm",
             method);
     }

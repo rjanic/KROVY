@@ -1054,8 +1054,15 @@ public sealed class AnnotationScaleRegressionTests
             "public static bool UpsertForElement(");
 
         Assert.Contains(
-            "TimberDimensionTypographyRules.CalculateTextHeightMm(",
+            "fullLabelPresentation.ModelHeightMm",
             methodBody);
+        Assert.Contains(
+            "LabelAndDimensionModelHeight",
+            Source(
+                "src",
+                "AcKrovy.AutoCAD",
+                "Infrastructure",
+                "AutoCadFullLabelPresentationPolicy.cs"));
         Assert.Contains(
             "TimberDimensionTypographyRules",
             methodBody);
@@ -1516,14 +1523,23 @@ public sealed class AnnotationScaleRegressionTests
         Assert.Contains("textHeightMm", placementCall);
         Assert.DoesNotContain("annotationScaleService", placementCall);
         Assert.DoesNotContain("labelText", placementCall);
+        Assert.Contains(
+            "fullLabelPresentation.ModelHeightMm",
+            upsertBody);
+        Assert.Contains(
+            "AutoCadFullLabelPresentationPolicy.TryPrepare(",
+            upsertBody);
         Assert.Equal(
-            1,
+            0,
             CountOccurrences(upsertBody, "CalculateTextHeightMm("));
         Assert.Contains(
             "AttachmentPoint.MiddleCenter",
             labelCall);
         Assert.Contains("textHeightMm", labelCall);
         Assert.Contains("lineSpacingFactor: null", labelCall);
+        Assert.Contains(
+            "resolvedTextStyleId: fullLabelPresentation.TextStyleId",
+            labelCall);
         Assert.DoesNotContain("envelopeWidthMm:", labelCall);
         Assert.DoesNotContain("envelopeHeightMm:", labelCall);
         Assert.Contains(
