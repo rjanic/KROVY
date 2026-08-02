@@ -16,8 +16,8 @@ internal sealed record AutoCadPlainItemLeaderPresentationPreparation(
 
 /// <summary>
 /// Validates Plain ItemNumberLeader native MLeader presentation before any
-/// ForWrite mutation. Etapa 5B1 exposes the contract only; production
-/// renderers are not wired yet.
+/// ForWrite mutation. Used by standalone ItemNumberLeader + Plain production
+/// rendering (Etapa 5B2). Combined DimensionsWithItemNumber remains unwired.
 /// </summary>
 internal static class AutoCadPlainItemLeaderPresentationPolicy
 {

@@ -502,6 +502,30 @@ internal static class ElementLabelService
             }
         }
 
+        AutoCadPlainItemLeaderPresentationPreparation? plainItemPreparation = null;
+        var usesStandalonePlainItemPresentation =
+            desiredRepresentation == TimberMainAnnotationRepresentation.Leader &&
+            TimberAnnotationModeRules.Normalize(data.AnnotationMode) ==
+                TimberAnnotationMode.ItemNumberLeader &&
+            ItemNumberLeaderStyleRules.Normalize(data.ItemNumberLeaderStyle) ==
+                ItemNumberLeaderStyle.Plain &&
+            componentRole == TimberMainAnnotationComponentRole.Primary;
+        if (usesStandalonePlainItemPresentation)
+        {
+            if (!AutoCadPlainItemLeaderPresentationPolicy.TryPrepare(
+                    database,
+                    presentationContext,
+                    out plainItemPreparation,
+                    out var plainItemDiagnostic) ||
+                plainItemPreparation is null)
+            {
+                AcKrovyDiagnostics.Warning(
+                    "PlainItemLeaderPresentation",
+                    plainItemDiagnostic);
+                return false;
+            }
+        }
+
         MLeader leader;
         var isCreated = existingId.IsNull;
         var metadataWritten = false;
@@ -542,7 +566,8 @@ internal static class ElementLabelService
                 updateExistingDefinitions: !copySourcePreservation,
                 annotationScaleContext,
                 scaleNativePresentation,
-                baseTextHeightMm))
+                baseTextHeightMm,
+                plainItemPreparation))
         {
             leader = existingLeader;
         }
@@ -576,7 +601,8 @@ internal static class ElementLabelService
                     updateExistingDefinitions: !copySourcePreservation,
                     annotationScaleContext,
                     scaleNativePresentation,
-                    baseTextHeightMm);
+                    baseTextHeightMm,
+                    plainItemPreparation);
             WriteLeaderMetadata(
                 leader,
                 transaction,
@@ -2074,13 +2100,16 @@ internal static class ElementLabelService
         bool updateExistingDefinitions,
         TimberAnnotationScaleContext annotationScaleContext,
         bool scaleNativePresentation,
-        double baseTextHeightMm)
+        double baseTextHeightMm,
+        AutoCadPlainItemLeaderPresentationPreparation? plainItemPresentation = null)
     {
         var presentationScaleFactor = scaleNativePresentation
             ? annotationScaleContext.ScaleFactor
             : 1d;
-        var effectiveTextHeight =
-            baseTextHeightMm * presentationScaleFactor;
+        var effectiveTextHeight = plainItemPresentation is not null
+            ? plainItemPresentation.ModelHeightMm
+            : baseTextHeightMm * presentationScaleFactor;
+        var resolvedTextStyleId = plainItemPresentation?.TextStyleId;
         var styleId = AcKrovyMLeaderStyleService.Ensure(
             database,
             transaction,
@@ -2092,7 +2121,8 @@ internal static class ElementLabelService
             database,
             placement.TextLocation,
             contents,
-            effectiveTextHeight);
+            effectiveTextHeight,
+            resolvedTextStyleId);
         var leader = new MLeader();
         leader.SetDatabaseDefaults(database);
         leader.MLeaderStyle = styleId;
@@ -2113,7 +2143,8 @@ internal static class ElementLabelService
             leaderLineIndex,
             placement.Side,
             effectiveTextHeight,
-            presentationScaleFactor);
+            presentationScaleFactor,
+            resolvedTextStyleId);
 
         var blockTable = (BlockTable)transaction.GetObject(
             database.BlockTableId,
@@ -2463,7 +2494,8 @@ internal static class ElementLabelService
         Database database,
         Point3d location,
         string contents,
-        double textHeightMm)
+        double textHeightMm,
+        ObjectId? resolvedTextStyleId = null)
     {
         var text = new MText();
         text.SetDatabaseDefaults(database);
@@ -2471,7 +2503,7 @@ internal static class ElementLabelService
         text.Location = location;
         text.Attachment = AttachmentPoint.MiddleCenter;
         text.TextHeight = textHeightMm;
-        text.TextStyleId = database.Textstyle;
+        text.TextStyleId = resolvedTextStyleId ?? database.Textstyle;
         text.Color = AcColor.FromColorIndex(ColorMethod.ByLayer, 256);
         text.LineWeight = LineWeight.ByLayer;
         return text;
@@ -2486,7 +2518,8 @@ internal static class ElementLabelService
         bool updateExistingDefinitions,
         TimberAnnotationScaleContext annotationScaleContext,
         bool scaleNativePresentation,
-        double baseTextHeightMm)
+        double baseTextHeightMm,
+        AutoCadPlainItemLeaderPresentationPreparation? plainItemPresentation = null)
     {
         if (leader.ContentType != ContentType.MTextContent)
         {
@@ -2520,14 +2553,17 @@ internal static class ElementLabelService
         var presentationScaleFactor = scaleNativePresentation
             ? annotationScaleContext.ScaleFactor
             : 1d;
-        var effectiveTextHeight =
-            baseTextHeightMm * presentationScaleFactor;
+        var effectiveTextHeight = plainItemPresentation is not null
+            ? plainItemPresentation.ModelHeightMm
+            : baseTextHeightMm * presentationScaleFactor;
+        var resolvedTextStyleId = plainItemPresentation?.TextStyleId;
         leader.MLeaderStyle = styleId;
         leader.MText = CreateLeaderMText(
             database,
             placement.TextLocation,
             contents,
-            effectiveTextHeight);
+            effectiveTextHeight,
+            resolvedTextStyleId);
         leader.SetFirstVertex(lineIndexes[0], placement.Anchor);
         leader.SetLastVertex(lineIndexes[0], placement.Knee);
         leader.TextLocation = placement.TextLocation;
@@ -2540,7 +2576,8 @@ internal static class ElementLabelService
             lineIndexes[0],
             placement.Side,
             effectiveTextHeight,
-            presentationScaleFactor);
+            presentationScaleFactor,
+            resolvedTextStyleId);
         SynchronizeNativeLeaderGeometry(
             leader,
             lineIndexes[0],

@@ -88,34 +88,134 @@ public sealed class PlainItemLeaderPresentationSourceContractTests
     }
 
     [Fact]
-    public void ProductionNativePath_IsNotWiredToPlainItemLeaderPolicy()
+    public void StandalonePlainItemNumberLeader_IsWiredBeforeForWrite()
     {
-        var labels = ElementLabelSource();
-        var styleService = Source(
-            "src", "AcKrovy.AutoCAD", "Infrastructure",
-            "AcKrovyMLeaderStyleService.cs");
+        var upsert = Member(
+            ElementLabelSource(),
+            "private static bool UpsertLeader(");
+        var create = Member(
+            ElementLabelSource(),
+            "private static MLeader CreateNativeMLeader(");
+        var update = Member(
+            ElementLabelSource(),
+            "private static bool TryUpdateNativeLeader(");
+        var styleService = Member(
+            Source(
+                "src", "AcKrovy.AutoCAD", "Infrastructure",
+                "AcKrovyMLeaderStyleService.cs"),
+            "public static void ApplyInstanceProperties(");
+        var mText = Member(
+            ElementLabelSource(),
+            "private static MText CreateLeaderMText(");
 
+        var prepare = upsert.IndexOf(
+            "AutoCadPlainItemLeaderPresentationPolicy.TryPrepare(",
+            StringComparison.Ordinal);
+        var failure = upsert.IndexOf(
+            "return false;",
+            prepare,
+            StringComparison.Ordinal);
+        var existingWrite = upsert.IndexOf(
+            "transaction.GetObject(existingId, OpenMode.ForWrite",
+            StringComparison.Ordinal);
+        Assert.True(prepare >= 0 && failure >= 0 && existingWrite >= 0);
+        Assert.True(prepare < failure && failure < existingWrite);
+        Assert.Contains(
+            "TimberAnnotationMode.ItemNumberLeader",
+            upsert);
+        Assert.Contains("ItemNumberLeaderStyle.Plain", upsert);
+        Assert.Contains(
+            "TimberMainAnnotationComponentRole.Primary",
+            upsert);
+        Assert.Contains("plainItemPresentation.ModelHeightMm", create);
+        Assert.Contains("plainItemPresentation.ModelHeightMm", update);
         Assert.DoesNotContain(
-            "AutoCadPlainItemLeaderPresentationPolicy",
-            labels);
+            "plainItemPresentation.ModelHeightMm *",
+            create + update);
+        Assert.Contains(
+            "resolvedTextStyleId ?? database.Textstyle",
+            mText);
+        Assert.Contains(
+            "resolvedTextStyleId ?? database.Textstyle",
+            styleService);
+        Assert.DoesNotContain("database.Textstyle =", ElementLabelSource());
         Assert.DoesNotContain(
-            "AutoCadPlainItemLeaderPresentationPreparation",
-            labels);
+            "database.Textstyle =",
+            Source(
+                "src", "AcKrovy.AutoCAD", "Infrastructure",
+                "AcKrovyMLeaderStyleService.cs"));
+    }
+
+    [Fact]
+    public void DimensionsLeaderAndCombinedPlain_RemainOnLegacyNativePath()
+    {
+        var upsert = Member(
+            ElementLabelSource(),
+            "private static bool UpsertLeader(");
+        var combined = Member(
+            ElementLabelSource(),
+            "private static bool UpsertCombinedLeader(");
+        var upsertForElement = Member(
+            ElementLabelSource(),
+            "public static bool UpsertForElement(");
+        var create = Member(
+            ElementLabelSource(),
+            "private static MLeader CreateNativeMLeader(");
+        var update = Member(
+            ElementLabelSource(),
+            "private static bool TryUpdateNativeLeader(");
+
         Assert.Contains(
-            "text.TextStyleId = database.Textstyle",
-            Member(labels, "private static MText CreateLeaderMText("));
+            "usesStandalonePlainItemPresentation",
+            upsert);
         Assert.Contains(
-            "leader.TextStyleId = database.Textstyle",
-            Member(styleService, "public static void ApplyInstanceProperties("));
+            "TimberAnnotationMode.ItemNumberLeader",
+            upsert);
         Assert.Contains(
-            "CreateLeaderMText(",
-            Member(labels, "private static MLeader CreateNativeMLeader("));
+            "TimberMainAnnotationComponentRole.Primary",
+            upsert);
         Assert.Contains(
-            "CreateLeaderMText(",
-            Member(labels, "private static bool TryUpdateNativeLeader("));
+            "componentRole: TimberMainAnnotationComponentRole.FramedItem",
+            combined);
         Assert.DoesNotContain(
             "AutoCadPlainItemLeaderPresentationPolicy.TryPrepare(",
-            Member(labels, "private static bool UpsertLeader("));
+            combined);
+        Assert.Contains(
+            "TimberAnnotationMode.DimensionsWithItemNumber",
+            upsertForElement);
+        Assert.Contains("return UpsertCombinedLeader(", upsertForElement);
+        Assert.Contains(
+            "TimberAnnotationMode.DimensionsLeader",
+            upsertForElement);
+        Assert.Contains(
+            "baseTextHeightMm * presentationScaleFactor",
+            create);
+        Assert.Contains(
+            "baseTextHeightMm * presentationScaleFactor",
+            update);
+        Assert.Contains(
+            "AutoCadPlainItemLeaderPresentationPreparation? plainItemPresentation = null",
+            create);
+        Assert.Contains(
+            "AutoCadPlainItemLeaderPresentationPreparation? plainItemPresentation = null",
+            update);
+    }
+
+    [Fact]
+    public void Replacement_RemainsCreateBeforeErase()
+    {
+        var upsert = Member(
+            ElementLabelSource(),
+            "private static bool UpsertLeader(");
+        var create = upsert.IndexOf(
+            "CreateNativeMLeader(",
+            StringComparison.Ordinal);
+        var erase = upsert.IndexOf(
+            "EraseMainAnnotation(",
+            StringComparison.Ordinal);
+        Assert.True(create >= 0 && erase >= 0 && create < erase);
+        Assert.Contains("WriteLeaderMetadata(", upsert);
+        Assert.Contains("SourceHandle", upsert);
     }
 
     [Fact]

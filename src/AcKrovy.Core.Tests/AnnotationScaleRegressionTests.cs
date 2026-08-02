@@ -343,7 +343,7 @@ public sealed class AnnotationScaleRegressionTests
             "private static MText CreateLeaderMText(",
             "private static bool TryUpdateNativeLeader(");
 
-        Assert.Contains("text.TextStyleId = database.Textstyle", methodBody);
+        Assert.Contains("text.TextStyleId = resolvedTextStyleId ?? database.Textstyle", methodBody);
     }
 
     [Fact]
@@ -360,7 +360,7 @@ public sealed class AnnotationScaleRegressionTests
             "public static void ApplyInstanceProperties(",
             "public static void ApplyBlockInstanceProperties(");
 
-        Assert.Contains("leader.TextStyleId = database.Textstyle", methodBody);
+        Assert.Contains("leader.TextStyleId = resolvedTextStyleId ?? database.Textstyle", methodBody);
     }
 
     [Fact]

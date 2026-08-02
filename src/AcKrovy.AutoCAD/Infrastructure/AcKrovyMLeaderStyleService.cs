@@ -94,7 +94,8 @@ internal static class AcKrovyMLeaderStyleService
         int leaderLineIndex,
         AcKrovy.Core.Models.TimberLeaderHorizontalSide contentSide,
         double textHeightMm,
-        double presentationScaleFactor)
+        double presentationScaleFactor,
+        ObjectId? resolvedTextStyleId = null)
     {
         ArgumentNullException.ThrowIfNull(leader);
         ArgumentNullException.ThrowIfNull(database);
@@ -127,7 +128,7 @@ internal static class AcKrovyMLeaderStyleService
         leader.SetTextAttachmentType(
             TextAttachmentType.AttachmentBottomLine,
             LeaderDirectionType.RightLeader);
-        leader.TextStyleId = database.Textstyle;
+        leader.TextStyleId = resolvedTextStyleId ?? database.Textstyle;
         if (TimberNativeLeaderStyleRules.RequiresExplicitDoglegDirection)
         {
             leader.SetDogleg(
