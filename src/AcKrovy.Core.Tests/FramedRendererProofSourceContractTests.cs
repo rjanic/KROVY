@@ -72,7 +72,7 @@ public sealed class FramedRendererProofSourceContractTests
         var core = Member(Service(), "private static bool VerifyCore(");
 
         Assert.Contains("RequireSame(blockByToken, \"A\", \"B\")", core);
-        Assert.Contains("RequireDifferent(blockByToken, \"A\", \"C\")", core);
+        Assert.Contains("RequireSame(blockByToken, \"A\", \"C\")", core);
         Assert.Contains("RequireDifferent(blockByToken, \"A\", \"D\")", core);
         Assert.Contains("RequireDifferent(blockByToken, \"A\", \"E\")", core);
         Assert.Contains("RequireSame(blockByToken, \"H1\", \"H2\")", core);
@@ -83,52 +83,35 @@ public sealed class FramedRendererProofSourceContractTests
     }
 
     [Fact]
-    public void RectangleESelectsDeterministicValidMediumOverflowLargeFit()
+    public void RectangleESelectsResolveBasedLargeToken()
     {
         var policy = Policy();
         var create = Member(Service(), "public static void Create(");
         var verify = Member(Service(), "private static bool VerifyCore(");
 
-        Assert.Contains("RectangleLargeFitCandidates", policy);
-        Assert.Contains("SelectRectangleLargeFitCandidate(", policy);
-        Assert.Contains("width > mediumInnerWidthMm", policy);
-        Assert.Contains("width <= largeInnerWidthMm", policy);
-        Assert.Contains("SelectRectangleLargeFitCandidate(", create);
+        Assert.Contains("VT1234", policy);
+        Assert.Contains("RectangleLargeCaseTemplate", policy);
         Assert.Contains("runtimeCases.Insert(", create);
         Assert.Contains("TimberItemLeaderBlockSize.Large", create);
-        Assert.Contains("rectangleMediumInnerWidth", create);
-        Assert.Contains("rectangleLargeInnerWidth", create);
-        Assert.DoesNotContain("RECTANGLE_123456789012345", policy);
-        Assert.DoesNotContain("_123", policy);
-        Assert.Contains("NOT TESTED", create);
-        Assert.Contains("AutoCadItemLeaderTextMeasurementService.Measure(", verify);
-        Assert.Contains("Medium-overflow/Large-fit", verify);
+        Assert.Contains("Resolve(", create);
+        Assert.Contains("Resolve(", verify);
+        Assert.Contains("TimberItemLeaderBlockSize.Large", verify);
+        Assert.DoesNotContain("SelectRectangleLargeFitCandidate(", create);
+        Assert.DoesNotContain("Medium-overflow/Large-fit", verify);
     }
 
     [Fact]
-    public void RectangleJExpectsTextOverflowAndProvesZeroMutation()
+    public void RectangleJProvesCircleDiameterInvariantForLongToken()
     {
-        var policy = Policy();
-        var service = Service();
         var overflow = Member(
-            service,
+            Service(),
             "private static AutoCadFramedRendererOverflowCaseManifest\n" +
             "        RunExpectedOverflowCase(");
 
-        Assert.Contains("WWWWWWWW2147483647", policy);
-        Assert.Contains("WWWWWWWW", policy);
-        Assert.Contains("TryParseElementNumber", policy);
-        Assert.Contains("CreateElementId(", policy);
-        Assert.Contains("TimberAnnotationService.EnsureForElement(", overflow);
-        Assert.Contains("TextOverflow", overflow);
-        Assert.Contains("modelSpaceDelta == 0", overflow);
-        Assert.Contains("blockDefinitionDelta == 0", overflow);
-        Assert.Contains("catalogDelta == 0", overflow);
-        Assert.Contains("leaderSignatureBefore", overflow);
-        Assert.Contains("leaderSignatureAfter", overflow);
-        Assert.DoesNotContain("AppendEntity", overflow);
-        Assert.DoesNotContain("new MLeader", overflow);
-        Assert.Contains("EXPECTED OVERFLOW PASS", policy);
+        Assert.Contains("ItemNumberLeaderStyle.Circle", overflow);
+        Assert.Contains("TimberItemLeaderBlockSize.Small", overflow);
+        Assert.Contains("Resolve(", overflow);
+        Assert.Contains("CircleLongInvariantText", overflow + Policy());
     }
 
     [Fact]

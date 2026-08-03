@@ -454,14 +454,12 @@ public sealed class AutoCadItemLeaderBlockVariantProofPolicyTests
         var definition = TimberItemLeaderBlockDefinitionRules.Resolve(
             proofCase.ToItemNumberLeaderStyle(),
             proofCase.Token);
-        var key = AutoCadItemLeaderBlockVariantKey.FromDefinition(
-            definition,
-            styleName,
-            proofCase.ItemNumberPaperHeightMm);
+        var key = AutoCadItemLeaderBlockVariantKey.FromDefinition(definition);
         return AutoCadItemLeaderBlockVariantProofPolicy.CreateMarker(
             proofCase,
             key,
-            AutoCadItemLeaderBlockVariantNamePolicy.CreateCanonicalName(key));
+            AutoCadItemLeaderBlockVariantNamePolicy.CreateCanonicalName(key),
+            styleName);
     }
 
     private static IReadOnlyList<AutoCadItemLeaderBlockVariantObservedMarker>

@@ -15,30 +15,27 @@ internal enum AutoCadItemLeaderBlockFrameKind
 }
 
 /// <summary>
-/// Immutable semantic identity of one framed ITEM_NO block definition.
-/// It deliberately contains no database objects or per-entity denominator.
+/// Immutable semantic identity of one shared framed ITEM_NO block definition.
+/// Identity is frozen geometry only: frame kind, size variant, and geometry
+/// version. It deliberately excludes TextStyleId, font family, paper height,
+/// and per-element annotation denominator.
 /// </summary>
 internal sealed record AutoCadItemLeaderBlockVariantKey
 {
-    public const int CurrentGeometryVersion = 1;
+    /// <summary>
+    /// Shared-definition geometry contract after the v0.23 framed baseline
+    /// restoration hotfix. Earlier G1 names baked style/height into identity.
+    /// </summary>
+    public const int CurrentGeometryVersion = 2;
 
     public int GeometryVersion { get; }
     public AutoCadItemLeaderBlockFrameKind FrameKind { get; }
     public TimberItemLeaderBlockSize FrameSize { get; }
-    public string ResolvedCanonicalTextStyleName { get; }
-    public double ItemNumberPaperHeightMm { get; }
-    public int BaseDenominator { get; }
-
-    public string CanonicalPaperHeight =>
-        ItemNumberPaperHeightMm.ToString("R", CultureInfo.InvariantCulture);
 
     private AutoCadItemLeaderBlockVariantKey(
         int geometryVersion,
         AutoCadItemLeaderBlockFrameKind frameKind,
-        TimberItemLeaderBlockSize frameSize,
-        string resolvedCanonicalTextStyleName,
-        double itemNumberPaperHeightMm,
-        int baseDenominator)
+        TimberItemLeaderBlockSize frameSize)
     {
         if (geometryVersion != CurrentGeometryVersion)
         {
@@ -54,59 +51,25 @@ internal sealed record AutoCadItemLeaderBlockVariantKey
         {
             throw new ArgumentOutOfRangeException(nameof(frameSize));
         }
-        if (!TimberAnnotationTextSettingsRules.IsValidTextStyleName(
-                resolvedCanonicalTextStyleName))
-        {
-            throw new ArgumentException(
-                "A resolved canonical text-style name is required.",
-                nameof(resolvedCanonicalTextStyleName));
-        }
-        if (!TimberAnnotationTextSettingsRules
-                .IsValidItemNumberPaperHeightMm(itemNumberPaperHeightMm))
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(itemNumberPaperHeightMm));
-        }
-        if (baseDenominator != TimberAnnotationScaleRules.DefaultDenominator)
-        {
-            throw new ArgumentOutOfRangeException(nameof(baseDenominator));
-        }
 
         GeometryVersion = geometryVersion;
         FrameKind = frameKind;
         FrameSize = frameSize;
-        ResolvedCanonicalTextStyleName =
-            resolvedCanonicalTextStyleName.Trim();
-        ItemNumberPaperHeightMm = itemNumberPaperHeightMm;
-        BaseDenominator = baseDenominator;
     }
 
     public static AutoCadItemLeaderBlockVariantKey Create(
         AutoCadItemLeaderBlockFrameKind frameKind,
         TimberItemLeaderBlockSize frameSize,
-        string resolvedCanonicalTextStyleName,
-        double itemNumberPaperHeightMm,
-        int geometryVersion = CurrentGeometryVersion,
-        int baseDenominator = TimberAnnotationScaleRules.DefaultDenominator) =>
-        new(
-            geometryVersion,
-            frameKind,
-            frameSize,
-            resolvedCanonicalTextStyleName,
-            itemNumberPaperHeightMm,
-            baseDenominator);
+        int geometryVersion = CurrentGeometryVersion) =>
+        new(geometryVersion, frameKind, frameSize);
 
     public static AutoCadItemLeaderBlockVariantKey FromDefinition(
-        TimberItemLeaderBlockDefinition definition,
-        string resolvedCanonicalTextStyleName,
-        double itemNumberPaperHeightMm)
+        TimberItemLeaderBlockDefinition definition)
     {
         ArgumentNullException.ThrowIfNull(definition);
         return Create(
             ToFrameKind(definition.Style),
-            definition.Size,
-            resolvedCanonicalTextStyleName,
-            itemNumberPaperHeightMm);
+            definition.Size);
     }
 
     public static AutoCadItemLeaderBlockFrameKind ToFrameKind(
@@ -146,10 +109,8 @@ internal static partial class AutoCadItemLeaderBlockVariantNamePolicy
         var size = key.FrameKind == AutoCadItemLeaderBlockFrameKind.Circle
             ? string.Empty
             : $"_{SizeToken(key.FrameSize)}";
-        var height = TryCreateReadableHeight(key.ItemNumberPaperHeightMm);
-        var fingerprint = CreateFingerprint(CreateFingerprintPayload(key));
         return ValidateGeneratedName(
-            $"AK_ITEM_{frame}{size}_G{key.GeometryVersion}_{height}_S{fingerprint}");
+            $"AK_ITEM_{frame}{size}_G{key.GeometryVersion}");
     }
 
     public static string CreateCollisionName(
@@ -176,22 +137,13 @@ internal static partial class AutoCadItemLeaderBlockVariantNamePolicy
         AutoCadItemLeaderBlockVariantKey key)
     {
         ArgumentNullException.ThrowIfNull(key);
-        var style = key.ResolvedCanonicalTextStyleName;
         return string.Concat(
-            "schema=1|geometry=",
+            "schema=2|geometry=",
             key.GeometryVersion.ToString(CultureInfo.InvariantCulture),
             "|frame=",
             FrameToken(key.FrameKind),
             "|size=",
-            SizeToken(key.FrameSize),
-            "|styleLength=",
-            style.Length.ToString(CultureInfo.InvariantCulture),
-            "|style=",
-            style,
-            "|paperHeightMm=",
-            key.CanonicalPaperHeight,
-            "|baseDenominator=",
-            key.BaseDenominator.ToString(CultureInfo.InvariantCulture));
+            SizeToken(key.FrameSize));
     }
 
     public static bool IsSafeSymbolName(string name) =>
@@ -205,17 +157,6 @@ internal static partial class AutoCadItemLeaderBlockVariantNamePolicy
         return Convert.ToHexString(digest)[..FingerprintHexLength];
     }
 
-    private static string TryCreateReadableHeight(double paperHeightMm)
-    {
-        var micrometres = paperHeightMm * 1000d;
-        return double.IsFinite(micrometres) &&
-            micrometres == Math.Truncate(micrometres) &&
-            micrometres >= 0d &&
-            micrometres <= long.MaxValue
-                ? $"H{((long)micrometres).ToString(CultureInfo.InvariantCulture)}"
-                : "HX";
-    }
-
     private static string FrameToken(AutoCadItemLeaderBlockFrameKind frameKind) =>
         frameKind switch
         {
@@ -225,7 +166,7 @@ internal static partial class AutoCadItemLeaderBlockVariantNamePolicy
             _ => throw new ArgumentOutOfRangeException(nameof(frameKind)),
         };
 
-    private static string SizeToken(TimberItemLeaderBlockSize frameSize) =>
+    public static string SizeToken(TimberItemLeaderBlockSize frameSize) =>
         frameSize switch
         {
             TimberItemLeaderBlockSize.Small => "S",

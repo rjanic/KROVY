@@ -7,19 +7,20 @@ public sealed class ItemLeaderBlockVariantSourceContractTests
     private static readonly string RepositoryRoot = FindRepositoryRoot();
 
     [Fact]
-    public void KeyAndName_ContainNoHostObjectsAndUseExactStableFingerprint()
+    public void KeyAndName_ContainNoHostObjectsAndUseGeometryOnlyIdentity()
     {
         var source = KeySource();
 
         Assert.Contains("sealed record AutoCadItemLeaderBlockVariantKey", source);
-        Assert.Contains("ItemNumberPaperHeightMm.ToString(\"R\"", source);
-        Assert.Contains("CultureInfo.InvariantCulture", source);
+        Assert.Contains("CurrentGeometryVersion = 2", source);
+        Assert.Contains("schema=2|geometry=", source);
         Assert.Contains("SHA256.HashData", source);
         Assert.Contains("Encoding.UTF8.GetBytes", source);
-        Assert.Contains("styleLength=", source);
-        Assert.Contains("baseDenominator=", source);
-        Assert.Contains("TimberAnnotationScaleRules.DefaultDenominator", source);
-        Assert.Contains("TimberAnnotationTextSettingsRules", source);
+        Assert.Contains("$\"AK_ITEM_{frame}{size}_G{key.GeometryVersion}\"", source);
+        Assert.DoesNotContain("ItemNumberPaperHeightMm", source);
+        Assert.DoesNotContain("ResolvedCanonicalTextStyleName", source);
+        Assert.DoesNotContain("styleLength=", source);
+        Assert.DoesNotContain("paperHeightMm=", source);
         Assert.DoesNotContain("GetHashCode", source);
         Assert.DoesNotContain("ObjectId", source);
         Assert.DoesNotContain("Database", source);
@@ -29,15 +30,14 @@ public sealed class ItemLeaderBlockVariantSourceContractTests
     }
 
     [Fact]
-    public void VariantService_ConsumesResolvedStyleAndNeverImplementsFallback()
+    public void VariantService_UsesResolveAndDefersStyleToAttributeReference()
     {
         var source = ServiceSource();
 
-        Assert.Contains("resolvedCanonicalTextStyleName", source);
-        Assert.Contains("resolvedTextStyleId", source);
-        Assert.Contains("presentationContext.ResolvedTextStyleName", source);
-        Assert.Contains("presentationContext.ResolvedTextStyleId", source);
-        Assert.Contains("NoCompatibleTextStyle", source);
+        Assert.Contains("TimberItemLeaderBlockDefinitionRules.Resolve(", source);
+        Assert.Contains("EnsureResolved(", source);
+        Assert.DoesNotContain("AutoCadItemLeaderTextMeasurementService.Measure(", source);
+        Assert.DoesNotContain("EvaluateMeasuredTextWidth(", source);
         Assert.DoesNotContain("ResolveExplicit", source);
         Assert.DoesNotContain("ResolveLegacy", source);
         Assert.DoesNotContain("ReadCatalog", source);
@@ -82,11 +82,10 @@ public sealed class ItemLeaderBlockVariantSourceContractTests
         Assert.Contains("OfType<AttributeDefinition>()", validate);
         Assert.Contains("attribute.TextStyleId", validate);
         Assert.Contains("TextStyleTableRecord", validate);
-        Assert.Contains("textStyle?.Name", validate);
-        Assert.Contains("key.ResolvedCanonicalTextStyleName", validate);
-        Assert.Contains("key.BaseDenominator", validate);
-        Assert.Contains("CalculateModelHeightMm(", validate);
+        Assert.Contains("definition.TextHeightMm", validate);
         Assert.Contains("OpenMode.ForRead", validate);
+        Assert.DoesNotContain("key.ResolvedCanonicalTextStyleName", validate);
+        Assert.DoesNotContain("key.BaseDenominator", validate);
         Assert.DoesNotContain("MLeader", validate);
         Assert.DoesNotContain("GetBlockAttribute", validate);
         Assert.DoesNotContain("BlockScale", validate);
@@ -131,7 +130,7 @@ public sealed class ItemLeaderBlockVariantSourceContractTests
     }
 
     [Fact]
-    public void CreatePath_UsesSharedGeometryAndCentralHeightAuthority()
+    public void CreatePath_UsesSharedGeometryAndFrozenBaselineAttributeHeight()
     {
         var service = ServiceSource();
         var legacyFactory = LegacyBlockSource();
@@ -142,10 +141,8 @@ public sealed class ItemLeaderBlockVariantSourceContractTests
         Assert.Contains(
             "AcKrovyItemLeaderBlockService.AddItemNumberAttribute(",
             service);
-        Assert.Contains(
-            "TimberAnnotationTextSettingsRules.CalculateModelHeightMm(",
-            service);
-        Assert.Contains("key.BaseDenominator", service);
+        Assert.Contains("definition.TextHeightMm", service);
+        Assert.DoesNotContain("key.BaseDenominator", service);
         Assert.Contains("internal static void AddFrameGeometry(", legacyFactory);
         Assert.Contains("internal static ObjectId AddItemNumberAttribute(", legacyFactory);
         Assert.DoesNotContain("const int BaseDenominator", service);
@@ -280,8 +277,8 @@ public sealed class ItemLeaderBlockVariantSourceContractTests
         Assert.Contains("AcKrovyItemLeaderBlockVariantService.EnsureResolved(", service);
         Assert.Contains("leader.BlockScale = new Scale3d(", service);
         Assert.Contains("attribute.TextString = proofCase.Token", service);
-        Assert.DoesNotContain("attribute.Height =", service);
-        Assert.DoesNotContain("attribute.TextStyleId =", service);
+        Assert.Contains("attribute.Height = proofCase.DefinitionBaseHeight", service);
+        Assert.Contains("attribute.TextStyleId = style.TextStyleId", service);
         Assert.Contains("OpenMode.ForRead", service);
         Assert.Contains("OpenMode.ForWrite", service);
         Assert.Contains("leader.Erase()", service);

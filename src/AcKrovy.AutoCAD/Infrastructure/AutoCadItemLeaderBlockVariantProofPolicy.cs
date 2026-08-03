@@ -267,7 +267,8 @@ internal static class AutoCadItemLeaderBlockVariantProofPolicy
     public static AutoCadItemLeaderBlockVariantProofMarker CreateMarker(
         AutoCadItemLeaderBlockVariantProofCase proofCase,
         AutoCadItemLeaderBlockVariantKey key,
-        string canonicalBlockName)
+        string canonicalBlockName,
+        string canonicalTextStyleName)
     {
         ArgumentNullException.ThrowIfNull(proofCase);
         ArgumentNullException.ThrowIfNull(key);
@@ -277,10 +278,13 @@ internal static class AutoCadItemLeaderBlockVariantProofPolicy
                 "Canonical block name is required.",
                 nameof(canonicalBlockName));
         }
-        if (key.FrameKind != proofCase.FrameKind ||
-            !AreClose(
-                key.ItemNumberPaperHeightMm,
-                proofCase.ItemNumberPaperHeightMm))
+        if (string.IsNullOrWhiteSpace(canonicalTextStyleName))
+        {
+            throw new ArgumentException(
+                "Canonical text-style name is required.",
+                nameof(canonicalTextStyleName));
+        }
+        if (key.FrameKind != proofCase.FrameKind)
         {
             throw new ArgumentException(
                 "Proof case and variant key do not match.",
@@ -294,7 +298,7 @@ internal static class AutoCadItemLeaderBlockVariantProofPolicy
             AutoCadItemLeaderBlockVariantNamePolicy.CreateFingerprintPayload(key),
             canonicalBlockName,
             proofCase.FrameKind,
-            key.ResolvedCanonicalTextStyleName,
+            canonicalTextStyleName.Trim(),
             proofCase.ItemNumberPaperHeightMm,
             proofCase.DefinitionBaseHeight,
             proofCase.BlockScale,

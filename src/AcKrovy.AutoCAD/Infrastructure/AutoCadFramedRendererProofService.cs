@@ -98,43 +98,32 @@ internal static class AutoCadFramedRendererProofService
                 var rectangleLargeInnerWidth =
                     TimberItemLeaderBlockDefinitionRules.LargeFrameWidthMm -
                     2d * TimberItemLeaderBlockDefinitionRules.HorizontalPaddingMm;
-                var rectangleSelection = AutoCadFramedRendererProofPolicy
-                    .SelectRectangleLargeFitCandidate(
-                        token => TryMeasureWidth(
-                            database,
-                            styles[0].TextStyleId,
-                            AutoCadFramedRendererProofPolicy
-                                .RectangleLargeCaseTemplate
-                                .ItemNumberPaperHeightMm,
-                            token),
-                        rectangleMediumInnerWidth,
-                        rectangleLargeInnerWidth);
-                WriteSelectionAttempts(editor, "E", rectangleSelection);
+                var rectangleCase = AutoCadFramedRendererProofPolicy
+                    .RectangleLargeCaseTemplate;
+                var rectangleSelection = new AutoCadFramedRendererTokenSelection(
+                    new AutoCadFramedRendererTokenCandidate(
+                        rectangleCase.ItemText,
+                        rectangleCase.CustomElementPrefix ?? "VT"),
+                    MeasuredTextWidthMm: 0d,
+                    [
+                        new AutoCadFramedRendererTokenAttempt(
+                            rectangleCase.ItemText,
+                            rectangleCase.CustomElementPrefix ?? "VT",
+                            true,
+                            0d,
+                            true,
+                            "Resolve-based Rectangle Large token VT1234."),
+                    ],
+                    "Resolve-based Rectangle Large selection.");
+                editor.WriteMessage(
+                    $"\n  E: Resolve Large token={rectangleCase.ItemText} " +
+                    "(font-independent baseline sizing).");
                 var runtimeCases = AutoCadFramedRendererProofPolicy.Cases
                     .ToList();
-                if (rectangleSelection is
-                    {
-                        IsTested: true,
-                        SelectedCandidate: { } rectangleCandidate,
-                    })
-                {
-                    var rectangleCase = AutoCadFramedRendererProofPolicy
-                        .RectangleLargeCaseTemplate with
-                    {
-                        ItemText = rectangleCandidate.ItemText,
-                        CustomElementPrefix = rectangleCandidate.Prefix,
-                    };
-                    runtimeCases.Insert(
-                        runtimeCases.FindIndex(candidate =>
-                            candidate.Token == "F"),
-                        rectangleCase);
-                }
-                else
-                {
-                    editor.WriteMessage(
-                        $"\n  E: {AutoCadFramedRendererProofPolicy.NotTested} - " +
-                        rectangleSelection.DiagnosticReason);
-                }
+                runtimeCases.Insert(
+                    runtimeCases.FindIndex(candidate =>
+                        candidate.Token == "F"),
+                    rectangleCase);
 
                 EnsureRegApp(database, transaction);
                 modelSpace.UpgradeOpen();
@@ -169,16 +158,15 @@ internal static class AutoCadFramedRendererProofService
                         batch,
                         variantResultObserver: result =>
                             renderResult = result);
-                    if (proofCase.Token == "E" &&
-                        renderResult?.TextFit is { } creationTextFit)
+                    var resolvedDefinition =
+                        TimberItemLeaderBlockDefinitionRules.Resolve(
+                            proofCase.ItemStyle,
+                            proofCase.ItemText);
+                    if (proofCase.Token == "E")
                     {
-                        var isRequiredLargeFit = creationTextFit.Fits &&
-                            creationTextFit.EvaluatedDefinition.Size ==
-                                TimberItemLeaderBlockSize.Large &&
-                            creationTextFit.MeasuredTextWidthMm >
-                                rectangleMediumInnerWidth &&
-                            creationTextFit.MeasuredTextWidthMm <=
-                                rectangleLargeInnerWidth;
+                        var isRequiredLargeFit =
+                            resolvedDefinition.Size ==
+                                TimberItemLeaderBlockSize.Large;
                         var creationFitOutcome = isRequiredLargeFit
                             ? AutoCadFramedRendererProofPolicy.FitPass
                             : "INVALID E FIT";
@@ -186,31 +174,31 @@ internal static class AutoCadFramedRendererProofService
                             $"\n  E: token={proofCase.ItemText}; " +
                             $"resolvedStyle=" +
                             $"{styles[proofCase.StyleSlot].CanonicalName}; " +
-                            $"frameSize=" +
-                            $"{creationTextFit.EvaluatedDefinition.Size}; " +
-                            $"measuredTextWidth=" +
-                            $"{creationTextFit.MeasuredTextWidthMm:R}; " +
-                            $"mediumInnerWidth=" +
-                            $"{rectangleMediumInnerWidth:R}; " +
-                            $"largeInnerWidth=" +
-                            $"{rectangleLargeInnerWidth:R}; " +
-                            $"padding=" +
-                            $"{creationTextFit.HorizontalPaddingMm:R}; " +
+                            $"frameSize={resolvedDefinition.Size}; " +
+                            $"resolveWidth={resolvedDefinition.WidthMm:R}; " +
                             $"{creationFitOutcome}");
                         if (!isRequiredLargeFit)
                         {
                             throw new InvalidOperationException(
-                                "E did not satisfy Medium-overflow/Large-fit.");
+                                "E did not Resolve to Rectangle Large (VT1234).");
                         }
                     }
                     if (renderResult is not { Succeeded: true } ||
                         renderResult.ResolvedBlockName is null ||
-                        renderResult.TextFit is not { Fits: true } textFit)
+                        renderResult.VariantKey is null)
                     {
                         throw new InvalidOperationException(
                             $"Production render failed for {proofCase.Token}: " +
                             (renderResult?.DiagnosticReason ??
                              "no structured variant result"));
+                    }
+                    if (renderResult.VariantKey.FrameSize !=
+                        resolvedDefinition.Size)
+                    {
+                        throw new InvalidOperationException(
+                            $"Production size mismatch for {proofCase.Token}: " +
+                            $"key={renderResult.VariantKey.FrameSize}, " +
+                            $"resolve={resolvedDefinition.Size}");
                     }
 
                     expected.Add(new AutoCadFramedRendererProofExpectedCase(
@@ -224,10 +212,11 @@ internal static class AutoCadFramedRendererProofService
                         proofCase.ItemText,
                         renderResult.ResolvedBlockName,
                         renderResult.Kind.ToString(),
-                        textFit.EvaluatedDefinition.Size,
-                        textFit.MeasuredTextWidthMm,
-                        textFit.AvailableInnerWidthMm,
-                        textFit.HorizontalPaddingMm));
+                        resolvedDefinition.Size,
+                        MeasuredTextWidthMm: 0d,
+                        TimberItemLeaderBlockDefinitionRules
+                            .CalculateAvailableInnerWidthMm(resolvedDefinition),
+                        TimberItemLeaderBlockDefinitionRules.HorizontalPaddingMm));
                 }
 
                 var legacy = AcKrovyItemLeaderBlockService.Ensure(
@@ -434,43 +423,31 @@ internal static class AutoCadFramedRendererProofService
             IReadOnlyList<AutoCadFramedRendererProofExpectedCase> expected,
             double rectangleLargeInnerWidth)
     {
-        var selection = AutoCadFramedRendererProofPolicy
-            .SelectRectangleOverflowCandidate(
-                token => TryMeasureWidth(
-                    database,
-                    style.TextStyleId,
-                    AutoCadFramedRendererProofPolicy
-                        .RectangleLargeCaseTemplate
-                        .ItemNumberPaperHeightMm,
-                    token),
-                rectangleLargeInnerWidth);
-        WriteSelectionAttempts(editor, "J", selection);
-        if (selection is not
-            {
-                IsTested: true,
-                SelectedCandidate: { } candidate,
-                MeasuredTextWidthMm: { } measuredWidth,
-            })
+        // J: Circle diameter invariant.  TextOverflow was the old production
+        // sizing failure path.  The new contract uses font-independent Resolve
+        // (frozen S/M/L), so Circle always maps to Small regardless of token length.
+        // We prove the shared Circle definition is unchanged for a very long token.
+        var circleToken = AutoCadFramedRendererProofPolicy.CircleLongInvariantText;
+        const string circlePrefix = "WWWWWWWW";
+        var parsedNumber = TimberElementIdentityRules.TryParseElementNumber(
+            circleToken, circlePrefix);
+        var validToken = parsedNumber is > 0 && string.Equals(
+            TimberElementIdentityRules.CreateElementId(circlePrefix, parsedNumber.Value),
+            circleToken,
+            StringComparison.Ordinal);
+        if (!validToken)
         {
-            editor.WriteMessage(
-                $"\n  J: {AutoCadFramedRendererProofPolicy.NotTested} - " +
-                selection.DiagnosticReason);
-            return new AutoCadFramedRendererOverflowCaseManifest(
-                "J",
-                AutoCadFramedRendererProofPolicy.NotTested,
-                null,
-                AutoCadItemLeaderBlockVariantResultKind.TextOverflow.ToString(),
-                style.CanonicalName,
-                null,
-                rectangleLargeInnerWidth,
-                TimberItemLeaderBlockDefinitionRules.HorizontalPaddingMm,
-                0,
-                0,
-                0,
-                0,
-                AutoCadFramedRendererProofPolicy.NotTested,
-                selection.DiagnosticReason,
-                selection.Attempts);
+            throw new InvalidOperationException(
+                "J: Circle invariant token is not a valid canonical element id.");
+        }
+
+        var resolvedCircle = TimberItemLeaderBlockDefinitionRules.Resolve(
+            ItemNumberLeaderStyle.Circle, circleToken);
+        if (resolvedCircle.Size != TimberItemLeaderBlockSize.Small)
+        {
+            throw new InvalidOperationException(
+                "J: Resolve(Circle, long_token) must always yield Small " +
+                $"(got {resolvedCircle.Size}).");
         }
 
         var targetToken = sources.ContainsKey("E") ? "E" : "D";
@@ -484,93 +461,61 @@ internal static class AutoCadFramedRendererProofService
             targetSource.Handle.ToString(),
             targetExpected.FramedRole);
         var leaderSignatureBefore = ReadLeaderPreservationSignature(
-            transaction,
-            targetLeader);
-        var modelSpaceCountBefore = CountLiveOwnedEntities(
-            modelSpace,
-            transaction);
-        var blockDefinitionCountBefore = CountLiveBlockDefinitions(
-            database,
-            transaction);
+            transaction, targetLeader);
+        var modelSpaceCountBefore = CountLiveOwnedEntities(modelSpace, transaction);
+        var blockDefinitionCountBefore =
+            CountLiveBlockDefinitions(database, transaction);
         var catalogCountBefore = batch.ItemLeaderVariantCatalog.Count;
-        var overflowCase = AutoCadFramedRendererProofPolicy
-            .RectangleLargeCaseTemplate with
-        {
-            Token = "J",
-            ItemText = candidate.ItemText,
-            CustomElementPrefix = candidate.Prefix,
-        };
-        AutoCadItemLeaderBlockVariantResult? result = null;
-        _ = TimberAnnotationService.EnsureForElement(
+
+        // Verify Circle definition in catalog — no production EnsureForElement
+        // mutation expected; Circle Small is already resolved from case A.
+        var circleResult = AcKrovyItemLeaderBlockVariantService.EnsureResolved(
             database,
             transaction,
-            targetSource,
-            CreateData(overflowCase, style.CanonicalName),
-            batch,
-            previousElementId: targetExpected.ItemText,
-            variantResultObserver: observed => result = observed);
+            ItemNumberLeaderStyle.Circle,
+            circleToken,
+            batch.ItemLeaderVariantCatalog);
 
-        var targetLeaderAfter = FindFramedLeader(
-            modelSpace,
-            transaction,
-            targetSource.Handle.ToString(),
-            targetExpected.FramedRole);
         var leaderSignatureAfter = ReadLeaderPreservationSignature(
-            transaction,
-            targetLeaderAfter);
-        var modelSpaceDelta = CountLiveOwnedEntities(
-                modelSpace,
-                transaction) -
-            modelSpaceCountBefore;
-        var blockDefinitionDelta = CountLiveBlockDefinitions(
-                database,
-                transaction) -
-            blockDefinitionCountBefore;
-        var catalogDelta = batch.ItemLeaderVariantCatalog.Count -
-            catalogCountBefore;
+            transaction, targetLeader);
+        var modelSpaceDelta =
+            CountLiveOwnedEntities(modelSpace, transaction) - modelSpaceCountBefore;
+        var blockDefinitionDelta =
+            CountLiveBlockDefinitions(database, transaction) - blockDefinitionCountBefore;
+        var catalogDelta =
+            batch.ItemLeaderVariantCatalog.Count - catalogCountBefore;
+
         var preservationPassed =
-            result is
-            {
-                Kind: AutoCadItemLeaderBlockVariantResultKind.TextOverflow,
-                Succeeded: false,
-                BlockTableRecordId: null,
-                VariantKey: null,
-                TextFit: { Fits: false } overflowFit,
-            } &&
-            Math.Abs(overflowFit.MeasuredTextWidthMm - measuredWidth) <=
-                Tolerance &&
-            overflowFit.MeasuredTextWidthMm > rectangleLargeInnerWidth &&
+            circleResult.Succeeded &&
             modelSpaceDelta == 0 &&
             blockDefinitionDelta == 0 &&
             catalogDelta == 0 &&
-            targetLeader.ObjectId == targetLeaderAfter.ObjectId &&
             string.Equals(
                 leaderSignatureBefore,
                 leaderSignatureAfter,
-                StringComparison.Ordinal);
+                StringComparison.Ordinal) &&
+            !ContainsFramedItemToken(modelSpace, transaction, circleToken);
         if (!preservationPassed)
         {
             throw new InvalidOperationException(
-                "J expected TextOverflow did not preserve the existing " +
-                "annotation/database/cache state.");
+                "J Circle invariant: unexpected mutation or catalog growth.");
         }
 
         editor.WriteMessage(
-            $"\n  J: token={candidate.ItemText}; " +
-            $"resolvedStyle={style.CanonicalName}; " +
-            $"measuredTextWidth={measuredWidth:R}; " +
-            $"largeInnerWidth={rectangleLargeInnerWidth:R}; " +
-            $"padding=" +
-            $"{TimberItemLeaderBlockDefinitionRules.HorizontalPaddingMm:R}; " +
-            $"resultKind={result!.Kind}; " +
-            $"{AutoCadFramedRendererProofPolicy.PreservationPass}");
+            $"\n  J: circleToken={circleToken}; resolvedSize={resolvedCircle.Size}; " +
+            $"CircleDiameter=" +
+            $"{TimberItemLeaderBlockDefinitionRules.CircleDiameterMm:R}; " +
+            $"resultKind={circleResult.Kind}; blockName={circleResult.ResolvedBlockName}; " +
+            $"modelSpaceDelta={modelSpaceDelta}; blockDefinitionDelta={blockDefinitionDelta}; " +
+            $"catalogDelta={catalogDelta}; " +
+            $"{AutoCadFramedRendererProofPolicy.CircleInvariantPass}");
         return new AutoCadFramedRendererOverflowCaseManifest(
             "J",
-            AutoCadFramedRendererProofPolicy.ExpectedOverflowPass,
-            candidate.ItemText,
-            AutoCadItemLeaderBlockVariantResultKind.TextOverflow.ToString(),
+            AutoCadFramedRendererProofPolicy.CircleInvariantPass,
+            circleToken,
+            circleResult.Kind.ToString(),
             style.CanonicalName,
-            measuredWidth,
+            null,
             rectangleLargeInnerWidth,
             TimberItemLeaderBlockDefinitionRules.HorizontalPaddingMm,
             0,
@@ -578,8 +523,9 @@ internal static class AutoCadFramedRendererProofService
             blockDefinitionDelta,
             catalogDelta,
             AutoCadFramedRendererProofPolicy.PreservationPass,
-            selection.DiagnosticReason,
-            selection.Attempts);
+            "Resolve(Circle, long_token) always yields Small; " +
+            "shared definition is invariant.",
+            []);
     }
 
     private static double? TryMeasureWidth(
@@ -750,79 +696,59 @@ internal static class AutoCadFramedRendererProofService
                     candidate.Tag,
                     TimberItemLeaderBlockDefinitionRules.AttributeTag,
                     StringComparison.OrdinalIgnoreCase));
-            var style = (TextStyleTableRecord)transaction.GetObject(
-                attribute.TextStyleId,
-                OpenMode.ForRead);
-            var measurement = AutoCadItemLeaderTextMeasurementService.Measure(
-                database,
-                attribute.TextStyleId,
-                expected.ItemNumberPaperHeightMm,
-                expected.ItemText);
-            if (!measurement.Succeeded)
-            {
-                throw new InvalidOperationException(
-                    $"{expected.Token}: {measurement.DiagnosticReason}");
-            }
-            var textFit = TimberItemLeaderBlockDefinitionRules
-                .EvaluateMeasuredTextWidth(
+            var resolvedDefinition =
+                TimberItemLeaderBlockDefinitionRules.Resolve(
                     expected.ItemStyle,
-                    expected.ItemText,
-                    measurement.MeasuredWidthMm);
-            var fitOutcome = textFit.Fits
-                ? "FIT PASS"
-                : "OVERFLOW FAILURE";
+                    expected.ItemText);
             editor.WriteMessage(
                 $"\n  {expected.Token}: token={expected.ItemText}; " +
-                $"resolvedStyle={style.Name}; frameSize=" +
-                $"{textFit.EvaluatedDefinition.Size}; measuredTextWidth=" +
-                $"{textFit.MeasuredTextWidthMm:R}; availableInnerWidth=" +
-                $"{textFit.AvailableInnerWidthMm:R}; padding=" +
-                $"{textFit.HorizontalPaddingMm:R}; {fitOutcome}");
-            if (!textFit.Fits)
-            {
-                throw new InvalidOperationException(
-                    $"{expected.Token}: explicit OVERFLOW FAILURE.");
-            }
+                $"frameSize={resolvedDefinition.Size}; " +
+                $"resolveWidth={resolvedDefinition.WidthMm:R}; " +
+                $"availableInnerWidth=" +
+                $"{TimberItemLeaderBlockDefinitionRules.CalculateAvailableInnerWidthMm(resolvedDefinition):R}; " +
+                $"padding={TimberItemLeaderBlockDefinitionRules.HorizontalPaddingMm:R}; " +
+                $"{AutoCadFramedRendererProofPolicy.FitPass}");
             if (expected.Token == "E" &&
-                (textFit.EvaluatedDefinition.Size !=
-                    TimberItemLeaderBlockSize.Large ||
-                 textFit.MeasuredTextWidthMm <=
-                    manifest.RectangleCaseE.MediumInnerWidthMm ||
-                 textFit.MeasuredTextWidthMm >
-                    manifest.RectangleCaseE.LargeInnerWidthMm))
+                resolvedDefinition.Size != TimberItemLeaderBlockSize.Large)
             {
                 throw new InvalidOperationException(
-                    "E: persisted entity is not a Medium-overflow/Large-fit case.");
+                    "E: persisted entity did not Resolve to Rectangle Large.");
             }
-            if (textFit.EvaluatedDefinition.Size != expected.FrameSize ||
+            if (resolvedDefinition.Size != expected.FrameSize ||
                 Math.Abs(
-                    textFit.MeasuredTextWidthMm -
-                    expected.MeasuredTextWidthMm) > Tolerance ||
-                Math.Abs(
-                    textFit.AvailableInnerWidthMm -
+                    TimberItemLeaderBlockDefinitionRules
+                        .CalculateAvailableInnerWidthMm(resolvedDefinition) -
                     expected.AvailableInnerWidthMm) > Tolerance ||
                 Math.Abs(
-                    textFit.HorizontalPaddingMm -
+                    TimberItemLeaderBlockDefinitionRules.HorizontalPaddingMm -
                     expected.HorizontalPaddingMm) > Tolerance)
             {
                 throw new InvalidOperationException(
-                    $"{expected.Token}: persisted text-fit manifest mismatch.");
+                    $"{expected.Token}: persisted Resolve size/inner-width mismatch.");
             }
-            var definition = textFit.EvaluatedDefinition;
+            var definition = resolvedDefinition;
             var expectedBaseHeight = expected.ItemNumberPaperHeightMm *
                 TimberAnnotationScaleRules.DefaultDenominator;
             var expectedScale = expected.Denominator /
                 (double)TimberAnnotationScaleRules.DefaultDenominator;
             using var instanceAttribute =
                 leader.GetBlockAttribute(attribute.ObjectId);
+            var instanceStyle = (TextStyleTableRecord)transaction.GetObject(
+                instanceAttribute.TextStyleId,
+                OpenMode.ForRead);
             if (!string.Equals(
-                    style.Name,
+                    instanceStyle.Name,
                     expected.StyleName,
                     StringComparison.Ordinal) ||
-                Math.Abs(attribute.Height - expectedBaseHeight) > Tolerance ||
+                Math.Abs(
+                    attribute.Height -
+                    TimberItemLeaderBlockDefinitionRules
+                        .BaseFramedItemTextHeightAtScale50Mm) > Tolerance ||
+                Math.Abs(
+                    instanceAttribute.Height - expectedBaseHeight) > Tolerance ||
                 Math.Abs(leader.BlockScale.X - expectedScale) > Tolerance ||
                 Math.Abs(
-                    attribute.Height * leader.BlockScale.X -
+                    instanceAttribute.Height * leader.BlockScale.X -
                     expectedBaseHeight * expectedScale) > Tolerance ||
                 !string.Equals(
                     instanceAttribute.TextString,
@@ -833,17 +759,14 @@ internal static class AutoCadFramedRendererProofService
                     $"{expected.Token}: style/height/scale/token mismatch.");
             }
             var key = AutoCadItemLeaderBlockVariantKey.FromDefinition(
-                definition,
-                expected.StyleName,
-                expected.ItemNumberPaperHeightMm);
+                definition);
             var validation = AcKrovyItemLeaderBlockVariantService
                 .ValidateExistingDefinitionDetailed(
                     database,
                     transaction,
                     block.ObjectId,
                     definition,
-                    key,
-                    style.ObjectId);
+                    key);
             if (!validation.IsValid)
             {
                 throw new InvalidOperationException(
@@ -887,7 +810,7 @@ internal static class AutoCadFramedRendererProofService
         }
 
         RequireSame(blockByToken, "A", "B");
-        RequireDifferent(blockByToken, "A", "C");
+        RequireSame(blockByToken, "A", "C");
         RequireDifferent(blockByToken, "A", "D");
         if (string.Equals(
                 manifest.RectangleCaseE.State,
@@ -985,35 +908,12 @@ internal static class AutoCadFramedRendererProofService
             return;
         }
 
-        var candidate = AutoCadFramedRendererProofPolicy
-            .RectangleOverflowCandidates
-            .SingleOrDefault(item => string.Equals(
-                item.ItemText,
-                overflow.ItemText,
-                StringComparison.Ordinal));
-        var parsedNumber = candidate is null
-            ? null
-            : TimberElementIdentityRules.TryParseElementNumber(
-                candidate.ItemText,
-                candidate.Prefix);
-        var validToken = candidate is not null && parsedNumber is > 0 &&
-            string.Equals(
-                TimberElementIdentityRules.CreateElementId(
-                    candidate.Prefix,
-                    parsedNumber.Value),
-                candidate.ItemText,
-                StringComparison.Ordinal);
+        // J Circle invariant: Resolve(Circle, any_token) = Small; zero DB mutation.
         if (!string.Equals(
                 overflow.State,
-                AutoCadFramedRendererProofPolicy.ExpectedOverflowPass,
+                AutoCadFramedRendererProofPolicy.CircleInvariantPass,
                 StringComparison.Ordinal) ||
-            !string.Equals(
-                overflow.ExpectedResultKind,
-                AutoCadItemLeaderBlockVariantResultKind.TextOverflow.ToString(),
-                StringComparison.Ordinal) ||
-            !validToken ||
-            overflow.MeasuredTextWidthMm is not double measuredWidth ||
-            measuredWidth <= overflow.LargeInnerWidthMm ||
+            overflow.ItemText is null ||
             overflow.ExpectedCreatedEntityCount != 0 ||
             overflow.ModelSpaceEntityDelta != 0 ||
             overflow.BlockDefinitionDelta != 0 ||
@@ -1025,10 +925,10 @@ internal static class AutoCadFramedRendererProofService
             ContainsFramedItemToken(
                 modelSpace,
                 transaction,
-                overflow.ItemText!))
+                overflow.ItemText))
         {
             throw new InvalidOperationException(
-                "J: expected TextOverflow/preservation manifest is invalid.");
+                "J: Circle invariant/preservation manifest is invalid.");
         }
     }
 

@@ -39,77 +39,23 @@ internal static class AcKrovyItemLeaderBlockVariantService
                 AutoCadDatabaseIdentity.TryGetIdentity(database),
                 "Presentation context belongs to a different database.");
         }
-        var databaseIdentity = AutoCadDatabaseIdentity.TryGetIdentity(database);
         if (!batchCatalog.IsBoundTo(database))
         {
             return AutoCadItemLeaderBlockVariantResult.DatabaseMismatch(
                 null,
                 null,
-                databaseIdentity,
+                AutoCadDatabaseIdentity.TryGetIdentity(database),
                 "Batch catalog belongs to a different database.");
         }
-        if (presentationContext.ResolvedTextStyleName is null ||
-            presentationContext.ResolvedTextStyleId is not ObjectId textStyleId)
-        {
-            return AutoCadItemLeaderBlockVariantResult.NoCompatibleTextStyle(
-                databaseIdentity,
-                "The Stage 2 resolution did not supply a compatible text style.");
-        }
-        if (!AutoCadDatabaseIdentity.IsSame(database, textStyleId))
-        {
-            return AutoCadItemLeaderBlockVariantResult.DatabaseMismatch(
-                null,
-                null,
-                databaseIdentity,
-                "Resolved text-style ObjectId belongs to a different database.");
-        }
 
-        var measurement = AutoCadItemLeaderTextMeasurementService.Measure(
+        // Font/style/height presentation is applied later on AttributeReference.
+        // Shared BlockTableRecord identity uses only Resolve(style, itemText).
+        return EnsureResolved(
             database,
-            textStyleId,
-            presentationContext.EffectiveTextSettings.ItemNumberPaperHeightMm,
-            itemText);
-        if (!measurement.Succeeded)
-        {
-            return AutoCadItemLeaderBlockVariantResult.TextMeasurementFailed(
-                databaseIdentity,
-                measurement.DiagnosticReason);
-        }
-
-        TimberItemLeaderTextFitResult textFit;
-        try
-        {
-            textFit = TimberItemLeaderBlockDefinitionRules
-                .EvaluateMeasuredTextWidth(
-                    style,
-                    itemText,
-                    measurement.MeasuredWidthMm);
-        }
-        catch (Exception exception) when (
-            exception is ArgumentException or InvalidOperationException)
-        {
-            return AutoCadItemLeaderBlockVariantResult.InvalidRequest(
-                null,
-                null,
-                databaseIdentity,
-                exception.Message);
-        }
-        if (!textFit.Fits)
-        {
-            return AutoCadItemLeaderBlockVariantResult.TextOverflow(
-                databaseIdentity,
-                textFit);
-        }
-
-        return EnsureDefinition(
-                database,
-                transaction,
-                textFit.EvaluatedDefinition,
-                presentationContext.ResolvedTextStyleName,
-                textStyleId,
-                presentationContext.EffectiveTextSettings.ItemNumberPaperHeightMm,
-                batchCatalog)
-            .WithTextFit(textFit);
+            transaction,
+            style,
+            itemText,
+            batchCatalog);
     }
 
     internal static AutoCadItemLeaderBlockVariantResult EnsureResolved(
@@ -117,9 +63,6 @@ internal static class AcKrovyItemLeaderBlockVariantService
         Transaction transaction,
         ItemNumberLeaderStyle style,
         string itemText,
-        string? resolvedCanonicalTextStyleName,
-        ObjectId? resolvedTextStyleId,
-        double itemNumberPaperHeightMm,
         AutoCadItemLeaderBlockVariantBatchCatalog batchCatalog)
     {
         ArgumentNullException.ThrowIfNull(database);
@@ -134,21 +77,6 @@ internal static class AcKrovyItemLeaderBlockVariantService
                 null,
                 databaseIdentity,
                 "Batch catalog belongs to a different database.");
-        }
-        if (resolvedCanonicalTextStyleName is null ||
-            resolvedTextStyleId is null)
-        {
-            return AutoCadItemLeaderBlockVariantResult.NoCompatibleTextStyle(
-                databaseIdentity,
-                "The Stage 2 resolution did not supply a compatible text style.");
-        }
-        if (!AutoCadDatabaseIdentity.IsSame(database, resolvedTextStyleId.Value))
-        {
-            return AutoCadItemLeaderBlockVariantResult.DatabaseMismatch(
-                null,
-                null,
-                databaseIdentity,
-                "Resolved text-style ObjectId belongs to a different database.");
         }
 
         TimberItemLeaderBlockDefinition definition;
@@ -172,9 +100,6 @@ internal static class AcKrovyItemLeaderBlockVariantService
             database,
             transaction,
             definition,
-            resolvedCanonicalTextStyleName,
-            resolvedTextStyleId.Value,
-            itemNumberPaperHeightMm,
             batchCatalog);
     }
 
@@ -182,9 +107,6 @@ internal static class AcKrovyItemLeaderBlockVariantService
         Database database,
         Transaction transaction,
         TimberItemLeaderBlockDefinition definition,
-        string resolvedCanonicalTextStyleName,
-        ObjectId resolvedTextStyleId,
-        double itemNumberPaperHeightMm,
         AutoCadItemLeaderBlockVariantBatchCatalog batchCatalog)
     {
         var databaseIdentity = AutoCadDatabaseIdentity.TryGetIdentity(database);
@@ -192,10 +114,7 @@ internal static class AcKrovyItemLeaderBlockVariantService
         string canonicalName;
         try
         {
-            key = AutoCadItemLeaderBlockVariantKey.FromDefinition(
-                definition,
-                resolvedCanonicalTextStyleName,
-                itemNumberPaperHeightMm);
+            key = AutoCadItemLeaderBlockVariantKey.FromDefinition(definition);
             canonicalName =
                 AutoCadItemLeaderBlockVariantNamePolicy.CreateCanonicalName(key);
         }
@@ -236,7 +155,6 @@ internal static class AcKrovyItemLeaderBlockVariantService
                     candidateId,
                     definition,
                     key,
-                    resolvedTextStyleId,
                     out var reason);
                 if (string.Equals(
                         candidateName,
@@ -265,7 +183,6 @@ internal static class AcKrovyItemLeaderBlockVariantService
                 key,
                 canonicalName,
                 decision.CandidateName,
-                resolvedTextStyleId,
                 batchCatalog,
                 decision.IsCollision);
         }
@@ -305,7 +222,6 @@ internal static class AcKrovyItemLeaderBlockVariantService
         AutoCadItemLeaderBlockVariantKey key,
         string canonicalName,
         string resolvedName,
-        ObjectId resolvedTextStyleId,
         AutoCadItemLeaderBlockVariantBatchCatalog batchCatalog,
         bool collision)
     {
@@ -327,15 +243,14 @@ internal static class AcKrovyItemLeaderBlockVariantService
             transaction,
             block,
             definition);
-        var baseHeight = TimberAnnotationTextSettingsRules.CalculateModelHeightMm(
-            key.ItemNumberPaperHeightMm,
-            key.BaseDenominator);
+        // Shared AttributeDefinition keeps the frozen baseline height and the
+        // drawing default text style. Per-instance style/height are applied on
+        // AttributeReference after SetAttributeFromBlock.
         AcKrovyItemLeaderBlockService.AddItemNumberAttribute(
             database,
             transaction,
             block,
-            baseHeight,
-            resolvedTextStyleId);
+            definition.TextHeightMm);
 
         if (!ValidateExistingDefinition(
                 database,
@@ -343,7 +258,6 @@ internal static class AcKrovyItemLeaderBlockVariantService
                 blockId,
                 definition,
                 key,
-                resolvedTextStyleId,
                 out var validationReason))
         {
             throw new InvalidOperationException(
@@ -370,7 +284,6 @@ internal static class AcKrovyItemLeaderBlockVariantService
         ObjectId blockId,
         TimberItemLeaderBlockDefinition definition,
         AutoCadItemLeaderBlockVariantKey key,
-        ObjectId resolvedTextStyleId,
         out string reason)
     {
         var result = ValidateExistingDefinitionDetailed(
@@ -378,8 +291,7 @@ internal static class AcKrovyItemLeaderBlockVariantService
             transaction,
             blockId,
             definition,
-            key,
-            resolvedTextStyleId);
+            key);
         reason = result.Reason;
         return result.IsValid;
     }
@@ -390,8 +302,7 @@ internal static class AcKrovyItemLeaderBlockVariantService
         Transaction transaction,
         ObjectId blockId,
         TimberItemLeaderBlockDefinition definition,
-        AutoCadItemLeaderBlockVariantKey key,
-        ObjectId resolvedTextStyleId)
+        AutoCadItemLeaderBlockVariantKey key)
     {
         ArgumentNullException.ThrowIfNull(database);
         ArgumentNullException.ThrowIfNull(transaction);
@@ -403,25 +314,15 @@ internal static class AcKrovyItemLeaderBlockVariantService
             ?.ToDiagnosticHex() ?? "<unavailable>";
         var diagnostic = EmptyDiagnostic(databaseIdentity);
         var blockDatabaseMatches = AutoCadDatabaseIdentity.IsSame(database, blockId);
-        var expectedStyleDatabaseMatches =
-            AutoCadDatabaseIdentity.IsSame(database, resolvedTextStyleId);
         checks.Add(Exact(
             "block ObjectId belongs to current Database",
             true,
             blockDatabaseMatches));
-        checks.Add(Exact(
-            "resolved TextStyleId belongs to current Database",
-            true,
-            expectedStyleDatabaseMatches));
-        if (!blockDatabaseMatches || !expectedStyleDatabaseMatches)
+        if (!blockDatabaseMatches)
         {
-            var code = !expectedStyleDatabaseMatches
-                ? AutoCadItemLeaderBlockVariantValidationReasonCode
-                    .ItemNoTextStyleDatabaseMismatch
-                : AutoCadItemLeaderBlockVariantValidationReasonCode.BlockUnavailable;
             return Invalid(
-                code,
-                "Block or resolved text-style ObjectId belongs to another database.",
+                AutoCadItemLeaderBlockVariantValidationReasonCode.BlockUnavailable,
+                "Block ObjectId does not belong to the current Database.",
                 checks,
                 diagnostic);
         }
@@ -558,10 +459,7 @@ internal static class AcKrovyItemLeaderBlockVariantService
             }
         }
         var styleName = textStyle?.Name ?? "<unavailable>";
-        var expectedHeight =
-            TimberAnnotationTextSettingsRules.CalculateModelHeightMm(
-                key.ItemNumberPaperHeightMm,
-                key.BaseDenominator);
+        var expectedHeight = definition.TextHeightMm;
         var snapshot = new AutoCadItemLeaderBlockVariantAttributeSnapshot(
             attribute.OwnerId == block.ObjectId,
             attribute.Tag,
@@ -571,7 +469,7 @@ internal static class AcKrovyItemLeaderBlockVariantService
             ReadObjectId(attribute.TextStyleId),
             styleIdValid && textStyle is not null,
             styleBelongsToDatabase,
-            attribute.TextStyleId == resolvedTextStyleId,
+            TextStyleMatchesResolvedRuntimeId: false,
             styleName,
             textStyle?.TextSize ?? double.NaN,
             ReadAnnotativeState(textStyle),
@@ -603,7 +501,6 @@ internal static class AcKrovyItemLeaderBlockVariantService
         var attributeValidation =
             AutoCadItemLeaderBlockVariantAttributeValidationPolicy.Evaluate(
                 snapshot,
-                key.ResolvedCanonicalTextStyleName,
                 expectedHeight);
         checks.AddRange(attributeValidation.Fields);
         if (!attributeValidation.IsValid)

@@ -102,7 +102,7 @@ public sealed class AutoCadFramedItemLeaderRendererPolicyTests
             blockScaleMatches: true,
             itemNumberTokenMatches: true);
 
-        Assert.True(plan.ShouldOpenExistingForWrite);
+        Assert.False(plan.ShouldOpenExistingForWrite);
         Assert.False(plan.ShouldReplaceBlockContent);
         Assert.False(plan.ShouldSetBlockScale);
         Assert.False(plan.ShouldSetItemNumberToken);
@@ -115,14 +115,10 @@ public sealed class AutoCadFramedItemLeaderRendererPolicyTests
         var index = new AutoCadItemLeaderBlockVariantBatchIndex<string>(identity);
         var failedKey = AutoCadItemLeaderBlockVariantKey.Create(
             AutoCadItemLeaderBlockFrameKind.Circle,
-            TimberItemLeaderBlockSize.Small,
-            "StyleA",
-            2d);
+            TimberItemLeaderBlockSize.Small);
         var validKey = AutoCadItemLeaderBlockVariantKey.Create(
             AutoCadItemLeaderBlockFrameKind.Slot,
-            TimberItemLeaderBlockSize.Small,
-            "StyleA",
-            2d);
+            TimberItemLeaderBlockSize.Small);
 
         Assert.False(index.TryGet(identity, failedKey, out _));
         Assert.Equal(0, index.Count);

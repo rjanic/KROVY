@@ -2306,6 +2306,23 @@ internal static class ElementLabelService
                 "Presentation and renderer scale contexts do not match.");
             return null;
         }
+        if (presentationContext.ResolvedTextStyleId is not ObjectId textStyleId ||
+            presentationContext.ResolvedTextStyleName is null)
+        {
+            result = AutoCadItemLeaderBlockVariantResult.NoCompatibleTextStyle(
+                AutoCadDatabaseIdentity.TryGetIdentity(database),
+                "The Stage 2 resolution did not supply a compatible text style.");
+            return null;
+        }
+        if (!AutoCadDatabaseIdentity.IsSame(database, textStyleId))
+        {
+            result = AutoCadItemLeaderBlockVariantResult.DatabaseMismatch(
+                null,
+                null,
+                AutoCadDatabaseIdentity.TryGetIdentity(database),
+                "Resolved text-style ObjectId belongs to a different database.");
+            return null;
+        }
 
         result = AcKrovyItemLeaderBlockVariantService.Ensure(
             database,
@@ -2353,11 +2370,19 @@ internal static class ElementLabelService
         var blockScale =
             AutoCadFramedItemLeaderRendererPolicy.CalculateBlockScale(
                 annotationScaleContext);
+        // AttributeReference height is paper × default 1:50 denominator.
+        // BlockScale applies the per-element annotation ScaleFactor once.
+        var attributeHeightMm =
+            TimberAnnotationTextSettingsRules.CalculateModelHeightMm(
+                presentationContext.EffectiveTextSettings.ItemNumberPaperHeightMm,
+                TimberAnnotationScaleRules.DefaultDenominator);
         return new AutoCadFramedItemLeaderPreparation(
             result,
             itemNumberDefinitions[0],
             blockScale,
-            presentationContext.ItemNumberModelHeight);
+            presentationContext.ItemNumberModelHeight,
+            textStyleId,
+            attributeHeightMm);
     }
 
     private static bool TryUpdateBlockLeader(
@@ -2411,12 +2436,17 @@ internal static class ElementLabelService
             leader,
             preparation.AttributeDefinitionId,
             contents);
+        var presentationMatches = contentMatches &&
+            ItemNumberAttributePresentationMatches(
+                leader,
+                preparation);
         var mutationPlan = AutoCadFramedItemLeaderMutationPolicy.Create(
             variantEnsureSucceeded: true,
             hasExistingAnnotation: true,
             contentMatches,
             scaleMatches,
-            tokenMatches);
+            tokenMatches,
+            presentationMatches);
         if (mutationPlan.ShouldReplaceBlockContent)
         {
             leader.BlockContentId = preparation.BlockTableRecordId;
@@ -2464,7 +2494,7 @@ internal static class ElementLabelService
             SetItemNumberBlockAttribute(
                 transaction,
                 leader,
-                preparation.AttributeDefinitionId,
+                preparation,
                 contents);
         }
         return true;
@@ -2495,21 +2525,41 @@ internal static class ElementLabelService
         }
     }
 
+    private static bool ItemNumberAttributePresentationMatches(
+        MLeader leader,
+        AutoCadFramedItemLeaderPreparation preparation)
+    {
+        try
+        {
+            using var attribute =
+                leader.GetBlockAttribute(preparation.AttributeDefinitionId);
+            return attribute.TextStyleId == preparation.TextStyleId &&
+                Math.Abs(attribute.Height - preparation.AttributeHeightMm) <=
+                    PlacementToleranceMm;
+        }
+        catch (Autodesk.AutoCAD.Runtime.Exception)
+        {
+            return false;
+        }
+    }
+
     private static void SetItemNumberBlockAttribute(
         Transaction transaction,
         MLeader leader,
-        ObjectId attributeDefinitionId,
+        AutoCadFramedItemLeaderPreparation preparation,
         string contents)
     {
         var attributeDefinition = (AttributeDefinition)transaction.GetObject(
-            attributeDefinitionId,
+            preparation.AttributeDefinitionId,
             OpenMode.ForRead);
         using var attribute = new AttributeReference();
         attribute.SetAttributeFromBlock(
             attributeDefinition,
             Matrix3d.Identity);
         attribute.TextString = contents;
-        leader.SetBlockAttribute(attributeDefinitionId, attribute);
+        attribute.TextStyleId = preparation.TextStyleId;
+        attribute.Height = preparation.AttributeHeightMm;
+        leader.SetBlockAttribute(preparation.AttributeDefinitionId, attribute);
     }
 
     private static MLeader CreateBlockMLeader(
@@ -2577,7 +2627,7 @@ internal static class ElementLabelService
         SetItemNumberBlockAttribute(
             transaction,
             leader,
-            preparation.AttributeDefinitionId,
+            preparation,
             contents);
 
         var blockTable = (BlockTable)transaction.GetObject(

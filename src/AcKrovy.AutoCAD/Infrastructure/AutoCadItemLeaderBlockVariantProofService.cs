@@ -128,9 +128,6 @@ internal static class AutoCadItemLeaderBlockVariantProofService
                             transaction,
                             proofCase.ToItemNumberLeaderStyle(),
                             proofCase.Token,
-                            style.CanonicalName,
-                            style.TextStyleId,
-                            proofCase.ItemNumberPaperHeightMm,
                             batch);
                     if (!result.Succeeded ||
                         result.BlockTableRecordId is not ObjectId blockId ||
@@ -146,7 +143,8 @@ internal static class AutoCadItemLeaderBlockVariantProofService
                         AutoCadItemLeaderBlockVariantProofPolicy.CreateMarker(
                             proofCase,
                             result.VariantKey,
-                            result.CanonicalBlockName);
+                            result.CanonicalBlockName,
+                            style.CanonicalName);
                     var attribute = ReadItemNumberAttribute(
                         transaction,
                         blockId,
@@ -157,6 +155,7 @@ internal static class AutoCadItemLeaderBlockVariantProofService
                         modelSpace,
                         blockId,
                         attribute,
+                        style,
                         proofCase,
                         marker);
                     markers.Add(marker);
@@ -372,6 +371,7 @@ internal static class AutoCadItemLeaderBlockVariantProofService
         BlockTableRecord modelSpace,
         ObjectId blockId,
         AttributeDefinition definition,
+        AutoCadTextStyleCatalogEntry style,
         AutoCadItemLeaderBlockVariantProofCase proofCase,
         AutoCadItemLeaderBlockVariantProofMarker marker)
     {
@@ -398,6 +398,8 @@ internal static class AutoCadItemLeaderBlockVariantProofService
         {
             attribute.SetAttributeFromBlock(definition, Matrix3d.Identity);
             attribute.TextString = proofCase.Token;
+            attribute.TextStyleId = style.TextStyleId;
+            attribute.Height = proofCase.DefinitionBaseHeight;
             leader.SetBlockAttribute(definition.ObjectId, attribute);
         }
 
@@ -598,10 +600,7 @@ internal static class AutoCadItemLeaderBlockVariantProofService
         var definition = TimberItemLeaderBlockDefinitionRules.Resolve(
             item.ProofCase.ToItemNumberLeaderStyle(),
             item.ProofCase.Token);
-        var key = AutoCadItemLeaderBlockVariantKey.FromDefinition(
-            definition,
-            item.Marker.ExpectedCanonicalStyleName,
-            item.Marker.ExpectedPaperHeight);
+        var key = AutoCadItemLeaderBlockVariantKey.FromDefinition(definition);
         var expectedKeyPayload =
             AutoCadItemLeaderBlockVariantNamePolicy.CreateFingerprintPayload(key);
         var expectedBlockName =
@@ -612,13 +611,11 @@ internal static class AutoCadItemLeaderBlockVariantProofService
             item.StyleName != item.Marker.ExpectedCanonicalStyleName ||
             !AutoCadItemLeaderBlockVariantProofPolicy.AreClose(
                 item.DefinitionHeight,
-                item.Marker.ExpectedDefinitionHeight) ||
+                TimberItemLeaderBlockDefinitionRules
+                    .BaseFramedItemTextHeightAtScale50Mm) ||
             !AutoCadItemLeaderBlockVariantProofPolicy.AreClose(
                 item.BlockScale,
-                item.Marker.ExpectedBlockScale) ||
-            !AutoCadItemLeaderBlockVariantProofPolicy.AreClose(
-                item.DefinitionHeight * item.BlockScale,
-                item.Marker.ExpectedEffectiveHeight))
+                item.Marker.ExpectedBlockScale))
         {
             reason = "Marker, block, style, height, or scale differs from persisted expectations.";
             return false;
@@ -630,8 +627,7 @@ internal static class AutoCadItemLeaderBlockVariantProofService
             transaction,
             item.BlockId,
             definition,
-            key,
-            item.StyleId);
+            key);
         reason = definitionValidation.Reason;
         return definitionValidation.IsValid;
     }
@@ -644,12 +640,13 @@ internal static class AutoCadItemLeaderBlockVariantProofService
         {
             AutoCadItemLeaderBlockVariantProofPolicy.Evaluate(
                 "definition height",
-                item.ProofCase.DefinitionBaseHeight,
+                TimberItemLeaderBlockDefinitionRules
+                    .BaseFramedItemTextHeightAtScale50Mm,
                 item.DefinitionHeight),
             AutoCadItemLeaderBlockVariantProofPolicy.Evaluate(
                 "effective height",
                 item.ProofCase.EffectiveHeight,
-                item.DefinitionHeight * item.ProofCase.BlockScale),
+                item.ProofCase.DefinitionBaseHeight * item.ProofCase.BlockScale),
         };
         WriteCaseHeader(
             editor,
@@ -677,10 +674,7 @@ internal static class AutoCadItemLeaderBlockVariantProofService
         var definition = TimberItemLeaderBlockDefinitionRules.Resolve(
             item.ProofCase.ToItemNumberLeaderStyle(),
             item.ProofCase.Token);
-        var key = AutoCadItemLeaderBlockVariantKey.FromDefinition(
-            definition,
-            item.Marker.ExpectedCanonicalStyleName,
-            item.ProofCase.ItemNumberPaperHeightMm);
+        var key = AutoCadItemLeaderBlockVariantKey.FromDefinition(definition);
         var canonicalName =
             AutoCadItemLeaderBlockVariantNamePolicy.CreateCanonicalName(key);
         var contentValid = ValidatePersistedCase(

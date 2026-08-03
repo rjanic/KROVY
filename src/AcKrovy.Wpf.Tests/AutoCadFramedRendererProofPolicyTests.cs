@@ -1,6 +1,7 @@
 #if DEBUG
 using AcKrovy.AutoCAD.Infrastructure;
 using AcKrovy.Core.Models;
+using AcKrovy.Core.Services;
 using Xunit;
 
 namespace AcKrovy.Wpf.Tests;
@@ -55,32 +56,18 @@ public sealed class AutoCadFramedRendererProofPolicyTests
     }
 
     [Fact]
-    public void ESelection_IsDeterministicValidAndRequiresMediumOverflowLargeFit()
+    public void ESelection_UsesResolveBasedLargeTokenVT1234()
     {
-        var widths = new Dictionary<string, double>(StringComparer.Ordinal)
-        {
-            ["ABCDEFGH12345"] = 1200d,
-            ["ABCDEFGH1234"] = 900d,
-            ["ABCDEFGH123"] = 700d,
-        };
-
-        var selection = AutoCadFramedRendererProofPolicy
-            .SelectRectangleLargeFitCandidate(
-                token => widths.TryGetValue(token, out var width)
-                    ? width
-                    : 500d,
-                mediumInnerWidthMm: 584d,
-                largeInnerWidthMm: 1123d);
-
-        Assert.True(selection.IsTested);
-        Assert.Equal("ABCDEFGH1234",
-            selection.SelectedCandidate?.ItemText);
-        Assert.Equal(900d, selection.MeasuredTextWidthMm);
-        Assert.All(selection.Attempts, attempt =>
-            Assert.True(attempt.IsValidProductionToken));
-        Assert.DoesNotContain("_",
-            selection.SelectedCandidate!.ItemText,
-            StringComparison.Ordinal);
+        Assert.Equal("VT1234",
+            AutoCadFramedRendererProofPolicy.RectangleLargeCaseTemplate.ItemText);
+        Assert.Contains(
+            AutoCadFramedRendererProofPolicy.RectangleLargeFitCandidates,
+            candidate => candidate.ItemText == "VT1234");
+        Assert.Equal(
+            TimberItemLeaderBlockSize.Large,
+            TimberItemLeaderBlockDefinitionRules.Resolve(
+                ItemNumberLeaderStyle.Rectangle,
+                "VT1234").Size);
     }
 
     [Fact]

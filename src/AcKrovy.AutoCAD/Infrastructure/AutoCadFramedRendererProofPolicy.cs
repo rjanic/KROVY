@@ -106,15 +106,21 @@ internal static class AutoCadFramedRendererProofPolicy
     public const string ExpectedOverflowPass = "EXPECTED OVERFLOW PASS";
     public const string NotTested = "NOT TESTED";
     public const string PreservationPass = "PRESERVATION PASS";
+    public const string CircleInvariantPass = "CIRCLE INVARIANT PASS";
+
+    // E: fixed Resolve-based Large token (Resolve(Rectangle, VT1234) → Large,
+    //    font-independent because Resolve uses estimated character width).
+    public const string RectangleLargeItemText = "VT1234";
+    public const string RectangleLargeItemPrefix = "VT";
+
+    // J: long Circle token — Resolve(Circle, *) always yields Small.
+    //    Used to prove shared definition remains unchanged regardless of token.
+    public const string CircleLongInvariantText = "WWWWWWWW2147483647";
 
     public static IReadOnlyList<AutoCadFramedRendererTokenCandidate>
         RectangleLargeFitCandidates { get; } =
     [
-        new("ABCDEFGH12345", "ABCDEFGH"),
-        new("ABCDEFGH1234", "ABCDEFGH"),
-        new("ABCDEFGH123", "ABCDEFGH"),
-        new("ABCDEFG123", "ABCDEFG"),
-        new("ABCDEF123", "ABCDEF"),
+        new(RectangleLargeItemText, RectangleLargeItemPrefix),
     ];
 
     public static IReadOnlyList<AutoCadFramedRendererTokenCandidate>
@@ -133,9 +139,9 @@ internal static class AutoCadFramedRendererProofPolicy
         0,
         2d,
         50,
-        RectangleLargeFitCandidates[0].ItemText,
+        RectangleLargeItemText,
         TimberElementType.Custom,
-        RectangleLargeFitCandidates[0].Prefix);
+        RectangleLargeItemPrefix);
 
     public static IReadOnlyList<AutoCadFramedRendererProofCase> Cases { get; } =
     [

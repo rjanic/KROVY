@@ -1,4 +1,3 @@
-using System.Globalization;
 using AcKrovy.AutoCAD.Infrastructure;
 using AcKrovy.Core.Models;
 using AcKrovy.Core.Services;
@@ -15,8 +14,6 @@ public sealed class AutoCadItemLeaderBlockVariantTests
 
         Assert.Equal(reference, Key());
         Assert.NotEqual(reference, Key(frame: AutoCadItemLeaderBlockFrameKind.Slot));
-        Assert.NotEqual(reference, Key(style: "Krovy"));
-        Assert.NotEqual(reference, Key(height: 2.8d));
         Assert.NotEqual(
             Key(frame: AutoCadItemLeaderBlockFrameKind.Slot),
             Key(
@@ -29,77 +26,57 @@ public sealed class AutoCadItemLeaderBlockVariantTests
     }
 
     [Fact]
-    public void Key_UsesExactResolverCanonicalNameCasing()
-    {
-        Assert.NotEqual(Key(style: "Standard"), Key(style: "standard"));
-        Assert.Equal("Standard", Key(style: "  Standard  ").ResolvedCanonicalTextStyleName);
-    }
-
-    [Fact]
-    public void Key_RejectsInvalidGeometryStyleHeightAndBaseDenominator()
+    public void Key_RejectsInvalidGeometryVersionAndCircleMediumLarge()
     {
         Assert.Throws<ArgumentOutOfRangeException>(() =>
             AutoCadItemLeaderBlockVariantKey.Create(
                 AutoCadItemLeaderBlockFrameKind.Circle,
                 TimberItemLeaderBlockSize.Small,
-                "Standard",
-                2.7d,
-                geometryVersion: 2));
+                geometryVersion: 1));
         Assert.Throws<ArgumentOutOfRangeException>(() =>
             AutoCadItemLeaderBlockVariantKey.Create(
                 AutoCadItemLeaderBlockFrameKind.Circle,
-                TimberItemLeaderBlockSize.Small,
-                "Standard",
-                2.7d,
-                baseDenominator: 100));
-        Assert.Throws<ArgumentOutOfRangeException>(() => Key(height: 99d));
-        Assert.Throws<ArgumentException>(() => Key(style: " "));
+                TimberItemLeaderBlockSize.Medium));
         Assert.Throws<ArgumentOutOfRangeException>(() =>
             Key(size: TimberItemLeaderBlockSize.Medium));
     }
 
     [Fact]
-    public void CanonicalHeight_IsInvariantRoundTripAndDistinguishesAdjacentDoubles()
+    public void Name_IsDeterministicSafeBoundedAndContainsNoStyleOrHeight()
     {
-        var previousCulture = CultureInfo.CurrentCulture;
-        try
-        {
-            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("sk-SK");
-            var first = Key(height: 2.7d);
-            var second = Key(height: Math.BitIncrement(2.7d));
-
-            Assert.Equal("2.7", first.CanonicalPaperHeight);
-            Assert.Equal(
-                first.ItemNumberPaperHeightMm,
-                double.Parse(first.CanonicalPaperHeight, CultureInfo.InvariantCulture));
-            Assert.NotEqual(first.CanonicalPaperHeight, second.CanonicalPaperHeight);
-            Assert.NotEqual(
-                AutoCadItemLeaderBlockVariantNamePolicy.CreateCanonicalName(first),
-                AutoCadItemLeaderBlockVariantNamePolicy.CreateCanonicalName(second));
-        }
-        finally
-        {
-            CultureInfo.CurrentCulture = previousCulture;
-        }
-    }
-
-    [Fact]
-    public void Name_IsDeterministicSafeBoundedAndContainsNoRawStyleName()
-    {
-        var key = Key(style: "Štýl krokvy / Japanese 日本語");
+        var key = Key();
 
         var first = AutoCadItemLeaderBlockVariantNamePolicy.CreateCanonicalName(key);
         var second = AutoCadItemLeaderBlockVariantNamePolicy.CreateCanonicalName(key);
 
         Assert.Equal(first, second);
-        Assert.StartsWith("AK_ITEM_CIR_G1_H2700_S", first, StringComparison.Ordinal);
+        Assert.Equal("AK_ITEM_CIR_G2", first);
         Assert.True(AutoCadItemLeaderBlockVariantNamePolicy.IsSafeSymbolName(first));
         Assert.InRange(
             first.Length,
             1,
             AutoCadItemLeaderBlockVariantNamePolicy.MaximumSafeSymbolNameLength);
-        Assert.DoesNotContain("krokvy", first, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain("日本語", first, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("Circle", "Small", "AK_ITEM_CIR_G2")]
+    [InlineData("Slot", "Small", "AK_ITEM_SLOT_S_G2")]
+    [InlineData("Slot", "Medium", "AK_ITEM_SLOT_M_G2")]
+    [InlineData("Slot", "Large", "AK_ITEM_SLOT_L_G2")]
+    [InlineData("Rectangle", "Small", "AK_ITEM_RECT_S_G2")]
+    [InlineData("Rectangle", "Large", "AK_ITEM_RECT_L_G2")]
+    public void Name_MatchesExpectedCanonicalPattern(
+        string frameName,
+        string sizeName,
+        string expected)
+    {
+        var frame = Enum.Parse<AutoCadItemLeaderBlockFrameKind>(frameName);
+        var size = Enum.Parse<TimberItemLeaderBlockSize>(sizeName);
+        var key = Key(frame: frame, size: size);
+
+        Assert.Equal(
+            expected,
+            AutoCadItemLeaderBlockVariantNamePolicy.CreateCanonicalName(key));
     }
 
     [Fact]
@@ -117,8 +94,6 @@ public sealed class AutoCadItemLeaderBlockVariantTests
             Name(Key(
                 frame: AutoCadItemLeaderBlockFrameKind.Rectangle,
                 size: TimberItemLeaderBlockSize.Large)));
-        Assert.NotEqual(reference, Name(Key(style: "Krovy")));
-        Assert.NotEqual(reference, Name(Key(height: 3.2d)));
     }
 
     [Fact]
@@ -142,14 +117,32 @@ public sealed class AutoCadItemLeaderBlockVariantTests
     [Fact]
     public void FingerprintPayload_IsExactVersionedAndUnambiguous()
     {
-        var key = Key(style: "Štýl", height: Math.BitIncrement(2.7d));
+        var key = Key();
         var payload =
             AutoCadItemLeaderBlockVariantNamePolicy.CreateFingerprintPayload(key);
 
         Assert.Equal(
-            "schema=1|geometry=1|frame=CIR|size=S|styleLength=4|style=Štýl|" +
-            "paperHeightMm=2.7000000000000006|baseDenominator=50",
+            "schema=2|geometry=2|frame=CIR|size=S",
             payload);
+    }
+
+    [Fact]
+    public void FingerprintPayload_ChangesForEveryGeometryDimension()
+    {
+        var circleSmall = AutoCadItemLeaderBlockVariantNamePolicy
+            .CreateFingerprintPayload(Key());
+        var slotSmall = AutoCadItemLeaderBlockVariantNamePolicy
+            .CreateFingerprintPayload(
+                Key(frame: AutoCadItemLeaderBlockFrameKind.Slot));
+        var rectLarge = AutoCadItemLeaderBlockVariantNamePolicy
+            .CreateFingerprintPayload(
+                Key(
+                    frame: AutoCadItemLeaderBlockFrameKind.Rectangle,
+                    size: TimberItemLeaderBlockSize.Large));
+
+        Assert.NotEqual(circleSmall, slotSmall);
+        Assert.NotEqual(slotSmall, rectLarge);
+        Assert.NotEqual(circleSmall, rectLarge);
     }
 
     [Fact]
@@ -242,7 +235,7 @@ public sealed class AutoCadItemLeaderBlockVariantTests
         var identity = new AutoCadDatabaseIdentityToken(0x1234);
         var index = new AutoCadItemLeaderBlockVariantBatchIndex<string>(identity);
         var firstKey = Key();
-        var secondKey = Key(height: 3.2d);
+        var secondKey = Key(frame: AutoCadItemLeaderBlockFrameKind.Slot);
 
         index.Add(identity, firstKey, "id-A", Name(firstKey), false);
         index.Add(identity, firstKey, "id-A", Name(firstKey), false);
@@ -275,7 +268,7 @@ public sealed class AutoCadItemLeaderBlockVariantTests
     [Fact]
     public void DefinitionAttribute_ValidItemNoStyleAndBaseHeightPass()
     {
-        var result = Validate(Attribute(), "AK_PROOF_ARIAL", 100d);
+        var result = Validate(Attribute(), 100d);
 
         Assert.True(result.IsValid);
         Assert.Equal(
@@ -311,7 +304,7 @@ public sealed class AutoCadItemLeaderBlockVariantTests
             PositionY = -48.75d,
         };
 
-        var result = Validate(normalizedAfterClose, "AK_PROOF_ARIAL", 100d);
+        var result = Validate(normalizedAfterClose, 100d);
 
         Assert.True(result.IsValid);
         Assert.DoesNotContain(
@@ -334,7 +327,6 @@ public sealed class AutoCadItemLeaderBlockVariantTests
     {
         var result = Validate(
             Attribute(style: style, height: expectedHeight),
-            style,
             expectedHeight);
 
         Assert.True(result.IsValid, $"Case {token}: {result.Reason}");
@@ -343,8 +335,8 @@ public sealed class AutoCadItemLeaderBlockVariantTests
     [Fact]
     public void DefinitionAttribute_CDoesNotScaleDefinitionHeightByBlockScale()
     {
-        var validBaseHeight = Validate(Attribute(height: 100d), "AK_PROOF_ARIAL", 100d);
-        var incorrectlyScaled = Validate(Attribute(height: 200d), "AK_PROOF_ARIAL", 100d);
+        var validBaseHeight = Validate(Attribute(height: 100d), 100d);
+        var incorrectlyScaled = Validate(Attribute(height: 200d), 100d);
 
         Assert.True(validBaseHeight.IsValid);
         Assert.False(incorrectlyScaled.IsValid);
@@ -355,25 +347,29 @@ public sealed class AutoCadItemLeaderBlockVariantTests
     }
 
     [Fact]
-    public void DefinitionAttribute_StyleFailuresAreSpecific()
+    public void DefinitionAttribute_StyleIsNotPartOfValidationContract()
     {
-        var wrongName = Validate(
+        // The G2 definition stores a fixed baseline height; the AttributeDefinition
+        // never bakes a runtime TextStyleId into its identity. Any TextStyleId that
+        // is valid and belongs to the current database is accepted.
+        var differentStyle = Validate(
             Attribute(style: "AK_PROOF_TIMES"),
-            "AK_PROOF_ARIAL",
             100d);
+
+        Assert.True(differentStyle.IsValid,
+            "Style name must not affect definition attribute validation under G2.");
+    }
+
+    [Fact]
+    public void DefinitionAttribute_InvalidTextStyleIdFailsSpecifically()
+    {
         var invalidId = Validate(
             Attribute() with { TextStyleIdIsValid = false },
-            "AK_PROOF_ARIAL",
             100d);
         var foreignId = Validate(
             Attribute() with { TextStyleBelongsToDatabase = false },
-            "AK_PROOF_ARIAL",
             100d);
 
-        Assert.Equal(
-            AutoCadItemLeaderBlockVariantValidationReasonCode
-                .ItemNoWrongCanonicalTextStyle,
-            wrongName.ReasonCode);
         Assert.Equal(
             AutoCadItemLeaderBlockVariantValidationReasonCode
                 .ItemNoInvalidTextStyleId,
@@ -392,19 +388,15 @@ public sealed class AutoCadItemLeaderBlockVariantTests
 
         Assert.True(Validate(
             Attribute(height: 100d + tolerance / 2d),
-            "AK_PROOF_ARIAL",
             100d).IsValid);
         Assert.False(Validate(
             Attribute(height: 100d + tolerance * 2d),
-            "AK_PROOF_ARIAL",
             100d).IsValid);
         Assert.False(Validate(
             Attribute(height: 160d),
-            "AK_PROOF_ARIAL",
             100d).IsValid);
         Assert.False(Validate(
             Attribute(height: 200d),
-            "AK_PROOF_ARIAL",
             100d).IsValid);
     }
 
@@ -413,7 +405,6 @@ public sealed class AutoCadItemLeaderBlockVariantTests
     {
         var result = Validate(
             Attribute() with { LockPositionInBlock = false },
-            "AK_PROOF_ARIAL",
             100d);
 
         Assert.False(result.IsValid);
@@ -428,13 +419,36 @@ public sealed class AutoCadItemLeaderBlockVariantTests
         Assert.Equal("exact", failure.Tolerance);
     }
 
+    [Fact]
+    public void FromDefinition_RoundTripsGeometryOnlyKey()
+    {
+        var circles = new[]
+        {
+            TimberItemLeaderBlockDefinitionRules.Resolve(
+                ItemNumberLeaderStyle.Circle, "K1"),
+            TimberItemLeaderBlockDefinitionRules.Resolve(
+                ItemNumberLeaderStyle.Circle, "WWWWWWWW2147483647"),
+        };
+        foreach (var def in circles)
+        {
+            var key = AutoCadItemLeaderBlockVariantKey.FromDefinition(def);
+            Assert.Equal(AutoCadItemLeaderBlockFrameKind.Circle, key.FrameKind);
+            Assert.Equal(TimberItemLeaderBlockSize.Small, key.FrameSize);
+            Assert.Equal(AutoCadItemLeaderBlockVariantKey.CurrentGeometryVersion, key.GeometryVersion);
+        }
+
+        var rectLarge = AutoCadItemLeaderBlockVariantKey.FromDefinition(
+            TimberItemLeaderBlockDefinitionRules.Resolve(
+                ItemNumberLeaderStyle.Rectangle, "VT1234"));
+        Assert.Equal(AutoCadItemLeaderBlockFrameKind.Rectangle, rectLarge.FrameKind);
+        Assert.Equal(TimberItemLeaderBlockSize.Large, rectLarge.FrameSize);
+    }
+
     private static AutoCadItemLeaderBlockVariantAttributeValidation Validate(
         AutoCadItemLeaderBlockVariantAttributeSnapshot snapshot,
-        string expectedStyle,
         double expectedHeight) =>
         AutoCadItemLeaderBlockVariantAttributeValidationPolicy.Evaluate(
             snapshot,
-            expectedStyle,
             expectedHeight);
 
     private static AutoCadItemLeaderBlockVariantAttributeSnapshot Attribute(
@@ -474,10 +488,8 @@ public sealed class AutoCadItemLeaderBlockVariantTests
     private static AutoCadItemLeaderBlockVariantKey Key(
         AutoCadItemLeaderBlockFrameKind frame =
             AutoCadItemLeaderBlockFrameKind.Circle,
-        TimberItemLeaderBlockSize size = TimberItemLeaderBlockSize.Small,
-        string style = "Standard",
-        double height = 2.7d) =>
-        AutoCadItemLeaderBlockVariantKey.Create(frame, size, style, height);
+        TimberItemLeaderBlockSize size = TimberItemLeaderBlockSize.Small) =>
+        AutoCadItemLeaderBlockVariantKey.Create(frame, size);
 
     private static string Name(AutoCadItemLeaderBlockVariantKey key) =>
         AutoCadItemLeaderBlockVariantNamePolicy.CreateCanonicalName(key);

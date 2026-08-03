@@ -45,8 +45,8 @@ public sealed class FramedRendererProductionIntegrationSourceContractTests
         Assert.DoesNotContain(
             "(AttributeDefinition)transaction.GetObject",
             create);
-        Assert.DoesNotContain(".Height =", create);
-        Assert.DoesNotContain(".TextStyleId =", create);
+        Assert.Contains("attribute.Height = preparation.AttributeHeightMm", ElementLabelSource());
+        Assert.Contains("attribute.TextStyleId = preparation.TextStyleId", ElementLabelSource());
     }
 
     [Fact]
@@ -65,7 +65,6 @@ public sealed class FramedRendererProductionIntegrationSourceContractTests
         Assert.DoesNotContain("Erase(", update);
         Assert.DoesNotContain("Purge(", update);
         Assert.DoesNotContain("database.Textstyle", update);
-        Assert.DoesNotContain("GetBlockAttribute", update);
     }
 
     [Fact]
@@ -89,7 +88,7 @@ public sealed class FramedRendererProductionIntegrationSourceContractTests
     }
 
     [Fact]
-    public void TextFitUsesResolvedStyleActualTokenAndDefinitionHeight()
+    public void ProductionSizing_UsesResolveNotMeasuredWidth()
     {
         var measurement = Source(
             "src", "AcKrovy.AutoCAD", "Infrastructure",
@@ -102,16 +101,12 @@ public sealed class FramedRendererProductionIntegrationSourceContractTests
             "AutoCadItemLeaderBlockVariantKey.cs");
 
         Assert.Contains("using var text = new DBText()", measurement);
-        Assert.Contains("text.TextStyleId = resolvedTextStyleId", measurement);
-        Assert.Contains("text.Height = definitionTextHeightMm", measurement);
-        Assert.Contains("text.TextString = itemText", measurement);
-        Assert.Contains("text.GeometricExtents", measurement);
-        Assert.Contains("CalculateModelHeightMm(", measurement);
-        Assert.Contains("TimberAnnotationScaleRules.DefaultDenominator", measurement);
-        Assert.Contains("EvaluateMeasuredTextWidth(", variant);
-        Assert.Contains("TextOverflow(", variant);
+        Assert.Contains("TimberItemLeaderBlockDefinitionRules.Resolve(", variant);
+        Assert.DoesNotContain("AutoCadItemLeaderTextMeasurementService.Measure(", variant);
+        Assert.DoesNotContain("EvaluateMeasuredTextWidth(", variant);
         Assert.DoesNotContain("MeasuredTextWidth", key);
         Assert.DoesNotContain("AvailableInnerWidth", key);
+        Assert.Contains("CurrentGeometryVersion = 2", key);
     }
 
     [Fact]
@@ -175,9 +170,10 @@ public sealed class FramedRendererProductionIntegrationSourceContractTests
             "AutoCadItemLeaderBlockVariantKey.cs");
 
         Assert.Contains("return annotationScaleContext.ScaleFactor;", policy);
-        Assert.Contains("BaseDenominator", key);
+        Assert.DoesNotContain("BaseDenominator", key);
         Assert.DoesNotContain("AnnotationScaleDenominator", key);
         Assert.DoesNotContain("ScaleFactor", key);
+        Assert.Contains("CurrentGeometryVersion = 2", key);
     }
 
     [Fact]

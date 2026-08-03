@@ -40,7 +40,8 @@ internal static class AutoCadFramedItemLeaderMutationPolicy
         bool hasExistingAnnotation,
         bool blockContentMatches,
         bool blockScaleMatches,
-        bool itemNumberTokenMatches)
+        bool itemNumberTokenMatches,
+        bool attributePresentationMatches = true)
     {
         if (!variantEnsureSucceeded)
         {
@@ -53,12 +54,15 @@ internal static class AutoCadFramedItemLeaderMutationPolicy
         }
 
         var replaceContent = !blockContentMatches;
+        var setAttribute = replaceContent ||
+            !itemNumberTokenMatches ||
+            !attributePresentationMatches;
         return new AutoCadFramedItemLeaderMutationPlan(
-            ShouldOpenExistingForWrite: hasExistingAnnotation,
+            ShouldOpenExistingForWrite: hasExistingAnnotation &&
+                (replaceContent || !blockScaleMatches || setAttribute),
             ShouldReplaceBlockContent: replaceContent,
             ShouldSetBlockScale: !blockScaleMatches,
-            ShouldSetItemNumberToken:
-                replaceContent || !itemNumberTokenMatches,
+            ShouldSetItemNumberToken: setAttribute,
             PreserveExistingAnnotation: false);
     }
 }
@@ -67,7 +71,9 @@ internal sealed record AutoCadFramedItemLeaderPreparation(
     AutoCadItemLeaderBlockVariantResult VariantResult,
     ObjectId AttributeDefinitionId,
     double BlockScale,
-    double EffectiveTextHeight)
+    double EffectiveTextHeight,
+    ObjectId TextStyleId,
+    double AttributeHeightMm)
 {
     public ObjectId BlockTableRecordId =>
         VariantResult.BlockTableRecordId ?? ObjectId.Null;

@@ -102,11 +102,9 @@ internal static class AutoCadItemLeaderBlockVariantAttributeValidationPolicy
 
     public static AutoCadItemLeaderBlockVariantAttributeValidation Evaluate(
         AutoCadItemLeaderBlockVariantAttributeSnapshot actual,
-        string expectedCanonicalTextStyleName,
         double expectedDefinitionHeight)
     {
         ArgumentNullException.ThrowIfNull(actual);
-        ArgumentException.ThrowIfNullOrWhiteSpace(expectedCanonicalTextStyleName);
         if (!double.IsFinite(expectedDefinitionHeight) ||
             expectedDefinitionHeight <= 0d)
         {
@@ -133,15 +131,6 @@ internal static class AutoCadItemLeaderBlockVariantAttributeValidationPolicy
                 "TextStyleId belongs to current Database",
                 true,
                 actual.TextStyleBelongsToDatabase),
-            Boolean(
-                "TextStyleId matches resolved runtime style",
-                true,
-                actual.TextStyleMatchesResolvedRuntimeId),
-            Text(
-                "canonical text-style name",
-                expectedCanonicalTextStyleName,
-                actual.CanonicalTextStyleName,
-                StringComparison.Ordinal),
             Number("Height", expectedDefinitionHeight, actual.Height),
             Text("HorizontalMode", "TextCenter", actual.HorizontalMode),
             Text("VerticalMode", "TextVerticalMid", actual.VerticalMode),
@@ -224,10 +213,6 @@ internal static class AutoCadItemLeaderBlockVariantAttributeValidationPolicy
             "TextStyleId belongs to current Database" =>
                 AutoCadItemLeaderBlockVariantValidationReasonCode
                     .ItemNoTextStyleDatabaseMismatch,
-            "TextStyleId matches resolved runtime style" or
-                "canonical text-style name" =>
-                AutoCadItemLeaderBlockVariantValidationReasonCode
-                    .ItemNoWrongCanonicalTextStyle,
             "Height" => AutoCadItemLeaderBlockVariantValidationReasonCode
                 .ItemNoWrongDefinitionHeight,
             _ => AutoCadItemLeaderBlockVariantValidationReasonCode
