@@ -505,6 +505,8 @@ internal static class ElementLabelService
         }
 
         AutoCadPlainItemLeaderPresentationPreparation? plainItemPreparation = null;
+        AutoCadDimensionsLeaderPresentationPreparation? dimensionsLeaderPreparation =
+            null;
         var normalizedAnnotationMode =
             TimberAnnotationModeRules.Normalize(data.AnnotationMode);
         var usesPlainItemPresentation =
@@ -532,6 +534,26 @@ internal static class ElementLabelService
                 AcKrovyDiagnostics.Warning(
                     "PlainItemLeaderPresentation",
                     plainItemDiagnostic);
+                return false;
+            }
+        }
+
+        var usesDimensionsLeaderPresentation =
+            desiredRepresentation == TimberMainAnnotationRepresentation.Leader &&
+            normalizedAnnotationMode == TimberAnnotationMode.DimensionsLeader &&
+            componentRole == TimberMainAnnotationComponentRole.Primary;
+        if (usesDimensionsLeaderPresentation)
+        {
+            if (!AutoCadDimensionsLeaderPresentationPolicy.TryPrepare(
+                    database,
+                    presentationContext,
+                    out dimensionsLeaderPreparation,
+                    out var dimensionsLeaderDiagnostic) ||
+                dimensionsLeaderPreparation is null)
+            {
+                AcKrovyDiagnostics.Warning(
+                    "DimensionsLeaderPresentation",
+                    dimensionsLeaderDiagnostic);
                 return false;
             }
         }
@@ -578,7 +600,8 @@ internal static class ElementLabelService
                 scaleNativePresentation,
                 baseTextHeightMm,
                 plainItemPreparation,
-                combinedLandingDistanceMm))
+                combinedLandingDistanceMm,
+                dimensionsLeaderPreparation))
         {
             leader = existingLeader;
         }
@@ -614,7 +637,8 @@ internal static class ElementLabelService
                     scaleNativePresentation,
                     baseTextHeightMm,
                     plainItemPreparation,
-                    combinedLandingDistanceMm);
+                    combinedLandingDistanceMm,
+                    dimensionsLeaderPreparation);
             WriteLeaderMetadata(
                 leader,
                 transaction,
@@ -2175,15 +2199,21 @@ internal static class ElementLabelService
         bool scaleNativePresentation,
         double baseTextHeightMm,
         AutoCadPlainItemLeaderPresentationPreparation? plainItemPresentation = null,
-        double? combinedLandingDistanceMm = null)
+        double? combinedLandingDistanceMm = null,
+        AutoCadDimensionsLeaderPresentationPreparation? dimensionsLeaderPresentation =
+            null)
     {
         var presentationScaleFactor = scaleNativePresentation
             ? annotationScaleContext.ScaleFactor
             : 1d;
-        var effectiveTextHeight = plainItemPresentation is not null
-            ? plainItemPresentation.ModelHeightMm
-            : baseTextHeightMm * presentationScaleFactor;
-        var resolvedTextStyleId = plainItemPresentation?.TextStyleId;
+        var effectiveTextHeight = dimensionsLeaderPresentation is not null
+            ? dimensionsLeaderPresentation.ModelHeightMm
+            : plainItemPresentation is not null
+                ? plainItemPresentation.ModelHeightMm
+                : baseTextHeightMm * presentationScaleFactor;
+        var resolvedTextStyleId =
+            dimensionsLeaderPresentation?.TextStyleId ??
+            plainItemPresentation?.TextStyleId;
         var styleId = AcKrovyMLeaderStyleService.Ensure(
             database,
             transaction,
@@ -2598,7 +2628,9 @@ internal static class ElementLabelService
         bool scaleNativePresentation,
         double baseTextHeightMm,
         AutoCadPlainItemLeaderPresentationPreparation? plainItemPresentation = null,
-        double? combinedLandingDistanceMm = null)
+        double? combinedLandingDistanceMm = null,
+        AutoCadDimensionsLeaderPresentationPreparation? dimensionsLeaderPresentation =
+            null)
     {
         if (leader.ContentType != ContentType.MTextContent)
         {
@@ -2632,10 +2664,14 @@ internal static class ElementLabelService
         var presentationScaleFactor = scaleNativePresentation
             ? annotationScaleContext.ScaleFactor
             : 1d;
-        var effectiveTextHeight = plainItemPresentation is not null
-            ? plainItemPresentation.ModelHeightMm
-            : baseTextHeightMm * presentationScaleFactor;
-        var resolvedTextStyleId = plainItemPresentation?.TextStyleId;
+        var effectiveTextHeight = dimensionsLeaderPresentation is not null
+            ? dimensionsLeaderPresentation.ModelHeightMm
+            : plainItemPresentation is not null
+                ? plainItemPresentation.ModelHeightMm
+                : baseTextHeightMm * presentationScaleFactor;
+        var resolvedTextStyleId =
+            dimensionsLeaderPresentation?.TextStyleId ??
+            plainItemPresentation?.TextStyleId;
         leader.MLeaderStyle = styleId;
         leader.MText = CreateLeaderMText(
             database,
