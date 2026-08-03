@@ -133,6 +133,7 @@ internal static class TimberAnnotationService
                 sourceEntity,
                 data,
                 annotationScaleContext,
+                presentationContext,
                 copySourcePreservation);
         }
 

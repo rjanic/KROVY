@@ -105,7 +105,10 @@ internal static class AutoCadDimensionsLeaderProofService
 
                     var data = CreateData(proofCase, styleName);
                     var presentation = batch.ResolveForElement(data);
-                    if (!presentation.HasCompatibleStyle)
+                    var itemCodeText = presentation.ItemCodeText;
+                    var dimensionText = presentation.DimensionText;
+                    if (!dimensionText.HasCompatibleStyle ||
+                        !itemCodeText.HasCompatibleStyle)
                     {
                         editor.WriteMessage(
                             $"\nAK_DEV_DIMENSIONS_LEADER_TEXT_CREATE: NOT TESTED - " +
@@ -130,20 +133,19 @@ internal static class AutoCadDimensionsLeaderProofService
                             modelSpace,
                             transaction,
                             sourceHandle,
-                            presentation.ItemNumberModelHeight,
+                            itemCodeText.ModelHeightMm,
                             proofCase.Token);
                         expected.Add(
                             AutoCadDimensionsLeaderProofPolicy.ToExpected(
                                 proofCase,
-                                presentation.ResolvedTextStyleName ?? styleName,
-                                presentation.EffectiveTextSettings
-                                    .ItemCodePaperHeightMm,
+                                itemCodeText.ResolvedTextStyleName ?? styleName,
+                                itemCodeText.PaperHeightMm,
                                 presentation.AnnotationScaleDenominator,
-                                presentation.TextStyleResolutionKind.ToString(),
-                                presentation.IsFallback));
+                                itemCodeText.ResolutionKind.ToString(),
+                                itemCodeText.IsFallback));
                         editor.WriteMessage(
                             $"\n  {proofCase.Token}: standalone Plain item " +
-                            $"height={presentation.ItemNumberModelHeight:R}; PASS");
+                            $"height={itemCodeText.ModelHeightMm:R}; PASS");
                         continue;
                     }
 
@@ -174,13 +176,11 @@ internal static class AutoCadDimensionsLeaderProofService
                             $"Case {proofCase.Token}: MLeader.TextStyleId != MText.TextStyleId.");
                     }
 
-                    if (!AreClose(
-                            textHeight,
-                            presentation.LabelAndDimensionModelHeight))
+                    if (!AreClose(textHeight, dimensionText.ModelHeightMm))
                     {
                         throw new InvalidOperationException(
                             $"Case {proofCase.Token}: model height {textHeight:R} " +
-                            $"!= {presentation.LabelAndDimensionModelHeight:R}.");
+                            $"!= {dimensionText.ModelHeightMm:R}.");
                     }
 
                     if (proofCase.Token == "A")
@@ -206,24 +206,23 @@ internal static class AutoCadDimensionsLeaderProofService
                     expected.Add(
                         AutoCadDimensionsLeaderProofPolicy.ToExpected(
                             proofCase,
-                            presentation.ResolvedTextStyleName ?? styleName,
-                            presentation.EffectiveTextSettings
-                                .DimensionPaperHeightMm,
+                            dimensionText.ResolvedTextStyleName ?? styleName,
+                            dimensionText.PaperHeightMm,
                             presentation.AnnotationScaleDenominator,
-                            presentation.TextStyleResolutionKind.ToString(),
-                            presentation.IsFallback,
+                            dimensionText.ResolutionKind.ToString(),
+                            dimensionText.IsFallback,
                             failureOutcome));
 
                     editor.WriteMessage(
                         $"\n  {proofCase.Token}: style=" +
-                        $"{presentation.ResolvedTextStyleName}; " +
-                        $"TextStyleId={presentation.ResolvedTextStyleId}; " +
-                        $"paper={presentation.EffectiveTextSettings.DimensionPaperHeightMm:R}; " +
+                        $"{dimensionText.ResolvedTextStyleName}; " +
+                        $"TextStyleId={dimensionText.ResolvedTextStyleId}; " +
+                        $"paper={dimensionText.PaperHeightMm:R}; " +
                         $"denominator={presentation.AnnotationScaleDenominator}; " +
-                        $"modelHeight={presentation.LabelAndDimensionModelHeight:R}; " +
+                        $"modelHeight={dimensionText.ModelHeightMm:R}; " +
                         $"mLeaderStyle={leaderStyleId.Handle}; " +
                         $"mTextStyle={mTextStyleId.Handle}; " +
-                        $"kind={presentation.TextStyleResolutionKind}" +
+                        $"kind={dimensionText.ResolutionKind}" +
                         (string.IsNullOrEmpty(failureOutcome)
                             ? string.Empty
                             : $"; failure={failureOutcome}"));

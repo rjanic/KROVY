@@ -24,6 +24,7 @@ public static class SettingsConfigurationSubject
     public const string LayerProfile = "Layer profile";
     public const string TimberDefaults = "Timber defaults";
     public const string CustomElementDefinitions = "Custom element definitions";
+    public const string TextStylePresets = "Text style presets";
 }
 
 public sealed record SettingsConfigurationDetail(

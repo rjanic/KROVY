@@ -22,4 +22,7 @@ internal static class LocalSettingsPaths
 
     public static string CustomDefinitions =>
         Path.Combine(DirectoryPath, "custom-element-definitions.json");
+
+    public static string TextStylePresets =>
+        Path.Combine(DirectoryPath, "annotation-text-style-presets.json");
 }

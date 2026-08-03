@@ -216,6 +216,9 @@ public sealed class AcKrovyCommands
 
         if (request.SaveMode == SettingsSaveMode.NewElementsOnly)
         {
+            EnsureAnnotationTextStylesForSettings(
+                document,
+                request.DefaultProfile.DefaultAnnotationTextSettings);
             editor.WriteMessage(UiStrings.CommandSettingsSaved);
             return createdLayerNames.Count == 0
                 ? SettingsResponse(
@@ -254,6 +257,11 @@ public sealed class AcKrovyCommands
         {
             using (document.LockDocument())
             {
+                EnsureAnnotationTextStylesForSettings(
+                    document,
+                    annotationSettings.AnnotationTextSettings ??
+                    request.DefaultProfile.DefaultAnnotationTextSettings,
+                    alreadyLocked: true);
                 applyResult = ApplySettingsToExistingElements(
                     document,
                     request.DefaultProfile,
@@ -746,13 +754,15 @@ public sealed class AcKrovyCommands
         }
         else
         {
+            var slopePresentationContext =
+                presentationBatchContext.ResolveForElement(updated);
             SlopeAnnotationService.EnsureForElement(
                 document.Database,
                 transaction,
                 sourceEntity,
                 updated,
-                presentationBatchContext.ResolveForElement(updated)
-                    .AnnotationScaleContext);
+                slopePresentationContext.AnnotationScaleContext,
+                slopePresentationContext);
         }
         transaction.Commit();
 
@@ -1228,6 +1238,55 @@ public sealed class AcKrovyCommands
 
         transaction.Commit();
         editor.WriteMessage(UiStrings.Format(UiStrings.CommandLayersResultFormat, updated, skipped));
+    }
+
+    private static void EnsureAnnotationTextStylesForSettings(
+        Document document,
+        TimberAnnotationTextSettings? settings,
+        bool alreadyLocked = false)
+    {
+        if (settings is null)
+        {
+            return;
+        }
+
+        void Ensure()
+        {
+            using var transaction =
+                document.Database.TransactionManager.StartTransaction();
+            var userPresets =
+                TimberAnnotationTextStylePresetLibraryStore.Load().Presets;
+            var results = AutoCadTextStylePresetService.EnsureRequiredStyles(
+                document.Database,
+                transaction,
+                settings,
+                userPresets);
+            foreach (var result in results)
+            {
+                if (result.Kind is
+                    AutoCadTextStylePresetEnsureKind.FontUnavailable or
+                    AutoCadTextStylePresetEnsureKind.Failed)
+                {
+                    document.Editor.WriteMessage(
+                        $"\nACAD KROVY: text style '{result.StyleName}' " +
+                        $"was not ensured ({result.Kind}): " +
+                        $"{result.DiagnosticReason ?? "unknown"}");
+                }
+            }
+
+            transaction.Commit();
+        }
+
+        if (alreadyLocked)
+        {
+            Ensure();
+            return;
+        }
+
+        using (document.LockDocument())
+        {
+            Ensure();
+        }
     }
 
     private static SettingsDrawingApplyResult ApplySettingsToExistingElements(

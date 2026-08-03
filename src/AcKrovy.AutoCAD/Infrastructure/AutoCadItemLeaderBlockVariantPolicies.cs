@@ -131,6 +131,10 @@ internal static class AutoCadItemLeaderBlockVariantAttributeValidationPolicy
                 "TextStyleId belongs to current Database",
                 true,
                 actual.TextStyleBelongsToDatabase),
+            Boolean(
+                "TextStyleId matches G3 key resolution",
+                true,
+                actual.TextStyleMatchesResolvedRuntimeId),
             Number("Height", expectedDefinitionHeight, actual.Height),
             Text("HorizontalMode", "TextCenter", actual.HorizontalMode),
             Text("VerticalMode", "TextVerticalMid", actual.VerticalMode),
@@ -213,6 +217,9 @@ internal static class AutoCadItemLeaderBlockVariantAttributeValidationPolicy
             "TextStyleId belongs to current Database" =>
                 AutoCadItemLeaderBlockVariantValidationReasonCode
                     .ItemNoTextStyleDatabaseMismatch,
+            "TextStyleId matches G3 key resolution" =>
+                AutoCadItemLeaderBlockVariantValidationReasonCode
+                    .ItemNoWrongCanonicalTextStyle,
             "Height" => AutoCadItemLeaderBlockVariantValidationReasonCode
                 .ItemNoWrongDefinitionHeight,
             _ => AutoCadItemLeaderBlockVariantValidationReasonCode

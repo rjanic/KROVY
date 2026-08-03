@@ -69,12 +69,10 @@ public sealed class FullLabelPresentationSourceContractTests
         Assert.Contains(
             "label.TextStyleId = textStyleId",
             appearance);
-        Assert.Contains(
-            "presentationContext.LabelAndDimensionModelHeight",
-            policy);
-        Assert.Contains(
-            "presentationContext.ResolvedTextStyleId",
-            policy);
+        Assert.Contains("presentationContext.ForRole(Role)", policy);
+        Assert.Contains("TimberAnnotationTextRole.Dimension", policy);
+        Assert.Contains("roleText.ModelHeightMm", policy);
+        Assert.Contains("roleText.ResolvedTextStyleId", policy);
         Assert.Contains("ObjectId TextStyleId", policy);
         Assert.Contains("ResolvedTextStyleName", policy);
         Assert.Contains("ModelHeightMm", policy);
@@ -87,7 +85,7 @@ public sealed class FullLabelPresentationSourceContractTests
     }
 
     [Fact]
-    public void CombinedPrimaryMText_DoesNotReceiveResolvedFullLabelStyle()
+    public void CombinedPrimaryMText_UsesDimensionRoleOutsideFullLabelPolicy()
     {
         var combined = Member(
             ElementLabelSource(),
@@ -97,9 +95,18 @@ public sealed class FullLabelPresentationSourceContractTests
             StringComparison.Ordinal);
         Assert.True(primary >= 0);
         var call = ExtractInvocation(combined, primary);
-        Assert.DoesNotContain("resolvedTextStyleId", call);
+        Assert.Contains("resolvedTextStyleId", call);
         Assert.Contains(
-            "TimberCombinedDimensionTypographyRules.CalculateTextHeightMm(",
+            "AutoCadDimensionsLeaderPresentationPolicy.TryPrepare(",
+            combined);
+        Assert.DoesNotContain(
+            "AutoCadFullLabelPresentationPolicy",
+            combined);
+        Assert.Contains(
+            "TimberCombinedDimensionTypographyRules.CalculateEnvelopeHeightMm(",
+            combined);
+        Assert.Contains(
+            "TimberCombinedDimensionTypographyRules.CalculateEnvelopeWidthMm(",
             combined);
     }
 

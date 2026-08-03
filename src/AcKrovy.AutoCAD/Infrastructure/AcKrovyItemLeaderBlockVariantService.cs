@@ -48,14 +48,25 @@ internal static class AcKrovyItemLeaderBlockVariantService
                 "Batch catalog belongs to a different database.");
         }
 
-        // Font/style/height presentation is applied later on AttributeReference.
-        // Shared BlockTableRecord identity uses only Resolve(style, itemText).
+        var itemCodeText = presentationContext.FramedItemCodeText;
+        if (itemCodeText.ResolvedTextStyleId is not ObjectId textStyleId ||
+            itemCodeText.ResolvedTextStyleName is null)
+        {
+            return AutoCadItemLeaderBlockVariantResult.NoCompatibleTextStyle(
+                AutoCadDatabaseIdentity.TryGetIdentity(database),
+                "No compatible framed item-code text style was resolved.");
+        }
+
+        var identity = AutoCadItemLeaderTextStyleIdentity.FromStoredStyleName(
+            itemCodeText.RequestedTextStyleName);
         return EnsureResolved(
             database,
             transaction,
             style,
             itemText,
-            batchCatalog);
+            batchCatalog,
+            identity,
+            textStyleId);
     }
 
     internal static AutoCadItemLeaderBlockVariantResult EnsureResolved(
@@ -63,7 +74,9 @@ internal static class AcKrovyItemLeaderBlockVariantService
         Transaction transaction,
         ItemNumberLeaderStyle style,
         string itemText,
-        AutoCadItemLeaderBlockVariantBatchCatalog batchCatalog)
+        AutoCadItemLeaderBlockVariantBatchCatalog batchCatalog,
+        AutoCadItemLeaderTextStyleIdentity? textStyleIdentity = null,
+        ObjectId? textStyleId = null)
     {
         ArgumentNullException.ThrowIfNull(database);
         ArgumentNullException.ThrowIfNull(transaction);
@@ -100,21 +113,27 @@ internal static class AcKrovyItemLeaderBlockVariantService
             database,
             transaction,
             definition,
-            batchCatalog);
+            batchCatalog,
+            textStyleIdentity ?? AutoCadItemLeaderTextStyleIdentity.Classic,
+            textStyleId ?? database.Textstyle);
     }
 
     private static AutoCadItemLeaderBlockVariantResult EnsureDefinition(
         Database database,
         Transaction transaction,
         TimberItemLeaderBlockDefinition definition,
-        AutoCadItemLeaderBlockVariantBatchCatalog batchCatalog)
+        AutoCadItemLeaderBlockVariantBatchCatalog batchCatalog,
+        AutoCadItemLeaderTextStyleIdentity textStyleIdentity,
+        ObjectId textStyleId)
     {
         var databaseIdentity = AutoCadDatabaseIdentity.TryGetIdentity(database);
         AutoCadItemLeaderBlockVariantKey key;
         string canonicalName;
         try
         {
-            key = AutoCadItemLeaderBlockVariantKey.FromDefinition(definition);
+            key = AutoCadItemLeaderBlockVariantKey.FromDefinition(
+                definition,
+                textStyleIdentity);
             canonicalName =
                 AutoCadItemLeaderBlockVariantNamePolicy.CreateCanonicalName(key);
         }
@@ -155,6 +174,7 @@ internal static class AcKrovyItemLeaderBlockVariantService
                     candidateId,
                     definition,
                     key,
+                    textStyleId,
                     out var reason);
                 if (string.Equals(
                         candidateName,
@@ -184,6 +204,7 @@ internal static class AcKrovyItemLeaderBlockVariantService
                 canonicalName,
                 decision.CandidateName,
                 batchCatalog,
+                textStyleId,
                 decision.IsCollision);
         }
         if (decision.Kind ==
@@ -223,6 +244,7 @@ internal static class AcKrovyItemLeaderBlockVariantService
         string canonicalName,
         string resolvedName,
         AutoCadItemLeaderBlockVariantBatchCatalog batchCatalog,
+        ObjectId textStyleId,
         bool collision)
     {
         var writableBlockTable = (BlockTable)transaction.GetObject(
@@ -243,14 +265,15 @@ internal static class AcKrovyItemLeaderBlockVariantService
             transaction,
             block,
             definition);
-        // Shared AttributeDefinition keeps the frozen baseline height and the
-        // drawing default text style. Per-instance style/height are applied on
-        // AttributeReference after SetAttributeFromBlock.
+        // G3 style identity is immutable: TextStyleId is assigned only while
+        // creating this shared definition. Existing definitions are never
+        // mutated, including after preset update or deletion.
         AcKrovyItemLeaderBlockService.AddItemNumberAttribute(
             database,
             transaction,
             block,
-            definition.TextHeightMm);
+            definition.TextHeightMm,
+            textStyleId);
 
         if (!ValidateExistingDefinition(
                 database,
@@ -258,6 +281,7 @@ internal static class AcKrovyItemLeaderBlockVariantService
                 blockId,
                 definition,
                 key,
+                textStyleId,
                 out var validationReason))
         {
             throw new InvalidOperationException(
@@ -284,6 +308,7 @@ internal static class AcKrovyItemLeaderBlockVariantService
         ObjectId blockId,
         TimberItemLeaderBlockDefinition definition,
         AutoCadItemLeaderBlockVariantKey key,
+        ObjectId expectedTextStyleId,
         out string reason)
     {
         var result = ValidateExistingDefinitionDetailed(
@@ -291,7 +316,8 @@ internal static class AcKrovyItemLeaderBlockVariantService
             transaction,
             blockId,
             definition,
-            key);
+            key,
+            expectedTextStyleId);
         reason = result.Reason;
         return result.IsValid;
     }
@@ -302,7 +328,8 @@ internal static class AcKrovyItemLeaderBlockVariantService
         Transaction transaction,
         ObjectId blockId,
         TimberItemLeaderBlockDefinition definition,
-        AutoCadItemLeaderBlockVariantKey key)
+        AutoCadItemLeaderBlockVariantKey key,
+        ObjectId? expectedTextStyleId = null)
     {
         ArgumentNullException.ThrowIfNull(database);
         ArgumentNullException.ThrowIfNull(transaction);
@@ -459,6 +486,8 @@ internal static class AcKrovyItemLeaderBlockVariantService
             }
         }
         var styleName = textStyle?.Name ?? "<unavailable>";
+        var resolvedStyleMatches = expectedTextStyleId is null ||
+            attribute.TextStyleId == expectedTextStyleId.Value;
         var expectedHeight = definition.TextHeightMm;
         var snapshot = new AutoCadItemLeaderBlockVariantAttributeSnapshot(
             attribute.OwnerId == block.ObjectId,
@@ -469,7 +498,7 @@ internal static class AcKrovyItemLeaderBlockVariantService
             ReadObjectId(attribute.TextStyleId),
             styleIdValid && textStyle is not null,
             styleBelongsToDatabase,
-            TextStyleMatchesResolvedRuntimeId: false,
+            TextStyleMatchesResolvedRuntimeId: resolvedStyleMatches,
             styleName,
             textStyle?.TextSize ?? double.NaN,
             ReadAnnotativeState(textStyle),

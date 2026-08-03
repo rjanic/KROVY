@@ -241,6 +241,7 @@ public sealed class ProductivityWindowsSmokeTests
             (SettingsConfigurationSubject.LayerProfile, "DiagnosticsEvent_SubjectLayerProfile"),
             (SettingsConfigurationSubject.TimberDefaults, "DiagnosticsEvent_SubjectTimberDefaults"),
             (SettingsConfigurationSubject.CustomElementDefinitions, "DiagnosticsEvent_SubjectCustomElementDefinitions"),
+            (SettingsConfigurationSubject.TextStylePresets, "DiagnosticsEvent_SubjectTextStylePresets"),
         };
         var actions = new[]
         {

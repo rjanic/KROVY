@@ -27,7 +27,8 @@ public sealed record TimberAnnotationSettingsRequest
             scaleDenominator,
             applyScope,
             annotationTextSettings: null,
-            allowMissingTextSettings: true)
+            allowMissingTextSettings: true,
+            annotationTextPatch: TimberAnnotationTextSettingsPatch.Unchanged)
     {
     }
 
@@ -43,7 +44,27 @@ public sealed record TimberAnnotationSettingsRequest
             scaleDenominator,
             applyScope,
             annotationTextSettings,
-            allowMissingTextSettings: false)
+            allowMissingTextSettings: false,
+            annotationTextPatch: TimberAnnotationTextSettingsPatch.Unchanged)
+    {
+    }
+
+    public TimberAnnotationSettingsRequest(
+        TimberAnnotationMode annotationMode,
+        ItemNumberLeaderStyle itemNumberLeaderStyle,
+        int scaleDenominator,
+        TimberAnnotationSettingsApplyScope applyScope,
+        TimberAnnotationTextSettings annotationTextSettings,
+        TimberAnnotationTextSettingsPatch annotationTextPatch)
+        : this(
+            annotationMode,
+            itemNumberLeaderStyle,
+            scaleDenominator,
+            applyScope,
+            annotationTextSettings,
+            allowMissingTextSettings: false,
+            annotationTextPatch: annotationTextPatch ??
+                throw new ArgumentNullException(nameof(annotationTextPatch)))
     {
     }
 
@@ -53,7 +74,8 @@ public sealed record TimberAnnotationSettingsRequest
         int scaleDenominator,
         TimberAnnotationSettingsApplyScope applyScope,
         TimberAnnotationTextSettings? annotationTextSettings,
-        bool allowMissingTextSettings)
+        bool allowMissingTextSettings,
+        TimberAnnotationTextSettingsPatch annotationTextPatch)
     {
         if (!TimberAnnotationScaleRules.IsValidDenominator(scaleDenominator))
         {
@@ -79,6 +101,7 @@ public sealed record TimberAnnotationSettingsRequest
             : TimberAnnotationTextSettingsRules.ValidateAndNormalize(
                 annotationTextSettings ??
                 throw new ArgumentNullException(nameof(annotationTextSettings)));
+        AnnotationTextPatch = annotationTextPatch;
     }
 
     public TimberAnnotationMode AnnotationMode { get; }
@@ -86,6 +109,7 @@ public sealed record TimberAnnotationSettingsRequest
     public int ScaleDenominator { get; }
     public TimberAnnotationSettingsApplyScope ApplyScope { get; }
     public TimberAnnotationTextSettings? AnnotationTextSettings { get; }
+    public TimberAnnotationTextSettingsPatch AnnotationTextPatch { get; }
 
     public TimberAnnotationSettingsPatch CreateElementPatch() => new(
         AnnotationMode,
@@ -98,8 +122,25 @@ public sealed record TimberAnnotationSettingsRequest
                 TimberAnnotationScaleOverridePatch.Clear,
             _ => TimberAnnotationScaleOverridePatch.Unchanged,
         },
-        AnnotationTextSettings is null ||
-        ApplyScope == TimberAnnotationSettingsApplyScope.NewElementsOnly
-            ? TimberAnnotationTextSettingsPatch.Unchanged
-            : TimberAnnotationTextSettingsPatch.Set(AnnotationTextSettings));
+        ResolveTextPatch());
+
+    private TimberAnnotationTextSettingsPatch ResolveTextPatch()
+    {
+        if (ApplyScope == TimberAnnotationSettingsApplyScope.NewElementsOnly)
+        {
+            return TimberAnnotationTextSettingsPatch.Unchanged;
+        }
+
+        if (AnnotationTextPatch.Change != TimberAnnotationTextSettingsChange.Unchanged)
+        {
+            return AnnotationTextPatch;
+        }
+
+        if (AnnotationTextSettings is not null)
+        {
+            return TimberAnnotationTextSettingsPatch.Set(AnnotationTextSettings);
+        }
+
+        return TimberAnnotationTextSettingsPatch.Unchanged;
+    }
 }

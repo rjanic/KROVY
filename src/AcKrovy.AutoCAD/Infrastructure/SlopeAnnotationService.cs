@@ -12,9 +12,18 @@ internal static class SlopeAnnotationService
         Entity sourceEntity,
         TimberElementData data,
         TimberAnnotationScaleContext annotationScaleContext,
+        AutoCadAnnotationPresentationContext presentationContext,
         bool copySourcePreservation = false)
     {
         ArgumentNullException.ThrowIfNull(annotationScaleContext);
+        ArgumentNullException.ThrowIfNull(presentationContext);
+        presentationContext.EnsureDatabase(database);
+        if (presentationContext.AnnotationScaleDenominator !=
+            annotationScaleContext.Denominator)
+        {
+            throw new InvalidOperationException(
+                "Slope presentation and renderer scale contexts do not match.");
+        }
         var presentationScaleFactor =
             annotationScaleContext.ScaleFactor;
         var preferredGeometry = SlopeAnnotationGeometry.CalculatePreferred(sourceEntity);
@@ -65,6 +74,7 @@ internal static class SlopeAnnotationService
             data,
             geometry,
             presentationScaleFactor,
+            presentationContext,
             copySourcePreservation);
     }
 

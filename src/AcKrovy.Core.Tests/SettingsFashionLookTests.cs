@@ -497,6 +497,25 @@ public sealed class SettingsFashionLookTests
     }
 
     [Fact]
+    public void AnnotationTextsTab_ExposesStyleLibraryAndRoleMarkers()
+    {
+        var xaml = WindowXaml();
+        var code = WindowCode() +
+            File.ReadAllText(Path.Combine(UiDirectory, "LayerSettingsWindow.AnnotationText.cs"));
+        Assert.Contains("x:Name=\"AnnotationTextsTab\"", xaml);
+        Assert.Contains("SettingsWindow_AnnotationText_StylesTitle", xaml);
+        Assert.Contains("SettingsWindow_AnnotationText_ItemCodeRole", xaml);
+        Assert.Contains("SettingsWindow_AnnotationText_DimensionRole", xaml);
+        Assert.Contains("SettingsWindow_AnnotationText_SlopeRole", xaml);
+        Assert.Contains("SettingsWindow_AnnotationText_BlocksNote", xaml);
+        Assert.Contains("BuildPendingAnnotationTextPatch", code);
+        Assert.Contains("DefaultAnnotationTextSettings", code);
+        Assert.Contains(
+            "new TimberAnnotationSettingsRequest(",
+            code);
+    }
+
+    [Fact]
     public void LanguageSelectorAndThemeButtons_UseStableState()
     {
         var xaml = WindowXaml();

@@ -14,12 +14,14 @@ internal static class SlopeAngleTextService
         TimberElementData data,
         SlopeAnnotationGeometryData geometry,
         double presentationScaleFactor,
+        AutoCadAnnotationPresentationContext presentationContext,
         bool copySourcePreservation = false)
     {
         ArgumentNullException.ThrowIfNull(database);
         ArgumentNullException.ThrowIfNull(transaction);
         ArgumentNullException.ThrowIfNull(sourceEntity);
         ArgumentNullException.ThrowIfNull(data);
+        ArgumentNullException.ThrowIfNull(presentationContext);
 
         if (!AutoCadEntityHelpers.IsSupportedTimberGeometry(sourceEntity))
         {
@@ -36,6 +38,16 @@ internal static class SlopeAngleTextService
         if (!TimberSlopeAnnotationRules.ShouldDisplayAngleText(data.ElementType, data.SlopeDegrees))
         {
             DeleteTexts(transaction, matchingTexts.Select(text => text.Id));
+            return false;
+        }
+
+        if (!AutoCadSlopeTextPresentationPolicy.TryPrepare(
+                database,
+                presentationContext,
+                out var slopePresentation,
+                out _) ||
+            slopePresentation is null)
+        {
             return false;
         }
 
@@ -63,6 +75,7 @@ internal static class SlopeAngleTextService
             geometry,
             data,
             presentationScaleFactor,
+            slopePresentation,
             updateExistingLayer: !copySourcePreservation);
         SlopeAngleTextStore.Write(
             angleText,
@@ -150,6 +163,7 @@ internal static class SlopeAngleTextService
         SlopeAnnotationGeometryData geometry,
         TimberElementData data,
         double presentationScaleFactor,
+        AutoCadSlopeTextPresentationPreparation slopePresentation,
         bool updateExistingLayer)
     {
         var isPost = data.ElementType == TimberElementType.Post;
@@ -183,10 +197,8 @@ internal static class SlopeAngleTextService
         angleText.Position = location;
         angleText.Justify = AttachmentPoint.MiddleCenter;
         angleText.AlignmentPoint = location;
-        angleText.Height =
-            TimberSlopeAnnotationPresentationRules.CalculateTextHeightMm(
-                presentationScaleFactor);
-        angleText.TextStyleId = database.Textstyle;
+        angleText.Height = slopePresentation.ModelHeightMm;
+        angleText.TextStyleId = slopePresentation.TextStyleId;
         angleText.Rotation = postGeometry?.RotationRadians ?? placement!.RotationRadians;
         angleText.TextString = TimberSlopeAngleFormatter.Format(
             TimberSlopeAnnotationRules.ResolveDisplayAngleDegrees(data.ElementType, data.SlopeDegrees));

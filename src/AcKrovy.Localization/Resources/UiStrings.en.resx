@@ -444,4 +444,31 @@
   <data name="SettingsWindow_AnnotationScale_DrawingChangePending" xml:space="preserve"><value>The current drawing scale change remains pending. Use the global action on the Scale tab.</value></data>
   <data name="SettingsWindow_AnnotationCategory_ComingSoon" xml:space="preserve"><value>Coming soon</value></data>
   <data name="Command_Settings_PromptApplyAnnotations" xml:space="preserve"><value>Select intelligent elements to apply the annotation mode and style to:</value></data>
+  <data name="SettingsTextStylePreset_Classic" xml:space="preserve"><value>Classic</value></data>
+  <data name="SettingsTextStylePreset_Architectural" xml:space="preserve"><value>Architectural</value></data>
+  <data name="DiagnosticsEvent_SubjectTextStylePresets" xml:space="preserve"><value>Text style presets</value></data>
+  <data name="SettingsWindow_AnnotationText_StylesTitle" xml:space="preserve"><value>Text styles</value></data>
+  <data name="SettingsWindow_AnnotationText_NewStyle" xml:space="preserve"><value>New style</value></data>
+  <data name="SettingsWindow_AnnotationText_EditStyle" xml:space="preserve"><value>Edit</value></data>
+  <data name="SettingsWindow_AnnotationText_RenameStyle" xml:space="preserve"><value>Rename</value></data>
+  <data name="SettingsWindow_AnnotationText_DeleteStyle" xml:space="preserve"><value>Delete</value></data>
+  <data name="SettingsWindow_AnnotationText_StyleName" xml:space="preserve"><value>Style name</value></data>
+  <data name="SettingsWindow_AnnotationText_Font" xml:space="preserve"><value>Font</value></data>
+  <data name="SettingsWindow_AnnotationText_WidthFactor" xml:space="preserve"><value>Width factor</value></data>
+  <data name="SettingsWindow_AnnotationText_ObliqueAngle" xml:space="preserve"><value>Oblique angle</value></data>
+  <data name="SettingsWindow_AnnotationText_SaveStyle" xml:space="preserve"><value>Save</value></data>
+  <data name="SettingsWindow_AnnotationText_CancelStyle" xml:space="preserve"><value>Cancel</value></data>
+  <data name="SettingsWindow_AnnotationText_ItemCodeRole" xml:space="preserve"><value>Main label</value></data>
+  <data name="SettingsWindow_AnnotationText_DimensionRole" xml:space="preserve"><value>Dimension label</value></data>
+  <data name="SettingsWindow_AnnotationText_SlopeRole" xml:space="preserve"><value>Slope text</value></data>
+  <data name="SettingsWindow_AnnotationText_Custom" xml:space="preserve"><value>Custom</value></data>
+  <data name="SettingsWindow_AnnotationText_PaperHeight" xml:space="preserve"><value>Paper height (mm)</value></data>
+  <data name="SettingsWindow_AnnotationText_ModelHeightFormat" xml:space="preserve"><value>Model: {0} mm</value></data>
+  <data name="SettingsWindow_AnnotationText_Preview" xml:space="preserve"><value>Preview</value></data>
+  <data name="SettingsWindow_AnnotationText_BlocksNote" xml:space="preserve"><value>The "=" and "⊥" symbols are blocks and are not affected by text style.</value></data>
+  <data name="SettingsWindow_AnnotationText_Mixed" xml:space="preserve"><value>Mixed</value></data>
+  <data name="SettingsWindow_AnnotationText_DuplicateName" xml:space="preserve"><value>A style with this name already exists.</value></data>
+  <data name="SettingsWindow_AnnotationText_MissingFont" xml:space="preserve"><value>The selected font is not available.</value></data>
+  <data name="SettingsWindow_AnnotationText_DeleteInUse" xml:space="preserve"><value>The style cannot be deleted because at least one text role uses it.</value></data>
+  <data name="SettingsWindow_AnnotationText_InvalidHeight" xml:space="preserve"><value>Text height must be within the allowed range.</value></data>
 </root>

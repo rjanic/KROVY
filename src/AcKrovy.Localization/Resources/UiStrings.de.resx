@@ -444,4 +444,31 @@
   <data name="SettingsWindow_AnnotationScale_DrawingChangePending" xml:space="preserve"><value>Die Maßstabsänderung der aktuellen Zeichnung bleibt ausstehend. Verwenden Sie die globale Aktion auf der Registerkarte Maßstab.</value></data>
   <data name="SettingsWindow_AnnotationCategory_ComingSoon" xml:space="preserve"><value>In Vorbereitung</value></data>
   <data name="Command_Settings_PromptApplyAnnotations" xml:space="preserve"><value>Wählen Sie intelligente Elemente aus, auf die Beschriftungsmodus und -stil angewendet werden sollen:</value></data>
+  <data name="SettingsTextStylePreset_Classic" xml:space="preserve"><value>Klassisch</value></data>
+  <data name="SettingsTextStylePreset_Architectural" xml:space="preserve"><value>Architektonisch</value></data>
+  <data name="DiagnosticsEvent_SubjectTextStylePresets" xml:space="preserve"><value>Textstil-Voreinstellungen</value></data>
+  <data name="SettingsWindow_AnnotationText_StylesTitle" xml:space="preserve"><value>Textstile</value></data>
+  <data name="SettingsWindow_AnnotationText_NewStyle" xml:space="preserve"><value>Neuer Stil</value></data>
+  <data name="SettingsWindow_AnnotationText_EditStyle" xml:space="preserve"><value>Bearbeiten</value></data>
+  <data name="SettingsWindow_AnnotationText_RenameStyle" xml:space="preserve"><value>Umbenennen</value></data>
+  <data name="SettingsWindow_AnnotationText_DeleteStyle" xml:space="preserve"><value>Löschen</value></data>
+  <data name="SettingsWindow_AnnotationText_StyleName" xml:space="preserve"><value>Stilname</value></data>
+  <data name="SettingsWindow_AnnotationText_Font" xml:space="preserve"><value>Schriftart</value></data>
+  <data name="SettingsWindow_AnnotationText_WidthFactor" xml:space="preserve"><value>Breitenfaktor</value></data>
+  <data name="SettingsWindow_AnnotationText_ObliqueAngle" xml:space="preserve"><value>Schrägwinkel</value></data>
+  <data name="SettingsWindow_AnnotationText_SaveStyle" xml:space="preserve"><value>Speichern</value></data>
+  <data name="SettingsWindow_AnnotationText_CancelStyle" xml:space="preserve"><value>Abbrechen</value></data>
+  <data name="SettingsWindow_AnnotationText_ItemCodeRole" xml:space="preserve"><value>Hauptbeschriftung</value></data>
+  <data name="SettingsWindow_AnnotationText_DimensionRole" xml:space="preserve"><value>Maßbeschriftung</value></data>
+  <data name="SettingsWindow_AnnotationText_SlopeRole" xml:space="preserve"><value>Neigungstext</value></data>
+  <data name="SettingsWindow_AnnotationText_Custom" xml:space="preserve"><value>Benutzerdefiniert</value></data>
+  <data name="SettingsWindow_AnnotationText_PaperHeight" xml:space="preserve"><value>Papierhöhe (mm)</value></data>
+  <data name="SettingsWindow_AnnotationText_ModelHeightFormat" xml:space="preserve"><value>Modell: {0} mm</value></data>
+  <data name="SettingsWindow_AnnotationText_Preview" xml:space="preserve"><value>Vorschau</value></data>
+  <data name="SettingsWindow_AnnotationText_BlocksNote" xml:space="preserve"><value>Die Symbole "=" und "⊥" sind Blöcke und werden vom Textstil nicht beeinflusst.</value></data>
+  <data name="SettingsWindow_AnnotationText_Mixed" xml:space="preserve"><value>Gemischt</value></data>
+  <data name="SettingsWindow_AnnotationText_DuplicateName" xml:space="preserve"><value>Ein Stil mit diesem Namen existiert bereits.</value></data>
+  <data name="SettingsWindow_AnnotationText_MissingFont" xml:space="preserve"><value>Die ausgewählte Schriftart ist nicht verfügbar.</value></data>
+  <data name="SettingsWindow_AnnotationText_DeleteInUse" xml:space="preserve"><value>Der Stil kann nicht gelöscht werden, weil mindestens eine Textrolle ihn verwendet.</value></data>
+  <data name="SettingsWindow_AnnotationText_InvalidHeight" xml:space="preserve"><value>Die Texthöhe muss im zulässigen Bereich liegen.</value></data>
 </root>

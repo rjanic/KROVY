@@ -103,7 +103,8 @@ internal static class AutoCadFullLabelProofService
 
                     var data = CreateData(proofCase, styleName, defaultProfile);
                     var presentation = batch.ResolveForElement(data);
-                    if (!presentation.HasCompatibleStyle)
+                    var dimensionText = presentation.DimensionText;
+                    if (!dimensionText.HasCompatibleStyle)
                     {
                         editor.WriteMessage(
                             $"\nAK_DEV_FULLLABEL_TEXT_CREATE: NOT TESTED - " +
@@ -135,21 +136,20 @@ internal static class AutoCadFullLabelProofService
 
                     expected.Add(AutoCadFullLabelProofPolicy.ToExpected(
                         proofCase,
-                        presentation.ResolvedTextStyleName ?? styleName,
-                        presentation.EffectiveTextSettings
-                            .DimensionPaperHeightMm,
+                        dimensionText.ResolvedTextStyleName ?? styleName,
+                        dimensionText.PaperHeightMm,
                         presentation.AnnotationScaleDenominator,
-                        presentation.TextStyleResolutionKind.ToString(),
-                        presentation.IsFallback));
+                        dimensionText.ResolutionKind.ToString(),
+                        dimensionText.IsFallback));
 
                     editor.WriteMessage(
                         $"\n  {proofCase.Token}: style=" +
-                        $"{presentation.ResolvedTextStyleName}; " +
-                        $"TextStyleId={presentation.ResolvedTextStyleId}; " +
-                        $"paper={presentation.EffectiveTextSettings.DimensionPaperHeightMm:R}; " +
+                        $"{dimensionText.ResolvedTextStyleName}; " +
+                        $"TextStyleId={dimensionText.ResolvedTextStyleId}; " +
+                        $"paper={dimensionText.PaperHeightMm:R}; " +
                         $"denominator={presentation.AnnotationScaleDenominator}; " +
-                        $"modelHeight={presentation.LabelAndDimensionModelHeight:R}; " +
-                        $"kind={presentation.TextStyleResolutionKind}");
+                        $"modelHeight={dimensionText.ModelHeightMm:R}; " +
+                        $"kind={dimensionText.ResolutionKind}");
                 }
 
                 if (caseALabelId is null)

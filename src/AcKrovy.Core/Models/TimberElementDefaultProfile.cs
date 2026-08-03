@@ -81,7 +81,8 @@ public sealed class TimberElementDefaultProfile
             DefaultAnnotationMode = TimberAnnotationMode.FullLabel,
             DefaultItemNumberLeaderStyle = ItemNumberLeaderStyle.Plain,
             AnnotationScaleDenominator = TimberAnnotationScaleRules.DefaultDenominator,
-            DefaultAnnotationTextSettings = TimberAnnotationTextSettingsRules.Default,
+            DefaultAnnotationTextSettings =
+                TimberAnnotationTextStylePresetRules.CreateFreshProfileTextSettings(),
             Styles = Enum
                 .GetValues(typeof(TimberElementType))
                 .Cast<TimberElementType>()

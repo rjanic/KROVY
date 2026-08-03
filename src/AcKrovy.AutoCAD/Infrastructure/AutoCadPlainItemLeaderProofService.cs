@@ -108,7 +108,8 @@ internal static class AutoCadPlainItemLeaderProofService
 
                     var data = CreateData(proofCase, styleName);
                     var presentation = batch.ResolveForElement(data);
-                    if (!presentation.HasCompatibleStyle)
+                    var itemCodeText = presentation.ItemCodeText;
+                    if (!itemCodeText.HasCompatibleStyle)
                     {
                         editor.WriteMessage(
                             $"\nAK_DEV_PLAIN_ITEM_TEXT_CREATE: NOT TESTED - " +
@@ -182,23 +183,23 @@ internal static class AutoCadPlainItemLeaderProofService
 
                     expected.Add(AutoCadPlainItemLeaderProofPolicy.ToExpected(
                         proofCase,
-                        presentation.ResolvedTextStyleName ?? styleName,
-                        presentation.EffectiveTextSettings.ItemCodePaperHeightMm,
+                        itemCodeText.ResolvedTextStyleName ?? styleName,
+                        itemCodeText.PaperHeightMm,
                         presentation.AnnotationScaleDenominator,
-                        presentation.TextStyleResolutionKind.ToString(),
-                        presentation.IsFallback,
+                        itemCodeText.ResolutionKind.ToString(),
+                        itemCodeText.IsFallback,
                         failureOutcome));
 
                     editor.WriteMessage(
                         $"\n  {proofCase.Token}: style=" +
-                        $"{presentation.ResolvedTextStyleName}; " +
-                        $"TextStyleId={presentation.ResolvedTextStyleId}; " +
-                        $"paper={presentation.EffectiveTextSettings.ItemCodePaperHeightMm:R}; " +
+                        $"{itemCodeText.ResolvedTextStyleName}; " +
+                        $"TextStyleId={itemCodeText.ResolvedTextStyleId}; " +
+                        $"paper={itemCodeText.PaperHeightMm:R}; " +
                         $"denominator={presentation.AnnotationScaleDenominator}; " +
-                        $"modelHeight={presentation.ItemNumberModelHeight:R}; " +
+                        $"modelHeight={itemCodeText.ModelHeightMm:R}; " +
                         $"mLeaderStyle={leaderStyleId.Handle}; " +
                         $"mTextStyle={mTextStyleId.Handle}; " +
-                        $"kind={presentation.TextStyleResolutionKind}" +
+                        $"kind={itemCodeText.ResolutionKind}" +
                         (string.IsNullOrEmpty(failureOutcome)
                             ? string.Empty
                             : $"; failure={failureOutcome}"));

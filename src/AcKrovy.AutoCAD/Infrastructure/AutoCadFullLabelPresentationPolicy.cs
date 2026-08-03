@@ -1,3 +1,4 @@
+using AcKrovy.Core.Models;
 using AcKrovy.Core.Services;
 using Autodesk.AutoCAD.DatabaseServices;
 
@@ -17,9 +18,15 @@ internal sealed record AutoCadFullLabelPresentationPreparation(
 /// <summary>
 /// Validates FullLabel MText presentation before any ModelSpace or MText
 /// ForWrite mutation. Uses the existing database-bound presentation context.
+/// FullLabel keeps its frozen single-MText layout, so one role owns the whole
+/// label: the Dimension role, which historically carried the combined
+/// label-and-dimension height.
 /// </summary>
 internal static class AutoCadFullLabelPresentationPolicy
 {
+    private const TimberAnnotationTextRole Role =
+        TimberAnnotationTextRole.Dimension;
+
     public static bool TryPrepare(
         Database database,
         AutoCadAnnotationPresentationContext? presentationContext,
@@ -45,14 +52,15 @@ internal static class AutoCadFullLabelPresentationPolicy
             return false;
         }
 
-        if (!presentationContext.HasCompatibleStyle ||
-            presentationContext.ResolvedTextStyleId is not ObjectId textStyleId)
+        var roleText = presentationContext.ForRole(Role);
+        if (!roleText.HasCompatibleStyle ||
+            roleText.ResolvedTextStyleId is not ObjectId textStyleId)
         {
             diagnosticReason =
                 "FullLabel has no compatible text style; " +
-                $"Kind={presentationContext.TextStyleResolutionKind}; " +
-                $"Request={presentationContext.TextStyleRequestStatus}; " +
-                $"Requested={presentationContext.RequestedTextStyleName ?? "<none>"}.";
+                $"Kind={roleText.ResolutionKind}; " +
+                $"Request={roleText.RequestStatus}; " +
+                $"Requested={roleText.RequestedTextStyleName ?? "<none>"}.";
             return false;
         }
 
@@ -70,7 +78,7 @@ internal static class AutoCadFullLabelPresentationPolicy
             return false;
         }
 
-        var modelHeightMm = presentationContext.LabelAndDimensionModelHeight;
+        var modelHeightMm = roleText.ModelHeightMm;
         if (modelHeightMm <= 0d ||
             double.IsNaN(modelHeightMm) ||
             double.IsInfinity(modelHeightMm))
@@ -80,8 +88,7 @@ internal static class AutoCadFullLabelPresentationPolicy
             return false;
         }
 
-        var paperHeightMm = presentationContext.EffectiveTextSettings
-            .DimensionPaperHeightMm;
+        var paperHeightMm = roleText.PaperHeightMm;
         if (!TimberAnnotationTextSettingsRules
                 .IsValidDimensionPaperHeightMm(paperHeightMm))
         {
@@ -92,14 +99,14 @@ internal static class AutoCadFullLabelPresentationPolicy
 
         preparation = new AutoCadFullLabelPresentationPreparation(
             textStyleId,
-            presentationContext.ResolvedTextStyleName ??
+            roleText.ResolvedTextStyleName ??
                 TimberAnnotationTextSettingsRules.DefaultTextStyleName,
             modelHeightMm,
             paperHeightMm,
             presentationContext.AnnotationScaleDenominator,
-            presentationContext.TextStyleResolutionKind,
-            presentationContext.TextStyleRequestStatus,
-            presentationContext.IsFallback,
+            roleText.ResolutionKind,
+            roleText.RequestStatus,
+            roleText.IsFallback,
             presentationContext.HasExplicitTextSettings);
         diagnosticReason = string.Empty;
         return true;

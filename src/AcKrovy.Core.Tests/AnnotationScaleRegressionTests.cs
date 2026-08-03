@@ -985,7 +985,10 @@ public sealed class AnnotationScaleRegressionTests
             "private static bool UpsertCombinedLeader(");
 
         Assert.Contains(
-            "TimberCombinedDimensionTypographyRules.CalculateTextHeightMm(",
+            "AutoCadDimensionsLeaderPresentationPolicy.TryPrepare(",
+            methodBody);
+        Assert.Contains(
+            "dimensionsPresentation.ModelHeightMm",
             methodBody);
         Assert.Contains(
             "TimberCombinedDimensionTypographyRules.CalculateEnvelopeHeightMm(",
@@ -996,6 +999,9 @@ public sealed class AnnotationScaleRegressionTests
         Assert.Contains("dimensionTextHeightMm", methodBody);
         Assert.Contains("envelopeWidthMm: dimensionEnvelopeWidthMm", methodBody);
         Assert.Contains("envelopeHeightMm: dimensionEnvelopeHeightMm", methodBody);
+        Assert.Contains(
+            "resolvedTextStyleId: dimensionsPresentation.TextStyleId",
+            methodBody);
         Assert.DoesNotContain("DefaultTextHeightMm", methodBody);
     }
 
@@ -1057,7 +1063,14 @@ public sealed class AnnotationScaleRegressionTests
             "fullLabelPresentation.ModelHeightMm",
             methodBody);
         Assert.Contains(
-            "LabelAndDimensionModelHeight",
+            "TimberAnnotationTextRole.Dimension",
+            Source(
+                "src",
+                "AcKrovy.AutoCAD",
+                "Infrastructure",
+                "AutoCadFullLabelPresentationPolicy.cs"));
+        Assert.Contains(
+            "roleText.ModelHeightMm",
             Source(
                 "src",
                 "AcKrovy.AutoCAD",

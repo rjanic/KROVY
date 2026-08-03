@@ -409,6 +409,7 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
             CreateLayerProfileFingerprint(_acceptedLayerProfile));
         _defaultProfileChangeTracker.AcceptProfile(
             CreateDefaultProfileFingerprint(_acceptedDefaultProfile));
+        InitializeAnnotationTextSettings(normalizedDefaultProfile);
         AcceptUiSectionBaselines(SettingsSectionScope.AllEditable);
         Visual.SetFormState(SettingsFormState.NoChanges);
     }
@@ -531,11 +532,18 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
         TimberAnnotationSettingsRequest? annotationSettings = null;
         if (annotationApplyScope.HasValue)
         {
+            // DWG TextStyle Ensure must run under DocumentLock inside AcKrovyCommands
+            // (modeless Settings must not lock the document here). Pass settings/patch only.
+            var pendingTextSettings = defaultProfile.DefaultAnnotationTextSettings
+                ?? TimberAnnotationTextStylePresetRules.CreateFreshProfileTextSettings();
+            var pendingTextPatch = BuildPendingAnnotationTextPatch(pendingTextSettings);
             annotationSettings = new TimberAnnotationSettingsRequest(
                 SelectedAnnotationMode,
                 SelectedItemNumberLeaderStyle,
                 selectedScaleDenominator,
-                annotationApplyScope.Value);
+                annotationApplyScope.Value,
+                pendingTextSettings,
+                pendingTextPatch);
         }
 
         var request = new SettingsApplyRequest(
@@ -585,6 +593,13 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
             {
                 _acceptedDefaultProfile = defaultProfile.Normalize();
                 DefaultProfile = _acceptedDefaultProfile;
+                if (scope.HasFlag(SettingsSectionScope.Annotation) &&
+                    _acceptedDefaultProfile.DefaultAnnotationTextSettings is not null)
+                {
+                    AcceptAnnotationTextSettingsBaseline(
+                        _acceptedDefaultProfile.DefaultAnnotationTextSettings);
+                    PushPendingTextSettingsToUi();
+                }
                 _defaultProfileChangeTracker.AcceptProfile(
                     CreateDefaultProfileFingerprint(_acceptedDefaultProfile));
                 AcceptUiSectionBaselines(
@@ -731,6 +746,14 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
             }
         }
 
+        TimberAnnotationTextSettings? pendingAnnotationTextSettings = null;
+        if (includeAnnotation &&
+            !TryBuildPendingAnnotationTextSettings(out pendingAnnotationTextSettings))
+        {
+            profile = TimberElementDefaultProfile.CreateDefault();
+            return false;
+        }
+
         profile = new TimberElementDefaultProfile
         {
             CuttingLengthRoundingStepMm = roundingStepMm,
@@ -744,6 +767,9 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
                 TryGetDrawingScaleDenominator(out var annotationScaleDenominator)
                     ? annotationScaleDenominator
                     : accepted.AnnotationScaleDenominator,
+            DefaultAnnotationTextSettings = includeAnnotation
+                ? pendingAnnotationTextSettings
+                : accepted.DefaultAnnotationTextSettings,
             Styles = styles,
         }.Normalize();
         return true;
@@ -784,6 +810,12 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
         {
             SelectedAnnotationMode = profile.DefaultAnnotationMode;
             SelectedItemNumberLeaderStyle = profile.DefaultItemNumberLeaderStyle;
+            var textSettings =
+                TimberAnnotationTextSettingsRules.NormalizeStored(
+                    profile.DefaultAnnotationTextSettings) ??
+                TimberAnnotationTextStylePresetRules.CreateFreshProfileTextSettings();
+            AcceptAnnotationTextSettingsBaseline(textSettings);
+            PushPendingTextSettingsToUi();
             NotifyScalePropertiesChanged();
         }
         foreach (var existing in DefaultRows)
@@ -874,6 +906,7 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
         OnPropertyChanged(nameof(PreviewBlockModelText));
         OnPropertyChanged(nameof(PreviewBlockPaperText));
         OnPropertyChanged(nameof(PreviewPresentationScale));
+        NotifyAnnotationTextModelHeightsChanged();
     }
 
     private void NotifyAnnotationPreviewChanged() =>
@@ -1202,6 +1235,7 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
         OnPropertyChanged(nameof(SelectedAnnotationPreset));
         NotifyAnnotationPreviewChanged();
         NotifyScalePropertiesChanged();
+        RefreshAnnotationTextLocalization();
     }
 
     private void SynchronizeSelectedAnnotationPreset()
@@ -1377,6 +1411,7 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
             SelectedItemNumberLeaderStyle,
             SelectedDrawingScalePreset,
             DrawingCustomScaleText,
+            AnnotationText = CreateAnnotationTextFingerprintPayload(),
         });
 
     internal bool LayersDirty =>

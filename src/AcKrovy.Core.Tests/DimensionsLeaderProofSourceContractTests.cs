@@ -40,7 +40,7 @@ public sealed class DimensionsLeaderProofSourceContractTests
         Assert.Contains("VerifyCore(", create);
         Assert.Contains("rolled back", create);
         Assert.Contains("No completed proof manifest", create);
-        Assert.Contains("LabelAndDimensionModelHeight", create);
+        Assert.Contains("dimensionText.ModelHeightMm", create);
         Assert.Contains("index * 2500d", Service());
     }
 
@@ -131,7 +131,7 @@ public sealed class DimensionsLeaderProofSourceContractTests
         Assert.Contains("FindStandalonePlainItemLeader(", service);
         Assert.Contains("ItemNumberLeader", service);
         Assert.Contains("ValidateStandalonePlainItem(", service);
-        Assert.Contains("ItemNumberModelHeight", service);
+        Assert.Contains("itemCodeText.ModelHeightMm", service);
         Assert.DoesNotContain("DoglegLength", service);
         Assert.DoesNotContain("TimberCombinedDimensionTypographyRules", service);
     }

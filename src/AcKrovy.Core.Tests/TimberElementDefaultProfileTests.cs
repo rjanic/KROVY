@@ -66,18 +66,33 @@ public sealed class TimberElementDefaultProfileTests
     }
 
     [Fact]
-    public void CreateDefault_UsesVersionThreeAndFactoryAnnotationTextSettings()
+    public void CreateDefault_UsesVersionThreeAndClassicFreshProfileTextSettings()
     {
         var profile = TimberElementDefaultProfile.CreateDefault();
+        var expected =
+            TimberAnnotationTextStylePresetRules.CreateFreshProfileTextSettings();
 
         Assert.Equal(TimberElementDefaultProfile.CurrentVersion, profile.Version);
         Assert.Equal(3, profile.Version);
         Assert.Equal(
             2,
             TimberElementDefaultProfile.SharedAnnotationTextStyleVersion);
+        Assert.Equal(expected, profile.DefaultAnnotationTextSettings);
         Assert.Equal(
-            TimberAnnotationTextSettingsRules.Default,
-            profile.DefaultAnnotationTextSettings);
+            TimberAnnotationTextStylePresetRules.ClassicStyleName,
+            profile.DefaultAnnotationTextSettings!.ItemCodeTextStyleName);
+        Assert.Equal(
+            TimberAnnotationTextSettingsRules.DefaultItemCodePaperHeightMm,
+            profile.DefaultAnnotationTextSettings.ItemCodePaperHeightMm);
+        Assert.Equal(
+            TimberAnnotationTextSettingsRules.DefaultDimensionPaperHeightMm,
+            profile.DefaultAnnotationTextSettings.DimensionPaperHeightMm);
+        Assert.Equal(
+            TimberAnnotationTextSettingsRules.DefaultSlopePaperHeightMm,
+            profile.DefaultAnnotationTextSettings.SlopePaperHeightMm);
+        Assert.Equal(
+            "Standard",
+            TimberAnnotationTextSettingsRules.Default.ItemCodeTextStyleName);
     }
 
     [Fact]

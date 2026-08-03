@@ -982,8 +982,27 @@ public sealed class SettingsTargetedFeatureTests
             scaleTab.Descendants(presentation + "RowDefinition"),
             row => (string?)row.Attribute("Height") == "182");
         Assert.All(
-            categoryTabs.Skip(2),
+            categoryTabs.Skip(3),
             tab => Assert.Empty(tab.Descendants(presentation + "Button")));
+        var textsTab = categoryTabs[2];
+        Assert.Contains(
+            "SettingsWindow_AnnotationText_StylesTitle",
+            textsTab.ToString());
+        Assert.Contains(
+            "SettingsWindow_AnnotationText_ItemCodeRole",
+            textsTab.ToString());
+        Assert.Contains(
+            "SettingsWindow_AnnotationText_DimensionRole",
+            textsTab.ToString());
+        Assert.Contains(
+            "SettingsWindow_AnnotationText_SlopeRole",
+            textsTab.ToString());
+        Assert.Contains(
+            "SettingsWindow_AnnotationText_BlocksNote",
+            textsTab.ToString());
+        Assert.DoesNotContain(
+            "SettingsWindow_AnnotationCategory_ComingSoon",
+            textsTab.ToString());
         var annotationHost = document.Descendants(presentation + "Border")
             .Single(border => (string?)border.Attribute("Style") ==
                 "{StaticResource AnnotationSectionHostStyle}");

@@ -58,6 +58,8 @@ internal static class DiagnosticsRecentEventFormatter
                 "DiagnosticsEvent_SubjectTimberDefaults",
             SettingsConfigurationSubject.CustomElementDefinitions =>
                 "DiagnosticsEvent_SubjectCustomElementDefinitions",
+            SettingsConfigurationSubject.TextStylePresets =>
+                "DiagnosticsEvent_SubjectTextStylePresets",
             _ => null,
         };
         var subject = subjectKey is null

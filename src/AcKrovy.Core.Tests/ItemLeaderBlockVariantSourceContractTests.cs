@@ -7,18 +7,18 @@ public sealed class ItemLeaderBlockVariantSourceContractTests
     private static readonly string RepositoryRoot = FindRepositoryRoot();
 
     [Fact]
-    public void KeyAndName_ContainNoHostObjectsAndUseGeometryOnlyIdentity()
+    public void KeyAndName_ContainNoHostObjectsAndUseG3StyleIdentity()
     {
         var source = KeySource();
 
         Assert.Contains("sealed record AutoCadItemLeaderBlockVariantKey", source);
-        Assert.Contains("CurrentGeometryVersion = 2", source);
-        Assert.Contains("schema=2|geometry=", source);
+        Assert.Contains("CurrentGeometryVersion = 3", source);
+        Assert.Contains("schema=3|geometry=", source);
         Assert.Contains("SHA256.HashData", source);
         Assert.Contains("Encoding.UTF8.GetBytes", source);
-        Assert.Contains("$\"AK_ITEM_{frame}{size}_G{key.GeometryVersion}\"", source);
+        Assert.Contains("$\"AK_ITEM_{frame}{size}_G{key.GeometryVersion}_\"", source);
         Assert.DoesNotContain("ItemNumberPaperHeightMm", source);
-        Assert.DoesNotContain("ResolvedCanonicalTextStyleName", source);
+        Assert.Contains("TextStyleIdentity", source);
         Assert.DoesNotContain("styleLength=", source);
         Assert.DoesNotContain("paperHeightMm=", source);
         Assert.DoesNotContain("GetHashCode", source);
@@ -500,7 +500,7 @@ public sealed class ItemLeaderBlockVariantSourceContractTests
     public void Stage4A_DoesNotChangeProtectedVersionsOrStartStage4B()
     {
         Assert.Contains(
-            "<AcKrovyVersion>0.22.0</AcKrovyVersion>",
+            "<AcKrovyVersion>0.23.0</AcKrovyVersion>",
             Source("Directory.Build.props"));
         Assert.Contains(
             "public const int CurrentVersion = 7;",

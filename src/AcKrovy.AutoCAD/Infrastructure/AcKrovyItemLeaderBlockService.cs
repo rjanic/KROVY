@@ -187,10 +187,6 @@ internal static class AcKrovyItemLeaderBlockService
         attribute.Prompt = TimberItemLeaderBlockDefinitionRules.AttributeTag;
         attribute.TextString = string.Empty;
         attribute.Height = textHeight;
-        if (textStyleId is ObjectId resolvedTextStyleId)
-        {
-            attribute.TextStyleId = resolvedTextStyleId;
-        }
         attribute.Position = Point3d.Origin;
         attribute.HorizontalMode = TextHorizontalMode.TextCenter;
         attribute.VerticalMode = TextVerticalMode.TextVerticalMid;
@@ -201,7 +197,65 @@ internal static class AcKrovyItemLeaderBlockService
         attribute.Verifiable = false;
         attribute.LockPositionInBlock = true;
         ApplyByBlock(database, attribute);
+        // ApplyByBlock calls SetDatabaseDefaults; assign style after that so
+        // Architecture annotative ISO defaults do not stick on AttrDef.
+        if (textStyleId is ObjectId resolvedTextStyleId)
+        {
+            attribute.TextStyleId = resolvedTextStyleId;
+        }
+        else if (TryGetNonAnnotativeBaselineTextStyleId(
+                database,
+                transaction,
+                out var baselineStyleId))
+        {
+            // Prefer a non-annotative baseline (usually Standard) over Architecture
+            // drawing defaults such as annotative ISO styles. Per-instance styles
+            // are applied on AttributeReference; AttrDef must not hold user styles.
+            attribute.TextStyleId = baselineStyleId;
+        }
+
+        attribute.Height = textHeight;
         return Append(block, transaction, attribute);
+    }
+
+    private static bool TryGetNonAnnotativeBaselineTextStyleId(
+        Database database,
+        Transaction transaction,
+        out ObjectId textStyleId)
+    {
+        textStyleId = ObjectId.Null;
+        var textStyleTable = (TextStyleTable)transaction.GetObject(
+            database.TextStyleTableId,
+            OpenMode.ForRead);
+        if (!textStyleTable.Has(
+                TimberAnnotationTextSettingsRules.DefaultTextStyleName))
+        {
+            return false;
+        }
+
+        var candidateId = textStyleTable[
+            TimberAnnotationTextSettingsRules.DefaultTextStyleName];
+        if (transaction.GetObject(candidateId, OpenMode.ForRead, false) is not
+                TextStyleTableRecord record)
+        {
+            return false;
+        }
+
+        try
+        {
+            if (record.TextSize != 0d ||
+                record.Annotative == AnnotativeStates.True)
+            {
+                return false;
+            }
+        }
+        catch (Autodesk.AutoCAD.Runtime.Exception)
+        {
+            return false;
+        }
+
+        textStyleId = candidateId;
+        return true;
     }
 
     private static T ApplyByBlock<T>(Database database, T entity)

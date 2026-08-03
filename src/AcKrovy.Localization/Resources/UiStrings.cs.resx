@@ -444,4 +444,31 @@
   <data name="SettingsWindow_AnnotationScale_DrawingChangePending" xml:space="preserve"><value>Změna měřítka aktuálního výkresu zůstává neuložená. Použijte globální akci na kartě Měřítko.</value></data>
   <data name="SettingsWindow_AnnotationCategory_ComingSoon" xml:space="preserve"><value>Připravuje se</value></data>
   <data name="Command_Settings_PromptApplyAnnotations" xml:space="preserve"><value>Vyberte inteligentní prvky, na které se má použít režim a styl anotace:</value></data>
+  <data name="SettingsTextStylePreset_Classic" xml:space="preserve"><value>Klasický</value></data>
+  <data name="SettingsTextStylePreset_Architectural" xml:space="preserve"><value>Architektonický</value></data>
+  <data name="DiagnosticsEvent_SubjectTextStylePresets" xml:space="preserve"><value>Předvolby textových stylů</value></data>
+  <data name="SettingsWindow_AnnotationText_StylesTitle" xml:space="preserve"><value>Textové styly</value></data>
+  <data name="SettingsWindow_AnnotationText_NewStyle" xml:space="preserve"><value>Nový styl</value></data>
+  <data name="SettingsWindow_AnnotationText_EditStyle" xml:space="preserve"><value>Upravit</value></data>
+  <data name="SettingsWindow_AnnotationText_RenameStyle" xml:space="preserve"><value>Přejmenovat</value></data>
+  <data name="SettingsWindow_AnnotationText_DeleteStyle" xml:space="preserve"><value>Odstranit</value></data>
+  <data name="SettingsWindow_AnnotationText_StyleName" xml:space="preserve"><value>Název stylu</value></data>
+  <data name="SettingsWindow_AnnotationText_Font" xml:space="preserve"><value>Font</value></data>
+  <data name="SettingsWindow_AnnotationText_WidthFactor" xml:space="preserve"><value>Šířkový faktor</value></data>
+  <data name="SettingsWindow_AnnotationText_ObliqueAngle" xml:space="preserve"><value>Sklon písma</value></data>
+  <data name="SettingsWindow_AnnotationText_SaveStyle" xml:space="preserve"><value>Uložit</value></data>
+  <data name="SettingsWindow_AnnotationText_CancelStyle" xml:space="preserve"><value>Zrušit</value></data>
+  <data name="SettingsWindow_AnnotationText_ItemCodeRole" xml:space="preserve"><value>Hlavní popis</value></data>
+  <data name="SettingsWindow_AnnotationText_DimensionRole" xml:space="preserve"><value>Rozměrový popis</value></data>
+  <data name="SettingsWindow_AnnotationText_SlopeRole" xml:space="preserve"><value>Text spádu</value></data>
+  <data name="SettingsWindow_AnnotationText_Custom" xml:space="preserve"><value>Vlastní</value></data>
+  <data name="SettingsWindow_AnnotationText_PaperHeight" xml:space="preserve"><value>Výška na papíře (mm)</value></data>
+  <data name="SettingsWindow_AnnotationText_ModelHeightFormat" xml:space="preserve"><value>Model: {0} mm</value></data>
+  <data name="SettingsWindow_AnnotationText_Preview" xml:space="preserve"><value>Náhled</value></data>
+  <data name="SettingsWindow_AnnotationText_BlocksNote" xml:space="preserve"><value>Symboly "=" a "⊥" jsou bloky a textový styl je neovlivní.</value></data>
+  <data name="SettingsWindow_AnnotationText_Mixed" xml:space="preserve"><value>Různé</value></data>
+  <data name="SettingsWindow_AnnotationText_DuplicateName" xml:space="preserve"><value>Styl s tímto názvem již existuje.</value></data>
+  <data name="SettingsWindow_AnnotationText_MissingFont" xml:space="preserve"><value>Vybraný font není dostupný.</value></data>
+  <data name="SettingsWindow_AnnotationText_DeleteInUse" xml:space="preserve"><value>Styl nelze odstranit, protože jej používá alespoň jedna textová role.</value></data>
+  <data name="SettingsWindow_AnnotationText_InvalidHeight" xml:space="preserve"><value>Výška textu musí být v povoleném rozsahu.</value></data>
 </root>

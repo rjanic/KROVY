@@ -696,9 +696,20 @@ internal static class ElementLabelService
         ArgumentNullException.ThrowIfNull(annotationScaleContext);
         var presentationScaleFactor =
             annotationScaleContext.ScaleFactor;
-        var dimensionTextHeightMm =
-            TimberCombinedDimensionTypographyRules.CalculateTextHeightMm(
-                presentationScaleFactor);
+        if (!AutoCadDimensionsLeaderPresentationPolicy.TryPrepare(
+                database,
+                presentationContext,
+                out var dimensionsPresentation,
+                out var dimensionsDiagnostic) ||
+            dimensionsPresentation is null)
+        {
+            AcKrovyDiagnostics.Warning(
+                "CombinedDimensionsPresentation",
+                dimensionsDiagnostic);
+            return false;
+        }
+
+        var dimensionTextHeightMm = dimensionsPresentation.ModelHeightMm;
         var dimensionEnvelopeHeightMm =
             TimberCombinedDimensionTypographyRules.CalculateEnvelopeHeightMm(
                 presentationScaleFactor);
@@ -792,7 +803,8 @@ internal static class ElementLabelService
             componentRole: TimberMainAnnotationComponentRole.Primary,
             preserveCompositeSiblings: true,
             envelopeWidthMm: dimensionEnvelopeWidthMm,
-            envelopeHeightMm: dimensionEnvelopeHeightMm);
+            envelopeHeightMm: dimensionEnvelopeHeightMm,
+            resolvedTextStyleId: dimensionsPresentation.TextStyleId);
         DeleteUnexpectedCompositeComponents(
             database,
             transaction,
@@ -2306,8 +2318,9 @@ internal static class ElementLabelService
                 "Presentation and renderer scale contexts do not match.");
             return null;
         }
-        if (presentationContext.ResolvedTextStyleId is not ObjectId textStyleId ||
-            presentationContext.ResolvedTextStyleName is null)
+        var itemCodeText = presentationContext.FramedItemCodeText;
+        if (itemCodeText.ResolvedTextStyleId is not ObjectId textStyleId ||
+            itemCodeText.ResolvedTextStyleName is null)
         {
             result = AutoCadItemLeaderBlockVariantResult.NoCompatibleTextStyle(
                 AutoCadDatabaseIdentity.TryGetIdentity(database),
@@ -2374,13 +2387,13 @@ internal static class ElementLabelService
         // BlockScale applies the per-element annotation ScaleFactor once.
         var attributeHeightMm =
             TimberAnnotationTextSettingsRules.CalculateModelHeightMm(
-                presentationContext.EffectiveTextSettings.ItemCodePaperHeightMm,
+                itemCodeText.PaperHeightMm,
                 TimberAnnotationScaleRules.DefaultDenominator);
         return new AutoCadFramedItemLeaderPreparation(
             result,
             itemNumberDefinitions[0],
             blockScale,
-            presentationContext.ItemNumberModelHeight,
+            itemCodeText.ModelHeightMm,
             textStyleId,
             attributeHeightMm);
     }
@@ -2549,6 +2562,8 @@ internal static class ElementLabelService
         AutoCadFramedItemLeaderPreparation preparation,
         string contents)
     {
+        // G3 AttributeDefinition owns TextStyleId. The per-instance attribute
+        // carries only the token and supported height override.
         var attributeDefinition = (AttributeDefinition)transaction.GetObject(
             preparation.AttributeDefinitionId,
             OpenMode.ForRead);
@@ -2557,7 +2572,6 @@ internal static class ElementLabelService
             attributeDefinition,
             Matrix3d.Identity);
         attribute.TextString = contents;
-        attribute.TextStyleId = preparation.TextStyleId;
         attribute.Height = preparation.AttributeHeightMm;
         leader.SetBlockAttribute(preparation.AttributeDefinitionId, attribute);
     }
@@ -2624,12 +2638,6 @@ internal static class ElementLabelService
                 presentationScaleFactor);
         }
 
-        SetItemNumberBlockAttribute(
-            transaction,
-            leader,
-            preparation,
-            contents);
-
         var blockTable = (BlockTable)transaction.GetObject(
             database.BlockTableId,
             OpenMode.ForRead);
@@ -2645,6 +2653,12 @@ internal static class ElementLabelService
         transaction.AddNewlyCreatedDBObject(leader, true);
         leader.SetFirstVertex(leaderLineIndex, placement.Anchor);
         leader.SetLastVertex(leaderLineIndex, placement.Knee);
+        // Apply the token/height last after host instance initialization.
+        SetItemNumberBlockAttribute(
+            transaction,
+            leader,
+            preparation,
+            contents);
         return leader;
     }
 

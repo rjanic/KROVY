@@ -36,17 +36,54 @@ public sealed class FramedRendererProductionIntegrationSourceContractTests
         var scale = create.IndexOf(
             "leader.BlockScale = new Scale3d(presentationScaleFactor)",
             StringComparison.Ordinal);
+        var append = create.IndexOf(
+            "modelSpace.AppendEntity(leader)",
+            StringComparison.Ordinal);
+        var vertices = create.IndexOf(
+            "leader.SetFirstVertex(leaderLineIndex, placement.Anchor)",
+            StringComparison.Ordinal);
         var token = create.IndexOf(
             "SetItemNumberBlockAttribute(",
             StringComparison.Ordinal);
 
-        Assert.True(content >= 0 && content < scale && scale < token);
+        Assert.True(
+            content >= 0 &&
+            content < scale &&
+            scale < append &&
+            append < vertices &&
+            vertices < token);
         Assert.DoesNotContain("AcKrovyItemLeaderBlockService.Ensure(", create);
         Assert.DoesNotContain(
             "(AttributeDefinition)transaction.GetObject",
             create);
         Assert.Contains("attribute.Height = preparation.AttributeHeightMm", ElementLabelSource());
-        Assert.Contains("attribute.TextStyleId = preparation.TextStyleId", ElementLabelSource());
+        Assert.DoesNotContain("attribute.TextStyleId = preparation.TextStyleId", ElementLabelSource());
+        Assert.Contains("leader.GetBlockAttribute(", ElementLabelSource());
+    }
+
+    [Fact]
+    public void ProductionFramedAttribute_KeepsSharedAttrDefBaselineReadOnly()
+    {
+        var setter = Member(
+            ElementLabelSource(),
+            "private static void SetItemNumberBlockAttribute(");
+
+        Assert.Contains("OpenMode.ForRead", setter);
+        Assert.DoesNotContain("OpenMode.ForWrite", setter);
+        Assert.DoesNotContain(
+            "attributeDefinition.TextStyleId =",
+            setter);
+        Assert.Contains("attribute.SetAttributeFromBlock(", setter);
+        Assert.Contains("attribute.TextString = contents;", setter);
+        Assert.DoesNotContain("attribute.TextStyleId =", setter);
+        Assert.Contains("attribute.Height = preparation.AttributeHeightMm;", setter);
+        Assert.Contains(
+            "leader.SetBlockAttribute(preparation.AttributeDefinitionId, attribute)",
+            setter);
+        Assert.DoesNotContain("baselineStyleId", setter);
+        Assert.DoesNotContain(
+            "Framed MLeader AttributeReference did not persist",
+            setter);
     }
 
     [Fact]
@@ -106,7 +143,7 @@ public sealed class FramedRendererProductionIntegrationSourceContractTests
         Assert.DoesNotContain("EvaluateMeasuredTextWidth(", variant);
         Assert.DoesNotContain("MeasuredTextWidth", key);
         Assert.DoesNotContain("AvailableInnerWidth", key);
-        Assert.Contains("CurrentGeometryVersion = 2", key);
+        Assert.Contains("CurrentGeometryVersion = 3", key);
     }
 
     [Fact]
@@ -173,7 +210,7 @@ public sealed class FramedRendererProductionIntegrationSourceContractTests
         Assert.DoesNotContain("BaseDenominator", key);
         Assert.DoesNotContain("AnnotationScaleDenominator", key);
         Assert.DoesNotContain("ScaleFactor", key);
-        Assert.Contains("CurrentGeometryVersion = 2", key);
+        Assert.Contains("CurrentGeometryVersion = 3", key);
     }
 
     [Fact]
@@ -203,7 +240,7 @@ public sealed class FramedRendererProductionIntegrationSourceContractTests
     [Fact]
     public void ProtectedVersionsAndSettingsSurfacesRemainUnchanged()
     {
-        Assert.Contains("<AcKrovyVersion>0.22.0</AcKrovyVersion>",
+        Assert.Contains("<AcKrovyVersion>0.23.0</AcKrovyVersion>",
             Source("Directory.Build.props"));
         Assert.Contains("public const int CurrentVersion = 7;",
             Source("src", "AcKrovy.Core", "Models", "TimberElementDataSchema.cs"));

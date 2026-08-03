@@ -99,7 +99,7 @@ public sealed class TimberAnnotationSettingsRequestTests
     }
 
     [Fact]
-    public void PublicConstructors_PreserveFourArgumentApiAndUseExplicitFiveArgumentContract()
+    public void PublicConstructors_PreserveFourFiveAndSixArgumentContracts()
     {
         var type = typeof(TimberAnnotationSettingsRequest);
         var fourArgumentConstructor = type.GetConstructor(
@@ -117,11 +117,24 @@ public sealed class TimberAnnotationSettingsRequestTests
             typeof(TimberAnnotationSettingsApplyScope),
             typeof(TimberAnnotationTextSettings),
         ]);
+        var sixArgumentConstructor = type.GetConstructor(
+        [
+            typeof(TimberAnnotationMode),
+            typeof(ItemNumberLeaderStyle),
+            typeof(int),
+            typeof(TimberAnnotationSettingsApplyScope),
+            typeof(TimberAnnotationTextSettings),
+            typeof(TimberAnnotationTextSettingsPatch),
+        ]);
 
         Assert.NotNull(fourArgumentConstructor);
         Assert.NotNull(fiveArgumentConstructor);
+        Assert.NotNull(sixArgumentConstructor);
         Assert.All(
             fiveArgumentConstructor!.GetParameters(),
+            parameter => Assert.False(parameter.IsOptional));
+        Assert.All(
+            sixArgumentConstructor!.GetParameters(),
             parameter => Assert.False(parameter.IsOptional));
 
         Assert.NotNull(typeof(TimberAnnotationSettingsPatch).GetConstructor(
@@ -130,6 +143,101 @@ public sealed class TimberAnnotationSettingsRequestTests
             typeof(ItemNumberLeaderStyle),
             typeof(TimberAnnotationScaleOverridePatch),
         ]));
+    }
+
+    [Fact]
+    public void PatchOverload_StoresSettingsForProfileAndUsesExplicitPatchForElements()
+    {
+        var settings = TextSettings();
+        var rolePatch = TimberAnnotationTextSettingsPatch.ForRole(
+            TimberAnnotationTextRole.Dimension,
+            "ROMANS",
+            3d);
+
+        var request = new TimberAnnotationSettingsRequest(
+            TimberAnnotationMode.FullLabel,
+            ItemNumberLeaderStyle.Plain,
+            50,
+            TimberAnnotationSettingsApplyScope.SelectedElements,
+            settings,
+            rolePatch);
+
+        Assert.Equal(settings, request.AnnotationTextSettings);
+        Assert.Equal(rolePatch, request.AnnotationTextPatch);
+
+        var patch = request.CreateElementPatch().AnnotationTextSettings;
+        Assert.Equal(TimberAnnotationTextSettingsChange.Set, patch.Change);
+        Assert.Equal(TimberAnnotationTextSettingsChange.Unchanged, patch.ItemCode.Change);
+        Assert.Equal(TimberAnnotationTextSettingsChange.Set, patch.Dimension.Change);
+        Assert.Equal("ROMANS", patch.Dimension.TextStyleName);
+        Assert.Equal(3d, patch.Dimension.PaperHeightMm);
+        Assert.Equal(TimberAnnotationTextSettingsChange.Unchanged, patch.Slope.Change);
+    }
+
+    [Fact]
+    public void PatchOverload_NewElementsOnlyLeavesTextUnchangedEvenWhenPatchIsSet()
+    {
+        var rolePatch = TimberAnnotationTextSettingsPatch.ForRole(
+            TimberAnnotationTextRole.ItemCode,
+            "ARIAL",
+            2.7d);
+
+        var request = new TimberAnnotationSettingsRequest(
+            TimberAnnotationMode.FullLabel,
+            ItemNumberLeaderStyle.Plain,
+            50,
+            TimberAnnotationSettingsApplyScope.NewElementsOnly,
+            TextSettings(),
+            rolePatch);
+
+        Assert.Equal(
+            TimberAnnotationTextSettingsChange.Unchanged,
+            request.CreateElementPatch().AnnotationTextSettings.Change);
+    }
+
+    [Fact]
+    public void PatchOverload_UnchangedPatchFallsBackToFullSettingsForBackwardCompat()
+    {
+        var settings = TextSettings();
+        var request = new TimberAnnotationSettingsRequest(
+            TimberAnnotationMode.FullLabel,
+            ItemNumberLeaderStyle.Plain,
+            50,
+            TimberAnnotationSettingsApplyScope.AllElements,
+            settings,
+            TimberAnnotationTextSettingsPatch.Unchanged);
+
+        var patch = request.CreateElementPatch().AnnotationTextSettings;
+        Assert.Equal(TimberAnnotationTextSettingsChange.Set, patch.Change);
+        Assert.Equal(settings, patch.Apply(null));
+    }
+
+    [Fact]
+    public void ExistingConstructors_DefaultAnnotationTextPatchToUnchanged()
+    {
+        var withoutText = Request(50, TimberAnnotationSettingsApplyScope.SelectedElements);
+        var withText = RequestWithTextSettings(
+            TimberAnnotationSettingsApplyScope.SelectedElements);
+
+        Assert.Equal(
+            TimberAnnotationTextSettingsChange.Unchanged,
+            withoutText.AnnotationTextPatch.Change);
+        Assert.Equal(
+            TimberAnnotationTextSettingsChange.Unchanged,
+            withText.AnnotationTextPatch.Change);
+    }
+
+    [Fact]
+    public void PatchOverload_RejectsNullPatch()
+    {
+        Assert.Throws<ArgumentNullException>(() =>
+            new TimberAnnotationSettingsRequest(
+                TimberAnnotationMode.FullLabel,
+                ItemNumberLeaderStyle.Plain,
+                50,
+                TimberAnnotationSettingsApplyScope.SelectedElements,
+                TextSettings(),
+                annotationTextPatch: null!));
     }
 
     [Fact]

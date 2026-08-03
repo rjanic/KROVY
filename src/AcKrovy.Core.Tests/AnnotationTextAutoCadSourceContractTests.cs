@@ -130,12 +130,18 @@ public sealed class AnnotationTextAutoCadSourceContractTests
         Assert.Contains(
             "RequestedTextStyleName = textStyleResolution.RequestedTextStyleName",
             source);
+        Assert.Contains("public bool IsFallback { get; }", source);
+        Assert.Contains("public bool HasCompatibleStyle { get; }", source);
+        Assert.Contains("IsFallback = textStyleResolution.IsFallback", source);
         Assert.Contains(
-            "public bool IsFallback => _textStyleResolution.IsFallback",
+            "HasCompatibleStyle = textStyleResolution.HasCompatibleStyle",
             source);
         Assert.Contains(
-            "public bool HasCompatibleStyle => _textStyleResolution.HasCompatibleStyle",
+            "public AutoCadAnnotationTextRolePresentation ForRole(",
             source);
+        Assert.Contains("TimberAnnotationTextRole.ItemCode", source);
+        Assert.Contains("TimberAnnotationTextRole.Dimension", source);
+        Assert.Contains("TimberAnnotationTextRole.Slope", source);
     }
 
     [Fact]
@@ -231,10 +237,42 @@ public sealed class AnnotationTextAutoCadSourceContractTests
         Assert.Contains("AutoCadAnnotationPresentationBatchContext", orchestration);
         Assert.DoesNotContain("AutoCadTextStyleResolver", labels + orchestration);
 
+        // Slope numeric text consumes the presentation context through its own
+        // policy, never through AutoCadTextStyleResolver directly.
+        foreach (var file in new[]
+                 {
+                     "SlopeAnnotationService.cs",
+                     "SlopeAngleTextService.cs",
+                 })
+        {
+            var source = Source(
+                "src",
+                "AcKrovy.AutoCAD",
+                "Infrastructure",
+                file);
+            Assert.DoesNotContain("AutoCadTextStyleResolver", source);
+            Assert.DoesNotContain(
+                "AutoCadAnnotationPresentationBatchContext",
+                source);
+        }
+
+        Assert.Contains(
+            "AutoCadAnnotationPresentationContext",
+            Source(
+                "src",
+                "AcKrovy.AutoCAD",
+                "Infrastructure",
+                "SlopeAngleTextService.cs"));
+        Assert.Contains(
+            "AutoCadSlopeTextPresentationPolicy.TryPrepare(",
+            Source(
+                "src",
+                "AcKrovy.AutoCAD",
+                "Infrastructure",
+                "SlopeAngleTextService.cs"));
+
         string[] excludedRendererFiles =
         [
-            "SlopeAnnotationService.cs",
-            "SlopeAngleTextService.cs",
             "AcKrovyMLeaderStyleService.cs",
             "AcKrovyItemLeaderBlockService.cs",
         ];

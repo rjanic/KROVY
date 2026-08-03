@@ -116,7 +116,7 @@ public sealed class FramedBaselineRestorationSourceContractTests
     }
 
     [Fact]
-    public void VariantKey_IsGeometryOnlyWithoutFontOrHeight()
+    public void VariantKey_IsG3GeometryAndStableStyleWithoutHeight()
     {
         var key = File.ReadAllText(Path.Combine(
             RepositoryRoot,
@@ -125,18 +125,18 @@ public sealed class FramedBaselineRestorationSourceContractTests
             "Infrastructure",
             "AutoCadItemLeaderBlockVariantKey.cs"));
 
-        Assert.Contains("CurrentGeometryVersion = 2", key);
-        Assert.DoesNotContain("ResolvedCanonicalTextStyleName", key);
+        Assert.Contains("CurrentGeometryVersion = 3", key);
+        Assert.Contains("TextStyleIdentity", key);
         Assert.DoesNotContain("ItemNumberPaperHeightMm", key);
         Assert.DoesNotContain("BaseDenominator", key);
-        Assert.Contains("$\"AK_ITEM_{frame}{size}_G{key.GeometryVersion}\"", key);
-        Assert.Contains("schema=2|geometry=", key);
-        Assert.DoesNotContain("|style=", key);
+        Assert.Contains("$\"AK_ITEM_{frame}{size}_G{key.GeometryVersion}_\"", key);
+        Assert.Contains("schema=3|geometry=", key);
+        Assert.Contains("|textStyle=", key);
         Assert.DoesNotContain("|paperHeightMm=", key);
     }
 
     [Fact]
-    public void ProductionAttributeReference_AppliesPerInstanceStyleAndHeight()
+    public void ProductionAttributeReference_InheritsG3StyleAndAppliesHeight()
     {
         var labels = File.ReadAllText(Path.Combine(
             RepositoryRoot,
@@ -147,18 +147,40 @@ public sealed class FramedBaselineRestorationSourceContractTests
         var setter = Member(
             labels,
             "private static void SetItemNumberBlockAttribute(");
+        var create = Member(
+            labels,
+            "private static MLeader CreateBlockMLeader(");
 
+        Assert.Contains("OpenMode.ForRead", setter);
+        Assert.DoesNotContain("OpenMode.ForWrite", setter);
+        Assert.DoesNotContain("attributeDefinition.TextStyleId =", setter);
         Assert.Contains("attribute.SetAttributeFromBlock(", setter);
         Assert.Contains("attribute.TextString = contents;", setter);
-        Assert.Contains("attribute.TextStyleId = preparation.TextStyleId;", setter);
+        Assert.DoesNotContain("attribute.TextStyleId =", setter);
         Assert.Contains("attribute.Height = preparation.AttributeHeightMm;", setter);
+        Assert.Contains(
+            "leader.SetBlockAttribute(preparation.AttributeDefinitionId, attribute)",
+            setter);
         Assert.Contains(
             "TimberAnnotationScaleRules.DefaultDenominator",
             labels);
+        var append = create.IndexOf(
+            "modelSpace.AppendEntity(leader)",
+            StringComparison.Ordinal);
+        var vertices = create.IndexOf(
+            "leader.SetFirstVertex(leaderLineIndex, placement.Anchor)",
+            StringComparison.Ordinal);
+        var setAttribute = create.IndexOf(
+            "SetItemNumberBlockAttribute(",
+            StringComparison.Ordinal);
+        Assert.True(
+            append >= 0 &&
+            vertices > append &&
+            setAttribute > vertices);
     }
 
     [Fact]
-    public void SharedDefinitionCreate_DoesNotBakeUserTextStyle()
+    public void SharedDefinitionCreate_BakesG3StyleOnlyAtCreation()
     {
         var variant = File.ReadAllText(Path.Combine(
             RepositoryRoot,
@@ -171,9 +193,9 @@ public sealed class FramedBaselineRestorationSourceContractTests
             "private static AutoCadItemLeaderBlockVariantResult CreateAndCache(");
 
         Assert.Contains("definition.TextHeightMm", create);
-        Assert.DoesNotContain("resolvedTextStyleId", create);
+        Assert.Contains("textStyleId", create);
         Assert.Contains(
-            "AddItemNumberAttribute(\n            database,\n            transaction,\n            block,\n            definition.TextHeightMm)",
+            "AddItemNumberAttribute(\n            database,\n            transaction,\n            block,\n            definition.TextHeightMm,\n            textStyleId)",
             create.Replace("\r\n", "\n"));
     }
 

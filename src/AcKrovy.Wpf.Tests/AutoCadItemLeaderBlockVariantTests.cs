@@ -15,6 +15,10 @@ public sealed class AutoCadItemLeaderBlockVariantTests
         Assert.Equal(reference, Key());
         Assert.NotEqual(reference, Key(frame: AutoCadItemLeaderBlockFrameKind.Slot));
         Assert.NotEqual(
+            reference,
+            Key(textStyleIdentity:
+                AutoCadItemLeaderTextStyleIdentity.Architectural));
+        Assert.NotEqual(
             Key(frame: AutoCadItemLeaderBlockFrameKind.Slot),
             Key(
                 frame: AutoCadItemLeaderBlockFrameKind.Slot,
@@ -42,7 +46,7 @@ public sealed class AutoCadItemLeaderBlockVariantTests
     }
 
     [Fact]
-    public void Name_IsDeterministicSafeBoundedAndContainsNoStyleOrHeight()
+    public void Name_IsDeterministicSafeBoundedAndContainsStableStyle()
     {
         var key = Key();
 
@@ -50,7 +54,7 @@ public sealed class AutoCadItemLeaderBlockVariantTests
         var second = AutoCadItemLeaderBlockVariantNamePolicy.CreateCanonicalName(key);
 
         Assert.Equal(first, second);
-        Assert.Equal("AK_ITEM_CIR_G2", first);
+        Assert.Equal("AK_ITEM_CIR_G3_CLASSIC", first);
         Assert.True(AutoCadItemLeaderBlockVariantNamePolicy.IsSafeSymbolName(first));
         Assert.InRange(
             first.Length,
@@ -59,12 +63,12 @@ public sealed class AutoCadItemLeaderBlockVariantTests
     }
 
     [Theory]
-    [InlineData("Circle", "Small", "AK_ITEM_CIR_G2")]
-    [InlineData("Slot", "Small", "AK_ITEM_SLOT_S_G2")]
-    [InlineData("Slot", "Medium", "AK_ITEM_SLOT_M_G2")]
-    [InlineData("Slot", "Large", "AK_ITEM_SLOT_L_G2")]
-    [InlineData("Rectangle", "Small", "AK_ITEM_RECT_S_G2")]
-    [InlineData("Rectangle", "Large", "AK_ITEM_RECT_L_G2")]
+    [InlineData("Circle", "Small", "AK_ITEM_CIR_G3_CLASSIC")]
+    [InlineData("Slot", "Small", "AK_ITEM_SLOT_S_G3_CLASSIC")]
+    [InlineData("Slot", "Medium", "AK_ITEM_SLOT_M_G3_CLASSIC")]
+    [InlineData("Slot", "Large", "AK_ITEM_SLOT_L_G3_CLASSIC")]
+    [InlineData("Rectangle", "Small", "AK_ITEM_RECT_S_G3_CLASSIC")]
+    [InlineData("Rectangle", "Large", "AK_ITEM_RECT_L_G3_CLASSIC")]
     public void Name_MatchesExpectedCanonicalPattern(
         string frameName,
         string sizeName,
@@ -94,6 +98,10 @@ public sealed class AutoCadItemLeaderBlockVariantTests
             Name(Key(
                 frame: AutoCadItemLeaderBlockFrameKind.Rectangle,
                 size: TimberItemLeaderBlockSize.Large)));
+        Assert.NotEqual(
+            reference,
+            Name(Key(textStyleIdentity:
+                AutoCadItemLeaderTextStyleIdentity.Architectural)));
     }
 
     [Fact]
@@ -122,7 +130,7 @@ public sealed class AutoCadItemLeaderBlockVariantTests
             AutoCadItemLeaderBlockVariantNamePolicy.CreateFingerprintPayload(key);
 
         Assert.Equal(
-            "schema=2|geometry=2|frame=CIR|size=S",
+            "schema=3|geometry=3|frame=CIR|size=S|textStyle=Classic:classic",
             payload);
     }
 
@@ -143,6 +151,37 @@ public sealed class AutoCadItemLeaderBlockVariantTests
         Assert.NotEqual(circleSmall, slotSmall);
         Assert.NotEqual(slotSmall, rectLarge);
         Assert.NotEqual(circleSmall, rectLarge);
+    }
+
+    [Fact]
+    public void G3StyleVariants_PreserveFrozenG2GeometryContract()
+    {
+        var definition = TimberItemLeaderBlockDefinitionRules.Resolve(
+            ItemNumberLeaderStyle.Slot,
+            "K123");
+        AutoCadItemLeaderTextStyleIdentity[] identities =
+        [
+            AutoCadItemLeaderTextStyleIdentity.Classic,
+            AutoCadItemLeaderTextStyleIdentity.Architectural,
+            AutoCadItemLeaderTextStyleIdentity.User("0123456789abcdef"),
+        ];
+
+        var keys = identities
+            .Select(identity =>
+                AutoCadItemLeaderBlockVariantKey.FromDefinition(
+                    definition,
+                    identity))
+            .ToArray();
+
+        Assert.Equal(3, keys.Select(Name).Distinct().Count());
+        Assert.All(keys, key =>
+        {
+            Assert.Equal(AutoCadItemLeaderBlockFrameKind.Slot, key.FrameKind);
+            Assert.Equal(definition.Size, key.FrameSize);
+            Assert.Equal(3, key.GeometryVersion);
+        });
+        Assert.Equal(135d, definition.TextHeightMm);
+        Assert.Equal(270d, definition.TextHeightMm * 2d);
     }
 
     [Fact]
@@ -420,7 +459,7 @@ public sealed class AutoCadItemLeaderBlockVariantTests
     }
 
     [Fact]
-    public void FromDefinition_RoundTripsGeometryOnlyKey()
+    public void FromDefinition_RoundTripsGeometryAndStyleKey()
     {
         var circles = new[]
         {
@@ -435,6 +474,7 @@ public sealed class AutoCadItemLeaderBlockVariantTests
             Assert.Equal(AutoCadItemLeaderBlockFrameKind.Circle, key.FrameKind);
             Assert.Equal(TimberItemLeaderBlockSize.Small, key.FrameSize);
             Assert.Equal(AutoCadItemLeaderBlockVariantKey.CurrentGeometryVersion, key.GeometryVersion);
+            Assert.Equal(AutoCadItemLeaderTextStyleIdentity.Classic, key.TextStyleIdentity);
         }
 
         var rectLarge = AutoCadItemLeaderBlockVariantKey.FromDefinition(
@@ -488,8 +528,12 @@ public sealed class AutoCadItemLeaderBlockVariantTests
     private static AutoCadItemLeaderBlockVariantKey Key(
         AutoCadItemLeaderBlockFrameKind frame =
             AutoCadItemLeaderBlockFrameKind.Circle,
-        TimberItemLeaderBlockSize size = TimberItemLeaderBlockSize.Small) =>
-        AutoCadItemLeaderBlockVariantKey.Create(frame, size);
+        TimberItemLeaderBlockSize size = TimberItemLeaderBlockSize.Small,
+        AutoCadItemLeaderTextStyleIdentity? textStyleIdentity = null) =>
+        AutoCadItemLeaderBlockVariantKey.Create(
+            frame,
+            size,
+            textStyleIdentity);
 
     private static string Name(AutoCadItemLeaderBlockVariantKey key) =>
         AutoCadItemLeaderBlockVariantNamePolicy.CreateCanonicalName(key);

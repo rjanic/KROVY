@@ -1,3 +1,4 @@
+using AcKrovy.Core.Models;
 using AcKrovy.Core.Services;
 using Autodesk.AutoCAD.DatabaseServices;
 
@@ -16,13 +17,17 @@ internal sealed record AutoCadDimensionsLeaderPresentationPreparation(
 
 /// <summary>
 /// Validates standalone DimensionsLeader native MLeader presentation before
-/// any ForWrite mutation (Etapa 5C). Uses
-/// LabelAndDimensionModelHeight = paper × denominator without a second
-/// ScaleFactor multiply. Shared native create/update remain legacy unless the
-/// prepared value is threaded in as an explicit opt-in argument.
+/// any ForWrite mutation (Etapa 5C). The renderer draws dimensions text, so it
+/// consumes the Dimension role: model height = dimension paper height ×
+/// denominator without a second ScaleFactor multiply. Shared native
+/// create/update remain legacy unless the prepared value is threaded in as an
+/// explicit opt-in argument.
 /// </summary>
 internal static class AutoCadDimensionsLeaderPresentationPolicy
 {
+    private const TimberAnnotationTextRole Role =
+        TimberAnnotationTextRole.Dimension;
+
     public static bool TryPrepare(
         Database database,
         AutoCadAnnotationPresentationContext? presentationContext,
@@ -49,14 +54,15 @@ internal static class AutoCadDimensionsLeaderPresentationPolicy
             return false;
         }
 
-        if (!presentationContext.HasCompatibleStyle ||
-            presentationContext.ResolvedTextStyleId is not ObjectId textStyleId)
+        var roleText = presentationContext.ForRole(Role);
+        if (!roleText.HasCompatibleStyle ||
+            roleText.ResolvedTextStyleId is not ObjectId textStyleId)
         {
             diagnosticReason =
                 "DimensionsLeader has no compatible text style; " +
-                $"Kind={presentationContext.TextStyleResolutionKind}; " +
-                $"Request={presentationContext.TextStyleRequestStatus}; " +
-                $"Requested={presentationContext.RequestedTextStyleName ?? "<none>"}.";
+                $"Kind={roleText.ResolutionKind}; " +
+                $"Request={roleText.RequestStatus}; " +
+                $"Requested={roleText.RequestedTextStyleName ?? "<none>"}.";
             return false;
         }
 
@@ -76,7 +82,7 @@ internal static class AutoCadDimensionsLeaderPresentationPolicy
             return false;
         }
 
-        var modelHeightMm = presentationContext.LabelAndDimensionModelHeight;
+        var modelHeightMm = roleText.ModelHeightMm;
         if (modelHeightMm <= 0d ||
             double.IsNaN(modelHeightMm) ||
             double.IsInfinity(modelHeightMm))
@@ -86,8 +92,7 @@ internal static class AutoCadDimensionsLeaderPresentationPolicy
             return false;
         }
 
-        var paperHeightMm = presentationContext.EffectiveTextSettings
-            .DimensionPaperHeightMm;
+        var paperHeightMm = roleText.PaperHeightMm;
         if (!TimberAnnotationTextSettingsRules
                 .IsValidDimensionPaperHeightMm(paperHeightMm))
         {
@@ -98,14 +103,14 @@ internal static class AutoCadDimensionsLeaderPresentationPolicy
 
         preparation = new AutoCadDimensionsLeaderPresentationPreparation(
             textStyleId,
-            presentationContext.ResolvedTextStyleName ??
+            roleText.ResolvedTextStyleName ??
                 TimberAnnotationTextSettingsRules.DefaultTextStyleName,
             modelHeightMm,
             paperHeightMm,
             presentationContext.AnnotationScaleDenominator,
-            presentationContext.TextStyleResolutionKind,
-            presentationContext.TextStyleRequestStatus,
-            presentationContext.IsFallback,
+            roleText.ResolutionKind,
+            roleText.RequestStatus,
+            roleText.IsFallback,
             presentationContext.HasExplicitTextSettings);
         diagnosticReason = string.Empty;
         return true;

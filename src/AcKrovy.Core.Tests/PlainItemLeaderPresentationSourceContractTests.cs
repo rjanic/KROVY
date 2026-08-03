@@ -13,10 +13,15 @@ public sealed class PlainItemLeaderPresentationSourceContractTests
         var policy = PolicySource();
 
         Assert.Contains("public static bool TryPrepare(", policy);
-        Assert.Contains("presentationContext.ItemNumberModelHeight", policy);
         Assert.Contains(
-            "presentationContext.ResolvedTextStyleId",
+            "TimberAnnotationTextRole.ItemCode",
             policy);
+        Assert.Contains("presentationContext.ForRole(Role)", policy);
+        Assert.Contains("roleText.ModelHeightMm", policy);
+        Assert.Contains("roleText.PaperHeightMm", policy);
+        Assert.Contains("roleText.ResolvedTextStyleId", policy);
+        Assert.DoesNotContain("TimberAnnotationTextRole.Dimension", policy);
+        Assert.DoesNotContain("TimberAnnotationTextRole.Slope", policy);
         Assert.Contains("ObjectId TextStyleId", policy);
         Assert.Contains("ResolvedTextStyleName", policy);
         Assert.Contains("ItemNumberPaperHeightMm", policy);

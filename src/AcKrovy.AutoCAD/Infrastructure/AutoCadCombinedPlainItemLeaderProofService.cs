@@ -107,7 +107,9 @@ internal static class AutoCadCombinedPlainItemLeaderProofService
 
                     var data = CreateData(proofCase, styleName);
                     var presentation = batch.ResolveForElement(data);
-                    if (!presentation.HasCompatibleStyle)
+                    var itemCodeText = presentation.ItemCodeText;
+                    if (!itemCodeText.HasCompatibleStyle ||
+                        !presentation.DimensionText.HasCompatibleStyle)
                     {
                         editor.WriteMessage(
                             $"\nAK_DEV_COMBINED_PLAIN_ITEM_TEXT_CREATE: NOT TESTED - " +
@@ -141,7 +143,7 @@ internal static class AutoCadCombinedPlainItemLeaderProofService
                             standaloneLeaderStyle != standaloneMtextStyle ||
                             !AreClose(
                                 standaloneHeight,
-                                presentation.ItemNumberModelHeight))
+                                itemCodeText.ModelHeightMm))
                         {
                             throw new InvalidOperationException(
                                 "Standalone regression case F did not produce " +
@@ -151,16 +153,15 @@ internal static class AutoCadCombinedPlainItemLeaderProofService
                         expected.Add(
                             AutoCadCombinedPlainItemLeaderProofPolicy.ToExpected(
                                 proofCase,
-                                presentation.ResolvedTextStyleName ?? styleName,
-                                presentation.EffectiveTextSettings
-                                    .ItemCodePaperHeightMm,
+                                itemCodeText.ResolvedTextStyleName ?? styleName,
+                                itemCodeText.PaperHeightMm,
                                 presentation.AnnotationScaleDenominator,
-                                presentation.TextStyleResolutionKind.ToString(),
-                                presentation.IsFallback));
+                                itemCodeText.ResolutionKind.ToString(),
+                                itemCodeText.IsFallback));
                         editor.WriteMessage(
                             $"\n  {proofCase.Token}: standalone style=" +
-                            $"{presentation.ResolvedTextStyleName}; " +
-                            $"modelHeight={presentation.ItemNumberModelHeight:R}; " +
+                            $"{itemCodeText.ResolvedTextStyleName}; " +
+                            $"modelHeight={itemCodeText.ModelHeightMm:R}; " +
                             "PASS");
                         continue;
                     }
@@ -223,19 +224,18 @@ internal static class AutoCadCombinedPlainItemLeaderProofService
                     expected.Add(
                         AutoCadCombinedPlainItemLeaderProofPolicy.ToExpected(
                             proofCase,
-                            presentation.ResolvedTextStyleName ?? styleName,
-                            presentation.EffectiveTextSettings
-                                .ItemCodePaperHeightMm,
+                            itemCodeText.ResolvedTextStyleName ?? styleName,
+                            itemCodeText.PaperHeightMm,
                             presentation.AnnotationScaleDenominator,
-                            presentation.TextStyleResolutionKind.ToString(),
-                            presentation.IsFallback,
+                            itemCodeText.ResolutionKind.ToString(),
+                            itemCodeText.IsFallback,
                             failureOutcome));
 
                     editor.WriteMessage(
                         $"\n  {proofCase.Token}: itemStyle=" +
-                        $"{presentation.ResolvedTextStyleName}; " +
+                        $"{itemCodeText.ResolvedTextStyleName}; " +
                         $"itemHeight={itemHeight:R}; " +
-                        $"expectedItem={presentation.ItemNumberModelHeight:R}; " +
+                        $"expectedItem={itemCodeText.ModelHeightMm:R}; " +
                         $"dimensionsHeight={dimensions.TextHeight:R}; " +
                         $"mLeaderStyle={itemLeaderStyleId.Handle}; " +
                         $"mTextStyle={itemMtextStyleId.Handle}" +

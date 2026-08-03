@@ -14,11 +14,14 @@ public sealed class DimensionsLeaderPresentationSourceContractTests
 
         Assert.Contains("public static bool TryPrepare(", policy);
         Assert.Contains(
-            "presentationContext.LabelAndDimensionModelHeight",
+            "TimberAnnotationTextRole.Dimension",
             policy);
-        Assert.Contains(
-            "presentationContext.ResolvedTextStyleId",
-            policy);
+        Assert.Contains("presentationContext.ForRole(Role)", policy);
+        Assert.Contains("roleText.ModelHeightMm", policy);
+        Assert.Contains("roleText.PaperHeightMm", policy);
+        Assert.Contains("roleText.ResolvedTextStyleId", policy);
+        Assert.DoesNotContain("TimberAnnotationTextRole.ItemCode", policy);
+        Assert.DoesNotContain("TimberAnnotationTextRole.Slope", policy);
         Assert.Contains("ObjectId TextStyleId", policy);
         Assert.Contains("ResolvedTextStyleName", policy);
         Assert.Contains("LabelAndDimensionPaperHeightMm", policy);
@@ -190,11 +193,14 @@ public sealed class DimensionsLeaderPresentationSourceContractTests
         Assert.Contains(
             "AutoCadPlainItemLeaderPresentationPolicy.TryPrepare(",
             combined);
-        Assert.DoesNotContain(
+        Assert.Contains(
             "AutoCadDimensionsLeaderPresentationPolicy.TryPrepare(",
             combined);
-        Assert.DoesNotContain(
-            "LabelAndDimensionModelHeight",
+        Assert.Contains(
+            "resolvedTextStyleId: dimensionsPresentation.TextStyleId",
+            combined);
+        Assert.Contains(
+            "TimberCombinedDimensionTypographyRules.CalculateEnvelopeHeightMm(",
             combined);
         Assert.Contains(
             "baseTextHeightMm * presentationScaleFactor",
@@ -205,7 +211,7 @@ public sealed class DimensionsLeaderPresentationSourceContractTests
     }
 
     [Fact]
-    public void CombinedPrimaryDimensionsMText_RemainsOutsideDimensionsLeaderPolicy()
+    public void CombinedPrimaryDimensionsMText_UsesDimensionRoleOutsideStandalonePolicyPath()
     {
         var combined = Member(
             ElementLabelSource(),
@@ -215,12 +221,15 @@ public sealed class DimensionsLeaderPresentationSourceContractTests
             StringComparison.Ordinal);
         Assert.True(primary >= 0);
         var call = ExtractInvocation(combined, primary);
-        Assert.DoesNotContain("resolvedTextStyleId", call);
+        Assert.Contains("resolvedTextStyleId", call);
         Assert.Contains(
-            "TimberCombinedDimensionTypographyRules.CalculateTextHeightMm(",
+            "AutoCadDimensionsLeaderPresentationPolicy.TryPrepare(",
             combined);
-        Assert.DoesNotContain(
-            "AutoCadDimensionsLeaderPresentationPolicy",
+        Assert.Contains(
+            "TimberCombinedDimensionTypographyRules.CalculateEnvelopeHeightMm(",
+            combined);
+        Assert.Contains(
+            "TimberCombinedDimensionTypographyRules.CalculateEnvelopeWidthMm(",
             combined);
     }
 

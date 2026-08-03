@@ -225,14 +225,14 @@ public sealed class SettingsXamlRuntimeSmokeTests
                             new Point(),
                             window.DrawingAnnotationScaleSelector).Y));
 
-                for (var tabIndex = 2; tabIndex < annotationTabs.Length; tabIndex++)
+                for (var tabIndex = 3; tabIndex < annotationTabs.Length; tabIndex++)
                 {
                     window.AnnotationCategoryTabs.SelectedIndex = tabIndex;
                     window.UpdateLayout();
                     Assert.Same(
                         annotationTabs[tabIndex].Content,
                         selectedContentPresenter.Content);
-                    for (var placeholderIndex = 2;
+                    for (var placeholderIndex = 3;
                          placeholderIndex < annotationTabs.Length;
                          placeholderIndex++)
                     {
@@ -245,6 +245,25 @@ public sealed class SettingsXamlRuntimeSmokeTests
                         FindVisualChildren<Button>(
                             (DependencyObject)annotationTabs[tabIndex].Content));
                 }
+
+                window.AnnotationCategoryTabs.SelectedIndex = 2;
+                window.UpdateLayout();
+                Assert.Same(window.AnnotationTextsTab.Content, selectedContentPresenter.Content);
+                Assert.True(window.AnnotationTextStyleLibraryList.IsVisible);
+                Assert.NotEmpty(window.TextStylePresetItems);
+                Assert.Contains(
+                    window.TextStylePresetItems,
+                    item => item.StableId == "classic");
+                Assert.NotEmpty(
+                    FindVisualChildren<Button>(
+                        (DependencyObject)window.AnnotationTextsTab.Content));
+                var textsContent = Assert.IsAssignableFrom<FrameworkElement>(
+                    window.AnnotationTextsTab.Content);
+                Assert.True(
+                    textsContent.DesiredSize.Height <= textsContent.ActualHeight + 1d,
+                    $"Texts content requires {textsContent.DesiredSize.Height:0.##} px " +
+                    $"but only {textsContent.ActualHeight:0.##} px is available.");
+
                 window.AnnotationCategoryTabs.SelectedIndex = 1;
                 window.UpdateLayout();
 
