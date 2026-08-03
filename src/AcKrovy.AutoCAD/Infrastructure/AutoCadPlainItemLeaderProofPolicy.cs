@@ -52,24 +52,22 @@ internal static class AutoCadPlainItemLeaderProofPolicy
         new(
             "B",
             StyleSlot: 0,
-            TextSettings: new TimberAnnotationTextSettings(
+            TextSettings: TimberAnnotationTextSettings.Shared(
                 "PLACEHOLDER",
-                TimberAnnotationTextSettingsRules
-                    .DefaultLabelAndDimensionPaperHeightMm,
                 3d,
-                TimberAnnotationTextSettingsRules.DefaultSlopeAnglePaperHeightMm),
+                TimberAnnotationTextSettingsRules.DefaultDimensionPaperHeightMm,
+                TimberAnnotationTextSettingsRules.DefaultSlopePaperHeightMm),
             DenominatorOverride: 50,
             ExpectRefreshSameObjectId: false,
             IsFailurePreservationCase: false),
         new(
             "C",
             StyleSlot: 0,
-            TextSettings: new TimberAnnotationTextSettings(
+            TextSettings: TimberAnnotationTextSettings.Shared(
                 "PLACEHOLDER",
-                TimberAnnotationTextSettingsRules
-                    .DefaultLabelAndDimensionPaperHeightMm,
-                TimberAnnotationTextSettingsRules.DefaultItemNumberPaperHeightMm,
-                TimberAnnotationTextSettingsRules.DefaultSlopeAnglePaperHeightMm),
+                TimberAnnotationTextSettingsRules.DefaultItemCodePaperHeightMm,
+                TimberAnnotationTextSettingsRules.DefaultDimensionPaperHeightMm,
+                TimberAnnotationTextSettingsRules.DefaultSlopePaperHeightMm),
             DenominatorOverride: 100,
             ExpectRefreshSameObjectId: false,
             IsFailurePreservationCase: false),

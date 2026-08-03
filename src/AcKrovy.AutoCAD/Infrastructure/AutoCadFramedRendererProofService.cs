@@ -1004,10 +1004,10 @@ internal static class AutoCadFramedRendererProofService
             AnnotationMode = proofCase.Mode,
             ItemNumberLeaderStyle = proofCase.ItemStyle,
             AnnotationScaleDenominatorOverride = proofCase.Denominator,
-            AnnotationTextSettings = new TimberAnnotationTextSettings(
+            AnnotationTextSettings = TimberAnnotationTextSettings.Shared(
                 styleName,
-                2.5d,
                 proofCase.ItemNumberPaperHeightMm,
+                2.5d,
                 2.5d),
             WidthMm = 80d,
             HeightMm = 160d,

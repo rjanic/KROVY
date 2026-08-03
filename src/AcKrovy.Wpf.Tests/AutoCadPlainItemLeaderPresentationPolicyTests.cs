@@ -14,7 +14,7 @@ public sealed class AutoCadPlainItemLeaderPresentationPolicyTests
     {
         var fromSettings =
             TimberAnnotationTextSettingsRules.CalculateModelHeightMm(
-                TimberAnnotationTextSettingsRules.DefaultItemNumberPaperHeightMm,
+                TimberAnnotationTextSettingsRules.DefaultItemCodePaperHeightMm,
                 denominator);
         var fromLegacy =
             TimberItemNumberTypographyRules.CalculateTextHeightMm(

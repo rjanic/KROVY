@@ -124,7 +124,7 @@ public sealed class FramedTextAttributeHostProofSourceContractTests
         Assert.Contains("TimberAnnotationScaleRules.DefaultDenominator", policy);
         Assert.Contains("TimberAnnotationScaleRules.GetScaleFactor(", policy);
         Assert.Contains(
-            "TimberAnnotationTextSettingsRules.DefaultItemNumberPaperHeightMm",
+            "TimberAnnotationTextSettingsRules.DefaultItemCodePaperHeightMm",
             policy);
         Assert.DoesNotContain("2.7d", policy);
         Assert.DoesNotContain("const double", policy);

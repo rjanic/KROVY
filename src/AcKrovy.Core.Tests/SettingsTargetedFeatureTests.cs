@@ -1098,7 +1098,7 @@ public sealed class SettingsTargetedFeatureTests
         Assert.Contains("ComponentRole = componentRole", service);
         Assert.Contains("DeleteUnexpectedCompositeComponents(", service);
         Assert.Contains("public int SchemaVersion { get; init; } = 3;", store);
-        Assert.Equal(6, TimberElementDataSchema.CurrentVersion);
+        Assert.Equal(7, TimberElementDataSchema.CurrentVersion);
     }
 
     [Fact]

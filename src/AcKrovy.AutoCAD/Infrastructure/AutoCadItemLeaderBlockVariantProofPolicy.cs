@@ -51,7 +51,7 @@ internal sealed record AutoCadItemLeaderBlockVariantProofCase
             throw new ArgumentOutOfRangeException(nameof(frameKind));
         }
         if (!TimberAnnotationTextSettingsRules
-                .IsValidItemNumberPaperHeightMm(itemNumberPaperHeightMm))
+                .IsValidItemCodePaperHeightMm(itemNumberPaperHeightMm))
         {
             throw new ArgumentOutOfRangeException(
                 nameof(itemNumberPaperHeightMm));

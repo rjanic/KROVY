@@ -128,7 +128,7 @@ public sealed class TimberAnnotationSettingsApplicatorTests
             TimberAnnotationScaleOverridePatch.Set(25));
         var prepared = TimberElementDataVersioning.PrepareForWrite(changed);
 
-        Assert.Equal(6, prepared.SchemaVersion);
+        Assert.Equal(7, prepared.SchemaVersion);
         Assert.Equal(25, prepared.AnnotationScaleDenominatorOverride);
         Assert.Equal(source.ElementId, prepared.ElementId);
         Assert.Equal(source.CuttingAllowanceMm, prepared.CuttingAllowanceMm);
@@ -195,10 +195,10 @@ public sealed class TimberAnnotationSettingsApplicatorTests
         {
             AnnotationScaleDenominatorOverride = 75,
         };
-        var expected = new TimberAnnotationTextSettings(
+        var expected = TimberAnnotationTextSettings.Shared(
             "ISOCP",
-            3d,
             3.1d,
+            3d,
             2d);
 
         var result = TimberAnnotationSettingsApplicator.Apply(
@@ -226,10 +226,10 @@ public sealed class TimberAnnotationSettingsApplicatorTests
     [Fact]
     public void Apply_SameExplicitTextSettingsIsNoOpByValue()
     {
-        var settings = new TimberAnnotationTextSettings(
+        var settings = TimberAnnotationTextSettings.Shared(
             "ISOCP",
-            3d,
             3.1d,
+            3d,
             2d);
         var source = Source() with { AnnotationTextSettings = settings };
 

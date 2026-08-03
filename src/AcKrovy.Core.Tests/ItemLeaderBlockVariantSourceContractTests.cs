@@ -503,10 +503,10 @@ public sealed class ItemLeaderBlockVariantSourceContractTests
             "<AcKrovyVersion>0.22.0</AcKrovyVersion>",
             Source("Directory.Build.props"));
         Assert.Contains(
-            "public const int CurrentVersion = 6;",
+            "public const int CurrentVersion = 7;",
             Source("src", "AcKrovy.Core", "Models", "TimberElementDataSchema.cs"));
         Assert.Contains(
-            "public const int CurrentVersion = 2;",
+            "public const int CurrentVersion = 3;",
             Source("src", "AcKrovy.Core", "Models", "TimberElementDefaultProfile.cs"));
 
         var combined = KeySource() + ServiceSource() + ResultSource() +

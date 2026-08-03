@@ -153,7 +153,7 @@ internal static class AutoCadCombinedPlainItemLeaderProofService
                                 proofCase,
                                 presentation.ResolvedTextStyleName ?? styleName,
                                 presentation.EffectiveTextSettings
-                                    .ItemNumberPaperHeightMm,
+                                    .ItemCodePaperHeightMm,
                                 presentation.AnnotationScaleDenominator,
                                 presentation.TextStyleResolutionKind.ToString(),
                                 presentation.IsFallback));
@@ -225,7 +225,7 @@ internal static class AutoCadCombinedPlainItemLeaderProofService
                             proofCase,
                             presentation.ResolvedTextStyleName ?? styleName,
                             presentation.EffectiveTextSettings
-                                .ItemNumberPaperHeightMm,
+                                .ItemCodePaperHeightMm,
                             presentation.AnnotationScaleDenominator,
                             presentation.TextStyleResolutionKind.ToString(),
                             presentation.IsFallback,

@@ -4,7 +4,14 @@ namespace AcKrovy.Core.Models;
 
 public sealed class TimberElementDefaultProfile
 {
-    public const int CurrentVersion = 2;
+    public const int CurrentVersion = 3;
+
+    /// <summary>
+    /// Last profile version whose <see cref="DefaultAnnotationTextSettings"/>
+    /// used one shared text-style name. Still readable without rewriting.
+    /// </summary>
+    public const int SharedAnnotationTextStyleVersion = 2;
+
     public const double FactoryCuttingAllowanceMm = 100d;
     public const double FactoryCuttingLengthRoundingStepMm = TimberCuttingLengthCalculator.DefaultRoundingStepMm;
     public const double MaxCuttingAllowanceMm = 10000d;
@@ -56,6 +63,17 @@ public sealed class TimberElementDefaultProfile
                 .Select(type => new TimberElementDefaultStyle(type, GetCuttingAllowanceMm(type)))
                 .ToList(),
         };
+    }
+
+    /// <summary>
+    /// Mirrors the metadata rule that a stored version is upgraded only when the
+    /// profile is written back, never during a load.
+    /// </summary>
+    public TimberElementDefaultProfile PrepareForWrite()
+    {
+        var normalized = Normalize();
+        normalized.Version = CurrentVersion;
+        return normalized;
     }
 
     public static TimberElementDefaultProfile CreateDefault() => new()

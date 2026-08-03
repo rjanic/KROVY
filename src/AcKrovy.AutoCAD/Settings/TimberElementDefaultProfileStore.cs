@@ -28,7 +28,7 @@ internal static class TimberElementDefaultProfileStore
     {
         ArgumentNullException.ThrowIfNull(profile);
 
-        var normalized = profile.Normalize();
+        var normalized = profile.PrepareForWrite();
         AcKrovyDiagnostics.Settings.Save(
             LocalSettingsPaths.TimberDefaults,
             SettingsConfigurationSubject.TimberDefaults,

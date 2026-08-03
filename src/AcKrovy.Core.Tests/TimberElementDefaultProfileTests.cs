@@ -66,12 +66,15 @@ public sealed class TimberElementDefaultProfileTests
     }
 
     [Fact]
-    public void CreateDefault_UsesVersionTwoAndFactoryAnnotationTextSettings()
+    public void CreateDefault_UsesVersionThreeAndFactoryAnnotationTextSettings()
     {
         var profile = TimberElementDefaultProfile.CreateDefault();
 
         Assert.Equal(TimberElementDefaultProfile.CurrentVersion, profile.Version);
-        Assert.Equal(2, profile.Version);
+        Assert.Equal(3, profile.Version);
+        Assert.Equal(
+            2,
+            TimberElementDefaultProfile.SharedAnnotationTextStyleVersion);
         Assert.Equal(
             TimberAnnotationTextSettingsRules.Default,
             profile.DefaultAnnotationTextSettings);
@@ -101,29 +104,33 @@ public sealed class TimberElementDefaultProfileTests
     public void Normalize_AnnotationTextSettingsFallsBackPerInvalidFieldWithoutClamping()
     {
         var profile = TimberElementDefaultProfile.CreateDefault();
-        profile.DefaultAnnotationTextSettings = new TimberAnnotationTextSettings(
+        profile.DefaultAnnotationTextSettings = TimberAnnotationTextSettings.Shared(
             " ISOCP ",
-            11d,
             3.2d,
+            11d,
             0.5d);
 
         var normalized = Assert.IsType<TimberAnnotationTextSettings>(
             profile.Normalize().DefaultAnnotationTextSettings);
 
-        Assert.Equal("ISOCP", normalized.TextStyleName);
-        Assert.Equal(2.5d, normalized.LabelAndDimensionPaperHeightMm);
-        Assert.Equal(3.2d, normalized.ItemNumberPaperHeightMm);
-        Assert.Equal(1.6d, normalized.SlopeAnglePaperHeightMm);
+        Assert.Equal("ISOCP", normalized.ItemCodeTextStyleName);
+        Assert.Equal("ISOCP", normalized.DimensionTextStyleName);
+        Assert.Equal("ISOCP", normalized.SlopeTextStyleName);
+        Assert.Equal(3.2d, normalized.ItemCodePaperHeightMm);
+        Assert.Equal(2.5d, normalized.DimensionPaperHeightMm);
+        Assert.Equal(1.6d, normalized.SlopePaperHeightMm);
     }
 
     [Fact]
-    public void JsonRoundtrip_VersionTwoPreservesAnnotationTextSettings()
+    public void JsonRoundtrip_VersionThreePreservesIndependentRoleTextSettings()
     {
         var profile = TimberElementDefaultProfile.CreateDefault();
         profile.DefaultAnnotationTextSettings = new TimberAnnotationTextSettings(
+            "ARIAL",
             "ISOCP",
-            3d,
+            "ROMANS",
             3.1d,
+            3d,
             2d);
 
         var json = JsonSerializer.Serialize(profile.Normalize(), JsonOptions);
@@ -132,10 +139,65 @@ public sealed class TimberElementDefaultProfileTests
                 json,
                 JsonOptions)).Normalize();
 
-        Assert.Equal(2, persisted.Version);
+        Assert.Equal(3, persisted.Version);
         Assert.Equal(
             profile.DefaultAnnotationTextSettings,
             persisted.DefaultAnnotationTextSettings);
+    }
+
+    [Fact]
+    public void JsonDeserialize_VersionTwoSharedStyleFansOutToAllThreeRoles()
+    {
+        const string json = """
+            {
+              "version": 2,
+              "annotationScaleDenominator": 50,
+              "defaultAnnotationTextSettings": {
+                "textStyleName": "ISOCP",
+                "labelAndDimensionPaperHeightMm": 3.0,
+                "itemNumberPaperHeightMm": 3.1,
+                "slopeAnglePaperHeightMm": 2.0
+              },
+              "styles": []
+            }
+            """;
+
+        var profile = Assert.IsType<TimberElementDefaultProfile>(
+            JsonSerializer.Deserialize<TimberElementDefaultProfile>(
+                json,
+                JsonOptions)).Normalize();
+        var settings = Assert.IsType<TimberAnnotationTextSettings>(
+            profile.DefaultAnnotationTextSettings);
+
+        Assert.Equal(2, profile.Version);
+        Assert.Equal("ISOCP", settings.ItemCodeTextStyleName);
+        Assert.Equal("ISOCP", settings.DimensionTextStyleName);
+        Assert.Equal("ISOCP", settings.SlopeTextStyleName);
+        Assert.Equal(3.1d, settings.ItemCodePaperHeightMm);
+        Assert.Equal(3d, settings.DimensionPaperHeightMm);
+        Assert.Equal(2d, settings.SlopePaperHeightMm);
+    }
+
+    [Fact]
+    public void PrepareForWrite_UpgradesStoredVersionWhileNormalizeKeepsIt()
+    {
+        var legacy = new TimberElementDefaultProfile
+        {
+            Version = 2,
+            DefaultAnnotationTextSettings = TimberAnnotationTextSettings.Shared(
+                "ISOCP",
+                3.1d,
+                3d,
+                2d),
+        };
+
+        Assert.Equal(2, legacy.Normalize().Version);
+        Assert.Equal(
+            TimberElementDefaultProfile.CurrentVersion,
+            legacy.PrepareForWrite().Version);
+        Assert.Equal(
+            legacy.DefaultAnnotationTextSettings,
+            legacy.PrepareForWrite().DefaultAnnotationTextSettings);
     }
 
     [Theory]
@@ -348,10 +410,10 @@ public sealed class TimberElementDefaultProfileTests
         profile.DefaultAnnotationMode = TimberAnnotationMode.DimensionsWithItemNumber;
         profile.DefaultItemNumberLeaderStyle = ItemNumberLeaderStyle.Rectangle;
         profile.AnnotationScaleDenominator = 25;
-        profile.DefaultAnnotationTextSettings = new TimberAnnotationTextSettings(
+        profile.DefaultAnnotationTextSettings = TimberAnnotationTextSettings.Shared(
             "ISOCP",
-            3d,
             3.1d,
+            3d,
             2d);
 
         var element = TimberElementDefaults.For(TimberElementType.Rafter, profile);

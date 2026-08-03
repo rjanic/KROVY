@@ -205,9 +205,9 @@ public sealed class FramedRendererProductionIntegrationSourceContractTests
     {
         Assert.Contains("<AcKrovyVersion>0.22.0</AcKrovyVersion>",
             Source("Directory.Build.props"));
-        Assert.Contains("public const int CurrentVersion = 6;",
+        Assert.Contains("public const int CurrentVersion = 7;",
             Source("src", "AcKrovy.Core", "Models", "TimberElementDataSchema.cs"));
-        Assert.Contains("public const int CurrentVersion = 2;",
+        Assert.Contains("public const int CurrentVersion = 3;",
             Source("src", "AcKrovy.Core", "Models", "TimberElementDefaultProfile.cs"));
 
         var changedProductionFiles = new[]

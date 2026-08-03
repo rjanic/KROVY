@@ -59,10 +59,5 @@ public static class TimberAnnotationSettingsApplicator
     private static TimberAnnotationTextSettings? ApplyTextSettings(
         TimberAnnotationTextSettings? currentValue,
         TimberAnnotationTextSettingsPatch patch) =>
-        patch.Change switch
-        {
-            TimberAnnotationTextSettingsChange.Unchanged => currentValue,
-            TimberAnnotationTextSettingsChange.Set => patch.Settings,
-            _ => throw new ArgumentOutOfRangeException(nameof(patch)),
-        };
+        patch.Apply(currentValue);
 }

@@ -61,11 +61,11 @@ internal static class AutoCadDimensionsLeaderProofPolicy
         new(
             "B",
             StyleSlot: 0,
-            TextSettings: new TimberAnnotationTextSettings(
+            TextSettings: TimberAnnotationTextSettings.Shared(
                 "PLACEHOLDER",
+                TimberAnnotationTextSettingsRules.DefaultItemCodePaperHeightMm,
                 3d,
-                TimberAnnotationTextSettingsRules.DefaultItemNumberPaperHeightMm,
-                TimberAnnotationTextSettingsRules.DefaultSlopeAnglePaperHeightMm),
+                TimberAnnotationTextSettingsRules.DefaultSlopePaperHeightMm),
             DenominatorOverride: 50,
             ExpectRefreshSameObjectId: false,
             IsFailurePreservationCase: false,
@@ -73,12 +73,11 @@ internal static class AutoCadDimensionsLeaderProofPolicy
         new(
             "C",
             StyleSlot: 0,
-            TextSettings: new TimberAnnotationTextSettings(
+            TextSettings: TimberAnnotationTextSettings.Shared(
                 "PLACEHOLDER",
-                TimberAnnotationTextSettingsRules
-                    .DefaultLabelAndDimensionPaperHeightMm,
-                TimberAnnotationTextSettingsRules.DefaultItemNumberPaperHeightMm,
-                TimberAnnotationTextSettingsRules.DefaultSlopeAnglePaperHeightMm),
+                TimberAnnotationTextSettingsRules.DefaultItemCodePaperHeightMm,
+                TimberAnnotationTextSettingsRules.DefaultDimensionPaperHeightMm,
+                TimberAnnotationTextSettingsRules.DefaultSlopePaperHeightMm),
             DenominatorOverride: 100,
             ExpectRefreshSameObjectId: false,
             IsFailurePreservationCase: false,

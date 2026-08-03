@@ -79,7 +79,7 @@ public sealed class TimberAnnotationSettingsRequestTests
         var patch = request.CreateElementPatch().AnnotationTextSettings;
 
         Assert.Equal(TimberAnnotationTextSettingsChange.Set, patch.Change);
-        Assert.Equal(TextSettings(), patch.Settings);
+        Assert.Equal(TextSettings(), patch.Apply(null));
     }
 
     [Fact]
@@ -87,7 +87,7 @@ public sealed class TimberAnnotationSettingsRequestTests
     {
         var invalid = TextSettings() with
         {
-            ItemNumberPaperHeightMm = 3.51d,
+            ItemCodePaperHeightMm = 3.51d,
         };
 
         Assert.Throws<ArgumentOutOfRangeException>(() => new TimberAnnotationSettingsRequest(
@@ -170,5 +170,5 @@ public sealed class TimberAnnotationSettingsRequestTests
             annotationTextSettings: TextSettings());
 
     private static TimberAnnotationTextSettings TextSettings() =>
-        new("ISOCP", 3d, 3.1d, 2d);
+        TimberAnnotationTextSettings.Shared("ISOCP", 3.1d, 3d, 2d);
 }

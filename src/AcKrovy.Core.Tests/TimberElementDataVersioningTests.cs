@@ -15,9 +15,12 @@ public sealed class TimberElementDataVersioningTests
     };
 
     [Fact]
-    public void CurrentVersion_IsSix()
+    public void CurrentVersion_IsSeven()
     {
-        Assert.Equal(6, TimberElementDataSchema.CurrentVersion);
+        Assert.Equal(7, TimberElementDataSchema.CurrentVersion);
+        Assert.Equal(
+            6,
+            TimberElementDataSchema.SharedAnnotationTextStyleVersion);
     }
 
     [Fact]
@@ -173,13 +176,13 @@ public sealed class TimberElementDataVersioningTests
     }
 
     [Fact]
-    public void Serialize_NewJson_IncludesVersionSix()
+    public void Serialize_NewJson_IncludesVersionSeven()
     {
         var data = Sample();
 
         var json = JsonSerializer.Serialize(data, JsonOptions);
 
-        Assert.Contains("\"SchemaVersion\":6", json);
+        Assert.Contains("\"SchemaVersion\":7", json);
     }
 
     [Fact]
@@ -194,7 +197,7 @@ public sealed class TimberElementDataVersioningTests
 
         var prepared = TimberElementDataVersioning.PrepareForWrite(legacy);
 
-        Assert.Equal(6, prepared.SchemaVersion);
+        Assert.Equal(7, prepared.SchemaVersion);
         Assert.Null(prepared.FootprintWidthEdgeIndex);
         Assert.Equal(legacy.ElementId, prepared.ElementId);
         Assert.Equal(legacy.WidthMm, prepared.WidthMm);
@@ -243,7 +246,56 @@ public sealed class TimberElementDataVersioningTests
     }
 
     [Fact]
-    public void PrepareForWrite_SchemaFiveUpgradesToSixAndKeepsLegacyTextNull()
+    public void Deserialize_SchemaSixSharedStyleFansOutToThreeRolesAndKeepsSchema()
+    {
+        const string json = """
+            {
+              "SchemaVersion": 6,
+              "ElementId": "K6",
+              "ElementType": "Rafter",
+              "AnnotationTextSettings": {
+                "TextStyleName": "ISOCP",
+                "LabelAndDimensionPaperHeightMm": 3.0,
+                "ItemNumberPaperHeightMm": 3.1,
+                "SlopeAnglePaperHeightMm": 2.0
+              }
+            }
+            """;
+
+        var deserialized = Assert.IsType<TimberElementData>(
+            JsonSerializer.Deserialize<TimberElementData>(json, JsonOptions));
+        var normalized = TimberElementDataVersioning.Normalize(deserialized);
+        var settings = Assert.IsType<TimberAnnotationTextSettings>(
+            normalized.AnnotationTextSettings);
+
+        Assert.Equal(6, normalized.SchemaVersion);
+        Assert.True(settings.HasSharedTextStyleName);
+        Assert.Equal("ISOCP", settings.ItemCodeTextStyleName);
+        Assert.Equal("ISOCP", settings.DimensionTextStyleName);
+        Assert.Equal("ISOCP", settings.SlopeTextStyleName);
+        Assert.Equal(3.1d, settings.ItemCodePaperHeightMm);
+        Assert.Equal(3d, settings.DimensionPaperHeightMm);
+        Assert.Equal(2d, settings.SlopePaperHeightMm);
+    }
+
+    [Fact]
+    public void PrepareForWrite_SchemaSixUpgradesToSevenAndPreservesRoleValues()
+    {
+        var settings = TimberAnnotationTextSettings.Shared("ISOCP", 3.1d, 3d, 2d);
+        var source = Sample() with
+        {
+            SchemaVersion = 6,
+            AnnotationTextSettings = settings,
+        };
+
+        var prepared = TimberElementDataVersioning.PrepareForWrite(source);
+
+        Assert.Equal(7, prepared.SchemaVersion);
+        Assert.Equal(settings, prepared.AnnotationTextSettings);
+    }
+
+    [Fact]
+    public void PrepareForWrite_SchemaFiveUpgradesToSevenAndKeepsLegacyTextNull()
     {
         var source = Sample() with
         {
@@ -253,12 +305,12 @@ public sealed class TimberElementDataVersioningTests
 
         var prepared = TimberElementDataVersioning.PrepareForWrite(source);
 
-        Assert.Equal(6, prepared.SchemaVersion);
+        Assert.Equal(7, prepared.SchemaVersion);
         Assert.Null(prepared.AnnotationTextSettings);
     }
 
     [Fact]
-    public void PrepareForWrite_SchemaFourUpgradesToSix()
+    public void PrepareForWrite_SchemaFourUpgradesToSeven()
     {
         var source = Sample() with
         {
@@ -268,7 +320,7 @@ public sealed class TimberElementDataVersioningTests
 
         var result = TimberElementDataVersioning.PrepareForWrite(source);
 
-        Assert.Equal(6, result.SchemaVersion);
+        Assert.Equal(7, result.SchemaVersion);
         Assert.Null(result.AnnotationScaleDenominatorOverride);
         Assert.Null(result.AnnotationTextSettings);
     }
@@ -297,12 +349,14 @@ public sealed class TimberElementDataVersioningTests
     }
 
     [Fact]
-    public void Serialize_SchemaSix_RoundTripsAnnotationTextSettings()
+    public void Serialize_SchemaSeven_RoundTripsIndependentRoleTextSettings()
     {
         var settings = new TimberAnnotationTextSettings(
+            "ARIAL",
             "ISOCP",
-            3.2d,
+            "ROMANS",
             3.1d,
+            3.2d,
             2d);
         var source = Sample() with { AnnotationTextSettings = settings };
 
@@ -310,8 +364,12 @@ public sealed class TimberElementDataVersioningTests
         var result = Assert.IsType<TimberElementData>(
             JsonSerializer.Deserialize<TimberElementData>(json, JsonOptions));
 
-        Assert.Equal(6, result.SchemaVersion);
+        Assert.Equal(7, result.SchemaVersion);
         Assert.Equal(settings, result.AnnotationTextSettings);
+        Assert.DoesNotContain("\"TextStyleName\"", json);
+        Assert.DoesNotContain("\"LabelAndDimensionPaperHeightMm\"", json);
+        Assert.DoesNotContain("\"ItemNumberPaperHeightMm\"", json);
+        Assert.DoesNotContain("\"SlopeAnglePaperHeightMm\"", json);
     }
 
     [Fact]
@@ -320,10 +378,10 @@ public sealed class TimberElementDataVersioningTests
         var source = Sample() with
         {
             SchemaVersion = 6,
-            AnnotationTextSettings = new TimberAnnotationTextSettings(
+            AnnotationTextSettings = TimberAnnotationTextSettings.Shared(
                 " ",
-                20d,
                 8d,
+                20d,
                 double.PositiveInfinity),
         };
 

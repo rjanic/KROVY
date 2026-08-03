@@ -137,7 +137,7 @@ internal static class AutoCadFullLabelProofService
                         proofCase,
                         presentation.ResolvedTextStyleName ?? styleName,
                         presentation.EffectiveTextSettings
-                            .LabelAndDimensionPaperHeightMm,
+                            .DimensionPaperHeightMm,
                         presentation.AnnotationScaleDenominator,
                         presentation.TextStyleResolutionKind.ToString(),
                         presentation.IsFallback));
@@ -146,7 +146,7 @@ internal static class AutoCadFullLabelProofService
                         $"\n  {proofCase.Token}: style=" +
                         $"{presentation.ResolvedTextStyleName}; " +
                         $"TextStyleId={presentation.ResolvedTextStyleId}; " +
-                        $"paper={presentation.EffectiveTextSettings.LabelAndDimensionPaperHeightMm:R}; " +
+                        $"paper={presentation.EffectiveTextSettings.DimensionPaperHeightMm:R}; " +
                         $"denominator={presentation.AnnotationScaleDenominator}; " +
                         $"modelHeight={presentation.LabelAndDimensionModelHeight:R}; " +
                         $"kind={presentation.TextStyleResolutionKind}");

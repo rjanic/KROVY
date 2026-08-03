@@ -183,7 +183,7 @@ internal static class AutoCadPlainItemLeaderProofService
                     expected.Add(AutoCadPlainItemLeaderProofPolicy.ToExpected(
                         proofCase,
                         presentation.ResolvedTextStyleName ?? styleName,
-                        presentation.EffectiveTextSettings.ItemNumberPaperHeightMm,
+                        presentation.EffectiveTextSettings.ItemCodePaperHeightMm,
                         presentation.AnnotationScaleDenominator,
                         presentation.TextStyleResolutionKind.ToString(),
                         presentation.IsFallback,
@@ -193,7 +193,7 @@ internal static class AutoCadPlainItemLeaderProofService
                         $"\n  {proofCase.Token}: style=" +
                         $"{presentation.ResolvedTextStyleName}; " +
                         $"TextStyleId={presentation.ResolvedTextStyleId}; " +
-                        $"paper={presentation.EffectiveTextSettings.ItemNumberPaperHeightMm:R}; " +
+                        $"paper={presentation.EffectiveTextSettings.ItemCodePaperHeightMm:R}; " +
                         $"denominator={presentation.AnnotationScaleDenominator}; " +
                         $"modelHeight={presentation.ItemNumberModelHeight:R}; " +
                         $"mLeaderStyle={leaderStyleId.Handle}; " +

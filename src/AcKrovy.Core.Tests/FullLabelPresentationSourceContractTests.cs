@@ -167,14 +167,12 @@ public sealed class FullLabelPresentationSourceContractTests
         Assert.Equal(
             125d,
             TimberAnnotationTextSettingsRules.CalculateModelHeightMm(
-                TimberAnnotationTextSettingsRules
-                    .DefaultLabelAndDimensionPaperHeightMm,
+                TimberAnnotationTextSettingsRules.DefaultDimensionPaperHeightMm,
                 50));
         Assert.Equal(
             250d,
             TimberAnnotationTextSettingsRules.CalculateModelHeightMm(
-                TimberAnnotationTextSettingsRules
-                    .DefaultLabelAndDimensionPaperHeightMm,
+                TimberAnnotationTextSettingsRules.DefaultDimensionPaperHeightMm,
                 100));
         Assert.Equal(
             125d,

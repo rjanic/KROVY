@@ -43,7 +43,7 @@ internal sealed record AutoCadFramedTextAttributeProofCase
             throw new ArgumentException("Proof token is required.", nameof(token));
         }
         if (!TimberAnnotationTextSettingsRules
-                .IsValidItemNumberPaperHeightMm(itemNumberPaperHeightMm))
+                .IsValidItemCodePaperHeightMm(itemNumberPaperHeightMm))
         {
             throw new ArgumentOutOfRangeException(
                 nameof(itemNumberPaperHeightMm));
@@ -223,7 +223,7 @@ internal static class AutoCadFramedTextAttributeProofPolicy
             AutoCadFramedTextAttributeProofCase.Create(
                 "AK23_PROOF_C",
                 AutoCadFramedTextAttributeProofStyleSlot.StyleA,
-                TimberAnnotationTextSettingsRules.DefaultItemNumberPaperHeightMm,
+                TimberAnnotationTextSettingsRules.DefaultItemCodePaperHeightMm,
                 100,
                 1800d),
         ]);

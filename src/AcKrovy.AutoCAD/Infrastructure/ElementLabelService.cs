@@ -2374,7 +2374,7 @@ internal static class ElementLabelService
         // BlockScale applies the per-element annotation ScaleFactor once.
         var attributeHeightMm =
             TimberAnnotationTextSettingsRules.CalculateModelHeightMm(
-                presentationContext.EffectiveTextSettings.ItemNumberPaperHeightMm,
+                presentationContext.EffectiveTextSettings.ItemCodePaperHeightMm,
                 TimberAnnotationScaleRules.DefaultDenominator);
         return new AutoCadFramedItemLeaderPreparation(
             result,

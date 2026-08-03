@@ -81,9 +81,9 @@ internal static class AutoCadFullLabelPresentationPolicy
         }
 
         var paperHeightMm = presentationContext.EffectiveTextSettings
-            .LabelAndDimensionPaperHeightMm;
+            .DimensionPaperHeightMm;
         if (!TimberAnnotationTextSettingsRules
-                .IsValidLabelAndDimensionPaperHeightMm(paperHeightMm))
+                .IsValidDimensionPaperHeightMm(paperHeightMm))
         {
             diagnosticReason =
                 "FullLabel paper height is outside the contract range.";

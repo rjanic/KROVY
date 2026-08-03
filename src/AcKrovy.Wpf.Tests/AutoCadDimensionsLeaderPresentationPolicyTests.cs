@@ -14,8 +14,7 @@ public sealed class AutoCadDimensionsLeaderPresentationPolicyTests
     {
         var fromSettings =
             TimberAnnotationTextSettingsRules.CalculateModelHeightMm(
-                TimberAnnotationTextSettingsRules
-                    .DefaultLabelAndDimensionPaperHeightMm,
+                TimberAnnotationTextSettingsRules.DefaultDimensionPaperHeightMm,
                 denominator);
         var fromLegacy =
             TimberDimensionTypographyRules.CalculateTextHeightMm(
@@ -26,8 +25,7 @@ public sealed class AutoCadDimensionsLeaderPresentationPolicyTests
         Assert.Equal(expectedHeightMm, fromLegacy);
         Assert.Equal(
             expectedHeightMm,
-            TimberAnnotationTextSettingsRules
-                .DefaultLabelAndDimensionPaperHeightMm *
+            TimberAnnotationTextSettingsRules.DefaultDimensionPaperHeightMm *
             denominator);
     }
 

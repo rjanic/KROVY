@@ -26,7 +26,7 @@ public sealed class PlainItemLeaderPresentationSourceContractTests
         Assert.Contains("HasExplicitTextSettings", policy);
         Assert.Contains("HasCompatibleStyle", policy);
         Assert.Contains(
-            "IsValidItemNumberPaperHeightMm",
+            "IsValidItemCodePaperHeightMm",
             policy);
         Assert.DoesNotContain("database.Textstyle =", policy);
         Assert.DoesNotContain("database.Textstyle", policy);
@@ -57,7 +57,7 @@ public sealed class PlainItemLeaderPresentationSourceContractTests
     {
         var fromSettings =
             TimberAnnotationTextSettingsRules.CalculateModelHeightMm(
-                TimberAnnotationTextSettingsRules.DefaultItemNumberPaperHeightMm,
+                TimberAnnotationTextSettingsRules.DefaultItemCodePaperHeightMm,
                 denominator);
         var fromLegacy =
             TimberItemNumberTypographyRules.CalculateTextHeightMm(
@@ -68,7 +68,7 @@ public sealed class PlainItemLeaderPresentationSourceContractTests
         Assert.Equal(expectedHeightMm, fromLegacy);
         Assert.Equal(
             expectedHeightMm,
-            TimberAnnotationTextSettingsRules.DefaultItemNumberPaperHeightMm *
+            TimberAnnotationTextSettingsRules.DefaultItemCodePaperHeightMm *
             denominator);
     }
 

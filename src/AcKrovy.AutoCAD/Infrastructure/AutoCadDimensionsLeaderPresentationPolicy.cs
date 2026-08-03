@@ -87,9 +87,9 @@ internal static class AutoCadDimensionsLeaderPresentationPolicy
         }
 
         var paperHeightMm = presentationContext.EffectiveTextSettings
-            .LabelAndDimensionPaperHeightMm;
+            .DimensionPaperHeightMm;
         if (!TimberAnnotationTextSettingsRules
-                .IsValidLabelAndDimensionPaperHeightMm(paperHeightMm))
+                .IsValidDimensionPaperHeightMm(paperHeightMm))
         {
             diagnosticReason =
                 "DimensionsLeader paper height is outside the contract range.";

@@ -13,10 +13,10 @@ public sealed class AutoCadAnnotationPresentationContextTests
     [InlineData(250)]
     public void Create_ExplicitSettingsCalculateAllModelHeights(int denominator)
     {
-        var settings = new TimberAnnotationTextSettings(
+        var settings = TimberAnnotationTextSettings.Shared(
             "Krovy",
-            3d,
             2d,
+            3d,
             1.5d);
         var data = Data(settings);
 
@@ -51,10 +51,10 @@ public sealed class AutoCadAnnotationPresentationContextTests
     [Fact]
     public void Create_InvalidStoredFieldsUseCoreNormalizationWithoutMutation()
     {
-        var stored = new TimberAnnotationTextSettings(
+        var stored = TimberAnnotationTextSettings.Shared(
             "  Krovy  ",
-            double.NaN,
             99d,
+            double.NaN,
             -1d);
         var data = Data(stored);
 
@@ -62,12 +62,16 @@ public sealed class AutoCadAnnotationPresentationContextTests
             Scale(50),
             data);
 
-        Assert.Equal("Krovy", context.EffectiveTextSettings.TextStyleName);
+        Assert.Equal(
+            "Krovy",
+            context.EffectiveTextSettings.ItemCodeTextStyleName);
         Assert.Equal(125d, context.LabelAndDimensionModelHeight);
         Assert.Equal(135d, context.ItemNumberModelHeight);
         Assert.Equal(80d, context.SlopeAngleModelHeight);
         Assert.Same(stored, data.AnnotationTextSettings);
-        Assert.Equal("  Krovy  ", data.AnnotationTextSettings!.TextStyleName);
+        Assert.Equal(
+            "  Krovy  ",
+            data.AnnotationTextSettings!.ItemCodeTextStyleName);
     }
 
     [Fact]

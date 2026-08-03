@@ -14,8 +14,7 @@ public sealed class AutoCadFullLabelPresentationPolicyTests
     {
         var fromSettings =
             TimberAnnotationTextSettingsRules.CalculateModelHeightMm(
-                TimberAnnotationTextSettingsRules
-                    .DefaultLabelAndDimensionPaperHeightMm,
+                TimberAnnotationTextSettingsRules.DefaultDimensionPaperHeightMm,
                 denominator);
         var fromLegacy =
             TimberDimensionTypographyRules.CalculateTextHeightMm(

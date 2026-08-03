@@ -57,34 +57,33 @@ internal static class AutoCadFullLabelProofPolicy
             "B",
             IsPostFootprint: false,
             StyleSlot: 0,
-            TextSettings: new TimberAnnotationTextSettings(
+            TextSettings: TimberAnnotationTextSettings.Shared(
                 "PLACEHOLDER",
+                TimberAnnotationTextSettingsRules.DefaultItemCodePaperHeightMm,
                 3d,
-                TimberAnnotationTextSettingsRules.DefaultItemNumberPaperHeightMm,
-                TimberAnnotationTextSettingsRules.DefaultSlopeAnglePaperHeightMm),
+                TimberAnnotationTextSettingsRules.DefaultSlopePaperHeightMm),
             DenominatorOverride: null,
             ExpectRefreshSameObjectId: false),
         new(
             "C",
             IsPostFootprint: false,
             StyleSlot: 0,
-            TextSettings: new TimberAnnotationTextSettings(
+            TextSettings: TimberAnnotationTextSettings.Shared(
                 "PLACEHOLDER",
-                TimberAnnotationTextSettingsRules
-                    .DefaultLabelAndDimensionPaperHeightMm,
-                TimberAnnotationTextSettingsRules.DefaultItemNumberPaperHeightMm,
-                TimberAnnotationTextSettingsRules.DefaultSlopeAnglePaperHeightMm),
+                TimberAnnotationTextSettingsRules.DefaultItemCodePaperHeightMm,
+                TimberAnnotationTextSettingsRules.DefaultDimensionPaperHeightMm,
+                TimberAnnotationTextSettingsRules.DefaultSlopePaperHeightMm),
             DenominatorOverride: 100,
             ExpectRefreshSameObjectId: false),
         new(
             "D",
             IsPostFootprint: true,
             StyleSlot: 1,
-            TextSettings: new TimberAnnotationTextSettings(
+            TextSettings: TimberAnnotationTextSettings.Shared(
                 "PLACEHOLDER",
+                TimberAnnotationTextSettingsRules.DefaultItemCodePaperHeightMm,
                 2.5d,
-                TimberAnnotationTextSettingsRules.DefaultItemNumberPaperHeightMm,
-                TimberAnnotationTextSettingsRules.DefaultSlopeAnglePaperHeightMm),
+                TimberAnnotationTextSettingsRules.DefaultSlopePaperHeightMm),
             DenominatorOverride: null,
             ExpectRefreshSameObjectId: false),
     ];

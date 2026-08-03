@@ -28,7 +28,7 @@ public sealed class DimensionsLeaderPresentationSourceContractTests
         Assert.Contains("HasExplicitTextSettings", policy);
         Assert.Contains("HasCompatibleStyle", policy);
         Assert.Contains(
-            "IsValidLabelAndDimensionPaperHeightMm",
+            "IsValidDimensionPaperHeightMm",
             policy);
         Assert.DoesNotContain("database.Textstyle =", policy);
         Assert.DoesNotContain("database.Textstyle", policy);
@@ -59,8 +59,7 @@ public sealed class DimensionsLeaderPresentationSourceContractTests
     {
         var fromSettings =
             TimberAnnotationTextSettingsRules.CalculateModelHeightMm(
-                TimberAnnotationTextSettingsRules
-                    .DefaultLabelAndDimensionPaperHeightMm,
+                TimberAnnotationTextSettingsRules.DefaultDimensionPaperHeightMm,
                 denominator);
         var fromLegacy =
             TimberDimensionTypographyRules.CalculateTextHeightMm(
@@ -71,8 +70,7 @@ public sealed class DimensionsLeaderPresentationSourceContractTests
         Assert.Equal(expectedHeightMm, fromLegacy);
         Assert.Equal(
             expectedHeightMm,
-            TimberAnnotationTextSettingsRules
-                .DefaultLabelAndDimensionPaperHeightMm *
+            TimberAnnotationTextSettingsRules.DefaultDimensionPaperHeightMm *
             denominator);
     }
 

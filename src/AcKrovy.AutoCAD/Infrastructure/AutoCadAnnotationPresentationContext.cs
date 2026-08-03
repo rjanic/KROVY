@@ -50,13 +50,13 @@ internal sealed record AutoCadAnnotationPresentationValues
             effectiveTextSettings,
             hasExplicitTextSettings,
             TimberAnnotationTextSettingsRules.CalculateModelHeightMm(
-                effectiveTextSettings.LabelAndDimensionPaperHeightMm,
+                effectiveTextSettings.DimensionPaperHeightMm,
                 annotationScaleContext.Denominator),
             TimberAnnotationTextSettingsRules.CalculateModelHeightMm(
-                effectiveTextSettings.ItemNumberPaperHeightMm,
+                effectiveTextSettings.ItemCodePaperHeightMm,
                 annotationScaleContext.Denominator),
             TimberAnnotationTextSettingsRules.CalculateModelHeightMm(
-                effectiveTextSettings.SlopeAnglePaperHeightMm,
+                effectiveTextSettings.SlopePaperHeightMm,
                 annotationScaleContext.Denominator));
     }
 }
@@ -133,9 +133,12 @@ internal sealed record AutoCadAnnotationPresentationContext
         var values = AutoCadAnnotationPresentationValues.Create(
             annotationScaleContext,
             data);
+        // 5D-A keeps one resolved style for every annotation family. The three
+        // role styles are still uniform, so the item-code style is the shared
+        // source until 5D-B renders each role with its own style.
         var textStyleResolution = values.HasExplicitTextSettings
             ? textStyleResolver.ResolveExplicit(
-                values.EffectiveTextSettings.TextStyleName)
+                values.EffectiveTextSettings.ItemCodeTextStyleName)
             : textStyleResolver.ResolveLegacy();
 
         return new AutoCadAnnotationPresentationContext(

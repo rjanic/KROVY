@@ -86,9 +86,9 @@ internal static class AutoCadPlainItemLeaderPresentationPolicy
         }
 
         var paperHeightMm = presentationContext.EffectiveTextSettings
-            .ItemNumberPaperHeightMm;
+            .ItemCodePaperHeightMm;
         if (!TimberAnnotationTextSettingsRules
-                .IsValidItemNumberPaperHeightMm(paperHeightMm))
+                .IsValidItemCodePaperHeightMm(paperHeightMm))
         {
             diagnosticReason =
                 "Plain ItemNumberLeader paper height is outside the contract range.";

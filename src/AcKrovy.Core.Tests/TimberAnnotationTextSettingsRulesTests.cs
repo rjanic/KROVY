@@ -11,10 +11,13 @@ public sealed class TimberAnnotationTextSettingsRulesTests
     {
         var settings = TimberAnnotationTextSettingsRules.Default;
 
-        Assert.Equal("Standard", settings.TextStyleName);
-        Assert.Equal(2.5d, settings.LabelAndDimensionPaperHeightMm);
-        Assert.Equal(2.7d, settings.ItemNumberPaperHeightMm);
-        Assert.Equal(1.6d, settings.SlopeAnglePaperHeightMm);
+        Assert.Equal("Standard", settings.ItemCodeTextStyleName);
+        Assert.Equal("Standard", settings.DimensionTextStyleName);
+        Assert.Equal("Standard", settings.SlopeTextStyleName);
+        Assert.Equal(2.7d, settings.ItemCodePaperHeightMm);
+        Assert.Equal(2.5d, settings.DimensionPaperHeightMm);
+        Assert.Equal(1.6d, settings.SlopePaperHeightMm);
+        Assert.True(settings.HasSharedTextStyleName);
         Assert.True(TimberAnnotationTextSettingsRules.IsValid(settings));
     }
 
@@ -24,13 +27,48 @@ public sealed class TimberAnnotationTextSettingsRulesTests
         var source = Settings("ISOCP");
         var equal = Settings("ISOCP");
 
-        var changed = source with { ItemNumberPaperHeightMm = 3.1d };
+        var changed = source with { ItemCodePaperHeightMm = 3.1d };
 
         Assert.Equal(source, equal);
         Assert.NotSame(source, equal);
-        Assert.Equal(2.7d, source.ItemNumberPaperHeightMm);
-        Assert.Equal(3.1d, changed.ItemNumberPaperHeightMm);
+        Assert.Equal(2.7d, source.ItemCodePaperHeightMm);
+        Assert.Equal(3.1d, changed.ItemCodePaperHeightMm);
         Assert.NotEqual(source, changed);
+    }
+
+    [Fact]
+    public void Settings_RolesAreIndependentAcrossStylesAndHeights()
+    {
+        var settings = new TimberAnnotationTextSettings(
+            "ARIAL",
+            "ISOCP",
+            "ROMANS",
+            2.7d,
+            2.5d,
+            1.6d);
+
+        Assert.Equal("ARIAL", settings.ItemCodeTextStyleName);
+        Assert.Equal("ISOCP", settings.DimensionTextStyleName);
+        Assert.Equal("ROMANS", settings.SlopeTextStyleName);
+        Assert.False(settings.HasSharedTextStyleName);
+        Assert.Equal(
+            "ISOCP",
+            settings.GetTextStyleName(TimberAnnotationTextRole.Dimension));
+        Assert.Equal(
+            1.6d,
+            settings.GetPaperHeightMm(TimberAnnotationTextRole.Slope));
+
+        var changed = settings.WithRole(
+            TimberAnnotationTextRole.Dimension,
+            "TIMES",
+            3d);
+
+        Assert.Equal("TIMES", changed.DimensionTextStyleName);
+        Assert.Equal(3d, changed.DimensionPaperHeightMm);
+        Assert.Equal(settings.ItemCodeTextStyleName, changed.ItemCodeTextStyleName);
+        Assert.Equal(settings.ItemCodePaperHeightMm, changed.ItemCodePaperHeightMm);
+        Assert.Equal(settings.SlopeTextStyleName, changed.SlopeTextStyleName);
+        Assert.Equal(settings.SlopePaperHeightMm, changed.SlopePaperHeightMm);
     }
 
     [Fact]
@@ -39,28 +77,27 @@ public sealed class TimberAnnotationTextSettingsRulesTests
         Assert.Equal(
             TimberDimensionTypographyRules.BaseDimensionTextHeightAtScale50Mm,
             TimberAnnotationTextSettingsRules.CalculateModelHeightMm(
-                TimberAnnotationTextSettingsRules
-                    .DefaultLabelAndDimensionPaperHeightMm,
+                TimberAnnotationTextSettingsRules.DefaultDimensionPaperHeightMm,
                 TimberAnnotationScaleRules.DefaultDenominator));
         Assert.Equal(
             TimberItemNumberTypographyRules.BaseItemNumberTextHeightAtScale50Mm,
             TimberAnnotationTextSettingsRules.CalculateModelHeightMm(
-                TimberAnnotationTextSettingsRules.DefaultItemNumberPaperHeightMm,
+                TimberAnnotationTextSettingsRules.DefaultItemCodePaperHeightMm,
                 TimberAnnotationScaleRules.DefaultDenominator));
         Assert.Equal(
             TimberSlopeAnnotationPresentationRules.BaseTextHeightAtScale50Mm,
             TimberAnnotationTextSettingsRules.CalculateModelHeightMm(
-                TimberAnnotationTextSettingsRules.DefaultSlopeAnglePaperHeightMm,
+                TimberAnnotationTextSettingsRules.DefaultSlopePaperHeightMm,
                 TimberAnnotationScaleRules.DefaultDenominator));
     }
 
     [Theory]
     [InlineData(1d)]
     [InlineData(10d)]
-    public void LabelAndDimensionHeight_AcceptsInclusiveBoundaries(double value) =>
+    public void DimensionHeight_AcceptsInclusiveBoundaries(double value) =>
         Assert.True(
             TimberAnnotationTextSettingsRules
-                .IsValidLabelAndDimensionPaperHeightMm(value));
+                .IsValidDimensionPaperHeightMm(value));
 
     [Theory]
     [InlineData(0.999d)]
@@ -68,18 +105,18 @@ public sealed class TimberAnnotationTextSettingsRulesTests
     [InlineData(double.NaN)]
     [InlineData(double.PositiveInfinity)]
     [InlineData(double.NegativeInfinity)]
-    public void LabelAndDimensionHeight_RejectsInvalidValues(double value) =>
+    public void DimensionHeight_RejectsInvalidValues(double value) =>
         Assert.False(
             TimberAnnotationTextSettingsRules
-                .IsValidLabelAndDimensionPaperHeightMm(value));
+                .IsValidDimensionPaperHeightMm(value));
 
     [Theory]
     [InlineData(1d)]
     [InlineData(3.5d)]
-    public void ItemNumberHeight_AcceptsInclusiveBoundaries(double value) =>
+    public void ItemCodeHeight_AcceptsInclusiveBoundaries(double value) =>
         Assert.True(
             TimberAnnotationTextSettingsRules
-                .IsValidItemNumberPaperHeightMm(value));
+                .IsValidItemCodePaperHeightMm(value));
 
     [Theory]
     [InlineData(0.999d)]
@@ -87,18 +124,17 @@ public sealed class TimberAnnotationTextSettingsRulesTests
     [InlineData(double.NaN)]
     [InlineData(double.PositiveInfinity)]
     [InlineData(double.NegativeInfinity)]
-    public void ItemNumberHeight_RejectsInvalidValues(double value) =>
+    public void ItemCodeHeight_RejectsInvalidValues(double value) =>
         Assert.False(
             TimberAnnotationTextSettingsRules
-                .IsValidItemNumberPaperHeightMm(value));
+                .IsValidItemCodePaperHeightMm(value));
 
     [Theory]
     [InlineData(1d)]
     [InlineData(5d)]
-    public void SlopeAngleHeight_AcceptsInclusiveBoundaries(double value) =>
+    public void SlopeHeight_AcceptsInclusiveBoundaries(double value) =>
         Assert.True(
-            TimberAnnotationTextSettingsRules
-                .IsValidSlopeAnglePaperHeightMm(value));
+            TimberAnnotationTextSettingsRules.IsValidSlopePaperHeightMm(value));
 
     [Theory]
     [InlineData(0.999d)]
@@ -106,26 +142,58 @@ public sealed class TimberAnnotationTextSettingsRulesTests
     [InlineData(double.NaN)]
     [InlineData(double.PositiveInfinity)]
     [InlineData(double.NegativeInfinity)]
-    public void SlopeAngleHeight_RejectsInvalidValues(double value) =>
+    public void SlopeHeight_RejectsInvalidValues(double value) =>
         Assert.False(
-            TimberAnnotationTextSettingsRules
-                .IsValidSlopeAnglePaperHeightMm(value));
+            TimberAnnotationTextSettingsRules.IsValidSlopePaperHeightMm(value));
+
+    [Theory]
+    [InlineData(TimberAnnotationTextRole.ItemCode, 3.5d, 3.501d)]
+    [InlineData(TimberAnnotationTextRole.Dimension, 10d, 10.001d)]
+    [InlineData(TimberAnnotationTextRole.Slope, 5d, 5.001d)]
+    public void RoleHeightRanges_StayIndependentPerRole(
+        TimberAnnotationTextRole role,
+        double maximum,
+        double aboveMaximum)
+    {
+        Assert.Equal(
+            maximum,
+            TimberAnnotationTextSettingsRules.GetMaximumPaperHeightMm(role));
+        Assert.True(
+            TimberAnnotationTextSettingsRules.IsValidPaperHeightMm(role, maximum));
+        Assert.False(
+            TimberAnnotationTextSettingsRules.IsValidPaperHeightMm(
+                role,
+                aboveMaximum));
+        Assert.False(
+            TimberAnnotationTextSettingsRules.IsValidPaperHeightMm(
+                role,
+                double.NaN));
+        Assert.False(
+            TimberAnnotationTextSettingsRules.IsValidPaperHeightMm(
+                role,
+                double.PositiveInfinity));
+    }
 
     [Fact]
-    public void ValidateAndNormalize_TrimsStyleNameWithoutChangingHeights()
+    public void ValidateAndNormalize_TrimsEveryRoleStyleNameWithoutChangingHeights()
     {
-        var source = Settings("  ISOCP  ");
+        var source = new TimberAnnotationTextSettings(
+            "  ARIAL  ",
+            "  ISOCP  ",
+            "  ROMANS  ",
+            2.7d,
+            2.5d,
+            1.6d);
 
         var normalized =
             TimberAnnotationTextSettingsRules.ValidateAndNormalize(source);
 
-        Assert.Equal("ISOCP", normalized.TextStyleName);
-        Assert.Equal(source.LabelAndDimensionPaperHeightMm,
-            normalized.LabelAndDimensionPaperHeightMm);
-        Assert.Equal(source.ItemNumberPaperHeightMm,
-            normalized.ItemNumberPaperHeightMm);
-        Assert.Equal(source.SlopeAnglePaperHeightMm,
-            normalized.SlopeAnglePaperHeightMm);
+        Assert.Equal("ARIAL", normalized.ItemCodeTextStyleName);
+        Assert.Equal("ISOCP", normalized.DimensionTextStyleName);
+        Assert.Equal("ROMANS", normalized.SlopeTextStyleName);
+        Assert.Equal(source.ItemCodePaperHeightMm, normalized.ItemCodePaperHeightMm);
+        Assert.Equal(source.DimensionPaperHeightMm, normalized.DimensionPaperHeightMm);
+        Assert.Equal(source.SlopePaperHeightMm, normalized.SlopePaperHeightMm);
     }
 
     [Theory]
@@ -136,6 +204,19 @@ public sealed class TimberAnnotationTextSettingsRulesTests
         Assert.Throws<ArgumentException>(() =>
             TimberAnnotationTextSettingsRules.ValidateAndNormalize(
                 Settings(name)));
+
+    [Fact]
+    public void ValidateAndNormalize_RejectsInvalidStyleNameOnAnySingleRole()
+    {
+        var invalidDimensionRole = Settings() with
+        {
+            DimensionTextStyleName = "  ",
+        };
+
+        Assert.Throws<ArgumentException>(() =>
+            TimberAnnotationTextSettingsRules.ValidateAndNormalize(
+                invalidDimensionRole));
+    }
 
     [Fact]
     public void TextStyleName_Accepts255AndRejects256Characters()
@@ -151,7 +232,7 @@ public sealed class TimberAnnotationTextSettingsRulesTests
     {
         var invalid = Settings() with
         {
-            ItemNumberPaperHeightMm = 3.501d,
+            ItemCodePaperHeightMm = 3.501d,
         };
 
         Assert.Throws<ArgumentOutOfRangeException>(() =>
@@ -167,10 +248,10 @@ public sealed class TimberAnnotationTextSettingsRulesTests
     [Fact]
     public void NormalizeStored_InvalidFieldsFallBackToFactoryValuesNotBoundaries()
     {
-        var invalid = new TimberAnnotationTextSettings(
+        var invalid = TimberAnnotationTextSettings.Shared(
             "\t",
-            11d,
             0.5d,
+            11d,
             double.NaN);
 
         var normalized = Assert.IsType<TimberAnnotationTextSettings>(
@@ -178,11 +259,30 @@ public sealed class TimberAnnotationTextSettingsRulesTests
 
         Assert.Equal(TimberAnnotationTextSettingsRules.Default, normalized);
         Assert.NotEqual(
-            TimberAnnotationTextSettingsRules.MaximumLabelAndDimensionPaperHeightMm,
-            normalized.LabelAndDimensionPaperHeightMm);
+            TimberAnnotationTextSettingsRules.MaximumDimensionPaperHeightMm,
+            normalized.DimensionPaperHeightMm);
         Assert.NotEqual(
-            TimberAnnotationTextSettingsRules.MinimumItemNumberPaperHeightMm,
-            normalized.ItemNumberPaperHeightMm);
+            TimberAnnotationTextSettingsRules.MinimumItemCodePaperHeightMm,
+            normalized.ItemCodePaperHeightMm);
+    }
+
+    [Fact]
+    public void NormalizeStored_InvalidRoleStyleFallsBackToItemCodeStyle()
+    {
+        var partiallyInvalid = new TimberAnnotationTextSettings(
+            " ISOCP ",
+            "\t",
+            null!,
+            2.7d,
+            2.5d,
+            1.6d);
+
+        var normalized = Assert.IsType<TimberAnnotationTextSettings>(
+            TimberAnnotationTextSettingsRules.NormalizeStored(partiallyInvalid));
+
+        Assert.Equal("ISOCP", normalized.ItemCodeTextStyleName);
+        Assert.Equal("ISOCP", normalized.DimensionTextStyleName);
+        Assert.Equal("ISOCP", normalized.SlopeTextStyleName);
     }
 
     [Theory]
@@ -223,5 +323,5 @@ public sealed class TimberAnnotationTextSettingsRulesTests
 
     private static TimberAnnotationTextSettings Settings(
         string textStyleName = "Standard") =>
-        new(textStyleName, 2.5d, 2.7d, 1.6d);
+        TimberAnnotationTextSettings.Shared(textStyleName, 2.7d, 2.5d, 1.6d);
 }

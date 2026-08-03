@@ -143,7 +143,7 @@ public sealed class DimensionsLeaderProofSourceContractTests
         double expectedModelHeightMm)
     {
         var paperHeight =
-            TimberAnnotationTextSettingsRules.DefaultItemNumberPaperHeightMm;
+            TimberAnnotationTextSettingsRules.DefaultItemCodePaperHeightMm;
         Assert.Equal(
             expectedModelHeightMm,
             TimberAnnotationTextSettingsRules.CalculateModelHeightMm(

@@ -137,7 +137,7 @@ internal static class AutoCadDimensionsLeaderProofService
                                 proofCase,
                                 presentation.ResolvedTextStyleName ?? styleName,
                                 presentation.EffectiveTextSettings
-                                    .ItemNumberPaperHeightMm,
+                                    .ItemCodePaperHeightMm,
                                 presentation.AnnotationScaleDenominator,
                                 presentation.TextStyleResolutionKind.ToString(),
                                 presentation.IsFallback));
@@ -208,7 +208,7 @@ internal static class AutoCadDimensionsLeaderProofService
                             proofCase,
                             presentation.ResolvedTextStyleName ?? styleName,
                             presentation.EffectiveTextSettings
-                                .LabelAndDimensionPaperHeightMm,
+                                .DimensionPaperHeightMm,
                             presentation.AnnotationScaleDenominator,
                             presentation.TextStyleResolutionKind.ToString(),
                             presentation.IsFallback,
@@ -218,7 +218,7 @@ internal static class AutoCadDimensionsLeaderProofService
                         $"\n  {proofCase.Token}: style=" +
                         $"{presentation.ResolvedTextStyleName}; " +
                         $"TextStyleId={presentation.ResolvedTextStyleId}; " +
-                        $"paper={presentation.EffectiveTextSettings.LabelAndDimensionPaperHeightMm:R}; " +
+                        $"paper={presentation.EffectiveTextSettings.DimensionPaperHeightMm:R}; " +
                         $"denominator={presentation.AnnotationScaleDenominator}; " +
                         $"modelHeight={presentation.LabelAndDimensionModelHeight:R}; " +
                         $"mLeaderStyle={leaderStyleId.Handle}; " +
