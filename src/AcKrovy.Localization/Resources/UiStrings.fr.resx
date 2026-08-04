@@ -446,6 +446,8 @@
   <data name="Command_Settings_PromptApplyAnnotations" xml:space="preserve"><value>Sélectionnez les éléments intelligents auxquels appliquer le mode et le style d’annotation :</value></data>
   <data name="SettingsTextStylePreset_Classic" xml:space="preserve"><value>Classique</value></data>
   <data name="SettingsTextStylePreset_Architectural" xml:space="preserve"><value>Architectural</value></data>
+  <data name="SettingsTextStylePreset_Technical" xml:space="preserve"><value>Technique</value></data>
+  <data name="SettingsTextStylePreset_Arial" xml:space="preserve"><value>Arial</value></data>
   <data name="DiagnosticsEvent_SubjectTextStylePresets" xml:space="preserve"><value>Préréglages de styles de texte</value></data>
   <data name="SettingsWindow_AnnotationText_StylesTitle" xml:space="preserve"><value>Styles de texte</value></data>
   <data name="SettingsWindow_AnnotationText_NewStyle" xml:space="preserve"><value>Nouveau style</value></data>
@@ -465,10 +467,16 @@
   <data name="SettingsWindow_AnnotationText_PaperHeight" xml:space="preserve"><value>Hauteur papier (mm)</value></data>
   <data name="SettingsWindow_AnnotationText_ModelHeightFormat" xml:space="preserve"><value>Modèle : {0} mm</value></data>
   <data name="SettingsWindow_AnnotationText_Preview" xml:space="preserve"><value>Aperçu</value></data>
+  <data name="SettingsWindow_AnnotationText_SelectedStylePreview" xml:space="preserve"><value>Aperçu du style sélectionné</value></data>
+  <data name="SettingsWindow_AnnotationText_Style" xml:space="preserve"><value>Style</value></data>
+  <data name="SettingsWindow_AnnotationText_AutoCadStyle" xml:space="preserve"><value>Style AutoCAD</value></data>
+  <data name="SettingsWindow_AnnotationText_Type" xml:space="preserve"><value>Type</value></data>
   <data name="SettingsWindow_AnnotationText_BlocksNote" xml:space="preserve"><value>Les symboles "=" et "⊥" sont des blocs et ne sont pas affectés par le style de texte.</value></data>
   <data name="SettingsWindow_AnnotationText_Mixed" xml:space="preserve"><value>Mixte</value></data>
   <data name="SettingsWindow_AnnotationText_DuplicateName" xml:space="preserve"><value>Un style portant ce nom existe déjà.</value></data>
   <data name="SettingsWindow_AnnotationText_MissingFont" xml:space="preserve"><value>La police sélectionnée n'est pas disponible.</value></data>
+  <data name="SettingsWindow_AnnotationText_FontFallbackArial" xml:space="preserve"><value>La police demandée n'est pas disponible. AutoCAD utilise temporairement Arial et actualisera le style dès que la police sera disponible.</value></data>
+  <data name="SettingsWindow_AnnotationText_ShxPreviewApproximation" xml:space="preserve"><value>L'aperçu de la police SHX est approximatif ; AutoCAD utilise la police SHX réelle.</value></data>
   <data name="SettingsWindow_AnnotationText_DeleteInUse" xml:space="preserve"><value>Impossible de supprimer le style car au moins un rôle de texte l'utilise.</value></data>
   <data name="SettingsWindow_AnnotationText_InvalidHeight" xml:space="preserve"><value>La hauteur de texte doit être dans la plage autorisée.</value></data>
 </root>

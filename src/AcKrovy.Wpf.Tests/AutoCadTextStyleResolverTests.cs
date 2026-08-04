@@ -1,4 +1,5 @@
 using AcKrovy.AutoCAD.Infrastructure;
+using AcKrovy.Core.Services;
 using Xunit;
 
 namespace AcKrovy.Wpf.Tests;
@@ -119,6 +120,26 @@ public sealed class AutoCadTextStyleResolverTests
     }
 
     [Fact]
+    public void ResolveExplicit_MissingRequestedPrefersAppOwnedArialBeforeStandard()
+    {
+        var resolver = Resolver(
+            Style("Standard"),
+            Style(TimberAnnotationTextStylePresetRules.ArialStyleName),
+            Style("Current", isCurrent: true));
+
+        var result = resolver.ResolveExplicit("Missing Style");
+
+        Assert.Equal(
+            AutoCadTextStyleResolutionKind.ArialBuiltInFallback,
+            result.ResolutionKind);
+        Assert.Equal(AutoCadTextStyleRequestStatus.Missing, result.RequestStatus);
+        Assert.Equal(
+            TimberAnnotationTextStylePresetRules.ArialStyleName,
+            result.ResolvedTextStyleName);
+        Assert.True(result.IsFallback);
+    }
+
+    [Fact]
     public void ResolveExplicit_StandardLookupIsCaseInsensitiveAndReturnsCanonicalName()
     {
         var resolver = Resolver(Style("sTaNdArD"));
@@ -151,7 +172,7 @@ public sealed class AutoCadTextStyleResolverTests
     }
 
     [Fact]
-    public void ResolveExplicit_UsesCurrentWhenStandardIsUnavailable()
+    public void ResolveExplicit_DoesNotUseCurrentWhenStandardIsUnavailable()
     {
         var resolver = Resolver(
             Style("Standard", textSize: 2.5d),
@@ -160,27 +181,25 @@ public sealed class AutoCadTextStyleResolverTests
 
         var result = resolver.ResolveExplicit("Missing");
 
-        Assert.Equal(AutoCadTextStyleResolutionKind.CurrentFallback, result.ResolutionKind);
+        Assert.Equal(AutoCadTextStyleResolutionKind.NoCompatibleStyle, result.ResolutionKind);
         Assert.Equal(AutoCadTextStyleRequestStatus.Missing, result.RequestStatus);
-        Assert.Equal("Current", result.ResolvedTextStyleName);
+        Assert.Null(result.ResolvedTextStyleName);
     }
 
     [Fact]
-    public void ResolveExplicit_UsesDeterministicFirstWhenStandardAndCurrentUnavailable()
+    public void ResolveExplicit_DoesNotUseArbitraryFirstStyle()
     {
         var resolver = Resolver(Style("Zulu"), Style("alpha"), Style("Beta"));
 
         var result = resolver.ResolveExplicit("Missing");
 
-        Assert.Equal(
-            AutoCadTextStyleResolutionKind.FirstCompatibleFallback,
-            result.ResolutionKind);
+        Assert.Equal(AutoCadTextStyleResolutionKind.NoCompatibleStyle, result.ResolutionKind);
         Assert.Equal(AutoCadTextStyleRequestStatus.Missing, result.RequestStatus);
-        Assert.Equal("alpha", result.ResolvedTextStyleName);
+        Assert.Null(result.ResolvedTextStyleName);
     }
 
     [Fact]
-    public void ResolveLegacy_UsesCurrentBeforeStandardAndFirst()
+    public void ResolveLegacy_UsesStandardWhenProductDefaultIsMissing()
     {
         var resolver = Resolver(
             Style("Alpha"),
@@ -189,10 +208,28 @@ public sealed class AutoCadTextStyleResolverTests
 
         var result = resolver.ResolveLegacy();
 
-        Assert.Equal(AutoCadTextStyleResolutionKind.CurrentFallback, result.ResolutionKind);
+        Assert.Equal(AutoCadTextStyleResolutionKind.StandardFallback, result.ResolutionKind);
         Assert.Equal(AutoCadTextStyleRequestStatus.NotRequested, result.RequestStatus);
         Assert.Null(result.RequestedTextStyleName);
-        Assert.Equal("Current", result.ResolvedTextStyleName);
+        Assert.Equal("Standard", result.ResolvedTextStyleName);
+    }
+
+    [Fact]
+    public void ResolveLegacy_PrefersExplicitClassicProductDefault()
+    {
+        var resolver = Resolver(
+            Style("Standard", isCurrent: true),
+            Style(TimberAnnotationTextStylePresetRules.ClassicStyleName),
+            Style(TimberAnnotationTextStylePresetRules.ArialStyleName));
+
+        var result = resolver.ResolveLegacy();
+
+        Assert.Equal(
+            AutoCadTextStyleResolutionKind.ProductDefaultFallback,
+            result.ResolutionKind);
+        Assert.Equal(
+            TimberAnnotationTextStylePresetRules.ClassicStyleName,
+            result.ResolvedTextStyleName);
     }
 
     [Fact]
@@ -210,16 +247,14 @@ public sealed class AutoCadTextStyleResolverTests
     }
 
     [Fact]
-    public void ResolveLegacy_UsesFirstWhenCurrentAndStandardUnavailable()
+    public void ResolveLegacy_DoesNotUseArbitraryFirstStyle()
     {
         var resolver = Resolver(Style("Zulu"), Style("Alpha"));
 
         var result = resolver.ResolveLegacy();
 
-        Assert.Equal(
-            AutoCadTextStyleResolutionKind.FirstCompatibleFallback,
-            result.ResolutionKind);
-        Assert.Equal("Alpha", result.ResolvedTextStyleName);
+        Assert.Equal(AutoCadTextStyleResolutionKind.NoCompatibleStyle, result.ResolutionKind);
+        Assert.Null(result.ResolvedTextStyleName);
     }
 
     [Fact]
@@ -234,7 +269,7 @@ public sealed class AutoCadTextStyleResolverTests
             AutoCadTextStyleResolutionKind.StandardFallback,
             explicitResult.ResolutionKind);
         Assert.Equal(
-            AutoCadTextStyleResolutionKind.CurrentFallback,
+            AutoCadTextStyleResolutionKind.StandardFallback,
             legacyResult.ResolutionKind);
         Assert.Equal("Standard", explicitResult.ResolvedTextStyleName);
         Assert.Equal("Standard", legacyResult.ResolvedTextStyleName);

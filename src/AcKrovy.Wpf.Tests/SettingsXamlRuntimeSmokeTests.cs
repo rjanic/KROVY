@@ -263,6 +263,16 @@ public sealed class SettingsXamlRuntimeSmokeTests
                     textsContent.DesiredSize.Height <= textsContent.ActualHeight + 1d,
                     $"Texts content requires {textsContent.DesiredSize.Height:0.##} px " +
                     $"but only {textsContent.ActualHeight:0.##} px is available.");
+                Assert.True(
+                    textsContent.DesiredSize.Width <= textsContent.ActualWidth + 1d,
+                    $"Texts content requires {textsContent.DesiredSize.Width:0.##} px " +
+                    $"but only {textsContent.ActualWidth:0.##} px is available.");
+                Assert.DoesNotContain(
+                    FindVisualChildren<System.Windows.Controls.Primitives.ScrollBar>(
+                        (DependencyObject)window.AnnotationTextsTab.Content),
+                    scrollBar =>
+                        scrollBar.Orientation == Orientation.Horizontal &&
+                        scrollBar.IsVisible);
 
                 window.AnnotationCategoryTabs.SelectedIndex = 1;
                 window.UpdateLayout();
@@ -811,6 +821,176 @@ public sealed class SettingsXamlRuntimeSmokeTests
             }
 
         }
+    }
+
+    [Fact]
+    [Trait("Feature", "FashionLook")]
+    [Trait("Feature", "AnnotationText")]
+    public void TextStyleKindComboBoxes_ClosedSelectionShowsLocalizedDisplayName()
+    {
+        Exception? failure = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                _ = Application.Current ?? new Application
+                {
+                    ShutdownMode = ShutdownMode.OnExplicitShutdown,
+                };
+                AppLanguageService.Apply("sk");
+                LoadResourceDictionaries();
+
+                var window = new LayerSettingsWindow(
+                    ElementLayerProfile.CreateDefault(),
+                    TimberElementDefaultProfile.CreateDefault(),
+                    "sk",
+                    CadLinetypeNames.SupportedStandardNames,
+                    [
+                        new CadLayerPreset("0", 7, CadLinetypeNames.Continuous),
+                    ],
+                    _ => new SettingsApplyResponse(
+                        Success: true,
+                        ProfileAccepted: true,
+                        Severity: StatusBannerSeverity.Success,
+                        ResourceKey: "SettingsWindow_Applied",
+                        ResourceArguments: [],
+                        AvailableLinetypeNames: CadLinetypeNames.SupportedStandardNames,
+                        AvailableLayerPresets:
+                        [
+                            new CadLayerPreset("0", 7, CadLinetypeNames.Continuous),
+                        ]),
+                    new ApplicationLanguageWorkflow(
+                        () => AppLanguageService.CurrentLanguageCode,
+                        languageCode => AppLanguageService.Apply(languageCode),
+                        _ => { },
+                        () => { }),
+                    annotationScaleState: new AnnotationScaleSettingsState(
+                        HasDrawingOverride: false,
+                        DrawingDenominator: 50,
+                        EffectiveDenominator: 50));
+
+                window.Left = -30000;
+                window.Top = -30000;
+                window.ShowInTaskbar = false;
+                window.WindowStyle = WindowStyle.None;
+                window.Show();
+                window.Visual.SelectedSection = SettingsWindowTabKind.Annotation;
+                window.UpdateLayout();
+                window.AnnotationCategoryTabs.SelectedIndex = 2;
+                window.UpdateLayout();
+
+                var kindComboBoxes = FindVisualChildren<ComboBox>(
+                        (DependencyObject)window.AnnotationTextsTab.Content)
+                    .Where(combo =>
+                        combo.Items.Count > 0 &&
+                        combo.Items[0] is TextStyleKindOption)
+                    .ToArray();
+                Assert.Equal(3, kindComboBoxes.Length);
+                Assert.All(
+                    kindComboBoxes,
+                    combo =>
+                    {
+                        Assert.Equal("DisplayName", combo.DisplayMemberPath);
+                        Assert.Equal("Kind", combo.SelectedValuePath);
+                        Assert.False(combo.IsEditable);
+                    });
+                Assert.Equal(
+                    [
+                        AnnotationTextStyleKind.Architectural,
+                        AnnotationTextStyleKind.Classic,
+                        AnnotationTextStyleKind.Technical,
+                        AnnotationTextStyleKind.Arial,
+                        AnnotationTextStyleKind.Custom,
+                    ],
+                    window.TextStyleKindOptions.Select(option => option.Kind));
+
+                AssertClosedKindDisplay(
+                    kindComboBoxes,
+                    window.TextStyleKindOptions.Single(option =>
+                        option.Kind == AnnotationTextStyleKind.Classic).DisplayName);
+
+                window.ItemCodeStyleKind = AnnotationTextStyleKind.Architectural;
+                window.DimensionStyleKind = AnnotationTextStyleKind.Architectural;
+                window.SlopeStyleKind = AnnotationTextStyleKind.Architectural;
+                window.UpdateLayout();
+                AssertClosedKindDisplay(
+                    kindComboBoxes,
+                    window.TextStyleKindOptions.Single(option =>
+                        option.Kind == AnnotationTextStyleKind.Architectural).DisplayName);
+
+                window.ItemCodeStyleKind = AnnotationTextStyleKind.Technical;
+                window.DimensionStyleKind = AnnotationTextStyleKind.Technical;
+                window.SlopeStyleKind = AnnotationTextStyleKind.Technical;
+                window.UpdateLayout();
+                AssertClosedKindDisplay(
+                    kindComboBoxes,
+                    window.TextStyleKindOptions.Single(option =>
+                        option.Kind == AnnotationTextStyleKind.Technical).DisplayName);
+
+                window.ItemCodeStyleKind = AnnotationTextStyleKind.Arial;
+                window.DimensionStyleKind = AnnotationTextStyleKind.Arial;
+                window.SlopeStyleKind = AnnotationTextStyleKind.Arial;
+                window.UpdateLayout();
+                AssertClosedKindDisplay(
+                    kindComboBoxes,
+                    window.TextStyleKindOptions.Single(option =>
+                        option.Kind == AnnotationTextStyleKind.Arial).DisplayName);
+
+                window.ItemCodeStyleKind = AnnotationTextStyleKind.Custom;
+                window.DimensionStyleKind = AnnotationTextStyleKind.Custom;
+                window.SlopeStyleKind = AnnotationTextStyleKind.Custom;
+                window.UpdateLayout();
+                AssertClosedKindDisplay(
+                    kindComboBoxes,
+                    window.TextStyleKindOptions.Single(option =>
+                        option.Kind == AnnotationTextStyleKind.Custom).DisplayName);
+
+                window.Close();
+                AppLanguageService.Apply("en");
+            }
+            catch (Exception exception)
+            {
+                failure = exception;
+            }
+        });
+
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        Assert.True(thread.Join(TimeSpan.FromSeconds(30)), "WPF smoke test timed out.");
+        Assert.Null(failure);
+    }
+
+    private static void AssertClosedKindDisplay(
+        IReadOnlyList<ComboBox> kindComboBoxes,
+        string expectedDisplayName)
+    {
+        Assert.False(string.IsNullOrWhiteSpace(expectedDisplayName));
+        Assert.DoesNotContain("TextStyleKindOption", expectedDisplayName);
+        Assert.All(
+            kindComboBoxes,
+            combo =>
+            {
+                var selected = Assert.IsType<TextStyleKindOption>(combo.SelectedItem);
+                Assert.Equal(expectedDisplayName, selected.DisplayName);
+                Assert.Equal(expectedDisplayName, GetClosedSelectionText(combo));
+                Assert.DoesNotContain("TextStyleKindOption", GetClosedSelectionText(combo));
+                Assert.DoesNotContain("Kind =", GetClosedSelectionText(combo));
+            });
+    }
+
+    private static string GetClosedSelectionText(ComboBox combo)
+    {
+        var selectedContent = Assert.Single(
+            FindVisualChildren<ContentPresenter>(combo),
+            presenter => presenter.Name == "SelectedContent");
+        Assert.True(
+            selectedContent.ContentTemplate is not null ||
+            selectedContent.ContentTemplateSelector is not null);
+        var texts = FindVisualChildren<TextBlock>(selectedContent)
+            .Select(text => text.Text)
+            .Where(text => !string.IsNullOrWhiteSpace(text))
+            .ToArray();
+        return Assert.Single(texts);
     }
 
     [Fact]

@@ -71,6 +71,14 @@ internal sealed record AutoCadTextSettingsProofManifest(
     string? SharedUserFramedBlockContentHandle = null,
     string? UserPresetStableId = null);
 
+internal sealed record AutoCadFreshDrawingProofManifest(
+    int SchemaVersion,
+    string SuiteIdentifier,
+    AutoCadTextSettingsProofStandardSnapshot? StandardBefore,
+    IReadOnlyList<AutoCadTextSettingsProofExpectedCase> Cases,
+    string ArchitecturalRequestedStyleName,
+    string ArchitecturalRequestedFont);
+
 /// <summary>
 /// Compact but complete CREATE matrix for three-role Text Settings host proof.
 /// </summary>
@@ -81,6 +89,11 @@ internal static class AutoCadTextSettingsProofPolicy
     public const string RegAppName = "AK_DEV_TEXT_SETTINGS";
     public const string ManifestDictionaryKey =
         "AK_DEV_TEXT_SETTINGS_PROOF_MANIFEST";
+    public const int FreshDrawingSchemaVersion = 1;
+    public const string FreshDrawingSuiteIdentifier =
+        "AK_DEV_TEXT_FRESH_DRAWING_PROOF";
+    public const string FreshDrawingManifestDictionaryKey =
+        "AK_DEV_TEXT_FRESH_DRAWING_PROOF_MANIFEST";
     public const string FailureCaseNotTested = "NOT_TESTED";
     public const string ElementIdPrefix = "TS-";
     /// <summary>
@@ -145,6 +158,30 @@ internal static class AutoCadTextSettingsProofPolicy
             SlopeDegrees: 35d,
             Denominator: 50,
             TextSettings: SharedArch(
+                TimberAnnotationTextSettingsRules.DefaultItemCodePaperHeightMm),
+            UsesUserPreset: false,
+            IsRoleIsolation: false),
+        new(
+            "ITF",
+            AutoCadTextSettingsProofKind.ItemRectangle,
+            TimberAnnotationMode.ItemNumberLeader,
+            ItemNumberLeaderStyle.Rectangle,
+            TimberElementType.Rafter,
+            SlopeDegrees: 35d,
+            Denominator: 50,
+            TextSettings: SharedTechnical(
+                TimberAnnotationTextSettingsRules.DefaultItemCodePaperHeightMm),
+            UsesUserPreset: false,
+            IsRoleIsolation: false),
+        new(
+            "IAF",
+            AutoCadTextSettingsProofKind.ItemRectangle,
+            TimberAnnotationMode.ItemNumberLeader,
+            ItemNumberLeaderStyle.Rectangle,
+            TimberElementType.Rafter,
+            SlopeDegrees: 35d,
+            Denominator: 50,
+            TextSettings: SharedArial(
                 TimberAnnotationTextSettingsRules.DefaultItemCodePaperHeightMm),
             UsesUserPreset: false,
             IsRoleIsolation: false),
@@ -311,6 +348,22 @@ internal static class AutoCadTextSettingsProofPolicy
             IsRoleIsolation: true),
     ];
 
+    public static IReadOnlyList<AutoCadTextSettingsProofCase> FreshDrawingCases
+        { get; } =
+    [
+        Cases.Single(candidate => candidate.Token == "IR") with { Token = "F_IR" },
+        Cases.Single(candidate => candidate.Token == "ITF") with { Token = "F_ITF" },
+        Cases.Single(candidate => candidate.Token == "DL") with { Token = "F_DL" },
+        Cases.Single(candidate => candidate.Token == "SA") with { Token = "F_SA" },
+    ];
+
+    public static AutoCadTextSettingsProofCase FindCase(string token) =>
+        Cases.Concat(FreshDrawingCases)
+            .Single(candidate => string.Equals(
+                candidate.Token,
+                token,
+                StringComparison.Ordinal));
+
     public static TimberAnnotationUserTextStylePreset CreateUserPreset(
         string fontFile,
         IEnumerable<TimberAnnotationUserTextStylePreset>? existingPresets = null) =>
@@ -432,6 +485,20 @@ internal static class AutoCadTextSettingsProofPolicy
     private static TimberAnnotationTextSettings SharedArch(double primaryHeight) =>
         TimberAnnotationTextSettings.Shared(
             TimberAnnotationTextStylePresetRules.ArchitecturalStyleName,
+            primaryHeight,
+            TimberAnnotationTextSettingsRules.DefaultDimensionPaperHeightMm,
+            TimberAnnotationTextSettingsRules.DefaultSlopePaperHeightMm);
+
+    private static TimberAnnotationTextSettings SharedTechnical(double primaryHeight) =>
+        TimberAnnotationTextSettings.Shared(
+            TimberAnnotationTextStylePresetRules.TechnicalStyleName,
+            primaryHeight,
+            TimberAnnotationTextSettingsRules.DefaultDimensionPaperHeightMm,
+            TimberAnnotationTextSettingsRules.DefaultSlopePaperHeightMm);
+
+    private static TimberAnnotationTextSettings SharedArial(double primaryHeight) =>
+        TimberAnnotationTextSettings.Shared(
+            TimberAnnotationTextStylePresetRules.ArialStyleName,
             primaryHeight,
             TimberAnnotationTextSettingsRules.DefaultDimensionPaperHeightMm,
             TimberAnnotationTextSettingsRules.DefaultSlopePaperHeightMm);

@@ -113,7 +113,9 @@ public sealed class AnnotationTextAutoCadSourceContractTests
         var source = PresentationSource();
 
         Assert.Contains("TimberAnnotationTextSettingsRules.NormalizeStored(", source);
-        Assert.Contains("TimberAnnotationTextSettingsRules.Default", source);
+        Assert.Contains(
+            "TimberAnnotationTextStylePresetRules.CreateFreshProfileTextSettings()",
+            source);
         Assert.Equal(
             3,
             CountOccurrences(

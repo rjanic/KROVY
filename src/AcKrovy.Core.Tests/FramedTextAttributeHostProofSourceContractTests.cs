@@ -15,6 +15,9 @@ public sealed class FramedTextAttributeHostProofSourceContractTests
         Assert.EndsWith("#endif", command, StringComparison.Ordinal);
         Assert.Contains("AK_DEV_TEXTATTR_CREATE", command);
         Assert.Contains("AK_DEV_TEXTATTR_VERIFY", command);
+        Assert.Contains("AK_DEV_FRAMED_ITEM_HEIGHT_CREATE", command);
+        Assert.Contains("AK_DEV_FRAMED_ITEM_HEIGHT_VERIFY", command);
+        Assert.Contains("AK_DEV_FRAMED_ITEM_HEIGHT_CLEAN", command);
         Assert.Contains("AK_DEV_TEXTSTYLE_DIAG", command);
         Assert.Contains("AK_DEV_TEXTATTR_MATRIX", command);
         Assert.Contains("AK_DEV_TEXTATTR_MATRIX_CLEAN", command);
@@ -49,6 +52,12 @@ public sealed class FramedTextAttributeHostProofSourceContractTests
         var createLeader = Member(
             source,
             "private static void CreateLeader(");
+        var appendIndex = createLeader.IndexOf(
+            "modelSpace.AppendEntity(leader)",
+            StringComparison.Ordinal);
+        var addIndex = createLeader.IndexOf(
+            "transaction.AddNewlyCreatedDBObject(leader, true)",
+            StringComparison.Ordinal);
         var textIndex = createLeader.IndexOf(
             "attribute.TextString =",
             StringComparison.Ordinal);
@@ -61,16 +70,56 @@ public sealed class FramedTextAttributeHostProofSourceContractTests
         var applyIndex = createLeader.IndexOf(
             "leader.SetBlockAttribute(",
             StringComparison.Ordinal);
+        var readbackIndex = createLeader.IndexOf(
+            "leader.GetBlockAttribute(",
+            StringComparison.Ordinal);
 
+        Assert.True(appendIndex >= 0 && appendIndex < applyIndex);
+        Assert.True(addIndex >= 0 && addIndex < applyIndex);
         Assert.True(textIndex >= 0 && textIndex < applyIndex);
         Assert.True(styleIndex >= 0 && styleIndex < applyIndex);
         Assert.True(heightIndex >= 0 && heightIndex < applyIndex);
+        Assert.True(applyIndex >= 0 && applyIndex < readbackIndex);
         Assert.Contains("leader.GetBlockAttribute(", createLeader);
         Assert.Contains("leader.BlockScale = new Scale3d(", createLeader);
         Assert.Contains("Matrix3d.Identity", createLeader);
         Assert.Contains("actualStyleName: ReadCanonicalStyleName(", createLeader);
         Assert.Contains("definitionBase=", source);
         Assert.Contains("definitionStyle=", source);
+        Assert.Contains("failedCondition=", source);
+        Assert.Contains("WriteImmediateReadbackFailure(", source);
+        Assert.Contains("AttrDef belongs to BlockContentId=", source);
+    }
+
+    [Fact]
+    public void FramedItemHeightCommands_UseHeightCasesOnly()
+    {
+        var command = CommandSource();
+        var service = ServiceSource();
+        var policy = PolicySource();
+
+        Assert.Contains("CreateHeight(document)", command);
+        Assert.Contains("VerifyHeight(document)", command);
+        Assert.Contains("CleanHeight(document)", command);
+        Assert.DoesNotContain(
+            "CreateFramedItemHeightProof() => Create()",
+            command);
+        Assert.Contains("HeightCases", policy);
+        Assert.Contains("IsHeightCapabilityCase", policy);
+        Assert.Contains(
+            "AutoCadFramedTextAttributeProofPolicy.HeightCases",
+            service);
+        Assert.Contains("CreateHeight(", service);
+        Assert.Contains("VerifyHeight(", service);
+        Assert.Contains("CleanHeight(", service);
+        Assert.Contains("AK23_HEIGHT_A", policy);
+        Assert.Contains("AK23_HEIGHT_B", policy);
+        Assert.Contains(
+            "TimberAnnotationTextSettingsRules.DefaultItemCodePaperHeightMm",
+            policy);
+        Assert.Contains(
+            "TimberAnnotationTextSettingsRules.MaximumItemCodePaperHeightMm",
+            policy);
     }
 
     [Fact]

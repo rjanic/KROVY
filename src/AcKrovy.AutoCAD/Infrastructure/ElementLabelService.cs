@@ -17,7 +17,7 @@ namespace AcKrovy.AutoCAD.Infrastructure;
 /// Pri WBLOCK je preto potrebné vybrať aj popisy; keď sa prenesie iba krov,
 /// príkaz AK_LABELS popisy v cieľovom DWG bezpečne dopočíta znovu.
 /// </summary>
-internal static class ElementLabelService
+internal static partial class ElementLabelService
 {
     public const string LabelLayerName = "KROV_POPIS";
 
@@ -480,29 +480,96 @@ internal static class ElementLabelService
         var geometryMatches = existingData is not null &&
             LeaderGeometryMatches(existingData, data.AnnotationMode, placement);
 
-        AutoCadFramedItemLeaderPreparation? framedPreparation = null;
+        // G4 composite replaces G3 AttrRef BlockContent for all framed styles.
         if (desiredRepresentation ==
                 TimberMainAnnotationRepresentation.BlockLeader &&
-            AutoCadFramedItemLeaderRendererPolicy.UsesImmutableVariant(
+            AutoCadFramedG4CompositePolicy.UsesG4Composite(
                 data.AnnotationMode,
                 data.ItemNumberLeaderStyle,
                 componentRole))
         {
-            framedPreparation = PrepareFramedItemLeaderVariant(
+            if (presentationContext is null)
+            {
+                variantResultObserver?.Invoke(
+                    AutoCadItemLeaderBlockVariantResult.InvalidRequest(
+                        null,
+                        null,
+                        AutoCadDatabaseIdentity.TryGetIdentity(database),
+                        "G4 framed renderer requires a presentation context."));
+#if DEBUG
+                AutoCadFramedG4HostDiagnostics.Fail(
+                    "F.01",
+                    "G4 framed renderer requires a presentation context.",
+                    sourceId: sourceEntity.ObjectId,
+                    sourceHandle: sourceHandle);
+#endif
+                return false;
+            }
+
+            var existingGroupId = existingData?.AnnotationGroupId ??
+                ReadExistingG4AnnotationGroupId(
+                    database,
+                    transaction,
+                    sourceHandle);
+            var g4Preparation = AutoCadFramedG4CompositeService.TryPrepare(
                 database,
                 transaction,
                 data,
                 contents,
                 annotationScaleContext,
                 presentationContext,
-                variantBatchCatalog,
-                out var variantResult);
-            variantResultObserver?.Invoke(variantResult);
-            if (framedPreparation is null)
+                new AutoCadItemLeaderFrameOnlyBlockBatchCatalog(database),
+                combinedFramed:
+                    TimberAnnotationModeRules.Normalize(data.AnnotationMode) ==
+                        TimberAnnotationMode.DimensionsWithItemNumber &&
+                    componentRole ==
+                        TimberMainAnnotationComponentRole.FramedItem,
+                existingGroupId,
+                out var frameResult);
+            if (g4Preparation is null)
             {
+                variantResultObserver?.Invoke(
+                    AutoCadItemLeaderBlockVariantResult.InvalidRequest(
+                        null,
+                        frameResult.CanonicalBlockName,
+                        frameResult.DatabaseIdentity,
+                        frameResult.Diagnostic));
+#if DEBUG
+                AutoCadFramedG4HostDiagnostics.Fail(
+                    "F.04",
+                    frameResult.Diagnostic ?? "TryPrepare returned null",
+                    sourceId: sourceEntity.ObjectId,
+                    sourceHandle: sourceHandle,
+                    frameBlockName: frameResult.ResolvedBlockName ??
+                        frameResult.CanonicalBlockName,
+                    frameBlockId: frameResult.BlockTableRecordId);
+#endif
                 return false;
             }
+
+            var created = AutoCadFramedG4CompositeService.TryUpsert(
+                database,
+                transaction,
+                sourceEntity,
+                data,
+                previousElementId,
+                placement,
+                automaticPlacement,
+                manualOffset,
+                contents,
+                copySourcePreservation,
+                g4Preparation,
+                out _);
+            DeleteObsoleteLabels(transaction, obsoleteIds, ObjectId.Null);
+            if (!copySourcePreservation)
+            {
+                DeleteDuplicateLabelsForExistingSourceHandles(database, transaction);
+            }
+
+            return created;
         }
+
+        AutoCadFramedItemLeaderPreparation? framedPreparation = null;
 
         AutoCadPlainItemLeaderPresentationPreparation? plainItemPreparation = null;
         AutoCadDimensionsLeaderPresentationPreparation? dimensionsLeaderPreparation =
@@ -706,6 +773,13 @@ internal static class ElementLabelService
             AcKrovyDiagnostics.Warning(
                 "CombinedDimensionsPresentation",
                 dimensionsDiagnostic);
+#if DEBUG
+            AutoCadFramedG4HostDiagnostics.Fail(
+                "F.01",
+                $"CombinedDimensionsPresentation failed: {dimensionsDiagnostic}",
+                sourceId: sourceEntity.ObjectId,
+                sourceHandle: sourceEntity.Handle.ToString());
+#endif
             return false;
         }
 
@@ -777,7 +851,53 @@ internal static class ElementLabelService
             combinedLandingDistanceMm: combinedLandingDistanceMm);
         if (framedVariantResult is { Succeeded: false })
         {
+#if DEBUG
+            AutoCadFramedG4HostDiagnostics.Fail(
+                "F.03",
+                $"framedVariantResult.Succeeded=false; " +
+                $"Reason={framedVariantResult.DiagnosticReason}",
+                sourceId: sourceEntity.ObjectId,
+                sourceHandle: sourceEntity.Handle.ToString());
+#endif
             return false;
+        }
+
+        // G4 combined framed reports CREATED via UpsertLeader=true and UPDATED via
+        // a G4 ItemCode DBText on this SourceHandle (variantResult stays null).
+        var framedOk = framedCreated;
+        if (!isCombinedPlainItem &&
+            TimberAnnotationModeRules.IsFramedItemLeader(
+                data.AnnotationMode,
+                data.ItemNumberLeaderStyle) &&
+            framedVariantResult is null &&
+            !framedCreated)
+        {
+            var sourceHandle = sourceEntity.Handle.ToString();
+            var hasG4ItemCode = ReadAnnotationEntities(database, transaction)
+                .Any(entry =>
+                    entry.Data.ComponentRole ==
+                        AutoCadFramedG4CompositePolicy.ItemCodeRole &&
+                    entry.Data.RendererGeneration ==
+                        AutoCadFramedG4CompositePolicy.RendererGeneration &&
+                    string.Equals(
+                        entry.Data.SourceHandle,
+                        sourceHandle,
+                        StringComparison.OrdinalIgnoreCase));
+            if (!hasG4ItemCode)
+            {
+#if DEBUG
+                AutoCadFramedG4HostDiagnostics.Fail(
+                    "F.07",
+                    "framedCreated=false AND framedVariantResult=null AND " +
+                    "no G4 ItemCode DBText for SourceHandle " +
+                    $"(hasG4ItemCode=false; sourceHandle={sourceHandle})",
+                    sourceId: sourceEntity.ObjectId,
+                    sourceHandle: sourceHandle);
+#endif
+                return false;
+            }
+
+            framedOk = true;
         }
         var dimensionsPlacement = CalculateCombinedDimensionsTextPlacement(
             database,
@@ -809,7 +929,7 @@ internal static class ElementLabelService
             database,
             transaction,
             sourceEntity.Handle.ToString());
-        return primaryCreated || framedCreated;
+        return primaryCreated || framedOk;
     }
 
     private static void DeleteUnexpectedCompositeComponents(
@@ -823,9 +943,13 @@ internal static class ElementLabelService
                 sourceHandle,
                 StringComparison.OrdinalIgnoreCase))
             .ToArray();
+        var itemStyle = matchingEntries
+            .Select(entry => entry.Data.ItemNumberLeaderStyle)
+            .FirstOrDefault(ItemNumberLeaderStyle.Plain);
         var keysToDelete =
             TimberCompositeAnnotationLifecycleRules.SelectUnexpectedComponentKeys(
                 TimberAnnotationMode.DimensionsWithItemNumber,
+                itemStyle,
                 matchingEntries.Select(entry => new TimberElementLabelCandidate
                 {
                     LabelKey = entry.Id.ToString(),
@@ -1636,7 +1760,8 @@ internal static class ElementLabelService
                     OpenMode.ForRead,
                     out var annotation,
                     database) ||
-                annotation is not (MText or MLeader or BlockReference or Circle or Polyline) ||
+                annotation is not (
+                    MText or MLeader or BlockReference or Circle or Polyline or DBText) ||
                 !ElementLabelStore.TryRead(annotation, out var data) ||
                 data is null)
             {
@@ -1652,6 +1777,7 @@ internal static class ElementLabelService
                     BlockReference => MainAnnotationEntityType.BlockReference,
                     Circle => MainAnnotationEntityType.Circle,
                     Polyline => MainAnnotationEntityType.Polyline,
+                    DBText => MainAnnotationEntityType.DBText,
                     _ => MainAnnotationEntityType.MText,
                 }));
         }
@@ -1679,6 +1805,30 @@ internal static class ElementLabelService
         }
 
         return handles;
+    }
+
+    private static string? ReadExistingG4AnnotationGroupId(
+        Database database,
+        Transaction transaction,
+        string sourceHandle)
+    {
+        foreach (var entry in ReadAnnotationEntities(database, transaction))
+        {
+            if (entry.Data.RendererGeneration ==
+                    AutoCadFramedG4CompositePolicy.RendererGeneration &&
+                !string.IsNullOrWhiteSpace(entry.Data.AnnotationGroupId) &&
+                string.Equals(
+                    entry.Data.SourceHandle,
+                    sourceHandle,
+                    StringComparison.OrdinalIgnoreCase) &&
+                AutoCadFramedG4CompositePolicy.IsG4CompositeRole(
+                    entry.Data.ComponentRole))
+            {
+                return entry.Data.AnnotationGroupId;
+            }
+        }
+
+        return null;
     }
 
     private static void DeleteObsoleteLabels(
@@ -1804,11 +1954,12 @@ internal static class ElementLabelService
         }
     }
 
+    private static bool IsFramedCompositeComponent(
+        TimberMainAnnotationComponentRole role) =>
+        AutoCadFramedG4CompositePolicy.IsG4CompositeRole(role);
+
     private static bool IsCircleComponent(TimberMainAnnotationComponentRole role) =>
-        role is
-            TimberMainAnnotationComponentRole.CircleText or
-            TimberMainAnnotationComponentRole.CircleFrame or
-            TimberMainAnnotationComponentRole.CircleLeaderLine;
+        IsFramedCompositeComponent(role);
 
     private static int CountTimberElementsWithElementId(
         Database database,
@@ -2835,7 +2986,7 @@ internal static class ElementLabelService
     private sealed record LabelPlacement(
         Point3d Location,
         double RotationRadians);
-    private sealed record LeaderPlacement(
+    internal sealed record LeaderPlacement(
         Point3d Anchor,
         Point3d Knee,
         Point3d TextLocation,
@@ -2860,6 +3011,7 @@ internal static class ElementLabelService
         BlockReference,
         Circle,
         Polyline,
+        DBText,
     }
     private sealed record NativeLeaderGeometrySnapshot(
         Point3d Anchor,

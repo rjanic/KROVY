@@ -161,8 +161,10 @@ public sealed class AutoCadItemLeaderBlockVariantTests
             "K123");
         AutoCadItemLeaderTextStyleIdentity[] identities =
         [
-            AutoCadItemLeaderTextStyleIdentity.Classic,
             AutoCadItemLeaderTextStyleIdentity.Architectural,
+            AutoCadItemLeaderTextStyleIdentity.Classic,
+            AutoCadItemLeaderTextStyleIdentity.Technical,
+            AutoCadItemLeaderTextStyleIdentity.Arial,
             AutoCadItemLeaderTextStyleIdentity.User("0123456789abcdef"),
         ];
 
@@ -173,7 +175,16 @@ public sealed class AutoCadItemLeaderBlockVariantTests
                     identity))
             .ToArray();
 
-        Assert.Equal(3, keys.Select(Name).Distinct().Count());
+        Assert.Equal(5, keys.Select(Name).Distinct().Count());
+        Assert.Equal(
+            [
+                "ARCHITECTURAL",
+                "CLASSIC",
+                "TECHNICAL",
+                "ARIAL",
+                "USER_0123456789ABCDEF",
+            ],
+            identities.Select(identity => identity.CreateNameToken()));
         Assert.All(keys, key =>
         {
             Assert.Equal(AutoCadItemLeaderBlockFrameKind.Slot, key.FrameKind);

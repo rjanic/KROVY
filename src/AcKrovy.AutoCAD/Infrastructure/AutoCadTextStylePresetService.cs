@@ -25,7 +25,7 @@ internal sealed record AutoCadTextStylePresetEnsureResult(
 
 /// <summary>
 /// Creates and idempotently maintains app-owned AutoCAD text styles for the
-/// built-in Klasický / Architektonický presets and for user-defined presets.
+/// built-in app presets and for user-defined presets.
 /// Never mutates AutoCAD's system "Standard" style.
 /// </summary>
 internal static class AutoCadTextStylePresetService
@@ -41,6 +41,11 @@ internal static class AutoCadTextStylePresetService
         ArgumentNullException.ThrowIfNull(database);
         ArgumentNullException.ThrowIfNull(transaction);
         var definition = TimberAnnotationTextStylePresetRules.GetBuiltIn(preset);
+        if (preset == TimberAnnotationBuiltInTextStylePreset.Technical)
+        {
+            return EnsureTechnical(database, transaction, definition);
+        }
+
         return EnsureStyle(
             database,
             transaction,
@@ -90,6 +95,19 @@ internal static class AutoCadTextStylePresetService
             normalized.SlopeTextStyleName,
         };
 
+        // Annotation bootstrap owns all built-in AK_KROVY_* records. Hydrating
+        // them before reading the catalog makes first-use behavior identical to
+        // behavior after Settings has been applied.
+        foreach (var preset in Enum.GetValues<TimberAnnotationBuiltInTextStylePreset>())
+        {
+            results.Add(EnsureBuiltIn(database, transaction, preset));
+        }
+
+        var normalizedUserPresets = (userPresets ??
+                Enumerable.Empty<TimberAnnotationUserTextStylePreset>())
+            .Select(preset =>
+                TimberAnnotationTextStylePresetRules.ValidateAndNormalizeUserPreset(preset))
+            .ToArray();
         foreach (var styleName in requested)
         {
             if (TimberAnnotationTextStylePresetRules.TryResolveBuiltInByStyleName(
@@ -97,17 +115,10 @@ internal static class AutoCadTextStylePresetService
                     out var builtIn) &&
                 builtIn is not null)
             {
-                results.Add(EnsureStyle(
-                    database,
-                    transaction,
-                    builtIn.AutoCadTextStyleName,
-                    builtIn.FontFile,
-                    builtIn.WidthFactor,
-                    builtIn.ObliqueAngleDegrees));
                 continue;
             }
 
-            var user = userPresets?
+            var user = normalizedUserPresets
                 .FirstOrDefault(preset =>
                     string.Equals(
                         preset.AutoCadTextStyleName,
@@ -119,8 +130,27 @@ internal static class AutoCadTextStylePresetService
             }
         }
 
+        foreach (var user in normalizedUserPresets.Where(user =>
+                     !requested.Contains(user.AutoCadTextStyleName)))
+        {
+            results.Add(EnsureUserPreset(database, transaction, user));
+        }
+
         return results;
     }
+
+    private static AutoCadTextStylePresetEnsureResult EnsureTechnical(
+        Database database,
+        Transaction transaction,
+        TimberAnnotationTextStylePresetDefinition definition)
+        => EnsureStyle(
+            database,
+            transaction,
+            definition.AutoCadTextStyleName,
+            TimberAnnotationTextStylePresetRules.TechnicalFontFile,
+            TimberAnnotationTextStylePresetRules.DefaultWidthFactor,
+            TimberAnnotationTextStylePresetRules.DefaultObliqueAngleDegrees,
+            bigFontFileName: string.Empty);
 
     public static AutoCadTextStylePresetEnsureResult EnsureStyle(
         Database database,
@@ -128,7 +158,8 @@ internal static class AutoCadTextStylePresetService
         string styleName,
         string fontFile,
         double widthFactor,
-        double obliqueAngleDegrees)
+        double obliqueAngleDegrees,
+        string? bigFontFileName = null)
     {
         ArgumentNullException.ThrowIfNull(database);
         ArgumentNullException.ThrowIfNull(transaction);
@@ -165,12 +196,23 @@ internal static class AutoCadTextStylePresetService
                 fontFile);
         if (!AutoCadFontDiscoveryService.IsFontAvailable(normalizedFont))
         {
+            var fallback = EnsureStyle(
+                database,
+                transaction,
+                normalizedName,
+                TimberAnnotationTextStylePresetRules.ArialFontFile,
+                widthFactor,
+                obliqueAngleDegrees,
+                bigFontFileName);
             return new AutoCadTextStylePresetEnsureResult(
                 normalizedName,
                 normalizedFont,
                 AutoCadTextStylePresetEnsureKind.FontUnavailable,
-                null,
-                $"Font '{normalizedFont}' is not available to AutoCAD/Windows.");
+                fallback.TextStyleId,
+                $"Font '{normalizedFont}' is not available to AutoCAD/Windows; " +
+                    $"the app-owned style temporarily uses " +
+                    $"{TimberAnnotationTextStylePresetRules.ArialFontFile} and " +
+                    "will be hydrated on a later ensure.");
         }
 
         var textStyleTable = (TextStyleTable)transaction.GetObject(
@@ -188,7 +230,8 @@ internal static class AutoCadTextStylePresetService
                     existing,
                     normalizedFont,
                     widthFactor,
-                    obliqueRadians))
+                    obliqueRadians,
+                    bigFontFileName))
             {
                 return new AutoCadTextStylePresetEnsureResult(
                     existing.Name,
@@ -199,7 +242,12 @@ internal static class AutoCadTextStylePresetService
             }
 
             existing.UpgradeOpen();
-            ApplyDefinition(existing, normalizedFont, widthFactor, obliqueRadians);
+            ApplyDefinition(
+                existing,
+                normalizedFont,
+                widthFactor,
+                obliqueRadians,
+                bigFontFileName);
             return new AutoCadTextStylePresetEnsureResult(
                 existing.Name,
                 normalizedFont,
@@ -213,7 +261,12 @@ internal static class AutoCadTextStylePresetService
         {
             Name = normalizedName,
         };
-        ApplyDefinition(created, normalizedFont, widthFactor, obliqueRadians);
+        ApplyDefinition(
+            created,
+            normalizedFont,
+            widthFactor,
+            obliqueRadians,
+            bigFontFileName);
         var createdId = textStyleTable.Add(created);
         transaction.AddNewlyCreatedDBObject(created, true);
         return new AutoCadTextStylePresetEnsureResult(
@@ -231,7 +284,8 @@ internal static class AutoCadTextStylePresetService
         TextStyleTableRecord record,
         string fontFile,
         double widthFactor,
-        double obliqueRadians)
+        double obliqueRadians,
+        string? bigFontFileName)
     {
         if (record.TextSize != 0d ||
             record.IsVertical ||
@@ -242,12 +296,21 @@ internal static class AutoCadTextStylePresetService
         }
 
         if (Math.Abs(record.XScale - widthFactor) > WidthTolerance ||
-            Math.Abs(record.ObliquingAngle - obliqueRadians) > AngleToleranceRadians)
+            Math.Abs(record.ObliquingAngle - obliqueRadians) > AngleToleranceRadians ||
+            !string.Equals(
+                record.BigFontFileName?.Trim() ?? string.Empty,
+                bigFontFileName?.Trim() ?? string.Empty,
+                StringComparison.OrdinalIgnoreCase))
         {
             return false;
         }
 
-        if (TryReadTrueTypeTypeface(record, out var typeface) &&
+        var isShx = string.Equals(
+            Path.GetExtension(fontFile),
+            ".shx",
+            StringComparison.OrdinalIgnoreCase);
+        if (!isShx &&
+            TryReadTrueTypeTypeface(record, out var typeface) &&
             !string.IsNullOrWhiteSpace(typeface))
         {
             return string.Equals(
@@ -259,8 +322,12 @@ internal static class AutoCadTextStylePresetService
         var fileName = record.FileName?.Trim() ?? string.Empty;
         return string.Equals(fileName, fontFile, StringComparison.OrdinalIgnoreCase) ||
             string.Equals(
-                Path.GetFileNameWithoutExtension(fileName),
+                Path.GetFileName(fileName),
                 fontFile,
+                StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(
+                Path.GetFileNameWithoutExtension(fileName),
+                Path.GetFileNameWithoutExtension(fontFile),
                 StringComparison.OrdinalIgnoreCase);
     }
 
@@ -268,14 +335,24 @@ internal static class AutoCadTextStylePresetService
         TextStyleTableRecord record,
         string fontFile,
         double widthFactor,
-        double obliqueRadians)
+        double obliqueRadians,
+        string? bigFontFileName)
     {
         record.TextSize = 0d;
         record.XScale = widthFactor;
         record.ObliquingAngle = obliqueRadians;
         record.IsVertical = false;
         record.FlagBits = (byte)(record.FlagBits & ~(BackwardsFlag | UpsideDownFlag));
-        record.BigFontFileName = string.Empty;
+        record.BigFontFileName = bigFontFileName?.Trim() ?? string.Empty;
+        if (string.Equals(
+                Path.GetExtension(fontFile),
+                ".shx",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            record.FileName = fontFile;
+            return;
+        }
+
         try
         {
             // charset 0 = ANSI_CHARSET; pitchAndFamily 34 = VARIABLE | FF_SWISS

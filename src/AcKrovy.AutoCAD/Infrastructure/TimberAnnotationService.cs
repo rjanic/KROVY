@@ -31,6 +31,13 @@ internal static class TimberAnnotationService
         if (TimberAnnotationModeRules.Normalize(data.AnnotationMode) ==
             TimberAnnotationMode.NoAnnotations)
         {
+#if DEBUG
+            AutoCadFramedG4HostDiagnostics.Fail(
+                "F.01",
+                "AnnotationMode=NoAnnotations → delete annotations and return false",
+                sourceId: sourceEntity.ObjectId,
+                sourceHandle: sourceEntity.Handle.ToString());
+#endif
             var sourceHandle = sourceEntity.Handle.ToString();
             ElementLabelService.DeleteForSourceHandle(database, transaction, sourceHandle);
             SlopeAnnotationService.DeleteForSourceHandle(database, transaction, sourceHandle);
@@ -41,10 +48,25 @@ internal static class TimberAnnotationService
             return false;
         }
 
+#if DEBUG
+        AutoCadFramedG4HostDiagnostics.Step(
+            "F.01",
+            $"resolve metadata/settings mode={data.AnnotationMode} " +
+            $"style={data.ItemNumberLeaderStyle} elementId={data.ElementId}");
+#endif
         var presentationContext =
             presentationBatchContext.ResolveForElement(data);
         var annotationScaleContext =
             presentationContext.AnnotationScaleContext;
+#if DEBUG
+        AutoCadFramedG4HostDiagnostics.Step(
+            "F.02",
+            $"resolve annotation denominator={annotationScaleContext.Denominator} " +
+            $"scaleFactor={annotationScaleContext.ScaleFactor:R} " +
+            $"itemPaper={presentationContext.FramedItemCodeText.PaperHeightMm:R} " +
+            $"itemModel={presentationContext.FramedItemCodeText.ModelHeightMm:R} " +
+            $"textStyle={presentationContext.FramedItemCodeText.ResolvedTextStyleName ?? "<none>"}");
+#endif
         void ObserveVariant(AutoCadItemLeaderBlockVariantResult result)
         {
             variantResultObserver?.Invoke(result);
@@ -97,6 +119,22 @@ internal static class TimberAnnotationService
                 footprintGeometry,
                 annotationScaleContext,
                 copySourcePreservation);
+#if DEBUG
+            if (!footprintLabelCreated)
+            {
+                AutoCadFramedG4HostDiagnostics.Fail(
+                    "F.03",
+                    "UpsertForPostFootprint returned false",
+                    sourceId: sourceEntity.ObjectId,
+                    sourceHandle: sourceEntity.Handle.ToString());
+            }
+            else
+            {
+                AutoCadFramedG4HostDiagnostics.Outcome(
+                    "CREATED",
+                    "post-footprint label path");
+            }
+#endif
             return footprintLabelCreated;
         }
 
@@ -107,12 +145,25 @@ internal static class TimberAnnotationService
         var plan = TimberAnnotationRefreshPlanner.Create(data, isRectangularFootprintPost);
         if (!plan.EnsureLabel && !plan.ReconcileSlopeArrow && !plan.ReconcileSlopeAngleText)
         {
+#if DEBUG
+            AutoCadFramedG4HostDiagnostics.Fail(
+                "F.03",
+                "plan.EnsureLabel=false AND no slope reconcile → return false",
+                sourceId: sourceEntity.ObjectId,
+                sourceHandle: sourceEntity.Handle.ToString());
+#endif
             var sourceHandle = sourceEntity.Handle.ToString();
             ElementLabelService.DeleteForSourceHandle(database, transaction, sourceHandle);
             SlopeAnnotationService.DeleteForSourceHandle(database, transaction, sourceHandle);
             return false;
         }
 
+#if DEBUG
+        AutoCadFramedG4HostDiagnostics.Step(
+            "F.03",
+            $"ensure leader EnsureLabel={plan.EnsureLabel} " +
+            $"combined={TimberAnnotationModeRules.Normalize(data.AnnotationMode) == TimberAnnotationMode.DimensionsWithItemNumber}");
+#endif
         var labelCreated = plan.EnsureLabel && ElementLabelService.UpsertForElement(
                 database,
                 transaction,
@@ -137,6 +188,23 @@ internal static class TimberAnnotationService
                 copySourcePreservation);
         }
 
+#if DEBUG
+        if (!labelCreated)
+        {
+            AutoCadFramedG4HostDiagnostics.Fail(
+                "F.09",
+                "EnsureForElement result=false " +
+                $"(plan.EnsureLabel={plan.EnsureLabel}; UpsertForElement returned false " +
+                "or was skipped)",
+                sourceId: sourceEntity.ObjectId,
+                sourceHandle: sourceEntity.Handle.ToString(),
+                expectedHeight: presentationContext.FramedItemCodeText.ModelHeightMm,
+                textStyleId: presentationContext.FramedItemCodeText.ResolvedTextStyleId);
+            AutoCadFramedG4HostDiagnostics.Outcome(
+                "FAILED",
+                "EnsureForElement returned false without exception");
+        }
+#endif
         return labelCreated;
     }
 

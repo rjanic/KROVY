@@ -163,16 +163,16 @@ public static class TimberAnnotationTextSettingsRules
         }
 
         var itemCodeTextStyleName = IsValidTextStyleName(settings.ItemCodeTextStyleName)
-            ? settings.ItemCodeTextStyleName.Trim()
+            ? NormalizeLegacyBuiltInStyleName(settings.ItemCodeTextStyleName)
             : DefaultTextStyleName;
 
         return new TimberAnnotationTextSettings(
             itemCodeTextStyleName,
             IsValidTextStyleName(settings.DimensionTextStyleName)
-                ? settings.DimensionTextStyleName.Trim()
+                ? NormalizeLegacyBuiltInStyleName(settings.DimensionTextStyleName)
                 : itemCodeTextStyleName,
             IsValidTextStyleName(settings.SlopeTextStyleName)
-                ? settings.SlopeTextStyleName.Trim()
+                ? NormalizeLegacyBuiltInStyleName(settings.SlopeTextStyleName)
                 : itemCodeTextStyleName,
             IsValidItemCodePaperHeightMm(settings.ItemCodePaperHeightMm)
                 ? settings.ItemCodePaperHeightMm
@@ -183,6 +183,17 @@ public static class TimberAnnotationTextSettingsRules
             IsValidSlopePaperHeightMm(settings.SlopePaperHeightMm)
                 ? settings.SlopePaperHeightMm
                 : DefaultSlopePaperHeightMm);
+    }
+
+    private static string NormalizeLegacyBuiltInStyleName(string styleName)
+    {
+        var normalized = styleName.Trim();
+        return string.Equals(
+                normalized,
+                TimberAnnotationTextStylePresetRules.LegacyArchitecturalStyleName,
+                StringComparison.OrdinalIgnoreCase)
+            ? TimberAnnotationTextStylePresetRules.ArchitecturalStyleName
+            : normalized;
     }
 
     public static double CalculateModelHeightMm(

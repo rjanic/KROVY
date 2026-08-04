@@ -902,8 +902,12 @@ public sealed class SettingsTargetedFeatureTests
             "SettingsColors.Dark.xaml"));
         var assets = Path.Combine(UiDirectory(), "Assets", "AnnotationPreviews");
 
-        Assert.DoesNotContain("Text=\"35°\"", xaml);
-        Assert.DoesNotContain("M0,6 L10,0 7,5 11,8 Z", xaml);
+        var scaleTabMarkup = document.Descendants(presentation + "TabItem")
+            .Single(tab => (string?)tab.Attribute(x + "Name") ==
+                "AnnotationScaleTab")
+            .ToString();
+        Assert.DoesNotContain("Text=\"35°\"", scaleTabMarkup);
+        Assert.DoesNotContain("M0,6 L10,0 7,5 11,8 Z", scaleTabMarkup);
         var previewImages = document.Descendants(presentation + "Image")
             .Where(image => (string?)image.Attribute(x + "Name") ==
                 "AnnotationScalePreviewImage")
@@ -1116,7 +1120,9 @@ public sealed class SettingsTargetedFeatureTests
         Assert.Contains("SourceHandle = sourceHandle", service);
         Assert.Contains("ComponentRole = componentRole", service);
         Assert.Contains("DeleteUnexpectedCompositeComponents(", service);
-        Assert.Contains("public int SchemaVersion { get; init; } = 3;", store);
+        Assert.Contains("public int SchemaVersion { get; init; } = 4;", store);
+        Assert.Contains("AnnotationGroupId", store);
+        Assert.Contains("RendererGeneration", store);
         Assert.Equal(7, TimberElementDataSchema.CurrentVersion);
     }
 

@@ -1,5 +1,6 @@
 #if DEBUG
 using System.Globalization;
+using System.IO;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -85,13 +86,50 @@ internal static class AutoCadTextSettingsProofService
                     database,
                     transaction,
                     TimberAnnotationBuiltInTextStylePreset.Architectural);
-                if (classic.TextStyleId is null || arch.TextStyleId is null)
+                var technical = AutoCadTextStylePresetService.EnsureBuiltIn(
+                    database,
+                    transaction,
+                    TimberAnnotationBuiltInTextStylePreset.Technical);
+                var arial = AutoCadTextStylePresetService.EnsureBuiltIn(
+                    database,
+                    transaction,
+                    TimberAnnotationBuiltInTextStylePreset.Arial);
+                if (classic.TextStyleId is null ||
+                    arch.TextStyleId is null ||
+                    technical.TextStyleId is null ||
+                    arial.TextStyleId is null ||
+                    new[] { classic, arch, technical, arial }.Any(result =>
+                        result.Kind == AutoCadTextStylePresetEnsureKind.Failed))
                 {
                     editor.WriteMessage(
                         "\nAK_DEV_TEXT_SETTINGS_CREATE: NOT TESTED - " +
-                        "unable to ensure AK_KROVY_CLASSIC / AK_KROVY_ARCH. " +
+                        "unable to ensure all four app-owned built-ins. " +
                         $"Classic={classic.Kind}; Arch={arch.Kind}; " +
-                        $"{classic.DiagnosticReason ?? arch.DiagnosticReason}");
+                        $"Technical={technical.Kind}; Arial={arial.Kind}; " +
+                        $"{classic.DiagnosticReason ?? arch.DiagnosticReason ??
+                            technical.DiagnosticReason ?? arial.DiagnosticReason}");
+                    return;
+                }
+                if (!WriteArchitecturalProofBlock(
+                        database,
+                        transaction,
+                        arch,
+                        editor))
+                {
+                    editor.WriteMessage(
+                        "\nAK_DEV_TEXT_SETTINGS_CREATE: FAIL - " +
+                        "Architectural style is neither available nor a valid " +
+                        "Arial fallback.");
+                    return;
+                }
+                if (!VerifyTechnicalProfile(
+                        database,
+                        transaction,
+                        editor))
+                {
+                    editor.WriteMessage(
+                        "\nAK_DEV_TEXT_SETTINGS_CREATE: FAIL - Technical " +
+                        "profile does not match the audited isocp contract.");
                     return;
                 }
 
@@ -300,6 +338,261 @@ internal static class AutoCadTextSettingsProofService
                 "Partial entities were not committed; the single CREATE " +
                 "transaction was rolled back. No completed proof manifest " +
                 "was written.");
+        }
+    }
+
+    public static void FreshDrawingCreate()
+    {
+        var document = AcApplication.DocumentManager.MdiActiveDocument;
+        if (document is null)
+        {
+            return;
+        }
+
+        var database = document.Database;
+        var editor = document.Editor;
+        var dbmodBefore = Convert.ToInt32(
+            AcApplication.GetSystemVariable("DBMOD"));
+        try
+        {
+            var hasFreshManifest = false;
+            using (var read =
+                   database.TransactionManager.StartOpenCloseTransaction())
+            {
+                if (ReadFreshDrawingManifest(database, read) is not null)
+                {
+                    hasFreshManifest = true;
+                }
+                else
+                {
+                    var modelSpace = OpenModelSpace(
+                        database,
+                        read,
+                        OpenMode.ForRead);
+                    var existingCount = modelSpace.Cast<ObjectId>().Count(id =>
+                        read.GetObject(id, OpenMode.ForRead, false)
+                            is Entity entity &&
+                        !entity.IsErased &&
+                        entity.OwnerId == modelSpace.ObjectId);
+                    if (existingCount != 0)
+                    {
+                        editor.WriteMessage(
+                            $"\nAK_DEV_TEXT_FRESH_DRAWING_CREATE: FAIL - exact " +
+                            $"ModelSpace contains {existingCount} real entities; " +
+                            "run only in a fresh drawing.");
+                        return;
+                    }
+                }
+            }
+
+            if (hasFreshManifest)
+            {
+                RunFreshDrawingIdempotenceEnsure(
+                    document,
+                    database,
+                    editor,
+                    dbmodBefore);
+                return;
+            }
+
+            using (document.LockDocument())
+            using (var transaction =
+                   database.TransactionManager.StartTransaction())
+            {
+                EnsureRegApp(database, transaction);
+                var standardBefore = SnapshotStandard(database, transaction);
+                var ensures = Enum
+                    .GetValues<TimberAnnotationBuiltInTextStylePreset>()
+                    .Select(preset => AutoCadTextStylePresetService.EnsureBuiltIn(
+                        database,
+                        transaction,
+                        preset))
+                    .ToArray();
+                if (ensures.Any(result =>
+                        result.TextStyleId is null ||
+                        result.Kind == AutoCadTextStylePresetEnsureKind.Failed))
+                {
+                    editor.WriteMessage(
+                        "\nAK_DEV_TEXT_FRESH_DRAWING_CREATE: FAIL - " +
+                        "one or more app-owned styles are unresolved.");
+                    foreach (var result in ensures)
+                    {
+                        editor.WriteMessage(
+                            $"\n  {result.StyleName}: {result.Kind}; " +
+                            $"{result.DiagnosticReason ?? "no diagnostic"}");
+                    }
+                    return;
+                }
+
+                var architectural = ensures.Single(result =>
+                    string.Equals(
+                        result.StyleName,
+                        TimberAnnotationTextStylePresetRules
+                            .ArchitecturalStyleName,
+                        StringComparison.OrdinalIgnoreCase));
+                if (!WriteArchitecturalProofBlock(
+                        database,
+                        transaction,
+                        architectural,
+                        editor))
+                {
+                    throw new InvalidOperationException(
+                        "Architectural style fallback state is unresolved.");
+                }
+                if (!VerifyTechnicalProfile(
+                        database,
+                        transaction,
+                        editor))
+                {
+                    throw new InvalidOperationException(
+                        "Technical profile does not match isocp.shx.");
+                }
+
+                var defaultProfile = TimberElementDefaultProfile.CreateDefault();
+                var batch = AutoCadAnnotationPresentationBatchContext.Create(
+                    database,
+                    transaction,
+                    defaultProfile);
+                var modelSpace = OpenModelSpace(
+                    database,
+                    transaction,
+                    OpenMode.ForWrite);
+                var expected =
+                    new List<AutoCadTextSettingsProofExpectedCase>();
+                for (var index = 0;
+                     index <
+                     AutoCadTextSettingsProofPolicy.FreshDrawingCases.Count;
+                     index++)
+                {
+                    var proofCase =
+                        AutoCadTextSettingsProofPolicy.FreshDrawingCases[index];
+                    var source = CreateSource(
+                        database,
+                        transaction,
+                        modelSpace,
+                        index);
+                    WriteMarker(source, proofCase.Token);
+                    var data = CreateData(proofCase, proofCase.TextSettings);
+                    ElementDataStore.Write(source, transaction, data);
+                    var presentation = batch.ResolveForElement(data);
+                    if (!presentation.ItemCodeText.HasCompatibleStyle ||
+                        !presentation.DimensionText.HasCompatibleStyle ||
+                        !presentation.SlopeText.HasCompatibleStyle ||
+                        !presentation.FramedItemCodeText.HasCompatibleStyle)
+                    {
+                        throw new InvalidOperationException(
+                            $"Fresh case {proofCase.Token} has no compatible style.");
+                    }
+
+                    TimberAnnotationService.EnsureForElement(
+                        database,
+                        transaction,
+                        source,
+                        data,
+                        batch);
+                    var roles = InspectCase(
+                        database,
+                        transaction,
+                        modelSpace,
+                        proofCase,
+                        source,
+                        data,
+                        presentation,
+                        editor);
+                    foreach (var role in roles)
+                    {
+                        WriteFreshIdentityProofLine(
+                            database,
+                            transaction,
+                            proofCase,
+                            role,
+                            architectural,
+                            editor);
+                    }
+
+                    expected.Add(
+                        AutoCadTextSettingsProofPolicy.ToExpected(
+                            proofCase,
+                            roles));
+                }
+
+                WriteFreshDrawingManifest(
+                    database,
+                    transaction,
+                    new AutoCadFreshDrawingProofManifest(
+                        AutoCadTextSettingsProofPolicy
+                            .FreshDrawingSchemaVersion,
+                        AutoCadTextSettingsProofPolicy
+                            .FreshDrawingSuiteIdentifier,
+                        standardBefore,
+                        expected,
+                        TimberAnnotationTextStylePresetRules
+                            .ArchitecturalStyleName,
+                        TimberAnnotationTextStylePresetRules
+                            .ArchitecturalFontFile));
+                transaction.Commit();
+            }
+
+            using var verify =
+                database.TransactionManager.StartOpenCloseTransaction();
+            var passed = VerifyFreshDrawingCore(database, verify, editor);
+            var dbmodAfter = Convert.ToInt32(
+                AcApplication.GetSystemVariable("DBMOD"));
+            editor.WriteMessage(
+                passed
+                    ? $"\nAK_DEV_TEXT_FRESH_DRAWING_CREATE: PASS - mutating " +
+                      "CREATE completed; DBMOD change is expected; " +
+                      $"before={dbmodBefore}, after={dbmodAfter}. Run VERIFY."
+                    : $"\nAK_DEV_TEXT_FRESH_DRAWING_CREATE: FAIL - post-commit " +
+                      $"readback failed; DBMOD before={dbmodBefore}, " +
+                      $"after={dbmodAfter}.");
+        }
+        catch (System.Exception exception)
+        {
+            editor.WriteMessage(
+                $"\nAK_DEV_TEXT_FRESH_DRAWING_CREATE: FAIL - " +
+                $"{exception.GetType().Name}: {exception.Message}");
+        }
+    }
+
+    public static void FreshDrawingVerify()
+    {
+        var document = AcApplication.DocumentManager.MdiActiveDocument;
+        if (document is null)
+        {
+            return;
+        }
+
+        var database = document.Database;
+        var editor = document.Editor;
+        var dbmodBefore = Convert.ToInt32(
+            AcApplication.GetSystemVariable("DBMOD"));
+        try
+        {
+            using var transaction =
+                database.TransactionManager.StartOpenCloseTransaction();
+            var passed = VerifyFreshDrawingCore(
+                database,
+                transaction,
+                editor);
+            var dbmodAfter = Convert.ToInt32(
+                AcApplication.GetSystemVariable("DBMOD"));
+            passed &= dbmodBefore == dbmodAfter;
+            editor.WriteMessage(
+                passed
+                    ? $"\nAK_DEV_TEXT_FRESH_DRAWING_VERIFY: PASS - read-only; " +
+                      $"DBMOD before={dbmodBefore}, after={dbmodAfter}."
+                    : $"\nAK_DEV_TEXT_FRESH_DRAWING_VERIFY: FAIL - " +
+                      $"DBMOD before={dbmodBefore}, after={dbmodAfter}.");
+        }
+        catch (System.Exception exception)
+        {
+            var dbmodAfter = Convert.ToInt32(
+                AcApplication.GetSystemVariable("DBMOD"));
+            editor.WriteMessage(
+                $"\nAK_DEV_TEXT_FRESH_DRAWING_VERIFY: FAIL - " +
+                $"{exception.GetType().Name}: {exception.Message}; " +
+                $"DBMOD before={dbmodBefore}, after={dbmodAfter}.");
         }
     }
 
@@ -706,6 +999,447 @@ internal static class AutoCadTextSettingsProofService
                 $"{exception.GetType().Name}: {exception.Message}");
         }
     }
+
+    private static void RunFreshDrawingIdempotenceEnsure(
+        Autodesk.AutoCAD.ApplicationServices.Document document,
+        Database database,
+        Editor editor,
+        int dbmodBefore)
+    {
+        AutoCadTextStylePresetEnsureResult[] results;
+        using (document.LockDocument())
+        using (var transaction =
+               database.TransactionManager.StartTransaction())
+        {
+            results = Enum
+                .GetValues<TimberAnnotationBuiltInTextStylePreset>()
+                .Select(preset => AutoCadTextStylePresetService.EnsureBuiltIn(
+                    database,
+                    transaction,
+                    preset))
+                .ToArray();
+            transaction.Commit();
+        }
+
+        bool verified;
+        using (var read =
+               database.TransactionManager.StartOpenCloseTransaction())
+        {
+            verified = VerifyFreshDrawingCore(database, read, editor);
+        }
+
+        var kindsAreNoOp = results.All(result =>
+            result.Kind is AutoCadTextStylePresetEnsureKind.AlreadyMatched or
+                AutoCadTextStylePresetEnsureKind.FontUnavailable);
+        var dbmodAfter = Convert.ToInt32(
+            AcApplication.GetSystemVariable("DBMOD"));
+        var passed = verified && kindsAreNoOp && dbmodBefore == dbmodAfter;
+        editor.WriteMessage(
+            passed
+                ? $"\nAK_DEV_TEXT_FRESH_DRAWING_CREATE: PASS - idempotent " +
+                  "second ensure made no changes; " +
+                  $"DBMOD before={dbmodBefore}, after={dbmodAfter}."
+                : $"\nAK_DEV_TEXT_FRESH_DRAWING_CREATE: FAIL - second " +
+                  $"ensure kinds={string.Join(",", results.Select(result => result.Kind))}; " +
+                  $"DBMOD before={dbmodBefore}, after={dbmodAfter}.");
+    }
+
+    private static bool VerifyFreshDrawingCore(
+        Database database,
+        Transaction transaction,
+        Editor editor)
+    {
+        var manifest = ReadFreshDrawingManifest(database, transaction);
+        if (manifest is null)
+        {
+            editor.WriteMessage(
+                "\n  missing fresh-drawing CREATE manifest; run " +
+                "AK_DEV_TEXT_FRESH_DRAWING_CREATE first");
+            return false;
+        }
+
+        if (manifest.SchemaVersion !=
+                AutoCadTextSettingsProofPolicy.FreshDrawingSchemaVersion ||
+            !string.Equals(
+                manifest.SuiteIdentifier,
+                AutoCadTextSettingsProofPolicy.FreshDrawingSuiteIdentifier,
+                StringComparison.Ordinal))
+        {
+            editor.WriteMessage("\n  unexpected fresh-drawing proof manifest");
+            return false;
+        }
+
+        var passed = VerifyStandardUntouched(
+            database,
+            transaction,
+            manifest.StandardBefore,
+            editor);
+        passed &= VerifyBuiltInUniqueness(database, transaction, editor);
+
+        var architectural = ReadArchitecturalEnsureState(
+            database,
+            transaction);
+        passed &= WriteArchitecturalProofBlock(
+            database,
+            transaction,
+            architectural,
+            editor);
+        passed &= VerifyTechnicalProfile(database, transaction, editor);
+        passed &= string.Equals(
+            manifest.ArchitecturalRequestedStyleName,
+            TimberAnnotationTextStylePresetRules.ArchitecturalStyleName,
+            StringComparison.Ordinal) &&
+            string.Equals(
+                manifest.ArchitecturalRequestedFont,
+                TimberAnnotationTextStylePresetRules.ArchitecturalFontFile,
+                StringComparison.Ordinal);
+
+        var modelSpace = OpenModelSpace(
+            database,
+            transaction,
+            OpenMode.ForRead);
+        foreach (var expected in manifest.Cases)
+        {
+            var source = FindMarkedSource(
+                modelSpace,
+                transaction,
+                expected.Token);
+            if (source is null)
+            {
+                editor.WriteMessage(
+                    $"\n  {expected.Token}: FAIL - source missing");
+                passed = false;
+                continue;
+            }
+
+            var proofCase =
+                AutoCadTextSettingsProofPolicy.FindCase(expected.Token);
+            foreach (var role in expected.Roles)
+            {
+                var rolePassed = VerifyRoleExpectation(
+                    database,
+                    transaction,
+                    modelSpace,
+                    source,
+                    expected,
+                    role,
+                    editor);
+                passed &= rolePassed;
+                passed &= WriteFreshIdentityProofLine(
+                    database,
+                    transaction,
+                    proofCase,
+                    role,
+                    architectural,
+                    editor);
+            }
+        }
+
+        return passed;
+    }
+
+    private static AutoCadTextStylePresetEnsureResult
+        ReadArchitecturalEnsureState(
+            Database database,
+            Transaction transaction)
+    {
+        var requestedStyle =
+            TimberAnnotationTextStylePresetRules.ArchitecturalStyleName;
+        var requestedFont =
+            TimberAnnotationTextStylePresetRules.ArchitecturalFontFile;
+        var table = (TextStyleTable)transaction.GetObject(
+            database.TextStyleTableId,
+            OpenMode.ForRead);
+        if (!table.Has(requestedStyle))
+        {
+            return new AutoCadTextStylePresetEnsureResult(
+                requestedStyle,
+                requestedFont,
+                AutoCadTextStylePresetEnsureKind.Failed,
+                null,
+                "App-owned Architectural style is missing.");
+        }
+
+        var id = table[requestedStyle];
+        var resolvedFont = ResolveFontName(transaction, id);
+        if (FontNamesEqual(resolvedFont, requestedFont))
+        {
+            return new AutoCadTextStylePresetEnsureResult(
+                requestedStyle,
+                requestedFont,
+                AutoCadTextStylePresetEnsureKind.AlreadyMatched,
+                id,
+                null);
+        }
+
+        if (FontNamesEqual(
+                resolvedFont,
+                TimberAnnotationTextStylePresetRules.ArialFontFile))
+        {
+            return new AutoCadTextStylePresetEnsureResult(
+                requestedStyle,
+                requestedFont,
+                AutoCadTextStylePresetEnsureKind.FontUnavailable,
+                id,
+                $"{requestedFont} is unavailable; the app-owned " +
+                "Architectural style temporarily uses Arial.");
+        }
+
+        return new AutoCadTextStylePresetEnsureResult(
+            requestedStyle,
+            requestedFont,
+            AutoCadTextStylePresetEnsureKind.Failed,
+            id,
+            $"Unexpected resolved font '{resolvedFont}'.");
+    }
+
+    private static bool WriteArchitecturalProofBlock(
+        Database database,
+        Transaction transaction,
+        AutoCadTextStylePresetEnsureResult architectural,
+        Editor editor)
+    {
+        var status = architectural.Kind switch
+        {
+            AutoCadTextStylePresetEnsureKind.FontUnavailable =>
+                "FALLBACK_ACTIVE",
+            AutoCadTextStylePresetEnsureKind.Failed => "UNRESOLVED_ERROR",
+            _ => "AVAILABLE",
+        };
+        var resolvedFont = architectural.TextStyleId is ObjectId styleId
+            ? ResolveFontName(transaction, styleId)
+            : "<unresolved>";
+        var textSize = double.NaN;
+        var xScale = double.NaN;
+        var oblique = double.NaN;
+        var bigFont = "<unresolved>";
+        if (architectural.TextStyleId is ObjectId architecturalId &&
+            transaction.GetObject(
+                architecturalId,
+                OpenMode.ForRead,
+                false) is TextStyleTableRecord architecturalStyle)
+        {
+            textSize = architecturalStyle.TextSize;
+            xScale = architecturalStyle.XScale;
+            oblique = architecturalStyle.ObliquingAngle;
+            bigFont = architecturalStyle.BigFontFileName?.Trim() ??
+                string.Empty;
+        }
+        var fallbackActive = status == "FALLBACK_ACTIVE" &&
+            FontNamesEqual(
+                resolvedFont,
+                TimberAnnotationTextStylePresetRules.ArialFontFile);
+        var available = status == "AVAILABLE" &&
+            FontNamesEqual(
+                resolvedFont,
+                TimberAnnotationTextStylePresetRules.ArchitecturalFontFile);
+        var identityPreserved = string.Equals(
+            architectural.StyleName,
+            TimberAnnotationTextStylePresetRules.ArchitecturalStyleName,
+            StringComparison.OrdinalIgnoreCase);
+        var isStandard = string.Equals(
+            architectural.StyleName,
+            TimberAnnotationTextSettingsRules.DefaultTextStyleName,
+            StringComparison.OrdinalIgnoreCase);
+        var profileMatches = AreClose(textSize, 0d) &&
+            AreClose(
+                xScale,
+                TimberAnnotationTextStylePresetRules.DefaultWidthFactor) &&
+            AreClose(
+                oblique,
+                TimberAnnotationTextStylePresetRules
+                    .DefaultObliqueAngleDegrees) &&
+            string.IsNullOrEmpty(bigFont);
+        var passed = (available || fallbackActive) &&
+            architectural.TextStyleId is not null &&
+            identityPreserved &&
+            profileMatches &&
+            !isStandard;
+        editor.WriteMessage(
+            "\n  ARCHITECTURAL:" +
+            $"\n    status={status}" +
+            "\n    requestedPreset=Architectural" +
+            "\n    stableIdentity=ARCHITECTURAL" +
+            $"\n    requestedFont=" +
+            $"{TimberAnnotationTextStylePresetRules.ArchitecturalFontFile}" +
+            $"\n    resolvedTextStyle={architectural.StyleName}" +
+            $"\n    resolvedFont={resolvedFont}" +
+            $"\n    fallbackReason=" +
+            $"{architectural.DiagnosticReason ?? "<none>"}" +
+            $"\n    TextSize={textSize:R}" +
+            $"\n    XScale={xScale:R}" +
+            $"\n    Oblique={oblique:R}" +
+            $"\n    BigFont={bigFont}" +
+            "\n    settingRewrittenToFallback=false" +
+            "\n    laterRehydrateToArialNarrow=true" +
+            $"\n    isStandard={isStandard}" +
+            $"\n    {(passed ? "PASS" : "FAIL")}");
+        _ = database;
+        return passed;
+    }
+
+    private static bool VerifyTechnicalProfile(
+        Database database,
+        Transaction transaction,
+        Editor editor)
+    {
+        var table = (TextStyleTable)transaction.GetObject(
+            database.TextStyleTableId,
+            OpenMode.ForRead);
+        var styleName =
+            TimberAnnotationTextStylePresetRules.TechnicalStyleName;
+        if (!table.Has(styleName) ||
+            transaction.GetObject(
+                table[styleName],
+                OpenMode.ForRead,
+                false) is not TextStyleTableRecord style)
+        {
+            editor.WriteMessage(
+                "\n  TECHNICAL: status=UNRESOLVED_ERROR; FAIL - style missing");
+            return false;
+        }
+
+        var resolvedFont = ResolveFontName(transaction, style.ObjectId);
+        var bigFont = style.BigFontFileName?.Trim() ?? string.Empty;
+        var passed = FontNamesEqual(
+                resolvedFont,
+                TimberAnnotationTextStylePresetRules.TechnicalFontFile) &&
+            AreClose(
+                style.XScale,
+                TimberAnnotationTextStylePresetRules.DefaultWidthFactor) &&
+            AreClose(
+                style.ObliquingAngle,
+                TimberAnnotationTextStylePresetRules
+                    .DefaultObliqueAngleDegrees) &&
+            AreClose(style.TextSize, 0d) &&
+            string.IsNullOrEmpty(bigFont);
+        editor.WriteMessage(
+            $"\n  TECHNICAL: requestedPreset=Technical; " +
+            "stableIdentity=TECHNICAL; " +
+            $"requestedFont=" +
+            $"{TimberAnnotationTextStylePresetRules.TechnicalFontFile}; " +
+            $"resolvedTextStyle={style.Name}; resolvedFont={resolvedFont}; " +
+            $"XScale={style.XScale:R}; Oblique={style.ObliquingAngle:R}; " +
+            $"TextSize={style.TextSize:R}; BigFont={bigFont}; " +
+            $"{(passed ? "PASS" : "FAIL")}");
+        return passed;
+    }
+
+    private static bool WriteFreshIdentityProofLine(
+        Database database,
+        Transaction transaction,
+        AutoCadTextSettingsProofCase proofCase,
+        AutoCadTextSettingsProofRoleExpectation role,
+        AutoCadTextStylePresetEnsureResult architectural,
+        Editor editor)
+    {
+        var identity = AutoCadItemLeaderTextStyleIdentity.FromStoredStyleName(
+            role.RequestedStyleName);
+        var requestedFont =
+            TimberAnnotationTextStylePresetRules.TryResolveBuiltInByStyleName(
+                role.RequestedStyleName,
+                out var definition) &&
+            definition is not null
+                ? definition.FontFile
+                : "<user>";
+        var resolvedFont = ResolveFontName(
+            database,
+            transaction,
+            role.ResolvedStyleName);
+        var fallbackReason =
+            identity.Kind ==
+                AutoCadItemLeaderTextStyleIdentityKind.Architectural &&
+            architectural.Kind ==
+                AutoCadTextStylePresetEnsureKind.FontUnavailable
+                ? architectural.DiagnosticReason ?? "Arial fallback active."
+                : "<none>";
+        var isStandard = string.Equals(
+            role.ResolvedStyleName,
+            TimberAnnotationTextSettingsRules.DefaultTextStyleName,
+            StringComparison.OrdinalIgnoreCase);
+        var identityStable =
+            role.RequestedStyleName.StartsWith(
+                TimberAnnotationTextStylePresetRules.UserStyleNamePrefix,
+                StringComparison.OrdinalIgnoreCase) ||
+            TimberAnnotationTextStylePresetRules.IsBuiltInStyleName(
+                role.RequestedStyleName);
+        var passed = !isStandard &&
+            identityStable &&
+            !string.IsNullOrWhiteSpace(resolvedFont) &&
+            !string.Equals(resolvedFont, "<missing>", StringComparison.Ordinal);
+        var targets = role.EntityType.Contains(
+                "AttributeReference",
+                StringComparison.Ordinal)
+            ? $"{role.Role}+framed G3 AttrDef"
+            : role.Role;
+        editor.WriteMessage(
+            $"\n  FIRST-ELEMENT {proofCase.Token}/{targets}: " +
+            $"requestedPreset={role.RequestedStyleName}; " +
+            $"stableIdentity={identity.Kind.ToString().ToUpperInvariant()}; " +
+            $"requestedFont={requestedFont}; " +
+            $"resolvedTextStyle={role.ResolvedStyleName}; " +
+            $"resolvedFont={resolvedFont}; " +
+            $"fallbackReason={fallbackReason}; " +
+            $"isStandard={isStandard}; {(passed ? "PASS" : "FAIL")}");
+        return passed;
+    }
+
+    private static string ResolveFontName(
+        Database database,
+        Transaction transaction,
+        string styleName)
+    {
+        var table = (TextStyleTable)transaction.GetObject(
+            database.TextStyleTableId,
+            OpenMode.ForRead);
+        return table.Has(styleName)
+            ? ResolveFontName(transaction, table[styleName])
+            : "<missing>";
+    }
+
+    private static string ResolveFontName(
+        Transaction transaction,
+        ObjectId styleId)
+    {
+        if (transaction.GetObject(styleId, OpenMode.ForRead, false)
+                is not TextStyleTableRecord style)
+        {
+            return "<missing>";
+        }
+
+        var fileName = style.FileName?.Trim() ?? string.Empty;
+        if (string.Equals(
+                Path.GetExtension(fileName),
+                ".shx",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return Path.GetFileName(fileName);
+        }
+
+        try
+        {
+            var typeface = style.Font.TypeFace?.Trim();
+            if (!string.IsNullOrWhiteSpace(typeface))
+            {
+                return typeface;
+            }
+        }
+        catch
+        {
+            // Diagnostics fall back to FileName below.
+        }
+
+        return string.IsNullOrWhiteSpace(fileName)
+            ? "<unknown>"
+            : Path.GetFileName(fileName);
+    }
+
+    private static bool FontNamesEqual(string actual, string expected) =>
+        string.Equals(actual, expected, StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(
+            Path.GetFileNameWithoutExtension(actual),
+            Path.GetFileNameWithoutExtension(expected),
+            StringComparison.OrdinalIgnoreCase);
 
     private static bool VerifyCore(
         Database database,
@@ -1683,8 +2417,7 @@ internal static class AutoCadTextSettingsProofService
                         or AutoCadTextSettingsProofKind.RoleIsolation
                         ? TimberAnnotationMode.DimensionsWithItemNumber
                         : TimberAnnotationMode.ItemNumberLeader,
-                    AutoCadTextSettingsProofPolicy.Cases
-                        .First(c => c.Token == expected.Token)
+                    AutoCadTextSettingsProofPolicy.FindCase(expected.Token)
                         .ItemStyle);
 
             if (leader is null)
@@ -2553,7 +3286,7 @@ internal static class AutoCadTextSettingsProofService
         if (!VerifyBuiltInUniqueness(database, transaction, editor: null))
         {
             throw new InvalidOperationException(
-                "Duplicate or missing AK_KROVY_CLASSIC / AK_KROVY_ARCH styles.");
+                "Duplicate or missing app-owned built-in text styles.");
         }
     }
 
@@ -2565,8 +3298,11 @@ internal static class AutoCadTextSettingsProofService
         var textStyleTable = (TextStyleTable)transaction.GetObject(
             database.TextStyleTableId,
             OpenMode.ForRead);
-        var classicCount = 0;
-        var archCount = 0;
+        var counts = TimberAnnotationTextStylePresetRules.GetBuiltInDefinitions()
+            .ToDictionary(
+                definition => definition.AutoCadTextStyleName,
+                _ => 0,
+                StringComparer.OrdinalIgnoreCase);
         foreach (ObjectId id in textStyleTable)
         {
             if (transaction.GetObject(id, OpenMode.ForRead, false)
@@ -2576,25 +3312,16 @@ internal static class AutoCadTextSettingsProofService
                 continue;
             }
 
-            if (string.Equals(
-                    style.Name,
-                    TimberAnnotationTextStylePresetRules.ClassicStyleName,
-                    StringComparison.OrdinalIgnoreCase))
+            if (counts.ContainsKey(style.Name))
             {
-                classicCount++;
-            }
-            else if (string.Equals(
-                         style.Name,
-                         TimberAnnotationTextStylePresetRules.ArchitecturalStyleName,
-                         StringComparison.OrdinalIgnoreCase))
-            {
-                archCount++;
+                counts[style.Name]++;
             }
         }
 
-        var ok = classicCount == 1 && archCount == 1;
+        var ok = counts.Values.All(count => count == 1);
         editor?.WriteMessage(
-            $"\n  BuiltIns: CLASSIC={classicCount}; ARCH={archCount}; " +
+            $"\n  BuiltIns: " +
+            $"{string.Join("; ", counts.Select(pair => $"{pair.Key}={pair.Value}"))}; " +
             $"{(ok ? "PASS" : "FAIL")}");
         return ok;
     }
@@ -2715,6 +3442,71 @@ internal static class AutoCadTextSettingsProofService
             is TextStyleTableRecord style
             ? style.Name
             : "<missing>";
+    }
+
+    private static void WriteFreshDrawingManifest(
+        Database database,
+        Transaction transaction,
+        AutoCadFreshDrawingProofManifest manifest)
+    {
+        var namedObjects = (DBDictionary)transaction.GetObject(
+            database.NamedObjectsDictionaryId,
+            OpenMode.ForWrite);
+        var json = JsonSerializer.Serialize(manifest, JsonOptions);
+        var record = new Xrecord();
+        var values = new ResultBuffer();
+        for (var offset = 0; offset < json.Length; offset += XRecordChunkLength)
+        {
+            var length = Math.Min(XRecordChunkLength, json.Length - offset);
+            values.Add(new TypedValue(
+                XRecordStringCode,
+                json.Substring(offset, length)));
+        }
+
+        record.Data = values;
+        namedObjects.SetAt(
+            AutoCadTextSettingsProofPolicy.FreshDrawingManifestDictionaryKey,
+            record);
+        transaction.AddNewlyCreatedDBObject(record, true);
+    }
+
+    private static AutoCadFreshDrawingProofManifest? ReadFreshDrawingManifest(
+        Database database,
+        Transaction transaction)
+    {
+        var namedObjects = (DBDictionary)transaction.GetObject(
+            database.NamedObjectsDictionaryId,
+            OpenMode.ForRead);
+        if (!namedObjects.Contains(
+                AutoCadTextSettingsProofPolicy
+                    .FreshDrawingManifestDictionaryKey))
+        {
+            return null;
+        }
+
+        var record = (Xrecord)transaction.GetObject(
+            namedObjects.GetAt(
+                AutoCadTextSettingsProofPolicy
+                    .FreshDrawingManifestDictionaryKey),
+            OpenMode.ForRead);
+        if (record.Data is null)
+        {
+            return null;
+        }
+
+        var builder = new StringBuilder();
+        foreach (TypedValue value in record.Data)
+        {
+            if (value.TypeCode == XRecordStringCode)
+            {
+                builder.Append(
+                    Convert.ToString(value.Value, CultureInfo.InvariantCulture));
+            }
+        }
+
+        return JsonSerializer.Deserialize<AutoCadFreshDrawingProofManifest>(
+            builder.ToString(),
+            JsonOptions);
     }
 
     private static void WriteManifest(

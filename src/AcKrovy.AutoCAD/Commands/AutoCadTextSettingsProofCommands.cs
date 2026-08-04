@@ -6,6 +6,17 @@ namespace AcKrovy.AutoCAD.Commands;
 
 public sealed class AutoCadTextSettingsProofCommands
 {
+    [CommandMethod("AK_DEV_TEXT_STYLE_AUDIT", CommandFlags.Modal)]
+    public void AuditStyles() => AutoCadTextStyleAuditService.Run();
+
+    [CommandMethod("AK_DEV_TEXT_FRESH_DRAWING_CREATE", CommandFlags.Modal)]
+    public void FreshDrawingCreate() =>
+        AutoCadTextSettingsProofService.FreshDrawingCreate();
+
+    [CommandMethod("AK_DEV_TEXT_FRESH_DRAWING_VERIFY", CommandFlags.Modal)]
+    public void FreshDrawingVerify() =>
+        AutoCadTextSettingsProofService.FreshDrawingVerify();
+
     [CommandMethod("AK_DEV_TEXT_SETTINGS_CREATE", CommandFlags.Modal)]
     public void Create() => AutoCadTextSettingsProofService.Create();
 

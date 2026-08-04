@@ -44,7 +44,7 @@ internal sealed record AutoCadAnnotationPresentationValues
         var effectiveTextSettings =
             TimberAnnotationTextSettingsRules.NormalizeStored(
                 data.AnnotationTextSettings) ??
-            TimberAnnotationTextSettingsRules.Default;
+            TimberAnnotationTextStylePresetRules.CreateFreshProfileTextSettings();
 
         return new AutoCadAnnotationPresentationValues(
             annotationScaleContext,
@@ -283,11 +283,6 @@ internal sealed record AutoCadAnnotationPresentationContext
         TimberAnnotationTextRole role,
         IReadOnlySet<string>? availableUserPresetStyleNames)
     {
-        if (!values.HasExplicitTextSettings)
-        {
-            return textStyleResolver.ResolveLegacy();
-        }
-
         var storedStyleName =
             values.EffectiveTextSettings.GetTextStyleName(role);
         if (storedStyleName.StartsWith(
@@ -297,7 +292,7 @@ internal sealed record AutoCadAnnotationPresentationContext
             !availableUserPresetStyleNames.Contains(storedStyleName))
         {
             return textStyleResolver.ResolveExplicit(
-                TimberAnnotationTextStylePresetRules.ClassicStyleName);
+                TimberAnnotationTextStylePresetRules.ArialStyleName);
         }
 
         return textStyleResolver.ResolveExplicit(storedStyleName);
@@ -317,17 +312,16 @@ internal sealed record AutoCadAnnotationPresentationContext
                 availableUserPresetStyleNames is not null &&
                 !availableUserPresetStyleNames.Contains(storedStyleName);
             var stored = textStyleResolver.ResolveExplicit(storedStyleName);
-            if (!isDeletedUserPreset &&
-                stored.RequestStatus == AutoCadTextStyleRequestStatus.Compatible)
-            {
-                return stored;
-            }
+            return isDeletedUserPreset
+                ? textStyleResolver.ResolveExplicit(
+                    TimberAnnotationTextStylePresetRules.ArialStyleName)
+                : stored;
         }
 
-        // G3 framed fallback is deterministic: stored style, then Classic,
-        // then the resolver's existing Standard/current/first-compatible chain.
+        // Legacy null settings use the explicit product default (Classic).
+        // Framed G3 therefore has the same identity as the plain item role.
         return textStyleResolver.ResolveExplicit(
-            TimberAnnotationTextStylePresetRules.ClassicStyleName);
+            values.EffectiveTextSettings.ItemCodeTextStyleName);
     }
 
     private static void EnsureResolutionDatabase(
@@ -345,8 +339,9 @@ internal sealed record AutoCadAnnotationPresentationContext
 }
 
 /// <summary>
-/// Immutable read-only inputs shared by one annotation refresh batch. The
-/// instance and all ObjectIds it exposes are scoped to its database/transaction.
+/// Inputs shared by one annotation refresh batch. Creation bootstraps app-owned
+/// styles before capturing the immutable catalog; the instance and all ObjectIds
+/// it exposes are scoped to its database/transaction.
 /// </summary>
 internal sealed class AutoCadAnnotationPresentationBatchContext
 {
@@ -359,11 +354,13 @@ internal sealed class AutoCadAnnotationPresentationBatchContext
     public AutoCadAnnotationScaleService AnnotationScaleService =>
         _annotationScaleService;
     public AutoCadItemLeaderBlockVariantBatchCatalog ItemLeaderVariantCatalog { get; }
+    public AutoCadItemLeaderFrameOnlyBlockBatchCatalog ItemLeaderFrameCatalog { get; }
 
     private AutoCadAnnotationPresentationBatchContext(
         Database database,
         AutoCadAnnotationScaleService annotationScaleService,
-        AutoCadTextStyleCatalog textStyleCatalog)
+        AutoCadTextStyleCatalog textStyleCatalog,
+        IEnumerable<TimberAnnotationUserTextStylePreset> userPresets)
     {
         Database = database ?? throw new ArgumentNullException(nameof(database));
         _annotationScaleService = annotationScaleService ??
@@ -379,14 +376,13 @@ internal sealed class AutoCadAnnotationPresentationBatchContext
                 nameof(textStyleCatalog));
         }
         _textStyleResolver = new AutoCadTextStyleResolver(textStyleCatalog);
-        _availableUserPresetStyleNames = TimberAnnotationTextStylePresetLibraryStore
-            .Load()
-            .Normalize()
-            .Presets
+        _availableUserPresetStyleNames = userPresets
             .Select(preset => preset.AutoCadTextStyleName)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
         ItemLeaderVariantCatalog =
             new AutoCadItemLeaderBlockVariantBatchCatalog(database);
+        ItemLeaderFrameCatalog =
+            new AutoCadItemLeaderFrameOnlyBlockBatchCatalog(database);
     }
 
     public static AutoCadAnnotationPresentationBatchContext Create(
@@ -402,6 +398,19 @@ internal sealed class AutoCadAnnotationPresentationBatchContext
             database,
             transaction,
             defaultProfile);
+        var textSettings =
+            TimberAnnotationTextSettingsRules.NormalizeStored(
+                defaultProfile.DefaultAnnotationTextSettings) ??
+            TimberAnnotationTextStylePresetRules.CreateFreshProfileTextSettings();
+        var userPresets = TimberAnnotationTextStylePresetLibraryStore
+            .Load()
+            .Normalize()
+            .Presets;
+        AutoCadTextStylePresetService.EnsureRequiredStyles(
+            database,
+            transaction,
+            textSettings,
+            userPresets);
         var textStyleCatalog = AutoCadTextStyleResolver.ReadCatalog(
             database,
             transaction);
@@ -409,7 +418,8 @@ internal sealed class AutoCadAnnotationPresentationBatchContext
         return new AutoCadAnnotationPresentationBatchContext(
             database,
             annotationScaleService,
-            textStyleCatalog);
+            textStyleCatalog,
+            userPresets);
     }
 
     public AutoCadAnnotationPresentationContext ResolveForElement(

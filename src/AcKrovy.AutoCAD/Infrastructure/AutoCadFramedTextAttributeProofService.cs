@@ -13,11 +13,93 @@ internal static class AutoCadFramedTextAttributeProofService
 {
     internal const string ProofRegAppName = "AK23_TEXTATTR_PROOF";
 
-    public static void Create(Document document)
+    public static void Create(Document document) =>
+        CreateCore(
+            document,
+            AutoCadFramedTextAttributeProofPolicy.Cases,
+            verifyStyleVariation: true,
+            successMessage: "\nAK23 text-attribute proof set created atomically. " +
+                "Running a fresh read-transaction verification...",
+            verifyAfterCreate: Verify);
+
+    public static void CreateHeight(Document document)
+    {
+        var heightCases = AutoCadFramedTextAttributeProofPolicy.HeightCases;
+        if (heightCases.Count != 2 ||
+            heightCases.Any(proofCase =>
+                !AutoCadFramedTextAttributeProofPolicy.IsHeightCapabilityCase(proofCase)))
+        {
+            throw new InvalidOperationException(
+                "Height proof requires exactly AK23_HEIGHT_A (2.7→135) and " +
+                "AK23_HEIGHT_B (3.5→175); do not use AK23_PROOF_* style cases.");
+        }
+
+        CreateCore(
+            document,
+            heightCases,
+            verifyStyleVariation: false,
+            successMessage:
+                "\nAK_DEV_FRAMED_ITEM_HEIGHT_CREATE: height proof set created " +
+                "atomically (AK23_HEIGHT_A base=135, AK23_HEIGHT_B base=175). " +
+                "Running a fresh read-transaction verification...",
+            verifyAfterCreate: VerifyHeight);
+    }
+
+    public static void Verify(Document document) =>
+        VerifyCore(
+            document,
+            AutoCadFramedTextAttributeProofPolicy.Cases,
+            verifyStyleVariation: true,
+            passMessage: "\nAK23 host proof automated checks: PASS. " +
+                "Complete the documented visual and SAVE/CLOSE/REOPEN checks.",
+            passWithNotTestedMessage:
+                "\nAK23 host proof automated checks: PASS WITH NOT TESTED " +
+                "(A/B style variation). Complete the documented visual and " +
+                "SAVE/CLOSE/REOPEN checks.",
+            failMessage: "\nAK23 host proof automated checks: FAIL.");
+
+    public static void VerifyHeight(Document document) =>
+        VerifyCore(
+            document,
+            AutoCadFramedTextAttributeProofPolicy.HeightCases,
+            verifyStyleVariation: false,
+            passMessage:
+                "\nAK_DEV_FRAMED_ITEM_HEIGHT_VERIFY: PASS " +
+                "(A base=135, B base=175, shared BlockContentId, AttrDef unchanged).",
+            passWithNotTestedMessage:
+                "\nAK_DEV_FRAMED_ITEM_HEIGHT_VERIFY: PASS.",
+            failMessage: "\nAK_DEV_FRAMED_ITEM_HEIGHT_VERIFY: FAIL.");
+
+    public static void Clean(Document document) =>
+        CleanCore(
+            document,
+            heightCapabilityOnly: false,
+            successPrefix: "AK_DEV_FRAMED_ITEM_HEIGHT_CLEAN");
+
+    public static void CleanHeight(Document document) =>
+        CleanCore(
+            document,
+            heightCapabilityOnly: true,
+            successPrefix: "AK_DEV_FRAMED_ITEM_HEIGHT_CLEAN");
+
+    private static void CreateCore(
+        Document document,
+        IReadOnlyList<AutoCadFramedTextAttributeProofCase> cases,
+        bool verifyStyleVariation,
+        string successMessage,
+        Action<Document> verifyAfterCreate)
     {
         ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(cases);
+        ArgumentNullException.ThrowIfNull(verifyAfterCreate);
+        if (cases.Count == 0)
+        {
+            throw new ArgumentException("At least one proof case is required.", nameof(cases));
+        }
+
         var database = document.Database;
         var editor = document.Editor;
+        _ = verifyStyleVariation;
 
         try
         {
@@ -51,7 +133,7 @@ internal static class AutoCadFramedTextAttributeProofService
                     database,
                     transaction,
                     ItemNumberLeaderStyle.Circle,
-                    AutoCadFramedTextAttributeProofPolicy.Cases[0].Token,
+                    cases[0].Token,
                     preserveExistingDefinition: true);
                 var blockRecord = (BlockTableRecord)transaction.GetObject(
                     block.BlockId,
@@ -74,7 +156,7 @@ internal static class AutoCadFramedTextAttributeProofService
                     SymbolUtilityServices.GetBlockModelSpaceId(database),
                     OpenMode.ForWrite);
 
-                foreach (var proofCase in AutoCadFramedTextAttributeProofPolicy.Cases)
+                foreach (var proofCase in cases)
                 {
                     var style = proofCase.StyleSlot ==
                         AutoCadFramedTextAttributeProofStyleSlot.StyleA
@@ -105,10 +187,8 @@ internal static class AutoCadFramedTextAttributeProofService
                 transaction.Commit();
             }
 
-            editor.WriteMessage(
-                "\nAK23 text-attribute proof set created atomically. " +
-                "Running a fresh read-transaction verification...");
-            Verify(document);
+            editor.WriteMessage(successMessage);
+            verifyAfterCreate(document);
         }
         catch (System.Exception exception)
         {
@@ -117,9 +197,16 @@ internal static class AutoCadFramedTextAttributeProofService
         }
     }
 
-    public static void Verify(Document document)
+    private static void VerifyCore(
+        Document document,
+        IReadOnlyList<AutoCadFramedTextAttributeProofCase> cases,
+        bool verifyStyleVariation,
+        string passMessage,
+        string passWithNotTestedMessage,
+        string failMessage)
     {
         ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(cases);
         var database = document.Database;
         var editor = document.Editor;
 
@@ -142,7 +229,15 @@ internal static class AutoCadFramedTextAttributeProofService
                 return;
             }
 
-            var duplicate = references
+            var scopedReferences = references
+                .Where(reference => cases.Any(proofCase =>
+                    string.Equals(
+                        proofCase.Token,
+                        reference.Payload.CaseToken,
+                        StringComparison.Ordinal)))
+                .ToArray();
+
+            var duplicate = scopedReferences
                 .GroupBy(reference => reference.Payload.CaseToken, StringComparer.Ordinal)
                 .FirstOrDefault(group => group.Count() != 1);
             if (duplicate is not null)
@@ -161,9 +256,9 @@ internal static class AutoCadFramedTextAttributeProofService
             AutoCadFramedTextAttributeProofPayload? payloadA = null;
             AutoCadFramedTextAttributeProofPayload? payloadB = null;
 
-            foreach (var proofCase in AutoCadFramedTextAttributeProofPolicy.Cases)
+            foreach (var proofCase in cases)
             {
-                var reference = references.SingleOrDefault(candidate =>
+                var reference = scopedReferences.SingleOrDefault(candidate =>
                     string.Equals(
                         candidate.Payload.CaseToken,
                         proofCase.Token,
@@ -216,7 +311,7 @@ internal static class AutoCadFramedTextAttributeProofService
                 allPassed &= casePassed;
             }
 
-            if (payloadA is not null && payloadB is not null)
+            if (verifyStyleVariation && payloadA is not null && payloadB is not null)
             {
                 if (!payloadB.DistinctStyleComparisonExpected)
                 {
@@ -247,17 +342,78 @@ internal static class AutoCadFramedTextAttributeProofService
             editor.WriteMessage(
                 allPassed
                     ? styleVariationNotTested
-                        ? "\nAK23 host proof automated checks: PASS WITH NOT TESTED " +
-                          "(A/B style variation). Complete the documented visual and " +
-                          "SAVE/CLOSE/REOPEN checks."
-                        : "\nAK23 host proof automated checks: PASS. " +
-                      "Complete the documented visual and SAVE/CLOSE/REOPEN checks."
-                    : "\nAK23 host proof automated checks: FAIL.");
+                        ? passWithNotTestedMessage
+                        : passMessage
+                    : failMessage);
         }
         catch (System.Exception exception)
         {
             editor.WriteMessage(
                 $"\nAK23 proof verification INVALID ENVIRONMENT: {exception.Message}");
+        }
+    }
+
+    private static void CleanCore(
+        Document document,
+        bool heightCapabilityOnly,
+        string successPrefix)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        var database = document.Database;
+        var editor = document.Editor;
+        try
+        {
+            using var transaction = database.TransactionManager.StartTransaction();
+            var modelSpace = (BlockTableRecord)transaction.GetObject(
+                SymbolUtilityServices.GetBlockModelSpaceId(database),
+                OpenMode.ForRead);
+            var erased = 0;
+            foreach (ObjectId id in modelSpace)
+            {
+                if (transaction.GetObject(id, OpenMode.ForRead, false) is not
+                        MLeader leader)
+                {
+                    continue;
+                }
+
+                using var xdata = leader.GetXDataForApplication(ProofRegAppName);
+                if (xdata is null)
+                {
+                    continue;
+                }
+
+                if (heightCapabilityOnly)
+                {
+                    var chunks = xdata.AsArray()
+                        .Where(value => value.TypeCode ==
+                            (int)DxfCode.ExtendedDataAsciiString)
+                        .Select(value => value.Value as string ?? string.Empty)
+                        .ToArray();
+                    if (!AutoCadFramedTextAttributeProofPolicy.TryDeserializePayload(
+                            chunks,
+                            out var payload) ||
+                        payload is null ||
+                        !payload.CaseToken.StartsWith(
+                            "AK23_HEIGHT_",
+                            StringComparison.Ordinal))
+                    {
+                        continue;
+                    }
+                }
+
+                leader.UpgradeOpen();
+                leader.Erase();
+                erased++;
+            }
+
+            transaction.Commit();
+            editor.WriteMessage(
+                $"\n{successPrefix}: erased {erased} proof MLeader(s).");
+        }
+        catch (System.Exception exception)
+        {
+            editor.WriteMessage(
+                $"\n{successPrefix}: FAIL - {exception.Message}");
         }
     }
 
@@ -384,6 +540,13 @@ internal static class AutoCadFramedTextAttributeProofService
                 "The selected text style belongs to another database.");
         }
 
+        if (!AttributeDefinitionBelongsToBlock(sharedBlock, sharedDefinition.ObjectId))
+        {
+            throw new InvalidOperationException(
+                "AttrDef ObjectId does not belong to BlockContentId " +
+                $"{sharedBlock.ObjectId}.");
+        }
+
         using var leader = new MLeader();
         leader.SetDatabaseDefaults(database);
         leader.EnableAnnotationScale = false;
@@ -405,6 +568,9 @@ internal static class AutoCadFramedTextAttributeProofService
             leaderLineIndex,
             new Point3d(proofCase.BlockPositionX - 100d, 0d, 0d));
 
+        modelSpace.AppendEntity(leader);
+        transaction.AddNewlyCreatedDBObject(leader, true);
+
         using (var attribute = new AttributeReference())
         {
             attribute.SetAttributeFromBlock(
@@ -415,9 +581,6 @@ internal static class AutoCadFramedTextAttributeProofService
             attribute.Height = proofCase.BaseAttributeHeight;
             leader.SetBlockAttribute(sharedDefinition.ObjectId, attribute);
         }
-
-        modelSpace.AppendEntity(leader);
-        transaction.AddNewlyCreatedDBObject(leader, true);
 
         using (var immediate = leader.GetBlockAttribute(sharedDefinition.ObjectId))
         {
@@ -431,14 +594,37 @@ internal static class AutoCadFramedTextAttributeProofService
                 snapshot.Height,
                 definitionStyleName,
                 snapshot.TextStyleHandle,
+                leaderHandle: leader.ObjectId.ToString(),
+                blockHandle: leader.BlockContentId.ToString(),
                 actualStyleName: ReadCanonicalStyleName(
                     database,
                     transaction,
                     immediate.TextStyleId));
-            if (!AttributeValuesMatch(proofCase, style, immediate, leader.BlockScale))
+            // Height capability: AttrRef.TextStyleId is NOT SUPPORTED on MLeader
+            // block content (reverts to AttrDef). Match token/heights/scale only.
+            var requireStyleMatch =
+                !AutoCadFramedTextAttributeProofPolicy.IsHeightCapabilityCase(
+                    proofCase);
+            if (!TryMatchAttributeValues(
+                    proofCase,
+                    style,
+                    immediate,
+                    leader.BlockScale,
+                    requireStyleMatch,
+                    out var failedCondition))
             {
+                WriteImmediateReadbackFailure(
+                    editor,
+                    proofCase,
+                    style,
+                    leader,
+                    sharedDefinition,
+                    immediate,
+                    snapshot.Height,
+                    attrDefBelongsToBlock: true,
+                    failedCondition);
                 throw new InvalidOperationException(
-                    $"Immediate readback failed for {proofCase.Token}.");
+                    $"Immediate readback failed for {proofCase.Token}: {failedCondition}");
             }
         }
 
@@ -506,11 +692,15 @@ internal static class AutoCadFramedTextAttributeProofService
             attribute.TextStyleId);
         var proofCase = AutoCadFramedTextAttributeProofPolicy.Cases.Single(candidate =>
             string.Equals(candidate.Token, payload.CaseToken, StringComparison.Ordinal));
-        var attributeMatch = AttributeValuesMatch(
+        var requireStyleMatch =
+            !AutoCadFramedTextAttributeProofPolicy.IsHeightCapabilityCase(proofCase);
+        var attributeMatch = TryMatchAttributeValues(
             proofCase,
             expectedStyle,
             attribute,
-            leader.BlockScale);
+            leader.BlockScale,
+            requireStyleMatch,
+            out var failedCondition);
         var passed = structuralMatch && snapshotMatch && attributeMatch;
 
         WriteAttributeValues(
@@ -526,9 +716,14 @@ internal static class AutoCadFramedTextAttributeProofService
                 transaction,
                 definition.TextStyleId),
             definition.TextStyleId.Handle.ToString(),
-            leader.Handle.ToString(),
+            leader.ObjectId.ToString(),
             currentBlockHandle,
             actualStyleName);
+        if (!attributeMatch)
+        {
+            editor.WriteMessage(
+                $"\nVERIFY {payload.CaseToken} match failure: {failedCondition}");
+        }
         WriteStatus(
             editor,
             AutoCadFramedTextAttributeProofCheckResult.Evaluated(
@@ -548,37 +743,141 @@ internal static class AutoCadFramedTextAttributeProofService
         return passed;
     }
 
-    private static bool AttributeValuesMatch(
+    private static bool TryMatchAttributeValues(
         AutoCadFramedTextAttributeProofCase proofCase,
         AutoCadTextStyleCatalogEntry expectedStyle,
         AttributeReference attribute,
-        Scale3d blockScale)
+        Scale3d blockScale,
+        bool requireStyleMatch,
+        out string failedCondition)
     {
         var height = new AutoCadFramedTextAttributeHeightObservation(
             attribute.Height,
             blockScale.X);
-        return string.Equals(
+
+        if (!string.Equals(
                 attribute.TextString,
                 proofCase.Token,
-                StringComparison.Ordinal) &&
-            attribute.TextStyleId == expectedStyle.TextStyleId &&
-            height.NormalizedBaseHeight is double normalizedBaseHeight &&
-            AutoCadFramedTextAttributeProofPolicy.AreClose(
+                StringComparison.Ordinal))
+        {
+            failedCondition =
+                $"token expected={proofCase.Token} actual={attribute.TextString}";
+            return false;
+        }
+
+        if (requireStyleMatch &&
+            attribute.TextStyleId != expectedStyle.TextStyleId)
+        {
+            failedCondition =
+                $"TextStyleId expected={expectedStyle.TextStyleId} " +
+                $"({expectedStyle.CanonicalName}) actual={attribute.TextStyleId}";
+            return false;
+        }
+
+        if (height.NormalizedBaseHeight is not double normalizedBaseHeight ||
+            !AutoCadFramedTextAttributeProofPolicy.AreClose(
                 proofCase.BaseAttributeHeight,
-                normalizedBaseHeight) &&
-            height.ActualEffectiveHeight is double actualEffectiveHeight &&
-            AutoCadFramedTextAttributeProofPolicy.AreClose(
+                normalizedBaseHeight))
+        {
+            failedCondition =
+                $"AttrRef.Height/normalizedBase expected={Format(proofCase.BaseAttributeHeight)} " +
+                $"(paper={Format(proofCase.ItemNumberPaperHeightMm)}×" +
+                $"{TimberAnnotationScaleRules.DefaultDenominator}; " +
+                $"caseDenom={proofCase.AnnotationScaleDenominator}) " +
+                $"actual raw={Format(attribute.Height)} " +
+                $"normalized={Format(height.NormalizedBaseHeight)}";
+            return false;
+        }
+
+        if (height.ActualEffectiveHeight is not double actualEffectiveHeight ||
+            !AutoCadFramedTextAttributeProofPolicy.AreClose(
                 proofCase.EffectiveModelHeight,
-                actualEffectiveHeight) &&
-            AutoCadFramedTextAttributeProofPolicy.AreClose(
+                actualEffectiveHeight))
+        {
+            failedCondition =
+                $"effective height expected={Format(proofCase.EffectiveModelHeight)} " +
+                $"actual={Format(height.ActualEffectiveHeight)}";
+            return false;
+        }
+
+        if (!AutoCadFramedTextAttributeProofPolicy.AreClose(
                 proofCase.BlockScale,
-                blockScale.X) &&
-            AutoCadFramedTextAttributeProofPolicy.AreClose(
+                blockScale.X))
+        {
+            failedCondition =
+                $"BlockScale.X expected={Format(proofCase.BlockScale)} " +
+                $"actual={Format(blockScale.X)}";
+            return false;
+        }
+
+        if (!AutoCadFramedTextAttributeProofPolicy.AreClose(
                 blockScale.X,
-                blockScale.Y) &&
-            AutoCadFramedTextAttributeProofPolicy.AreClose(
+                blockScale.Y) ||
+            !AutoCadFramedTextAttributeProofPolicy.AreClose(
                 blockScale.X,
-                blockScale.Z);
+                blockScale.Z))
+        {
+            failedCondition =
+                $"BlockScale non-uniform actual=({Format(blockScale.X)}, " +
+                $"{Format(blockScale.Y)}, {Format(blockScale.Z)})";
+            return false;
+        }
+
+        failedCondition = string.Empty;
+        return true;
+    }
+
+    private static void WriteImmediateReadbackFailure(
+        Editor editor,
+        AutoCadFramedTextAttributeProofCase proofCase,
+        AutoCadTextStyleCatalogEntry expectedStyle,
+        MLeader leader,
+        AttributeDefinition definition,
+        AttributeReference attribute,
+        double definitionHeight,
+        bool attrDefBelongsToBlock,
+        string failedCondition)
+    {
+        var height = new AutoCadFramedTextAttributeHeightObservation(
+            attribute.Height,
+            leader.BlockScale.X);
+        editor.WriteMessage(
+            $"\nImmediate readback FAILED for {proofCase.Token}:" +
+            $"\n  failedCondition={failedCondition}" +
+            $"\n  MLeader ObjectId={leader.ObjectId}" +
+            $"\n  BlockContentId={leader.BlockContentId}" +
+            $"\n  AttrDef ObjectId={definition.ObjectId}" +
+            $"\n  AttrDef belongs to BlockContentId={attrDefBelongsToBlock}" +
+            $"\n  token expected={proofCase.Token} actual={attribute.TextString}" +
+            $"\n  AttrRef.Height expected={Format(proofCase.BaseAttributeHeight)} " +
+            $"actual={Format(attribute.Height)}" +
+            $"\n  AttrDef.Height={Format(definitionHeight)}" +
+            $"\n  BlockScale expected={Format(proofCase.BlockScale)} " +
+            $"actual={Format(leader.BlockScale.X)}" +
+            $"\n  effective height expected={Format(proofCase.EffectiveModelHeight)} " +
+            $"actual={Format(height.ActualEffectiveHeight)}" +
+            $"\n  TextStyleId expected={expectedStyle.TextStyleId} " +
+            $"actual={attribute.TextStyleId}" +
+            $"\n  paperHeightMm={Format(proofCase.ItemNumberPaperHeightMm)} " +
+            $"denominator={proofCase.AnnotationScaleDenominator} " +
+            $"(expectedBase=paper×denom={Format(proofCase.BaseAttributeHeight)})" +
+            $"\n  after AppendEntity+AddNewlyCreatedDBObject+SetBlockAttribute " +
+            $"in current write transaction");
+    }
+
+    private static bool AttributeDefinitionBelongsToBlock(
+        BlockTableRecord block,
+        ObjectId attributeDefinitionId)
+    {
+        foreach (ObjectId id in block)
+        {
+            if (id == attributeDefinitionId)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static AttributeDefinition? FindAttributeDefinition(

@@ -5,15 +5,26 @@ namespace AcKrovy.Core.Services;
 
 public static class TimberAnnotationTextStylePresetRules
 {
+    public const string ArchitecturalStyleName = "AK_KROVY_ARCHITECTURAL";
     public const string ClassicStyleName = "AK_KROVY_CLASSIC";
-    public const string ArchitecturalStyleName = "AK_KROVY_ARCH";
-    public const string ClassicFontFile = "Arial";
-    public const string ArchitecturalFontFile = "Times New Roman";
-    public const string ClassicStableId = "classic";
+    public const string TechnicalStyleName = "AK_KROVY_TECHNICAL";
+    public const string ArialStyleName = "AK_KROVY_ARIAL";
+    public const string LegacyArchitecturalStyleName = "AK_KROVY_ARCH";
+    public const string ArchitecturalFontFile = "Arial Narrow";
+    public const string ClassicFontFile = "romans.shx";
+    // Audited against AutoCAD's ISO style: isocp.shx, XScale 1, oblique 0,
+    // variable height and no big font.
+    public const string TechnicalFontFile = "isocp.shx";
+    public const string ArialFontFile = "Arial";
     public const string ArchitecturalStableId = "architectural";
+    public const string ClassicStableId = "classic";
+    public const string TechnicalStableId = "technical";
+    public const string ArialStableId = "arial";
     public const string UserStyleNamePrefix = "AK_KROVY_USER_";
-    public const string ClassicLocalizationKey = "SettingsTextStylePreset_Classic";
     public const string ArchitecturalLocalizationKey = "SettingsTextStylePreset_Architectural";
+    public const string ClassicLocalizationKey = "SettingsTextStylePreset_Classic";
+    public const string TechnicalLocalizationKey = "SettingsTextStylePreset_Technical";
+    public const string ArialLocalizationKey = "SettingsTextStylePreset_Arial";
 
     public const double DefaultWidthFactor = 1.0d;
     public const double DefaultObliqueAngleDegrees = 0.0d;
@@ -24,18 +35,6 @@ public static class TimberAnnotationTextStylePresetRules
     public const int MaximumDisplayNameLength = 64;
     public const int MaximumFontFileLength = 255;
     public const int MaximumStableIdLength = 64;
-
-    private static readonly TimberAnnotationTextStylePresetDefinition ClassicDefinition =
-        new(
-            ClassicStableId,
-            TimberAnnotationTextStylePresetKind.BuiltIn,
-            TimberAnnotationBuiltInTextStylePreset.Classic,
-            ClassicLocalizationKey,
-            DisplayName: null,
-            ClassicStyleName,
-            ClassicFontFile,
-            DefaultWidthFactor,
-            DefaultObliqueAngleDegrees);
 
     private static readonly TimberAnnotationTextStylePresetDefinition ArchitecturalDefinition =
         new(
@@ -49,8 +48,50 @@ public static class TimberAnnotationTextStylePresetRules
             DefaultWidthFactor,
             DefaultObliqueAngleDegrees);
 
+    private static readonly TimberAnnotationTextStylePresetDefinition ClassicDefinition =
+        new(
+            ClassicStableId,
+            TimberAnnotationTextStylePresetKind.BuiltIn,
+            TimberAnnotationBuiltInTextStylePreset.Classic,
+            ClassicLocalizationKey,
+            DisplayName: null,
+            ClassicStyleName,
+            ClassicFontFile,
+            DefaultWidthFactor,
+            DefaultObliqueAngleDegrees);
+
+    private static readonly TimberAnnotationTextStylePresetDefinition TechnicalDefinition =
+        new(
+            TechnicalStableId,
+            TimberAnnotationTextStylePresetKind.BuiltIn,
+            TimberAnnotationBuiltInTextStylePreset.Technical,
+            TechnicalLocalizationKey,
+            DisplayName: null,
+            TechnicalStyleName,
+            TechnicalFontFile,
+            DefaultWidthFactor,
+            DefaultObliqueAngleDegrees);
+
+    private static readonly TimberAnnotationTextStylePresetDefinition ArialDefinition =
+        new(
+            ArialStableId,
+            TimberAnnotationTextStylePresetKind.BuiltIn,
+            TimberAnnotationBuiltInTextStylePreset.Arial,
+            ArialLocalizationKey,
+            DisplayName: null,
+            ArialStyleName,
+            ArialFontFile,
+            DefaultWidthFactor,
+            DefaultObliqueAngleDegrees);
+
     private static readonly IReadOnlyList<TimberAnnotationTextStylePresetDefinition> BuiltInDefinitions =
-        new[] { ClassicDefinition, ArchitecturalDefinition };
+        new[]
+        {
+            ArchitecturalDefinition,
+            ClassicDefinition,
+            TechnicalDefinition,
+            ArialDefinition,
+        };
 
     public static IReadOnlyList<TimberAnnotationTextStylePresetDefinition> GetBuiltInDefinitions() =>
         BuiltInDefinitions;
@@ -59,9 +100,11 @@ public static class TimberAnnotationTextStylePresetRules
         TimberAnnotationBuiltInTextStylePreset preset) =>
         preset switch
         {
-            TimberAnnotationBuiltInTextStylePreset.Classic => ClassicDefinition,
             TimberAnnotationBuiltInTextStylePreset.Architectural => ArchitecturalDefinition,
-            _ => ClassicDefinition,
+            TimberAnnotationBuiltInTextStylePreset.Classic => ClassicDefinition,
+            TimberAnnotationBuiltInTextStylePreset.Technical => TechnicalDefinition,
+            TimberAnnotationBuiltInTextStylePreset.Arial => ArialDefinition,
+            _ => ArialDefinition,
         };
 
     public static bool TryResolveBuiltInByStyleName(
@@ -69,15 +112,13 @@ public static class TimberAnnotationTextStylePresetRules
         out TimberAnnotationTextStylePresetDefinition? definition)
     {
         var normalized = styleName?.Trim();
-        if (string.Equals(normalized, ClassicStyleName, StringComparison.OrdinalIgnoreCase))
+        definition = BuiltInDefinitions.FirstOrDefault(candidate =>
+            string.Equals(
+                normalized,
+                candidate.AutoCadTextStyleName,
+                StringComparison.OrdinalIgnoreCase));
+        if (definition is not null)
         {
-            definition = ClassicDefinition;
-            return true;
-        }
-
-        if (string.Equals(normalized, ArchitecturalStyleName, StringComparison.OrdinalIgnoreCase))
-        {
-            definition = ArchitecturalDefinition;
             return true;
         }
 
@@ -90,18 +131,10 @@ public static class TimberAnnotationTextStylePresetRules
         out TimberAnnotationTextStylePresetDefinition? definition)
     {
         var normalized = stableId?.Trim();
-        if (string.Equals(normalized, ClassicStableId, StringComparison.OrdinalIgnoreCase))
+        definition = BuiltInDefinitions.FirstOrDefault(candidate =>
+            string.Equals(normalized, candidate.StableId, StringComparison.OrdinalIgnoreCase));
+        if (definition is not null)
         {
-            definition = ClassicDefinition;
-            return true;
-        }
-
-        if (string.Equals(
-                normalized,
-                ArchitecturalStableId,
-                StringComparison.OrdinalIgnoreCase))
-        {
-            definition = ArchitecturalDefinition;
             return true;
         }
 
@@ -111,8 +144,8 @@ public static class TimberAnnotationTextStylePresetRules
 
     /// <summary>
     /// Fresh-profile factory defaults: Klasický style name with the shared paper
-    /// heights. Distinct from <see cref="TimberAnnotationTextSettingsRules.Default"/>,
-    /// which stays on Standard for normalize/fallback paths.
+    /// heights. This is also the explicit product fallback for legacy null text
+    /// settings; the current DWG text style is never a product default.
     /// </summary>
     public static TimberAnnotationTextSettings CreateFreshProfileTextSettings() =>
         TimberAnnotationTextSettings.Shared(
@@ -124,8 +157,11 @@ public static class TimberAnnotationTextStylePresetRules
     public static bool IsBuiltInStyleName(string? styleName)
     {
         var normalized = styleName?.Trim();
-        return string.Equals(normalized, ClassicStyleName, StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(normalized, ArchitecturalStyleName, StringComparison.OrdinalIgnoreCase);
+        return BuiltInDefinitions.Any(definition =>
+            string.Equals(
+                normalized,
+                definition.AutoCadTextStyleName,
+                StringComparison.OrdinalIgnoreCase));
     }
 
     public static bool IsAppOwnedStyleName(string? styleName)
@@ -160,8 +196,11 @@ public static class TimberAnnotationTextStylePresetRules
             return false;
         }
 
-        if (string.Equals(normalized, ClassicStableId, StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(normalized, ArchitecturalStableId, StringComparison.OrdinalIgnoreCase))
+        if (BuiltInDefinitions.Any(definition =>
+                string.Equals(
+                    normalized,
+                    definition.StableId,
+                    StringComparison.OrdinalIgnoreCase)))
         {
             return false;
         }

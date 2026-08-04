@@ -12,14 +12,22 @@ public sealed class AutoCadFramedTextAttributeProofPolicyTests
     {
         var cases = AutoCadFramedTextAttributeProofPolicy.Cases;
 
-        Assert.Equal(3, cases.Count);
+        Assert.Equal(5, cases.Count);
         Assert.Equal(
-            ["AK23_PROOF_A", "AK23_PROOF_B", "AK23_PROOF_C"],
+            [
+                "AK23_PROOF_A",
+                "AK23_PROOF_B",
+                "AK23_PROOF_C",
+                "AK23_HEIGHT_A",
+                "AK23_HEIGHT_B",
+            ],
             cases.Select(proofCase => proofCase.Token));
         Assert.Equal(
             [
                 AutoCadFramedTextAttributeProofStyleSlot.StyleA,
                 AutoCadFramedTextAttributeProofStyleSlot.StyleB,
+                AutoCadFramedTextAttributeProofStyleSlot.StyleA,
+                AutoCadFramedTextAttributeProofStyleSlot.StyleA,
                 AutoCadFramedTextAttributeProofStyleSlot.StyleA,
             ],
             cases.Select(proofCase => proofCase.StyleSlot));
@@ -35,6 +43,8 @@ public sealed class AutoCadFramedTextAttributeProofPolicyTests
     [InlineData("AK23_PROOF_A", 2d, 50, 100d, 1d, 100d)]
     [InlineData("AK23_PROOF_B", 3.2d, 50, 160d, 1d, 160d)]
     [InlineData("AK23_PROOF_C", 2.7d, 100, 135d, 2d, 270d)]
+    [InlineData("AK23_HEIGHT_A", 2.7d, 50, 135d, 1d, 135d)]
+    [InlineData("AK23_HEIGHT_B", 3.5d, 50, 175d, 1d, 175d)]
     public void Cases_HaveExpectedBaseScaleAndEffectiveHeight(
         string token,
         double paperHeight,
@@ -71,6 +81,44 @@ public sealed class AutoCadFramedTextAttributeProofPolicyTests
             proofCase.ItemNumberPaperHeightMm *
                 proofCase.AnnotationScaleDenominator,
             proofCase.BaseAttributeHeight * proofCase.BlockScale);
+    }
+
+    [Fact]
+    public void HeightCapabilityCases_ShareStyleAndDefinitionButUseDistinctHeights()
+    {
+        var heightCases = AutoCadFramedTextAttributeProofPolicy.HeightCases;
+
+        Assert.Equal(2, heightCases.Count);
+        Assert.Equal(
+            ["AK23_HEIGHT_A", "AK23_HEIGHT_B"],
+            heightCases.Select(proofCase => proofCase.Token));
+        Assert.All(
+            heightCases,
+            proofCase => Assert.Equal(
+                AutoCadFramedTextAttributeProofStyleSlot.StyleA,
+                proofCase.StyleSlot));
+        Assert.Equal(
+            TimberAnnotationTextSettingsRules.DefaultItemCodePaperHeightMm,
+            heightCases[0].ItemNumberPaperHeightMm);
+        Assert.Equal(
+            TimberAnnotationTextSettingsRules.MaximumItemCodePaperHeightMm,
+            heightCases[1].ItemNumberPaperHeightMm);
+        Assert.Equal(135d, heightCases[0].BaseAttributeHeight);
+        Assert.Equal(175d, heightCases[1].BaseAttributeHeight);
+        Assert.Equal(
+            heightCases[0].ItemNumberPaperHeightMm *
+                heightCases[0].AnnotationScaleDenominator,
+            heightCases[0].BaseAttributeHeight);
+        Assert.Equal(
+            heightCases[1].ItemNumberPaperHeightMm *
+                heightCases[1].AnnotationScaleDenominator,
+            heightCases[1].BaseAttributeHeight);
+        Assert.Equal(heightCases[0].BlockScale, heightCases[1].BlockScale);
+        Assert.DoesNotContain(
+            heightCases,
+            proofCase => AutoCadFramedTextAttributeProofPolicy.AreClose(
+                proofCase.BaseAttributeHeight,
+                100d));
     }
 
     [Fact]

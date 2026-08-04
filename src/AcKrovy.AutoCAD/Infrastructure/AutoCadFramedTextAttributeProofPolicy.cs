@@ -226,8 +226,37 @@ internal static class AutoCadFramedTextAttributeProofPolicy
                 TimberAnnotationTextSettingsRules.DefaultItemCodePaperHeightMm,
                 100,
                 1800d),
+            AutoCadFramedTextAttributeProofCase.Create(
+                "AK23_HEIGHT_A",
+                AutoCadFramedTextAttributeProofStyleSlot.StyleA,
+                TimberAnnotationTextSettingsRules.DefaultItemCodePaperHeightMm,
+                TimberAnnotationScaleRules.DefaultDenominator,
+                2800d),
+            AutoCadFramedTextAttributeProofCase.Create(
+                "AK23_HEIGHT_B",
+                AutoCadFramedTextAttributeProofStyleSlot.StyleA,
+                TimberAnnotationTextSettingsRules.MaximumItemCodePaperHeightMm,
+                TimberAnnotationScaleRules.DefaultDenominator,
+                3700d),
         ]);
 
+    /// <summary>
+    /// Framed item-height capability cases only (AK_DEV_FRAMED_ITEM_HEIGHT_*).
+    /// Expected base = paperHeightMm × annotationScaleDenominator
+    /// (A: 2.7×50=135, B: 3.5×50=175). Never use the style-proof A baseline 100.
+    /// </summary>
+    public static IReadOnlyList<AutoCadFramedTextAttributeProofCase> HeightCases { get; } =
+        Array.AsReadOnly(
+            Cases
+                .Where(IsHeightCapabilityCase)
+                .ToArray());
+
+    public static bool IsHeightCapabilityCase(
+        AutoCadFramedTextAttributeProofCase proofCase)
+    {
+        ArgumentNullException.ThrowIfNull(proofCase);
+        return proofCase.Token.StartsWith("AK23_HEIGHT_", StringComparison.Ordinal);
+    }
     public static AutoCadFramedTextAttributeProofPayload CreatePayload(
         AutoCadFramedTextAttributeProofCase proofCase,
         string expectedStyleName,

@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
+using AcKrovy.Core.Services;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Geometry;
@@ -1872,8 +1873,10 @@ internal static class AutoCadMLeaderAttrStyleCapabilityService
             return false;
         }
 
-        var classic = catalog.FindCompatible("AK_KROVY_CLASSIC");
-        var arch = catalog.FindCompatible("AK_KROVY_ARCH");
+        var classic = catalog.FindCompatible(
+            TimberAnnotationTextStylePresetRules.ClassicStyleName);
+        var arch = catalog.FindCompatible(
+            TimberAnnotationTextStylePresetRules.ArchitecturalStyleName);
         if (classic is not null &&
             arch is not null &&
             classic.TextStyleId != arch.TextStyleId)

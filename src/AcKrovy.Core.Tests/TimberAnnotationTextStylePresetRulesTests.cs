@@ -7,11 +7,18 @@ namespace AcKrovy.Core.Tests;
 public sealed class TimberAnnotationTextStylePresetRulesTests
 {
     [Fact]
-    public void GetBuiltInDefinitions_ExposesClassicAndArchitecturalNamesAndFonts()
+    public void GetBuiltInDefinitions_ExposesExactOrderedBuiltInsNamesAndFonts()
     {
         var definitions = TimberAnnotationTextStylePresetRules.GetBuiltInDefinitions();
 
-        Assert.Equal(2, definitions.Count);
+        Assert.Equal(
+            [
+                TimberAnnotationBuiltInTextStylePreset.Architectural,
+                TimberAnnotationBuiltInTextStylePreset.Classic,
+                TimberAnnotationBuiltInTextStylePreset.Technical,
+                TimberAnnotationBuiltInTextStylePreset.Arial,
+            ],
+            definitions.Select(definition => definition.BuiltInPreset));
 
         var classic = TimberAnnotationTextStylePresetRules.GetBuiltIn(
             TimberAnnotationBuiltInTextStylePreset.Classic);
@@ -44,11 +51,31 @@ public sealed class TimberAnnotationTextStylePresetRulesTests
         Assert.Equal(
             TimberAnnotationTextStylePresetRules.ArchitecturalFontFile,
             architectural.FontFile);
+
+        var technical = TimberAnnotationTextStylePresetRules.GetBuiltIn(
+            TimberAnnotationBuiltInTextStylePreset.Technical);
+        Assert.Equal("AK_KROVY_TECHNICAL", technical.AutoCadTextStyleName);
+        Assert.Equal("isocp.shx", technical.FontFile);
+        Assert.Equal(
+            TimberAnnotationTextStylePresetRules.DefaultWidthFactor,
+            technical.WidthFactor);
+        Assert.Equal(1.0d, technical.WidthFactor);
+
+        var arial = TimberAnnotationTextStylePresetRules.GetBuiltIn(
+            TimberAnnotationBuiltInTextStylePreset.Arial);
+        Assert.Equal("AK_KROVY_ARIAL", arial.AutoCadTextStyleName);
+        Assert.Equal("Arial", arial.FontFile);
+
+        Assert.Equal("AK_KROVY_ARCHITECTURAL", architectural.AutoCadTextStyleName);
+        Assert.Equal("Arial Narrow", architectural.FontFile);
+        Assert.Equal("romans.shx", classic.FontFile);
     }
 
     [Theory]
     [InlineData("AK_KROVY_CLASSIC", TimberAnnotationBuiltInTextStylePreset.Classic)]
-    [InlineData("ak_krovy_arch", TimberAnnotationBuiltInTextStylePreset.Architectural)]
+    [InlineData("ak_krovy_architectural", TimberAnnotationBuiltInTextStylePreset.Architectural)]
+    [InlineData("AK_KROVY_TECHNICAL", TimberAnnotationBuiltInTextStylePreset.Technical)]
+    [InlineData("ak_krovy_arial", TimberAnnotationBuiltInTextStylePreset.Arial)]
     public void TryResolveBuiltInByStyleName_ResolvesCaseInsensitively(
         string styleName,
         TimberAnnotationBuiltInTextStylePreset expected)
@@ -63,6 +90,8 @@ public sealed class TimberAnnotationTextStylePresetRulesTests
     [Theory]
     [InlineData("classic", TimberAnnotationBuiltInTextStylePreset.Classic)]
     [InlineData("ARCHITECTURAL", TimberAnnotationBuiltInTextStylePreset.Architectural)]
+    [InlineData("technical", TimberAnnotationBuiltInTextStylePreset.Technical)]
+    [InlineData("ARIAL", TimberAnnotationBuiltInTextStylePreset.Arial)]
     public void TryResolveBuiltInByStableId_ResolvesCaseInsensitively(
         string stableId,
         TimberAnnotationBuiltInTextStylePreset expected)
@@ -106,7 +135,16 @@ public sealed class TimberAnnotationTextStylePresetRulesTests
     public void IsAppOwnedStyleName_RecognizesBuiltInsAndUserPrefix()
     {
         Assert.True(TimberAnnotationTextStylePresetRules.IsBuiltInStyleName("AK_KROVY_CLASSIC"));
-        Assert.True(TimberAnnotationTextStylePresetRules.IsAppOwnedStyleName("AK_KROVY_ARCH"));
+        Assert.True(
+            TimberAnnotationTextStylePresetRules.IsAppOwnedStyleName(
+                "AK_KROVY_ARCHITECTURAL"));
+        Assert.True(
+            TimberAnnotationTextStylePresetRules.IsAppOwnedStyleName(
+                "AK_KROVY_TECHNICAL"));
+        Assert.True(
+            TimberAnnotationTextStylePresetRules.IsAppOwnedStyleName(
+                "AK_KROVY_ARIAL"));
+        Assert.False(TimberAnnotationTextStylePresetRules.IsAppOwnedStyleName("AK_KROVY_ARCH"));
         Assert.True(
             TimberAnnotationTextStylePresetRules.IsAppOwnedStyleName("AK_KROVY_USER_ABC123"));
         Assert.False(TimberAnnotationTextStylePresetRules.IsAppOwnedStyleName("Standard"));

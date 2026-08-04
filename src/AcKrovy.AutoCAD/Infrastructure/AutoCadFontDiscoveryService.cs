@@ -1,6 +1,7 @@
 using System.Drawing.Text;
 using System.Collections.Concurrent;
 using System.IO;
+using Autodesk.AutoCAD.DatabaseServices;
 
 namespace AcKrovy.AutoCAD.Infrastructure;
 
@@ -63,14 +64,10 @@ internal static class AutoCadFontDiscoveryService
             }
             catch
             {
-                // Font enumeration must never crash Settings. Fall back to the
-                // two built-in fonts the app owns when Windows enumeration fails.
+                // Font enumeration must never crash Settings. Arial is the
+                // guaranteed safe TTF fallback for app-owned styles.
                 fonts["Arial"] = new AutoCadDiscoveredFont("Arial", "Arial");
-                fonts["Times New Roman"] = new AutoCadDiscoveredFont(
-                    "Times New Roman",
-                    "Times New Roman");
                 AvailableFonts["Arial"] = 0;
-                AvailableFonts["Times New Roman"] = 0;
             }
 
             EnsureSeedFonts(fonts);
@@ -87,6 +84,14 @@ internal static class AutoCadFontDiscoveryService
             return false;
         }
 
+        if (string.Equals(
+                Path.GetExtension(normalized),
+                ".shx",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return IsAutoCadSupportFileAvailable(normalized);
+        }
+
         _ = ListAvailableFonts();
         if (AvailableFonts.ContainsKey(normalized))
         {
@@ -101,7 +106,7 @@ internal static class AutoCadFontDiscoveryService
     private static void EnsureSeedFonts(
         IDictionary<string, AutoCadDiscoveredFont> fonts)
     {
-        foreach (var seed in new[] { "Arial", "Times New Roman" })
+        foreach (var seed in new[] { "Arial" })
         {
             if (!fonts.ContainsKey(seed))
             {
@@ -109,6 +114,22 @@ internal static class AutoCadFontDiscoveryService
             }
 
             AvailableFonts[seed] = 0;
+        }
+    }
+
+    private static bool IsAutoCadSupportFileAvailable(string fileName)
+    {
+        try
+        {
+            var resolved = HostApplicationServices.Current.FindFile(
+                fileName,
+                HostApplicationServices.WorkingDatabase,
+                FindFileHint.Default);
+            return !string.IsNullOrWhiteSpace(resolved) && File.Exists(resolved);
+        }
+        catch
+        {
+            return false;
         }
     }
 }

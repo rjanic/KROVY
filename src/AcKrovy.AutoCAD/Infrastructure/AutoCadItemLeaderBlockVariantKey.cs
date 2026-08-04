@@ -16,8 +16,10 @@ internal enum AutoCadItemLeaderBlockFrameKind
 
 internal enum AutoCadItemLeaderTextStyleIdentityKind
 {
-    Classic,
     Architectural,
+    Classic,
+    Technical,
+    Arial,
     User,
 }
 
@@ -43,11 +45,17 @@ internal sealed record AutoCadItemLeaderTextStyleIdentity
         StableId = stableId.Trim();
     }
 
+    public static AutoCadItemLeaderTextStyleIdentity Architectural { get; } =
+        new(AutoCadItemLeaderTextStyleIdentityKind.Architectural, "architectural");
+
     public static AutoCadItemLeaderTextStyleIdentity Classic { get; } =
         new(AutoCadItemLeaderTextStyleIdentityKind.Classic, "classic");
 
-    public static AutoCadItemLeaderTextStyleIdentity Architectural { get; } =
-        new(AutoCadItemLeaderTextStyleIdentityKind.Architectural, "architectural");
+    public static AutoCadItemLeaderTextStyleIdentity Technical { get; } =
+        new(AutoCadItemLeaderTextStyleIdentityKind.Technical, "technical");
+
+    public static AutoCadItemLeaderTextStyleIdentity Arial { get; } =
+        new(AutoCadItemLeaderTextStyleIdentityKind.Arial, "arial");
 
     public static AutoCadItemLeaderTextStyleIdentity User(string stableId) =>
         new(AutoCadItemLeaderTextStyleIdentityKind.User, stableId);
@@ -56,12 +64,19 @@ internal sealed record AutoCadItemLeaderTextStyleIdentity
         string? styleName)
     {
         var normalized = styleName?.Trim();
-        if (string.Equals(
+        if (TimberAnnotationTextStylePresetRules.TryResolveBuiltInByStyleName(
                 normalized,
-                TimberAnnotationTextStylePresetRules.ArchitecturalStyleName,
-                StringComparison.OrdinalIgnoreCase))
+                out var builtIn) &&
+            builtIn?.BuiltInPreset is { } preset)
         {
-            return Architectural;
+            return preset switch
+            {
+                TimberAnnotationBuiltInTextStylePreset.Architectural => Architectural,
+                TimberAnnotationBuiltInTextStylePreset.Classic => Classic,
+                TimberAnnotationBuiltInTextStylePreset.Technical => Technical,
+                TimberAnnotationBuiltInTextStylePreset.Arial => Arial,
+                _ => Arial,
+            };
         }
         if (normalized is not null &&
             normalized.StartsWith(
@@ -76,18 +91,16 @@ internal sealed record AutoCadItemLeaderTextStyleIdentity
             }
         }
 
-        return Classic;
+        return User(string.IsNullOrWhiteSpace(normalized)
+            ? "UNSPECIFIED"
+            : normalized);
     }
 
     public string CreateNameToken()
     {
-        if (Kind == AutoCadItemLeaderTextStyleIdentityKind.Classic)
+        if (Kind != AutoCadItemLeaderTextStyleIdentityKind.User)
         {
-            return "CLASSIC";
-        }
-        if (Kind == AutoCadItemLeaderTextStyleIdentityKind.Architectural)
-        {
-            return "ARCH";
+            return Kind.ToString().ToUpperInvariant();
         }
 
         var safeStableId = new string(StableId

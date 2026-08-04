@@ -446,6 +446,8 @@
   <data name="Command_Settings_PromptApplyAnnotations" xml:space="preserve"><value>Vyberte inteligentní prvky, na které se má použít režim a styl anotace:</value></data>
   <data name="SettingsTextStylePreset_Classic" xml:space="preserve"><value>Klasický</value></data>
   <data name="SettingsTextStylePreset_Architectural" xml:space="preserve"><value>Architektonický</value></data>
+  <data name="SettingsTextStylePreset_Technical" xml:space="preserve"><value>Technický</value></data>
+  <data name="SettingsTextStylePreset_Arial" xml:space="preserve"><value>Arial</value></data>
   <data name="DiagnosticsEvent_SubjectTextStylePresets" xml:space="preserve"><value>Předvolby textových stylů</value></data>
   <data name="SettingsWindow_AnnotationText_StylesTitle" xml:space="preserve"><value>Textové styly</value></data>
   <data name="SettingsWindow_AnnotationText_NewStyle" xml:space="preserve"><value>Nový styl</value></data>
@@ -465,10 +467,16 @@
   <data name="SettingsWindow_AnnotationText_PaperHeight" xml:space="preserve"><value>Výška na papíře (mm)</value></data>
   <data name="SettingsWindow_AnnotationText_ModelHeightFormat" xml:space="preserve"><value>Model: {0} mm</value></data>
   <data name="SettingsWindow_AnnotationText_Preview" xml:space="preserve"><value>Náhled</value></data>
+  <data name="SettingsWindow_AnnotationText_SelectedStylePreview" xml:space="preserve"><value>Náhled vybraného stylu</value></data>
+  <data name="SettingsWindow_AnnotationText_Style" xml:space="preserve"><value>Styl</value></data>
+  <data name="SettingsWindow_AnnotationText_AutoCadStyle" xml:space="preserve"><value>Styl AutoCAD</value></data>
+  <data name="SettingsWindow_AnnotationText_Type" xml:space="preserve"><value>Typ</value></data>
   <data name="SettingsWindow_AnnotationText_BlocksNote" xml:space="preserve"><value>Symboly "=" a "⊥" jsou bloky a textový styl je neovlivní.</value></data>
   <data name="SettingsWindow_AnnotationText_Mixed" xml:space="preserve"><value>Různé</value></data>
   <data name="SettingsWindow_AnnotationText_DuplicateName" xml:space="preserve"><value>Styl s tímto názvem již existuje.</value></data>
   <data name="SettingsWindow_AnnotationText_MissingFont" xml:space="preserve"><value>Vybraný font není dostupný.</value></data>
+  <data name="SettingsWindow_AnnotationText_FontFallbackArial" xml:space="preserve"><value>Požadovaný font není dostupný. AutoCAD dočasně použije Arial a styl obnoví po zpřístupnění fontu.</value></data>
+  <data name="SettingsWindow_AnnotationText_ShxPreviewApproximation" xml:space="preserve"><value>Náhled fontu SHX je přibližný; AutoCAD použije skutečný font SHX.</value></data>
   <data name="SettingsWindow_AnnotationText_DeleteInUse" xml:space="preserve"><value>Styl nelze odstranit, protože jej používá alespoň jedna textová role.</value></data>
   <data name="SettingsWindow_AnnotationText_InvalidHeight" xml:space="preserve"><value>Výška textu musí být v povoleném rozsahu.</value></data>
 </root>

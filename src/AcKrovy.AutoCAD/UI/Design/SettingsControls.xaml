@@ -216,6 +216,7 @@
                                               Content="{TemplateBinding SelectionBoxItem}"
                                               ContentStringFormat="{TemplateBinding SelectionBoxItemStringFormat}"
                                               ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                              ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"
                                               SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
                         </Border>
 

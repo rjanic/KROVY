@@ -246,6 +246,30 @@ public sealed class TimberAnnotationTextSettingsRulesTests
     }
 
     [Fact]
+    public void NormalizeStored_MigratesOnlyLegacyArchitecturalName()
+    {
+        var normalized = TimberAnnotationTextSettingsRules.NormalizeStored(
+            new TimberAnnotationTextSettings(
+                TimberAnnotationTextStylePresetRules.ClassicStyleName,
+                TimberAnnotationTextStylePresetRules.LegacyArchitecturalStyleName,
+                TimberAnnotationTextStylePresetRules.ArialStyleName,
+                2.7d,
+                2.5d,
+                1.6d));
+
+        Assert.NotNull(normalized);
+        Assert.Equal(
+            TimberAnnotationTextStylePresetRules.ClassicStyleName,
+            normalized.ItemCodeTextStyleName);
+        Assert.Equal(
+            TimberAnnotationTextStylePresetRules.ArchitecturalStyleName,
+            normalized.DimensionTextStyleName);
+        Assert.Equal(
+            TimberAnnotationTextStylePresetRules.ArialStyleName,
+            normalized.SlopeTextStyleName);
+    }
+
+    [Fact]
     public void NormalizeStored_InvalidFieldsFallBackToFactoryValuesNotBoundaries()
     {
         var invalid = TimberAnnotationTextSettings.Shared(

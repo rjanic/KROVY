@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Globalization;
+using System.IO;
 using System.Windows;
 using AcKrovy.AutoCAD.Infrastructure;
 using AcKrovy.AutoCAD.Settings;
@@ -111,6 +112,13 @@ public partial class LayerSettingsWindow
             _selectedTextStylePresetItem = value;
             OnPropertyChanged();
             OnPropertyChanged(nameof(CanEditSelectedTextStylePreset));
+            OnPropertyChanged(nameof(SelectedTextStylePreviewFontFamily));
+            OnPropertyChanged(nameof(SelectedTextStylePreviewFontWeight));
+            OnPropertyChanged(nameof(IsApproximatePreview));
+            OnPropertyChanged(nameof(SelectedTextStylePreviewStatus));
+            OnPropertyChanged(nameof(SelectedTextStyleAutoCadName));
+            OnPropertyChanged(nameof(SelectedTextStyleFontName));
+            OnPropertyChanged(nameof(SelectedTextStyleType));
         }
     }
 
@@ -185,6 +193,39 @@ public partial class LayerSettingsWindow
 
     public WpfFontFamily TextStyleEditorPreviewFontFamily =>
         CreatePreviewFontFamily(TextStyleEditorFont);
+
+    private AnnotationTextPreviewPresentation SelectedTextStylePreview =>
+        ResolvePreviewPresentation(
+            SelectedTextStylePresetItem?.FontFile
+            ?? TimberAnnotationTextStylePresetRules.ArialFontFile);
+
+    public WpfFontFamily SelectedTextStylePreviewFontFamily =>
+        SelectedTextStylePreview.FontFamily;
+
+    public FontWeight SelectedTextStylePreviewFontWeight =>
+        SelectedTextStylePreview.FontWeight;
+
+    public bool IsApproximatePreview =>
+        SelectedTextStylePreview.IsApproximate;
+
+    public string SelectedTextStylePreviewStatus =>
+        SelectedTextStylePresetItem is null
+            ? string.Empty
+            : ResolvePreviewStatus(SelectedTextStylePresetItem.AutoCadTextStyleName);
+
+    public string SelectedTextStyleAutoCadName =>
+        SelectedTextStylePresetItem?.AutoCadTextStyleName ?? string.Empty;
+
+    public string SelectedTextStyleFontName =>
+        SelectedTextStylePresetItem?.FontFile ?? string.Empty;
+
+    public string SelectedTextStyleType =>
+        string.Equals(
+            Path.GetExtension(SelectedTextStylePresetItem?.FontFile),
+            ".shx",
+            StringComparison.OrdinalIgnoreCase)
+            ? "SHX"
+            : "TrueType";
 
     public AnnotationTextStyleKind ItemCodeStyleKind
     {
@@ -268,17 +309,44 @@ public partial class LayerSettingsWindow
             ? UiStrings.GetString("SettingsWindow_AnnotationText_Mixed", _uiCulture)
             : "35\u00B0";
 
-    public WpfFontFamily ItemCodePreviewFontFamily =>
-        CreatePreviewFontFamily(ResolveFontFileForStyleName(
+    private AnnotationTextPreviewPresentation ItemCodePreview =>
+        ResolvePreviewPresentation(ResolveFontFileForStyleName(
             _pendingTextSettings.ItemCodeTextStyleName));
 
-    public WpfFontFamily DimensionPreviewFontFamily =>
-        CreatePreviewFontFamily(ResolveFontFileForStyleName(
+    public WpfFontFamily ItemCodePreviewFontFamily =>
+        ItemCodePreview.FontFamily;
+
+    public FontWeight ItemCodePreviewFontWeight =>
+        ItemCodePreview.FontWeight;
+
+    private AnnotationTextPreviewPresentation DimensionPreview =>
+        ResolvePreviewPresentation(ResolveFontFileForStyleName(
             _pendingTextSettings.DimensionTextStyleName));
 
-    public WpfFontFamily SlopePreviewFontFamily =>
-        CreatePreviewFontFamily(ResolveFontFileForStyleName(
+    public WpfFontFamily DimensionPreviewFontFamily =>
+        DimensionPreview.FontFamily;
+
+    public FontWeight DimensionPreviewFontWeight =>
+        DimensionPreview.FontWeight;
+
+    private AnnotationTextPreviewPresentation SlopePreview =>
+        ResolvePreviewPresentation(ResolveFontFileForStyleName(
             _pendingTextSettings.SlopeTextStyleName));
+
+    public WpfFontFamily SlopePreviewFontFamily =>
+        SlopePreview.FontFamily;
+
+    public FontWeight SlopePreviewFontWeight =>
+        SlopePreview.FontWeight;
+
+    public string ItemCodePreviewStatus =>
+        ResolveRolePreviewStatus(_pendingTextSettings.ItemCodeTextStyleName);
+
+    public string DimensionPreviewStatus =>
+        ResolveRolePreviewStatus(_pendingTextSettings.DimensionTextStyleName);
+
+    public string SlopePreviewStatus =>
+        ResolveRolePreviewStatus(_pendingTextSettings.SlopeTextStyleName);
 
     private void InitializeAnnotationTextSettings(TimberElementDefaultProfile profile)
     {
@@ -326,11 +394,17 @@ public partial class LayerSettingsWindow
         TextStyleKindOptions = new ObservableCollection<TextStyleKindOption>(
         [
             new(
+                AnnotationTextStyleKind.Architectural,
+                UiStrings.GetString("SettingsTextStylePreset_Architectural", _uiCulture)),
+            new(
                 AnnotationTextStyleKind.Classic,
                 UiStrings.GetString("SettingsTextStylePreset_Classic", _uiCulture)),
             new(
-                AnnotationTextStyleKind.Architectural,
-                UiStrings.GetString("SettingsTextStylePreset_Architectural", _uiCulture)),
+                AnnotationTextStyleKind.Technical,
+                UiStrings.GetString("SettingsTextStylePreset_Technical", _uiCulture)),
+            new(
+                AnnotationTextStyleKind.Arial,
+                UiStrings.GetString("SettingsTextStylePreset_Arial", _uiCulture)),
             new(
                 AnnotationTextStyleKind.Custom,
                 UiStrings.GetString("SettingsWindow_AnnotationText_Custom", _uiCulture)),
@@ -361,6 +435,8 @@ public partial class LayerSettingsWindow
         {
             items.Add(TextStylePresetListItem.FromDefinition(definition, _uiCulture));
         }
+
+        items.Add(TextStylePresetListItem.FromCustomCategory(_uiCulture));
 
         foreach (var preset in _textStyleLibrary.Normalize().Presets)
         {
@@ -453,9 +529,18 @@ public partial class LayerSettingsWindow
                 out var definition) &&
             definition is not null)
         {
-            return definition.BuiltInPreset == TimberAnnotationBuiltInTextStylePreset.Architectural
-                ? AnnotationTextStyleKind.Architectural
-                : AnnotationTextStyleKind.Classic;
+            return definition.BuiltInPreset switch
+            {
+                TimberAnnotationBuiltInTextStylePreset.Architectural =>
+                    AnnotationTextStyleKind.Architectural,
+                TimberAnnotationBuiltInTextStylePreset.Classic =>
+                    AnnotationTextStyleKind.Classic,
+                TimberAnnotationBuiltInTextStylePreset.Technical =>
+                    AnnotationTextStyleKind.Technical,
+                TimberAnnotationBuiltInTextStylePreset.Arial =>
+                    AnnotationTextStyleKind.Arial,
+                _ => AnnotationTextStyleKind.Arial,
+            };
         }
 
         return AnnotationTextStyleKind.Custom;
@@ -480,13 +565,17 @@ public partial class LayerSettingsWindow
 
         var styleName = value switch
         {
-            AnnotationTextStyleKind.Classic =>
-                TimberAnnotationTextStylePresetRules.ClassicStyleName,
             AnnotationTextStyleKind.Architectural =>
                 TimberAnnotationTextStylePresetRules.ArchitecturalStyleName,
+            AnnotationTextStyleKind.Classic =>
+                TimberAnnotationTextStylePresetRules.ClassicStyleName,
+            AnnotationTextStyleKind.Technical =>
+                TimberAnnotationTextStylePresetRules.TechnicalStyleName,
+            AnnotationTextStyleKind.Arial =>
+                TimberAnnotationTextStylePresetRules.ArialStyleName,
             _ => GetRoleCustomStyleName(role)
                 ?? CustomTextStylePresetItems.FirstOrDefault()?.AutoCadTextStyleName
-                ?? TimberAnnotationTextStylePresetRules.ClassicStyleName,
+                ?? TimberAnnotationTextStylePresetRules.ArialStyleName,
         };
         ApplyPendingRoleStyle(role, styleName);
     }
@@ -618,10 +707,14 @@ public partial class LayerSettingsWindow
         var kind = GetRoleStyleKind(role);
         return kind switch
         {
-            AnnotationTextStyleKind.Classic =>
-                TimberAnnotationTextStylePresetRules.ClassicStyleName,
             AnnotationTextStyleKind.Architectural =>
                 TimberAnnotationTextStylePresetRules.ArchitecturalStyleName,
+            AnnotationTextStyleKind.Classic =>
+                TimberAnnotationTextStylePresetRules.ClassicStyleName,
+            AnnotationTextStyleKind.Technical =>
+                TimberAnnotationTextStylePresetRules.TechnicalStyleName,
+            AnnotationTextStyleKind.Arial =>
+                TimberAnnotationTextStylePresetRules.ArialStyleName,
             _ => GetRoleCustomStyleName(role)
                 ?? _pendingTextSettings.GetTextStyleName(role),
         };
@@ -730,7 +823,7 @@ public partial class LayerSettingsWindow
             return;
         }
 
-        ReplacePendingStyleWithClassic(preset.AutoCadTextStyleName);
+        ReplacePendingStyleWithArial(preset.AutoCadTextStyleName);
         _textStyleLibrary.Presets.RemoveAll(existing =>
             string.Equals(
                 existing.StableId,
@@ -742,7 +835,7 @@ public partial class LayerSettingsWindow
         UpdateFormState();
     }
 
-    private void ReplacePendingStyleWithClassic(string deletedStyleName)
+    private void ReplacePendingStyleWithArial(string deletedStyleName)
     {
         foreach (var role in Enum.GetValues<TimberAnnotationTextRole>())
         {
@@ -753,7 +846,7 @@ public partial class LayerSettingsWindow
             {
                 _pendingTextSettings = _pendingTextSettings.WithRole(
                     role,
-                    TimberAnnotationTextStylePresetRules.ClassicStyleName,
+                    TimberAnnotationTextStylePresetRules.ArialStyleName,
                     _pendingTextSettings.GetPaperHeightMm(role));
             }
         }
@@ -937,7 +1030,38 @@ public partial class LayerSettingsWindow
                 styleName,
                 StringComparison.OrdinalIgnoreCase));
         return user?.FontFile
-            ?? TimberAnnotationTextStylePresetRules.ClassicFontFile;
+            ?? TimberAnnotationTextStylePresetRules.ArialFontFile;
+    }
+
+    private string ResolvePreviewStatus(string styleName)
+    {
+        var fontFile = ResolveFontFileForStyleName(styleName);
+        if (!AutoCadFontDiscoveryService.IsFontAvailable(fontFile))
+        {
+            return UiStrings.GetString(
+                "SettingsWindow_AnnotationText_FontFallbackArial",
+                _uiCulture);
+        }
+
+        return string.Equals(
+                Path.GetExtension(fontFile),
+                ".shx",
+                StringComparison.OrdinalIgnoreCase)
+            ? UiStrings.GetString(
+                "SettingsWindow_AnnotationText_ShxPreviewApproximation",
+                _uiCulture)
+            : string.Empty;
+    }
+
+    private string ResolveRolePreviewStatus(string styleName)
+    {
+        var fontFile = ResolveFontFileForStyleName(styleName);
+        return !IsShxFont(fontFile) &&
+            !AutoCadFontDiscoveryService.IsFontAvailable(fontFile)
+                ? UiStrings.GetString(
+                    "SettingsWindow_AnnotationText_FontFallbackArial",
+                    _uiCulture)
+                : string.Empty;
     }
 
     private string FormatRoleModelHeight(TimberAnnotationTextRole role)
@@ -984,11 +1108,24 @@ public partial class LayerSettingsWindow
         OnPropertyChanged(nameof(DimensionPreviewSample));
         OnPropertyChanged(nameof(SlopePreviewSample));
         OnPropertyChanged(nameof(ItemCodePreviewFontFamily));
+        OnPropertyChanged(nameof(ItemCodePreviewFontWeight));
         OnPropertyChanged(nameof(DimensionPreviewFontFamily));
+        OnPropertyChanged(nameof(DimensionPreviewFontWeight));
         OnPropertyChanged(nameof(SlopePreviewFontFamily));
+        OnPropertyChanged(nameof(SlopePreviewFontWeight));
+        OnPropertyChanged(nameof(ItemCodePreviewStatus));
+        OnPropertyChanged(nameof(DimensionPreviewStatus));
+        OnPropertyChanged(nameof(SlopePreviewStatus));
         OnPropertyChanged(nameof(CanEditSelectedTextStylePreset));
         OnPropertyChanged(nameof(IsTextStyleEditorVisible));
         OnPropertyChanged(nameof(TextStyleEditorPreviewFontFamily));
+        OnPropertyChanged(nameof(SelectedTextStylePreviewFontFamily));
+        OnPropertyChanged(nameof(SelectedTextStylePreviewFontWeight));
+        OnPropertyChanged(nameof(IsApproximatePreview));
+        OnPropertyChanged(nameof(SelectedTextStylePreviewStatus));
+        OnPropertyChanged(nameof(SelectedTextStyleAutoCadName));
+        OnPropertyChanged(nameof(SelectedTextStyleFontName));
+        OnPropertyChanged(nameof(SelectedTextStyleType));
     }
 
     private void NotifyAnnotationTextPreviewChanged(TimberAnnotationTextRole role)
@@ -999,14 +1136,20 @@ public partial class LayerSettingsWindow
             case TimberAnnotationTextRole.ItemCode:
                 OnPropertyChanged(nameof(ItemCodePreviewSample));
                 OnPropertyChanged(nameof(ItemCodePreviewFontFamily));
+                OnPropertyChanged(nameof(ItemCodePreviewFontWeight));
+                OnPropertyChanged(nameof(ItemCodePreviewStatus));
                 break;
             case TimberAnnotationTextRole.Dimension:
                 OnPropertyChanged(nameof(DimensionPreviewSample));
                 OnPropertyChanged(nameof(DimensionPreviewFontFamily));
+                OnPropertyChanged(nameof(DimensionPreviewFontWeight));
+                OnPropertyChanged(nameof(DimensionPreviewStatus));
                 break;
             case TimberAnnotationTextRole.Slope:
                 OnPropertyChanged(nameof(SlopePreviewSample));
                 OnPropertyChanged(nameof(SlopePreviewFontFamily));
+                OnPropertyChanged(nameof(SlopePreviewFontWeight));
+                OnPropertyChanged(nameof(SlopePreviewStatus));
                 break;
         }
     }
@@ -1034,18 +1177,62 @@ public partial class LayerSettingsWindow
         _slopeRoleDirty,
     };
 
-    private static WpfFontFamily CreatePreviewFontFamily(string fontFile)
+    private static WpfFontFamily CreatePreviewFontFamily(string fontFile) =>
+        ResolvePreviewPresentation(fontFile).FontFamily;
+
+    private static AnnotationTextPreviewPresentation ResolvePreviewPresentation(
+        string fontFile)
     {
+        if (string.Equals(
+                fontFile,
+                TimberAnnotationTextStylePresetRules.ClassicFontFile,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return new AnnotationTextPreviewPresentation(
+                new WpfFontFamily("Times New Roman"),
+                FontWeights.Normal,
+                IsApproximate: true);
+        }
+        if (string.Equals(
+                fontFile,
+                TimberAnnotationTextStylePresetRules.TechnicalFontFile,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return new AnnotationTextPreviewPresentation(
+                new WpfFontFamily("Bahnschrift"),
+                FontWeights.Light,
+                IsApproximate: true);
+        }
+        if (IsShxFont(fontFile))
+        {
+            return new AnnotationTextPreviewPresentation(
+                new WpfFontFamily("Segoe UI"),
+                FontWeights.Light,
+                IsApproximate: true);
+        }
+
         try
         {
-            return new WpfFontFamily(fontFile);
+            return new AnnotationTextPreviewPresentation(
+                new WpfFontFamily(fontFile),
+                FontWeights.Normal,
+                IsApproximate: false);
         }
         catch
         {
-            return new WpfFontFamily(
-                TimberAnnotationTextStylePresetRules.ClassicFontFile);
+            return new AnnotationTextPreviewPresentation(
+                new WpfFontFamily(
+                    TimberAnnotationTextStylePresetRules.ArialFontFile),
+                FontWeights.Normal,
+                IsApproximate: false);
         }
     }
+
+    private static bool IsShxFont(string? fontFile) =>
+        string.Equals(
+            Path.GetExtension(fontFile),
+            ".shx",
+            StringComparison.OrdinalIgnoreCase);
 
     private static bool TryReadPaperHeight(
         TimberAnnotationTextRole role,
@@ -1261,12 +1448,19 @@ public enum AnnotationTextStyleKind
 {
     Classic = 0,
     Architectural = 1,
-    Custom = 2,
+    Technical = 2,
+    Arial = 3,
+    Custom = 4,
 }
 
 public sealed record TextStyleKindOption(
     AnnotationTextStyleKind Kind,
     string DisplayName);
+
+internal readonly record struct AnnotationTextPreviewPresentation(
+    WpfFontFamily FontFamily,
+    FontWeight FontWeight,
+    bool IsApproximate);
 
 public sealed class TextStylePresetListItem
 {
@@ -1299,6 +1493,14 @@ public sealed class TextStylePresetListItem
             SettingsTextStylePresetDisplayNameProvider.GetDisplayName(definition, culture),
             definition.AutoCadTextStyleName,
             definition.FontFile);
+
+    public static TextStylePresetListItem FromCustomCategory(CultureInfo culture) =>
+        new(
+            "ui-custom-category",
+            TimberAnnotationTextStylePresetKind.BuiltIn,
+            UiStrings.GetString("SettingsWindow_AnnotationText_Custom", culture),
+            string.Empty,
+            TimberAnnotationTextStylePresetRules.ArialFontFile);
 
     public static TextStylePresetListItem FromUserPreset(
         TimberAnnotationUserTextStylePreset preset) =>

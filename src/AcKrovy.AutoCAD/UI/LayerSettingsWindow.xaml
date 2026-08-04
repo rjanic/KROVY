@@ -723,32 +723,42 @@
                                 <TabItem x:Name="AnnotationTextsTab"
                                          Header="{localization:Loc SettingsWindow_AnnotationCategory_Texts}"
                                          Style="{StaticResource AnnotationCategoryTabStyle}">
-                                    <Border Style="{DynamicResource SettingsCardStyle}">
-                                        <Grid>
+                                    <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                                                  VerticalScrollBarVisibility="Auto">
+                                        <Grid Margin="0,0,2,0">
                                             <Grid.RowDefinitions>
                                                 <RowDefinition Height="Auto" />
-                                                <RowDefinition Height="10" />
-                                                <RowDefinition Height="*" />
+                                                <RowDefinition Height="7" />
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="7" />
                                                 <RowDefinition Height="Auto" />
                                             </Grid.RowDefinitions>
 
-                                            <Border Padding="10"
-                                                    Background="{DynamicResource SettingsPanelBackgroundBrush}"
-                                                    BorderBrush="{DynamicResource SettingsBorderBrush}"
-                                                    BorderThickness="1"
-                                                    CornerRadius="{DynamicResource SettingsCornerRadius}">
-                                                <Grid>
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="220" />
-                                                        <ColumnDefinition Width="10" />
-                                                        <ColumnDefinition Width="*" />
-                                                    </Grid.ColumnDefinitions>
-                                                    <StackPanel>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="295" MinWidth="280" MaxWidth="310" />
+                                                    <ColumnDefinition Width="7" />
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
+
+                                                <Border Padding="10"
+                                                        Background="{DynamicResource SettingsPanelBackgroundBrush}"
+                                                        BorderBrush="{DynamicResource SettingsBorderBrush}"
+                                                        BorderThickness="1"
+                                                        CornerRadius="{DynamicResource SettingsCornerRadius}">
+                                                    <Grid>
+                                                        <Grid.RowDefinitions>
+                                                            <RowDefinition Height="Auto" />
+                                                            <RowDefinition Height="*" />
+                                                            <RowDefinition Height="Auto" />
+                                                        </Grid.RowDefinitions>
                                                         <TextBlock FontWeight="SemiBold"
                                                                    Text="{localization:Loc SettingsWindow_AnnotationText_StylesTitle}" />
                                                         <ListBox x:Name="AnnotationTextStyleLibraryList"
-                                                                 Margin="0,6,0,8"
-                                                                 Height="118"
+                                                                 Grid.Row="1"
+                                                                 Margin="0,5,0,6"
+                                                                 MinHeight="142"
+                                                                 MaxHeight="164"
                                                                  ItemsSource="{Binding TextStylePresetItems}"
                                                                  SelectedItem="{Binding SelectedTextStylePresetItem, Mode=TwoWay}"
                                                                  Background="Transparent"
@@ -758,232 +768,329 @@
                                                                  ScrollViewer.VerticalScrollBarVisibility="Auto">
                                                             <ListBox.ItemTemplate>
                                                                 <DataTemplate>
-                                                                    <TextBlock Text="{Binding DisplayName}"
-                                                                               Foreground="{DynamicResource SettingsTextPrimaryBrush}"
-                                                                               FontWeight="SemiBold" />
+                                                                    <Grid>
+                                                                        <Grid.ColumnDefinitions>
+                                                                            <ColumnDefinition Width="32" />
+                                                                            <ColumnDefinition Width="*" />
+                                                                        </Grid.ColumnDefinitions>
+                                                                        <Border Width="25"
+                                                                                Height="25"
+                                                                                HorizontalAlignment="Left"
+                                                                                Background="{DynamicResource SettingsAnnotationPreviewBackgroundBrush}"
+                                                                                BorderBrush="{DynamicResource SettingsBorderBrush}"
+                                                                                BorderThickness="1"
+                                                                                CornerRadius="{DynamicResource SettingsCornerRadiusSmall}">
+                                                                            <TextBlock HorizontalAlignment="Center"
+                                                                                       VerticalAlignment="Center"
+                                                                                       FontFamily="{Binding FontFile}"
+                                                                                       FontWeight="SemiBold"
+                                                                                       Text="A" />
+                                                                        </Border>
+                                                                        <TextBlock Grid.Column="1"
+                                                                                   VerticalAlignment="Center"
+                                                                                   Foreground="{DynamicResource SettingsTextPrimaryBrush}"
+                                                                                   FontWeight="SemiBold"
+                                                                                   Text="{Binding DisplayName}"
+                                                                                   TextTrimming="CharacterEllipsis" />
+                                                                    </Grid>
                                                                 </DataTemplate>
                                                             </ListBox.ItemTemplate>
                                                         </ListBox>
-                                                        <UniformGrid Columns="2">
-                                                            <Button Margin="0,0,4,4"
-                                                                    Padding="8,4"
+                                                        <UniformGrid Grid.Row="2" Columns="2">
+                                                            <Button Margin="0,0,3,3"
+                                                                    Padding="6,3"
                                                                     Content="{localization:Loc SettingsWindow_AnnotationText_NewStyle}"
                                                                     Click="AnnotationTextNewStyle_Click" />
-                                                            <Button Margin="4,0,0,4"
-                                                                    Padding="8,4"
+                                                            <Button Margin="3,0,0,3"
+                                                                    Padding="6,3"
                                                                     Content="{localization:Loc SettingsWindow_AnnotationText_EditStyle}"
                                                                     IsEnabled="{Binding CanEditSelectedTextStylePreset}"
                                                                     Click="AnnotationTextEditStyle_Click" />
-                                                            <Button Margin="0,4,4,0"
-                                                                    Padding="8,4"
+                                                            <Button Margin="0,3,3,0"
+                                                                    Padding="6,3"
                                                                     Content="{localization:Loc SettingsWindow_AnnotationText_RenameStyle}"
                                                                     IsEnabled="{Binding CanEditSelectedTextStylePreset}"
                                                                     Click="AnnotationTextRenameStyle_Click" />
-                                                            <Button Margin="4,4,0,0"
-                                                                    Padding="8,4"
+                                                            <Button Margin="3,3,0,0"
+                                                                    Padding="6,3"
                                                                     Content="{localization:Loc SettingsWindow_AnnotationText_DeleteStyle}"
                                                                     IsEnabled="{Binding CanEditSelectedTextStylePreset}"
                                                                     Click="AnnotationTextDeleteStyle_Click" />
                                                         </UniformGrid>
-                                                    </StackPanel>
+                                                    </Grid>
+                                                </Border>
 
-                                                    <Border Grid.Column="2"
-                                                            Padding="10"
-                                                            Background="{DynamicResource SettingsAnnotationPreviewBackgroundBrush}"
-                                                            BorderBrush="{DynamicResource SettingsBorderBrush}"
-                                                            BorderThickness="1"
-                                                            CornerRadius="{DynamicResource SettingsCornerRadiusSmall}"
-                                                            Visibility="{Binding IsTextStyleEditorVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                                        <Grid>
-                                                            <Grid.ColumnDefinitions>
-                                                                <ColumnDefinition Width="*" />
-                                                                <ColumnDefinition Width="12" />
-                                                                <ColumnDefinition Width="180" />
-                                                            </Grid.ColumnDefinitions>
-                                                            <Grid>
-                                                                <Grid.RowDefinitions>
-                                                                    <RowDefinition Height="Auto" />
-                                                                    <RowDefinition Height="Auto" />
-                                                                    <RowDefinition Height="Auto" />
-                                                                    <RowDefinition Height="Auto" />
-                                                                    <RowDefinition Height="Auto" />
-                                                                </Grid.RowDefinitions>
-                                                                <Grid.ColumnDefinitions>
-                                                                    <ColumnDefinition Width="120" />
-                                                                    <ColumnDefinition Width="*" />
-                                                                </Grid.ColumnDefinitions>
-                                                                <TextBlock VerticalAlignment="Center"
-                                                                           Text="{localization:Loc SettingsWindow_AnnotationText_StyleName}" />
-                                                                <TextBox Grid.Column="1"
-                                                                         Margin="0,0,0,6"
-                                                                         Text="{Binding TextStyleEditorName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                                                                <TextBlock Grid.Row="1"
-                                                                           VerticalAlignment="Center"
+                                                <Border Grid.Column="2"
+                                                        Padding="10"
+                                                        Background="{DynamicResource SettingsAnnotationPreviewBackgroundBrush}"
+                                                        BorderBrush="{DynamicResource SettingsBorderBrush}"
+                                                        BorderThickness="1"
+                                                        CornerRadius="{DynamicResource SettingsCornerRadius}">
+                                                    <Grid>
+                                                        <Grid.RowDefinitions>
+                                                            <RowDefinition Height="Auto" />
+                                                            <RowDefinition Height="*" />
+                                                            <RowDefinition Height="Auto" />
+                                                            <RowDefinition Height="Auto" />
+                                                        </Grid.RowDefinitions>
+                                                        <TextBlock FontWeight="SemiBold"
+                                                                   Text="{localization:Loc SettingsWindow_AnnotationText_SelectedStylePreview}" />
+                                                        <UniformGrid Grid.Row="1" Margin="0,6,0,5" Columns="3">
+                                                            <StackPanel HorizontalAlignment="Center">
+                                                                <TextBlock HorizontalAlignment="Center"
+                                                                           FontSize="26"
+                                                                           FontWeight="{Binding SelectedTextStylePreviewFontWeight}"
+                                                                           FontFamily="{Binding SelectedTextStylePreviewFontFamily}"
+                                                                           Text="K1" />
+                                                                <TextBlock Margin="0,1,0,0"
+                                                                           HorizontalAlignment="Center"
+                                                                           Style="{DynamicResource SettingsDescriptionStyle}"
+                                                                           Text="{localization:Loc SettingsWindow_AnnotationText_ItemCodeRole}" />
+                                                            </StackPanel>
+                                                            <StackPanel HorizontalAlignment="Center">
+                                                                <TextBlock HorizontalAlignment="Center"
+                                                                           FontSize="26"
+                                                                           FontWeight="{Binding SelectedTextStylePreviewFontWeight}"
+                                                                           FontFamily="{Binding SelectedTextStylePreviewFontFamily}"
+                                                                           Text="80/160" />
+                                                                <TextBlock Margin="0,1,0,0"
+                                                                           HorizontalAlignment="Center"
+                                                                           Style="{DynamicResource SettingsDescriptionStyle}"
+                                                                           Text="{localization:Loc SettingsWindow_AnnotationText_DimensionRole}" />
+                                                            </StackPanel>
+                                                            <StackPanel HorizontalAlignment="Center">
+                                                                <TextBlock HorizontalAlignment="Center"
+                                                                           FontSize="26"
+                                                                           FontWeight="{Binding SelectedTextStylePreviewFontWeight}"
+                                                                           FontFamily="{Binding SelectedTextStylePreviewFontFamily}"
+                                                                           Text="35°" />
+                                                                <TextBlock Margin="0,1,0,0"
+                                                                           HorizontalAlignment="Center"
+                                                                           Style="{DynamicResource SettingsDescriptionStyle}"
+                                                                           Text="{localization:Loc SettingsWindow_AnnotationText_SlopeRole}" />
+                                                            </StackPanel>
+                                                        </UniformGrid>
+                                                        <UniformGrid Grid.Row="2" Columns="3">
+                                                            <StackPanel Margin="0,0,8,0">
+                                                                <TextBlock FontWeight="SemiBold"
+                                                                           Style="{DynamicResource SettingsDescriptionStyle}"
+                                                                           Text="{localization:Loc SettingsWindow_AnnotationText_AutoCadStyle}" />
+                                                                <TextBlock Text="{Binding SelectedTextStyleAutoCadName}"
+                                                                           TextTrimming="CharacterEllipsis" />
+                                                            </StackPanel>
+                                                            <StackPanel Margin="4,0">
+                                                                <TextBlock FontWeight="SemiBold"
+                                                                           Style="{DynamicResource SettingsDescriptionStyle}"
                                                                            Text="{localization:Loc SettingsWindow_AnnotationText_Font}" />
-                                                                <ComboBox Grid.Row="1"
-                                                                          Grid.Column="1"
-                                                                          Margin="0,0,0,6"
-                                                                          ItemsSource="{Binding AvailableFontNames}"
-                                                                          SelectedItem="{Binding TextStyleEditorFont, Mode=TwoWay}"
-                                                                          IsEditable="False" />
-                                                                <TextBlock Grid.Row="2"
-                                                                           VerticalAlignment="Center"
-                                                                           Text="{localization:Loc SettingsWindow_AnnotationText_WidthFactor}" />
-                                                                <TextBox Grid.Row="2"
-                                                                         Grid.Column="1"
-                                                                         Margin="0,0,0,6"
-                                                                         Text="{Binding TextStyleEditorWidthFactorText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                                                                <TextBlock Grid.Row="3"
-                                                                           VerticalAlignment="Center"
-                                                                           Text="{localization:Loc SettingsWindow_AnnotationText_ObliqueAngle}" />
-                                                                <TextBox Grid.Row="3"
-                                                                         Grid.Column="1"
-                                                                         Margin="0,0,0,6"
-                                                                         Text="{Binding TextStyleEditorObliqueAngleText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                                                                <StackPanel Grid.Row="4"
-                                                                            Grid.Column="1"
-                                                                            Orientation="Horizontal">
-                                                                    <Button MinWidth="88"
-                                                                            Padding="10,4"
-                                                                            Content="{localization:Loc SettingsWindow_AnnotationText_SaveStyle}"
-                                                                            Click="AnnotationTextSaveStyle_Click" />
-                                                                    <Button Margin="8,0,0,0"
-                                                                            MinWidth="88"
-                                                                            Padding="10,4"
-                                                                            Content="{localization:Loc SettingsWindow_AnnotationText_CancelStyle}"
-                                                                            Click="AnnotationTextCancelStyle_Click" />
+                                                                <TextBlock Text="{Binding SelectedTextStyleFontName}"
+                                                                           TextTrimming="CharacterEllipsis" />
+                                                            </StackPanel>
+                                                            <StackPanel Margin="8,0,0,0">
+                                                                <TextBlock FontWeight="SemiBold"
+                                                                           Style="{DynamicResource SettingsDescriptionStyle}"
+                                                                           Text="{localization:Loc SettingsWindow_AnnotationText_Type}" />
+                                                                <TextBlock Text="{Binding SelectedTextStyleType}"
+                                                                           TextTrimming="CharacterEllipsis" />
+                                                            </StackPanel>
+                                                        </UniformGrid>
+                                                        <TextBlock Grid.Row="3"
+                                                                   Margin="0,4,0,0"
+                                                                   Style="{DynamicResource SettingsDescriptionStyle}"
+                                                                   Text="{Binding SelectedTextStylePreviewStatus}"
+                                                                   TextWrapping="Wrap"
+                                                                   Visibility="{Binding IsApproximatePreview, Converter={StaticResource BooleanToVisibilityConverter}}" />
+
+                                                        <Border Grid.RowSpan="4"
+                                                                Padding="10"
+                                                                Background="{DynamicResource SettingsAnnotationPreviewBackgroundBrush}"
+                                                                BorderBrush="{DynamicResource SettingsAccentBrush}"
+                                                                BorderThickness="1"
+                                                                CornerRadius="{DynamicResource SettingsCornerRadiusSmall}"
+                                                                Visibility="{Binding IsTextStyleEditorVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                            <Grid>
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="*" />
+                                                                    <ColumnDefinition Width="12" />
+                                                                    <ColumnDefinition Width="150" />
+                                                                </Grid.ColumnDefinitions>
+                                                                <Grid>
+                                                                    <Grid.RowDefinitions>
+                                                                        <RowDefinition Height="Auto" />
+                                                                        <RowDefinition Height="Auto" />
+                                                                        <RowDefinition Height="Auto" />
+                                                                        <RowDefinition Height="Auto" />
+                                                                        <RowDefinition Height="Auto" />
+                                                                    </Grid.RowDefinitions>
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition Width="116" />
+                                                                        <ColumnDefinition Width="*" />
+                                                                    </Grid.ColumnDefinitions>
+                                                                    <TextBlock VerticalAlignment="Center" Text="{localization:Loc SettingsWindow_AnnotationText_StyleName}" />
+                                                                    <TextBox Grid.Column="1" Margin="0,0,0,5" Text="{Binding TextStyleEditorName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                                                    <TextBlock Grid.Row="1" VerticalAlignment="Center" Text="{localization:Loc SettingsWindow_AnnotationText_Font}" />
+                                                                    <ComboBox Grid.Row="1" Grid.Column="1" Margin="0,0,0,5" ItemsSource="{Binding AvailableFontNames}" SelectedItem="{Binding TextStyleEditorFont, Mode=TwoWay}" IsEditable="False" />
+                                                                    <TextBlock Grid.Row="2" VerticalAlignment="Center" Text="{localization:Loc SettingsWindow_AnnotationText_WidthFactor}" />
+                                                                    <TextBox Grid.Row="2" Grid.Column="1" Margin="0,0,0,5" Text="{Binding TextStyleEditorWidthFactorText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                                                    <TextBlock Grid.Row="3" VerticalAlignment="Center" Text="{localization:Loc SettingsWindow_AnnotationText_ObliqueAngle}" />
+                                                                    <TextBox Grid.Row="3" Grid.Column="1" Margin="0,0,0,5" Text="{Binding TextStyleEditorObliqueAngleText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                                                    <StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal">
+                                                                        <Button MinWidth="82" Padding="10,4" Content="{localization:Loc SettingsWindow_AnnotationText_SaveStyle}" Click="AnnotationTextSaveStyle_Click" />
+                                                                        <Button Margin="7,0,0,0" MinWidth="82" Padding="10,4" Content="{localization:Loc SettingsWindow_AnnotationText_CancelStyle}" Click="AnnotationTextCancelStyle_Click" />
+                                                                    </StackPanel>
+                                                                </Grid>
+                                                                <StackPanel Grid.Column="2">
+                                                                    <TextBlock FontWeight="SemiBold" Text="{localization:Loc SettingsWindow_AnnotationText_Preview}" />
+                                                                    <TextBlock Margin="0,12,0,0"
+                                                                               FontSize="26"
+                                                                               FontWeight="SemiBold"
+                                                                               Text="{Binding TextStyleEditorPreviewSample}"
+                                                                               FontFamily="{Binding TextStyleEditorPreviewFontFamily}" />
                                                                 </StackPanel>
                                                             </Grid>
-                                                            <StackPanel Grid.Column="2">
-                                                                <TextBlock FontWeight="SemiBold"
-                                                                           Text="{localization:Loc SettingsWindow_AnnotationText_Preview}" />
-                                                                <TextBlock Margin="0,10,0,0"
-                                                                           FontSize="28"
-                                                                           FontWeight="SemiBold"
-                                                                           Foreground="{DynamicResource SettingsTextPrimaryBrush}"
-                                                                           Text="{Binding TextStyleEditorPreviewSample}"
-                                                                           FontFamily="{Binding TextStyleEditorPreviewFontFamily}" />
-                                                            </StackPanel>
+                                                        </Border>
+                                                    </Grid>
+                                                </Border>
+                                            </Grid>
+
+                                            <Grid Grid.Row="2">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="7" />
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="7" />
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
+                                                <Border MinHeight="236"
+                                                        Padding="10"
+                                                        Background="{DynamicResource SettingsPanelBackgroundBrush}"
+                                                        BorderBrush="{DynamicResource SettingsBorderBrush}"
+                                                        BorderThickness="1"
+                                                        CornerRadius="{DynamicResource SettingsCornerRadius}">
+                                                    <Grid>
+                                                        <Grid.RowDefinitions>
+                                                            <RowDefinition Height="Auto" />
+                                                            <RowDefinition Height="Auto" />
+                                                            <RowDefinition Height="Auto" />
+                                                            <RowDefinition Height="Auto" />
+                                                            <RowDefinition Height="Auto" />
+                                                            <RowDefinition Height="Auto" />
+                                                            <RowDefinition Height="*" />
+                                                        </Grid.RowDefinitions>
+                                                        <TextBlock FontWeight="SemiBold" Text="{localization:Loc SettingsWindow_AnnotationText_ItemCodeRole}" />
+                                                        <TextBlock Grid.Row="1" Margin="0,5,0,2" Style="{DynamicResource SettingsDescriptionStyle}" Text="{localization:Loc SettingsWindow_AnnotationText_Style}" />
+                                                        <ComboBox Grid.Row="2" ItemsSource="{Binding TextStyleKindOptions}" DisplayMemberPath="DisplayName" SelectedValuePath="Kind" SelectedValue="{Binding ItemCodeStyleKind, Mode=TwoWay}" />
+                                                        <Grid Grid.Row="3" Margin="0,4,0,0">
+                                                            <Grid.Style>
+                                                                <Style TargetType="Grid">
+                                                                    <Setter Property="Visibility" Value="Hidden" />
+                                                                    <Style.Triggers><DataTrigger Binding="{Binding IsItemCodeCustomStyleVisible}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers>
+                                                                </Style>
+                                                            </Grid.Style>
+                                                            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                                                            <TextBlock Style="{DynamicResource SettingsDescriptionStyle}" Text="{localization:Loc SettingsWindow_AnnotationText_AutoCadStyle}" />
+                                                            <ComboBox Grid.Row="1" Margin="0,3,0,0" ItemsSource="{Binding CustomTextStylePresetItems}" DisplayMemberPath="DisplayName" SelectedValuePath="AutoCadTextStyleName" SelectedValue="{Binding ItemCodeCustomStyleName, Mode=TwoWay}" />
                                                         </Grid>
-                                                    </Border>
-                                                </Grid>
+                                                        <TextBlock Grid.Row="4" Margin="0,5,0,2" Text="{localization:Loc SettingsWindow_AnnotationText_PaperHeight}" />
+                                                        <TextBox Grid.Row="5" Text="{Binding ItemCodePaperHeightText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                                        <Grid Grid.Row="6" Margin="0,4,0,0">
+                                                            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                                                            <TextBlock Style="{DynamicResource SettingsDescriptionStyle}" Text="{Binding ItemCodeModelHeightText}" />
+                                                            <Border Grid.Row="1" Margin="0,4,0,0" MinHeight="48" Padding="6" Background="{DynamicResource SettingsAnnotationPreviewBackgroundBrush}" CornerRadius="{DynamicResource SettingsCornerRadiusSmall}">
+                                                                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="21" FontWeight="{Binding ItemCodePreviewFontWeight}" Text="{Binding ItemCodePreviewSample}" FontFamily="{Binding ItemCodePreviewFontFamily}" />
+                                                            </Border>
+                                                        </Grid>
+                                                    </Grid>
+                                                </Border>
+
+                                                <Border Grid.Column="2"
+                                                        MinHeight="236"
+                                                        Padding="10"
+                                                        Background="{DynamicResource SettingsPanelBackgroundBrush}"
+                                                        BorderBrush="{DynamicResource SettingsBorderBrush}"
+                                                        BorderThickness="1"
+                                                        CornerRadius="{DynamicResource SettingsCornerRadius}">
+                                                    <Grid>
+                                                        <Grid.RowDefinitions>
+                                                            <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                                                            <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" />
+                                                        </Grid.RowDefinitions>
+                                                        <TextBlock FontWeight="SemiBold" Text="{localization:Loc SettingsWindow_AnnotationText_DimensionRole}" />
+                                                        <TextBlock Grid.Row="1" Margin="0,5,0,2" Style="{DynamicResource SettingsDescriptionStyle}" Text="{localization:Loc SettingsWindow_AnnotationText_Style}" />
+                                                        <ComboBox Grid.Row="2" ItemsSource="{Binding TextStyleKindOptions}" DisplayMemberPath="DisplayName" SelectedValuePath="Kind" SelectedValue="{Binding DimensionStyleKind, Mode=TwoWay}" />
+                                                        <Grid Grid.Row="3" Margin="0,4,0,0">
+                                                            <Grid.Style>
+                                                                <Style TargetType="Grid">
+                                                                    <Setter Property="Visibility" Value="Hidden" />
+                                                                    <Style.Triggers><DataTrigger Binding="{Binding IsDimensionCustomStyleVisible}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers>
+                                                                </Style>
+                                                            </Grid.Style>
+                                                            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                                                            <TextBlock Style="{DynamicResource SettingsDescriptionStyle}" Text="{localization:Loc SettingsWindow_AnnotationText_AutoCadStyle}" />
+                                                            <ComboBox Grid.Row="1" Margin="0,3,0,0" ItemsSource="{Binding CustomTextStylePresetItems}" DisplayMemberPath="DisplayName" SelectedValuePath="AutoCadTextStyleName" SelectedValue="{Binding DimensionCustomStyleName, Mode=TwoWay}" />
+                                                        </Grid>
+                                                        <TextBlock Grid.Row="4" Margin="0,5,0,2" Text="{localization:Loc SettingsWindow_AnnotationText_PaperHeight}" />
+                                                        <TextBox Grid.Row="5" Text="{Binding DimensionPaperHeightText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                                        <Grid Grid.Row="6" Margin="0,4,0,0">
+                                                            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                                                            <TextBlock Style="{DynamicResource SettingsDescriptionStyle}" Text="{Binding DimensionModelHeightText}" />
+                                                            <Border Grid.Row="1" Margin="0,4,0,0" MinHeight="48" Padding="6" Background="{DynamicResource SettingsAnnotationPreviewBackgroundBrush}" CornerRadius="{DynamicResource SettingsCornerRadiusSmall}">
+                                                                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="21" FontWeight="{Binding DimensionPreviewFontWeight}" Text="{Binding DimensionPreviewSample}" FontFamily="{Binding DimensionPreviewFontFamily}" />
+                                                            </Border>
+                                                        </Grid>
+                                                    </Grid>
+                                                </Border>
+
+                                                <Border Grid.Column="4"
+                                                        MinHeight="236"
+                                                        Padding="10"
+                                                        Background="{DynamicResource SettingsPanelBackgroundBrush}"
+                                                        BorderBrush="{DynamicResource SettingsBorderBrush}"
+                                                        BorderThickness="1"
+                                                        CornerRadius="{DynamicResource SettingsCornerRadius}">
+                                                    <Grid>
+                                                        <Grid.RowDefinitions>
+                                                            <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                                                            <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" />
+                                                        </Grid.RowDefinitions>
+                                                        <TextBlock FontWeight="SemiBold" Text="{localization:Loc SettingsWindow_AnnotationText_SlopeRole}" />
+                                                        <TextBlock Grid.Row="1" Margin="0,5,0,2" Style="{DynamicResource SettingsDescriptionStyle}" Text="{localization:Loc SettingsWindow_AnnotationText_Style}" />
+                                                        <ComboBox Grid.Row="2" ItemsSource="{Binding TextStyleKindOptions}" DisplayMemberPath="DisplayName" SelectedValuePath="Kind" SelectedValue="{Binding SlopeStyleKind, Mode=TwoWay}" />
+                                                        <Grid Grid.Row="3" Margin="0,4,0,0">
+                                                            <Grid.Style>
+                                                                <Style TargetType="Grid">
+                                                                    <Setter Property="Visibility" Value="Hidden" />
+                                                                    <Style.Triggers><DataTrigger Binding="{Binding IsSlopeCustomStyleVisible}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers>
+                                                                </Style>
+                                                            </Grid.Style>
+                                                            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                                                            <TextBlock Style="{DynamicResource SettingsDescriptionStyle}" Text="{localization:Loc SettingsWindow_AnnotationText_AutoCadStyle}" />
+                                                            <ComboBox Grid.Row="1" Margin="0,3,0,0" ItemsSource="{Binding CustomTextStylePresetItems}" DisplayMemberPath="DisplayName" SelectedValuePath="AutoCadTextStyleName" SelectedValue="{Binding SlopeCustomStyleName, Mode=TwoWay}" />
+                                                        </Grid>
+                                                        <TextBlock Grid.Row="4" Margin="0,5,0,2" Text="{localization:Loc SettingsWindow_AnnotationText_PaperHeight}" />
+                                                        <TextBox Grid.Row="5" Text="{Binding SlopePaperHeightText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                                        <Grid Grid.Row="6" Margin="0,4,0,0">
+                                                            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                                                            <TextBlock Style="{DynamicResource SettingsDescriptionStyle}" Text="{Binding SlopeModelHeightText}" />
+                                                            <Border Grid.Row="1" Margin="0,4,0,0" MinHeight="48" Padding="6" Background="{DynamicResource SettingsAnnotationPreviewBackgroundBrush}" CornerRadius="{DynamicResource SettingsCornerRadiusSmall}">
+                                                                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="21" FontWeight="{Binding SlopePreviewFontWeight}" Text="{Binding SlopePreviewSample}" FontFamily="{Binding SlopePreviewFontFamily}" />
+                                                            </Border>
+                                                        </Grid>
+                                                    </Grid>
+                                                </Border>
+                                            </Grid>
+
+                                            <Border Grid.Row="4"
+                                                    Padding="8,6"
+                                                    Background="{DynamicResource SettingsPanelBackgroundBrush}"
+                                                    BorderBrush="{DynamicResource SettingsBorderBrush}"
+                                                    BorderThickness="1"
+                                                    CornerRadius="{DynamicResource SettingsCornerRadiusSmall}">
+                                                <TextBlock Style="{DynamicResource SettingsDescriptionStyle}"
+                                                           TextWrapping="Wrap"
+                                                           Text="{localization:Loc SettingsWindow_AnnotationText_BlocksNote}" />
                                             </Border>
-
-                                            <UniformGrid Grid.Row="2" Columns="3">
-                                                <Border Margin="0,0,5,0"
-                                                        Padding="10"
-                                                        Background="{DynamicResource SettingsPanelBackgroundBrush}"
-                                                        BorderBrush="{DynamicResource SettingsBorderBrush}"
-                                                        BorderThickness="1"
-                                                        CornerRadius="{DynamicResource SettingsCornerRadius}">
-                                                    <StackPanel>
-                                                        <TextBlock FontWeight="SemiBold"
-                                                                   Text="{localization:Loc SettingsWindow_AnnotationText_ItemCodeRole}" />
-                                                        <ComboBox Margin="0,6,0,0"
-                                                                  ItemsSource="{Binding TextStyleKindOptions}"
-                                                                  DisplayMemberPath="DisplayName"
-                                                                  SelectedValuePath="Kind"
-                                                                  SelectedValue="{Binding ItemCodeStyleKind, Mode=TwoWay}" />
-                                                        <ComboBox Margin="0,6,0,0"
-                                                                  ItemsSource="{Binding CustomTextStylePresetItems}"
-                                                                  DisplayMemberPath="DisplayName"
-                                                                  SelectedValuePath="AutoCadTextStyleName"
-                                                                  SelectedValue="{Binding ItemCodeCustomStyleName, Mode=TwoWay}"
-                                                                  Visibility="{Binding IsItemCodeCustomStyleVisible, Converter={StaticResource BooleanToVisibilityConverter}}" />
-                                                        <TextBlock Margin="0,8,0,0"
-                                                                   Text="{localization:Loc SettingsWindow_AnnotationText_PaperHeight}" />
-                                                        <TextBox Margin="0,4,0,0"
-                                                                 Text="{Binding ItemCodePaperHeightText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                                                        <TextBlock Margin="0,4,0,0"
-                                                                   Style="{DynamicResource SettingsDescriptionStyle}"
-                                                                   Text="{Binding ItemCodeModelHeightText}" />
-                                                        <TextBlock Margin="0,10,0,0"
-                                                                   FontSize="22"
-                                                                   FontWeight="SemiBold"
-                                                                   Foreground="{DynamicResource SettingsTextPrimaryBrush}"
-                                                                   Text="{Binding ItemCodePreviewSample}"
-                                                                   FontFamily="{Binding ItemCodePreviewFontFamily}" />
-                                                    </StackPanel>
-                                                </Border>
-                                                <Border Margin="5,0,5,0"
-                                                        Padding="10"
-                                                        Background="{DynamicResource SettingsPanelBackgroundBrush}"
-                                                        BorderBrush="{DynamicResource SettingsBorderBrush}"
-                                                        BorderThickness="1"
-                                                        CornerRadius="{DynamicResource SettingsCornerRadius}">
-                                                    <StackPanel>
-                                                        <TextBlock FontWeight="SemiBold"
-                                                                   Text="{localization:Loc SettingsWindow_AnnotationText_DimensionRole}" />
-                                                        <ComboBox Margin="0,6,0,0"
-                                                                  ItemsSource="{Binding TextStyleKindOptions}"
-                                                                  DisplayMemberPath="DisplayName"
-                                                                  SelectedValuePath="Kind"
-                                                                  SelectedValue="{Binding DimensionStyleKind, Mode=TwoWay}" />
-                                                        <ComboBox Margin="0,6,0,0"
-                                                                  ItemsSource="{Binding CustomTextStylePresetItems}"
-                                                                  DisplayMemberPath="DisplayName"
-                                                                  SelectedValuePath="AutoCadTextStyleName"
-                                                                  SelectedValue="{Binding DimensionCustomStyleName, Mode=TwoWay}"
-                                                                  Visibility="{Binding IsDimensionCustomStyleVisible, Converter={StaticResource BooleanToVisibilityConverter}}" />
-                                                        <TextBlock Margin="0,8,0,0"
-                                                                   Text="{localization:Loc SettingsWindow_AnnotationText_PaperHeight}" />
-                                                        <TextBox Margin="0,4,0,0"
-                                                                 Text="{Binding DimensionPaperHeightText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                                                        <TextBlock Margin="0,4,0,0"
-                                                                   Style="{DynamicResource SettingsDescriptionStyle}"
-                                                                   Text="{Binding DimensionModelHeightText}" />
-                                                        <TextBlock Margin="0,10,0,0"
-                                                                   FontSize="22"
-                                                                   FontWeight="SemiBold"
-                                                                   Foreground="{DynamicResource SettingsTextPrimaryBrush}"
-                                                                   Text="{Binding DimensionPreviewSample}"
-                                                                   FontFamily="{Binding DimensionPreviewFontFamily}" />
-                                                    </StackPanel>
-                                                </Border>
-                                                <Border Margin="5,0,0,0"
-                                                        Padding="10"
-                                                        Background="{DynamicResource SettingsPanelBackgroundBrush}"
-                                                        BorderBrush="{DynamicResource SettingsBorderBrush}"
-                                                        BorderThickness="1"
-                                                        CornerRadius="{DynamicResource SettingsCornerRadius}">
-                                                    <StackPanel>
-                                                        <TextBlock FontWeight="SemiBold"
-                                                                   Text="{localization:Loc SettingsWindow_AnnotationText_SlopeRole}" />
-                                                        <ComboBox Margin="0,6,0,0"
-                                                                  ItemsSource="{Binding TextStyleKindOptions}"
-                                                                  DisplayMemberPath="DisplayName"
-                                                                  SelectedValuePath="Kind"
-                                                                  SelectedValue="{Binding SlopeStyleKind, Mode=TwoWay}" />
-                                                        <ComboBox Margin="0,6,0,0"
-                                                                  ItemsSource="{Binding CustomTextStylePresetItems}"
-                                                                  DisplayMemberPath="DisplayName"
-                                                                  SelectedValuePath="AutoCadTextStyleName"
-                                                                  SelectedValue="{Binding SlopeCustomStyleName, Mode=TwoWay}"
-                                                                  Visibility="{Binding IsSlopeCustomStyleVisible, Converter={StaticResource BooleanToVisibilityConverter}}" />
-                                                        <TextBlock Margin="0,8,0,0"
-                                                                   Text="{localization:Loc SettingsWindow_AnnotationText_PaperHeight}" />
-                                                        <TextBox Margin="0,4,0,0"
-                                                                 Text="{Binding SlopePaperHeightText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                                                        <TextBlock Margin="0,4,0,0"
-                                                                   Style="{DynamicResource SettingsDescriptionStyle}"
-                                                                   Text="{Binding SlopeModelHeightText}" />
-                                                        <TextBlock Margin="0,10,0,0"
-                                                                   FontSize="22"
-                                                                   FontWeight="SemiBold"
-                                                                   Foreground="{DynamicResource SettingsTextPrimaryBrush}"
-                                                                   Text="{Binding SlopePreviewSample}"
-                                                                   FontFamily="{Binding SlopePreviewFontFamily}" />
-                                                    </StackPanel>
-                                                </Border>
-                                            </UniformGrid>
-
-                                            <TextBlock Grid.Row="3"
-                                                       Margin="0,10,0,0"
-                                                       Style="{DynamicResource SettingsDescriptionStyle}"
-                                                       TextWrapping="Wrap"
-                                                       Text="{localization:Loc SettingsWindow_AnnotationText_BlocksNote}" />
                                         </Grid>
-                                    </Border>
+                                    </ScrollViewer>
                                 </TabItem>
                                 <TabItem Header="{localization:Loc SettingsWindow_AnnotationCategory_LineElements}"
                                          Style="{StaticResource AnnotationCategoryTabStyle}">

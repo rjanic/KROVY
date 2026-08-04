@@ -32,6 +32,36 @@ public sealed class AutoCadFramedTextAttributeProofCommands
         }
     }
 
+    [CommandMethod("AK_DEV_FRAMED_ITEM_HEIGHT_CREATE", CommandFlags.Modal)]
+    public void CreateFramedItemHeightProof()
+    {
+        var document = AcApplication.DocumentManager.MdiActiveDocument;
+        if (document is not null)
+        {
+            AutoCadFramedTextAttributeProofService.CreateHeight(document);
+        }
+    }
+
+    [CommandMethod("AK_DEV_FRAMED_ITEM_HEIGHT_VERIFY", CommandFlags.Modal)]
+    public void VerifyFramedItemHeightProof()
+    {
+        var document = AcApplication.DocumentManager.MdiActiveDocument;
+        if (document is not null)
+        {
+            AutoCadFramedTextAttributeProofService.VerifyHeight(document);
+        }
+    }
+
+    [CommandMethod("AK_DEV_FRAMED_ITEM_HEIGHT_CLEAN", CommandFlags.Modal)]
+    public void CleanFramedItemHeightProof()
+    {
+        var document = AcApplication.DocumentManager.MdiActiveDocument;
+        if (document is not null)
+        {
+            AutoCadFramedTextAttributeProofService.CleanHeight(document);
+        }
+    }
+
     [CommandMethod("AK_DEV_TEXTSTYLE_DIAG", CommandFlags.Modal)]
     public void DiagnoseTextStyles()
     {

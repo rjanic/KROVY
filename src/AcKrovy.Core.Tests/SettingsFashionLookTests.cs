@@ -508,11 +508,85 @@ public sealed class SettingsFashionLookTests
         Assert.Contains("SettingsWindow_AnnotationText_DimensionRole", xaml);
         Assert.Contains("SettingsWindow_AnnotationText_SlopeRole", xaml);
         Assert.Contains("SettingsWindow_AnnotationText_BlocksNote", xaml);
+        Assert.Equal(
+            3,
+            CountOccurrences(xaml, "ItemsSource=\"{Binding TextStyleKindOptions}\""));
+        Assert.Contains("DisplayMemberPath=\"DisplayName\"", xaml);
+        Assert.Contains("SelectedValuePath=\"Kind\"", xaml);
+        Assert.Contains(
+            "SelectedValue=\"{Binding ItemCodeStyleKind, Mode=TwoWay}\"",
+            xaml);
+        Assert.Contains(
+            "SelectedValue=\"{Binding DimensionStyleKind, Mode=TwoWay}\"",
+            xaml);
+        Assert.Contains(
+            "SelectedValue=\"{Binding SlopeStyleKind, Mode=TwoWay}\"",
+            xaml);
+        var annotationTextCode = File.ReadAllText(Path.Combine(
+            UiDirectory,
+            "LayerSettingsWindow.AnnotationText.cs"));
+        var kindOptionSlice = Slice(
+            annotationTextCode,
+            "public sealed record TextStyleKindOption(",
+            "public sealed class TextStylePresetListItem");
+        Assert.Contains("string DisplayName", kindOptionSlice);
+        Assert.DoesNotContain("override string ToString()", kindOptionSlice);
         Assert.Contains("BuildPendingAnnotationTextPatch", code);
         Assert.Contains("DefaultAnnotationTextSettings", code);
         Assert.Contains(
             "new TimberAnnotationSettingsRequest(",
             code);
+    }
+
+    [Fact]
+    public void AnnotationTextsTab_UsesCompactNonOverflowingGrid()
+    {
+        var xaml = WindowXaml();
+        var tab = Slice(
+            xaml,
+            "<TabItem x:Name=\"AnnotationTextsTab\"",
+            "<TabItem Header=\"{localization:Loc SettingsWindow_AnnotationCategory_LineElements}\"");
+
+        Assert.Contains("HorizontalScrollBarVisibility=\"Disabled\"", tab);
+        Assert.Contains(
+            "<ColumnDefinition Width=\"295\" MinWidth=\"280\" MaxWidth=\"310\" />",
+            tab);
+        Assert.Contains("<ColumnDefinition Width=\"*\" />", tab);
+        Assert.Contains("<ColumnDefinition Width=\"7\" />", tab);
+        Assert.Contains("MinHeight=\"236\"", tab);
+        Assert.DoesNotContain("Width=\"350\"", tab);
+        Assert.DoesNotContain("MinHeight=\"276\"", tab);
+        Assert.DoesNotContain("<Viewbox", tab);
+        Assert.Equal(3, CountOccurrences(tab, "MinHeight=\"236\""));
+    }
+
+    [Fact]
+    public void AnnotationTextPreview_UsesUiOnlyThinShxFallbackOnce()
+    {
+        var xaml = WindowXaml();
+        var code = File.ReadAllText(Path.Combine(
+            UiDirectory,
+            "LayerSettingsWindow.AnnotationText.cs"));
+        var tab = Slice(
+            xaml,
+            "<TabItem x:Name=\"AnnotationTextsTab\"",
+            "<TabItem Header=\"{localization:Loc SettingsWindow_AnnotationCategory_LineElements}\"");
+
+        Assert.Contains("IsApproximatePreview", code);
+        Assert.Contains("SelectedTextStylePreviewFontWeight", code);
+        Assert.Contains("new WpfFontFamily(\"Times New Roman\")", code);
+        Assert.Contains("new WpfFontFamily(\"Bahnschrift\")", code);
+        Assert.Contains("FontWeights.Light", code);
+        Assert.Contains("IsApproximate: true", code);
+        Assert.DoesNotContain("CharacterSpacing=", tab);
+        Assert.Equal(
+            1,
+            CountOccurrences(
+                tab,
+                "Text=\"{Binding SelectedTextStylePreviewStatus}\""));
+        Assert.DoesNotContain("Text=\"{Binding ItemCodePreviewStatus}\"", tab);
+        Assert.DoesNotContain("Text=\"{Binding DimensionPreviewStatus}\"", tab);
+        Assert.DoesNotContain("Text=\"{Binding SlopePreviewStatus}\"", tab);
     }
 
     [Fact]
@@ -578,6 +652,15 @@ public sealed class SettingsFashionLookTests
 
         Assert.Contains("<ControlTemplate TargetType=\"ComboBox\">", controls);
         Assert.Contains("x:Name=\"SelectedContent\"", controls);
+        Assert.Contains(
+            "Content=\"{TemplateBinding SelectionBoxItem}\"",
+            controls);
+        Assert.Contains(
+            "ContentTemplate=\"{TemplateBinding SelectionBoxItemTemplate}\"",
+            controls);
+        Assert.Contains(
+            "ContentTemplateSelector=\"{TemplateBinding ItemTemplateSelector}\"",
+            controls);
         Assert.Contains("x:Name=\"PART_EditableTextBox\"", controls);
         Assert.Contains("Margin=\"1,1,31,1\"", controls);
         Assert.Contains("x:Name=\"DropDownToggle\"", controls);
@@ -695,6 +778,19 @@ public sealed class SettingsFashionLookTests
         var endIndex = source.IndexOf(end, startIndex + start.Length, StringComparison.Ordinal);
         Assert.True(endIndex >= 0, $"End marker not found: {end}");
         return source.Substring(startIndex, endIndex - startIndex);
+    }
+
+    private static int CountOccurrences(string source, string value)
+    {
+        var count = 0;
+        var index = 0;
+        while ((index = source.IndexOf(value, index, StringComparison.Ordinal)) >= 0)
+        {
+            count++;
+            index += value.Length;
+        }
+
+        return count;
     }
 
     private static string FindRepositoryRoot()

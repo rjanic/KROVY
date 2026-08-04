@@ -33,7 +33,7 @@ public sealed class AutoCadAnnotationPresentationContextTests
     }
 
     [Fact]
-    public void Create_LegacyNullUsesFactoryHeightsButCurrentStylePriority()
+    public void Create_LegacyNullUsesExplicitClassicProductDefault()
     {
         var context = AutoCadAnnotationPresentationValues.Create(
             Scale(50),
@@ -41,7 +41,7 @@ public sealed class AutoCadAnnotationPresentationContextTests
 
         Assert.False(context.HasExplicitTextSettings);
         Assert.Equal(
-            TimberAnnotationTextSettingsRules.Default,
+            TimberAnnotationTextStylePresetRules.CreateFreshProfileTextSettings(),
             context.EffectiveTextSettings);
         Assert.Equal(125d, context.LabelAndDimensionModelHeight);
         Assert.Equal(135d, context.ItemNumberModelHeight);

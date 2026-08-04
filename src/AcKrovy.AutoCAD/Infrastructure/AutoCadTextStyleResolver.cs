@@ -8,6 +8,8 @@ namespace AcKrovy.AutoCAD.Infrastructure;
 internal enum AutoCadTextStyleResolutionKind
 {
     Requested,
+    ProductDefaultFallback,
+    ArialBuiltInFallback,
     StandardFallback,
     CurrentFallback,
     FirstCompatibleFallback,
@@ -184,6 +186,8 @@ internal sealed record AutoCadTextStyleSelection
     public AutoCadTextStyleResolutionKind ResolutionKind { get; }
     public AutoCadTextStyleRequestStatus RequestStatus { get; }
     public bool IsFallback => ResolutionKind is
+        AutoCadTextStyleResolutionKind.ProductDefaultFallback or
+        AutoCadTextStyleResolutionKind.ArialBuiltInFallback or
         AutoCadTextStyleResolutionKind.StandardFallback or
         AutoCadTextStyleResolutionKind.CurrentFallback or
         AutoCadTextStyleResolutionKind.FirstCompatibleFallback;
@@ -237,14 +241,27 @@ internal sealed record AutoCadTextStyleSelection
             resolved.CanonicalName,
             TimberAnnotationTextSettingsRules.DefaultTextStyleName,
             StringComparison.OrdinalIgnoreCase);
-        if (resolutionKind == AutoCadTextStyleResolutionKind.StandardFallback &&
+        var isArialBuiltIn = string.Equals(
+            resolved.CanonicalName,
+            TimberAnnotationTextStylePresetRules.ArialStyleName,
+            StringComparison.OrdinalIgnoreCase);
+        var isProductDefault = string.Equals(
+            resolved.CanonicalName,
+            TimberAnnotationTextStylePresetRules.ClassicStyleName,
+            StringComparison.OrdinalIgnoreCase);
+        if (resolutionKind == AutoCadTextStyleResolutionKind.ProductDefaultFallback &&
+                (!isProductDefault ||
+                    requestStatus != AutoCadTextStyleRequestStatus.NotRequested) ||
+            resolutionKind == AutoCadTextStyleResolutionKind.ArialBuiltInFallback &&
+                !isArialBuiltIn ||
+            resolutionKind == AutoCadTextStyleResolutionKind.StandardFallback &&
                 !isStandard ||
             resolutionKind == AutoCadTextStyleResolutionKind.CurrentFallback &&
                 (!resolved.IsCurrent ||
                     isStandard &&
                     requestStatus != AutoCadTextStyleRequestStatus.NotRequested) ||
             resolutionKind == AutoCadTextStyleResolutionKind.FirstCompatibleFallback &&
-                (resolved.IsCurrent || isStandard))
+                (resolved.IsCurrent || isStandard || isArialBuiltIn))
         {
             throw new ArgumentException(
                 "Fallback resolution kind does not match the resolved style.");
@@ -306,6 +323,17 @@ internal sealed class AutoCadTextStyleSelectionPolicy
             : AutoCadTextStyleRequestStatus.Missing;
 
         if (_catalog.TryFindCompatible(
+                TimberAnnotationTextStylePresetRules.ArialStyleName,
+                out var arialBuiltIn))
+        {
+            return AutoCadTextStyleSelection.Resolved(
+                requestedName,
+                arialBuiltIn!,
+                AutoCadTextStyleResolutionKind.ArialBuiltInFallback,
+                requestStatus);
+        }
+
+        if (_catalog.TryFindCompatible(
                 TimberAnnotationTextSettingsRules.DefaultTextStyleName,
                 out var standard))
         {
@@ -316,28 +344,32 @@ internal sealed class AutoCadTextStyleSelectionPolicy
                 requestStatus);
         }
 
-        var current = _catalog.CurrentCompatibleStyle;
-        if (current is not null)
-        {
-            return AutoCadTextStyleSelection.Resolved(
-                requestedName,
-                current,
-                AutoCadTextStyleResolutionKind.CurrentFallback,
-                requestStatus);
-        }
-
-        return ResolveFirstOrNone(requestedName, requestStatus);
+        return AutoCadTextStyleSelection.NoCompatibleStyle(
+            requestedName,
+            requestStatus);
     }
 
     public AutoCadTextStyleSelection ResolveLegacy()
     {
-        var current = _catalog.CurrentCompatibleStyle;
-        if (current is not null)
+        if (_catalog.TryFindCompatible(
+                TimberAnnotationTextStylePresetRules.ClassicStyleName,
+                out var productDefault))
         {
             return AutoCadTextStyleSelection.Resolved(
                 null,
-                current,
-                AutoCadTextStyleResolutionKind.CurrentFallback,
+                productDefault!,
+                AutoCadTextStyleResolutionKind.ProductDefaultFallback,
+                AutoCadTextStyleRequestStatus.NotRequested);
+        }
+
+        if (_catalog.TryFindCompatible(
+                TimberAnnotationTextStylePresetRules.ArialStyleName,
+                out var arialBuiltIn))
+        {
+            return AutoCadTextStyleSelection.Resolved(
+                null,
+                arialBuiltIn!,
+                AutoCadTextStyleResolutionKind.ArialBuiltInFallback,
                 AutoCadTextStyleRequestStatus.NotRequested);
         }
 
@@ -352,7 +384,7 @@ internal sealed class AutoCadTextStyleSelectionPolicy
                 AutoCadTextStyleRequestStatus.NotRequested);
         }
 
-        return ResolveFirstOrNone(
+        return AutoCadTextStyleSelection.NoCompatibleStyle(
             null,
             AutoCadTextStyleRequestStatus.NotRequested);
     }
@@ -510,6 +542,8 @@ internal sealed record AutoCadTextStyleResolution
     public AutoCadTextStyleResolutionKind ResolutionKind { get; }
     public AutoCadTextStyleRequestStatus RequestStatus { get; }
     public bool IsFallback => ResolutionKind is
+        AutoCadTextStyleResolutionKind.ProductDefaultFallback or
+        AutoCadTextStyleResolutionKind.ArialBuiltInFallback or
         AutoCadTextStyleResolutionKind.StandardFallback or
         AutoCadTextStyleResolutionKind.CurrentFallback or
         AutoCadTextStyleResolutionKind.FirstCompatibleFallback;

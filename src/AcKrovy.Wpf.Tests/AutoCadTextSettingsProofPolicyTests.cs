@@ -12,10 +12,11 @@ public sealed class AutoCadTextSettingsProofPolicyTests
     public void Cases_AreDeterministicAndCoverRequiredFamilies()
     {
         var cases = AutoCadTextSettingsProofPolicy.Cases;
-        Assert.Equal(15, cases.Count);
+        Assert.Equal(17, cases.Count);
         Assert.Equal(
             [
-                "IP", "IC", "IR", "IS", "CF", "FL", "DL", "SC", "SA", "IU",
+                "IP", "IC", "IR", "ITF", "IAF", "IS", "CF", "FL", "DL", "SC",
+                "SA", "IU",
                 AutoCadTextSettingsProofPolicy.UserFramedToken,
                 AutoCadTextSettingsProofPolicy.UserFramedTwinToken,
                 "HZ", "PP", AutoCadTextSettingsProofPolicy.RoleIsolationToken,
@@ -138,6 +139,43 @@ public sealed class AutoCadTextSettingsProofPolicyTests
     }
 
     [Fact]
+    public void FramedCases_CoverAllBuiltInAndUserG3Identities()
+    {
+        var styleNames = AutoCadTextSettingsProofPolicy.Cases
+            .Where(proofCase =>
+                !proofCase.UsesUserPreset &&
+                (proofCase.Kind is AutoCadTextSettingsProofKind.ItemCircle or
+                    AutoCadTextSettingsProofKind.ItemRectangle or
+                    AutoCadTextSettingsProofKind.ItemSlot))
+            .Select(proofCase => proofCase.TextSettings.ItemCodeTextStyleName)
+            .Append(
+                AutoCadTextSettingsProofPolicy.CreateUserPreset("Calibri")
+                    .AutoCadTextStyleName);
+
+        Assert.Equal(
+            [
+                "ARCHITECTURAL",
+                "CLASSIC",
+                "TECHNICAL",
+                "ARIAL",
+                "USER_G3_HOST_USER",
+            ],
+            styleNames
+                .Select(AutoCadItemLeaderTextStyleIdentity.FromStoredStyleName)
+                .Select(identity => identity.CreateNameToken())
+                .Distinct()
+                .OrderBy(token => Array.IndexOf(
+                    [
+                        "ARCHITECTURAL",
+                        "CLASSIC",
+                        "TECHNICAL",
+                        "ARIAL",
+                        "USER_G3_HOST_USER",
+                    ],
+                    token)));
+    }
+
+    [Fact]
     public void UserFramedCases_AreRectangleSmallWithSharedUserPreset()
     {
         var framed = AutoCadTextSettingsProofPolicy.Cases
@@ -181,7 +219,7 @@ public sealed class AutoCadTextSettingsProofPolicyTests
     }
 
     [Fact]
-    public void ResolvePreferredUserFont_SkipsClassicAndArchFonts()
+    public void ResolvePreferredUserFont_SkipsBuiltInClassicAndArchitecturalFonts()
     {
         var chosen = AutoCadTextSettingsProofPolicy.ResolvePreferredUserFont(
             font => string.Equals(font, "Calibri", StringComparison.OrdinalIgnoreCase) ||

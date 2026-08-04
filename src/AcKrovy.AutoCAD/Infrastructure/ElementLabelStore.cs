@@ -13,7 +13,13 @@ namespace AcKrovy.AutoCAD.Infrastructure;
 /// </summary>
 internal sealed record ElementLabelData
 {
-    public int SchemaVersion { get; init; } = 3;
+    /// <summary>
+    /// Annotation XData payload version. Schema 4 adds G4 composite fields
+    /// (AnnotationGroupId, RendererGeneration, FrameSize, item-code presentation).
+    /// Schema 3 payloads remain readable; missing G4 fields deserialize as null.
+    /// This is independent of <c>TimberElementDataSchema</c> (still 7).
+    /// </summary>
+    public int SchemaVersion { get; init; } = 4;
     public string ElementId { get; init; } = string.Empty;
     public string SourceHandle { get; init; } = string.Empty;
     public AcKrovy.Core.Models.TimberAnnotationMode AnnotationMode { get; init; } =
@@ -37,6 +43,11 @@ internal sealed record ElementLabelData
     public double? CombinedDoglegDirectionY { get; init; }
     public AcKrovy.Core.Models.TimberMainAnnotationComponentRole ComponentRole { get; init; } =
         AcKrovy.Core.Models.TimberMainAnnotationComponentRole.Primary;
+    public string? AnnotationGroupId { get; init; }
+    public int? RendererGeneration { get; init; }
+    public AcKrovy.Core.Models.TimberItemLeaderBlockSize? FrameSize { get; init; }
+    public double? ItemCodePaperHeightMm { get; init; }
+    public string? ItemCodeTextStyleName { get; init; }
 }
 
 internal static class ElementLabelStore

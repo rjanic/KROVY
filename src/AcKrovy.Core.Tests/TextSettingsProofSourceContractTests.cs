@@ -19,6 +19,8 @@ public sealed class TextSettingsProofSourceContractTests
         Assert.Contains("AK_DEV_TEXT_SETTINGS_CREATE", Commands());
         Assert.Contains("AK_DEV_TEXT_SETTINGS_VERIFY", Commands());
         Assert.Contains("AK_DEV_TEXT_SETTINGS_CLEAN", Commands());
+        Assert.Contains("AK_DEV_TEXT_FRESH_DRAWING_CREATE", Commands());
+        Assert.Contains("AK_DEV_TEXT_FRESH_DRAWING_VERIFY", Commands());
     }
 
     [Fact]
@@ -66,6 +68,61 @@ public sealed class TextSettingsProofSourceContractTests
         Assert.Contains("NOT TESTED", Service() + Policy());
         Assert.Contains("TextStyleId", Service());
         Assert.Contains("modelHeight", Service());
+    }
+
+    [Fact]
+    public void FreshDrawing_CreateAndVerifyHaveSeparateMutationContracts()
+    {
+        var create = Member(
+            Service(),
+            "public static void FreshDrawingCreate(");
+        var verify = Member(
+            Service(),
+            "public static void FreshDrawingVerify(");
+        var verifyCore = Member(
+            Service(),
+            "private static bool VerifyFreshDrawingCore(");
+
+        Assert.Contains("StartTransaction()", create);
+        Assert.Contains("WriteFreshDrawingManifest(", create);
+        Assert.Contains("transaction.Commit();", create);
+        Assert.DoesNotContain("WriteManifest(", create);
+        Assert.DoesNotContain("Create();", verify);
+        Assert.DoesNotContain("EnsureBuiltIn(", verify + verifyCore);
+        Assert.DoesNotContain("OpenMode.ForWrite", verify + verifyCore);
+        Assert.DoesNotContain("UpgradeOpen", verify + verifyCore);
+        Assert.DoesNotContain("Commit();", verify + verifyCore);
+        Assert.Contains("DBMOD", create);
+        Assert.Contains("DBMOD", verify);
+        Assert.Contains("RunFreshDrawingIdempotenceEnsure(", create);
+        Assert.Contains("kindsAreNoOp", Service());
+    }
+
+    [Fact]
+    public void FreshDrawing_ArchitecturalFallbackIsStructuredAndRecoverable()
+    {
+        var service = Service();
+
+        Assert.Contains("\"AVAILABLE\"", service);
+        Assert.Contains("\"FALLBACK_ACTIVE\"", service);
+        Assert.Contains("\"UNRESOLVED_ERROR\"", service);
+        Assert.Contains("ARCHITECTURAL:", service);
+        Assert.Contains("settingRewrittenToFallback=false", service);
+        Assert.Contains("laterRehydrateToArialNarrow=true", service);
+        Assert.Contains("stableIdentity=ARCHITECTURAL", service);
+        Assert.Contains(
+            "{requestedFont} is unavailable; the app-owned ",
+            service);
+        Assert.Contains(
+            "Architectural style temporarily uses Arial.",
+            service);
+        Assert.Contains("FIRST-ELEMENT", service);
+        Assert.Contains("requestedPreset=", service);
+        Assert.Contains("requestedFont=", service);
+        Assert.Contains("resolvedTextStyle=", service);
+        Assert.Contains("resolvedFont=", service);
+        Assert.Contains("fallbackReason=", service);
+        Assert.Contains("isStandard=", service);
     }
 
     [Fact]
