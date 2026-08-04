@@ -479,4 +479,11 @@
   <data name="SettingsWindow_AnnotationText_ShxPreviewApproximation" xml:space="preserve"><value>Náhled fontu SHX je přibližný; AutoCAD použije skutečný font SHX.</value></data>
   <data name="SettingsWindow_AnnotationText_DeleteInUse" xml:space="preserve"><value>Styl nelze odstranit, protože jej používá alespoň jedna textová role.</value></data>
   <data name="SettingsWindow_AnnotationText_InvalidHeight" xml:space="preserve"><value>Výška textu musí být v povoleném rozsahu.</value></data>
+  <data name="SettingsWindow_AnnotationText_AllowedRangeFormat" xml:space="preserve"><value>Povolený rozsah: {0}–{1} mm</value></data>
+  <data name="SettingsWindow_AnnotationText_HeightInlineErrorFormat" xml:space="preserve"><value>Zadejte hodnotu od {0} do {1} mm.</value></data>
+  <data name="SettingsWindow_AnnotationText_HeightRangeError_ItemCode" xml:space="preserve"><value>Výška hlavního popisu musí být v rozsahu {0} až {1} mm.</value></data>
+  <data name="SettingsWindow_AnnotationText_HeightRangeError_Dimension" xml:space="preserve"><value>Výška rozměrového popisu musí být v rozsahu {0} až {1} mm.</value></data>
+  <data name="SettingsWindow_AnnotationText_HeightRangeError_Slope" xml:space="preserve"><value>Výška textu spádu musí být v rozsahu {0} až {1} mm.</value></data>
+  <data name="SettingsWindow_AnnotationText_NumericValueRequired" xml:space="preserve"><value>Je vyžadována číselná hodnota.</value></data>
+  <data name="SettingsWindow_AnnotationText_ShxTypeApproximate" xml:space="preserve"><value>SHX · přibližný náhled</value></data>
 </root>

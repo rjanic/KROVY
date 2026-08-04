@@ -37,6 +37,12 @@
     <SolidColorBrush x:Key="SettingsFlagCardBackgroundBrush" Color="#E7ECF1" />
     <SolidColorBrush x:Key="SettingsBadgeBackgroundBrush" Color="#F7FAFD" />
     <SolidColorBrush x:Key="SettingsBadgeTextBrush" Color="#163A59" />
+    <SolidColorBrush x:Key="TextStyleBadgeBackgroundBrush" Color="#EEF4FA" />
+    <SolidColorBrush x:Key="TextStyleBadgeBorderBrush" Color="#C5D4E3" />
+    <SolidColorBrush x:Key="TextStyleBadgeForegroundBrush" Color="#163A59" />
+    <SolidColorBrush x:Key="TextStyleBadgeSelectedBackgroundBrush" Color="#D7E8F8" />
+    <SolidColorBrush x:Key="TextStyleBadgeSelectedBorderBrush" Color="#7FB0DE" />
+    <SolidColorBrush x:Key="TextStyleBadgeSelectedForegroundBrush" Color="#0F3F66" />
     <SolidColorBrush x:Key="SettingsToolTipBackgroundBrush" Color="#1F2933" />
     <SolidColorBrush x:Key="SettingsToolTipTextBrush" Color="#FFFFFF" />
     <SolidColorBrush x:Key="SettingsValidationBrush" Color="#C62828" />

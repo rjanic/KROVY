@@ -219,13 +219,26 @@ public partial class LayerSettingsWindow
     public string SelectedTextStyleFontName =>
         SelectedTextStylePresetItem?.FontFile ?? string.Empty;
 
-    public string SelectedTextStyleType =>
-        string.Equals(
-            Path.GetExtension(SelectedTextStylePresetItem?.FontFile),
-            ".shx",
-            StringComparison.OrdinalIgnoreCase)
-            ? "SHX"
-            : "TrueType";
+    public string SelectedTextStyleType
+    {
+        get
+        {
+            var isShx = string.Equals(
+                Path.GetExtension(SelectedTextStylePresetItem?.FontFile),
+                ".shx",
+                StringComparison.OrdinalIgnoreCase);
+            if (!isShx)
+            {
+                return "TrueType";
+            }
+
+            return IsApproximatePreview
+                ? UiStrings.GetString(
+                    "SettingsWindow_AnnotationText_ShxTypeApproximate",
+                    _uiCulture)
+                : "SHX";
+        }
+    }
 
     public AnnotationTextStyleKind ItemCodeStyleKind
     {
@@ -289,6 +302,29 @@ public partial class LayerSettingsWindow
         get => _slopePaperHeightText;
         set => SetRolePaperHeightText(TimberAnnotationTextRole.Slope, value);
     }
+
+    public string ItemCodePaperHeightStatusText =>
+        FormatRolePaperHeightStatus(TimberAnnotationTextRole.ItemCode);
+
+    public string DimensionPaperHeightStatusText =>
+        FormatRolePaperHeightStatus(TimberAnnotationTextRole.Dimension);
+
+    public string SlopePaperHeightStatusText =>
+        FormatRolePaperHeightStatus(TimberAnnotationTextRole.Slope);
+
+    public bool HasItemCodePaperHeightError =>
+        HasRolePaperHeightError(TimberAnnotationTextRole.ItemCode);
+
+    public bool HasDimensionPaperHeightError =>
+        HasRolePaperHeightError(TimberAnnotationTextRole.Dimension);
+
+    public bool HasSlopePaperHeightError =>
+        HasRolePaperHeightError(TimberAnnotationTextRole.Slope);
+
+    public bool HasAnyInvalidAnnotationPaperHeight =>
+        HasItemCodePaperHeightError ||
+        HasDimensionPaperHeightError ||
+        HasSlopePaperHeightError;
 
     public string ItemCodeModelHeightText => FormatRoleModelHeight(TimberAnnotationTextRole.ItemCode);
     public string DimensionModelHeightText => FormatRoleModelHeight(TimberAnnotationTextRole.Dimension);
@@ -613,6 +649,7 @@ public partial class LayerSettingsWindow
 
         SetRolePaperHeightTextField(role, value ?? string.Empty);
         OnPropertyChanged(GetRolePaperHeightPropertyName(role));
+        NotifyRolePaperHeightValidationChanged(role);
         if (_synchronizingTextSettings)
         {
             return;
@@ -621,6 +658,7 @@ public partial class LayerSettingsWindow
         if (!TryReadPaperHeight(role, value, out var height))
         {
             UpdateFormState();
+            UpdateAnnotationSaveButtonsEnabled();
             OnPropertyChanged(GetRoleModelHeightPropertyName(role));
             return;
         }
@@ -634,6 +672,7 @@ public partial class LayerSettingsWindow
         OnPropertyChanged(GetRoleModelHeightPropertyName(role));
         NotifyAnnotationTextPreviewChanged(role);
         UpdateFormState();
+        UpdateAnnotationSaveButtonsEnabled();
     }
 
     private void ApplyPendingRoleStyle(TimberAnnotationTextRole role, string styleName)
@@ -651,26 +690,24 @@ public partial class LayerSettingsWindow
     private bool TryBuildPendingAnnotationTextSettings(
         out TimberAnnotationTextSettings settings)
     {
-        if (!TryReadPaperHeight(
+        NotifyRolePaperHeightValidationChanged(TimberAnnotationTextRole.ItemCode);
+        NotifyRolePaperHeightValidationChanged(TimberAnnotationTextRole.Dimension);
+        NotifyRolePaperHeightValidationChanged(TimberAnnotationTextRole.Slope);
+        UpdateAnnotationSaveButtonsEnabled();
+
+        if (!TryResolvePaperHeightForSave(
                 TimberAnnotationTextRole.ItemCode,
                 ItemCodePaperHeightText,
                 out var itemHeight) ||
-            !TryReadPaperHeight(
+            !TryResolvePaperHeightForSave(
                 TimberAnnotationTextRole.Dimension,
                 DimensionPaperHeightText,
                 out var dimensionHeight) ||
-            !TryReadPaperHeight(
+            !TryResolvePaperHeightForSave(
                 TimberAnnotationTextRole.Slope,
                 SlopePaperHeightText,
                 out var slopeHeight))
         {
-            WpfMessageBox.Show(
-                UiStrings.GetString(
-                    "SettingsWindow_AnnotationText_InvalidHeight",
-                    _uiCulture),
-                UiStrings.MessageDialogTitle,
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
             settings = _pendingTextSettings;
             return false;
         }
@@ -690,16 +727,38 @@ public partial class LayerSettingsWindow
         }
         catch (ArgumentException)
         {
-            WpfMessageBox.Show(
-                UiStrings.GetString(
-                    "SettingsWindow_AnnotationText_InvalidHeight",
-                    _uiCulture),
-                UiStrings.MessageDialogTitle,
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
+            ShowPaperHeightSaveError(TimberAnnotationTextRole.ItemCode);
             settings = _pendingTextSettings;
             return false;
         }
+    }
+
+    private bool TryResolvePaperHeightForSave(
+        TimberAnnotationTextRole role,
+        string? raw,
+        out double height)
+    {
+        if (TryReadPaperHeight(role, raw, out height))
+        {
+            return true;
+        }
+
+        ShowPaperHeightSaveError(role, raw);
+        return false;
+    }
+
+    private void ShowPaperHeightSaveError(
+        TimberAnnotationTextRole role,
+        string? raw = null)
+    {
+        var message = TryReadSignedDouble(raw ?? GetRolePaperHeightText(role), out _)
+            ? AnnotationTextHeightValidationMessages.FormatSaveError(role, _uiCulture)
+            : AnnotationTextHeightValidationMessages.FormatNumericRequired(_uiCulture);
+        WpfMessageBox.Show(
+            message,
+            UiStrings.MessageDialogTitle,
+            MessageBoxButton.OK,
+            MessageBoxImage.Warning);
     }
 
     private string ResolvePendingStyleName(TimberAnnotationTextRole role)
@@ -1101,9 +1160,17 @@ public partial class LayerSettingsWindow
         OnPropertyChanged(nameof(ItemCodePaperHeightText));
         OnPropertyChanged(nameof(DimensionPaperHeightText));
         OnPropertyChanged(nameof(SlopePaperHeightText));
+        OnPropertyChanged(nameof(ItemCodePaperHeightStatusText));
+        OnPropertyChanged(nameof(DimensionPaperHeightStatusText));
+        OnPropertyChanged(nameof(SlopePaperHeightStatusText));
+        OnPropertyChanged(nameof(HasItemCodePaperHeightError));
+        OnPropertyChanged(nameof(HasDimensionPaperHeightError));
+        OnPropertyChanged(nameof(HasSlopePaperHeightError));
+        OnPropertyChanged(nameof(HasAnyInvalidAnnotationPaperHeight));
         OnPropertyChanged(nameof(ItemCodeModelHeightText));
         OnPropertyChanged(nameof(DimensionModelHeightText));
         OnPropertyChanged(nameof(SlopeModelHeightText));
+        UpdateAnnotationSaveButtonsEnabled();
         OnPropertyChanged(nameof(ItemCodePreviewSample));
         OnPropertyChanged(nameof(DimensionPreviewSample));
         OnPropertyChanged(nameof(SlopePreviewSample));
@@ -1234,7 +1301,38 @@ public partial class LayerSettingsWindow
             ".shx",
             StringComparison.OrdinalIgnoreCase);
 
-    private static bool TryReadPaperHeight(
+    private string FormatRolePaperHeightStatus(TimberAnnotationTextRole role) =>
+        HasRolePaperHeightError(role)
+            ? AnnotationTextHeightValidationMessages.FormatInlineError(role, _uiCulture)
+            : AnnotationTextHeightValidationMessages.FormatAllowedRange(role, _uiCulture);
+
+    private bool HasRolePaperHeightError(TimberAnnotationTextRole role) =>
+        !_synchronizingTextSettings &&
+        !TryReadPaperHeight(role, GetRolePaperHeightText(role), out _);
+
+    private void NotifyRolePaperHeightValidationChanged(TimberAnnotationTextRole role)
+    {
+        OnPropertyChanged(GetRolePaperHeightStatusPropertyName(role));
+        OnPropertyChanged(GetRolePaperHeightErrorPropertyName(role));
+        OnPropertyChanged(nameof(HasAnyInvalidAnnotationPaperHeight));
+    }
+
+    private void UpdateAnnotationSaveButtonsEnabled()
+    {
+        if (SaveNewElementsButton is null ||
+            SaveApplySelectionButton is null ||
+            SaveApplyAllButton is null)
+        {
+            return;
+        }
+
+        var canSave = !HasAnyInvalidAnnotationPaperHeight;
+        SaveNewElementsButton.IsEnabled = canSave;
+        SaveApplySelectionButton.IsEnabled = canSave;
+        SaveApplyAllButton.IsEnabled = canSave;
+    }
+
+    private bool TryReadPaperHeight(
         TimberAnnotationTextRole role,
         string? raw,
         out double value)
@@ -1249,7 +1347,7 @@ public partial class LayerSettingsWindow
         return false;
     }
 
-    private static bool TryReadPositiveDouble(string? raw, out double value)
+    private bool TryReadPositiveDouble(string? raw, out double value)
     {
         if (TryReadSignedDouble(raw, out value) && value > 0d)
         {
@@ -1260,9 +1358,10 @@ public partial class LayerSettingsWindow
         return false;
     }
 
-    private static bool TryReadSignedDouble(string? raw, out double value)
+    private bool TryReadSignedDouble(string? raw, out double value)
     {
-        if (double.TryParse(raw, NumberStyles.Float, SlovakCulture, out value) ||
+        if (double.TryParse(raw, NumberStyles.Float, _uiCulture, out value) ||
+            double.TryParse(raw, NumberStyles.Float, SlovakCulture, out value) ||
             double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out value))
         {
             return !double.IsNaN(value) && !double.IsInfinity(value);
@@ -1433,6 +1532,24 @@ public partial class LayerSettingsWindow
             TimberAnnotationTextRole.ItemCode => nameof(ItemCodePaperHeightText),
             TimberAnnotationTextRole.Dimension => nameof(DimensionPaperHeightText),
             _ => nameof(SlopePaperHeightText),
+        };
+
+    private static string GetRolePaperHeightStatusPropertyName(
+        TimberAnnotationTextRole role) =>
+        role switch
+        {
+            TimberAnnotationTextRole.ItemCode => nameof(ItemCodePaperHeightStatusText),
+            TimberAnnotationTextRole.Dimension => nameof(DimensionPaperHeightStatusText),
+            _ => nameof(SlopePaperHeightStatusText),
+        };
+
+    private static string GetRolePaperHeightErrorPropertyName(
+        TimberAnnotationTextRole role) =>
+        role switch
+        {
+            TimberAnnotationTextRole.ItemCode => nameof(HasItemCodePaperHeightError),
+            TimberAnnotationTextRole.Dimension => nameof(HasDimensionPaperHeightError),
+            _ => nameof(HasSlopePaperHeightError),
         };
 
     private static string GetRoleModelHeightPropertyName(TimberAnnotationTextRole role) =>

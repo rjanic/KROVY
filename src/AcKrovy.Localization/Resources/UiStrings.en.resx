@@ -479,4 +479,11 @@
   <data name="SettingsWindow_AnnotationText_ShxPreviewApproximation" xml:space="preserve"><value>The SHX font preview is approximate; AutoCAD uses the actual SHX font.</value></data>
   <data name="SettingsWindow_AnnotationText_DeleteInUse" xml:space="preserve"><value>The style cannot be deleted because at least one text role uses it.</value></data>
   <data name="SettingsWindow_AnnotationText_InvalidHeight" xml:space="preserve"><value>Text height must be within the allowed range.</value></data>
+  <data name="SettingsWindow_AnnotationText_AllowedRangeFormat" xml:space="preserve"><value>Allowed range: {0}–{1} mm</value></data>
+  <data name="SettingsWindow_AnnotationText_HeightInlineErrorFormat" xml:space="preserve"><value>Enter a value from {0} to {1} mm.</value></data>
+  <data name="SettingsWindow_AnnotationText_HeightRangeError_ItemCode" xml:space="preserve"><value>Main label height must be between {0} and {1} mm.</value></data>
+  <data name="SettingsWindow_AnnotationText_HeightRangeError_Dimension" xml:space="preserve"><value>Dimension label height must be between {0} and {1} mm.</value></data>
+  <data name="SettingsWindow_AnnotationText_HeightRangeError_Slope" xml:space="preserve"><value>Slope text height must be between {0} and {1} mm.</value></data>
+  <data name="SettingsWindow_AnnotationText_NumericValueRequired" xml:space="preserve"><value>A numeric value is required.</value></data>
+  <data name="SettingsWindow_AnnotationText_ShxTypeApproximate" xml:space="preserve"><value>SHX · approximate preview</value></data>
 </root>

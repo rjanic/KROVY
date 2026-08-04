@@ -960,6 +960,151 @@ public sealed class SettingsXamlRuntimeSmokeTests
         Assert.Null(failure);
     }
 
+    [Fact]
+    [Trait("Feature", "FashionLook")]
+    [Trait("Feature", "AnnotationText")]
+    public void AnnotationPaperHeight_ShowsRoleRangeHintsAndInlineErrors()
+    {
+        Exception? failure = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                _ = Application.Current ?? new Application
+                {
+                    ShutdownMode = ShutdownMode.OnExplicitShutdown,
+                };
+                AppLanguageService.Apply("sk");
+                LoadResourceDictionaries();
+
+                var applySettings = new Func<SettingsApplyRequest, SettingsApplyResponse>(_ =>
+                    new SettingsApplyResponse(
+                        Success: true,
+                        ProfileAccepted: true,
+                        Severity: StatusBannerSeverity.Success,
+                        ResourceKey: "SettingsWindow_Applied",
+                        ResourceArguments: [],
+                        AvailableLinetypeNames: CadLinetypeNames.SupportedStandardNames,
+                        AvailableLayerPresets:
+                        [
+                            new CadLayerPreset("0", 7, CadLinetypeNames.Continuous),
+                        ]));
+                var languageWorkflow = new ApplicationLanguageWorkflow(
+                    () => AppLanguageService.CurrentLanguageCode,
+                    languageCode => AppLanguageService.Apply(languageCode),
+                    _ => { },
+                    () => { });
+                var annotationScaleState = new AnnotationScaleSettingsState(
+                    HasDrawingOverride: false,
+                    DrawingDenominator: 50,
+                    EffectiveDenominator: 50);
+
+                var window = new LayerSettingsWindow(
+                    ElementLayerProfile.CreateDefault(),
+                    TimberElementDefaultProfile.CreateDefault(),
+                    "sk",
+                    CadLinetypeNames.SupportedStandardNames,
+                    [
+                        new CadLayerPreset("0", 7, CadLinetypeNames.Continuous),
+                    ],
+                    applySettings,
+                    languageWorkflow,
+                    annotationScaleState);
+                window.Left = -30000;
+                window.Top = -30000;
+                window.ShowInTaskbar = false;
+                window.WindowStyle = WindowStyle.None;
+                window.Show();
+                window.UpdateLayout();
+                window.Visual.SelectedSection = SettingsWindowTabKind.Annotation;
+                window.UpdateLayout();
+                window.AnnotationCategoryTabs.SelectedItem = window.AnnotationTextsTab;
+                window.UpdateLayout();
+
+                Assert.False(window.HasAnyInvalidAnnotationPaperHeight);
+                Assert.Contains("1,0", window.ItemCodePaperHeightStatusText, StringComparison.Ordinal);
+                Assert.Contains("3,5", window.ItemCodePaperHeightStatusText, StringComparison.Ordinal);
+                Assert.Contains("1,0", window.DimensionPaperHeightStatusText, StringComparison.Ordinal);
+                Assert.Contains("10,0", window.DimensionPaperHeightStatusText, StringComparison.Ordinal);
+                Assert.Contains("1,0", window.SlopePaperHeightStatusText, StringComparison.Ordinal);
+                Assert.Contains("5,0", window.SlopePaperHeightStatusText, StringComparison.Ordinal);
+                Assert.True(window.SaveNewElementsButton.IsEnabled);
+
+                window.ItemCodePaperHeightText = "3,7";
+                window.UpdateLayout();
+                Assert.True(window.HasItemCodePaperHeightError);
+                Assert.False(window.HasDimensionPaperHeightError);
+                Assert.False(window.HasSlopePaperHeightError);
+                Assert.Contains("1,0", window.ItemCodePaperHeightStatusText, StringComparison.Ordinal);
+                Assert.Contains("3,5", window.ItemCodePaperHeightStatusText, StringComparison.Ordinal);
+                Assert.DoesNotContain(
+                    "Povolený rozsah",
+                    window.ItemCodePaperHeightStatusText,
+                    StringComparison.Ordinal);
+                Assert.False(window.SaveNewElementsButton.IsEnabled);
+                Assert.False(window.SaveApplySelectionButton.IsEnabled);
+                Assert.False(window.SaveApplyAllButton.IsEnabled);
+
+                window.ItemCodePaperHeightText = "3,5";
+                window.DimensionPaperHeightText = "10,1";
+                window.UpdateLayout();
+                Assert.False(window.HasItemCodePaperHeightError);
+                Assert.True(window.HasDimensionPaperHeightError);
+                Assert.Contains("10,0", window.DimensionPaperHeightStatusText, StringComparison.Ordinal);
+
+                window.DimensionPaperHeightText = "10,0";
+                window.SlopePaperHeightText = "5,1";
+                window.UpdateLayout();
+                Assert.True(window.HasSlopePaperHeightError);
+                Assert.Contains("5,0", window.SlopePaperHeightStatusText, StringComparison.Ordinal);
+
+                window.SlopePaperHeightText = "1,0";
+                window.UpdateLayout();
+                Assert.False(window.HasAnyInvalidAnnotationPaperHeight);
+                Assert.True(window.SaveNewElementsButton.IsEnabled);
+
+                AppLanguageService.Apply("en");
+                window.Close();
+
+                var english = new LayerSettingsWindow(
+                    ElementLayerProfile.CreateDefault(),
+                    TimberElementDefaultProfile.CreateDefault(),
+                    "en",
+                    CadLinetypeNames.SupportedStandardNames,
+                    [
+                        new CadLayerPreset("0", 7, CadLinetypeNames.Continuous),
+                    ],
+                    applySettings,
+                    languageWorkflow,
+                    annotationScaleState);
+                english.Left = -30000;
+                english.Top = -30000;
+                english.ShowInTaskbar = false;
+                english.WindowStyle = WindowStyle.None;
+                english.Show();
+                english.UpdateLayout();
+                Assert.Contains("1.0", english.ItemCodePaperHeightStatusText, StringComparison.Ordinal);
+                Assert.Contains("3.5", english.ItemCodePaperHeightStatusText, StringComparison.Ordinal);
+                english.ItemCodePaperHeightText = "3.7";
+                english.UpdateLayout();
+                Assert.Equal(
+                    "Enter a value from 1.0 to 3.5 mm.",
+                    english.ItemCodePaperHeightStatusText);
+                english.Close();
+                AppLanguageService.Apply("en");
+            }
+            catch (Exception exception)
+            {
+                failure = exception;
+            }
+        });
+
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        Assert.True(thread.Join(TimeSpan.FromSeconds(45)), "WPF smoke test timed out.");
+        Assert.Null(failure);
+    }
+
     private static void AssertClosedKindDisplay(
         IReadOnlyList<ComboBox> kindComboBoxes,
         string expectedDisplayName)

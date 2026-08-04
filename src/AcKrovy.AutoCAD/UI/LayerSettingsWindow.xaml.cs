@@ -1367,6 +1367,7 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
             section == SettingsWindowTabKind.Manufacturing;
         SaveNewElementsButton.IsDefault =
             section == SettingsWindowTabKind.Annotation;
+        UpdateAnnotationSaveButtonsEnabled();
     }
 
     private void SetFooterActionsEnabled(bool isEnabled)
@@ -1375,6 +1376,10 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
         ManufacturingFooterActions.IsEnabled = isEnabled;
         AnnotationFooterActions.IsEnabled = isEnabled;
         LanguageFooterActions.IsEnabled = isEnabled;
+        if (isEnabled)
+        {
+            UpdateAnnotationSaveButtonsEnabled();
+        }
     }
 
     private void EditableRow_PropertyChanged(object? sender, PropertyChangedEventArgs e) =>

@@ -479,4 +479,11 @@
   <data name="SettingsWindow_AnnotationText_ShxPreviewApproximation" xml:space="preserve"><value>Die Vorschau der SHX-Schriftart ist angenähert; AutoCAD verwendet die tatsächliche SHX-Schriftart.</value></data>
   <data name="SettingsWindow_AnnotationText_DeleteInUse" xml:space="preserve"><value>Der Stil kann nicht gelöscht werden, weil mindestens eine Textrolle ihn verwendet.</value></data>
   <data name="SettingsWindow_AnnotationText_InvalidHeight" xml:space="preserve"><value>Die Texthöhe muss im zulässigen Bereich liegen.</value></data>
+  <data name="SettingsWindow_AnnotationText_AllowedRangeFormat" xml:space="preserve"><value>Zulässiger Bereich: {0}–{1} mm</value></data>
+  <data name="SettingsWindow_AnnotationText_HeightInlineErrorFormat" xml:space="preserve"><value>Geben Sie einen Wert von {0} bis {1} mm ein.</value></data>
+  <data name="SettingsWindow_AnnotationText_HeightRangeError_ItemCode" xml:space="preserve"><value>Die Höhe der Hauptbeschriftung muss zwischen {0} und {1} mm liegen.</value></data>
+  <data name="SettingsWindow_AnnotationText_HeightRangeError_Dimension" xml:space="preserve"><value>Die Höhe der Maßbeschriftung muss zwischen {0} und {1} mm liegen.</value></data>
+  <data name="SettingsWindow_AnnotationText_HeightRangeError_Slope" xml:space="preserve"><value>Die Höhe des Neigungstexts muss zwischen {0} und {1} mm liegen.</value></data>
+  <data name="SettingsWindow_AnnotationText_NumericValueRequired" xml:space="preserve"><value>Ein numerischer Wert ist erforderlich.</value></data>
+  <data name="SettingsWindow_AnnotationText_ShxTypeApproximate" xml:space="preserve"><value>SHX · ungefähre Vorschau</value></data>
 </root>

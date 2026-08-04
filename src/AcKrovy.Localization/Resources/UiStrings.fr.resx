@@ -479,4 +479,11 @@
   <data name="SettingsWindow_AnnotationText_ShxPreviewApproximation" xml:space="preserve"><value>L'aperçu de la police SHX est approximatif ; AutoCAD utilise la police SHX réelle.</value></data>
   <data name="SettingsWindow_AnnotationText_DeleteInUse" xml:space="preserve"><value>Impossible de supprimer le style car au moins un rôle de texte l'utilise.</value></data>
   <data name="SettingsWindow_AnnotationText_InvalidHeight" xml:space="preserve"><value>La hauteur de texte doit être dans la plage autorisée.</value></data>
+  <data name="SettingsWindow_AnnotationText_AllowedRangeFormat" xml:space="preserve"><value>Plage autorisée : {0}–{1} mm</value></data>
+  <data name="SettingsWindow_AnnotationText_HeightInlineErrorFormat" xml:space="preserve"><value>Saisissez une valeur de {0} à {1} mm.</value></data>
+  <data name="SettingsWindow_AnnotationText_HeightRangeError_ItemCode" xml:space="preserve"><value>La hauteur du libellé principal doit être comprise entre {0} et {1} mm.</value></data>
+  <data name="SettingsWindow_AnnotationText_HeightRangeError_Dimension" xml:space="preserve"><value>La hauteur du libellé de cote doit être comprise entre {0} et {1} mm.</value></data>
+  <data name="SettingsWindow_AnnotationText_HeightRangeError_Slope" xml:space="preserve"><value>La hauteur du texte de pente doit être comprise entre {0} et {1} mm.</value></data>
+  <data name="SettingsWindow_AnnotationText_NumericValueRequired" xml:space="preserve"><value>Une valeur numérique est requise.</value></data>
+  <data name="SettingsWindow_AnnotationText_ShxTypeApproximate" xml:space="preserve"><value>SHX · aperçu approximatif</value></data>
 </root>

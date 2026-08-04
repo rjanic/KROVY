@@ -549,15 +549,37 @@ public sealed class SettingsFashionLookTests
 
         Assert.Contains("HorizontalScrollBarVisibility=\"Disabled\"", tab);
         Assert.Contains(
-            "<ColumnDefinition Width=\"295\" MinWidth=\"280\" MaxWidth=\"310\" />",
+            "<ColumnDefinition Width=\"280\" MinWidth=\"250\" MaxWidth=\"290\" />",
             tab);
         Assert.Contains("<ColumnDefinition Width=\"*\" />", tab);
-        Assert.Contains("<ColumnDefinition Width=\"7\" />", tab);
-        Assert.Contains("MinHeight=\"236\"", tab);
+        Assert.Contains("<ColumnDefinition Width=\"10\" />", tab);
+        Assert.Contains("MinHeight=\"248\"", tab);
+        Assert.Contains("Height=\"132\"", tab);
+        Assert.Contains("VerticalAlignment=\"Top\"", tab);
+        Assert.Contains("AnnotationTextStyleLibraryItemStyle", tab);
+        Assert.Contains("AnnotationTextToolbarButtonStyle", tab);
+        Assert.Contains("TextStyleBadgeBackgroundBrush", tab);
+        Assert.Contains("SettingsIconPlus", tab);
+        Assert.Contains("SettingsIconEdit", tab);
+        Assert.Contains("SettingsIconRename", tab);
+        Assert.Contains("SettingsIconDelete", tab);
+        Assert.Contains("Text=\"K1\"", tab);
+        Assert.Contains("Text=\"80/160\"", tab);
+        Assert.Contains("Text=\"35°\"", tab);
+        Assert.Contains("<WrapPanel", tab);
+        Assert.DoesNotContain("MinHeight=\"142\"", tab);
         Assert.DoesNotContain("Width=\"350\"", tab);
         Assert.DoesNotContain("MinHeight=\"276\"", tab);
         Assert.DoesNotContain("<Viewbox", tab);
-        Assert.Equal(3, CountOccurrences(tab, "MinHeight=\"236\""));
+        Assert.DoesNotContain("AnnotationScaleCardItemStyle", tab);
+        Assert.Equal(3, CountOccurrences(tab, "MinHeight=\"248\""));
+        Assert.Equal(3, CountOccurrences(tab, "Height=\"16\""));
+        Assert.Contains("ItemCodePaperHeightStatusText", tab);
+        Assert.Contains("DimensionPaperHeightStatusText", tab);
+        Assert.Contains("SlopePaperHeightStatusText", tab);
+        Assert.Contains("HasItemCodePaperHeightError", tab);
+        Assert.Contains("SettingsValidationBrush", tab);
+        Assert.DoesNotContain("SettingsWindow_AnnotationText_InvalidHeight", tab);
     }
 
     [Fact]
@@ -574,16 +596,16 @@ public sealed class SettingsFashionLookTests
 
         Assert.Contains("IsApproximatePreview", code);
         Assert.Contains("SelectedTextStylePreviewFontWeight", code);
+        Assert.Contains("ShxTypeApproximate", code);
         Assert.Contains("new WpfFontFamily(\"Times New Roman\")", code);
         Assert.Contains("new WpfFontFamily(\"Bahnschrift\")", code);
         Assert.Contains("FontWeights.Light", code);
         Assert.Contains("IsApproximate: true", code);
         Assert.DoesNotContain("CharacterSpacing=", tab);
-        Assert.Equal(
-            1,
-            CountOccurrences(
-                tab,
-                "Text=\"{Binding SelectedTextStylePreviewStatus}\""));
+        Assert.Contains("SelectedTextStyleType", tab);
+        Assert.DoesNotContain(
+            "Text=\"{Binding SelectedTextStylePreviewStatus}\"",
+            tab);
         Assert.DoesNotContain("Text=\"{Binding ItemCodePreviewStatus}\"", tab);
         Assert.DoesNotContain("Text=\"{Binding DimensionPreviewStatus}\"", tab);
         Assert.DoesNotContain("Text=\"{Binding SlopePreviewStatus}\"", tab);
