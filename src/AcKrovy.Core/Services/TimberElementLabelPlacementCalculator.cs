@@ -22,15 +22,8 @@ public static class TimberElementLabelPlacementCalculator
         var dy = endY - startY;
         var planarLength = Math.Sqrt(dx * dx + dy * dy);
         var rotation = planarLength < 0.001d ? 0d : Math.Atan2(dy, dx);
-
-        if (rotation > Math.PI / 2d)
-        {
-            rotation -= Math.PI;
-        }
-        else if (rotation <= -Math.PI / 2d)
-        {
-            rotation += Math.PI;
-        }
+        rotation = TimberAnnotationReadabilityRules.NormalizeReadableRotationRadians(
+            rotation);
 
         var normalX = -Math.Sin(rotation);
         var normalY = Math.Cos(rotation);
