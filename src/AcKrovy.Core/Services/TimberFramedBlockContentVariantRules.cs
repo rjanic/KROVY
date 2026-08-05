@@ -6,11 +6,13 @@ namespace AcKrovy.Core.Services;
 
 /// <summary>
 /// Deterministic immutable BTR variant identity for G5 BlockContent.
-/// Angle and annotation-scale denominator are intentionally excluded.
+/// Angle, annotation-scale denominator, and leader Side are intentionally
+/// excluded — Side affects only ModelSpace knee/landing geometry.
 /// </summary>
 public static class TimberFramedBlockContentVariantRules
 {
     public const int MaximumRawKeyLength = 200;
+    public const int MaximumSafeBlockNameLength = 64;
 
     public static string CreateRawKey(
         TimberFramedBlockContentKind contentKind,
@@ -19,7 +21,6 @@ public static class TimberFramedBlockContentVariantRules
         string dimensionTextStyleName,
         double itemPaperHeightMm,
         double dimensionPaperHeightMm,
-        TimberLeaderHorizontalSide side,
         TimberFramedBlockContentPresentation presentation)
     {
         ValidateStyleIdentity(itemTextStyleName, nameof(itemTextStyleName));
@@ -35,7 +36,6 @@ public static class TimberFramedBlockContentVariantRules
             size = "NONE";
         }
 
-        var sideToken = side == TimberLeaderHorizontalSide.Left ? "L" : "R";
         var presentationToken =
             presentation == TimberFramedBlockContentPresentation.ItemOnly
                 ? "ITEM"
@@ -58,8 +58,7 @@ public static class TimberFramedBlockContentVariantRules
             "I" + FormatHeight(itemPaperHeightMm),
             "D" + FormatHeight(dimensionPaperHeightMm),
             "IS" + SanitizeToken(itemTextStyleName),
-            "DS" + SanitizeToken(dimensionTextStyleName),
-            sideToken);
+            "DS" + SanitizeToken(dimensionTextStyleName));
     }
 
     /// <summary>
@@ -68,7 +67,7 @@ public static class TimberFramedBlockContentVariantRules
     /// </summary>
     public static string CreateSafeBlockName(
         string rawKey,
-        int maximumLength = 31)
+        int maximumLength = MaximumSafeBlockNameLength)
     {
         if (string.IsNullOrWhiteSpace(rawKey))
         {
