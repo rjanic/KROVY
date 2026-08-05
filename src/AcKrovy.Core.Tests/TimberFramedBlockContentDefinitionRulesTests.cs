@@ -18,7 +18,7 @@ public sealed class TimberFramedBlockContentDefinitionRulesTests
                 presentation));
 
     [Theory]
-    [InlineData(TimberFramedBlockContentKind.Plain, 0)]
+    [InlineData(TimberFramedBlockContentKind.Plain, 1)]
     [InlineData(TimberFramedBlockContentKind.Circle, 1)]
     [InlineData(TimberFramedBlockContentKind.Rectangle, 1)]
     [InlineData(TimberFramedBlockContentKind.Slot, 1)]
@@ -91,21 +91,71 @@ public sealed class TimberFramedBlockContentDefinitionRulesTests
     }
 
     [Fact]
-    public void DimensionColumnLocalX_IsNegativeCanonicalForPlainAndFramed()
+    public void DimensionColumnLocalX_IsSignedByColumnSide()
     {
-        var plainX = TimberFramedBlockContentDefinitionRules
+        var plainNeg = TimberFramedBlockContentDefinitionRules
             .CalculateDimensionColumnLocalX(
                 TimberFramedBlockContentKind.Plain,
                 0d,
-                2.5d);
-        var framedX = TimberFramedBlockContentDefinitionRules
+                2.5d,
+                TimberFramedBlockContentDimensionColumnSide.NegativeLocalX);
+        var plainPos = TimberFramedBlockContentDefinitionRules
+            .CalculateDimensionColumnLocalX(
+                TimberFramedBlockContentKind.Plain,
+                0d,
+                2.5d,
+                TimberFramedBlockContentDimensionColumnSide.PositiveLocalX);
+        var framedNeg = TimberFramedBlockContentDefinitionRules
             .CalculateDimensionColumnLocalX(
                 TimberFramedBlockContentKind.Circle,
                 TimberItemLeaderBlockDefinitionRules.CircleDiameterMm,
-                2.5d);
+                2.5d,
+                TimberFramedBlockContentDimensionColumnSide.NegativeLocalX);
+        var framedPos = TimberFramedBlockContentDefinitionRules
+            .CalculateDimensionColumnLocalX(
+                TimberFramedBlockContentKind.Circle,
+                TimberItemLeaderBlockDefinitionRules.CircleDiameterMm,
+                2.5d,
+                TimberFramedBlockContentDimensionColumnSide.PositiveLocalX);
 
-        Assert.True(plainX < 0d);
-        Assert.True(framedX < plainX);
+        Assert.True(plainNeg < 0d);
+        Assert.Equal(-plainNeg, plainPos, 1e-9);
+        Assert.True(framedNeg < plainNeg);
+        Assert.Equal(-framedNeg, framedPos, 1e-9);
+    }
+
+    [Theory]
+    [InlineData(1d, TimberFramedBlockContentDimensionColumnSide.NegativeLocalX)]
+    [InlineData(-1d, TimberFramedBlockContentDimensionColumnSide.PositiveLocalX)]
+    public void ResolveDimensionColumnSide_FromContentLocalX(
+        double contentLocalX,
+        TimberFramedBlockContentDimensionColumnSide expected) =>
+        Assert.Equal(
+            expected,
+            TimberFramedBlockContentDefinitionRules
+                .ResolveDimensionColumnSideFromContentLocalX(contentLocalX));
+
+    [Fact]
+    public void TryClassifyDimensionColumnSide_FromAttrDefX()
+    {
+        Assert.True(
+            TimberFramedBlockContentDefinitionRules.TryClassifyDimensionColumnSide(
+                -430d,
+                out var negative));
+        Assert.Equal(
+            TimberFramedBlockContentDimensionColumnSide.NegativeLocalX,
+            negative);
+        Assert.True(
+            TimberFramedBlockContentDefinitionRules.TryClassifyDimensionColumnSide(
+                430d,
+                out var positive));
+        Assert.Equal(
+            TimberFramedBlockContentDimensionColumnSide.PositiveLocalX,
+            positive);
+        Assert.False(
+            TimberFramedBlockContentDefinitionRules.TryClassifyDimensionColumnSide(
+                0d,
+                out _));
     }
 
     [Fact]

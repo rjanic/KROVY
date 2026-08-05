@@ -51,6 +51,7 @@ internal static class AcKrovyFramedBlockContentDefinitionService
             var sizeToken = TimberFramedBlockContentDefinitionRules.GetFrameSizeToken(
                 normalized.ContentKind,
                 frameDefinition?.Size);
+            // R2 keys only — never mutate existing side-agnostic R1 Combined BTRs.
             rawKey = TimberFramedBlockContentVariantRules.CreateRawKey(
                 normalized.ContentKind,
                 sizeToken,
@@ -58,15 +59,19 @@ internal static class AcKrovyFramedBlockContentDefinitionService
                 normalized.DimensionTextStyleName,
                 normalized.ItemPaperHeightMm,
                 normalized.DimensionPaperHeightMm,
-                normalized.Presentation);
+                normalized.Presentation,
+                normalized.DimensionColumnSide);
             canonicalName = AutoCadFramedBlockContentPolicy.CreateCanonicalName(rawKey);
-            if (!AutoCadFramedBlockContentPolicy.IsProductionFamilyName(canonicalName))
+            if (!AutoCadFramedBlockContentPolicy.IsProductionFamilyName(canonicalName) ||
+                !canonicalName.Contains(
+                    "_" + TimberFramedBlockContentVariantRules.FamilyRevisionToken + "_",
+                    StringComparison.Ordinal))
             {
                 return AutoCadFramedBlockContentResult.InvalidRequest(
                     rawKey,
                     canonicalName,
                     databaseIdentity,
-                    "Generated block name is outside the AK_KROVY_FBC_ family.");
+                    "Generated block name is outside the AK_KROVY_FBC_R2_ family.");
             }
         }
         catch (Exception exception) when (
@@ -294,7 +299,17 @@ internal static class AcKrovyFramedBlockContentDefinitionService
 
         if (expectedFrameCount == 1)
         {
-            if (frameDefinition is null ||
+            if (request.ContentKind == TimberFramedBlockContentKind.Plain)
+            {
+                if (!IsPlainConnectionMarker(database, frames[0]))
+                {
+                    reason =
+                        "Plain BTR must contain exactly one invisible origin " +
+                        "connection marker (no visible frame).";
+                    return false;
+                }
+            }
+            else if (frameDefinition is null ||
                 !HasExpectedGeometry(database, frames[0], frameDefinition))
             {
                 reason = "Frame geometry does not match kind/size contract.";
@@ -336,6 +351,14 @@ internal static class AcKrovyFramedBlockContentDefinitionService
                 block,
                 frameDefinition);
         }
+        else
+        {
+            // Plain Combined: AttrDefs alone are rejected by AutoCAD BlockContent
+            // MLeader (eInvalidContext). Add an invisible zero-extent DBPoint at
+            // the block origin as connection geometry — not a visible frame,
+            // not plottable, does not change visual extents. Stays in the BTR.
+            AppendPlainConnectionMarker(database, transaction, block);
+        }
 
         var itemHeight =
             TimberFramedBlockContentDefinitionRules.CalculateBaselineItemModelHeightMm(
@@ -356,6 +379,9 @@ internal static class AcKrovyFramedBlockContentDefinitionService
                     .CalculateBaselineDimensionModelHeightMm(
                         request.DimensionPaperHeightMm);
             var frameWidth = frameDefinition?.WidthMm ?? 0d;
+            var columnSide = request.DimensionColumnSide
+                ?? throw new InvalidOperationException(
+                    "Combined create requires DimensionColumnSide.");
             AppendAttribute(
                 database,
                 transaction,
@@ -367,7 +393,8 @@ internal static class AcKrovyFramedBlockContentDefinitionService
                     TimberFramedBlockContentDefinitionRules.WidthAttributeLocalPoint(
                         request.ContentKind,
                         frameWidth,
-                        request.DimensionPaperHeightMm)));
+                        request.DimensionPaperHeightMm,
+                        columnSide)));
             AppendAttribute(
                 database,
                 transaction,
@@ -379,7 +406,8 @@ internal static class AcKrovyFramedBlockContentDefinitionService
                     TimberFramedBlockContentDefinitionRules.HeightAttributeLocalPoint(
                         request.ContentKind,
                         frameWidth,
-                        request.DimensionPaperHeightMm)));
+                        request.DimensionPaperHeightMm,
+                        columnSide)));
         }
 
         if (!ValidateExistingDefinition(
@@ -500,26 +528,34 @@ internal static class AcKrovyFramedBlockContentDefinitionService
                      TimberFramedBlockContentDefinitionRules.WidthTag,
                      StringComparison.OrdinalIgnoreCase))
         {
+            var columnSide = request.DimensionColumnSide
+                ?? throw new InvalidOperationException(
+                    "Combined validation requires DimensionColumnSide.");
             expectedHeight = dimHeight;
             expectedStyleId = request.DimensionTextStyleId;
             expectedPosition = ToPoint3d(
                 TimberFramedBlockContentDefinitionRules.WidthAttributeLocalPoint(
                     request.ContentKind,
                     frameWidthMm,
-                    request.DimensionPaperHeightMm));
+                    request.DimensionPaperHeightMm,
+                    columnSide));
         }
         else if (string.Equals(
                      tag,
                      TimberFramedBlockContentDefinitionRules.HeightTag,
                      StringComparison.OrdinalIgnoreCase))
         {
+            var columnSide = request.DimensionColumnSide
+                ?? throw new InvalidOperationException(
+                    "Combined validation requires DimensionColumnSide.");
             expectedHeight = dimHeight;
             expectedStyleId = request.DimensionTextStyleId;
             expectedPosition = ToPoint3d(
                 TimberFramedBlockContentDefinitionRules.HeightAttributeLocalPoint(
                     request.ContentKind,
                     frameWidthMm,
-                    request.DimensionPaperHeightMm));
+                    request.DimensionPaperHeightMm,
+                    columnSide));
         }
         else
         {
@@ -548,6 +584,31 @@ internal static class AcKrovyFramedBlockContentDefinitionService
         }
 
         return true;
+    }
+
+    private static void AppendPlainConnectionMarker(
+        Database database,
+        Transaction transaction,
+        BlockTableRecord block)
+    {
+        var marker = new DBPoint(Point3d.Origin);
+        ApplyByBlock(database, marker);
+        marker.Visible = false;
+        block.AppendEntity(marker);
+        transaction.AddNewlyCreatedDBObject(marker, true);
+    }
+
+    private static bool IsPlainConnectionMarker(Database database, Entity entity)
+    {
+        if (entity is not DBPoint point)
+        {
+            return false;
+        }
+
+        var tol = TimberFramedBlockContentDefinitionRules.GeometryToleranceMm;
+        return HasByBlockAppearance(database, point) &&
+            !point.Visible &&
+            point.Position.DistanceTo(Point3d.Origin) <= tol;
     }
 
     private static TimberItemLeaderBlockDefinition? ResolveFrameDefinition(

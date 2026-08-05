@@ -5,14 +5,25 @@ using AcKrovy.Core.Models;
 namespace AcKrovy.Core.Services;
 
 /// <summary>
-/// Deterministic immutable BTR variant identity for G5 BlockContent.
+/// Deterministic immutable BTR variant identity for G5 BlockContent (R2).
 /// Angle, annotation-scale denominator, and leader Side are intentionally
 /// excluded — Side affects only ModelSpace knee/landing geometry.
+/// Combined variants fork by dimension-column local-X side (not screen L/R).
+/// ItemOnly omits the column-side token (centered ITEM_NO only).
 /// </summary>
 public static class TimberFramedBlockContentVariantRules
 {
     public const int MaximumRawKeyLength = 200;
     public const int MaximumSafeBlockNameLength = 64;
+
+    /// <summary>
+    /// Immutable family revision. Existing R1 (side-agnostic Combined) BTRs
+    /// remain untouched; new Ensures create R2 names only.
+    /// </summary>
+    public const string FamilyRevisionToken = "R2";
+
+    public const string DimensionsNegativeXToken = "DIMNX";
+    public const string DimensionsPositiveXToken = "DIMPX";
 
     public static string CreateRawKey(
         TimberFramedBlockContentKind contentKind,
@@ -21,8 +32,11 @@ public static class TimberFramedBlockContentVariantRules
         string dimensionTextStyleName,
         double itemPaperHeightMm,
         double dimensionPaperHeightMm,
-        TimberFramedBlockContentPresentation presentation)
+        TimberFramedBlockContentPresentation presentation,
+        TimberFramedBlockContentDimensionColumnSide? dimensionColumnSide = null)
     {
+        // Key must never encode angle, denominator, screen Left/Right,
+        // annotation ownership identity, or free-form text content.
         ValidateStyleIdentity(itemTextStyleName, nameof(itemTextStyleName));
         ValidateStyleIdentity(dimensionTextStyleName, nameof(dimensionTextStyleName));
         ValidatePaperHeight(itemPaperHeightMm, TimberAnnotationTextRole.ItemCode);
@@ -49,17 +63,62 @@ public static class TimberFramedBlockContentVariantRules
             _ => throw new ArgumentOutOfRangeException(nameof(contentKind), contentKind, null),
         };
 
-        return string.Join(
-            "_",
+        var parts = new List<string>
+        {
             "AK_KROVY_FBC",
+            FamilyRevisionToken,
             kindToken,
             size,
             presentationToken,
-            "I" + FormatHeight(itemPaperHeightMm),
-            "D" + FormatHeight(dimensionPaperHeightMm),
-            "IS" + SanitizeToken(itemTextStyleName),
-            "DS" + SanitizeToken(dimensionTextStyleName));
+        };
+
+        if (presentation == TimberFramedBlockContentPresentation.Combined)
+        {
+            if (dimensionColumnSide is null)
+            {
+                throw new ArgumentNullException(
+                    nameof(dimensionColumnSide),
+                    "Combined R2 variants require a dimension column side.");
+            }
+
+            if (!Enum.IsDefined(
+                    typeof(TimberFramedBlockContentDimensionColumnSide),
+                    dimensionColumnSide.Value))
+            {
+                throw new ArgumentOutOfRangeException(nameof(dimensionColumnSide));
+            }
+
+            parts.Add(ToDimensionColumnSideToken(dimensionColumnSide.Value));
+        }
+
+        parts.Add("I" + FormatHeight(itemPaperHeightMm));
+        parts.Add("D" + FormatHeight(dimensionPaperHeightMm));
+        parts.Add("IS" + SanitizeToken(itemTextStyleName));
+        parts.Add("DS" + SanitizeToken(dimensionTextStyleName));
+        return string.Join("_", parts);
     }
+
+    public static string ToDimensionColumnSideToken(
+        TimberFramedBlockContentDimensionColumnSide side) =>
+        side switch
+        {
+            TimberFramedBlockContentDimensionColumnSide.NegativeLocalX =>
+                DimensionsNegativeXToken,
+            TimberFramedBlockContentDimensionColumnSide.PositiveLocalX =>
+                DimensionsPositiveXToken,
+            _ => throw new ArgumentOutOfRangeException(nameof(side), side, null),
+        };
+
+    public static TimberFramedBlockContentDimensionColumnSide OppositeDimensionColumnSide(
+        TimberFramedBlockContentDimensionColumnSide side) =>
+        side switch
+        {
+            TimberFramedBlockContentDimensionColumnSide.NegativeLocalX =>
+                TimberFramedBlockContentDimensionColumnSide.PositiveLocalX,
+            TimberFramedBlockContentDimensionColumnSide.PositiveLocalX =>
+                TimberFramedBlockContentDimensionColumnSide.NegativeLocalX,
+            _ => throw new ArgumentOutOfRangeException(nameof(side), side, null),
+        };
 
     /// <summary>
     /// Filesystem / AutoCAD symbol-name safe form. Truncates with a stable hash

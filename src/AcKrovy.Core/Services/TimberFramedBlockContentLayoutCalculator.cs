@@ -6,6 +6,12 @@ namespace AcKrovy.Core.Services;
 /// Canonical local G5 BlockContent layout (pre-host TransformBy).
 /// First segment: knee = attachment + T·(L·cos60) + sideSign·N·(L·sin60),
 /// with sideSign = +1 Right / −1 Left (G5C proof contract).
+/// Combined WIDTH/HEIGHT local X follows
+/// <see cref="TimberFramedBlockContentDimensionColumnSide"/> so the column
+/// stays on the frame side toward the knee (not screen Left/Right).
+/// Landing stays along +T for both Left and Right at create; dogleg direction
+/// after grip STRETCH is resolved separately by
+/// <see cref="TimberFramedBlockContentDoglegRules"/>.
 /// </summary>
 public static class TimberFramedBlockContentLayoutCalculator
 {
@@ -13,7 +19,7 @@ public static class TimberFramedBlockContentLayoutCalculator
         TimberItemLeaderLayoutCalculator.FramedFirstSegmentAngleRadians;
 
     public static double SideSign(TimberLeaderHorizontalSide side) =>
-        side == TimberLeaderHorizontalSide.Right ? 1d : -1d;
+        TimberFramedBlockContentDoglegRules.SideSign(side);
 
     public static TimberFramedBlockContentLayout Calculate(
         TimberFramedBlockContentLayoutRequest request)
@@ -62,10 +68,17 @@ public static class TimberFramedBlockContentLayoutCalculator
         var minimumFrameGap =
             TimberCombinedDimensionTypographyRules.CalculateMinimumFrameGapMm(
                 scaleFactor);
+        var dimensionColumnOffset =
+            frameWidth / 2d +
+            minimumFrameGap +
+            request.DimensionColumnEnvelopeWidthMm / 2d;
         var dimensionColumnLocalX =
-            -(frameWidth / 2d +
-              minimumFrameGap +
-              request.DimensionColumnEnvelopeWidthMm / 2d);
+            request.Presentation == TimberFramedBlockContentPresentation.Combined
+                ? (request.DimensionColumnSide ==
+                    TimberFramedBlockContentDimensionColumnSide.NegativeLocalX
+                    ? -dimensionColumnOffset
+                    : dimensionColumnOffset)
+                : -dimensionColumnOffset;
 
         var itemHeight =
             TimberAnnotationTextSettingsRules.CalculateModelHeightMm(
@@ -225,6 +238,14 @@ public static class TimberFramedBlockContentLayoutCalculator
                 request.Presentation))
         {
             throw new ArgumentOutOfRangeException(nameof(request.Presentation));
+        }
+
+        if (request.Presentation == TimberFramedBlockContentPresentation.Combined &&
+            !Enum.IsDefined(
+                typeof(TimberFramedBlockContentDimensionColumnSide),
+                request.DimensionColumnSide))
+        {
+            throw new ArgumentOutOfRangeException(nameof(request.DimensionColumnSide));
         }
     }
 

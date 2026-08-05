@@ -3,10 +3,13 @@ using AcKrovy.Core.Models;
 namespace AcKrovy.Core.Services;
 
 /// <summary>
-/// Portable AttrDef/frame contract for immutable G5 BlockContent BTRs.
+/// Portable AttrDef/frame contract for immutable G5 BlockContent BTRs (R2).
 /// Geometry and AttrDef heights are baked at the default 1:50 baseline;
 /// MLeader BlockScale applies the per-element annotation ScaleFactor once.
 /// Leader Side is intentionally absent — it is ModelSpace-only geometry.
+/// Combined WIDTH/HEIGHT local X is signed by
+/// <see cref="TimberFramedBlockContentDimensionColumnSide"/> so the column
+/// stays on the frame side toward the knee.
 /// </summary>
 public static class TimberFramedBlockContentDefinitionRules
 {
@@ -56,8 +59,17 @@ public static class TimberFramedBlockContentDefinitionRules
         presentation == TimberFramedBlockContentPresentation.ItemOnly ? 1 : 3;
 
     public static int ExpectedFrameEntityCount(
-        TimberFramedBlockContentKind contentKind) =>
-        contentKind == TimberFramedBlockContentKind.Plain ? 0 : 1;
+        TimberFramedBlockContentKind contentKind)
+    {
+        if (!Enum.IsDefined(typeof(TimberFramedBlockContentKind), contentKind))
+        {
+            throw new ArgumentOutOfRangeException(nameof(contentKind));
+        }
+
+        // Plain: invisible origin connection marker (AttrDefs alone are rejected
+        // by BlockContent MLeader with eInvalidContext). Framed: one frame.
+        return 1;
+    }
 
     public static IReadOnlyList<string> ExpectedAttributeTags(
         TimberFramedBlockContentPresentation presentation) =>
@@ -91,7 +103,10 @@ public static class TimberFramedBlockContentDefinitionRules
             TimberCombinedDimensionTypographyRules.EstimatedCharacterWidthFactor);
     }
 
-    public static double CalculateDimensionColumnLocalX(
+    /// <summary>
+    /// Absolute Combined WIDTH/HEIGHT column offset from frame/origin.
+    /// </summary>
+    public static double CalculateDimensionColumnOffsetMm(
         TimberFramedBlockContentKind contentKind,
         double frameWidthMm,
         double dimensionPaperHeightMm)
@@ -103,7 +118,77 @@ public static class TimberFramedBlockContentDefinitionRules
             BaselinePresentationScaleFactor);
         var envelope = CalculateReferenceDimensionEnvelopeWidthMm(
             dimensionPaperHeightMm);
-        return -(frameHalf + gap + envelope / 2d);
+        return frameHalf + gap + envelope / 2d;
+    }
+
+    /// <summary>
+    /// Signed Combined WIDTH/HEIGHT local X for the requested column side.
+    /// </summary>
+    public static double CalculateDimensionColumnLocalX(
+        TimberFramedBlockContentKind contentKind,
+        double frameWidthMm,
+        double dimensionPaperHeightMm,
+        TimberFramedBlockContentDimensionColumnSide dimensionColumnSide)
+    {
+        if (!Enum.IsDefined(
+                typeof(TimberFramedBlockContentDimensionColumnSide),
+                dimensionColumnSide))
+        {
+            throw new ArgumentOutOfRangeException(nameof(dimensionColumnSide));
+        }
+
+        var offset = CalculateDimensionColumnOffsetMm(
+            contentKind,
+            frameWidthMm,
+            dimensionPaperHeightMm);
+        return dimensionColumnSide ==
+            TimberFramedBlockContentDimensionColumnSide.NegativeLocalX
+            ? -offset
+            : offset;
+    }
+
+    /// <summary>
+    /// From block-local content vector (BlockPosition − knee): positive local X
+    /// content needs NegativeLocalX dimensions (toward the knee); negative
+    /// local X content needs PositiveLocalX dimensions.
+    /// </summary>
+    public static TimberFramedBlockContentDimensionColumnSide
+        ResolveDimensionColumnSideFromContentLocalX(double contentDirectionLocalX)
+    {
+        if (double.IsNaN(contentDirectionLocalX) ||
+            double.IsInfinity(contentDirectionLocalX) ||
+            Math.Abs(contentDirectionLocalX) <= GeometryToleranceMm)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(contentDirectionLocalX),
+                contentDirectionLocalX,
+                "Content direction local X must be a non-zero finite value.");
+        }
+
+        return contentDirectionLocalX > 0d
+            ? TimberFramedBlockContentDimensionColumnSide.NegativeLocalX
+            : TimberFramedBlockContentDimensionColumnSide.PositiveLocalX;
+    }
+
+    /// <summary>
+    /// Classify an existing AttrDef WIDTH/HEIGHT local X into a column side.
+    /// </summary>
+    public static bool TryClassifyDimensionColumnSide(
+        double widthOrHeightLocalX,
+        out TimberFramedBlockContentDimensionColumnSide side)
+    {
+        if (double.IsNaN(widthOrHeightLocalX) ||
+            double.IsInfinity(widthOrHeightLocalX) ||
+            Math.Abs(widthOrHeightLocalX) <= GeometryToleranceMm)
+        {
+            side = default;
+            return false;
+        }
+
+        side = widthOrHeightLocalX < 0d
+            ? TimberFramedBlockContentDimensionColumnSide.NegativeLocalX
+            : TimberFramedBlockContentDimensionColumnSide.PositiveLocalX;
+        return true;
     }
 
     public static double CalculateWidthLocalY(double dimensionPaperHeightMm) =>
@@ -122,23 +207,27 @@ public static class TimberFramedBlockContentDefinitionRules
     public static TimberPlanarPoint WidthAttributeLocalPoint(
         TimberFramedBlockContentKind contentKind,
         double frameWidthMm,
-        double dimensionPaperHeightMm) =>
+        double dimensionPaperHeightMm,
+        TimberFramedBlockContentDimensionColumnSide dimensionColumnSide) =>
         new(
             CalculateDimensionColumnLocalX(
                 contentKind,
                 frameWidthMm,
-                dimensionPaperHeightMm),
+                dimensionPaperHeightMm,
+                dimensionColumnSide),
             CalculateWidthLocalY(dimensionPaperHeightMm));
 
     public static TimberPlanarPoint HeightAttributeLocalPoint(
         TimberFramedBlockContentKind contentKind,
         double frameWidthMm,
-        double dimensionPaperHeightMm) =>
+        double dimensionPaperHeightMm,
+        TimberFramedBlockContentDimensionColumnSide dimensionColumnSide) =>
         new(
             CalculateDimensionColumnLocalX(
                 contentKind,
                 frameWidthMm,
-                dimensionPaperHeightMm),
+                dimensionPaperHeightMm,
+                dimensionColumnSide),
             CalculateHeightLocalY(dimensionPaperHeightMm));
 
     public static void ValidateRequest(

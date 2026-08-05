@@ -15,6 +15,8 @@ public sealed class FramedBlockContentDefinitionSourceContractTests
 
         Assert.Contains("AK_KROVY_FBC", PolicySource());
         Assert.Contains("TimberFramedBlockContentVariantRules.CreateRawKey(", service);
+        Assert.Contains("FamilyRevisionToken", service);
+        Assert.Contains("DimensionColumnSide", service);
         Assert.Contains("CreateCollisionName", PolicySource());
         Assert.Contains("OpenMode.ForRead", validate);
         Assert.DoesNotContain("OpenMode.ForWrite", validate);
@@ -22,23 +24,36 @@ public sealed class FramedBlockContentDefinitionSourceContractTests
         Assert.DoesNotContain("Erase(", validate);
         Assert.DoesNotContain("EraseDefinitionContents", service);
         Assert.Contains("AcKrovyItemLeaderBlockService.AddFrameGeometry(", create);
+        Assert.Contains("AppendPlainConnectionMarker(", create);
+        Assert.Contains("new DBPoint(", service);
         Assert.Contains("IsMTextAttributeDefinition", service);
         Assert.Contains("ITEM_NO", DefinitionRulesSource());
         Assert.Contains("WIDTH", DefinitionRulesSource());
         Assert.Contains("HEIGHT", DefinitionRulesSource());
+        Assert.Contains("CalculateDimensionColumnLocalX(", DefinitionRulesSource());
+        Assert.Contains("dimensionColumnSide", DefinitionRulesSource());
     }
 
     [Fact]
     public void VariantKey_ExcludesSideDenominatorAngleAndProofPrefixes()
     {
         var variant = VariantRulesSource();
+        var createRawKey = Member(
+            Normalize(variant),
+            "public static string CreateRawKey(");
         var policy = PolicySource();
 
         Assert.DoesNotContain("TimberLeaderHorizontalSide", variant);
         Assert.DoesNotContain("sideToken", variant);
-        Assert.DoesNotContain("annotationScaleDenominator", variant);
-        Assert.DoesNotContain("ElementAxis", variant);
+        Assert.DoesNotContain("annotationScaleDenominator", createRawKey);
+        Assert.DoesNotContain("ElementAxis", createRawKey);
+        Assert.DoesNotContain("SourceHandle", createRawKey);
+        Assert.DoesNotContain("ElementId", createRawKey);
         Assert.Contains("AK_KROVY_FBC", variant);
+        Assert.Contains("FamilyRevisionToken = \"R2\"", variant);
+        Assert.Contains("DimensionsNegativeXToken", variant);
+        Assert.Contains("DimensionsPositiveXToken", variant);
+        Assert.Contains("dimensionColumnSide", createRawKey);
         Assert.Contains("NameFamilyPrefix = \"AK_KROVY_FBC_\"", policy);
         Assert.Contains("IsProductionFamilyName", policy);
         Assert.Contains("!name.StartsWith(\"AK_G5C_\"", Normalize(policy));

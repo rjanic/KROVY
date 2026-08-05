@@ -9,8 +9,9 @@ using Autodesk.AutoCAD.DatabaseServices;
 namespace AcKrovy.AutoCAD.Infrastructure;
 
 /// <summary>
-/// Host request for an immutable G5 BlockContent BTR family.
+/// Host request for an immutable G5 BlockContent BTR family (R2).
 /// Side / angle / annotation denominator are intentionally absent.
+/// Combined requires <see cref="DimensionColumnSide"/>; ItemOnly omits it.
 /// </summary>
 internal sealed record AutoCadFramedBlockContentRequest(
     TimberFramedBlockContentKind ContentKind,
@@ -21,7 +22,8 @@ internal sealed record AutoCadFramedBlockContentRequest(
     double DimensionPaperHeightMm,
     ObjectId ItemTextStyleId,
     ObjectId DimensionTextStyleId,
-    string ItemTextForFrameSizing)
+    string ItemTextForFrameSizing,
+    TimberFramedBlockContentDimensionColumnSide? DimensionColumnSide = null)
 {
     public AutoCadFramedBlockContentRequest Normalize()
     {
@@ -65,11 +67,32 @@ internal sealed record AutoCadFramedBlockContentRequest(
                 nameof(DimensionTextStyleId));
         }
 
+        if (Presentation == TimberFramedBlockContentPresentation.Combined)
+        {
+            if (DimensionColumnSide is null)
+            {
+                throw new ArgumentNullException(
+                    nameof(DimensionColumnSide),
+                    "Combined R2 definitions require a dimension column side.");
+            }
+
+            if (!Enum.IsDefined(
+                    typeof(TimberFramedBlockContentDimensionColumnSide),
+                    DimensionColumnSide.Value))
+            {
+                throw new ArgumentOutOfRangeException(nameof(DimensionColumnSide));
+            }
+        }
+
         return this with
         {
             ItemTextStyleName = ItemTextStyleName.Trim(),
             DimensionTextStyleName = DimensionTextStyleName.Trim(),
             ItemTextForFrameSizing = ItemTextForFrameSizing?.Trim() ?? string.Empty,
+            DimensionColumnSide =
+                Presentation == TimberFramedBlockContentPresentation.Combined
+                    ? DimensionColumnSide
+                    : null,
         };
     }
 }

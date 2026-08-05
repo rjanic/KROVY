@@ -8,8 +8,9 @@ using Autodesk.AutoCAD.EditorInput;
 namespace AcKrovy.AutoCAD.Infrastructure;
 
 /// <summary>
-/// DEBUG host verify: Ensure FBC BTRs only (no annotations), print inventory,
-/// and confirm Ensure-twice returns the same ObjectId.
+/// DEBUG host verify: Ensure FBC R2 BTRs only (no annotations), print inventory,
+/// and confirm Ensure-twice returns the same ObjectId. Combined cases cover both
+/// dimension-column sides without mutating R1 definitions.
 /// </summary>
 internal static class AutoCadFramedBlockContentDefinitionVerifyService
 {
@@ -29,51 +30,50 @@ internal static class AutoCadFramedBlockContentDefinitionVerifyService
             ? "Standard"
             : textStyle.Name;
 
-        var cases = new (string Label, AutoCadFramedBlockContentRequest Request)[]
+        var cases = new List<(string Label, AutoCadFramedBlockContentRequest Request)>();
+        foreach (var kind in new[]
+                 {
+                     TimberFramedBlockContentKind.Plain,
+                     TimberFramedBlockContentKind.Circle,
+                     TimberFramedBlockContentKind.Rectangle,
+                     TimberFramedBlockContentKind.Slot,
+                 })
         {
-            ("Plain Combined", CreateRequest(
-                TimberFramedBlockContentKind.Plain,
-                TimberFramedBlockContentPresentation.Combined,
-                styleName,
-                textStyleId,
-                "1")),
-            ("Circle Combined", CreateRequest(
-                TimberFramedBlockContentKind.Circle,
-                TimberFramedBlockContentPresentation.Combined,
-                styleName,
-                textStyleId,
-                "12")),
-            ("Rectangle Combined", CreateRequest(
-                TimberFramedBlockContentKind.Rectangle,
-                TimberFramedBlockContentPresentation.Combined,
-                styleName,
-                textStyleId,
-                "12")),
-            ("Slot Combined", CreateRequest(
-                TimberFramedBlockContentKind.Slot,
-                TimberFramedBlockContentPresentation.Combined,
-                styleName,
-                textStyleId,
-                "12")),
-            ("Circle ItemOnly", CreateRequest(
-                TimberFramedBlockContentKind.Circle,
-                TimberFramedBlockContentPresentation.ItemOnly,
-                styleName,
-                textStyleId,
-                "12")),
-            ("Rectangle ItemOnly", CreateRequest(
-                TimberFramedBlockContentKind.Rectangle,
-                TimberFramedBlockContentPresentation.ItemOnly,
-                styleName,
-                textStyleId,
-                "12")),
-            ("Slot ItemOnly", CreateRequest(
-                TimberFramedBlockContentKind.Slot,
-                TimberFramedBlockContentPresentation.ItemOnly,
-                styleName,
-                textStyleId,
-                "12")),
-        };
+            foreach (var side in new[]
+                     {
+                         TimberFramedBlockContentDimensionColumnSide.NegativeLocalX,
+                         TimberFramedBlockContentDimensionColumnSide.PositiveLocalX,
+                     })
+            {
+                cases.Add((
+                    $"{kind} Combined {side}",
+                    CreateRequest(
+                        kind,
+                        TimberFramedBlockContentPresentation.Combined,
+                        styleName,
+                        textStyleId,
+                        kind == TimberFramedBlockContentKind.Plain ? "1" : "12",
+                        side)));
+            }
+        }
+
+        foreach (var kind in new[]
+                 {
+                     TimberFramedBlockContentKind.Circle,
+                     TimberFramedBlockContentKind.Rectangle,
+                     TimberFramedBlockContentKind.Slot,
+                 })
+        {
+            cases.Add((
+                $"{kind} ItemOnly",
+                CreateRequest(
+                    kind,
+                    TimberFramedBlockContentPresentation.ItemOnly,
+                    styleName,
+                    textStyleId,
+                    "12",
+                    dimensionColumnSide: null)));
+        }
 
         editor.WriteMessage("\n=== AK_DEV_FBC_DEFINITIONS_VERIFY ===");
         var allOk = true;
@@ -92,7 +92,10 @@ internal static class AutoCadFramedBlockContentDefinitionVerifyService
                 first.BlockTableRecordId == second.BlockTableRecordId &&
                 first.ResolvedBlockName is not null &&
                 AutoCadFramedBlockContentPolicy.IsProductionFamilyName(
-                    first.ResolvedBlockName);
+                    first.ResolvedBlockName) &&
+                first.ResolvedBlockName.Contains(
+                    "_" + TimberFramedBlockContentVariantRules.FamilyRevisionToken + "_",
+                    StringComparison.Ordinal);
             allOk &= ok;
             WriteCase(editor, label, first, second, ok);
         }
@@ -109,7 +112,8 @@ internal static class AutoCadFramedBlockContentDefinitionVerifyService
         TimberFramedBlockContentPresentation presentation,
         string styleName,
         ObjectId styleId,
-        string itemText) =>
+        string itemText,
+        TimberFramedBlockContentDimensionColumnSide? dimensionColumnSide) =>
         new(
             kind,
             presentation,
@@ -119,7 +123,8 @@ internal static class AutoCadFramedBlockContentDefinitionVerifyService
             TimberAnnotationTextSettingsRules.DefaultDimensionPaperHeightMm,
             styleId,
             styleId,
-            itemText);
+            itemText,
+            dimensionColumnSide);
 
     private static void WriteCase(
         Editor editor,

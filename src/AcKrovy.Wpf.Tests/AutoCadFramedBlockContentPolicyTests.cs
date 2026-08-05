@@ -8,7 +8,7 @@ namespace AcKrovy.Wpf.Tests;
 public sealed class AutoCadFramedBlockContentPolicyTests
 {
     [Fact]
-    public void CanonicalName_UsesAkKrovyFbcFamilyAndIsSafe()
+    public void CanonicalName_UsesAkKrovyFbcR2FamilyAndIsSafe()
     {
         var raw = TimberFramedBlockContentVariantRules.CreateRawKey(
             TimberFramedBlockContentKind.Circle,
@@ -17,10 +17,15 @@ public sealed class AutoCadFramedBlockContentPolicyTests
             "Standard",
             2.7d,
             2.5d,
-            TimberFramedBlockContentPresentation.Combined);
+            TimberFramedBlockContentPresentation.Combined,
+            TimberFramedBlockContentDimensionColumnSide.NegativeLocalX);
         var name = AutoCadFramedBlockContentPolicy.CreateCanonicalName(raw);
 
-        Assert.StartsWith("AK_KROVY_FBC_", name, StringComparison.Ordinal);
+        Assert.StartsWith("AK_KROVY_FBC_R2_", name, StringComparison.Ordinal);
+        Assert.Contains(
+            TimberFramedBlockContentVariantRules.DimensionsNegativeXToken,
+            name,
+            StringComparison.Ordinal);
         Assert.True(AutoCadFramedBlockContentPolicy.IsSafeSymbolName(name));
         Assert.True(AutoCadFramedBlockContentPolicy.IsProductionFamilyName(name));
         Assert.DoesNotContain("AK_G5C_", name, StringComparison.Ordinal);
@@ -63,7 +68,8 @@ public sealed class AutoCadFramedBlockContentPolicyTests
             "Standard",
             2.7d,
             2.5d,
-            TimberFramedBlockContentPresentation.Combined);
+            TimberFramedBlockContentPresentation.Combined,
+            TimberFramedBlockContentDimensionColumnSide.PositiveLocalX);
         var canonical = AutoCadFramedBlockContentPolicy.CreateCanonicalName(raw);
 
         var create = AutoCadFramedBlockContentPolicy.Select(
@@ -98,7 +104,7 @@ public sealed class AutoCadFramedBlockContentPolicyTests
     }
 
     [Theory]
-    [InlineData(TimberFramedBlockContentKind.Plain, TimberFramedBlockContentPresentation.Combined, 0, 3)]
+    [InlineData(TimberFramedBlockContentKind.Plain, TimberFramedBlockContentPresentation.Combined, 1, 3)]
     [InlineData(TimberFramedBlockContentKind.Circle, TimberFramedBlockContentPresentation.Combined, 1, 3)]
     [InlineData(TimberFramedBlockContentKind.Rectangle, TimberFramedBlockContentPresentation.Combined, 1, 3)]
     [InlineData(TimberFramedBlockContentKind.Slot, TimberFramedBlockContentPresentation.Combined, 1, 3)]

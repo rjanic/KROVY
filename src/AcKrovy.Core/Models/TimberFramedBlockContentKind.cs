@@ -25,3 +25,21 @@ public enum TimberFramedBlockContentPresentation
     ItemOnly = 0,
     Combined = 1,
 }
+
+/// <summary>
+/// Combined WIDTH/HEIGHT AttrDef column side in block-local X.
+/// Not screen Left/Right and not leader knee Side — only which side of the
+/// frame the dimension column occupies so it stays toward the knee.
+/// </summary>
+public enum TimberFramedBlockContentDimensionColumnSide
+{
+    /// <summary>
+    /// WIDTH/HEIGHT at negative local X (content right of knee / +local dogleg).
+    /// </summary>
+    NegativeLocalX = 0,
+
+    /// <summary>
+    /// WIDTH/HEIGHT at positive local X (content left of knee / −local dogleg).
+    /// </summary>
+    PositiveLocalX = 1,
+}

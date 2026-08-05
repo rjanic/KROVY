@@ -21,4 +21,6 @@ public sealed record TimberFramedBlockContentLayoutRequest(
     double LandingLengthModelMm,
     double DimensionColumnEnvelopeWidthMm,
     TimberFramedBlockContentPresentation Presentation =
-        TimberFramedBlockContentPresentation.Combined);
+        TimberFramedBlockContentPresentation.Combined,
+    TimberFramedBlockContentDimensionColumnSide DimensionColumnSide =
+        TimberFramedBlockContentDimensionColumnSide.NegativeLocalX);
