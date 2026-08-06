@@ -12,10 +12,10 @@ namespace AcKrovy.AutoCAD.Infrastructure;
 
 /// <summary>
 /// DEBUG-only: swap Combined BlockContent to the mirrored R2 dimension-column
-/// variant when WIDTH/HEIGHT lie on the wrong side of the frame relative to the
-/// knee. Preserves the same MLeader handle, attachment, knee, BlockPosition,
-/// DoglegDirection/Length, BlockScale/Rotation. Does not mutate shared BTRs,
-/// rewrite AttrRef Position/AlignmentPoint, or run dogleg normalize.
+/// variant when world-space WIDTH/HEIGHT center is not between knee and ITEM_NO
+/// (K→D→I). Preserves attachment, knee, BlockPosition, DoglegDirection/Length,
+/// BlockScale/Rotation. Does not mutate shared BTRs, rewrite AttrRef
+/// Position/AlignmentPoint, or run dogleg normalize.
 /// </summary>
 internal static class AutoCadFramedBlockContentNormalizeContentSideService
 {
@@ -33,7 +33,7 @@ internal static class AutoCadFramedBlockContentNormalizeContentSideService
         editor.WriteMessage($"\n=== {CommandBanner} ===");
         editor.WriteMessage(
             "\nSwap Combined BlockContentId to mirrored R2 column-side BTR when " +
-            "WIDTH/HEIGHT are not toward the knee. Attachment/knee/BP preserved.");
+            "world K→D→I is wrong. Attachment/knee/BP preserved.");
 
         using var documentLock = document.LockDocument();
         var database = document.Database;
@@ -49,7 +49,7 @@ internal static class AutoCadFramedBlockContentNormalizeContentSideService
 
             leaderId = leader.ObjectId;
             leader.UpgradeOpen();
-            ApplyNormalizeInTransaction(editor, database, transaction, leader);
+            TryNormalizeContentSide(database, transaction, leader, editor);
             transaction.Commit();
         }
 
@@ -71,11 +71,16 @@ internal static class AutoCadFramedBlockContentNormalizeContentSideService
             $"\n{CommandBanner}: re-run on same handle must report changed=False.");
     }
 
-    private static void ApplyNormalizeInTransaction(
-        Editor editor,
+    /// <summary>
+    /// Reusable content-side normalize for an open writable MLeader. No entity prompt.
+    /// Evaluates geometry after any prior dogleg normalize in the same transaction.
+    /// Visual authority is world K→D→I only (not BlockRotation / local-X sign).
+    /// </summary>
+    public static AutoCadFramedBlockContentNormalizeResult TryNormalizeContentSide(
         Database database,
         Transaction transaction,
-        MLeader leader)
+        MLeader leader,
+        Editor? editor = null)
     {
         var handle = leader.ObjectId.Handle.ToString();
         var beforeAttachment = ReadAttachment(leader);
@@ -83,8 +88,6 @@ internal static class AutoCadFramedBlockContentNormalizeContentSideService
         var beforeBlockPosition = leader.BlockPosition;
         var beforeDoglegLength = leader.DoglegLength;
         var beforeDogleg = TryReadDogleg(leader);
-        var beforeScale = leader.BlockScale;
-        var beforeRotation = leader.BlockRotation;
         var beforeBlockId = leader.BlockContentId;
 
         if (!TryReadCombinedContext(
@@ -94,156 +97,211 @@ internal static class AutoCadFramedBlockContentNormalizeContentSideService
                 out var context,
                 out var contextNote))
         {
-            editor.WriteMessage($"\nhandle={handle}: FAIL {contextNote}");
-            WriteSummary(
-                editor,
-                handle,
-                changed: false,
-                beforeBlockId,
-                beforeBlockId,
-                null,
-                null,
-                beforeAttachment,
-                beforeAttachment,
-                beforeKnee,
-                beforeKnee,
-                beforeBlockPosition,
-                beforeBlockPosition,
-                beforeDogleg,
-                beforeDogleg,
-                beforeDoglegLength,
-                beforeDoglegLength);
-            return;
-        }
-
-        var requiredSide = context.RequiredColumnSide;
-        var currentSide = context.CurrentColumnSide;
-        editor.WriteMessage(
-            $"\nhandle={handle} requiredSide={requiredSide} " +
-            $"currentSide={currentSide} " +
-            $"contentLocalX={Format(context.ContentDirectionLocalX)} " +
-            $"widthLocalX={Format(context.WidthLocalX)}");
-
-        if (currentSide == requiredSide)
-        {
-            editor.WriteMessage($"\n{CommandBanner}: changed=False (already correct).");
-            WriteSummary(
-                editor,
-                handle,
-                changed: false,
-                beforeBlockId,
-                beforeBlockId,
-                currentSide,
-                requiredSide,
-                beforeAttachment,
-                beforeAttachment,
-                beforeKnee,
-                beforeKnee,
-                beforeBlockPosition,
-                beforeBlockPosition,
-                beforeDogleg,
-                beforeDogleg,
-                beforeDoglegLength,
-                beforeDoglegLength);
-            return;
-        }
-
-        var ensureRequest = context.BuildEnsureRequest(requiredSide);
-        var ensure = AcKrovyFramedBlockContentDefinitionService.Ensure(
-            database,
-            transaction,
-            ensureRequest);
-        if (!ensure.Succeeded ||
-            ensure.BlockTableRecordId is not ObjectId targetBlockId ||
-            targetBlockId.IsNull)
-        {
-            editor.WriteMessage(
-                $"\nhandle={handle}: FAIL Ensure opposite BTR: {ensure.DiagnosticReason}");
-            WriteSummary(
-                editor,
-                handle,
-                changed: false,
-                beforeBlockId,
-                beforeBlockId,
-                currentSide,
-                requiredSide,
-                beforeAttachment,
-                beforeAttachment,
-                beforeKnee,
-                beforeKnee,
-                beforeBlockPosition,
-                beforeBlockPosition,
-                beforeDogleg,
-                beforeDogleg,
-                beforeDoglegLength,
-                beforeDoglegLength);
-            return;
-        }
-
-        if (targetBlockId == beforeBlockId)
-        {
-            editor.WriteMessage(
-                $"\nhandle={handle}: FAIL opposite Ensure returned same BlockContentId " +
-                $"(name={ensure.ResolvedBlockName}).");
-            return;
-        }
-
-        leader.BlockContentId = targetBlockId;
-        ReapplyAttributes(transaction, leader, targetBlockId, context.AttributeValues);
-
-        // Reaffirm ModelSpace geometry — never invent new landing/dogleg.
-        leader.BlockScale = beforeScale;
-        leader.BlockRotation = beforeRotation;
-        leader.DoglegLength = beforeDoglegLength;
-        if (beforeDogleg is Vector3d dogleg)
-        {
-            var indexes = leader.GetLeaderIndexes().Cast<int>().ToArray();
-            if (indexes.Length > 0)
+            if (editor is not null)
             {
-                leader.SetDogleg(indexes[0], dogleg);
+                editor.WriteMessage($"\nhandle={handle}: FAIL {contextNote}");
+                WriteSummary(
+                    editor,
+                    handle,
+                    changed: false,
+                    beforeBlockId,
+                    beforeBlockId,
+                    null,
+                    null,
+                    beforeAttachment,
+                    beforeAttachment,
+                    beforeKnee,
+                    beforeKnee,
+                    beforeBlockPosition,
+                    beforeBlockPosition,
+                    beforeDogleg,
+                    beforeDogleg,
+                    beforeDoglegLength,
+                    beforeDoglegLength);
             }
+
+            return AutoCadFramedBlockContentNormalizeResult.Failed(
+                contextNote,
+                beforeBlockId);
         }
 
-        leader.BlockPosition = beforeBlockPosition;
-        var lineIndex = GetPrimaryLeaderLineIndex(leader);
-        leader.SetFirstVertex(lineIndex, beforeAttachment);
-        leader.SetLastVertex(lineIndex, beforeKnee);
-        leader.BlockPosition = beforeBlockPosition;
-        if (beforeDogleg is Vector3d doglegAgain)
+        editor?.WriteMessage(
+            $"\nhandle={handle} " +
+            AutoCadFramedBlockContentDimensionColumnPlacementService
+                .FormatEvaluationDiagnostics(context.Points, context.Evaluation));
+
+        if (TimberFramedBlockContentStretchNormalizeRules.IsContentSideNoOp(
+                context.Evaluation.Decision))
         {
-            var indexes = leader.GetLeaderIndexes().Cast<int>().ToArray();
-            if (indexes.Length > 0)
+            editor?.WriteMessage($"\n{CommandBanner}: changed=False (already correct).");
+            if (editor is not null)
             {
-                leader.SetDogleg(indexes[0], doglegAgain);
+                WriteSummary(
+                    editor,
+                    handle,
+                    changed: false,
+                    beforeBlockId,
+                    beforeBlockId,
+                    context.Points.ParsedColumnSide,
+                    context.Points.ParsedColumnSide,
+                    beforeAttachment,
+                    beforeAttachment,
+                    beforeKnee,
+                    beforeKnee,
+                    beforeBlockPosition,
+                    beforeBlockPosition,
+                    beforeDogleg,
+                    beforeDogleg,
+                    beforeDoglegLength,
+                    beforeDoglegLength);
             }
+
+            return AutoCadFramedBlockContentNormalizeResult.NoOp(
+                "already correct K→D→I",
+                beforeBlockId,
+                beforeAttachment,
+                beforeKnee,
+                beforeBlockPosition);
+        }
+
+        if (!AutoCadFramedBlockContentDimensionColumnPlacementService
+                .TryCorrectCombinedContentSide(
+                    database,
+                    transaction,
+                    leader,
+                    context.ContentKind,
+                    context.ItemTextStyleName,
+                    context.DimensionTextStyleName,
+                    context.ItemTextStyleId,
+                    context.DimensionTextStyleId,
+                    context.ItemPaperHeightMm,
+                    context.DimensionPaperHeightMm,
+                    context.ItemTextForFrameSizing,
+                    context.AttributeValues,
+                    out var changed,
+                    out _,
+                    out var afterBlockId,
+                    out var afterEvaluation,
+                    out var correctNote))
+        {
+            editor?.WriteMessage($"\nhandle={handle}: FAIL {correctNote}");
+            if (editor is not null)
+            {
+                WriteSummary(
+                    editor,
+                    handle,
+                    changed: false,
+                    beforeBlockId,
+                    beforeBlockId,
+                    context.Points.ParsedColumnSide,
+                    context.Points.ParsedColumnSide is TimberFramedBlockContentDimensionColumnSide side
+                        ? TimberFramedBlockContentStretchNormalizeRules.OppositeColumnSide(side)
+                        : null,
+                    beforeAttachment,
+                    beforeAttachment,
+                    beforeKnee,
+                    beforeKnee,
+                    beforeBlockPosition,
+                    beforeBlockPosition,
+                    beforeDogleg,
+                    beforeDogleg,
+                    beforeDoglegLength,
+                    beforeDoglegLength);
+            }
+
+            return AutoCadFramedBlockContentNormalizeResult.Failed(
+                correctNote,
+                beforeBlockId);
         }
 
         var afterAttachment = ReadAttachment(leader);
         var afterKnee = ReadKnee(leader);
         var afterBlockPosition = leader.BlockPosition;
         var afterDogleg = TryReadDogleg(leader);
-        editor.WriteMessage(
-            $"\n{CommandBanner}: changed=True swapped BlockContentId " +
-            $"{beforeBlockId} -> {targetBlockId} " +
-            $"name={ensure.ResolvedBlockName}");
-        WriteSummary(
-            editor,
-            handle,
+
+        if (!changed)
+        {
+            editor?.WriteMessage($"\n{CommandBanner}: changed=False ({correctNote}).");
+            if (editor is not null)
+            {
+                WriteSummary(
+                    editor,
+                    handle,
+                    changed: false,
+                    beforeBlockId,
+                    beforeBlockId,
+                    context.Points.ParsedColumnSide,
+                    context.Points.ParsedColumnSide,
+                    beforeAttachment,
+                    afterAttachment,
+                    beforeKnee,
+                    afterKnee,
+                    beforeBlockPosition,
+                    afterBlockPosition,
+                    beforeDogleg,
+                    afterDogleg,
+                    beforeDoglegLength,
+                    leader.DoglegLength);
+            }
+
+            return AutoCadFramedBlockContentNormalizeResult.NoOp(
+                correctNote,
+                beforeBlockId,
+                beforeAttachment,
+                beforeKnee,
+                beforeBlockPosition);
+        }
+
+        editor?.WriteMessage(
+            $"\n{CommandBanner}: changed=True {correctNote} " +
+            $"BlockContentId {beforeBlockId} -> {afterBlockId}");
+        if (editor is not null &&
+            AutoCadFramedBlockContentDimensionColumnPlacementService
+                .TryReadWorldAttributePoints(
+                    transaction,
+                    leader,
+                    out var afterPoints,
+                    out _))
+        {
+            editor.WriteMessage(
+                $"\npost-swap " +
+                AutoCadFramedBlockContentDimensionColumnPlacementService
+                    .FormatEvaluationDiagnostics(afterPoints, afterEvaluation));
+        }
+
+        if (editor is not null)
+        {
+            WriteSummary(
+                editor,
+                handle,
+                changed: true,
+                beforeBlockId,
+                afterBlockId,
+                context.Points.ParsedColumnSide,
+                context.Points.ParsedColumnSide is TimberFramedBlockContentDimensionColumnSide parsed
+                    ? TimberFramedBlockContentStretchNormalizeRules.OppositeColumnSide(parsed)
+                    : null,
+                beforeAttachment,
+                afterAttachment,
+                beforeKnee,
+                afterKnee,
+                beforeBlockPosition,
+                afterBlockPosition,
+                beforeDogleg,
+                afterDogleg,
+                beforeDoglegLength,
+                leader.DoglegLength);
+        }
+
+        return new AutoCadFramedBlockContentNormalizeResult(
+            applied: true,
             changed: true,
+            correctNote,
             beforeBlockId,
-            targetBlockId,
-            currentSide,
-            requiredSide,
-            beforeAttachment,
-            afterAttachment,
-            beforeKnee,
-            afterKnee,
-            beforeBlockPosition,
-            afterBlockPosition,
-            beforeDogleg,
-            afterDogleg,
-            beforeDoglegLength,
-            leader.DoglegLength);
+            afterBlockId,
+            beforeAttachment.DistanceTo(afterAttachment),
+            beforeKnee.DistanceTo(afterKnee),
+            beforeBlockPosition.DistanceTo(afterBlockPosition));
     }
 
     private static void PrintPersisted(
@@ -262,19 +320,29 @@ internal static class AutoCadFramedBlockContentNormalizeContentSideService
         editor.WriteMessage($"\nBlockScale={Format(leader.BlockScale.X)}");
         editor.WriteMessage($"\nBlockRotation={Format(leader.BlockRotation)}");
 
-        if (TryReadCombinedContext(
-                leader.Database,
+        if (AutoCadFramedBlockContentDimensionColumnPlacementService.TryEvaluate(
                 transaction,
                 leader,
-                out var context,
+                out var evaluation,
+                out var points,
                 out _))
         {
             editor.WriteMessage(
-                $"\npersisted requiredSide={context.RequiredColumnSide} " +
-                $"currentSide={context.CurrentColumnSide} " +
-                $"match={context.CurrentColumnSide == context.RequiredColumnSide}");
-            foreach (var (tag, text, height) in context.AttributeValues)
+                $"\npersisted " +
+                AutoCadFramedBlockContentDimensionColumnPlacementService
+                    .FormatEvaluationDiagnostics(points, evaluation));
+            foreach (var tag in new[]
+                     {
+                         TimberFramedBlockContentDefinitionRules.ItemNoTag,
+                         TimberFramedBlockContentDefinitionRules.WidthTag,
+                         TimberFramedBlockContentDefinitionRules.HeightTag,
+                     })
             {
+                if (!TryReadAttrTextHeight(transaction, leader, tag, out var text, out var height))
+                {
+                    continue;
+                }
+
                 editor.WriteMessage(
                     $"\nAttrRef {tag} text='{text}' height={Format(height)}");
             }
@@ -302,8 +370,8 @@ internal static class AutoCadFramedBlockContentNormalizeContentSideService
     {
         editor.WriteMessage(
             $"\nSUMMARY handle={handle} changed={changed} " +
-            $"currentSide={currentSide?.ToString() ?? "n/a"} " +
-            $"requiredSide={requiredSide?.ToString() ?? "n/a"}");
+            $"parsedCurrentSide={currentSide?.ToString() ?? "n/a"} " +
+            $"parsedTargetSide={requiredSide?.ToString() ?? "n/a"}");
         editor.WriteMessage(
             $"\nBlockContentId before={beforeBlockId} after={afterBlockId}");
         editor.WriteMessage(
@@ -326,21 +394,26 @@ internal static class AutoCadFramedBlockContentNormalizeContentSideService
     {
         context = default!;
         note = string.Empty;
+        _ = database;
+
+        if (!AutoCadFramedBlockContentDimensionColumnPlacementService.TryEvaluate(
+                transaction,
+                leader,
+                out var evaluation,
+                out var points,
+                out note))
+        {
+            return false;
+        }
+
+        if (points.ParsedColumnSide is null)
+        {
+            note = "Combined BTR name must parse as R2 DIMNX/DIMPX.";
+            return false;
+        }
+
         var blockId = leader.BlockContentId;
-        if (blockId.IsNull || !AutoCadDatabaseIdentity.IsSame(database, blockId))
-        {
-            note = "BlockContentId missing or database mismatch.";
-            return false;
-        }
-
-        if (transaction.GetObject(blockId, OpenMode.ForRead, true) is not
-                BlockTableRecord block ||
-            block.IsErased)
-        {
-            note = "BlockTableRecord unavailable.";
-            return false;
-        }
-
+        var block = (BlockTableRecord)transaction.GetObject(blockId, OpenMode.ForRead);
         AttributeDefinition? itemDef = null;
         AttributeDefinition? widthDef = null;
         AttributeDefinition? heightDef = null;
@@ -386,34 +459,6 @@ internal static class AutoCadFramedBlockContentNormalizeContentSideService
         if (itemDef is null || widthDef is null || heightDef is null)
         {
             note = "Combined BTR must expose ITEM_NO/WIDTH/HEIGHT AttrDefs.";
-            return false;
-        }
-
-        if (!TimberFramedBlockContentDefinitionRules.TryClassifyDimensionColumnSide(
-                widthDef.AlignmentPoint.X,
-                out var currentSide))
-        {
-            note = "WIDTH AttrDef AlignmentPoint.X is ambiguous (near zero).";
-            return false;
-        }
-
-        var kneeLocal = WorldToBlockLocal(
-            ReadKnee(leader),
-            leader.BlockPosition,
-            leader.BlockScale,
-            leader.BlockRotation,
-            leader.Normal);
-        // BlockPosition is block origin; content vector BP−knee is −kneeLocal.
-        var contentDirectionLocalX = -kneeLocal.X;
-        TimberFramedBlockContentDimensionColumnSide requiredSide;
-        try
-        {
-            requiredSide = TimberFramedBlockContentDefinitionRules
-                .ResolveDimensionColumnSideFromContentLocalX(contentDirectionLocalX);
-        }
-        catch (ArgumentOutOfRangeException)
-        {
-            note = "Degenerate BlockPosition − knee (content local X ~ 0).";
             return false;
         }
 
@@ -465,10 +510,8 @@ internal static class AutoCadFramedBlockContentNormalizeContentSideService
 
         context = new ContentSideContext(
             contentKind,
-            currentSide,
-            requiredSide,
-            contentDirectionLocalX,
-            widthDef.AlignmentPoint.X,
+            evaluation,
+            points,
             itemStyleName,
             dimStyleName,
             itemDef.TextStyleId,
@@ -520,37 +563,40 @@ internal static class AutoCadFramedBlockContentNormalizeContentSideService
         return false;
     }
 
-    private static void ReapplyAttributes(
+    private static bool TryReadAttrTextHeight(
         Transaction transaction,
         MLeader leader,
-        ObjectId blockId,
-        IReadOnlyList<(string Tag, string Text, double Height)> values)
+        string tag,
+        out string text,
+        out double height)
     {
-        var byTag = values.ToDictionary(
-            v => v.Tag,
-            v => v,
-            StringComparer.OrdinalIgnoreCase);
-        var block = (BlockTableRecord)transaction.GetObject(blockId, OpenMode.ForRead);
+        text = string.Empty;
+        height = double.NaN;
+        var block = (BlockTableRecord)transaction.GetObject(
+            leader.BlockContentId,
+            OpenMode.ForRead);
         foreach (ObjectId id in block)
         {
             if (transaction.GetObject(id, OpenMode.ForRead, true) is not
                     AttributeDefinition definition ||
-                definition.IsErased)
+                definition.IsErased ||
+                !string.Equals(definition.Tag, tag, StringComparison.OrdinalIgnoreCase))
             {
                 continue;
             }
 
-            if (!byTag.TryGetValue(definition.Tag, out var value))
+            using var attribute = leader.GetBlockAttribute(definition.ObjectId);
+            if (attribute is null)
             {
-                continue;
+                return false;
             }
 
-            using var attribute = new AttributeReference();
-            attribute.SetAttributeFromBlock(definition, Matrix3d.Identity);
-            attribute.TextString = value.Text;
-            attribute.Height = value.Height;
-            leader.SetBlockAttribute(definition.ObjectId, attribute);
+            text = attribute.TextString ?? string.Empty;
+            height = attribute.Height;
+            return true;
         }
+
+        return false;
     }
 
     private static bool TryResolveLeader(
@@ -627,19 +673,6 @@ internal static class AutoCadFramedBlockContentNormalizeContentSideService
         }
     }
 
-    private static Point3d WorldToBlockLocal(
-        Point3d world,
-        Point3d blockPosition,
-        Scale3d blockScale,
-        double blockRotation,
-        Vector3d normal)
-    {
-        var matrix = Matrix3d.Displacement(blockPosition.GetAsVector()) *
-            Matrix3d.Rotation(blockRotation, normal, Point3d.Origin) *
-            Matrix3d.Scaling(blockScale.X, Point3d.Origin);
-        return world.TransformBy(matrix.Inverse());
-    }
-
     private static string FormatPoint(Point3d point) =>
         string.Create(
             CultureInfo.InvariantCulture,
@@ -655,10 +688,8 @@ internal static class AutoCadFramedBlockContentNormalizeContentSideService
 
     private sealed record ContentSideContext(
         TimberFramedBlockContentKind ContentKind,
-        TimberFramedBlockContentDimensionColumnSide CurrentColumnSide,
-        TimberFramedBlockContentDimensionColumnSide RequiredColumnSide,
-        double ContentDirectionLocalX,
-        double WidthLocalX,
+        TimberFramedBlockContentDimensionColumnMirrorEvaluation Evaluation,
+        AutoCadFramedBlockContentDimensionColumnPlacementService.WorldAttributePoints Points,
         string ItemTextStyleName,
         string DimensionTextStyleName,
         ObjectId ItemTextStyleId,
@@ -666,21 +697,6 @@ internal static class AutoCadFramedBlockContentNormalizeContentSideService
         double ItemPaperHeightMm,
         double DimensionPaperHeightMm,
         string ItemTextForFrameSizing,
-        IReadOnlyList<(string Tag, string Text, double Height)> AttributeValues)
-    {
-        public AutoCadFramedBlockContentRequest BuildEnsureRequest(
-            TimberFramedBlockContentDimensionColumnSide side) =>
-            new(
-                ContentKind,
-                TimberFramedBlockContentPresentation.Combined,
-                ItemTextStyleName,
-                DimensionTextStyleName,
-                ItemPaperHeightMm,
-                DimensionPaperHeightMm,
-                ItemTextStyleId,
-                DimensionTextStyleId,
-                ItemTextForFrameSizing,
-                side);
-    }
+        IReadOnlyList<(string Tag, string Text, double Height)> AttributeValues);
 }
 #endif

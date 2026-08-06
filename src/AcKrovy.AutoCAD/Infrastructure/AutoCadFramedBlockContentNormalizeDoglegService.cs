@@ -50,14 +50,14 @@ internal static class AutoCadFramedBlockContentNormalizeDoglegService
 
             leaderId = leader.ObjectId;
             leader.UpgradeOpen();
-            var applied = ApplyNormalizeInTransaction(
-                editor,
+            var result = TryNormalizeDogleg(
                 transaction,
                 leader,
+                editor,
                 writePhase: "WRITE");
             transaction.Commit();
             editor.WriteMessage(
-                applied
+                result.Changed
                     ? $"\n{CommandBanner}: committed normalize."
                     : $"\n{CommandBanner}: committed no-op (already consistent).");
         }
@@ -81,11 +81,14 @@ internal static class AutoCadFramedBlockContentNormalizeDoglegService
             $"\n{CommandBanner}: re-run on same handle must report changed=False.");
     }
 
-    private static bool ApplyNormalizeInTransaction(
-        Editor editor,
+    /// <summary>
+    /// Reusable dogleg normalize for an open writable MLeader. No entity prompt.
+    /// </summary>
+    public static AutoCadFramedBlockContentNormalizeResult TryNormalizeDogleg(
         Transaction transaction,
         MLeader leader,
-        string writePhase)
+        Editor? editor = null,
+        string writePhase = "WRITE")
     {
         var handle = leader.ObjectId.Handle.ToString();
         var blockContentId = leader.BlockContentId;
@@ -99,7 +102,10 @@ internal static class AutoCadFramedBlockContentNormalizeDoglegService
         var beforeDogleg = TryReadDogleg(leader);
         var beforeAttrLocals = CaptureAttrRefLocals(transaction, leader);
 
-        PrintNativeAnalysis(editor, transaction, leader, phase: "BEFORE");
+        if (editor is not null)
+        {
+            PrintNativeAnalysis(editor, transaction, leader, phase: "BEFORE");
+        }
 
         if (!TimberFramedBlockContentDoglegRules.TryNormalizeDoglegGeometry(
                 new TimberPlanarPoint(beforeAttachment.X, beforeAttachment.Y),
@@ -109,34 +115,42 @@ internal static class AutoCadFramedBlockContentNormalizeDoglegService
                 out var normalizedBlockPosition,
                 out var mirrored))
         {
-            editor.WriteMessage(
-                $"\nhandle={handle}: FAIL degenerate BlockPosition−knee.");
-            PrintSummary(
-                editor,
-                handle,
-                leaderKneeSide: "n/a",
-                contentDoglegSide: "n/a",
-                beforeDogleg,
-                beforeDogleg,
-                beforeDoglegLength,
-                beforeDoglegLength,
-                beforeBlockPosition,
-                beforeBlockPosition,
-                beforeAttachment,
-                beforeAttachment,
-                beforeKnee,
-                beforeKnee,
-                beforeAttrLocals,
-                beforeAttrLocals,
-                changed: false);
-            return false;
+            if (editor is not null)
+            {
+                editor.WriteMessage(
+                    $"\nhandle={handle}: FAIL degenerate BlockPosition−knee.");
+                PrintSummary(
+                    editor,
+                    handle,
+                    leaderKneeSide: "n/a",
+                    contentDoglegSide: "n/a",
+                    beforeDogleg,
+                    beforeDogleg,
+                    beforeDoglegLength,
+                    beforeDoglegLength,
+                    beforeBlockPosition,
+                    beforeBlockPosition,
+                    beforeAttachment,
+                    beforeAttachment,
+                    beforeKnee,
+                    beforeKnee,
+                    beforeAttrLocals,
+                    beforeAttrLocals,
+                    changed: false);
+            }
+
+            return AutoCadFramedBlockContentNormalizeResult.Failed(
+                "degenerate BlockPosition-knee",
+                blockContentId);
         }
 
         var leaderIndexes = leader.GetLeaderIndexes().Cast<int>().ToArray();
         if (leaderIndexes.Length == 0)
         {
-            editor.WriteMessage($"\nhandle={handle}: FAIL no leader indexes.");
-            return false;
+            editor?.WriteMessage($"\nhandle={handle}: FAIL no leader indexes.");
+            return AutoCadFramedBlockContentNormalizeResult.Failed(
+                "no leader indexes",
+                blockContentId);
         }
 
         var lineIndex = GetPrimaryLeaderLineIndex(leader);
@@ -170,26 +184,35 @@ internal static class AutoCadFramedBlockContentNormalizeDoglegService
                 contentSideNoOp,
                 out var contentSideTextNoOp);
 
-            editor.WriteMessage($"\nphase={writePhase}");
-            PrintSummary(
-                editor,
-                handle,
-                kneeSideTextNoOp,
-                contentSideTextNoOp,
-                beforeDogleg,
-                beforeDogleg,
-                beforeDoglegLength,
-                beforeDoglegLength,
-                beforeBlockPosition,
-                beforeBlockPosition,
-                beforeAttachment,
+            if (editor is not null)
+            {
+                editor.WriteMessage($"\nphase={writePhase}");
+                PrintSummary(
+                    editor,
+                    handle,
+                    kneeSideTextNoOp,
+                    contentSideTextNoOp,
+                    beforeDogleg,
+                    beforeDogleg,
+                    beforeDoglegLength,
+                    beforeDoglegLength,
+                    beforeBlockPosition,
+                    beforeBlockPosition,
+                    beforeAttachment,
+                    beforeAttachment,
+                    beforeKnee,
+                    beforeKnee,
+                    beforeAttrLocals,
+                    beforeAttrLocals,
+                    changed: false);
+            }
+
+            return AutoCadFramedBlockContentNormalizeResult.NoOp(
+                "already consistent",
+                blockContentId,
                 beforeAttachment,
                 beforeKnee,
-                beforeKnee,
-                beforeAttrLocals,
-                beforeAttrLocals,
-                changed: false);
-            return false;
+                beforeBlockPosition);
         }
 
         // API order (variant B):
@@ -251,27 +274,38 @@ internal static class AutoCadFramedBlockContentNormalizeDoglegService
             Math.Abs(beforeDoglegLength - afterDoglegLength) > 1e-6d ||
             !DoglegEquals(beforeDogleg, afterDogleg);
 
-        editor.WriteMessage($"\nphase={writePhase}");
-        PrintSummary(
-            editor,
-            handle,
-            kneeSideText,
-            contentSideText,
-            beforeDogleg,
-            afterDogleg,
-            beforeDoglegLength,
-            afterDoglegLength,
-            beforeBlockPosition,
-            afterBlockPosition,
-            beforeAttachment,
-            afterAttachment,
-            beforeKnee,
-            afterKnee,
-            beforeAttrLocals,
-            afterAttrLocals,
-            changed);
+        if (editor is not null)
+        {
+            editor.WriteMessage($"\nphase={writePhase}");
+            PrintSummary(
+                editor,
+                handle,
+                kneeSideText,
+                contentSideText,
+                beforeDogleg,
+                afterDogleg,
+                beforeDoglegLength,
+                afterDoglegLength,
+                beforeBlockPosition,
+                afterBlockPosition,
+                beforeAttachment,
+                afterAttachment,
+                beforeKnee,
+                afterKnee,
+                beforeAttrLocals,
+                afterAttrLocals,
+                changed);
+        }
 
-        return changed;
+        return new AutoCadFramedBlockContentNormalizeResult(
+            applied: true,
+            changed,
+            changed ? (mirrored ? "mirrored landing" : "dogleg direction updated") : "already consistent",
+            blockContentId,
+            leader.BlockContentId,
+            beforeAttachment.DistanceTo(afterAttachment),
+            beforeKnee.DistanceTo(afterKnee),
+            beforeBlockPosition.DistanceTo(afterBlockPosition));
     }
 
     private static void PrintNativeAnalysis(

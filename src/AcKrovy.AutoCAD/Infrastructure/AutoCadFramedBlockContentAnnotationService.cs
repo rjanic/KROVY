@@ -292,6 +292,53 @@ internal static class AutoCadFramedBlockContentAnnotationService
             attachment,
             request.StabilizationMode);
 
+        var resolvedBlockName = definition.ResolvedBlockName;
+        var resolvedBlockId = blockId;
+        if (combined)
+        {
+            var attributeValues = CollectAttributeValues(request);
+            if (!AutoCadFramedBlockContentDimensionColumnPlacementService
+                    .TryCorrectCombinedContentSide(
+                        database,
+                        transaction,
+                        leader,
+                        request.ContentKind,
+                        request.ItemTextStyleName,
+                        request.DimensionTextStyleName,
+                        request.ItemTextStyleId,
+                        request.DimensionTextStyleId,
+                        request.ItemPaperHeightMm,
+                        request.DimensionPaperHeightMm,
+                        request.ItemNoText,
+                        attributeValues,
+                        out _,
+                        out _,
+                        out var correctedBlockId,
+                        out var placement,
+                        out var placementNote) ||
+                !placement.Current.IsCorrect)
+            {
+                return AutoCadFramedBlockContentAnnotationResult.Fail(
+                    AutoCadFramedBlockContentAnnotationResultKind.HostFailure,
+                    request.StabilizationMode,
+                    "Combined K→D→I column placement failed: " + placementNote);
+            }
+
+            resolvedBlockId = correctedBlockId;
+            if (transaction.GetObject(correctedBlockId, OpenMode.ForRead, true) is
+                BlockTableRecord correctedBlock)
+            {
+                resolvedBlockName = correctedBlock.Name;
+            }
+
+            // Reaffirm values/heights after optional BlockContentId swap.
+            attributeTags = ApplyAttributeValues(
+                transaction,
+                leader,
+                correctedBlockId,
+                request);
+        }
+
         var afterAttachment = ReadAttachment(leader);
         var afterKnee = ReadKnee(leader);
         var afterLanding = leader.BlockPosition;
@@ -300,8 +347,8 @@ internal static class AutoCadFramedBlockContentAnnotationService
             AutoCadFramedBlockContentAnnotationResultKind.Created,
             leader.ObjectId,
             leader.ObjectId.Handle.ToString(),
-            definition.ResolvedBlockName,
-            blockId,
+            resolvedBlockName,
+            resolvedBlockId,
             leader.ContentType,
             leader.GetLeaderIndexes().Cast<int>().Count(),
             CountVertices(leader),
@@ -327,6 +374,31 @@ internal static class AutoCadFramedBlockContentAnnotationService
             beforeStabilizeKnee.DistanceTo(afterKnee),
             beforeStabilizeLanding.DistanceTo(afterLanding),
             "Created one BlockContent MLeader.");
+    }
+
+    private static IReadOnlyList<(string Tag, string Text, double Height)>
+        CollectAttributeValues(AutoCadFramedBlockContentAnnotationRequest request)
+    {
+        var values = new List<(string Tag, string Text, double Height)>
+        {
+            (
+                TimberFramedBlockContentDefinitionRules.ItemNoTag,
+                request.ItemNoText,
+                request.ItemAttributeBaselineHeightMm),
+        };
+        if (request.Presentation == TimberFramedBlockContentPresentation.Combined)
+        {
+            values.Add((
+                TimberFramedBlockContentDefinitionRules.WidthTag,
+                request.WidthText,
+                request.DimensionAttributeBaselineHeightMm));
+            values.Add((
+                TimberFramedBlockContentDefinitionRules.HeightTag,
+                request.HeightText,
+                request.DimensionAttributeBaselineHeightMm));
+        }
+
+        return values;
     }
 
     private static IReadOnlyList<string> ApplyAttributeValues(

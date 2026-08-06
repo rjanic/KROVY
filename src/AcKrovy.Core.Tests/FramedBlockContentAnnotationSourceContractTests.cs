@@ -46,6 +46,7 @@ public sealed class FramedBlockContentAnnotationSourceContractTests
             createLeader);
         Assert.Contains("ApplyCreateDogleg(", createLeader);
         Assert.Contains("ApplyNormalizeDoglegFromLeader(", createLeader);
+        Assert.Contains("TryCorrectCombinedContentSide(", createLeader);
         Assert.Contains(
             "TimberFramedBlockContentDoglegRules.TryResolveCreateDoglegGeometry(",
             service);
@@ -167,6 +168,9 @@ public sealed class FramedBlockContentAnnotationSourceContractTests
         Assert.Contains("BlockConnectionType", stretchDiag);
         Assert.Contains("AlignmentPoint", stretchDiag);
         Assert.Contains("WorldToBlockLocal(", stretchDiag);
+        Assert.Contains("ResolveEffectiveBlockContentRotationRadians(", stretchDiag);
+        Assert.Contains("World-space K→D→I", stretchDiag);
+        Assert.Contains("TryEvaluate(", stretchDiag);
         Assert.DoesNotContain("SetBlockAttribute(", stretchDiag);
         Assert.DoesNotContain("attribute.Position =", stretchDiag);
         Assert.DoesNotContain("attribute.AlignmentPoint =", stretchDiag);
@@ -195,6 +199,7 @@ public sealed class FramedBlockContentAnnotationSourceContractTests
         Assert.Contains("SetLastVertex(", normalize);
         Assert.Contains("PERSISTED_AFTER", normalize);
         Assert.Contains("transaction.Commit()", normalize);
+        Assert.Contains("TryNormalizeDogleg(", normalize);
         Assert.DoesNotContain("TryResolveDoglegGeometry(", normalize);
         Assert.DoesNotContain("ResolveDoglegDirection(", normalize);
         Assert.DoesNotContain("SetBlockAttribute(", normalize);
@@ -207,16 +212,24 @@ public sealed class FramedBlockContentAnnotationSourceContractTests
 
         var contentSideCommands = NormalizeContentSideCommandsSource().Trim();
         var contentSide = NormalizeContentSideServiceSource().Trim();
+        var columnPlacement = DimensionColumnPlacementServiceSource().Trim();
         Assert.StartsWith("#if DEBUG", contentSideCommands, StringComparison.Ordinal);
         Assert.EndsWith("#endif", contentSideCommands, StringComparison.Ordinal);
         Assert.StartsWith("#if DEBUG", contentSide, StringComparison.Ordinal);
         Assert.EndsWith("#endif", contentSide, StringComparison.Ordinal);
         Assert.Contains("AK_DEV_FBC_NORMALIZE_CONTENT_SIDE", contentSideCommands);
-        Assert.Contains("ResolveDimensionColumnSideFromContentLocalX(", contentSide);
-        Assert.Contains("TryClassifyDimensionColumnSide(", contentSide);
-        Assert.Contains("AcKrovyFramedBlockContentDefinitionService.Ensure(", contentSide);
-        Assert.Contains("leader.BlockContentId =", contentSide);
-        Assert.Contains("SetBlockAttribute(", contentSide);
+        Assert.Contains("TryCorrectCombinedContentSide(", contentSide);
+        Assert.Contains("FormatEvaluationDiagnostics(", contentSide);
+        Assert.Contains("IsContentSideNoOp(", contentSide);
+        Assert.Contains("TryEvaluate(", columnPlacement);
+        Assert.Contains("EvaluateMirroredDimensionColumnPlacement(", columnPlacement);
+        Assert.Contains("TryParseR2VariantKey(", columnPlacement);
+        Assert.Contains("AcKrovyFramedBlockContentDefinitionService.Ensure(", columnPlacement);
+        Assert.Contains("leader.BlockContentId =", columnPlacement);
+        Assert.Contains("SetBlockAttribute(", columnPlacement);
+        Assert.Contains("post-swap K→D→I failed", columnPlacement);
+        Assert.Contains("TryNormalizeContentSide(", contentSide);
+        Assert.Contains("TryNormalizeDogleg(", NormalizeDoglegServiceSource());
         Assert.Contains("changed=True", contentSide);
         Assert.Contains("changed=False", contentSide);
         Assert.Contains("PERSISTED_AFTER", contentSide);
@@ -228,6 +241,81 @@ public sealed class FramedBlockContentAnnotationSourceContractTests
         Assert.DoesNotContain("attribute.AlignmentPoint =", contentSide);
         Assert.DoesNotContain("Erase(", contentSide);
         Assert.DoesNotContain("new MLeader()", contentSide);
+        // Visual authority is world K→D→I — not effectiveLocalX / BlockRotation.
+        Assert.DoesNotContain(
+            "TryClassifyRequiredDimensionColumnSide(",
+            contentSide);
+        Assert.DoesNotContain(
+            "ResolveEffectiveBlockContentRotationRadians(",
+            contentSide);
+        Assert.DoesNotContain(
+            "TryClassifyDimensionColumnSide(",
+            contentSide);
+        Assert.DoesNotContain(
+            "Degenerate BlockPosition − knee (content local X ~ 0).",
+            contentSide);
+        Assert.Contains("ValidateCombinedWorldColumnPlacement(", verify);
+        Assert.Contains("FormatEvaluationDiagnostics(", verify);
+        Assert.Contains("K→D→I", verify);
+
+        var lifecycleCommands = StretchNormalizeLifecycleCommandsSource().Trim();
+        var lifecycle = StretchNormalizeLifecycleServiceSource().Trim();
+        var liveGeometry = LiveGeometrySynchronizationSource();
+        Assert.StartsWith("#if DEBUG", lifecycleCommands, StringComparison.Ordinal);
+        Assert.EndsWith("#endif", lifecycleCommands, StringComparison.Ordinal);
+        Assert.StartsWith("#if DEBUG", lifecycle, StringComparison.Ordinal);
+        Assert.EndsWith("#endif", lifecycle, StringComparison.Ordinal);
+        Assert.Contains("AK_DEV_FBC_LIFECYCLE_TRACE_ON", lifecycleCommands);
+        Assert.Contains("AK_DEV_FBC_LIFECYCLE_TRACE_OFF", lifecycleCommands);
+        Assert.Contains("AK_DEV_FBC_LIFECYCLE_PROOF_ON", lifecycleCommands);
+        Assert.Contains("AK_DEV_FBC_LIFECYCLE_PROOF_OFF", lifecycleCommands);
+        Assert.Contains("AK_DEV_FBC_LIFECYCLE_STATUS", lifecycleCommands);
+        Assert.Contains("AK_DEV_FBC_LIFECYCLE_CONFIRM", lifecycleCommands);
+        Assert.Contains("AK_DEV_FBC_LIFECYCLE_TEST_ON", lifecycleCommands);
+        Assert.Contains("AK_DEV_FBC_LIFECYCLE_TEST_OFF", lifecycleCommands);
+        Assert.Contains("Lifecycle test armed for GRIP_STRETCH.", lifecycleCommands);
+        Assert.Contains("Lifecycle test disabled.", lifecycleCommands);
+        Assert.Contains("TryNormalizeDogleg(", lifecycle);
+        Assert.Contains("TryNormalizeContentSide(", lifecycle);
+        Assert.Contains("DoglegStep", lifecycle);
+        Assert.Contains("ContentSideStep", lifecycle);
+        Assert.Contains("UndoBlockerReason", lifecycle);
+        Assert.Contains("RunDeferredProcessorForTest(", lifecycle);
+        Assert.Contains("EnqueueAndDrainNormalizeForTest(", lifecycle);
+        Assert.Contains("BeginAutotestIsolation(", lifecycle);
+        Assert.Contains("EndAutotestIsolation(", lifecycle);
+        Assert.Contains("ArmLifecycleTest(", lifecycle);
+        Assert.Contains("ProcessCommandEnded(", liveGeometry);
+        Assert.Contains("TraceQueueMLeader(", liveGeometry);
+        Assert.DoesNotContain("SendStringToExecute(", lifecycle);
+
+        var autotestCommands = AutotestCommandsSource().Trim();
+        var autotest = AutotestServiceSource().Trim();
+        Assert.StartsWith("#if DEBUG", autotestCommands, StringComparison.Ordinal);
+        Assert.EndsWith("#endif", autotestCommands, StringComparison.Ordinal);
+        Assert.StartsWith("#if DEBUG", autotest, StringComparison.Ordinal);
+        Assert.EndsWith("#endif", autotest, StringComparison.Ordinal);
+        Assert.Contains("AK_DEV_FBC_AUTOTEST_ALL", autotestCommands);
+        Assert.Contains("AK_DEV_FBC_AUTOTEST_CLEAN", autotestCommands);
+        Assert.Contains("TryNormalizeDogleg(", autotest);
+        Assert.Contains("TryNormalizeContentSide(", autotest);
+        Assert.Contains("AutoCadFramedBlockContentAnnotationService.Create(", autotest);
+        Assert.Contains("TryComputeSyntheticKneeOnlyCrossing(", autotest);
+        Assert.Contains("TryInjectOppositeCombinedBtr(", autotest);
+        Assert.Contains("SyntheticCrossingSetup", autotest);
+        Assert.Contains("ContentSideWrongBtr", autotest);
+        Assert.Contains("RecordFixtureFailure(", autotest);
+        Assert.Contains("BeginAutotestIsolation(", autotest);
+        Assert.Contains("EnqueueAndDrainNormalizeForTest(", autotest);
+        Assert.Contains("DoglegGeometry", autotest);
+        Assert.Contains("ContentSideForbiddenDrift", autotest);
+        Assert.Contains("RunnerIsolation", autotest);
+        Assert.Contains("DebugRegAppName = \"AK_DEV_FBC_AUTOTEST\"", autotest);
+        Assert.Contains("FBC_AUTOTEST", autotest);
+        Assert.DoesNotContain("TryComputeSyntheticOppositeSideCrossing(", autotest);
+        Assert.DoesNotContain("SendStringToExecute(", autotest);
+        Assert.DoesNotContain("Editor.GetEntity", autotest);
+
         Assert.Contains("ContentType.BlockContent", verify);
         Assert.Contains("DebugRegAppName = \"AK_DEV_FBC_CREATE\"", verify);
         Assert.Contains("oldDebugEntitiesFound=", verify);
@@ -308,6 +396,24 @@ public sealed class FramedBlockContentAnnotationSourceContractTests
 
     private static string NormalizeContentSideServiceSource() => Read(
         "src/AcKrovy.AutoCAD/Infrastructure/AutoCadFramedBlockContentNormalizeContentSideService.cs");
+
+    private static string DimensionColumnPlacementServiceSource() => Read(
+        "src/AcKrovy.AutoCAD/Infrastructure/AutoCadFramedBlockContentDimensionColumnPlacementService.cs");
+
+    private static string StretchNormalizeLifecycleCommandsSource() => Read(
+        "src/AcKrovy.AutoCAD/Commands/AutoCadFramedBlockContentStretchNormalizeLifecycleCommands.cs");
+
+    private static string StretchNormalizeLifecycleServiceSource() => Read(
+        "src/AcKrovy.AutoCAD/Infrastructure/AutoCadFramedBlockContentStretchNormalizeLifecycleService.cs");
+
+    private static string AutotestCommandsSource() => Read(
+        "src/AcKrovy.AutoCAD/Commands/AutoCadFramedBlockContentAutotestCommands.cs");
+
+    private static string AutotestServiceSource() => Read(
+        "src/AcKrovy.AutoCAD/Infrastructure/AutoCadFramedBlockContentAutotestService.cs");
+
+    private static string LiveGeometrySynchronizationSource() => Read(
+        "src/AcKrovy.AutoCAD/Infrastructure/LiveGeometrySynchronizationService.cs");
 
     private static string ElementLabelServiceSource() => Read(
         "src/AcKrovy.AutoCAD/Infrastructure/ElementLabelService.cs");

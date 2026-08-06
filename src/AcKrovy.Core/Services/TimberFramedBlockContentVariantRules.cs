@@ -153,6 +153,81 @@ public static class TimberFramedBlockContentVariantRules
         return sanitized.Substring(0, prefixLength) + "_" + hash;
     }
 
+    /// <summary>
+    /// Fail-closed classifier for P3 R2 BlockContent variant names (raw keys or
+    /// non-truncated safe names). Truncated hash-suffixed names are rejected.
+    /// Does not use CAD host types.
+    /// </summary>
+    public static bool TryParseR2VariantKey(
+        string? blockNameOrRawKey,
+        out TimberFramedBlockContentR2VariantParse parse)
+    {
+        parse = default;
+        if (string.IsNullOrWhiteSpace(blockNameOrRawKey))
+        {
+            return false;
+        }
+
+        var sanitized = SanitizeToken(blockNameOrRawKey!);
+        const string prefix = "AK_KROVY_FBC_R2_";
+        if (!sanitized.StartsWith(prefix, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        var isCombined = ContainsBoundedToken(sanitized, "COMB");
+        var isItemOnly = ContainsBoundedToken(sanitized, "ITEM");
+        if (isCombined == isItemOnly)
+        {
+            // Exactly one presentation token is required.
+            return false;
+        }
+
+        TimberFramedBlockContentDimensionColumnSide? side = null;
+        if (isCombined)
+        {
+            var hasNegative = ContainsBoundedToken(sanitized, DimensionsNegativeXToken);
+            var hasPositive = ContainsBoundedToken(sanitized, DimensionsPositiveXToken);
+            if (hasNegative == hasPositive)
+            {
+                return false;
+            }
+
+            side = hasNegative
+                ? TimberFramedBlockContentDimensionColumnSide.NegativeLocalX
+                : TimberFramedBlockContentDimensionColumnSide.PositiveLocalX;
+        }
+
+        parse = new TimberFramedBlockContentR2VariantParse(
+            isCombined,
+            isItemOnly,
+            side);
+        return true;
+    }
+
+    public static bool IsP3R2CombinedStretchNormalizeTarget(
+        string? blockNameOrRawKey) =>
+        TryParseR2VariantKey(blockNameOrRawKey, out var parse) &&
+        parse.IsP3R2CombinedTarget;
+
+    private static bool ContainsBoundedToken(string sanitized, string token)
+    {
+        if (string.IsNullOrEmpty(sanitized) || string.IsNullOrEmpty(token))
+        {
+            return false;
+        }
+
+        var needle = "_" + token + "_";
+        if (sanitized.IndexOf(needle, StringComparison.Ordinal) >= 0)
+        {
+            return true;
+        }
+
+        return sanitized.EndsWith("_" + token, StringComparison.Ordinal) ||
+               sanitized.StartsWith(token + "_", StringComparison.Ordinal) ||
+               string.Equals(sanitized, token, StringComparison.Ordinal);
+    }
+
     private static void ValidateStyleIdentity(string value, string parameterName)
     {
         if (!TimberAnnotationTextSettingsRules.IsValidTextStyleName(value))

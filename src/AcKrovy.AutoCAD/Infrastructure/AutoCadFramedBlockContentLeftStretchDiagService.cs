@@ -55,7 +55,7 @@ internal static class AutoCadFramedBlockContentLeftStretchDiagService
         }
 
         var current = CaptureSnapshot(transaction, leader);
-        PrintSnapshot(editor, "CURRENT", current);
+        PrintSnapshot(editor, "CURRENT", current, transaction, leader);
 
         Snapshot? previous = null;
         lock (CacheGate)
@@ -205,6 +205,11 @@ internal static class AutoCadFramedBlockContentLeftStretchDiagService
                 blockId,
                 OpenMode.ForRead);
             blockName = block.Name;
+
+            // Pass 1: AttrDefs + ITEM_NO AttrRef.Rotation for effective orientation.
+            // Create applies readable TransformBy while BlockRotation often stays 0.
+            double? itemAttrRotation = null;
+            var definitions = new List<(AttributeDefinition Definition, string Tag)>();
             foreach (ObjectId id in block)
             {
                 if (transaction.GetObject(id, OpenMode.ForRead, true) is not
@@ -220,7 +225,27 @@ internal static class AutoCadFramedBlockContentLeftStretchDiagService
                     continue;
                 }
 
+                definitions.Add((definition, tag));
                 attrDefs.Add(CaptureAttrDef(definition, tag));
+                if (string.Equals(tag, "ITEM_NO", StringComparison.Ordinal))
+                {
+                    using var itemAttr = leader.GetBlockAttribute(definition.ObjectId);
+                    if (itemAttr is not null)
+                    {
+                        itemAttrRotation = itemAttr.Rotation;
+                    }
+                }
+            }
+
+            var effectiveRotation =
+                TimberFramedBlockContentOrientationRules
+                    .ResolveEffectiveBlockContentRotationRadians(
+                        leader.BlockRotation,
+                        itemAttrRotation);
+
+            // Pass 2: AttrRefs with WORLD→BLOCK-LOCAL via effective orientation.
+            foreach (var (definition, tag) in definitions)
+            {
                 using var attribute = leader.GetBlockAttribute(definition.ObjectId);
                 if (attribute is null)
                 {
@@ -233,7 +258,7 @@ internal static class AutoCadFramedBlockContentLeftStretchDiagService
                         tag,
                         leader.BlockPosition,
                         leader.BlockScale,
-                        leader.BlockRotation,
+                        effectiveRotation,
                         leader.Normal));
             }
         }
@@ -290,7 +315,7 @@ internal static class AutoCadFramedBlockContentLeftStretchDiagService
         string tag,
         Point3d blockPosition,
         Scale3d blockScale,
-        double blockRotation,
+        double effectiveBlockContentRotation,
         Vector3d normal)
     {
         var worldPos = attribute.Position;
@@ -299,13 +324,13 @@ internal static class AutoCadFramedBlockContentLeftStretchDiagService
             worldPos,
             blockPosition,
             blockScale,
-            blockRotation,
+            effectiveBlockContentRotation,
             normal);
         var localAlign = WorldToBlockLocal(
             worldAlign,
             blockPosition,
             blockScale,
-            blockRotation,
+            effectiveBlockContentRotation,
             normal);
 
         string isDefaultAlignment;
@@ -359,20 +384,25 @@ internal static class AutoCadFramedBlockContentLeftStretchDiagService
         Point3d world,
         Point3d blockPosition,
         Scale3d blockScale,
-        double blockRotation,
+        double effectiveBlockContentRotation,
         Vector3d normal)
     {
         var axis = normal.Length > 1e-12d ? normal.GetNormal() : Vector3d.ZAxis;
         var delta = world - blockPosition;
         var unrotated = delta.TransformBy(
-            Matrix3d.Rotation(-blockRotation, axis, Point3d.Origin));
+            Matrix3d.Rotation(-effectiveBlockContentRotation, axis, Point3d.Origin));
         var sx = Math.Abs(blockScale.X) > 1e-12d ? blockScale.X : 1d;
         var sy = Math.Abs(blockScale.Y) > 1e-12d ? blockScale.Y : 1d;
         var sz = Math.Abs(blockScale.Z) > 1e-12d ? blockScale.Z : 1d;
         return new Point3d(unrotated.X / sx, unrotated.Y / sy, unrotated.Z / sz);
     }
 
-    private static void PrintSnapshot(Editor editor, string label, Snapshot snapshot)
+    private static void PrintSnapshot(
+        Editor editor,
+        string label,
+        Snapshot snapshot,
+        Transaction transaction,
+        MLeader leader)
     {
         editor.WriteMessage($"\n--- {label} ---");
         editor.WriteMessage($"\nutc={snapshot.Utc:O}");
@@ -420,7 +450,9 @@ internal static class AutoCadFramedBlockContentLeftStretchDiagService
                 $"Justify={attr.Justify}");
         }
 
-        editor.WriteMessage("\nAttrRef local vs AttrDef (AlignmentPoint preferred):");
+        PrintWorldColumnPlacement(editor, transaction, leader);
+
+        editor.WriteMessage("\nAttrRef local vs AttrDef (AlignmentPoint preferred; diagnostic only):");
         foreach (var tag in TrackedTags)
         {
             var def = snapshot.AttrDefs.FirstOrDefault(
@@ -440,6 +472,32 @@ internal static class AutoCadFramedBlockContentLeftStretchDiagService
                 $"\n  [{tag}] AttrRef.LAlign - AttrDef.Align = {FormatVector(delta)} " +
                 $"|len|={delta.Length.ToString("E3", CultureInfo.InvariantCulture)}");
         }
+    }
+
+    private static void PrintWorldColumnPlacement(
+        Editor editor,
+        Transaction transaction,
+        MLeader leader)
+    {
+        editor.WriteMessage("\nWorld-space K→D→I column contract:");
+        if (!AutoCadFramedBlockContentDimensionColumnPlacementService.TryEvaluate(
+                transaction,
+                leader,
+                out var evaluation,
+                out var points,
+                out var note))
+        {
+            editor.WriteMessage($"\n  unavailable: {note}");
+            return;
+        }
+
+        editor.WriteMessage(
+            "\n  " +
+            AutoCadFramedBlockContentDimensionColumnPlacementService
+                .FormatEvaluationDiagnostics(points, evaluation));
+        editor.WriteMessage(
+            $"\n  visualAuthority=K→D→I parsedDimToken={points.ParsedColumnSide} " +
+            "(DIMNX/DIMPX report only; do not decide correctness).");
     }
 
     private static void PrintDeltas(Editor editor, Snapshot before, Snapshot after)
@@ -588,12 +646,17 @@ internal static class AutoCadFramedBlockContentLeftStretchDiagService
             "\nNeither path calls AdjustAlignment on AttrRefs. " +
             "Neither writes world Position after TransformBy.");
         editor.WriteMessage(
+            "\nVisual column contract: world K→D→I " +
+            "(knee → WIDTH/HEIGHT center → ITEM_NO). " +
+            "DIMNX/DIMPX and AttrRef.LAlign vs AttrDef are diagnostic only.");
+        editor.WriteMessage(
             "\nConcrete diffs: P3 BTR side-agnostic + baseline 1:50 + BlockScale; " +
             "G5C BTR name includes L/R + per-denom heights baked. " +
             "P3 sets Preset/Verifiable=false; G5C omits. " +
             "P3 ValidateAttributeContract checks AlignmentPoint only (not Position).");
         editor.WriteMessage(
-            "\nFix deferred until this diag shows which AttrRef local/world field drifts.");
+            "\nContent-side normalize uses world K→D→I + mirrored candidate, " +
+            "not BlockRotation / effectiveLocalX sign.");
     }
 
     private static void StoreSnapshot(string handle, Snapshot snapshot)

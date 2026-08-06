@@ -129,6 +129,9 @@ internal static class LiveGeometrySynchronizationService
             _erasedSourceHandles.Clear();
             _refreshAllTimberAnnotationsAfterCommand = false;
             _preserveCopySourcesForCurrentCommand = false;
+#if DEBUG
+            AutoCadFramedBlockContentStretchNormalizeLifecycleService.RemoveSession(_document);
+#endif
         }
 
         private void ObjectAppended(object? sender, ObjectEventArgs e)
@@ -200,6 +203,11 @@ internal static class LiveGeometrySynchronizationService
                 if (entity is MLeader)
                 {
                     _modifiedFramedLabelIds.TryAdd(entity.ObjectId);
+#if DEBUG
+                    AutoCadFramedBlockContentStretchNormalizeLifecycleService.TraceQueueMLeader(
+                        _document,
+                        entity.ObjectId);
+#endif
                     return;
                 }
 
@@ -228,6 +236,11 @@ internal static class LiveGeometrySynchronizationService
                 LiveGeometryCommandRules.RequiresFullTimberAnnotationRefresh(e.GlobalCommandName);
             _preserveCopySourcesForCurrentCommand =
                 LiveGeometryCommandRules.IsCopySourcePreservingCommand(e.GlobalCommandName);
+#if DEBUG
+            AutoCadFramedBlockContentStretchNormalizeLifecycleService.TraceWillStart(
+                _document,
+                e.GlobalCommandName);
+#endif
             if (_ignoreCurrentCommand)
             {
                 _modifiedIds.Clear();
@@ -257,10 +270,17 @@ internal static class LiveGeometrySynchronizationService
                 _appendedSlopeArrowIds.Clear();
                 _appendedSlopeAngleTextIds.Clear();
                 _erasedSourceHandles.Clear();
+#if DEBUG
+                AutoCadFramedBlockContentStretchNormalizeLifecycleService
+                    .TraceCancelledOrFailed(_document, "CommandIgnored", e.GlobalCommandName);
+#endif
                 return;
             }
 
-            RefreshCandidates(refreshAllTimberAnnotations, preserveCopySources);
+            RefreshCandidates(
+                e.GlobalCommandName,
+                refreshAllTimberAnnotations,
+                preserveCopySources);
         }
 
         private void CommandCancelled(object? sender, CommandEventArgs e)
@@ -275,6 +295,12 @@ internal static class LiveGeometrySynchronizationService
             _erasedSourceHandles.Clear();
             _refreshAllTimberAnnotationsAfterCommand = false;
             _preserveCopySourcesForCurrentCommand = false;
+#if DEBUG
+            AutoCadFramedBlockContentStretchNormalizeLifecycleService.TraceCancelledOrFailed(
+                _document,
+                "CommandCancelled",
+                e.GlobalCommandName);
+#endif
         }
 
         private void CommandFailed(object? sender, CommandEventArgs e)
@@ -289,9 +315,16 @@ internal static class LiveGeometrySynchronizationService
             _erasedSourceHandles.Clear();
             _refreshAllTimberAnnotationsAfterCommand = false;
             _preserveCopySourcesForCurrentCommand = false;
+#if DEBUG
+            AutoCadFramedBlockContentStretchNormalizeLifecycleService.TraceCancelledOrFailed(
+                _document,
+                "CommandFailed",
+                e.GlobalCommandName);
+#endif
         }
 
         private void RefreshCandidates(
+            string? globalCommandName,
             bool refreshAllTimberAnnotations,
             bool preserveCopySources)
         {
@@ -302,17 +335,15 @@ internal static class LiveGeometrySynchronizationService
             var appendedSlopeArrowIds = _appendedSlopeArrowIds.Drain();
             var appendedSlopeAngleTextIds = _appendedSlopeAngleTextIds.Drain();
             var erasedSourceHandles = _erasedSourceHandles.Drain();
-            if (ids.Count == 0 &&
-                appendedTimberIds.Count == 0 &&
-                modifiedFramedLabelIds.Count == 0 &&
-                appendedLabelIds.Count == 0 &&
-                appendedSlopeArrowIds.Count == 0 &&
-                appendedSlopeAngleTextIds.Count == 0 &&
-                erasedSourceHandles.Count == 0 &&
-                !refreshAllTimberAnnotations)
-            {
-                return;
-            }
+            var hasLiveGeometryWork =
+                ids.Count > 0 ||
+                appendedTimberIds.Count > 0 ||
+                modifiedFramedLabelIds.Count > 0 ||
+                appendedLabelIds.Count > 0 ||
+                appendedSlopeArrowIds.Count > 0 ||
+                appendedSlopeAngleTextIds.Count > 0 ||
+                erasedSourceHandles.Count > 0 ||
+                refreshAllTimberAnnotations;
 
             using (_modifiedIds.Suppress())
             using (_appendedTimberIds.Suppress())
@@ -322,17 +353,28 @@ internal static class LiveGeometrySynchronizationService
             using (_appendedSlopeAngleTextIds.Suppress())
             using (_erasedSourceHandles.Suppress())
             {
-                RefreshTimberElements(
+                if (hasLiveGeometryWork)
+                {
+                    RefreshTimberElements(
+                        _document,
+                        ids,
+                        appendedTimberIds,
+                        modifiedFramedLabelIds,
+                        appendedLabelIds,
+                        appendedSlopeArrowIds,
+                        appendedSlopeAngleTextIds,
+                        erasedSourceHandles,
+                        refreshAllTimberAnnotations,
+                        preserveCopySources);
+                }
+
+#if DEBUG
+                // P4A DEBUG proof runs under the same reentrancy suppress scopes so
+                // normalize writes do not re-queue LiveGeometry candidates.
+                AutoCadFramedBlockContentStretchNormalizeLifecycleService.ProcessCommandEnded(
                     _document,
-                    ids,
-                    appendedTimberIds,
-                    modifiedFramedLabelIds,
-                    appendedLabelIds,
-                    appendedSlopeArrowIds,
-                    appendedSlopeAngleTextIds,
-                    erasedSourceHandles,
-                    refreshAllTimberAnnotations,
-                    preserveCopySources);
+                    globalCommandName);
+#endif
             }
         }
 

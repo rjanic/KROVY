@@ -254,6 +254,10 @@ internal static class AutoCadFramedBlockContentCreateVerifyService
             TimberFramedBlockContentPresentation.Combined,
             TimberLeaderHorizontalSide.Right, 180d, 50, 3.0d,
             AutoCadFramedBlockContentStabilizationMode.RecordGraphicsRefresh),
+        new("C-COMB-L-270-D50", TimberFramedBlockContentKind.Circle,
+            TimberFramedBlockContentPresentation.Combined,
+            TimberLeaderHorizontalSide.Left, 270d, 50, 2.7d,
+            AutoCadFramedBlockContentStabilizationMode.RecordGraphicsRefresh),
 
         // Framed ItemOnly — same positive Combined landing contract (Core > 0)
         new("C-ITEM-L-0-D50", TimberFramedBlockContentKind.Circle,
@@ -423,6 +427,15 @@ internal static class AutoCadFramedBlockContentCreateVerifyService
                 result.AttributeTags.Contains("ITEM_NO") &&
                 result.AttributeTags.Contains("WIDTH") &&
                 result.AttributeTags.Contains("HEIGHT");
+
+            if (ok)
+            {
+                ok &= ValidateCombinedWorldColumnPlacement(
+                    transaction,
+                    leader,
+                    proofCase.Token,
+                    editor);
+            }
         }
         else
         {
@@ -433,8 +446,43 @@ internal static class AutoCadFramedBlockContentCreateVerifyService
         }
 
         _ = database;
-        _ = editor;
         return ok;
+    }
+
+    private static bool ValidateCombinedWorldColumnPlacement(
+        Transaction transaction,
+        MLeader leader,
+        string token,
+        Editor editor)
+    {
+        if (!AutoCadFramedBlockContentDimensionColumnPlacementService.TryEvaluate(
+                transaction,
+                leader,
+                out var evaluation,
+                out var points,
+                out var note))
+        {
+            editor.WriteMessage(
+                $"\n[FAIL] {token}: K→D→I evaluate failed: {note}");
+            return false;
+        }
+
+        editor.WriteMessage(
+            $"\n{token} " +
+            AutoCadFramedBlockContentDimensionColumnPlacementService
+                .FormatEvaluationDiagnostics(points, evaluation));
+
+        if (!evaluation.Current.IsCorrect ||
+            evaluation.Decision !=
+                TimberFramedBlockContentDimensionColumnMirrorDecision.NoOp)
+        {
+            editor.WriteMessage(
+                $"\n[FAIL] {token}: Combined must satisfy K→D→I on first display " +
+                $"(decision={TimberFramedBlockContentDimensionColumnPlacementRules.DescribeDecision(evaluation.Decision)}).");
+            return false;
+        }
+
+        return true;
     }
 
     /// <summary>
