@@ -90,6 +90,53 @@ public sealed class TimberAnnotationRefreshPlannerTests
     }
 
     [Theory]
+    [InlineData("U")]
+    [InlineData("u")]
+    [InlineData(" UNDO ")]
+    [InlineData("_UNDO")]
+    [InlineData(".UNDO")]
+    [InlineData("REDO")]
+    [InlineData("_REDO")]
+    [InlineData(".MREDO")]
+    [InlineData(" mredo ")]
+    public void UndoRedoCommands_AreFiltered(string commandName)
+    {
+        Assert.True(LiveGeometryCommandRules.IsUndoRedoCommand(commandName));
+    }
+
+    [Theory]
+    [InlineData("MOVE")]
+    [InlineData("_MOVE")]
+    [InlineData("STRETCH")]
+    [InlineData(".STRETCH")]
+    [InlineData("ROTATE")]
+    [InlineData("TRIM")]
+    [InlineData("EXTEND")]
+    [InlineData("COPY")]
+    [InlineData("_COPY")]
+    [InlineData("COPYCLIP")]
+    [InlineData("PASTECLIP")]
+    [InlineData("GRIP_STRETCH")]
+    [InlineData("AK_EDIT")]
+    [InlineData("")]
+    [InlineData(null)]
+    [InlineData("UPDATE")]
+    [InlineData("UNDOMARK")]
+    public void OrdinaryEditCommands_AreNotFilteredAsUndoRedo(string? commandName)
+    {
+        Assert.False(LiveGeometryCommandRules.IsUndoRedoCommand(commandName));
+    }
+
+    [Theory]
+    [InlineData("  _U  ", "U")]
+    [InlineData(".REDO", "REDO")]
+    [InlineData("\tMREDO", "MREDO")]
+    public void NormalizeCommandName_StripsPrefixesAndWhitespace(string raw, string expected)
+    {
+        Assert.Equal(expected, LiveGeometryCommandRules.NormalizeCommandName(raw));
+    }
+
+    [Theory]
     [InlineData("COPY")]
     [InlineData("_COPY")]
     [InlineData(".COPYCLIP")]

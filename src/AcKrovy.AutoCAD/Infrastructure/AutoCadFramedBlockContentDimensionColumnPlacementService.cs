@@ -157,13 +157,20 @@ internal static class AutoCadFramedBlockContentDimensionColumnPlacementService
         out ObjectId beforeBlockContentId,
         out ObjectId afterBlockContentId,
         out TimberFramedBlockContentDimensionColumnMirrorEvaluation evaluation,
-        out string note)
+        out string note,
+        ObjectId preferredOppositeBlockContentId = default)
     {
         changed = false;
         beforeBlockContentId = leader.BlockContentId;
         afterBlockContentId = beforeBlockContentId;
         evaluation = default;
         note = string.Empty;
+
+        if (beforeBlockContentId.IsNull)
+        {
+            note = "BlockContentId Null.";
+            return false;
+        }
 
         if (!TryEvaluate(transaction, leader, out evaluation, out var points, out note))
         {
@@ -195,35 +202,36 @@ internal static class AutoCadFramedBlockContentDimensionColumnPlacementService
             return false;
         }
 
-        var requiredSide =
-            TimberFramedBlockContentStretchNormalizeRules.OppositeColumnSide(
-                currentSide);
-        var ensure = AcKrovyFramedBlockContentDefinitionService.Ensure(
-            database,
-            transaction,
-            new AutoCadFramedBlockContentRequest(
-                contentKind,
-                TimberFramedBlockContentPresentation.Combined,
-                itemTextStyleName,
-                dimensionTextStyleName,
-                itemPaperHeightMm,
-                dimensionPaperHeightMm,
-                itemTextStyleId,
-                dimensionTextStyleId,
-                itemTextForFrameSizing,
-                requiredSide));
-        if (!ensure.Succeeded ||
-            ensure.BlockTableRecordId is not ObjectId targetBlockId ||
-            targetBlockId.IsNull)
+        ObjectId targetBlockId;
+        if (!preferredOppositeBlockContentId.IsNull)
         {
-            note = "Ensure opposite BTR: " + ensure.DiagnosticReason;
-            return false;
-        }
+            if (preferredOppositeBlockContentId == beforeBlockContentId)
+            {
+                note = "preferred opposite BlockContentId equals current";
+                return false;
+            }
 
-        if (targetBlockId == beforeBlockContentId)
+            targetBlockId = preferredOppositeBlockContentId;
+        }
+        else
         {
-            note = "opposite Ensure returned same BlockContentId";
-            return false;
+            if (!TryResolveOppositeVariantId(
+                    database,
+                    transaction,
+                    beforeBlockContentId,
+                    contentKind,
+                    itemTextStyleName,
+                    dimensionTextStyleName,
+                    itemTextStyleId,
+                    dimensionTextStyleId,
+                    itemPaperHeightMm,
+                    dimensionPaperHeightMm,
+                    itemTextForFrameSizing,
+                    out targetBlockId,
+                    out note))
+            {
+                return false;
+            }
         }
 
         var beforeAttachment = ReadAttachment(leader);
@@ -280,10 +288,97 @@ internal static class AutoCadFramedBlockContentDimensionColumnPlacementService
         evaluation = afterEvaluation;
         changed = true;
         afterBlockContentId = targetBlockId;
+        var requiredSide =
+            TimberFramedBlockContentStretchNormalizeRules.OppositeColumnSide(
+                currentSide);
         note =
             "swapped " +
             TimberFramedBlockContentVariantRules.ToDimensionColumnSideToken(currentSide) +
             " -> " +
+            TimberFramedBlockContentVariantRules.ToDimensionColumnSideToken(requiredSide);
+        return true;
+    }
+
+    /// <summary>
+    /// Resolve opposite DIMNX/DIMPX BTR ObjectId. Never GetObject(Null). Current
+    /// BTR must parse; opposite ObjectId must be non-null after Ensure.
+    /// </summary>
+    public static bool TryResolveOppositeVariantId(
+        Database database,
+        Transaction transaction,
+        ObjectId currentBlockContentId,
+        TimberFramedBlockContentKind contentKind,
+        string itemTextStyleName,
+        string dimensionTextStyleName,
+        ObjectId itemTextStyleId,
+        ObjectId dimensionTextStyleId,
+        double itemPaperHeightMm,
+        double dimensionPaperHeightMm,
+        string itemTextForFrameSizing,
+        out ObjectId oppositeBlockContentId,
+        out string note)
+    {
+        oppositeBlockContentId = ObjectId.Null;
+        note = string.Empty;
+
+        if (currentBlockContentId.IsNull)
+        {
+            note = "current BTR ObjectId is Null";
+            return false;
+        }
+
+        if (transaction.GetObject(currentBlockContentId, OpenMode.ForRead, true) is not
+                BlockTableRecord currentBlock ||
+            currentBlock.IsErased)
+        {
+            note = "current BTR unavailable";
+            return false;
+        }
+
+        if (!TimberFramedBlockContentVariantRules.TryParseR2VariantKey(
+                currentBlock.Name,
+                out var parse) ||
+            parse.DimensionColumnSide is not
+                TimberFramedBlockContentDimensionColumnSide currentSide)
+        {
+            note = "current BTR name must parse as R2 DIMNX/DIMPX";
+            return false;
+        }
+
+        var requiredSide =
+            TimberFramedBlockContentStretchNormalizeRules.OppositeColumnSide(
+                currentSide);
+        var ensure = AcKrovyFramedBlockContentDefinitionService.Ensure(
+            database,
+            transaction,
+            new AutoCadFramedBlockContentRequest(
+                contentKind,
+                TimberFramedBlockContentPresentation.Combined,
+                itemTextStyleName,
+                dimensionTextStyleName,
+                itemPaperHeightMm,
+                dimensionPaperHeightMm,
+                itemTextStyleId,
+                dimensionTextStyleId,
+                itemTextForFrameSizing,
+                requiredSide));
+        if (!ensure.Succeeded ||
+            ensure.BlockTableRecordId is not ObjectId targetBlockId ||
+            targetBlockId.IsNull)
+        {
+            note = "Ensure opposite BTR: " + ensure.DiagnosticReason;
+            return false;
+        }
+
+        if (targetBlockId == currentBlockContentId)
+        {
+            note = "opposite Ensure returned same BlockContentId";
+            return false;
+        }
+
+        oppositeBlockContentId = targetBlockId;
+        note =
+            "opposite " +
             TimberFramedBlockContentVariantRules.ToDimensionColumnSideToken(requiredSide);
         return true;
     }
@@ -345,13 +440,29 @@ internal static class AutoCadFramedBlockContentDimensionColumnPlacementService
         ObjectId blockId,
         IReadOnlyList<(string Tag, string Text, double Height)> values)
     {
+        if (blockId.IsNull)
+        {
+            return;
+        }
+
         var byTag = values.ToDictionary(
             v => v.Tag,
             v => v,
             StringComparer.OrdinalIgnoreCase);
-        var block = (BlockTableRecord)transaction.GetObject(blockId, OpenMode.ForRead);
+        if (transaction.GetObject(blockId, OpenMode.ForRead, true) is not
+                BlockTableRecord block ||
+            block.IsErased)
+        {
+            return;
+        }
+
         foreach (ObjectId id in block)
         {
+            if (id.IsNull)
+            {
+                continue;
+            }
+
             if (transaction.GetObject(id, OpenMode.ForRead, true) is not
                     AttributeDefinition definition ||
                 definition.IsErased)

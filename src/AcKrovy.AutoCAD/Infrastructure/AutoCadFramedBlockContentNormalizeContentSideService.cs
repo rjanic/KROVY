@@ -72,6 +72,43 @@ internal static class AutoCadFramedBlockContentNormalizeContentSideService
     }
 
     /// <summary>
+    /// Write-open MLeader overload: uses TopTransaction or a short OpenClose
+    /// for related BTR/AttrRef reads only. Never reopens the callback MLeader.
+    /// Optional pre-resolved opposite BTR ObjectId avoids mid-drag Ensure when
+    /// SETUP already captured both DIMNX/DIMPX scalars.
+    /// </summary>
+    public static AutoCadFramedBlockContentNormalizeResult TryNormalizeContentSide(
+        MLeader writeOpenMLeader,
+        Database database,
+        ObjectId preferredOppositeBlockContentId = default,
+        Editor? editor = null)
+    {
+        ArgumentNullException.ThrowIfNull(writeOpenMLeader);
+        ArgumentNullException.ThrowIfNull(database);
+
+        var top = database.TransactionManager.TopTransaction;
+        if (top is not null)
+        {
+            return TryNormalizeContentSide(
+                database,
+                top,
+                writeOpenMLeader,
+                editor,
+                preferredOppositeBlockContentId);
+        }
+
+        using var openClose = database.TransactionManager.StartOpenCloseTransaction();
+        var result = TryNormalizeContentSide(
+            database,
+            openClose,
+            writeOpenMLeader,
+            editor,
+            preferredOppositeBlockContentId);
+        openClose.Commit();
+        return result;
+    }
+
+    /// <summary>
     /// Reusable content-side normalize for an open writable MLeader. No entity prompt.
     /// Evaluates geometry after any prior dogleg normalize in the same transaction.
     /// Visual authority is world K→D→I only (not BlockRotation / local-X sign).
@@ -80,15 +117,29 @@ internal static class AutoCadFramedBlockContentNormalizeContentSideService
         Database database,
         Transaction transaction,
         MLeader leader,
-        Editor? editor = null)
+        Editor? editor = null,
+        ObjectId preferredOppositeBlockContentId = default)
     {
-        var handle = leader.ObjectId.Handle.ToString();
+        ArgumentNullException.ThrowIfNull(database);
+        ArgumentNullException.ThrowIfNull(transaction);
+        ArgumentNullException.ThrowIfNull(leader);
+
+        var handle = leader.ObjectId.IsNull
+            ? "(null-ObjectId)"
+            : leader.ObjectId.Handle.ToString();
         var beforeAttachment = ReadAttachment(leader);
         var beforeKnee = ReadKnee(leader);
         var beforeBlockPosition = leader.BlockPosition;
         var beforeDoglegLength = leader.DoglegLength;
         var beforeDogleg = TryReadDogleg(leader);
         var beforeBlockId = leader.BlockContentId;
+
+        if (beforeBlockId.IsNull)
+        {
+            return AutoCadFramedBlockContentNormalizeResult.Failed(
+                "BlockContentId Null (transient?)",
+                beforeBlockId);
+        }
 
         if (!TryReadCombinedContext(
                 database,
@@ -182,7 +233,8 @@ internal static class AutoCadFramedBlockContentNormalizeContentSideService
                     out _,
                     out var afterBlockId,
                     out var afterEvaluation,
-                    out var correctNote))
+                    out var correctNote,
+                    preferredOppositeBlockContentId))
         {
             editor?.WriteMessage($"\nhandle={handle}: FAIL {correctNote}");
             if (editor is not null)
@@ -413,13 +465,31 @@ internal static class AutoCadFramedBlockContentNormalizeContentSideService
         }
 
         var blockId = leader.BlockContentId;
-        var block = (BlockTableRecord)transaction.GetObject(blockId, OpenMode.ForRead);
+        if (blockId.IsNull)
+        {
+            note = "BlockContentId Null.";
+            return false;
+        }
+
+        if (transaction.GetObject(blockId, OpenMode.ForRead, true) is not
+                BlockTableRecord block ||
+            block.IsErased)
+        {
+            note = "BlockTableRecord unavailable.";
+            return false;
+        }
+
         AttributeDefinition? itemDef = null;
         AttributeDefinition? widthDef = null;
         AttributeDefinition? heightDef = null;
         Entity? frame = null;
         foreach (ObjectId id in block)
         {
+            if (id.IsNull)
+            {
+                continue;
+            }
+
             if (transaction.GetObject(id, OpenMode.ForRead, true) is not Entity entity ||
                 entity.IsErased)
             {

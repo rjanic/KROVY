@@ -82,6 +82,31 @@ internal static class AutoCadFramedBlockContentNormalizeDoglegService
     }
 
     /// <summary>
+    /// Write-open MLeader overload: uses TopTransaction or a short OpenClose
+    /// for related BTR/AttrRef reads only. Never reopens the callback MLeader.
+    /// </summary>
+    public static AutoCadFramedBlockContentNormalizeResult TryNormalizeDogleg(
+        MLeader writeOpenMLeader,
+        Database database,
+        Editor? editor = null,
+        string writePhase = "WRITE")
+    {
+        ArgumentNullException.ThrowIfNull(writeOpenMLeader);
+        ArgumentNullException.ThrowIfNull(database);
+
+        var top = database.TransactionManager.TopTransaction;
+        if (top is not null)
+        {
+            return TryNormalizeDogleg(top, writeOpenMLeader, editor, writePhase);
+        }
+
+        using var openClose = database.TransactionManager.StartOpenCloseTransaction();
+        var result = TryNormalizeDogleg(openClose, writeOpenMLeader, editor, writePhase);
+        openClose.Commit();
+        return result;
+    }
+
+    /// <summary>
     /// Reusable dogleg normalize for an open writable MLeader. No entity prompt.
     /// </summary>
     public static AutoCadFramedBlockContentNormalizeResult TryNormalizeDogleg(
@@ -90,7 +115,12 @@ internal static class AutoCadFramedBlockContentNormalizeDoglegService
         Editor? editor = null,
         string writePhase = "WRITE")
     {
-        var handle = leader.ObjectId.Handle.ToString();
+        ArgumentNullException.ThrowIfNull(transaction);
+        ArgumentNullException.ThrowIfNull(leader);
+
+        var handle = leader.ObjectId.IsNull
+            ? "(null-ObjectId)"
+            : leader.ObjectId.Handle.ToString();
         var blockContentId = leader.BlockContentId;
         var blockScale = leader.BlockScale;
         var blockRotation = leader.BlockRotation;
@@ -569,9 +599,20 @@ internal static class AutoCadFramedBlockContentNormalizeDoglegService
             return list;
         }
 
-        var block = (BlockTableRecord)transaction.GetObject(blockId, OpenMode.ForRead);
+        if (transaction.GetObject(blockId, OpenMode.ForRead, true) is not
+                BlockTableRecord block ||
+            block.IsErased)
+        {
+            return list;
+        }
+
         foreach (ObjectId id in block)
         {
+            if (id.IsNull)
+            {
+                continue;
+            }
+
             if (transaction.GetObject(id, OpenMode.ForRead, true) is not
                     AttributeDefinition definition ||
                 definition.IsErased)
@@ -584,6 +625,11 @@ internal static class AutoCadFramedBlockContentNormalizeDoglegService
                 TimberFramedBlockContentDefinitionRules.ItemNoTag or
                 TimberFramedBlockContentDefinitionRules.WidthTag or
                 TimberFramedBlockContentDefinitionRules.HeightTag))
+            {
+                continue;
+            }
+
+            if (definition.ObjectId.IsNull)
             {
                 continue;
             }

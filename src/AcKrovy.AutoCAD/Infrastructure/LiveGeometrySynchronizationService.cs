@@ -131,6 +131,10 @@ internal static class LiveGeometrySynchronizationService
             _preserveCopySourcesForCurrentCommand = false;
 #if DEBUG
             AutoCadFramedBlockContentStretchNormalizeLifecycleService.RemoveSession(_document);
+            AutoCadFramedBlockContentGripUndoProofService.RemoveSession(_document);
+            AutoCadFramedBlockContentGripPassthroughProofService.RemoveSession(_document);
+            AutoCadFramedBlockContentGripReadonlyProofService.RemoveSession(_document);
+            AutoCadFramedBlockContentGripNormalizeProofService.RemoveSession(_document);
 #endif
         }
 
@@ -231,48 +235,57 @@ internal static class LiveGeometrySynchronizationService
 
         private void CommandWillStart(object? sender, CommandEventArgs e)
         {
-            _ignoreCurrentCommand = IsAcKrovyCommand(e.GlobalCommandName);
+            var isUndoRedo = LiveGeometryCommandRules.IsUndoRedoCommand(e.GlobalCommandName);
+            _ignoreCurrentCommand = IsAcKrovyCommand(e.GlobalCommandName) || isUndoRedo;
             _refreshAllTimberAnnotationsAfterCommand =
+                !isUndoRedo &&
                 LiveGeometryCommandRules.RequiresFullTimberAnnotationRefresh(e.GlobalCommandName);
             _preserveCopySourcesForCurrentCommand =
+                !isUndoRedo &&
                 LiveGeometryCommandRules.IsCopySourcePreservingCommand(e.GlobalCommandName);
 #if DEBUG
+            AutoCadRedoDiagService.OnCommandWillStart(e.GlobalCommandName);
             AutoCadFramedBlockContentStretchNormalizeLifecycleService.TraceWillStart(
                 _document,
                 e.GlobalCommandName);
 #endif
             if (_ignoreCurrentCommand)
             {
-                _modifiedIds.Clear();
-                _appendedTimberIds.Clear();
-                _modifiedFramedLabelIds.Clear();
-                _appendedLabelIds.Clear();
-                _appendedSlopeArrowIds.Clear();
-                _appendedSlopeAngleTextIds.Clear();
-                _erasedSourceHandles.Clear();
+                ClearPendingLiveGeometryState();
             }
         }
 
         private void CommandEnded(object? sender, CommandEventArgs e)
         {
-            var shouldIgnore = _ignoreCurrentCommand || IsAcKrovyCommand(e.GlobalCommandName);
+            var isUndoRedo = LiveGeometryCommandRules.IsUndoRedoCommand(e.GlobalCommandName);
+            var shouldIgnore =
+                _ignoreCurrentCommand ||
+                isUndoRedo ||
+                IsAcKrovyCommand(e.GlobalCommandName);
             var refreshAllTimberAnnotations = _refreshAllTimberAnnotationsAfterCommand;
             var preserveCopySources = _preserveCopySourcesForCurrentCommand;
             _ignoreCurrentCommand = false;
             _refreshAllTimberAnnotationsAfterCommand = false;
             _preserveCopySourcesForCurrentCommand = false;
+#if DEBUG
+            AutoCadRedoDiagService.OnCommandEnded(e.GlobalCommandName);
+#endif
             if (shouldIgnore)
             {
-                _modifiedIds.Clear();
-                _appendedTimberIds.Clear();
-                _modifiedFramedLabelIds.Clear();
-                _appendedLabelIds.Clear();
-                _appendedSlopeArrowIds.Clear();
-                _appendedSlopeAngleTextIds.Clear();
-                _erasedSourceHandles.Clear();
+                // Undo/Redo (and AK_): clear queued dirty state only — never
+                // LockDocument / StartTransaction / RefreshTimberElements.
+                ClearPendingLiveGeometryState();
 #if DEBUG
                 AutoCadFramedBlockContentStretchNormalizeLifecycleService
                     .TraceCancelledOrFailed(_document, "CommandIgnored", e.GlobalCommandName);
+                if (isUndoRedo)
+                {
+                    AutoCadRedoDiagService.OnLiveGeometryRefreshSkippedUndoRedo(e.GlobalCommandName);
+                }
+                else
+                {
+                    AutoCadRedoDiagService.OnLiveGeometryRefreshSkippedEmpty(e.GlobalCommandName);
+                }
 #endif
                 return;
             }
@@ -286,16 +299,13 @@ internal static class LiveGeometrySynchronizationService
         private void CommandCancelled(object? sender, CommandEventArgs e)
         {
             _ignoreCurrentCommand = false;
-            _modifiedIds.Clear();
-            _appendedTimberIds.Clear();
-            _modifiedFramedLabelIds.Clear();
-            _appendedLabelIds.Clear();
-            _appendedSlopeArrowIds.Clear();
-            _appendedSlopeAngleTextIds.Clear();
-            _erasedSourceHandles.Clear();
+            ClearPendingLiveGeometryState();
             _refreshAllTimberAnnotationsAfterCommand = false;
             _preserveCopySourcesForCurrentCommand = false;
 #if DEBUG
+            AutoCadRedoDiagService.OnCommandCancelledOrFailed(
+                "CommandCancelled",
+                e.GlobalCommandName);
             AutoCadFramedBlockContentStretchNormalizeLifecycleService.TraceCancelledOrFailed(
                 _document,
                 "CommandCancelled",
@@ -306,16 +316,13 @@ internal static class LiveGeometrySynchronizationService
         private void CommandFailed(object? sender, CommandEventArgs e)
         {
             _ignoreCurrentCommand = false;
-            _modifiedIds.Clear();
-            _appendedTimberIds.Clear();
-            _modifiedFramedLabelIds.Clear();
-            _appendedLabelIds.Clear();
-            _appendedSlopeArrowIds.Clear();
-            _appendedSlopeAngleTextIds.Clear();
-            _erasedSourceHandles.Clear();
+            ClearPendingLiveGeometryState();
             _refreshAllTimberAnnotationsAfterCommand = false;
             _preserveCopySourcesForCurrentCommand = false;
 #if DEBUG
+            AutoCadRedoDiagService.OnCommandCancelledOrFailed(
+                "CommandFailed",
+                e.GlobalCommandName);
             AutoCadFramedBlockContentStretchNormalizeLifecycleService.TraceCancelledOrFailed(
                 _document,
                 "CommandFailed",
@@ -323,11 +330,32 @@ internal static class LiveGeometrySynchronizationService
 #endif
         }
 
+        private void ClearPendingLiveGeometryState()
+        {
+            _modifiedIds.Clear();
+            _appendedTimberIds.Clear();
+            _modifiedFramedLabelIds.Clear();
+            _appendedLabelIds.Clear();
+            _appendedSlopeArrowIds.Clear();
+            _appendedSlopeAngleTextIds.Clear();
+            _erasedSourceHandles.Clear();
+        }
+
         private void RefreshCandidates(
             string? globalCommandName,
             bool refreshAllTimberAnnotations,
             bool preserveCopySources)
         {
+            // Belt-and-suspenders: never open a write transaction after Undo/Redo.
+            if (LiveGeometryCommandRules.IsUndoRedoCommand(globalCommandName))
+            {
+                ClearPendingLiveGeometryState();
+#if DEBUG
+                AutoCadRedoDiagService.OnLiveGeometryRefreshSkippedUndoRedo(globalCommandName);
+#endif
+                return;
+            }
+
             var ids = _modifiedIds.Drain();
             var appendedTimberIds = _appendedTimberIds.Drain();
             var modifiedFramedLabelIds = _modifiedFramedLabelIds.Drain();
@@ -357,6 +385,7 @@ internal static class LiveGeometrySynchronizationService
                 {
                     RefreshTimberElements(
                         _document,
+                        globalCommandName,
                         ids,
                         appendedTimberIds,
                         modifiedFramedLabelIds,
@@ -367,8 +396,12 @@ internal static class LiveGeometrySynchronizationService
                         refreshAllTimberAnnotations,
                         preserveCopySources);
                 }
-
 #if DEBUG
+                else
+                {
+                    AutoCadRedoDiagService.OnLiveGeometryRefreshSkippedEmpty(globalCommandName);
+                }
+
                 // P4A DEBUG proof runs under the same reentrancy suppress scopes so
                 // normalize writes do not re-queue LiveGeometry candidates.
                 AutoCadFramedBlockContentStretchNormalizeLifecycleService.ProcessCommandEnded(
@@ -380,6 +413,7 @@ internal static class LiveGeometrySynchronizationService
 
         private static void RefreshTimberElements(
             Document document,
+            string? globalCommandName,
             IReadOnlyList<ObjectId> ids,
             IReadOnlyList<ObjectId> appendedTimberIds,
             IReadOnlyCollection<ObjectId> modifiedFramedLabelIds,
@@ -390,10 +424,29 @@ internal static class LiveGeometrySynchronizationService
             bool refreshAllTimberAnnotations,
             bool preserveCopySources)
         {
+            // Final guard: Undo/Redo must never LockDocument / StartTransaction.
+            if (LiveGeometryCommandRules.IsUndoRedoCommand(globalCommandName))
+            {
+#if DEBUG
+                AutoCadRedoDiagService.OnLiveGeometryRefreshSkippedUndoRedo(globalCommandName);
+#endif
+                return;
+            }
+
             var editor = document.Editor;
 
             try
             {
+#if DEBUG
+                AutoCadRedoDiagService.OnLiveGeometryRefreshBegin(
+                    globalCommandName,
+                    ids.Count,
+                    erasedSourceHandles.Count,
+                    modifiedFramedLabelIds.Count);
+                var committed = false;
+#else
+                _ = globalCommandName;
+#endif
                 using (document.LockDocument())
                 using (var transaction = document.Database.TransactionManager.StartTransaction())
                 {
@@ -499,11 +552,26 @@ internal static class LiveGeometrySynchronizationService
                             document.Database,
                             transaction);
                     }
+
                     transaction.Commit();
+#if DEBUG
+                    committed = true;
+#endif
                 }
+#if DEBUG
+                AutoCadRedoDiagService.OnLiveGeometryRefreshEnd(globalCommandName, committed);
+#endif
             }
             catch (System.Exception ex)
             {
+#if DEBUG
+                AutoCadRedoDiagService.OnException(
+                    "LiveGeometrySynchronizationService.RefreshTimberElements",
+                    ex);
+                AutoCadRedoDiagService.OnLiveGeometryRefreshEnd(
+                    globalCommandName,
+                    committed: false);
+#endif
                 editor.WriteMessage(UiStrings.Format(UiStrings.WarningLiveRefreshSkippedFormat, ex.Message));
             }
         }
