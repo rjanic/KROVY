@@ -254,6 +254,7 @@ internal sealed record AutoCadFramedBlockContentAnnotationResult(
     double AttachmentDriftMm,
     double KneeDriftMm,
     double LandingDriftMm,
+    int ReferencePresentationRevision,
     string DiagnosticReason)
 {
     public bool Succeeded =>
@@ -289,5 +290,6 @@ internal sealed record AutoCadFramedBlockContentAnnotationResult(
             0d,
             0d,
             0d,
+            0,
             reason);
 }

@@ -310,8 +310,10 @@ public sealed class TimberFramedBlockContentDoglegRulesTests
     }
 
     [Fact]
-    public void Layout_PositiveColumnSide_MirrorsDimensionLocalX()
+    public void Layout_ColumnSide_CreateTnKeepsTowardKneeNegativeX()
     {
+        // Create T/N layout always places dims toward knee (−X). BTR R3_LEFT
+        // +offset mirror is DefinitionRules.CreateR3Layout, not this calculator.
         var negative = TimberFramedBlockContentLayoutCalculator.Calculate(
             new TimberFramedBlockContentLayoutRequest(
                 0d,
@@ -348,9 +350,9 @@ public sealed class TimberFramedBlockContentDoglegRulesTests
                 TimberFramedBlockContentDimensionColumnSide.PositiveLocalX));
 
         Assert.True(negative.DimensionColumnLocalX < 0d);
-        Assert.True(positive.DimensionColumnLocalX > 0d);
+        Assert.True(positive.DimensionColumnLocalX < 0d);
         Assert.Equal(
-            -negative.DimensionColumnLocalX,
+            negative.DimensionColumnLocalX,
             positive.DimensionColumnLocalX,
             9);
         Assert.Equal(negative.LandingEndLocal, positive.LandingEndLocal);
@@ -358,10 +360,25 @@ public sealed class TimberFramedBlockContentDoglegRulesTests
             negative.WidthCenterLocal!.Value.Y,
             positive.WidthCenterLocal!.Value.Y,
             9);
+
+        var rightBake =
+            TimberFramedBlockContentDefinitionRules.CalculateDimensionColumnLocalX(
+                TimberFramedBlockContentKind.Circle,
+                TimberItemLeaderBlockDefinitionRules.CircleDiameterMm,
+                2.5d,
+                TimberFramedCombinedG5ContentVariantRules.RightColumnSide);
+        var leftBake =
+            TimberFramedBlockContentDefinitionRules.CalculateDimensionColumnLocalX(
+                TimberFramedBlockContentKind.Circle,
+                TimberItemLeaderBlockDefinitionRules.CircleDiameterMm,
+                2.5d,
+                TimberFramedCombinedG5ContentVariantRules.LeftColumnSide);
+        Assert.True(rightBake < 0d);
+        Assert.Equal(-rightBake, leftBake, 9);
     }
 
     [Fact]
-    public void VariantKey_UsesR2ColumnSideNotScreenLeftRight()
+    public void VariantKey_UsesR3ContentVariantNotScreenLeaderSideEnum()
     {
         var key = TimberFramedBlockContentVariantRules.CreateRawKey(
             TimberFramedBlockContentKind.Circle,
@@ -371,16 +388,15 @@ public sealed class TimberFramedBlockContentDoglegRulesTests
             2.7d,
             2.5d,
             TimberFramedBlockContentPresentation.Combined,
-            TimberFramedBlockContentDimensionColumnSide.NegativeLocalX);
+            TimberFramedCombinedG5ContentVariantRules.LeftColumnSide);
 
         Assert.DoesNotContain("_L_", key, StringComparison.Ordinal);
-        Assert.DoesNotContain("_LEFT", key, StringComparison.Ordinal);
-        Assert.DoesNotContain("_RIGHT", key, StringComparison.Ordinal);
-        Assert.Contains("_R2_", key, StringComparison.Ordinal);
-        Assert.Contains(
+        Assert.Contains("_LEFT_", key, StringComparison.Ordinal);
+        Assert.Contains("_R3_", key, StringComparison.Ordinal);
+        Assert.DoesNotContain(
             TimberFramedBlockContentVariantRules.DimensionsNegativeXToken,
             key,
             StringComparison.Ordinal);
-        Assert.StartsWith("AK_KROVY_FBC_R2_CIR_", key, StringComparison.Ordinal);
+        Assert.StartsWith("AK_KROVY_FBC_R3_CIR_", key, StringComparison.Ordinal);
     }
 }

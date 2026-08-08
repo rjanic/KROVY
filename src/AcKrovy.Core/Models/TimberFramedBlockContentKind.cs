@@ -28,18 +28,21 @@ public enum TimberFramedBlockContentPresentation
 
 /// <summary>
 /// Combined WIDTH/HEIGHT AttrDef column side in block-local X.
-/// Not screen Left/Right and not leader knee Side — only which side of the
-/// frame the dimension column occupies so it stays toward the knee.
+/// Enum names are literal bake signs: NegativeLocalX → −offset,
+/// PositiveLocalX → +offset. Production R3 tokens R3_RIGHT / R3_LEFT are
+/// compatibility labels for knee-side layouts (see
+/// <see cref="Services.TimberFramedCombinedG5ContentVariantRules"/>); they do
+/// not mean world/source Left/Right. Text is never mirrored.
 /// </summary>
 public enum TimberFramedBlockContentDimensionColumnSide
 {
     /// <summary>
-    /// WIDTH/HEIGHT at negative local X (content right of knee / +local dogleg).
+    /// AttrDef column X = −offset. R3_RIGHT PASS token (knee on −local X of frame).
     /// </summary>
     NegativeLocalX = 0,
 
     /// <summary>
-    /// WIDTH/HEIGHT at positive local X (content left of knee / −local dogleg).
+    /// AttrDef column X = +offset. R3_LEFT token (knee on +local X of frame).
     /// </summary>
     PositiveLocalX = 1,
 }

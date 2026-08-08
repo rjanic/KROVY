@@ -230,12 +230,14 @@ public static class TimberItemLeaderLayoutCalculator
         var side = preferredSide ?? (Math.Cos(placement.RotationRadians) < 0d
             ? TimberLeaderHorizontalSide.Left
             : TimberLeaderHorizontalSide.Right);
+        var planeBasis = TimberLeaderPlaneBasis.FromRotationRadians(
+            placement.RotationRadians);
         var knee = CalculateKnee(
             placement.AnchorX,
             placement.AnchorY,
             side,
             (FirstSegmentLengthMm + FramedLeaderAdditionalOffsetMm) * presentationScaleFactor,
-            TimberLeaderPlaneBasis.WorldXY,
+            planeBasis,
             TimberLeaderVerticalSide.Up,
             FramedFirstSegmentAngleRadians);
         return new TimberItemLeaderLayout(
@@ -248,6 +250,41 @@ public static class TimberItemLeaderLayoutCalculator
             side,
             definition.WidthMm * presentationScaleFactor,
             definition.HeightMm * presentationScaleFactor);
+    }
+
+    /// <summary>
+    /// Combined landing/dogleg direction in the element-aligned plane.
+    /// Uses an existing content delta when present; otherwise ±local H from
+    /// <paramref name="rotationRadians"/> and <paramref name="side"/> —
+    /// never world +X/−X.
+    /// </summary>
+    public static (double X, double Y) ResolveCombinedLandingDirection(
+        double rotationRadians,
+        TimberLeaderHorizontalSide side,
+        double contentDeltaX = 0d,
+        double contentDeltaY = 0d)
+    {
+        if (double.IsNaN(rotationRadians) || double.IsInfinity(rotationRadians))
+        {
+            throw new ArgumentOutOfRangeException(nameof(rotationRadians));
+        }
+
+        var contentLength = Math.Sqrt(
+            contentDeltaX * contentDeltaX +
+            contentDeltaY * contentDeltaY);
+        if (contentLength > AngleToleranceRadians)
+        {
+            return (
+                contentDeltaX / contentLength,
+                contentDeltaY / contentLength);
+        }
+
+        var basis = NormalizeBasis(
+            TimberLeaderPlaneBasis.FromRotationRadians(rotationRadians));
+        var horizontalDirection = side == TimberLeaderHorizontalSide.Left ? -1d : 1d;
+        return (
+            horizontalDirection * basis.HorizontalX,
+            horizontalDirection * basis.HorizontalY);
     }
 
     public static (double X, double Y) CalculateKnee(

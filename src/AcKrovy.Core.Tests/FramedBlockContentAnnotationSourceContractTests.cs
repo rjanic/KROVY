@@ -23,12 +23,17 @@ public sealed class FramedBlockContentAnnotationSourceContractTests
         Assert.Contains(
             "AcKrovyFramedBlockContentDefinitionService.Ensure(",
             create);
-        Assert.Contains("ResolveCreateDimensionColumnSide(", create);
+        Assert.Contains("FromWorldSide(", create);
+        Assert.Contains("DesiredWorldSide", create);
         Assert.Contains("DimensionColumnSide", create);
         Assert.Contains("ContentType.BlockContent", createLeader);
         Assert.Contains("leader.SetBlockAttribute(", service);
         Assert.Contains("Matrix3d.Rotation(", createLeader);
         Assert.Contains("Vector3d.ZAxis", createLeader);
+        Assert.Contains("layout.ReadableAngleRadians", createLeader);
+        Assert.Contains(
+            "Matrix3d.Rotation(readable, Vector3d.ZAxis, attachment)",
+            createLeader);
         // G5C confirmed host contract: ConnectBase for Combined BlockContent.
         Assert.Contains(
             "BlockConnectionType.ConnectBase",
@@ -45,19 +50,49 @@ public sealed class FramedBlockContentAnnotationSourceContractTests
             "ApplyBlockInstanceProperties(",
             createLeader);
         Assert.Contains("ApplyCreateDogleg(", createLeader);
-        Assert.Contains("ApplyNormalizeDoglegFromLeader(", createLeader);
-        Assert.Contains("TryCorrectCombinedContentSide(", createLeader);
+        // Production R3 create: CREATE-only 60° finalize; no K→D→I / full canonical stack.
+        Assert.DoesNotContain("TryCorrectCombinedContentSide(", createLeader);
+        Assert.DoesNotContain("ApplyCanonicalWorldGeometry(leader, layout)", createLeader);
+        Assert.Contains("FinalizeCreateFirstSegmentSixtyDegrees(", createLeader);
         Assert.Contains(
-            "TimberFramedBlockContentDoglegRules.TryResolveCreateDoglegGeometry(",
+            "TimberFramedCombinedG5CreateFirstSegmentRules",
+            service);
+        // CREATE 60° finalize must re-seat landing along readable +T (not stale BP).
+        Assert.Contains("BuildCorrectedLandingEnd(", service);
+        Assert.DoesNotContain(
+            "Preserve world content anchor; only sync dogleg direction from",
             service);
         Assert.Contains(
-            "TimberFramedBlockContentDoglegRules.TryNormalizeDoglegGeometry(",
+            "TimberFramedCombinedG5ContentVariantRules.FromWorldSide(",
+            create);
+        // After ALL CREATE geometry is final, re-resolve R3 content variant from
+        // FINAL world geometry — same helper as post-knee-STRETCH grip.
+        Assert.Contains(
+            "EnsureCorrectR3ContentVariantAfterCreateFinalize(",
+            createLeader);
+        Assert.Contains(
+            "EnsureCorrectR3ContentVariantFromFinalGeometry(",
             service);
-        Assert.Contains("landingEnd", service);
-        Assert.DoesNotContain("ApplyGeometricDogleg(", service);
-        Assert.DoesNotContain("TryResolveDoglegGeometry(", service);
-        Assert.DoesNotContain("ResolveDoglegDirection(", service);
-        Assert.DoesNotContain("ReassertDoglegFromGeometry(", service);
+        var finalizeCall = createLeader.IndexOf(
+            "FinalizeCreateFirstSegmentSixtyDegrees(",
+            StringComparison.Ordinal);
+        var contentVariantCall = createLeader.IndexOf(
+            "EnsureCorrectR3ContentVariantAfterCreateFinalize(",
+            StringComparison.Ordinal);
+        Assert.True(finalizeCall > 0);
+        Assert.True(
+            contentVariantCall > finalizeCall,
+            "CREATE content-variant ensure must run AFTER 60°/landing finalize.");
+        // Content-variant ensure must not re-enter 60° / landing finalize helpers.
+        var ensureBody = Member(
+            service,
+            "private static void EnsureCorrectR3ContentVariantAfterCreateFinalize(");
+        Assert.DoesNotContain("FinalizeCreateFirstSegmentSixtyDegrees(", ensureBody);
+        Assert.DoesNotContain("BuildCorrectedLandingEnd(", ensureBody);
+        Assert.DoesNotContain("TryResolveCreateFinalization", ensureBody);
+        Assert.DoesNotContain("SetFirstVertex(", ensureBody);
+        Assert.DoesNotContain("SetLastVertex(", ensureBody);
+        Assert.DoesNotContain("ApplyCreateDogleg(", ensureBody);
     }
 
     [Fact]
@@ -75,22 +110,30 @@ public sealed class FramedBlockContentAnnotationSourceContractTests
     }
 
     [Fact]
-    public void CreateService_IsNotRoutedFromElementLabelServiceAndLeavesLifecycleAlone()
+    public void CreateService_IsRoutedFromElementLabelServiceForFramedCombinedOnly()
     {
         var service = ServiceSource();
         var policy = PolicySource();
         var labels = ElementLabelServiceSource();
+        var productionPolicy = ProductionPolicySource();
         var combined = service + policy;
 
-        Assert.DoesNotContain("ElementLabelService.", service);
+        Assert.DoesNotContain("ElementLabelService.Upsert", service);
+        Assert.DoesNotContain("ElementLabelService.Update", service);
         Assert.DoesNotContain("AutoCadFramedG4CompositeService", combined);
         Assert.DoesNotContain("LiveGeometrySynchronizationService", combined);
         Assert.DoesNotContain("TimberAnnotationRefreshPlanner", combined);
         Assert.DoesNotContain("XData", combined);
         Assert.DoesNotContain("CurrentVersion", combined);
-        Assert.DoesNotContain(
-            "AutoCadFramedBlockContentAnnotationService",
+        Assert.Contains(
+            "AutoCadFramedBlockContentAnnotationService.Create(",
             labels);
+        Assert.Contains(
+            "AutoCadFramedBlockContentProductionPolicy.UsesG5CombinedFramed(",
+            labels);
+        Assert.Contains("UpsertG5CombinedFramedLeader(", labels);
+        Assert.Contains("G5RendererGeneration", productionPolicy);
+        Assert.Contains("UsesG5CombinedFramed(", productionPolicy);
         Assert.DoesNotContain("AK_LABELS", combined);
         Assert.DoesNotContain("AK_LABELSELECTED", combined);
         Assert.DoesNotContain("SourceHandle", policy);
@@ -98,6 +141,212 @@ public sealed class FramedBlockContentAnnotationSourceContractTests
         Assert.DoesNotContain("record AutoCadFramedBlockContentAnnotationRequest(\n" +
             "    string SourceHandle", policy);
         Assert.DoesNotContain("MigrationGeneration", policy);
+    }
+
+    [Fact]
+    public void G5CombinedRefresh_PreservesExistingPlacementBeforeContentUpdate()
+    {
+        var upsert = Member(
+            ElementLabelServiceSource(),
+            "private static bool UpsertG5CombinedFramedLeader(");
+        var update = Member(
+            ElementLabelServiceSource(),
+            "private static bool TryUpdateG5CombinedInPlace(");
+        var write = Member(
+            ElementLabelServiceSource(),
+            "private static void WriteG5CombinedMetadata(");
+
+        Assert.Contains(
+            "TimberFramedCombinedG5RefreshPlacementRules.ManualOffsetMayMoveAnchor",
+            upsert);
+        Assert.Contains(
+            "TryBuildG5CombinedRequest(",
+            upsert);
+        Assert.Contains("automaticPlacement", upsert);
+        Assert.DoesNotContain("Anchor = placement.Anchor + manualDelta", upsert);
+
+        var build = Member(
+            ElementLabelServiceSource(),
+            "private static bool TryBuildG5CombinedRequest(");
+        Assert.Contains(
+            "TimberFramedCombinedG5CreatePlacementRules.ResolveCreateLayoutSide",
+            build);
+        Assert.Contains("TryGetSourceElementAxisRadians", build);
+        Assert.DoesNotContain("placement.Side,", build);
+
+        var tryUpdate = upsert.IndexOf(
+            "TryUpdateG5CombinedInPlace(",
+            StringComparison.Ordinal);
+        var erase = upsert.IndexOf(
+            "EraseMainAnnotation(",
+            tryUpdate,
+            StringComparison.Ordinal);
+        var create = upsert.IndexOf(
+            "AutoCadFramedBlockContentAnnotationService.Create(",
+            tryUpdate,
+            StringComparison.Ordinal);
+        Assert.True(tryUpdate >= 0 && erase > tryUpdate && create > erase);
+
+        Assert.Contains(
+            "TimberFramedCombinedG5RefreshPlacementRules.ShouldPreserveExistingPlacement(",
+            update);
+        Assert.Contains("automaticPlacement.Anchor.X", update);
+        Assert.Contains("ApplyG5CombinedAttributeValues(", update);
+        Assert.Contains("WriteG5CombinedMetadata(", update);
+        Assert.Contains(
+            ".DecideFromPersistedMetadata(",
+            update);
+        Assert.Contains("AnnotationRebuildRequired", update);
+        Assert.DoesNotContain("TransformRelativePlacement(", update);
+        Assert.DoesNotContain("TransformRelativeDirection(", update);
+        Assert.DoesNotContain("SetLastVertex(", update);
+        Assert.DoesNotContain("SetDogleg(", update);
+        Assert.Contains(
+            "TimberFramedCombinedG5SourceRotationRules.ResolveRefreshPresentationRadians(",
+            update);
+        Assert.Contains(
+            "CaptureBlockContentPresentationRadians(",
+            update);
+        Assert.Contains(
+            "TryResolveWorldContentXAxis(",
+            update);
+        Assert.Contains(
+            "TryRestoreBlockContentPresentationAfterRefresh(",
+            update);
+        Assert.Contains(
+            "ResolveContentOnlyRefreshPresentation(",
+            update);
+        var applyAttributes = update.IndexOf(
+            "ApplyG5CombinedAttributeValues(",
+            StringComparison.Ordinal);
+        var restorePresentation = update.IndexOf(
+            "TryRestoreBlockContentPresentationAfterRefresh(",
+            StringComparison.Ordinal);
+        Assert.True(applyAttributes >= 0 && restorePresentation > applyAttributes);
+        // Length-only refresh must correct measured world-after-content to the
+        // exact world-before-refresh presentation in relative BR space.
+        Assert.DoesNotContain(
+            "ApplyReadableBlockContentOrientation(",
+            update);
+        Assert.DoesNotContain("TryCorrectCombinedContentSide(", update);
+        Assert.DoesNotContain("!placementEval.Current.IsCorrect", update);
+
+        Assert.Contains("ReadG5Attachment(leader)", write);
+        Assert.Contains("leader.BlockPosition", write);
+        Assert.Contains("TextX = liveBlockPosition.X", write);
+        Assert.Contains("AnchorX = liveAttachment.X", write);
+        Assert.Contains("LocalManualOffsetAlongAxisMm = 0d", write);
+        Assert.Contains("RotationRadians = sourcePhysicalAxis", write);
+        Assert.Contains("PlacementRotationRadians = placementRotation", write);
+    }
+
+    [Fact]
+    public void SourceRotation_RebuildsThroughCanonicalProductionCreateBeforeAnyInPlaceMutation()
+    {
+        var labels = ElementLabelServiceSource();
+        var upsert = Member(
+            labels,
+            "private static bool UpsertG5CombinedFramedLeader(");
+        var update = Member(
+            labels,
+            "private static bool TryUpdateG5CombinedInPlace(");
+        var inspect = Normalize(Read(
+            "src/AcKrovy.AutoCAD/Commands/AutoCadFramedG5ProductionAnnotationInspectCommands.cs"));
+        var trace = Normalize(Read(
+            "src/AcKrovy.AutoCAD/Infrastructure/ElementLabelSourceRotationRebuildTrace.cs"));
+
+        var decide = update.IndexOf(
+            ".DecideFromPersistedMetadata(",
+            StringComparison.Ordinal);
+        var rebuildGate = update.IndexOf(
+            "sourceRotationRebuildDecision.AnnotationRebuildRequired",
+            decide,
+            StringComparison.Ordinal);
+        var preserveMeasurement = update.IndexOf(
+            "TryResolveWorldContentXAxis(",
+            StringComparison.Ordinal);
+        var contentUpdate = update.IndexOf(
+            "ApplyG5CombinedAttributeValues(",
+            StringComparison.Ordinal);
+        Assert.True(
+            decide >= 0 && rebuildGate > decide && preserveMeasurement > rebuildGate &&
+            contentUpdate > preserveMeasurement);
+
+        Assert.DoesNotContain("TransformRelativePlacement(", update);
+        Assert.DoesNotContain("leader.TransformBy(", update);
+        Assert.DoesNotContain("BlockPosition =", update);
+        Assert.DoesNotContain("SetLastVertex(", update);
+
+        var tryUpdate = upsert.IndexOf("TryUpdateG5CombinedInPlace(", StringComparison.Ordinal);
+        var erase = upsert.IndexOf("EraseMainAnnotation(", tryUpdate, StringComparison.Ordinal);
+        var create = upsert.IndexOf(
+            "AutoCadFramedBlockContentAnnotationService.Create(",
+            erase,
+            StringComparison.Ordinal);
+        var metadata = upsert.IndexOf("WriteG5CombinedMetadata(", create, StringComparison.Ordinal);
+        var completeTrace = upsert.IndexOf(
+            "CompleteSourceRotationRebuildTrace(",
+            metadata,
+            StringComparison.Ordinal);
+        Assert.True(
+            tryUpdate >= 0 && erase > tryUpdate && create > erase &&
+            metadata > create && completeTrace > metadata);
+
+        Assert.Contains("SourceAxisBeforeDeg=", inspect);
+        Assert.Contains("SourceAxisAfterDeg=", inspect);
+        Assert.Contains("SourceAxisDeltaDeg=", inspect);
+        Assert.Contains("PhysicalSourceAxisBeforeDeg=", inspect);
+        Assert.Contains("PhysicalSourceAxisAfterDeg=", inspect);
+        Assert.Contains("PhysicalSourceAxisDeltaDeg=", inspect);
+        Assert.Contains("SourceAxisSemantics=PhysicalStartToEnd", inspect);
+        Assert.Contains("SourceRotationDetected=", inspect);
+        Assert.Contains("AnnotationRebuildRequired=", inspect);
+        Assert.Contains("AnnotationRebuilt=", inspect);
+        Assert.Contains("OldAnnotationHandle=", inspect);
+        Assert.Contains("NewAnnotationHandle=", inspect);
+        Assert.Contains("RebuildReason=", inspect);
+        Assert.Contains("StringComparer.OrdinalIgnoreCase", trace);
+    }
+
+    [Fact]
+    public void SourceRotationBatch_IsDistinctAndAnnotationGripNeverQueuesSourceRebuild()
+    {
+        var liveGeometry = Normalize(Read(
+            "src/AcKrovy.AutoCAD/Infrastructure/LiveGeometrySynchronizationService.cs"));
+        var objectModified = Member(
+            liveGeometry,
+            "private void ObjectModified(");
+        var filter = Member(
+            liveGeometry,
+            "private static IReadOnlyList<ObjectId> FilterTimberElementIds(");
+        var refresh = Member(
+            liveGeometry,
+            "private static void RefreshTimberElements(");
+
+        var mleaderGate = objectModified.IndexOf(
+            "if (entity is MLeader)",
+            StringComparison.Ordinal);
+        var gripQueue = objectModified.IndexOf(
+            "_modifiedFramedLabelIds.TryAdd(entity.ObjectId);",
+            mleaderGate,
+            StringComparison.Ordinal);
+        var returnAfterGripQueue = objectModified.IndexOf(
+            "return;",
+            gripQueue,
+            StringComparison.Ordinal);
+        var sourceQueue = objectModified.IndexOf(
+            "_modifiedIds.TryAdd(entity.ObjectId);",
+            StringComparison.Ordinal);
+        Assert.True(
+            mleaderGate >= 0 && gripQueue > mleaderGate &&
+            returnAfterGripQueue > gripQueue && sourceQueue > returnAfterGripQueue);
+
+        Assert.Contains("foreach (var id in ids.Distinct())", filter);
+        Assert.Contains("foreach (var id in timberIds)", refresh);
+        Assert.Contains(
+            "TimberAnnotationService.DeleteDuplicatesForExistingSourceHandles(",
+            refresh);
+        Assert.Contains("LiveGeometryCommandRules.IsUndoRedoCommand(", refresh);
     }
 
     [Fact]
@@ -180,8 +429,9 @@ public sealed class FramedBlockContentAnnotationSourceContractTests
         var normalize = NormalizeDoglegServiceSource().Trim();
         Assert.StartsWith("#if DEBUG", normalizeCommands, StringComparison.Ordinal);
         Assert.EndsWith("#endif", normalizeCommands, StringComparison.Ordinal);
-        Assert.StartsWith("#if DEBUG", normalize, StringComparison.Ordinal);
-        Assert.EndsWith("#endif", normalize, StringComparison.Ordinal);
+        Assert.False(
+            normalize.StartsWith("#if DEBUG", StringComparison.Ordinal),
+            "Shared dogleg normalize must be available in Release for production GripOverrule.");
         Assert.Contains("AK_DEV_FBC_NORMALIZE_DOGLEG", normalizeCommands);
         Assert.Contains(
             "TimberFramedBlockContentDoglegRules.TryNormalizeDoglegGeometry(",
@@ -215,8 +465,9 @@ public sealed class FramedBlockContentAnnotationSourceContractTests
         var columnPlacement = DimensionColumnPlacementServiceSource().Trim();
         Assert.StartsWith("#if DEBUG", contentSideCommands, StringComparison.Ordinal);
         Assert.EndsWith("#endif", contentSideCommands, StringComparison.Ordinal);
-        Assert.StartsWith("#if DEBUG", contentSide, StringComparison.Ordinal);
-        Assert.EndsWith("#endif", contentSide, StringComparison.Ordinal);
+        Assert.False(
+            contentSide.StartsWith("#if DEBUG", StringComparison.Ordinal),
+            "Shared content-side normalize must be available in Release for production GripOverrule.");
         Assert.Contains("AK_DEV_FBC_NORMALIZE_CONTENT_SIDE", contentSideCommands);
         Assert.Contains("TryCorrectCombinedContentSide(", contentSide);
         Assert.Contains("FormatEvaluationDiagnostics(", contentSide);
@@ -224,9 +475,49 @@ public sealed class FramedBlockContentAnnotationSourceContractTests
         Assert.Contains("TryEvaluate(", columnPlacement);
         Assert.Contains("EvaluateMirroredDimensionColumnPlacement(", columnPlacement);
         Assert.Contains("TryParseR2VariantKey(", columnPlacement);
+        Assert.Contains(
+            "EnsureCorrectR3ContentVariantFromFinalGeometry(",
+            columnPlacement);
+        Assert.Contains("TrySwapR3ContentVariantIfSideChanged(", columnPlacement);
+        Assert.Contains("PreserveBlockContentPresentationRotation(", columnPlacement);
+        Assert.Contains(
+            "ResolvePreservedPresentationRadians(",
+            columnPlacement);
+        var restoreReadable = Member(
+            columnPlacement,
+            "private static void RestoreReadableContentOrientation(");
+        Assert.Contains(
+            "ResolvePreservedPresentationRadians(",
+            restoreReadable);
+        Assert.DoesNotContain(
+            "ApplyReadableBlockContentOrientation(",
+            restoreReadable);
+        Assert.DoesNotContain(
+            "TimberFramedBlockContentReadableOrientationRules.Decide(",
+            restoreReadable);
+        Assert.Contains(
+            "CaptureBlockContentPresentationRadians(",
+            columnPlacement);
+        Assert.Contains("TryResolveRequiredContentVariant(", columnPlacement);
+        Assert.Contains("knee/frame", columnPlacement);
+        Assert.Contains("TryResolveEffectiveBlockLocalXAxis(", columnPlacement);
+        Assert.Contains("TryResolveWorldContentXAxis(", columnPlacement);
+        Assert.Contains(
+            "TryRestoreBlockContentPresentationAfterRefresh(",
+            columnPlacement);
+        Assert.Contains(
+            "ResolveContentOnlyRefreshPresentation(",
+            columnPlacement);
         Assert.Contains("AcKrovyFramedBlockContentDefinitionService.Ensure(", columnPlacement);
         Assert.Contains("leader.BlockContentId =", columnPlacement);
         Assert.Contains("SetBlockAttribute(", columnPlacement);
+        var r3Swap = Member(
+            columnPlacement,
+            "public static bool TrySwapR3ContentVariantIfSideChanged(");
+        Assert.DoesNotContain("RestoreGeometry(", r3Swap);
+        Assert.DoesNotContain("SetFirstVertex(", r3Swap);
+        Assert.DoesNotContain("SetLastVertex(", r3Swap);
+        Assert.DoesNotContain("SetDogleg(", r3Swap);
         Assert.Contains("post-swap K→D→I failed", columnPlacement);
         Assert.Contains("TryNormalizeContentSide(", contentSide);
         Assert.Contains("TryNormalizeDogleg(", NormalizeDoglegServiceSource());
@@ -649,6 +940,128 @@ public sealed class FramedBlockContentAnnotationSourceContractTests
         Assert.Contains(
             "AutoCadFramedBlockContentGripPassthroughProofService.ForceUnregisterAll()",
             pluginEntry);
+        Assert.Contains(
+            "AutoCadFramedBlockContentProductionGripNormalizeService.RegisterOnce()",
+            pluginEntry);
+        Assert.Contains(
+            "AutoCadFramedBlockContentProductionGripNormalizeService.Unregister()",
+            pluginEntry);
+
+        var productionGripCommands = ProductionGripNormalizeCommandsSource().Trim();
+        var productionGrip = ProductionGripNormalizeServiceSource().Trim();
+        Assert.StartsWith("#if DEBUG", productionGripCommands, StringComparison.Ordinal);
+        Assert.EndsWith("#endif", productionGripCommands, StringComparison.Ordinal);
+        Assert.Contains("AK_DEV_FBC_PRODUCTION_GRIP_STATUS", productionGripCommands);
+        Assert.False(
+            productionGrip.StartsWith("#if DEBUG", StringComparison.Ordinal),
+            "Production GripOverrule must compile in Release.");
+        Assert.Contains(
+            "class FramedBlockContentProductionGripNormalizeOverrule : GripOverrule",
+            productionGrip);
+        Assert.Contains("RegisterOnce(", productionGrip);
+        Assert.Contains("Unregister(", productionGrip);
+        Assert.Contains("base.GetGripPoints(entity, gripPoints, osnapModes, geomIds)", productionGrip);
+        Assert.Contains("base.MoveGripPointsAt(entity, indices, offset)", productionGrip);
+        Assert.Contains(
+            "base.MoveGripPointsAt(entity, grips, offset, bitFlags)",
+            productionGrip);
+        Assert.Contains("TryNormalizeAfterNativeMove(", productionGrip);
+        Assert.Contains("TryNormalizeR3ContentVariantOnly(", productionGrip);
+        Assert.Contains(
+            "EnsureCorrectR3ContentVariantFromFinalGeometry(",
+            productionGrip);
+        Assert.Contains("TrySyncPresentationFromFinalLanding(", productionGrip);
+        Assert.Contains(
+            "TryResolveWorldContentXAxis(",
+            productionGrip);
+        Assert.Contains(
+            "ResolveFinalContentPresentation(",
+            productionGrip);
+        Assert.Contains("R3ReferencePresentationRevision", productionGrip);
+        Assert.Contains(
+            "preserveAdoptedReferenceVerticalFamily",
+            productionGrip);
+        Assert.Contains(
+            "PreserveBlockContentPresentationRotation(",
+            productionGrip);
+        Assert.Contains(
+            "TimberFramedBlockContentGripPresentationRules",
+            productionGrip);
+        Assert.DoesNotContain("TryCapturePreGripPresentationRadians(", productionGrip);
+        Assert.Contains("IsR3ContentVariantOnlyPath(", productionGrip);
+        Assert.Contains("TryNormalizeDogleg(", productionGrip);
+        Assert.Contains("TryNormalizeContentSide(", productionGrip);
+        Assert.Contains("IsProductionApplicableBlockContent(", productionGrip);
+        Assert.Contains("HasAnyDebugProofMarker(", productionGrip);
+        Assert.Contains("DebugProofRegAppNames", productionGrip);
+        Assert.DoesNotContain("GripStatus.GripsDone", productionGrip);
+        Assert.DoesNotContain("SendStringToExecute(", productionGrip);
+        Assert.DoesNotContain("ProcessCommandEnded(", productionGrip);
+        Assert.DoesNotContain(
+            "StartTransaction(",
+            Member(productionGrip, "public override bool IsApplicable(RXObject overruledSubject)"));
+        var productionNormalizeBody = Member(
+            productionGrip,
+            "private static TimberFramedBlockContentGripNormalizeOutcome");
+        Assert.Contains("TryNormalizeAfterNativeMove(", productionNormalizeBody);
+        Assert.DoesNotContain("GetObject(leader.ObjectId", productionNormalizeBody);
+        Assert.DoesNotContain("GetObject(leader.ObjectId,", productionNormalizeBody);
+        Assert.DoesNotContain("OpenMode.ForWrite", productionNormalizeBody);
+        var productionCallbackBody = Member(
+            productionGrip,
+            "private static void RunNormalizeCallback(Entity entity, Action baseMove)");
+        Assert.DoesNotContain(
+            "TryCapturePreGripPresentationRadians(",
+            productionCallbackBody);
+        var productionAfter = productionCallbackBody.IndexOf(
+            "TryNormalizeAfterNativeMove(",
+            StringComparison.Ordinal);
+        var productionBaseMoveBeforeNormalize = productionCallbackBody.LastIndexOf(
+            "baseMove();",
+            productionAfter,
+            StringComparison.Ordinal);
+        // Native move first (leader authority), then post-move landing sync + R3.
+        Assert.True(productionBaseMoveBeforeNormalize > 0);
+        Assert.True(productionAfter > productionBaseMoveBeforeNormalize);
+        var r3Idx = productionGrip.IndexOf(
+            "TryNormalizeR3ContentVariantOnly(",
+            StringComparison.Ordinal);
+        Assert.True(r3Idx > 0);
+        var r3Slice = productionGrip.Substring(
+            r3Idx,
+            Math.Min(3500, productionGrip.Length - r3Idx));
+        Assert.Contains("TrySyncPresentationFromFinalLanding(", r3Slice);
+        Assert.Contains(
+            "EnsureCorrectR3ContentVariantFromFinalGeometry(",
+            r3Slice);
+        var syncBefore = r3Slice.IndexOf(
+            "TrySyncPresentationFromFinalLanding(",
+            StringComparison.Ordinal);
+        var ensureAfter = r3Slice.IndexOf(
+            "EnsureCorrectR3ContentVariantFromFinalGeometry(",
+            StringComparison.Ordinal);
+        Assert.True(syncBefore > 0);
+        Assert.True(ensureAfter > syncBefore);
+        Assert.DoesNotContain("SetFirstVertex(", r3Slice);
+        Assert.DoesNotContain("SetLastVertex(", r3Slice);
+        Assert.Contains(
+            "effectiveContentWorldAngleRadians:",
+            productionGrip);
+        Assert.Contains(
+            "IsUndoRedoCommand(",
+            LiveGeometryCommandRulesSource());
+        Assert.Contains(
+            "normalized.Equals(\"U\", StringComparison.OrdinalIgnoreCase)",
+            LiveGeometryCommandRulesSource());
+        Assert.Contains(
+            "normalized.Equals(\"UNDO\", StringComparison.OrdinalIgnoreCase)",
+            LiveGeometryCommandRulesSource());
+        Assert.Contains(
+            "normalized.Equals(\"REDO\", StringComparison.OrdinalIgnoreCase)",
+            LiveGeometryCommandRulesSource());
+        Assert.Contains(
+            "normalized.Equals(\"MREDO\", StringComparison.OrdinalIgnoreCase)",
+            LiveGeometryCommandRulesSource());
 
         var autotestCommands = AutotestCommandsSource().Trim();
         var autotest = AutotestServiceSource().Trim();
@@ -726,6 +1139,206 @@ public sealed class FramedBlockContentAnnotationSourceContractTests
         Assert.True(stabilize > transform);
         Assert.Contains("BlockRotation = 0d", create);
         Assert.Contains("layout.ReadableAngleRadians", create);
+        Assert.Contains("leader.BlockRotation = 0d", create);
+        Assert.Contains(
+            "ResolveCreateReferenceFinalWorldPresentation(",
+            create);
+        var variantFinalize = create.IndexOf(
+            "EnsureCorrectR3ContentVariantAfterCreateFinalize(",
+            StringComparison.Ordinal);
+        var referenceCorrection = create.IndexOf(
+            "ResolveCreateReferenceFinalWorldPresentation(",
+            StringComparison.Ordinal);
+        Assert.True(
+            variantFinalize >= 0 && referenceCorrection > variantFinalize,
+            "90°/180° half-turn must be content-only after leader/variant finalization.");
+        Assert.Contains("TryResolveWorldContentXAxis(", create);
+        Assert.Contains("presentationDecision.TargetBlockRotation", create);
+        Assert.Contains("leader.RecordGraphicsModified(true)", create);
+        Assert.Contains(
+            "TimberFramedBlockContentReadableOrientationRules",
+            Read("src/AcKrovy.Core/Services/TimberFramedBlockContentReadableOrientationRules.cs"));
+        Assert.DoesNotContain("ApplyCanonicalWorldGeometry(leader, layout)", create);
+        Assert.DoesNotContain("TryCorrectCombinedContentSide(", create);
+        // CREATE must not post-hoc ApplyReadable after TransformBy (ZLÉ double-orient).
+        var transformIdx = create.IndexOf(
+            "leader.TransformBy(",
+            StringComparison.Ordinal);
+        var applyReadableAfterTransform = create.IndexOf(
+            "ApplyReadableBlockContentOrientation(",
+            transformIdx,
+            StringComparison.Ordinal);
+        Assert.True(
+            applyReadableAfterTransform < 0,
+            "CREATE must keep BlockRotation=0 after TransformBy; presentation restore is refresh-only via PreserveBlockContentPresentationRotation.");
+    }
+
+    [Fact]
+    public void ProductionInspect_ExposesCreateVerticalFinalWorldTrace()
+    {
+        var inspect = Read(
+            "src/AcKrovy.AutoCAD/Commands/AutoCadFramedG5ProductionAnnotationInspectCommands.cs");
+
+        Assert.Contains("VerticalRuleInputDeg=", inspect);
+        Assert.Contains("VerticalRuleOutputDeg=", inspect);
+        Assert.Contains("TransformByAngleDeg=", inspect);
+        Assert.Contains("BlockRotationBeforeDeg=", inspect);
+        Assert.Contains("BlockRotationRequestedDeg=", inspect);
+        Assert.Contains("BlockRotationAfterDeg=", inspect);
+        Assert.Contains("MLeaderBlockRotationDeg=", inspect);
+        Assert.Contains("FrameWorldOrientationDeg=", inspect);
+        Assert.Contains("ItemTextWorldAngleDeg=", inspect);
+        Assert.Contains("WidthTextWorldAngleDeg=", inspect);
+        Assert.Contains("HeightTextWorldAngleDeg=", inspect);
+        Assert.Contains("TryGetCreatePresentationTrace(", inspect);
+        Assert.Contains("CreateVerticalRuleCalled=", inspect);
+        Assert.Contains("PresentationPath=", inspect);
+        Assert.Contains("PresentationOperationSequence=", inspect);
+    }
+
+    [Fact]
+    public void ProductionAutotest_RequiresNegativeVerticalThroughActualCreatePath()
+    {
+        var cases = Read(
+            "src/AcKrovy.Core/Services/TimberFramedBlockContentAutotestRules.cs");
+        var autotest = Normalize(AutotestServiceSource());
+        var runCase = Member(autotest, "private static ObjectId RunCase(");
+        var create = runCase.IndexOf(
+            "AutoCadFramedBlockContentAnnotationService.Create(",
+            StringComparison.Ordinal);
+        var validate = runCase.IndexOf(
+            "ValidateCreateReferenceFinalWorldAngles(",
+            StringComparison.Ordinal);
+        var createValidation = Member(
+            autotest,
+            "private static bool ValidateCreateReferenceFinalWorldAngles(");
+        var refreshValidation = Member(
+            autotest,
+            "private static bool ValidateExistingReferenceUpdateAndSecondRefresh(");
+
+        Assert.Contains("SLOT-COMB-R-270-D50", cases);
+        Assert.True(create >= 0 && validate > create);
+        Assert.Contains(
+            "IsExpectedReferencePresentationCase(testCase)",
+            createValidation);
+        Assert.Contains("trace.SourcePhysicalAxisAngle", createValidation);
+        Assert.Contains("trace.BlockRotationRequested", createValidation);
+        Assert.Contains("trace.ReferenceRevisionAfter", createValidation);
+        Assert.Contains(
+            "IsExpectedReferencePresentationCase(testCase)",
+            refreshValidation);
+        Assert.DoesNotContain("IsReferenceHalfTurnSource(", createValidation);
+        Assert.DoesNotContain("IsReferenceHalfTurnSource(", refreshValidation);
+    }
+
+    [Fact]
+    public void ExistingR3Refresh_AdoptsReferenceWorldTargetAfterPreservationOnly()
+    {
+        var elementLabels = Normalize(Read(
+            "src/AcKrovy.AutoCAD/Infrastructure/ElementLabelService.cs"));
+        var update = Member(
+            elementLabels,
+            "private static bool TryUpdateG5CombinedInPlace(");
+        var preserve = update.IndexOf(
+            "TryRestoreBlockContentPresentationAfterRefresh(",
+            StringComparison.Ordinal);
+        var reference = update.IndexOf(
+            "ApplyG5CombinedReferencePresentationAfterRefresh(",
+            StringComparison.Ordinal);
+        Assert.True(preserve >= 0 && reference > preserve);
+
+        var correction = Member(
+            elementLabels,
+            "internal static int ApplyG5CombinedReferencePresentationAfterRefresh(");
+        Assert.Contains("TryResolveWorldContentXAxis(", correction);
+        Assert.Contains("ResolveCreateReferenceFinalWorldPresentation(", correction);
+        Assert.Contains("ShouldAdoptReferencePresentation(", correction);
+        Assert.Contains("TrySyncG5CombinedContentVariant(", correction);
+        Assert.Contains("ReferencePresentationRevision", correction);
+        Assert.DoesNotContain("SetFirstVertex(", correction);
+        Assert.DoesNotContain("SetLastVertex(", correction);
+        Assert.DoesNotContain("SetDogleg(", correction);
+        Assert.DoesNotContain("DoglegLength =", correction);
+        Assert.DoesNotContain("BlockPosition =", correction);
+    }
+
+    [Fact]
+    public void ProductionVerticalWholeAnnotationHalfTurn_UsesOneSharedRigidActuator()
+    {
+        var create = Member(
+            Normalize(ServiceSource()),
+            "private static AutoCadFramedBlockContentAnnotationResult CreateLeader(");
+        var update = Member(
+            Normalize(ElementLabelServiceSource()),
+            "private static bool TryUpdateG5CombinedInPlace(");
+        var helper = Normalize(Read(
+            "src/AcKrovy.AutoCAD/Infrastructure/AutoCadWholeMLeaderHalfTurnService.cs"));
+        var debugCommand = Normalize(Read(
+            "src/AcKrovy.AutoCAD/Commands/AutoCadRotateAnnotation180Commands.cs"));
+        var inspect = Normalize(Read(
+            "src/AcKrovy.AutoCAD/Commands/AutoCadFramedG5ProductionAnnotationInspectCommands.cs"));
+        var labelStore = Normalize(Read(
+            "src/AcKrovy.AutoCAD/Infrastructure/ElementLabelStore.cs"));
+
+        var createFinalize = create.IndexOf(
+            "EnsureCorrectR3ContentVariantAfterCreateFinalize(",
+            StringComparison.Ordinal);
+        var createWhole = create.LastIndexOf(
+            "AutoCadWholeMLeaderHalfTurnService.TryApplyRequiredState(",
+            StringComparison.Ordinal);
+        Assert.True(createFinalize >= 0 && createWhole > createFinalize);
+
+        var preserve = update.IndexOf(
+            "TryRestoreBlockContentPresentationAfterRefresh(",
+            StringComparison.Ordinal);
+        var reference = update.IndexOf(
+            "ApplyG5CombinedReferencePresentationAfterRefresh(",
+            StringComparison.Ordinal);
+        var updateWhole = update.IndexOf(
+            "AutoCadWholeMLeaderHalfTurnService.TryApplyRequiredState(",
+            StringComparison.Ordinal);
+        var metadataWrite = update.IndexOf(
+            "WriteG5CombinedMetadata(",
+            StringComparison.Ordinal);
+        Assert.True(
+            preserve >= 0 && reference > preserve && updateWhole > reference &&
+            metadataWrite > updateWhole);
+        Assert.DoesNotContain("wholeAnnotationHalfTurnAppliedBefore", update);
+        Assert.DoesNotContain("canonicalNewDogleg", update);
+        Assert.DoesNotContain("entityDogleg", update);
+        Assert.DoesNotContain("TransformRelativePlacement(", update);
+
+        Assert.Equal(1, CountOccurrences(helper, "leader.TransformBy(rotation);"));
+        Assert.Contains(
+            "Matrix3d.Rotation(\n            Math.PI,\n            Vector3d.ZAxis,\n            before.Attachment)",
+            helper);
+        Assert.DoesNotContain("leader.BlockRotation =", helper);
+        Assert.DoesNotContain("SetFirstVertex(", helper);
+        Assert.DoesNotContain("SetLastVertex(", helper);
+        Assert.DoesNotContain("leader.BlockPosition =", helper);
+        Assert.DoesNotContain("ElementLabelStore.Write", helper);
+        Assert.Contains("TryApplyRigidHalfTurn(", debugCommand);
+        Assert.DoesNotContain("leader.TransformBy(", debugCommand);
+
+        Assert.Contains("WholeAnnotationHalfTurnRequired=", inspect);
+        Assert.Contains("WholeAnnotationHalfTurnApplied=", inspect);
+        Assert.Contains("WholeAnnotationTransformAppliedThisOperation=", inspect);
+        Assert.Contains("PresentationLifecyclePath=", inspect);
+        Assert.DoesNotContain("WholeAnnotationHalfTurnApplied { get; init; }", labelStore);
+        Assert.Contains("LabelMetadataSchemaVersion = 5", ProductionPolicySource());
+    }
+
+    private static int CountOccurrences(string source, string value)
+    {
+        var count = 0;
+        var index = 0;
+        while ((index = source.IndexOf(value, index, StringComparison.Ordinal)) >= 0)
+        {
+            count++;
+            index += value.Length;
+        }
+
+        return count;
     }
 
     private static string ServiceSource() => Read(
@@ -733,6 +1346,9 @@ public sealed class FramedBlockContentAnnotationSourceContractTests
 
     private static string PolicySource() => Read(
         "src/AcKrovy.AutoCAD/Infrastructure/AutoCadFramedBlockContentAnnotationPolicy.cs");
+
+    private static string ProductionPolicySource() => Read(
+        "src/AcKrovy.AutoCAD/Infrastructure/AutoCadFramedBlockContentProductionPolicy.cs");
 
     private static string CommandsSource() => Read(
         "src/AcKrovy.AutoCAD/Commands/AutoCadFramedBlockContentCreateVerifyCommands.cs");
@@ -790,6 +1406,12 @@ public sealed class FramedBlockContentAnnotationSourceContractTests
 
     private static string GripNormalizeProofServiceSource() => Read(
         "src/AcKrovy.AutoCAD/Infrastructure/AutoCadFramedBlockContentGripNormalizeProofService.cs");
+
+    private static string ProductionGripNormalizeCommandsSource() => Read(
+        "src/AcKrovy.AutoCAD/Commands/AutoCadFramedBlockContentProductionGripNormalizeCommands.cs");
+
+    private static string ProductionGripNormalizeServiceSource() => Read(
+        "src/AcKrovy.AutoCAD/Infrastructure/AutoCadFramedBlockContentProductionGripNormalizeService.cs");
 
     private static string RedoDiagCommandsSource() => Read(
         "src/AcKrovy.AutoCAD/Commands/AutoCadRedoDiagCommands.cs");

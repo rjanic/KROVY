@@ -1,4 +1,3 @@
-#if DEBUG
 using System.Globalization;
 using AcKrovy.Core.Models;
 using AcKrovy.Core.Services;
@@ -11,11 +10,11 @@ using AcApplication = Autodesk.AutoCAD.ApplicationServices.Application;
 namespace AcKrovy.AutoCAD.Infrastructure;
 
 /// <summary>
-/// DEBUG-only: normalize Combined MLeader dogleg when landing points toward
-/// the attachment. DoglegDirection comes from BlockPosition − knee
-/// (ConnectBase), never LeaderKneeSide PositiveT/NegativeT → DoglegDirection.
-/// Does not swap BlockContentId, mutate BTR/AttrDefs, or rewrite AttrRef
-/// Position/AlignmentPoint.
+/// Normalize Combined MLeader dogleg when landing points toward the attachment.
+/// DoglegDirection comes from BlockPosition − knee (ConnectBase), never
+/// LeaderKneeSide PositiveT/NegativeT → DoglegDirection. Does not swap
+/// BlockContentId, mutate BTR/AttrDefs, or rewrite AttrRef Position/AlignmentPoint.
+/// Interactive <see cref="Run"/> remains DEBUG-command owned.
 /// </summary>
 internal static class AutoCadFramedBlockContentNormalizeDoglegService
 {
@@ -709,4 +708,3 @@ internal static class AutoCadFramedBlockContentNormalizeDoglegService
     private static string Format(double value) =>
         value.ToString("R", CultureInfo.InvariantCulture);
 }
-#endif

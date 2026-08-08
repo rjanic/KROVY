@@ -10,12 +10,34 @@ namespace AcKrovy.AutoCAD.Infrastructure;
 
 /// <summary>
 /// Production create path for one native G5 BlockContent MLeader.
-/// Standalone create API — not wired into label production routing yet.
 /// Geometry comes solely from <see cref="TimberFramedBlockContentLayoutCalculator"/>;
 /// BTR identity from <see cref="AcKrovyFramedBlockContentDefinitionService"/>.
+/// Ownership metadata is written by the label production router after Create.
 /// </summary>
 internal static class AutoCadFramedBlockContentAnnotationService
 {
+#if DEBUG
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<
+        string,
+        R3CreatePresentationTrace> CreatePresentationTraces =
+        new(StringComparer.OrdinalIgnoreCase);
+
+    internal static bool TryGetCreatePresentationTrace(
+        string leaderHandle,
+        out R3CreatePresentationTrace trace) =>
+        CreatePresentationTraces.TryGetValue(leaderHandle, out trace!);
+
+    internal static void RecordProductionPresentationTrace(
+        string leaderHandle,
+        R3CreatePresentationTrace trace)
+    {
+        if (!string.IsNullOrWhiteSpace(leaderHandle))
+        {
+            CreatePresentationTraces[leaderHandle.Trim()] = trace;
+        }
+    }
+#endif
+
     public static bool TryCreate(
         Database database,
         Transaction transaction,
@@ -68,9 +90,14 @@ internal static class AutoCadFramedBlockContentAnnotationService
         TimberFramedBlockContentDimensionColumnSide? columnSide = null;
         try
         {
-            // Canonical create landing is +T; resolve column side from planned
-            // knee → BlockPosition so Combined WIDTH/HEIGHT stay toward the knee.
-            columnSide = ResolveCreateDimensionColumnSide(normalized);
+            // R3 Combined: immutable R3_RIGHT / R3_LEFT content variant.
+            // CREATE defaults to DesiredWorldSide → RIGHT (dims on landing).
+            // Grip STRETCH may later swap LEFT without rewriting leader geometry.
+            columnSide = normalized.Presentation ==
+                TimberFramedBlockContentPresentation.Combined
+                ? TimberFramedCombinedG5ContentVariantRules.FromWorldSide(
+                    TimberFramedCombinedG5CreatePlacementRules.DesiredWorldSide)
+                : null;
             layout = TimberFramedBlockContentLayoutCalculator.Calculate(
                 new TimberFramedBlockContentLayoutRequest(
                     normalized.AttachmentX,
@@ -88,7 +115,8 @@ internal static class AutoCadFramedBlockContentAnnotationService
                     normalized.DimensionColumnEnvelopeWidthMm,
                     normalized.Presentation,
                     columnSide ??
-                        TimberFramedBlockContentDimensionColumnSide.NegativeLocalX));
+                        TimberFramedBlockContentDefinitionRules
+                            .DefaultCombinedDimensionColumnSide));
         }
         catch (Exception exception) when (
             exception is ArgumentException or ArgumentOutOfRangeException or
@@ -146,25 +174,6 @@ internal static class AutoCadFramedBlockContentAnnotationService
                 normalized.StabilizationMode,
                 detail);
         }
-    }
-
-    /// <summary>
-    /// Create-time content vector is landingEnd − knee in canonical local space
-    /// (T = +X). Positive local X content → NegativeLocalX dimensions.
-    /// </summary>
-    private static TimberFramedBlockContentDimensionColumnSide?
-        ResolveCreateDimensionColumnSide(
-            AutoCadFramedBlockContentAnnotationRequest request)
-    {
-        if (request.Presentation != TimberFramedBlockContentPresentation.Combined)
-        {
-            return null;
-        }
-
-        // Canonical layout landing is along +T before TransformBy.
-        return TimberFramedBlockContentDefinitionRules
-            .ResolveDimensionColumnSideFromContentLocalX(
-                request.LandingLengthModelMm);
     }
 
     private static AutoCadFramedBlockContentAnnotationResult CreateLeader(
@@ -272,16 +281,14 @@ internal static class AutoCadFramedBlockContentAnnotationService
             request);
 
         // 3) One final world rotation around attachment pivot (G5C order).
+        // Native TransformBy rotates vertices + dogleg together. No K→D→I swap,
+        // dogleg normalize rewrite, or full ApplyCanonicalWorldGeometry stack.
         var readable = layout.ReadableAngleRadians;
         if (Math.Abs(readable) > 1e-12d)
         {
             leader.TransformBy(
                 Matrix3d.Rotation(readable, Vector3d.ZAxis, attachment));
         }
-
-        // After TransformBy, sync DoglegDirection from BlockPosition − knee.
-        // Mirror only when landing points toward attachment (bad LEFT).
-        ApplyNormalizeDoglegFromLeader(leader, layout.LandingLengthModelMm);
 
         var beforeStabilizeAttachment = ReadAttachment(leader);
         var beforeStabilizeKnee = ReadKnee(leader);
@@ -292,51 +299,206 @@ internal static class AutoCadFramedBlockContentAnnotationService
             attachment,
             request.StabilizationMode);
 
+        // 4) CREATE-only one-shot: after host/API recompute, force FINAL
+        // attachment→knee first visible segment to 60° ±0.01° vs readable/source
+        // axis. Never runs on grip / refresh / content edit.
+        FinalizeCreateFirstSegmentSixtyDegrees(leader, layout);
+
+        // 5) Layer C after TransformBy(readable): BlockRotation stays 0 except
+        // the explicit visual-only 90°/180° reference half-turn below.
+        // G5C host-proven contract — world orientation comes from TransformBy
+        // alone. Setting BlockRotation = NormalizeReadable AFTER TransformBy
+        // double-orients AttrDef local X vs landing and puts FRAME between knee
+        // and dimensions (ZLÉ / WHITE left). Refresh paths that rebuild points
+        // without TransformBy still apply Decide() onto BlockRotation.
+        leader.BlockRotation = 0d;
+
+        // 6) After CREATE geometry + presentation are final, re-resolve R3
+        // content variant from FINAL world geometry — same helper as
+        // post-knee-STRETCH grip. Early DesiredWorldSide pick may not match
+        // post-finalize side; BTR swap preserves vertices.
         var resolvedBlockName = definition.ResolvedBlockName;
         var resolvedBlockId = blockId;
+        var referencePresentationRevision = 0;
         if (combined)
         {
-            var attributeValues = CollectAttributeValues(request);
-            if (!AutoCadFramedBlockContentDimensionColumnPlacementService
-                    .TryCorrectCombinedContentSide(
-                        database,
-                        transaction,
-                        leader,
-                        request.ContentKind,
-                        request.ItemTextStyleName,
-                        request.DimensionTextStyleName,
-                        request.ItemTextStyleId,
-                        request.DimensionTextStyleId,
-                        request.ItemPaperHeightMm,
-                        request.DimensionPaperHeightMm,
-                        request.ItemNoText,
-                        attributeValues,
-                        out _,
-                        out _,
-                        out var correctedBlockId,
-                        out var placement,
-                        out var placementNote) ||
-                !placement.Current.IsCorrect)
-            {
-                return AutoCadFramedBlockContentAnnotationResult.Fail(
-                    AutoCadFramedBlockContentAnnotationResultKind.HostFailure,
-                    request.StabilizationMode,
-                    "Combined K→D→I column placement failed: " + placementNote);
-            }
-
-            resolvedBlockId = correctedBlockId;
-            if (transaction.GetObject(correctedBlockId, OpenMode.ForRead, true) is
-                BlockTableRecord correctedBlock)
-            {
-                resolvedBlockName = correctedBlock.Name;
-            }
-
-            // Reaffirm values/heights after optional BlockContentId swap.
+            EnsureCorrectR3ContentVariantAfterCreateFinalize(
+                database,
+                transaction,
+                leader,
+                request,
+                ref resolvedBlockId,
+                ref resolvedBlockName);
             attributeTags = ApplyAttributeValues(
                 transaction,
                 leader,
-                correctedBlockId,
+                resolvedBlockId,
                 request);
+            // Final-WCS authority: BlockRotation is relative to the implicit
+            // TransformBy + live BTR basis, not an absolute world angle. Measure
+            // that basis after the last variant/AttrRef mutation, then install
+            // the requested half-turn as a relative correction.
+            var blockRotationBefore = leader.BlockRotation;
+            var blockNameBeforeCorrection = resolvedBlockName;
+            var hasWorldBefore =
+                AutoCadFramedBlockContentDimensionColumnPlacementService
+                    .TryResolveWorldContentXAxis(
+                        transaction,
+                        leader,
+                        out var worldBefore,
+                        out var worldBeforeNote);
+            R3CreateReferencePresentationDecision? presentationDecision = null;
+            if (hasWorldBefore)
+            {
+                presentationDecision =
+                    TimberFramedBlockContentReadableOrientationRules
+                        .ResolveCreateReferenceFinalWorldPresentation(
+                            layout.RawAngleRadians,
+                            worldBefore,
+                            blockRotationBefore);
+                leader.BlockRotation = presentationDecision.TargetBlockRotation;
+                if (presentationDecision.AppliesHalfTurn)
+                {
+                    // A 180° content-basis turn reverses local ±X. Re-run the
+                    // existing final-geometry R3 resolver so WIDTH/HEIGHT stay
+                    // between knee and frame in WCS. The helper preserves all
+                    // leader vertices, dogleg, BlockPosition, scale and BR.
+                    EnsureCorrectR3ContentVariantAfterCreateFinalize(
+                        database,
+                        transaction,
+                        leader,
+                        request,
+                        ref resolvedBlockId,
+                        ref resolvedBlockName,
+                        presentationDecision.FinalWorldPresentation);
+                    // The shared swap helper restores the presentation it
+                    // captured from AttrRef/BR. CREATE already owns the exact
+                    // final-WCS target, so reassert that relative actuator after
+                    // the content-only BTR swap.
+                    leader.BlockRotation =
+                        presentationDecision.TargetBlockRotation;
+                }
+
+                leader.RecordGraphicsModified(true);
+            }
+
+            var hasWorldAfter =
+                AutoCadFramedBlockContentDimensionColumnPlacementService
+                    .TryResolveWorldContentXAxis(
+                        transaction,
+                        leader,
+                        out var worldAfter,
+                        out var worldAfterNote);
+            var hasPlacementAfter =
+                AutoCadFramedBlockContentDimensionColumnPlacementService
+                    .TryEvaluate(
+                        transaction,
+                        leader,
+                        out var placementAfter,
+                        out var pointsAfter,
+                        out var placementAfterNote);
+            var dimensionsCenterAfter = hasPlacementAfter
+                ? new TimberPlanarPoint(
+                    (pointsAfter.WidthAlignment.X + pointsAfter.HeightAlignment.X) /
+                    2d,
+                    (pointsAfter.WidthAlignment.Y + pointsAfter.HeightAlignment.Y) /
+                    2d)
+                : default;
+            var towardKneeDotAfter = double.NaN;
+            var hasTowardKneeDotAfter = hasPlacementAfter &&
+                TimberFramedBlockContentDefinitionRules
+                    .TryEvaluateDimensionsTowardKneeDot(
+                        new TimberPlanarPoint(
+                            pointsAfter.ItemAlignment.X,
+                            pointsAfter.ItemAlignment.Y),
+                        new TimberPlanarPoint(
+                            pointsAfter.Knee.X,
+                            pointsAfter.Knee.Y),
+                        dimensionsCenterAfter,
+                        out towardKneeDotAfter);
+            if (presentationDecision?.AppliesReferenceRule == true &&
+                hasWorldAfter &&
+                hasPlacementAfter &&
+                placementAfter.Current.IsCorrect &&
+                Math.Abs(
+                    TimberAnnotationReadabilityRules.NormalizeAngleDelta(
+                        worldAfter - presentationDecision.VerticalRuleOutput)) <=
+                    TimberFramedBlockContentReadableOrientationRules
+                        .AngleToleranceRadians)
+            {
+                referencePresentationRevision =
+                    TimberFramedBlockContentReadableOrientationRules
+                        .ReferencePresentationRevision;
+            }
+#if DEBUG
+            var handle = leader.ObjectId.Handle.ToString();
+            CreatePresentationTraces[handle] = new R3CreatePresentationTrace(
+                SourceHandle: null,
+                SourcePhysicalAxisAngle: layout.RawAngleRadians,
+                VerticalRuleInput: presentationDecision?.VerticalRuleInput,
+                VerticalRuleOutput: presentationDecision?.VerticalRuleOutput,
+                TransformByAngle: readable,
+                BlockRotationBefore: blockRotationBefore,
+                BlockRotationRequested:
+                    presentationDecision?.TargetBlockRotation ??
+                    blockRotationBefore,
+                BlockRotationAfter: leader.BlockRotation,
+                FrameWorldOrientationBefore: hasWorldBefore ? worldBefore : null,
+                FrameWorldOrientationAfter: hasWorldAfter ? worldAfter : null,
+                ItemTextWorldAngle: TryReadAttributeRotationRadians(
+                    transaction,
+                    leader,
+                    TimberFramedBlockContentDefinitionRules.ItemNoTag),
+                WidthTextWorldAngle: TryReadAttributeRotationRadians(
+                    transaction,
+                    leader,
+                    TimberFramedBlockContentDefinitionRules.WidthTag),
+                HeightTextWorldAngle: TryReadAttributeRotationRadians(
+                    transaction,
+                    leader,
+                    TimberFramedBlockContentDefinitionRules.HeightTag),
+                AppliedHalfTurn: presentationDecision?.AppliesHalfTurn ?? false,
+                BlockNameBeforeCorrection: blockNameBeforeCorrection,
+                BlockNameAfterCorrection: resolvedBlockName,
+                ContentVariant: resolvedBlockName,
+                DimensionsTowardKneeAfter:
+                    hasPlacementAfter && placementAfter.Current.IsCorrect,
+                DimensionsTowardKneeDot:
+                    hasTowardKneeDotAfter ? towardKneeDotAfter : null,
+                PresentationPath: "Create",
+                PresentationOperationSequence:
+                    "CreateLeader>TransformBy>Finalize60>R3Variant>AttrRefs>" +
+                    "MeasureWorld>WorldDelta>R3Variant>ReassertBR>MeasureFinal",
+                ReferenceRevisionBefore: 0,
+                ReferenceRevisionAfter: referencePresentationRevision,
+                MeasurementNote:
+                    $"before={worldBeforeNote}; after={worldAfterNote}; " +
+                    $"placement={placementAfterNote} " +
+                    (hasPlacementAfter
+                        ? placementAfter.Current.Reason
+                        : "<unmeasured>"));
+#endif
+        }
+
+        if (combined)
+        {
+            if (!AutoCadWholeMLeaderHalfTurnService.TryApplyRequiredState(
+                    transaction,
+                    leader,
+                    layout.RawAngleRadians,
+                    referencePresentationRevision,
+                    "Create",
+                    out var wholeAnnotationOperation,
+                    out var wholeAnnotationReason))
+            {
+                leader.Erase();
+                throw new InvalidOperationException(
+                    "Whole-MLeader vertical CREATE correction failed: " +
+                    wholeAnnotationReason);
+            }
+
+            referencePresentationRevision =
+                wholeAnnotationOperation.Decision.RevisionAfter;
         }
 
         var afterAttachment = ReadAttachment(leader);
@@ -373,7 +535,96 @@ internal static class AutoCadFramedBlockContentAnnotationService
             beforeStabilizeAttachment.DistanceTo(afterAttachment),
             beforeStabilizeKnee.DistanceTo(afterKnee),
             beforeStabilizeLanding.DistanceTo(afterLanding),
+            referencePresentationRevision,
             "Created one BlockContent MLeader.");
+    }
+
+    /// <summary>
+    /// After CREATE 60° + straight-landing finalize: ensure R3_RIGHT/LEFT matches
+    /// FINAL attachment→BlockPosition in raw ElementAxis (Start→End) basis.
+    /// Reuses the same production helper as post-knee-STRETCH grip. Never rewrites
+    /// leader vertices, dogleg, or BlockPosition (swap preserves geometry).
+    /// </summary>
+    private static void EnsureCorrectR3ContentVariantAfterCreateFinalize(
+        Database database,
+        Transaction transaction,
+        MLeader leader,
+        AutoCadFramedBlockContentAnnotationRequest request,
+        ref ObjectId resolvedBlockId,
+        ref string? resolvedBlockName,
+        double? effectiveContentWorldAngleRadians = null)
+    {
+        var finalAttachment = ReadAttachment(leader);
+        ResolveSourceBasisFromElementAxis(
+            finalAttachment.X,
+            finalAttachment.Y,
+            request.ElementAxisRadians,
+            out var startX,
+            out var startY,
+            out var endX,
+            out var endY);
+
+        var attributeValues = CollectAttributeValues(request);
+        if (!AutoCadFramedBlockContentDimensionColumnPlacementService
+                .EnsureCorrectR3ContentVariantFromFinalGeometry(
+                    database,
+                    transaction,
+                    leader,
+                    startX,
+                    startY,
+                    endX,
+                    endY,
+                    request.ContentKind,
+                    request.ItemTextStyleName,
+                    request.DimensionTextStyleName,
+                    request.ItemTextStyleId,
+                    request.DimensionTextStyleId,
+                    request.ItemPaperHeightMm,
+                    request.DimensionPaperHeightMm,
+                    request.ItemNoText,
+                    attributeValues,
+                    out _,
+                    out _,
+                    out var afterBlockId,
+                    out _,
+                    effectiveContentWorldAngleRadians))
+        {
+            return;
+        }
+
+        if (afterBlockId.IsNull || afterBlockId == resolvedBlockId)
+        {
+            return;
+        }
+
+        resolvedBlockId = afterBlockId;
+        if (transaction.GetObject(afterBlockId, OpenMode.ForRead, true) is
+            BlockTableRecord afterBlock)
+        {
+            resolvedBlockName = afterBlock.Name;
+        }
+    }
+
+    /// <summary>
+    /// Synthetic Start→End from raw element axis through attachment — same T/N
+    /// basis ElementLabelService / grip use from the source Line/Polyline.
+    /// </summary>
+    private static void ResolveSourceBasisFromElementAxis(
+        double attachmentX,
+        double attachmentY,
+        double elementAxisRadians,
+        out double startX,
+        out double startY,
+        out double endX,
+        out double endY)
+    {
+        var cos = Math.Cos(elementAxisRadians);
+        var sin = Math.Sin(elementAxisRadians);
+        const double span = 1000d;
+        startX = attachmentX - (cos * span);
+        startY = attachmentY - (sin * span);
+        endX = attachmentX + (cos * span);
+        endY = attachmentY + (sin * span);
     }
 
     private static IReadOnlyList<(string Tag, string Text, double Height)>
@@ -519,6 +770,134 @@ internal static class AutoCadFramedBlockContentAnnotationService
     }
 
     /// <summary>
+    /// CREATE-only: reload FINAL world attachment/knee after insert + style +
+    /// dogleg/landing/BlockPosition/TransformBy/stabilize, then correct the
+    /// first visible leader segment to 60° when needed and always re-seat
+    /// landing along readable +T from the final knee (same length). Keeping a
+    /// stale BlockPosition after knee correction (or host dogleg rewrite) tilts
+    /// the second segment and leaves WIDTH/HEIGHT beside the frame instead of
+    /// on the landing axis.
+    /// </summary>
+    private static void FinalizeCreateFirstSegmentSixtyDegrees(
+        MLeader leader,
+        TimberFramedBlockContentLayout layout)
+    {
+        var lineIndex = GetPrimaryLeaderLineIndex(leader);
+        var leaderIndex = leader.GetLeaderIndexes().Cast<int>().First();
+        var attachment = ReadAttachment(leader);
+        var actualKnee = ReadKnee(leader);
+        var preservedDoglegLength = leader.DoglegLength;
+        var landingLength = preservedDoglegLength > 1e-9d
+            ? preservedDoglegLength
+            : layout.LandingLengthModelMm;
+
+        if (!TimberFramedCombinedG5CreateFirstSegmentRules
+                .TryResolveCreateFinalizationFromReadableAxis(
+                    new TimberPlanarPoint(attachment.X, attachment.Y),
+                    new TimberPlanarPoint(actualKnee.X, actualKnee.Y),
+                    layout.ReadableAngleRadians,
+                    layout.SideSign,
+                    out var correctedKnee,
+                    out _,
+                    out var changed))
+        {
+            return;
+        }
+
+        var finalKnee = changed
+            ? correctedKnee
+            : new TimberPlanarPoint(actualKnee.X, actualKnee.Y);
+        var correctedLanding =
+            TimberFramedCombinedG5CreateFirstSegmentRules.BuildCorrectedLandingEnd(
+                finalKnee,
+                layout.ReadableAngleRadians,
+                landingLength);
+
+        // Skip host writes only when knee already 60° AND landing already on +T.
+        if (!changed &&
+            TimberFramedCombinedG5CreateFirstSegmentRules
+                .TryMeasureLandingSegmentAngleToReadableDeg(
+                    finalKnee,
+                    new TimberPlanarPoint(
+                        leader.BlockPosition.X,
+                        leader.BlockPosition.Y),
+                    layout.ReadableAngleRadians,
+                    out var existingLandingAngle) &&
+            TimberFramedCombinedG5CreateFirstSegmentRules
+                .LandingSegmentIsStraightAlongReadable(existingLandingAngle))
+        {
+            return;
+        }
+
+        var knee = new Point3d(finalKnee.X, finalKnee.Y, actualKnee.Z);
+        var landingEnd = new Point3d(
+            correctedLanding.X,
+            correctedLanding.Y,
+            leader.BlockPosition.Z);
+        leader.SetFirstVertex(lineIndex, attachment);
+        leader.SetLastVertex(lineIndex, knee);
+
+        // Second segment along readable +T from final knee — not knee→old BP.
+        ApplyCreateDogleg(
+            leader,
+            leaderIndex,
+            knee,
+            landingEnd,
+            landingLength);
+        leader.BlockPosition = landingEnd;
+        leader.SetLastVertex(lineIndex, knee);
+        leader.SetFirstVertex(lineIndex, attachment);
+        leader.BlockConnectionType = BlockConnectionType.ConnectBase;
+        leader.EnableDogleg = true;
+        leader.EnableLanding = true;
+        leader.ExtendLeaderToText = false;
+        leader.RecordGraphicsModified(true);
+    }
+
+    /// <summary>
+    /// Legacy helper retained for DEBUG/tests — not called from production CREATE.
+    /// </summary>
+    private static void ApplyCanonicalWorldGeometry(
+        MLeader leader,
+        TimberFramedBlockContentLayout layout)
+    {
+        var attachment = ToPoint(layout.AttachmentLocal);
+        var readable = layout.ReadableAngleRadians;
+        var cos = Math.Cos(readable);
+        var sin = Math.Sin(readable);
+
+        Point3d Rotate(TimberPlanarPoint point)
+        {
+            var dx = point.X - layout.AttachmentLocal.X;
+            var dy = point.Y - layout.AttachmentLocal.Y;
+            return new Point3d(
+                attachment.X + (dx * cos) - (dy * sin),
+                attachment.Y + (dx * sin) + (dy * cos),
+                0d);
+        }
+
+        var knee = Rotate(layout.KneeLocal);
+        var landingEnd = Rotate(layout.LandingEndLocal);
+        var lineIndex = GetPrimaryLeaderLineIndex(leader);
+        var leaderIndex = leader.GetLeaderIndexes().Cast<int>().First();
+
+        leader.SetFirstVertex(lineIndex, attachment);
+        leader.SetLastVertex(lineIndex, knee);
+        ApplyCreateDogleg(
+            leader,
+            leaderIndex,
+            knee,
+            landingEnd,
+            layout.LandingLengthModelMm);
+        leader.BlockConnectionType = BlockConnectionType.ConnectBase;
+        leader.EnableDogleg = true;
+        leader.EnableLanding = true;
+        leader.BlockRotation = 0d;
+        leader.ExtendLeaderToText = false;
+        leader.LandingGap = 0d;
+    }
+
+    /// <summary>
     /// Create-path dogleg from layout landing (BlockPosition − knee).
     /// Does not use LeaderKneeSide → ±T.
     /// </summary>
@@ -646,9 +1025,10 @@ internal static class AutoCadFramedBlockContentAnnotationService
             return;
         }
 
-        // B / C / D all start with a non-geometry graphics refresh.
+        // B / C: graphics refresh only — do not rewrite dogleg/landing after
+        // create. Native TransformBy owns world geometry. EpsilonRotate (D)
+        // remains DEBUG/test-only and re-syncs dogleg after the ±eps pair.
         leader.RecordGraphicsModified(true);
-        ApplyNormalizeDoglegFromLeader(leader);
 
         if (mode != AutoCadFramedBlockContentStabilizationMode.EpsilonRotate)
         {
@@ -719,4 +1099,64 @@ internal static class AutoCadFramedBlockContentAnnotationService
 
         return total;
     }
+
+    internal static double? TryReadAttributeRotationRadians(
+        Transaction transaction,
+        MLeader leader,
+        string tag)
+    {
+        if (leader.BlockContentId.IsNull ||
+            transaction.GetObject(leader.BlockContentId, OpenMode.ForRead, true) is not
+                BlockTableRecord block)
+        {
+            return null;
+        }
+
+        foreach (ObjectId id in block)
+        {
+            if (transaction.GetObject(id, OpenMode.ForRead, true) is not
+                    AttributeDefinition definition ||
+                !string.Equals(
+                    definition.Tag,
+                    tag,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            using var attribute = leader.GetBlockAttribute(definition.ObjectId);
+            return TimberAnnotationReadabilityRules.WrapPhysicalAngleRadians(
+                attribute.Rotation);
+        }
+
+        return null;
+    }
 }
+
+#if DEBUG
+internal sealed record R3CreatePresentationTrace(
+    string? SourceHandle,
+    double SourcePhysicalAxisAngle,
+    double? VerticalRuleInput,
+    double? VerticalRuleOutput,
+    double TransformByAngle,
+    double BlockRotationBefore,
+    double BlockRotationRequested,
+    double BlockRotationAfter,
+    double? FrameWorldOrientationBefore,
+    double? FrameWorldOrientationAfter,
+    double? ItemTextWorldAngle,
+    double? WidthTextWorldAngle,
+    double? HeightTextWorldAngle,
+    bool AppliedHalfTurn,
+    string? BlockNameBeforeCorrection,
+    string? BlockNameAfterCorrection,
+    string? ContentVariant,
+    bool DimensionsTowardKneeAfter,
+    double? DimensionsTowardKneeDot,
+    string PresentationPath,
+    string PresentationOperationSequence,
+    int ReferenceRevisionBefore,
+    int ReferenceRevisionAfter,
+    string MeasurementNote);
+#endif

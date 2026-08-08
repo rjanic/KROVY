@@ -8,7 +8,7 @@ namespace AcKrovy.Wpf.Tests;
 public sealed class AutoCadFramedBlockContentPolicyTests
 {
     [Fact]
-    public void CanonicalName_UsesAkKrovyFbcR2FamilyAndIsSafe()
+    public void CanonicalName_UsesAkKrovyFbcR3FamilyAndIsSafe()
     {
         var raw = TimberFramedBlockContentVariantRules.CreateRawKey(
             TimberFramedBlockContentKind.Circle,
@@ -17,13 +17,17 @@ public sealed class AutoCadFramedBlockContentPolicyTests
             "Standard",
             2.7d,
             2.5d,
-            TimberFramedBlockContentPresentation.Combined,
-            TimberFramedBlockContentDimensionColumnSide.NegativeLocalX);
+            TimberFramedBlockContentPresentation.Combined);
         var name = AutoCadFramedBlockContentPolicy.CreateCanonicalName(raw);
 
-        Assert.StartsWith("AK_KROVY_FBC_R2_", name, StringComparison.Ordinal);
-        Assert.Contains(
+        Assert.StartsWith("AK_KROVY_FBC_R3_", name, StringComparison.Ordinal);
+        Assert.Contains("RIGHT", name, StringComparison.Ordinal);
+        Assert.DoesNotContain(
             TimberFramedBlockContentVariantRules.DimensionsNegativeXToken,
+            name,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            TimberFramedBlockContentVariantRules.DimensionsPositiveXToken,
             name,
             StringComparison.Ordinal);
         Assert.True(AutoCadFramedBlockContentPolicy.IsSafeSymbolName(name));

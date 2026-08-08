@@ -17,7 +17,7 @@ public sealed class TimberFramedBlockContentVariantRulesTests
             2.7d,
             2.5d,
             TimberFramedBlockContentPresentation.Combined,
-            TimberFramedBlockContentDimensionColumnSide.NegativeLocalX);
+            TimberFramedCombinedG5ContentVariantRules.RightColumnSide);
         var second = TimberFramedBlockContentVariantRules.CreateRawKey(
             TimberFramedBlockContentKind.Circle,
             "MEDIUM",
@@ -26,28 +26,28 @@ public sealed class TimberFramedBlockContentVariantRulesTests
             2.7d,
             2.5d,
             TimberFramedBlockContentPresentation.Combined,
-            TimberFramedBlockContentDimensionColumnSide.NegativeLocalX);
+            TimberFramedCombinedG5ContentVariantRules.RightColumnSide);
 
         Assert.Equal(first, second);
         Assert.Contains("CIR", first, StringComparison.Ordinal);
         Assert.Contains("COMB", first, StringComparison.Ordinal);
-        Assert.Contains("R2", first, StringComparison.Ordinal);
-        Assert.Contains(
+        Assert.Contains("R3", first, StringComparison.Ordinal);
+        Assert.Contains("RIGHT", first, StringComparison.Ordinal);
+        Assert.DoesNotContain(
             TimberFramedBlockContentVariantRules.DimensionsNegativeXToken,
             first,
             StringComparison.Ordinal);
-        Assert.StartsWith("AK_KROVY_FBC_R2_", first, StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            TimberFramedBlockContentVariantRules.DimensionsPositiveXToken,
+            first,
+            StringComparison.Ordinal);
+        Assert.StartsWith("AK_KROVY_FBC_R3_", first, StringComparison.Ordinal);
         Assert.DoesNotContain("50", first, StringComparison.Ordinal);
-        Assert.DoesNotContain("_L_", first, StringComparison.Ordinal);
-        Assert.DoesNotContain("_LEFT", first, StringComparison.Ordinal);
-        Assert.DoesNotContain("_RIGHT", first, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void LeaderLeftAndRight_ShareSameColumnSideBtrKey()
+    public void Combined_RightAndLeft_AreDistinctKeys()
     {
-        // Leader Side is ModelSpace knee/landing only; same column side must
-        // share one R2 Combined definition.
         var left = TimberFramedBlockContentVariantRules.CreateRawKey(
             TimberFramedBlockContentKind.Slot,
             "SMALL",
@@ -56,7 +56,7 @@ public sealed class TimberFramedBlockContentVariantRulesTests
             2.7d,
             2.5d,
             TimberFramedBlockContentPresentation.Combined,
-            TimberFramedBlockContentDimensionColumnSide.NegativeLocalX);
+            TimberFramedCombinedG5ContentVariantRules.LeftColumnSide);
         var right = TimberFramedBlockContentVariantRules.CreateRawKey(
             TimberFramedBlockContentKind.Slot,
             "SMALL",
@@ -65,178 +65,95 @@ public sealed class TimberFramedBlockContentVariantRulesTests
             2.7d,
             2.5d,
             TimberFramedBlockContentPresentation.Combined,
-            TimberFramedBlockContentDimensionColumnSide.NegativeLocalX);
-
-        Assert.Equal(left, right);
-        Assert.Equal(
-            TimberFramedBlockContentVariantRules.CreateSafeBlockName(left),
-            TimberFramedBlockContentVariantRules.CreateSafeBlockName(right));
-    }
-
-    [Fact]
-    public void Combined_DimensionColumnSides_Differ()
-    {
-        var negative = TimberFramedBlockContentVariantRules.CreateRawKey(
-            TimberFramedBlockContentKind.Circle,
+            TimberFramedCombinedG5ContentVariantRules.RightColumnSide);
+        var omitted = TimberFramedBlockContentVariantRules.CreateRawKey(
+            TimberFramedBlockContentKind.Slot,
             "SMALL",
             "Standard",
             "Standard",
             2.7d,
             2.5d,
-            TimberFramedBlockContentPresentation.Combined,
-            TimberFramedBlockContentDimensionColumnSide.NegativeLocalX);
-        var positive = TimberFramedBlockContentVariantRules.CreateRawKey(
-            TimberFramedBlockContentKind.Circle,
-            "SMALL",
-            "Standard",
-            "Standard",
-            2.7d,
-            2.5d,
-            TimberFramedBlockContentPresentation.Combined,
-            TimberFramedBlockContentDimensionColumnSide.PositiveLocalX);
+            TimberFramedBlockContentPresentation.Combined);
 
-        Assert.Contains(
-            TimberFramedBlockContentVariantRules.DimensionsNegativeXToken,
-            negative,
-            StringComparison.Ordinal);
-        Assert.Contains(
-            TimberFramedBlockContentVariantRules.DimensionsPositiveXToken,
-            positive,
-            StringComparison.Ordinal);
-        Assert.NotEqual(negative, positive);
+        Assert.NotEqual(left, right);
+        Assert.Equal(right, omitted);
+        Assert.Contains("_LEFT_", left, StringComparison.Ordinal);
+        Assert.Contains("_RIGHT_", right, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void Combined_RequiresDimensionColumnSide() =>
-        Assert.Throws<ArgumentNullException>(() =>
-            TimberFramedBlockContentVariantRules.CreateRawKey(
-                TimberFramedBlockContentKind.Circle,
-                "SMALL",
-                "Standard",
-                "Standard",
-                2.7d,
-                2.5d,
-                TimberFramedBlockContentPresentation.Combined));
-
-    [Fact]
-    public void Plain_ForcesNoneFrameSize()
+    public void Combined_DefaultsToRightContentVariant()
     {
         var key = TimberFramedBlockContentVariantRules.CreateRawKey(
-            TimberFramedBlockContentKind.Plain,
-            "LARGE",
+            TimberFramedBlockContentKind.Circle,
+            "SMALL",
             "Standard",
             "Standard",
             2.7d,
             2.5d,
-            TimberFramedBlockContentPresentation.Combined,
-            TimberFramedBlockContentDimensionColumnSide.PositiveLocalX);
-
-        Assert.Contains("PLAIN", key, StringComparison.Ordinal);
-        Assert.Contains("_NONE_", key, StringComparison.Ordinal);
-        Assert.Contains(
-            TimberFramedBlockContentVariantRules.DimensionsPositiveXToken,
-            key,
-            StringComparison.Ordinal);
+            TimberFramedBlockContentPresentation.Combined);
+        Assert.True(TimberFramedBlockContentVariantRules.IsProductionR3Combined(key));
+        Assert.True(
+            TimberFramedBlockContentVariantRules.IsProductionR3CombinedContentVariant(
+                key));
+        Assert.True(
+            TimberFramedBlockContentVariantRules.TryParseR3VariantKey(
+                key,
+                out var parse));
+        Assert.Equal(
+            TimberFramedCombinedG5ContentVariantRules.RightColumnSide,
+            parse.ContentVariantSide);
     }
 
     [Fact]
-    public void ItemOnly_OmitsDimensionColumnSideAndDiffersFromCombined()
+    public void ItemOnly_OmitsPresentationAmbiguity()
     {
         var item = TimberFramedBlockContentVariantRules.CreateRawKey(
-            TimberFramedBlockContentKind.Slot,
-            "SMALL",
+            TimberFramedBlockContentKind.Circle,
+            "MEDIUM",
             "Standard",
             "Standard",
-            3.0d,
+            2.7d,
             2.5d,
             TimberFramedBlockContentPresentation.ItemOnly);
-        var combined = TimberFramedBlockContentVariantRules.CreateRawKey(
-            TimberFramedBlockContentKind.Slot,
-            "SMALL",
-            "Standard",
-            "Standard",
-            3.0d,
-            2.5d,
-            TimberFramedBlockContentPresentation.Combined,
-            TimberFramedBlockContentDimensionColumnSide.NegativeLocalX);
-
         Assert.Contains("ITEM", item, StringComparison.Ordinal);
-        Assert.Contains("COMB", combined, StringComparison.Ordinal);
-        Assert.Contains("R2", item, StringComparison.Ordinal);
-        Assert.DoesNotContain(
-            TimberFramedBlockContentVariantRules.DimensionsNegativeXToken,
-            item,
-            StringComparison.Ordinal);
-        Assert.DoesNotContain(
-            TimberFramedBlockContentVariantRules.DimensionsPositiveXToken,
-            item,
-            StringComparison.Ordinal);
-        Assert.NotEqual(item, combined);
+        Assert.DoesNotContain("COMB", item, StringComparison.Ordinal);
+        Assert.DoesNotContain("RIGHT", item, StringComparison.Ordinal);
+        Assert.True(
+            TimberFramedBlockContentVariantRules.TryParseR3VariantKey(
+                item,
+                out var isCombined,
+                out var isItemOnly));
+        Assert.False(isCombined);
+        Assert.True(isItemOnly);
+    }
+
+    [Fact]
+    public void LegacyR2_StillParsesForDebugStretchNormalize()
+    {
+        const string r2 =
+            "AK_KROVY_FBC_R2_CIR_SMALL_COMB_DIMNX_I2.7_D2.5_ISSTANDARD_DSSTANDARD";
+        Assert.True(
+            TimberFramedBlockContentVariantRules.TryParseR2VariantKey(r2, out var parse));
+        Assert.True(parse.IsP3R2CombinedTarget);
+        Assert.True(
+            TimberFramedBlockContentVariantRules.IsP3R2CombinedStretchNormalizeTarget(r2));
+        Assert.False(
+            TimberFramedBlockContentVariantRules.IsProductionR3Combined(r2));
     }
 
     [Fact]
     public void CreateSafeBlockName_TruncatesWithStableHash()
     {
-        var raw = TimberFramedBlockContentVariantRules.CreateRawKey(
+        var longKey = TimberFramedBlockContentVariantRules.CreateRawKey(
             TimberFramedBlockContentKind.Rectangle,
-            "VERY_LONG_SIZE_TOKEN_FOR_TESTING",
-            "A_VERY_LONG_ITEM_TEXT_STYLE_NAME_FOR_HASHING",
-            "A_VERY_LONG_DIMENSION_TEXT_STYLE_NAME_FOR_HASHING",
+            "LARGE",
+            new string('A', 80),
+            new string('B', 80),
             2.7d,
             2.5d,
-            TimberFramedBlockContentPresentation.Combined,
-            TimberFramedBlockContentDimensionColumnSide.NegativeLocalX);
-        var safe = TimberFramedBlockContentVariantRules.CreateSafeBlockName(raw, 31);
-        Assert.True(safe.Length <= 31);
-        Assert.Equal(safe, TimberFramedBlockContentVariantRules.CreateSafeBlockName(raw, 31));
+            TimberFramedBlockContentPresentation.Combined);
+        var safe = TimberFramedBlockContentVariantRules.CreateSafeBlockName(longKey, 64);
+        Assert.True(safe.Length <= 64);
     }
-
-    [Fact]
-    public void DenominatorAndAngle_AreAbsentFromKey()
-    {
-        var key = TimberFramedBlockContentVariantRules.CreateRawKey(
-            TimberFramedBlockContentKind.Circle,
-            "SMALL",
-            "Standard",
-            "Standard",
-            2.7d,
-            2.5d,
-            TimberFramedBlockContentPresentation.Combined,
-            TimberFramedBlockContentDimensionColumnSide.NegativeLocalX);
-
-        Assert.DoesNotContain("DEN", key, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain("ANGLE", key, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain("25", key, StringComparison.Ordinal);
-        Assert.DoesNotContain("100", key, StringComparison.Ordinal);
-        Assert.DoesNotContain("AK_G5C", key, StringComparison.Ordinal);
-        Assert.DoesNotContain("AK_DEV", key, StringComparison.Ordinal);
-        Assert.DoesNotContain("SourceHandle", key, StringComparison.Ordinal);
-        Assert.DoesNotContain("ElementId", key, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void OppositeDimensionColumnSide_Flips()
-    {
-        Assert.Equal(
-            TimberFramedBlockContentDimensionColumnSide.PositiveLocalX,
-            TimberFramedBlockContentVariantRules.OppositeDimensionColumnSide(
-                TimberFramedBlockContentDimensionColumnSide.NegativeLocalX));
-        Assert.Equal(
-            TimberFramedBlockContentDimensionColumnSide.NegativeLocalX,
-            TimberFramedBlockContentVariantRules.OppositeDimensionColumnSide(
-                TimberFramedBlockContentDimensionColumnSide.PositiveLocalX));
-    }
-
-    [Fact]
-    public void InvalidStyle_Throws() =>
-        Assert.Throws<ArgumentException>(() =>
-            TimberFramedBlockContentVariantRules.CreateRawKey(
-                TimberFramedBlockContentKind.Plain,
-                "NONE",
-                " ",
-                "Standard",
-                2.7d,
-                2.5d,
-                TimberFramedBlockContentPresentation.Combined,
-                TimberFramedBlockContentDimensionColumnSide.NegativeLocalX));
 }

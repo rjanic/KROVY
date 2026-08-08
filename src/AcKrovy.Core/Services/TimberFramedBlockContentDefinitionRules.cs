@@ -3,19 +3,29 @@ using AcKrovy.Core.Models;
 namespace AcKrovy.Core.Services;
 
 /// <summary>
-/// Portable AttrDef/frame contract for immutable G5 BlockContent BTRs (R2).
+/// Portable AttrDef/frame contract for immutable G5 BlockContent BTRs (R3).
 /// Geometry and AttrDef heights are baked at the default 1:50 baseline;
 /// MLeader BlockScale applies the per-element annotation ScaleFactor once.
-/// Leader Side is intentionally absent — it is ModelSpace-only geometry.
-/// Combined WIDTH/HEIGHT local X is signed by
-/// <see cref="TimberFramedBlockContentDimensionColumnSide"/> so the column
-/// stays on the frame side toward the knee.
+/// Production Combined uses R3_RIGHT / R3_LEFT immutable BTR variants keyed by
+/// knee-vs-frame in block-local space (not world/source Left/Right).
+/// Literal bake: NegativeLocalX = −offset, PositiveLocalX = +offset.
+/// R3_RIGHT = NegativeLocalX (PASS); R3_LEFT = PositiveLocalX. Pick the
+/// variant so after BlockPosition placement, world D lies toward K
+/// (dot(D−F, K−F) &gt; 0). Text is never mirrored (no negative BlockScaleX).
 /// </summary>
 public static class TimberFramedBlockContentDefinitionRules
 {
     public const string ItemNoTag = "ITEM_NO";
     public const string WidthTag = "WIDTH";
     public const string HeightTag = "HEIGHT";
+
+    /// <summary>
+    /// Default Combined create column = R3_RIGHT (−offset): create landing
+    /// along +local X keeps the knee on −X of the frame.
+    /// </summary>
+    public static TimberFramedBlockContentDimensionColumnSide
+        DefaultCombinedDimensionColumnSide =>
+        TimberFramedCombinedG5ContentVariantRules.RightColumnSide;
 
     /// <summary>
     /// Stable reference WIDTH/HEIGHT token length for shared BTR column X.
@@ -123,6 +133,8 @@ public static class TimberFramedBlockContentDefinitionRules
 
     /// <summary>
     /// Signed Combined WIDTH/HEIGHT local X for the requested column side.
+    /// Literal enum bake: NegativeLocalX → −offset, PositiveLocalX → +offset.
+    /// R3 token names do not override this sign.
     /// </summary>
     public static double CalculateDimensionColumnLocalX(
         TimberFramedBlockContentKind contentKind,
@@ -141,10 +153,73 @@ public static class TimberFramedBlockContentDefinitionRules
             contentKind,
             frameWidthMm,
             dimensionPaperHeightMm);
-        return dimensionColumnSide ==
-            TimberFramedBlockContentDimensionColumnSide.NegativeLocalX
-            ? -offset
-            : offset;
+        return ResolveDimensionColumnLocalXSign(dimensionColumnSide) * offset;
+    }
+
+    /// <summary>
+    /// Literal AttrDef column sign from the enum (not from R3 token names).
+    /// </summary>
+    public static double ResolveDimensionColumnLocalXSign(
+        TimberFramedBlockContentDimensionColumnSide dimensionColumnSide) =>
+        dimensionColumnSide ==
+        TimberFramedBlockContentDimensionColumnSide.NegativeLocalX
+            ? -1d
+            : 1d;
+
+    /// <summary>
+    /// World-space invariant: D is on the knee side of F when
+    /// <c>dot(D − F, K − F) &gt; 0</c>.
+    /// </summary>
+    public static bool TryEvaluateDimensionsTowardKneeDot(
+        TimberPlanarPoint frameCenter,
+        TimberPlanarPoint knee,
+        TimberPlanarPoint dimensionsAnchor,
+        out double towardKneeDot)
+    {
+        towardKneeDot =
+            ((dimensionsAnchor.X - frameCenter.X) * (knee.X - frameCenter.X)) +
+            ((dimensionsAnchor.Y - frameCenter.Y) * (knee.Y - frameCenter.Y));
+        if (double.IsNaN(towardKneeDot) || double.IsInfinity(towardKneeDot))
+        {
+            towardKneeDot = double.NaN;
+            return false;
+        }
+
+        return true;
+    }
+
+    public static bool AreDimensionsTowardKnee(
+        TimberPlanarPoint frameCenter,
+        TimberPlanarPoint knee,
+        TimberPlanarPoint dimensionsAnchor) =>
+        TryEvaluateDimensionsTowardKneeDot(
+            frameCenter,
+            knee,
+            dimensionsAnchor,
+            out var dot) &&
+        dot > 0d;
+
+    /// <summary>
+    /// Map block-local AttrDef point to world with BlockRotation about BlockPosition
+    /// (BlockScale = 1). Matches typical CREATE BlockRotation=0 + BlockPosition
+    /// placement after readable TransformBy has already oriented geometry.
+    /// </summary>
+    public static TimberPlanarPoint ToWorldFromBlockLocal(
+        TimberPlanarPoint blockLocal,
+        TimberPlanarPoint blockPosition,
+        double blockRotationRadians)
+    {
+        if (double.IsNaN(blockRotationRadians) ||
+            double.IsInfinity(blockRotationRadians))
+        {
+            throw new ArgumentOutOfRangeException(nameof(blockRotationRadians));
+        }
+
+        var cos = Math.Cos(blockRotationRadians);
+        var sin = Math.Sin(blockRotationRadians);
+        return new TimberPlanarPoint(
+            blockPosition.X + (blockLocal.X * cos) - (blockLocal.Y * sin),
+            blockPosition.Y + (blockLocal.X * sin) + (blockLocal.Y * cos));
     }
 
     /// <summary>
@@ -230,6 +305,63 @@ public static class TimberFramedBlockContentDefinitionRules
                 dimensionColumnSide),
             CalculateHeightLocalY(dimensionPaperHeightMm));
 
+    /// <summary>
+    /// Shared R3 Combined BTR layout. Variants differ only by WIDTH/HEIGHT
+    /// local-X sign (literal enum). Frame, ITEM_NO, spacing, heights and
+    /// readable rotation (0) are identical — no text mirror / negative BlockScaleX.
+    /// Caller must pick the side from knee-vs-frame, not from world L/R alone.
+    /// </summary>
+    public static TimberFramedBlockContentR3Layout CreateR3Layout(
+        TimberFramedBlockContentDimensionColumnSide side,
+        TimberFramedBlockContentKind contentKind,
+        double frameWidthMm,
+        double dimensionPaperHeightMm)
+    {
+        if (!Enum.IsDefined(typeof(TimberFramedBlockContentDimensionColumnSide), side))
+        {
+            throw new ArgumentOutOfRangeException(nameof(side));
+        }
+
+        if (!Enum.IsDefined(typeof(TimberFramedBlockContentKind), contentKind))
+        {
+            throw new ArgumentOutOfRangeException(nameof(contentKind));
+        }
+
+        if (contentKind != TimberFramedBlockContentKind.Plain &&
+            (frameWidthMm <= 0d ||
+             double.IsNaN(frameWidthMm) ||
+             double.IsInfinity(frameWidthMm)))
+        {
+            throw new ArgumentOutOfRangeException(nameof(frameWidthMm));
+        }
+
+        if (contentKind == TimberFramedBlockContentKind.Plain && frameWidthMm != 0d)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(frameWidthMm),
+                "Plain R3 layout requires zero frame width.");
+        }
+
+        var columnX = CalculateDimensionColumnLocalX(
+            contentKind,
+            frameWidthMm,
+            dimensionPaperHeightMm,
+            side);
+        var widthY = CalculateWidthLocalY(dimensionPaperHeightMm);
+        var heightY = CalculateHeightLocalY(dimensionPaperHeightMm);
+        var frameCenter = ItemAttributeLocalPoint;
+        return new TimberFramedBlockContentR3Layout(
+            side,
+            frameCenter,
+            frameCenter,
+            new TimberPlanarPoint(columnX, widthY),
+            new TimberPlanarPoint(columnX, heightY),
+            columnX,
+            widthY,
+            heightY,
+            TextRotationRadians: 0d);
+    }
+
     public static void ValidateRequest(
         TimberFramedBlockContentKind contentKind,
         TimberFramedBlockContentPresentation presentation)
@@ -268,5 +400,20 @@ public static class TimberFramedBlockContentDefinitionRules
                     nameof(contentKind),
                     "Plain G5 content has no framed ITEM_NO block definition."),
             _ => throw new ArgumentOutOfRangeException(nameof(contentKind)),
+        };
+
+    public static TimberFramedBlockContentKind FromItemNumberLeaderStyle(
+        ItemNumberLeaderStyle style) =>
+        ItemNumberLeaderStyleRules.Normalize(style) switch
+        {
+            ItemNumberLeaderStyle.Circle => TimberFramedBlockContentKind.Circle,
+            ItemNumberLeaderStyle.Rectangle =>
+                TimberFramedBlockContentKind.Rectangle,
+            ItemNumberLeaderStyle.Slot => TimberFramedBlockContentKind.Slot,
+            ItemNumberLeaderStyle.Plain =>
+                throw new ArgumentOutOfRangeException(
+                    nameof(style),
+                    "Plain Combined stays on the native MText MLeader path."),
+            _ => throw new ArgumentOutOfRangeException(nameof(style)),
         };
 }

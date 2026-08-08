@@ -5,11 +5,12 @@ using AcKrovy.Core.Models;
 namespace AcKrovy.Core.Services;
 
 /// <summary>
-/// Deterministic immutable BTR variant identity for G5 BlockContent (R2).
-/// Angle, annotation-scale denominator, and leader Side are intentionally
-/// excluded — Side affects only ModelSpace knee/landing geometry.
-/// Combined variants fork by dimension-column local-X side (not screen L/R).
-/// ItemOnly omits the column-side token (centered ITEM_NO only).
+/// Deterministic immutable BTR variant identity for G5 BlockContent (R3).
+/// Angle and annotation-scale denominator are intentionally excluded.
+/// Combined R3 encodes content-side RIGHT/LEFT (WIDTH/HEIGHT layout vs frame).
+/// Legacy R2 Combined DIMNX/DIMPX remains parseable for DEBUG/migration.
+/// Legacy side-agnostic R3 Combined (no RIGHT/LEFT) remains parseable but is
+/// not a production create target.
 /// </summary>
 public static class TimberFramedBlockContentVariantRules
 {
@@ -17,13 +18,22 @@ public static class TimberFramedBlockContentVariantRules
     public const int MaximumSafeBlockNameLength = 64;
 
     /// <summary>
-    /// Immutable family revision. Existing R1 (side-agnostic Combined) BTRs
-    /// remain untouched; new Ensures create R2 names only.
+    /// Immutable family revision. R1 = pre-revision side-agnostic Combined.
+    /// R2 = DIMNX/DIMPX Combined fork (legacy / DEBUG stretch-normalize).
+    /// R3 = production Combined with RIGHT/LEFT content variants.
     /// </summary>
-    public const string FamilyRevisionToken = "R2";
+    public const string FamilyRevisionToken = "R3";
+
+    public const string LegacyR2FamilyRevisionToken = "R2";
 
     public const string DimensionsNegativeXToken = "DIMNX";
     public const string DimensionsPositiveXToken = "DIMPX";
+
+    public const string ContentVariantRightToken =
+        TimberFramedCombinedG5ContentVariantRules.RightToken;
+
+    public const string ContentVariantLeftToken =
+        TimberFramedCombinedG5ContentVariantRules.LeftToken;
 
     public static string CreateRawKey(
         TimberFramedBlockContentKind contentKind,
@@ -35,7 +45,7 @@ public static class TimberFramedBlockContentVariantRules
         TimberFramedBlockContentPresentation presentation,
         TimberFramedBlockContentDimensionColumnSide? dimensionColumnSide = null)
     {
-        // Key must never encode angle, denominator, screen Left/Right,
+        // Key must never encode angle, denominator, screen leader Side enum,
         // annotation ownership identity, or free-form text content.
         ValidateStyleIdentity(itemTextStyleName, nameof(itemTextStyleName));
         ValidateStyleIdentity(dimensionTextStyleName, nameof(dimensionTextStyleName));
@@ -74,11 +84,83 @@ public static class TimberFramedBlockContentVariantRules
 
         if (presentation == TimberFramedBlockContentPresentation.Combined)
         {
+            var side = dimensionColumnSide ??
+                TimberFramedBlockContentDefinitionRules
+                    .DefaultCombinedDimensionColumnSide;
+            if (!Enum.IsDefined(
+                    typeof(TimberFramedBlockContentDimensionColumnSide),
+                    side))
+            {
+                throw new ArgumentOutOfRangeException(nameof(dimensionColumnSide));
+            }
+
+            parts.Add(
+                TimberFramedCombinedG5ContentVariantRules.ToContentVariantToken(side));
+        }
+
+        parts.Add("I" + FormatHeight(itemPaperHeightMm));
+        parts.Add("D" + FormatHeight(dimensionPaperHeightMm));
+        parts.Add("IS" + SanitizeToken(itemTextStyleName));
+        parts.Add("DS" + SanitizeToken(dimensionTextStyleName));
+        return string.Join("_", parts);
+    }
+
+    /// <summary>
+    /// Legacy R2 Combined key with DIMNX/DIMPX — DEBUG stretch-normalize /
+    /// migration fixtures only. Production Ensures use <see cref="CreateRawKey"/>.
+    /// </summary>
+    public static string CreateLegacyR2RawKey(
+        TimberFramedBlockContentKind contentKind,
+        string frameSizeToken,
+        string itemTextStyleName,
+        string dimensionTextStyleName,
+        double itemPaperHeightMm,
+        double dimensionPaperHeightMm,
+        TimberFramedBlockContentPresentation presentation,
+        TimberFramedBlockContentDimensionColumnSide? dimensionColumnSide = null)
+    {
+        ValidateStyleIdentity(itemTextStyleName, nameof(itemTextStyleName));
+        ValidateStyleIdentity(dimensionTextStyleName, nameof(dimensionTextStyleName));
+        ValidatePaperHeight(itemPaperHeightMm, TimberAnnotationTextRole.ItemCode);
+        ValidatePaperHeight(dimensionPaperHeightMm, TimberAnnotationTextRole.Dimension);
+
+        var size = string.IsNullOrWhiteSpace(frameSizeToken)
+            ? "NONE"
+            : frameSizeToken.Trim().ToUpperInvariant();
+        if (contentKind == TimberFramedBlockContentKind.Plain)
+        {
+            size = "NONE";
+        }
+
+        var presentationToken =
+            presentation == TimberFramedBlockContentPresentation.ItemOnly
+                ? "ITEM"
+                : "COMB";
+        var kindToken = contentKind switch
+        {
+            TimberFramedBlockContentKind.Plain => "PLAIN",
+            TimberFramedBlockContentKind.Circle => "CIR",
+            TimberFramedBlockContentKind.Rectangle => "REC",
+            TimberFramedBlockContentKind.Slot => "SLT",
+            _ => throw new ArgumentOutOfRangeException(nameof(contentKind), contentKind, null),
+        };
+
+        var parts = new List<string>
+        {
+            "AK_KROVY_FBC",
+            LegacyR2FamilyRevisionToken,
+            kindToken,
+            size,
+            presentationToken,
+        };
+
+        if (presentation == TimberFramedBlockContentPresentation.Combined)
+        {
             if (dimensionColumnSide is null)
             {
                 throw new ArgumentNullException(
                     nameof(dimensionColumnSide),
-                    "Combined R2 variants require a dimension column side.");
+                    "Legacy R2 Combined variants require a dimension column side.");
             }
 
             if (!Enum.IsDefined(
@@ -154,9 +236,9 @@ public static class TimberFramedBlockContentVariantRules
     }
 
     /// <summary>
-    /// Fail-closed classifier for P3 R2 BlockContent variant names (raw keys or
-    /// non-truncated safe names). Truncated hash-suffixed names are rejected.
-    /// Does not use CAD host types.
+    /// Fail-closed classifier for legacy P3 R2 BlockContent variant names.
+    /// Truncated hash-suffixed names are rejected. Used by DEBUG stretch
+    /// normalize — production R3 Combined is never an R2 target.
     /// </summary>
     public static bool TryParseR2VariantKey(
         string? blockNameOrRawKey,
@@ -179,7 +261,6 @@ public static class TimberFramedBlockContentVariantRules
         var isItemOnly = ContainsBoundedToken(sanitized, "ITEM");
         if (isCombined == isItemOnly)
         {
-            // Exactly one presentation token is required.
             return false;
         }
 
@@ -205,10 +286,122 @@ public static class TimberFramedBlockContentVariantRules
         return true;
     }
 
+    /// <summary>
+    /// Production R3 Combined / ItemOnly classifier. Combined prefers RIGHT/LEFT
+    /// content-variant tokens; legacy side-agnostic Combined still parses.
+    /// </summary>
+    public static bool TryParseR3VariantKey(
+        string? blockNameOrRawKey,
+        out bool isCombined,
+        out bool isItemOnly) =>
+        TryParseR3VariantKey(blockNameOrRawKey, out isCombined, out isItemOnly, out _);
+
+    public static bool TryParseR3VariantKey(
+        string? blockNameOrRawKey,
+        out bool isCombined,
+        out bool isItemOnly,
+        out TimberFramedBlockContentDimensionColumnSide? contentVariantSide)
+    {
+        isCombined = false;
+        isItemOnly = false;
+        contentVariantSide = null;
+        if (string.IsNullOrWhiteSpace(blockNameOrRawKey))
+        {
+            return false;
+        }
+
+        var sanitized = SanitizeToken(blockNameOrRawKey!);
+        const string prefix = "AK_KROVY_FBC_R3_";
+        if (!sanitized.StartsWith(prefix, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        isCombined = ContainsBoundedToken(sanitized, "COMB");
+        isItemOnly = ContainsBoundedToken(sanitized, "ITEM");
+        if (isCombined == isItemOnly)
+        {
+            isCombined = false;
+            isItemOnly = false;
+            return false;
+        }
+
+        // R3 Combined must not carry legacy DIMNX/DIMPX tokens.
+        if (isCombined &&
+            (ContainsBoundedToken(sanitized, DimensionsNegativeXToken) ||
+             ContainsBoundedToken(sanitized, DimensionsPositiveXToken)))
+        {
+            isCombined = false;
+            isItemOnly = false;
+            return false;
+        }
+
+        if (isCombined)
+        {
+            var hasRight = ContainsBoundedToken(sanitized, ContentVariantRightToken);
+            var hasLeft = ContainsBoundedToken(sanitized, ContentVariantLeftToken);
+            if (hasRight && hasLeft)
+            {
+                isCombined = false;
+                isItemOnly = false;
+                return false;
+            }
+
+            if (hasRight)
+            {
+                contentVariantSide =
+                    TimberFramedCombinedG5ContentVariantRules.RightColumnSide;
+            }
+            else if (hasLeft)
+            {
+                contentVariantSide =
+                    TimberFramedCombinedG5ContentVariantRules.LeftColumnSide;
+            }
+        }
+
+        return true;
+    }
+
+    public static bool TryParseR3VariantKey(
+        string? blockNameOrRawKey,
+        out TimberFramedBlockContentR3VariantParse parse)
+    {
+        parse = default;
+        if (!TryParseR3VariantKey(
+                blockNameOrRawKey,
+                out var isCombined,
+                out var isItemOnly,
+                out var side))
+        {
+            return false;
+        }
+
+        parse = new TimberFramedBlockContentR3VariantParse(
+            isCombined,
+            isItemOnly,
+            side);
+        return true;
+    }
+
     public static bool IsP3R2CombinedStretchNormalizeTarget(
         string? blockNameOrRawKey) =>
         TryParseR2VariantKey(blockNameOrRawKey, out var parse) &&
         parse.IsP3R2CombinedTarget;
+
+    /// <summary>
+    /// Production R3 Combined (RIGHT/LEFT or legacy side-agnostic).
+    /// </summary>
+    public static bool IsProductionR3Combined(string? blockNameOrRawKey) =>
+        TryParseR3VariantKey(blockNameOrRawKey, out var isCombined, out _) &&
+        isCombined;
+
+    /// <summary>
+    /// Production R3 Combined with an explicit RIGHT/LEFT content variant.
+    /// </summary>
+    public static bool IsProductionR3CombinedContentVariant(
+        string? blockNameOrRawKey) =>
+        TryParseR3VariantKey(blockNameOrRawKey, out var parse) &&
+        parse.IsProductionCombinedTarget;
 
     private static bool ContainsBoundedToken(string sanitized, string token)
     {

@@ -14,7 +14,8 @@ namespace AcKrovy.AutoCAD.Infrastructure;
 internal sealed record ElementLabelData
 {
     /// <summary>
-    /// Annotation XData payload version. Schema 4 adds G4 composite fields
+    /// Annotation XData payload version. Schema 4 adds G4 composite fields;
+    /// G5 schema 5 adds the one-shot R3 reference-presentation revision.
     /// (AnnotationGroupId, RendererGeneration, FrameSize, item-code presentation).
     /// Schema 3 payloads remain readable; missing G4 fields deserialize as null.
     /// This is independent of <c>TimberElementDataSchema</c> (still 7).
@@ -48,6 +49,7 @@ internal sealed record ElementLabelData
     public AcKrovy.Core.Models.TimberItemLeaderBlockSize? FrameSize { get; init; }
     public double? ItemCodePaperHeightMm { get; init; }
     public string? ItemCodeTextStyleName { get; init; }
+    public int? R3ReferencePresentationRevision { get; init; }
 }
 
 internal static class ElementLabelStore

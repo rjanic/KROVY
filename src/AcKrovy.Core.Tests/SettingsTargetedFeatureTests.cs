@@ -1161,6 +1161,7 @@ public sealed class SettingsTargetedFeatureTests
         Assert.Contains("preserveCopySources", service);
         Assert.Contains("copySourcePreservation: preserveCopySources", service);
         Assert.Contains("allowElementIdFallback: !copySourcePreservation", labels);
+        Assert.Contains("entity is MText or MLeader or BlockReference or DBText", service);
         Assert.Contains("updateExistingDefinitions: !copySourcePreservation", labels);
         Assert.Contains("if (!updateExisting)", styles);
         Assert.Contains("return existingId;", styles);
@@ -1168,6 +1169,135 @@ public sealed class SettingsTargetedFeatureTests
         Assert.Contains("AcKrovyMLeaderStyleService.Ensure", labels);
         Assert.Contains("text.SetDatabaseDefaults(database)", labels);
         Assert.DoesNotContain("ISO-Annotative", labels);
+    }
+
+    [Fact]
+    [Trait("Feature", "CopySourcePreservation")]
+    public void G4CompositeLookup_UsesGuardedSourceHandleFirstMatchRules()
+    {
+        var g4 = File.ReadAllText(Path.Combine(
+            RepositoryRoot(),
+            "src",
+            "AcKrovy.AutoCAD",
+            "Infrastructure",
+            "AutoCadFramedG4CompositeService.cs"));
+        var labels = File.ReadAllText(Path.Combine(
+            RepositoryRoot(),
+            "src",
+            "AcKrovy.AutoCAD",
+            "Infrastructure",
+            "ElementLabelService.cs"));
+
+        Assert.Contains("TimberFramedG4CompositeMatchRules.SelectCompositeForUpsert(", g4);
+        Assert.Contains("CountTimberElementsWithElementIdForG4(", g4);
+        Assert.Contains("allowElementIdFallback: !copySourcePreservation", g4);
+        Assert.Contains("TimberMainAnnotationComponentRole.CircleLeaderLine", labels);
+        Assert.Contains("TimberMainAnnotationComponentRole.CircleFrame", labels);
+        Assert.DoesNotContain(
+            "var elementMatches = allowElementIdFallback &&",
+            g4);
+        Assert.Contains("frame.Rotation = placement.RotationRadians", g4);
+    }
+
+    [Fact]
+    public void CombinedDimensionsPlacement_UsesLandingReadableRotationNotWorldZero()
+    {
+        var labels = File.ReadAllText(Path.Combine(
+            RepositoryRoot(),
+            "src",
+            "AcKrovy.AutoCAD",
+            "Infrastructure",
+            "ElementLabelService.cs"));
+        var memberStart = labels.IndexOf(
+            "private static LabelPlacement CalculateCombinedDimensionsTextPlacement(",
+            StringComparison.Ordinal);
+        Assert.True(memberStart >= 0);
+        var brace = labels.IndexOf('{', memberStart);
+        Assert.True(brace > memberStart);
+        var depth = 0;
+        var end = -1;
+        for (var index = brace; index < labels.Length; index++)
+        {
+            if (labels[index] == '{')
+            {
+                depth++;
+            }
+            else if (labels[index] == '}')
+            {
+                depth--;
+                if (depth == 0)
+                {
+                    end = index;
+                    break;
+                }
+            }
+        }
+
+        Assert.True(end > brace);
+        var member = labels[memberStart..(end + 1)];
+        Assert.Contains(
+            "TimberAnnotationReadabilityRules.NormalizeReadableRotationRadians(",
+            member);
+        Assert.Contains("Math.Atan2(landingDirection.Y, landingDirection.X)", member);
+        Assert.DoesNotContain("RotationRadians: 0d", member);
+    }
+
+    [Fact]
+    public void LongitudinalInterval_SkipsG4NoneContentLeadersBeforeTextLocation()
+    {
+        var labels = File.ReadAllText(Path.Combine(
+            RepositoryRoot(),
+            "src",
+            "AcKrovy.AutoCAD",
+            "Infrastructure",
+            "ElementLabelService.cs"));
+        var memberStart = labels.IndexOf(
+            "internal static bool TryGetLongitudinalInterval(",
+            StringComparison.Ordinal);
+        Assert.True(memberStart >= 0);
+        var brace = labels.IndexOf('{', memberStart);
+        Assert.True(brace > memberStart);
+        var depth = 0;
+        var end = -1;
+        for (var index = brace; index < labels.Length; index++)
+        {
+            if (labels[index] == '{')
+            {
+                depth++;
+            }
+            else if (labels[index] == '}')
+            {
+                depth--;
+                if (depth == 0)
+                {
+                    end = index;
+                    break;
+                }
+            }
+        }
+
+        Assert.True(end > brace);
+        var member = labels[memberStart..(end + 1)];
+
+        Assert.Contains(
+            "TimberSlopeAnnotationRules.IsLongitudinalIntervalLabelRole(",
+            member);
+        Assert.Contains("ContentType.NoneContent", member);
+        Assert.Contains("ContentType.MTextContent", member);
+        var roleFilter = member.IndexOf(
+            "IsLongitudinalIntervalLabelRole(",
+            StringComparison.Ordinal);
+        var noneGuard = member.IndexOf(
+            "ContentType.NoneContent",
+            StringComparison.Ordinal);
+        var textLocation = member.IndexOf(
+            "leader.TextLocation",
+            StringComparison.Ordinal);
+        Assert.True(roleFilter >= 0 && noneGuard > roleFilter && textLocation > noneGuard);
+        Assert.Contains("leader.MText is not null", member);
+        Assert.DoesNotContain(
+            "MLeader leader => (leader.TextLocation, leader.MText?.ActualWidth ?? 0d)",
+            member);
     }
 
     private static IReadOnlyList<int> AllPickerIndices() =>

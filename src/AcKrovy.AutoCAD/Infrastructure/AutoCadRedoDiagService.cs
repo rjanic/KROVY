@@ -524,6 +524,7 @@ internal static class AutoCadRedoDiagService
 }
 
 internal readonly record struct GripRegistrationSnapshot(
+    bool ProductionRegistered,
     bool PassThroughRegistered,
     bool ReadOnlyRegistered,
     bool NormalizeRegistered,
@@ -534,6 +535,7 @@ internal readonly record struct GripRegistrationSnapshot(
     bool OverruleGlobalState,
     bool NormalizeProofEnabled,
     bool GuardIsProcessing,
+    string ProductionInstanceIdentity,
     string PassThroughInstanceIdentity,
     string ReadOnlyInstanceIdentity,
     string NormalizeInstanceIdentity,
@@ -554,6 +556,8 @@ internal static class AutoCadFramedBlockContentGripRegistrationSnapshot
         }
 
         return new GripRegistrationSnapshot(
+            ProductionRegistered: AutoCadFramedBlockContentProductionGripNormalizeService
+                .IsOverruleRegistered,
             PassThroughRegistered: AutoCadFramedBlockContentGripPassthroughProofService
                 .IsOverruleRegistered,
             ReadOnlyRegistered: AutoCadFramedBlockContentGripReadonlyProofService
@@ -567,7 +571,10 @@ internal static class AutoCadFramedBlockContentGripRegistrationSnapshot
             P4AQueuedCount: p4a?.QueuedCount ?? 0,
             OverruleGlobalState: Overrule.Overruling,
             NormalizeProofEnabled: normalizeSession?.ProofEnabled ?? false,
-            GuardIsProcessing: normalizeSession?.IsProcessing ?? false,
+            GuardIsProcessing: (normalizeSession?.IsProcessing ?? false) ||
+                AutoCadFramedBlockContentProductionGripNormalizeService.GuardIsProcessing,
+            ProductionInstanceIdentity: AutoCadFramedBlockContentProductionGripNormalizeService
+                .OverruleInstanceIdentity,
             PassThroughInstanceIdentity: AutoCadFramedBlockContentGripPassthroughProofService
                 .OverruleInstanceIdentity,
             ReadOnlyInstanceIdentity: AutoCadFramedBlockContentGripReadonlyProofService
@@ -589,6 +596,7 @@ internal static class AutoCadFramedBlockContentGripRegistrationSnapshot
         var editor = document.Editor;
         var snap = Capture(document);
         editor.WriteMessage("\n=== AK_DEV_FBC_GRIP_REGISTRATION_STATUS ===");
+        editor.WriteMessage($"\nProductionRegistered={snap.ProductionRegistered}");
         editor.WriteMessage($"\nPassThroughRegistered={snap.PassThroughRegistered}");
         editor.WriteMessage($"\nReadOnlyRegistered={snap.ReadOnlyRegistered}");
         editor.WriteMessage($"\nNormalizeRegistered={snap.NormalizeRegistered}");
@@ -599,14 +607,16 @@ internal static class AutoCadFramedBlockContentGripRegistrationSnapshot
         editor.WriteMessage($"\nOverruleGlobalState={snap.OverruleGlobalState}");
         editor.WriteMessage($"\nNormalizeProofEnabled={snap.NormalizeProofEnabled}");
         editor.WriteMessage($"\nGuardIsProcessing={snap.GuardIsProcessing}");
+        editor.WriteMessage($"\nProductionInstance={snap.ProductionInstanceIdentity}");
         editor.WriteMessage($"\nPassThroughInstance={snap.PassThroughInstanceIdentity}");
         editor.WriteMessage($"\nReadOnlyInstance={snap.ReadOnlyInstanceIdentity}");
         editor.WriteMessage($"\nNormalizeInstance={snap.NormalizeInstanceIdentity}");
         editor.WriteMessage($"\nUnsafeUndoInstance={snap.UnsafeUndoInstanceIdentity}");
         AutoCadRedoDiagService.Trace(
             "REGISTRATION_STATUS " +
-            $"PT={snap.PassThroughRegistered} RO={snap.ReadOnlyRegistered} " +
-            $"NORM={snap.NormalizeRegistered} UNDO={snap.UnsafeUndoProofRegistered} " +
+            $"PROD={snap.ProductionRegistered} PT={snap.PassThroughRegistered} " +
+            $"RO={snap.ReadOnlyRegistered} NORM={snap.NormalizeRegistered} " +
+            $"UNDO={snap.UnsafeUndoProofRegistered} " +
             $"P4A={snap.P4AProofEnabled}/{snap.P4AQueuedCount} " +
             $"Overruling={snap.OverruleGlobalState} " +
             $"NormProof={snap.NormalizeProofEnabled} Guard={snap.GuardIsProcessing}");

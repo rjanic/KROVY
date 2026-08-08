@@ -51,7 +51,7 @@ internal static class AcKrovyFramedBlockContentDefinitionService
             var sizeToken = TimberFramedBlockContentDefinitionRules.GetFrameSizeToken(
                 normalized.ContentKind,
                 frameDefinition?.Size);
-            // R2 keys only — never mutate existing side-agnostic R1 Combined BTRs.
+            // R3 keys only — never mutate existing R1/R2 Combined BTRs.
             rawKey = TimberFramedBlockContentVariantRules.CreateRawKey(
                 normalized.ContentKind,
                 sizeToken,
@@ -71,7 +71,7 @@ internal static class AcKrovyFramedBlockContentDefinitionService
                     rawKey,
                     canonicalName,
                     databaseIdentity,
-                    "Generated block name is outside the AK_KROVY_FBC_R2_ family.");
+                    "Generated block name is outside the AK_KROVY_FBC_R3_ family.");
             }
         }
         catch (Exception exception) when (

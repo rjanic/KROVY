@@ -560,10 +560,23 @@ internal static partial class ElementLabelService
                 copySourcePreservation,
                 g4Preparation,
                 out _);
+            // FindExistingLabelId still keys on FramedItem/Primary BlockLeader.
+            // G4 composites use Circle* roles, so a legacy framed MLeader can be
+            // selected as existingId and would otherwise survive beside G4.
+            if (!existingId.IsNull)
+            {
+                EraseLegacyFramedLeaderBesideG4(transaction, existingId);
+            }
+
             DeleteObsoleteLabels(transaction, obsoleteIds, ObjectId.Null);
             if (!copySourcePreservation)
             {
                 DeleteDuplicateLabelsForExistingSourceHandles(database, transaction);
+                DeleteOwnedAnnotationOwnershipViolations(
+                    database,
+                    transaction,
+                    sourceHandle,
+                    data.ElementId);
             }
 
             return created;
@@ -763,6 +776,57 @@ internal static partial class ElementLabelService
         ArgumentNullException.ThrowIfNull(annotationScaleContext);
         var presentationScaleFactor =
             annotationScaleContext.ScaleFactor;
+
+        // Framed Combined → one G5 BlockContent MLeader (not G4 composite).
+        if (AutoCadFramedBlockContentProductionPolicy.UsesG5CombinedFramed(
+                data.AnnotationMode,
+                data.ItemNumberLeaderStyle))
+        {
+            if (presentationContext is null)
+            {
+                AcKrovyDiagnostics.Warning(
+                    "G5CombinedFramed",
+                    "G5 Combined framed requires a presentation context.");
+                return false;
+            }
+
+            // G5 Combined create uses local-basis DefaultCreateSide (Right),
+            // never World-X Start→End from CalculateLeaderPlacement.
+            // Refresh of an existing MLeader preserves live geometry in place.
+            var g5CreatePlacement = framedPlacement with
+            {
+                Side = TimberFramedCombinedG5RefreshPlacementRules.DefaultCreateSide,
+            };
+            var combinedFramedPlacement = ApplyCombinedLandingDistance(
+                g5CreatePlacement,
+                presentationScaleFactor);
+            var g5Ok = UpsertG5CombinedFramedLeader(
+                database,
+                transaction,
+                sourceEntity,
+                data,
+                previousElementId,
+                combinedFramedPlacement,
+                copySourcePreservation,
+                annotationScaleContext,
+                presentationContext);
+            DeleteUnexpectedCompositeComponents(
+                database,
+                transaction,
+                sourceEntity.Handle.ToString());
+            if (!copySourcePreservation)
+            {
+                DeleteOwnedAnnotationOwnershipViolations(
+                    database,
+                    transaction,
+                    sourceEntity.Handle.ToString(),
+                    data.ElementId,
+                    deleteStaleElementIds: true);
+            }
+
+            return g5Ok;
+        }
+
         if (!AutoCadDimensionsLeaderPresentationPolicy.TryPrepare(
                 database,
                 presentationContext,
@@ -791,10 +855,10 @@ internal static partial class ElementLabelService
             TimberCombinedDimensionTypographyRules.CalculateEnvelopeWidthMm(
                 dimensionsContents,
                 presentationScaleFactor);
-        var combinedFramedPlacement = ApplyCombinedLandingDistance(
+        var combinedPlainPlacement = ApplyCombinedLandingDistance(
             framedPlacement,
             presentationScaleFactor);
-        var effectiveFramedPlacement = combinedFramedPlacement;
+        var effectiveFramedPlacement = combinedPlainPlacement;
         var isCombinedPlainItem =
             ItemNumberLeaderStyleRules.Normalize(data.ItemNumberLeaderStyle) ==
                 ItemNumberLeaderStyle.Plain;
@@ -826,7 +890,7 @@ internal static partial class ElementLabelService
             sourceEntity,
             data,
             previousElementId,
-            combinedFramedPlacement,
+            combinedPlainPlacement,
             data.ElementId,
             copySourcePreservation,
             annotationScaleContext: annotationScaleContext,
@@ -862,43 +926,7 @@ internal static partial class ElementLabelService
             return false;
         }
 
-        // G4 combined framed reports CREATED via UpsertLeader=true and UPDATED via
-        // a G4 ItemCode DBText on this SourceHandle (variantResult stays null).
         var framedOk = framedCreated;
-        if (!isCombinedPlainItem &&
-            TimberAnnotationModeRules.IsFramedItemLeader(
-                data.AnnotationMode,
-                data.ItemNumberLeaderStyle) &&
-            framedVariantResult is null &&
-            !framedCreated)
-        {
-            var sourceHandle = sourceEntity.Handle.ToString();
-            var hasG4ItemCode = ReadAnnotationEntities(database, transaction)
-                .Any(entry =>
-                    entry.Data.ComponentRole ==
-                        AutoCadFramedG4CompositePolicy.ItemCodeRole &&
-                    entry.Data.RendererGeneration ==
-                        AutoCadFramedG4CompositePolicy.RendererGeneration &&
-                    string.Equals(
-                        entry.Data.SourceHandle,
-                        sourceHandle,
-                        StringComparison.OrdinalIgnoreCase));
-            if (!hasG4ItemCode)
-            {
-#if DEBUG
-                AutoCadFramedG4HostDiagnostics.Fail(
-                    "F.07",
-                    "framedCreated=false AND framedVariantResult=null AND " +
-                    "no G4 ItemCode DBText for SourceHandle " +
-                    $"(hasG4ItemCode=false; sourceHandle={sourceHandle})",
-                    sourceId: sourceEntity.ObjectId,
-                    sourceHandle: sourceHandle);
-#endif
-                return false;
-            }
-
-            framedOk = true;
-        }
         var dimensionsPlacement = CalculateCombinedDimensionsTextPlacement(
             database,
             transaction,
@@ -929,7 +957,1065 @@ internal static partial class ElementLabelService
             database,
             transaction,
             sourceEntity.Handle.ToString());
+        if (!copySourcePreservation)
+        {
+            // After framed + Primary upsert: drop previous-type ElementId
+            // leftovers (K→KL / K→VT) that role/group dedupe alone can miss.
+            DeleteOwnedAnnotationOwnershipViolations(
+                database,
+                transaction,
+                sourceEntity.Handle.ToString(),
+                data.ElementId,
+                deleteStaleElementIds: true);
+        }
+
         return primaryCreated || framedOk;
+    }
+
+    private static bool UpsertG5CombinedFramedLeader(
+        Database database,
+        Transaction transaction,
+        Entity sourceEntity,
+        TimberElementData data,
+        string? previousElementId,
+        LeaderPlacement framedPlacement,
+        bool copySourcePreservation,
+        TimberAnnotationScaleContext annotationScaleContext,
+        AutoCadAnnotationPresentationContext presentationContext)
+    {
+        var sourceHandle = sourceEntity.Handle.ToString();
+        // Canonical create/refresh geometry always starts from automatic source
+        // placement. Manual offset must never move Anchor/attachment.
+        var automaticPlacement = framedPlacement;
+        var placement = framedPlacement;
+        var existingId = FindExistingLabelId(
+            database,
+            transaction,
+            data.ElementId,
+            sourceHandle,
+            previousElementId,
+            TimberMainAnnotationRepresentation.BlockLeader,
+            AutoCadFramedBlockContentProductionPolicy.CombinedRole,
+            preserveCompositeSiblings: true,
+            allowElementIdFallback: !copySourcePreservation,
+            out var obsoleteIds);
+
+        // Prefer an existing production G5 Combined MLeader for in-place update.
+        ObjectId existingG5Id = ObjectId.Null;
+        if (!existingId.IsNull &&
+            AutoCadObjectIdAccess.TryGetObject<MLeader>(
+                transaction,
+                existingId,
+                OpenMode.ForRead,
+                out var existingLeader,
+                database) &&
+            existingLeader is not null &&
+            ElementLabelStore.TryRead(existingLeader, out var existingData) &&
+            existingData is not null &&
+            AutoCadFramedBlockContentProductionPolicy.IsG5CombinedMetadata(
+                existingData))
+        {
+            existingG5Id = existingId;
+            // Existing placement has priority: never move Anchor via manual offset.
+            // Content-only refresh reads live attachment/knee/BlockPosition instead.
+            if (!TimberFramedCombinedG5RefreshPlacementRules.ManualOffsetMayMoveAnchor &&
+                TryCreateDoglegDirection(
+                    existingData.CombinedDoglegDirectionX,
+                    existingData.CombinedDoglegDirectionY,
+                    out var persistedDogleg))
+            {
+                placement = placement with
+                {
+                    DoglegDirection = persistedDogleg,
+                };
+            }
+        }
+        else if (!existingId.IsNull)
+        {
+            // Legacy FramedItem BlockLeader beside G5 path — erase before create.
+            EraseMainAnnotation(
+                transaction,
+                (Entity)transaction.GetObject(existingId, OpenMode.ForWrite));
+        }
+
+        // Create and geometry rebuild share the same canonical attachment inputs.
+        if (!TryBuildG5CombinedRequest(
+                database,
+                transaction,
+                sourceEntity,
+                data,
+                automaticPlacement,
+                annotationScaleContext,
+                presentationContext,
+                out var request,
+                out var frameDefinition,
+                out var diagnostic))
+        {
+            AcKrovyDiagnostics.Warning("G5CombinedFramed", diagnostic);
+            return false;
+        }
+
+        ObjectId leaderId;
+        TimberFramedCombinedG5SourceRotationRebuildDecision?
+            sourceRotationRebuildDecision = null;
+        if (!existingG5Id.IsNull &&
+            TryUpdateG5CombinedInPlace(
+                database,
+                transaction,
+                existingG5Id,
+                request,
+                data,
+                sourceHandle,
+                sourceEntity,
+                placement,
+                automaticPlacement,
+                frameDefinition,
+                out leaderId,
+                out sourceRotationRebuildDecision))
+        {
+            DeleteObsoleteLabels(transaction, obsoleteIds, leaderId);
+            DeleteOwnedG4CombinedPartsForSourceHandle(
+                database,
+                transaction,
+                sourceHandle,
+                keepLeaderId: leaderId);
+            return true;
+        }
+
+        if (!existingG5Id.IsNull)
+        {
+            EraseMainAnnotation(
+                transaction,
+                (Entity)transaction.GetObject(existingG5Id, OpenMode.ForWrite));
+        }
+
+        DeleteOwnedG4CombinedPartsForSourceHandle(
+            database,
+            transaction,
+            sourceHandle,
+            keepLeaderId: ObjectId.Null);
+
+        var created = AutoCadFramedBlockContentAnnotationService.Create(
+            database,
+            transaction,
+            request);
+        if (!created.Succeeded ||
+            created.LeaderId is not ObjectId createdId ||
+            createdId.IsNull ||
+            transaction.GetObject(createdId, OpenMode.ForWrite) is not MLeader leader)
+        {
+            AcKrovyDiagnostics.Warning(
+                "G5CombinedFramed",
+                created.DiagnosticReason ?? "G5 Combined create failed.");
+            return false;
+        }
+
+        WriteG5CombinedMetadata(
+            leader,
+            transaction,
+            data,
+            sourceHandle,
+            automaticPlacement,
+            automaticPlacement,
+            request.ElementAxisRadians,
+            frameDefinition,
+            created.ReferencePresentationRevision);
+#if DEBUG
+        if (sourceRotationRebuildDecision?.AnnotationRebuildRequired == true)
+        {
+            CompleteSourceRotationRebuildTrace(
+                sourceHandle,
+                leader.Handle.ToString());
+        }
+#endif
+        DeleteObsoleteLabels(transaction, obsoleteIds, createdId);
+        DeleteOwnedG4CombinedPartsForSourceHandle(
+            database,
+            transaction,
+            sourceHandle,
+            keepLeaderId: createdId);
+        return true;
+    }
+
+    private static bool TryUpdateG5CombinedInPlace(
+        Database database,
+        Transaction transaction,
+        ObjectId existingId,
+        AutoCadFramedBlockContentAnnotationRequest request,
+        TimberElementData data,
+        string sourceHandle,
+        Entity sourceEntity,
+        LeaderPlacement placement,
+        LeaderPlacement automaticPlacement,
+        TimberItemLeaderBlockDefinition? frameDefinition,
+        out ObjectId leaderId,
+        out TimberFramedCombinedG5SourceRotationRebuildDecision?
+            sourceRotationRebuildDecision)
+    {
+        _ = database;
+        leaderId = ObjectId.Null;
+        sourceRotationRebuildDecision = null;
+        if (transaction.GetObject(existingId, OpenMode.ForWrite, false) is not
+                MLeader leader ||
+            leader.IsErased ||
+            leader.ContentType != ContentType.BlockContent ||
+            leader.BlockContentId.IsNull)
+        {
+            return false;
+        }
+
+        if (transaction.GetObject(leader.BlockContentId, OpenMode.ForRead, true) is not
+                BlockTableRecord existingBlock ||
+            !AutoCadFramedBlockContentPolicy.IsProductionFamilyName(existingBlock.Name))
+        {
+            return false;
+        }
+
+        ElementLabelData? existingLabelData = null;
+        _ = ElementLabelStore.TryRead(leader, out existingLabelData);
+        var newPlacementRotation = automaticPlacement.RotationRadians;
+        var oldPlacementRotation =
+            existingLabelData?.PlacementRotationRadians ??
+            newPlacementRotation;
+        sourceRotationRebuildDecision =
+            TimberFramedCombinedG5SourceRotationRebuildRules
+                .DecideFromPersistedMetadata(
+                    existingLabelData?.RotationRadians,
+                    existingLabelData?.PlacementRotationRadians,
+                    request.ElementAxisRadians);
+        if (sourceRotationRebuildDecision.AnnotationRebuildRequired)
+        {
+#if DEBUG
+            RecordSourceRotationRebuildPending(
+                sourceHandle,
+                sourceRotationRebuildDecision,
+                leader.Handle.ToString());
+#endif
+            // Host-proven lifecycle: never repair a source-rotated production
+            // R3 Combined MLeader in place. The caller erases this exact owned
+            // entity and continues through the canonical production CREATE.
+            return false;
+        }
+
+        var attachment = ReadG5Attachment(leader);
+        // Preserve live placement unless source attachment or scale actually changed.
+        if (!TimberFramedCombinedG5RefreshPlacementRules.ShouldPreserveExistingPlacement(
+                attachment.X,
+                attachment.Y,
+                automaticPlacement.Anchor.X,
+                automaticPlacement.Anchor.Y,
+                leader.BlockScale.X,
+                request.BlockScale))
+        {
+            return false;
+        }
+
+        var blockId = leader.BlockContentId;
+
+        // World presentation is authoritative. BlockRotation is only relative
+        // to the implicit CREATE TransformBy basis and cannot be captured as an
+        // absolute replacement value.
+        var blockRotationBeforeRefresh = leader.BlockRotation;
+        var presentationMeasured =
+            AutoCadFramedBlockContentDimensionColumnPlacementService
+                .TryResolveWorldContentXAxis(
+                    transaction,
+                    leader,
+                    out var livePresentation,
+                    out _);
+        if (!presentationMeasured)
+        {
+            livePresentation =
+                AutoCadFramedBlockContentDimensionColumnPlacementService
+                    .CaptureBlockContentPresentationRadians(transaction, leader);
+        }
+
+        var refreshPresentation =
+            TimberFramedCombinedG5SourceRotationRules.ResolveRefreshPresentationRadians(
+                oldPlacementRotation,
+                newPlacementRotation,
+                livePresentation);
+        // Content-only refresh: pick R3_RIGHT/LEFT for the live relative side.
+        // Never re-apply CREATE 60°. Preserve leader vertices + user placement.
+        TrySyncG5CombinedContentVariant(
+            database,
+            transaction,
+            leader,
+            sourceEntity,
+            request,
+            refreshPresentation);
+
+        ApplyG5CombinedAttributeValues(
+            transaction,
+            leader,
+            leader.BlockContentId.IsNull ? blockId : leader.BlockContentId,
+            request);
+
+        // BTR/AttrRef update may alter the measured world basis. Correct only
+        // by desiredWorld-currentWorld in relative BlockRotation space. For an
+        // ordinary "Obnoviť popisy" refresh this produces world delta 0°.
+        if (!AutoCadFramedBlockContentDimensionColumnPlacementService
+                .TryRestoreBlockContentPresentationAfterRefresh(
+                    transaction,
+                    leader,
+                    oldPlacementRotation,
+                    newPlacementRotation,
+                    livePresentation,
+                    out var refreshDecision,
+                    out _))
+        {
+            // Valid production R3 has measurable AttrRef geometry. Fail closed
+            // without converting a world angle into absolute BlockRotation.
+            var estimatedWorldAfterContent =
+                TimberAnnotationReadabilityRules.WrapPhysicalAngleRadians(
+                    livePresentation +
+                    TimberAnnotationReadabilityRules.NormalizeAngleDelta(
+                        leader.BlockRotation - blockRotationBeforeRefresh));
+            var fallbackDecision =
+                TimberFramedCombinedG5RefreshPlacementRules
+                    .ResolveContentOnlyRefreshPresentation(
+                        oldPlacementRotation,
+                        newPlacementRotation,
+                        livePresentation,
+                        estimatedWorldAfterContent,
+                        leader.BlockRotation);
+            AutoCadFramedBlockContentDimensionColumnPlacementService
+                .PreserveBlockContentPresentationRotation(
+                    transaction,
+                    leader,
+                    fallbackDecision.TargetBlockRotation);
+        }
+#if DEBUG
+        else
+        {
+            AutoCadFramedBlockContentDimensionColumnPlacementService
+                .RecordRefreshPresentationTrace(sourceHandle, refreshDecision);
+        }
+#endif
+        var referencePresentationRevision =
+            ApplyG5CombinedReferencePresentationAfterRefresh(
+            database,
+            transaction,
+            leader,
+            sourceEntity,
+            request,
+            sourceHandle,
+            existingLabelData?.R3ReferencePresentationRevision ?? 0);
+        if (AutoCadWholeMLeaderHalfTurnService.TryApplyRequiredState(
+                transaction,
+                leader,
+                request.ElementAxisRadians,
+                referencePresentationRevision,
+                "Refresh",
+                out var wholeAnnotationOperation,
+                out var wholeAnnotationReason))
+        {
+            referencePresentationRevision =
+                wholeAnnotationOperation.Decision.RevisionAfter;
+        }
+        else
+        {
+            AcKrovyDiagnostics.Warning(
+                "G5CombinedWholeAnnotationHalfTurn",
+                wholeAnnotationReason);
+        }
+
+        WriteG5CombinedMetadata(
+            leader,
+            transaction,
+            data,
+            sourceHandle,
+            placement,
+            automaticPlacement,
+            request.ElementAxisRadians,
+            frameDefinition,
+            referencePresentationRevision);
+#if DEBUG
+        RecordSourceRotationNoRebuildTrace(
+            sourceHandle,
+            sourceRotationRebuildDecision,
+            leader.Handle.ToString());
+#endif
+        leaderId = existingId;
+        return true;
+    }
+
+    /// <summary>
+    /// Idempotent adoption of the two CREATE reference directions by an
+    /// already-existing production R3 entity. The ordinary refresh-preservation
+    /// step above remains unchanged; this runs afterward only for exact source
+    /// 90°/180° and applies a measured WCS delta plus the existing R3 side sync.
+    /// No leader geometry or user placement is written.
+    /// </summary>
+    internal static int ApplyG5CombinedReferencePresentationAfterRefresh(
+        Database database,
+        Transaction transaction,
+        MLeader leader,
+        Entity sourceEntity,
+        AutoCadFramedBlockContentAnnotationRequest request,
+        string sourceHandle,
+        int currentRevision)
+    {
+        var blockRotationBefore = leader.BlockRotation;
+        var hasWorldBefore =
+            AutoCadFramedBlockContentDimensionColumnPlacementService
+                .TryResolveWorldContentXAxis(
+                    transaction,
+                    leader,
+                    out var currentWorld,
+                    out var worldBeforeNote);
+        if (!TimberFramedBlockContentReadableOrientationRules
+                .ShouldAdoptReferencePresentation(
+                    request.ElementAxisRadians,
+                    currentRevision))
+        {
+#if DEBUG
+            RecordG5CombinedReferencePresentationTrace(
+                transaction,
+                leader,
+                request,
+                sourceHandle,
+                hasWorldBefore ? currentWorld : null,
+                decision: null,
+                blockRotationBefore,
+                currentRevision,
+                currentRevision,
+                "TryUpdateG5CombinedInPlace>RefreshPreservation>" +
+                "ReferenceAdoptionSkipped",
+                worldBeforeNote);
+#endif
+            return currentRevision;
+        }
+
+        if (!hasWorldBefore)
+        {
+#if DEBUG
+            RecordG5CombinedReferencePresentationTrace(
+                transaction,
+                leader,
+                request,
+                sourceHandle,
+                worldBefore: null,
+                decision: null,
+                blockRotationBefore,
+                currentRevision,
+                currentRevision,
+                "TryUpdateG5CombinedInPlace>RefreshPreservation>" +
+                "ReferenceMeasureFailed",
+                worldBeforeNote);
+#endif
+            return currentRevision;
+        }
+
+        var decision =
+            TimberFramedBlockContentReadableOrientationRules
+                .ResolveCreateReferenceFinalWorldPresentation(
+                    request.ElementAxisRadians,
+                    currentWorld,
+                    leader.BlockRotation);
+        if (!decision.AppliesReferenceRule)
+        {
+            return currentRevision;
+        }
+
+        if (decision.AppliesHalfTurn)
+        {
+            leader.BlockRotation = decision.TargetBlockRotation;
+            TrySyncG5CombinedContentVariant(
+                database,
+                transaction,
+                leader,
+                sourceEntity,
+                request,
+                decision.VerticalRuleOutput);
+
+            // A BTR swap may restore its captured presentation. Re-measure and
+            // install only the remaining relative WCS delta to the fixed target.
+            var hasFinalWorld =
+                AutoCadFramedBlockContentDimensionColumnPlacementService
+                    .TryResolveWorldContentXAxis(
+                        transaction,
+                        leader,
+                        out var worldAfterVariant,
+                        out _);
+            if (hasFinalWorld)
+            {
+                // Do not invoke the reference rule a second time. Install only
+                // the remaining WCS delta to its one original desired angle.
+                var remainingDelta =
+                    TimberAnnotationReadabilityRules.NormalizeAngleDelta(
+                        decision.VerticalRuleOutput - worldAfterVariant);
+                leader.BlockRotation =
+                    TimberAnnotationReadabilityRules.WrapPhysicalAngleRadians(
+                        leader.BlockRotation + remainingDelta);
+            }
+
+            leader.RecordGraphicsModified(true);
+        }
+        var hasPlacement =
+            AutoCadFramedBlockContentDimensionColumnPlacementService
+                .TryEvaluate(
+                    transaction,
+                    leader,
+                    out var placement,
+                    out _,
+                    out _);
+        if (!AutoCadFramedBlockContentDimensionColumnPlacementService
+                .TryResolveWorldContentXAxis(
+                    transaction,
+                    leader,
+                    out var finalWorld,
+                    out _) ||
+            !hasPlacement ||
+            !placement.Current.IsCorrect ||
+            Math.Abs(
+                TimberAnnotationReadabilityRules.NormalizeAngleDelta(
+                    finalWorld - decision.VerticalRuleOutput)) >
+                TimberFramedBlockContentReadableOrientationRules
+                    .AngleToleranceRadians)
+        {
+#if DEBUG
+            RecordG5CombinedReferencePresentationTrace(
+                transaction,
+                leader,
+                request,
+                sourceHandle,
+                currentWorld,
+                decision,
+                blockRotationBefore,
+                currentRevision,
+                currentRevision,
+                "TryUpdateG5CombinedInPlace>RefreshPreservation>MeasureWorld>" +
+                "WorldDelta>R3Variant>ReassertBR>FinalVerificationFailed",
+                "final world/toward-knee verification failed");
+#endif
+            return currentRevision;
+        }
+
+        var adoptedRevision = TimberFramedBlockContentReadableOrientationRules
+            .ReferencePresentationRevision;
+#if DEBUG
+        RecordG5CombinedReferencePresentationTrace(
+            transaction,
+            leader,
+            request,
+            sourceHandle,
+            currentWorld,
+            decision,
+            blockRotationBefore,
+            currentRevision,
+            adoptedRevision,
+            "TryUpdateG5CombinedInPlace>RefreshPreservation>MeasureWorld>" +
+            "WorldDelta>R3Variant>ReassertBR>MeasureFinal>WriteRevision",
+            "existing R3 reference presentation adopted");
+#endif
+        return adoptedRevision;
+    }
+
+#if DEBUG
+    private static void RecordG5CombinedReferencePresentationTrace(
+        Transaction transaction,
+        MLeader leader,
+        AutoCadFramedBlockContentAnnotationRequest request,
+        string sourceHandle,
+        double? worldBefore,
+        R3CreateReferencePresentationDecision? decision,
+        double blockRotationBefore,
+        int revisionBefore,
+        int revisionAfter,
+        string operationSequence,
+        string note)
+    {
+        var hasWorldAfter =
+            AutoCadFramedBlockContentDimensionColumnPlacementService
+                .TryResolveWorldContentXAxis(
+                    transaction,
+                    leader,
+                    out var worldAfter,
+                    out var worldAfterNote);
+        var hasPlacement =
+            AutoCadFramedBlockContentDimensionColumnPlacementService
+                .TryEvaluate(
+                    transaction,
+                    leader,
+                    out var placement,
+                    out var points,
+                    out var placementNote);
+        var dimensionCenter = hasPlacement
+            ? new TimberPlanarPoint(
+                (points.WidthAlignment.X + points.HeightAlignment.X) / 2d,
+                (points.WidthAlignment.Y + points.HeightAlignment.Y) / 2d)
+            : default;
+        var towardKneeDot = double.NaN;
+        var hasDot = hasPlacement &&
+            TimberFramedBlockContentDefinitionRules
+                .TryEvaluateDimensionsTowardKneeDot(
+                    new TimberPlanarPoint(
+                        points.ItemAlignment.X,
+                        points.ItemAlignment.Y),
+                    new TimberPlanarPoint(points.Knee.X, points.Knee.Y),
+                    dimensionCenter,
+                    out towardKneeDot);
+        string? blockName = null;
+        if (!leader.BlockContentId.IsNull &&
+            transaction.GetObject(
+                leader.BlockContentId,
+                OpenMode.ForRead,
+                true) is BlockTableRecord block)
+        {
+            blockName = block.Name;
+        }
+
+        AutoCadFramedBlockContentAnnotationService
+            .RecordProductionPresentationTrace(
+                leader.ObjectId.Handle.ToString(),
+                new R3CreatePresentationTrace(
+                    SourceHandle: sourceHandle,
+                    SourcePhysicalAxisAngle: request.ElementAxisRadians,
+                    VerticalRuleInput: decision?.VerticalRuleInput,
+                    VerticalRuleOutput: decision?.VerticalRuleOutput,
+                    TransformByAngle: double.NaN,
+                    BlockRotationBefore: blockRotationBefore,
+                    BlockRotationRequested:
+                        decision?.TargetBlockRotation ?? leader.BlockRotation,
+                    BlockRotationAfter: leader.BlockRotation,
+                    FrameWorldOrientationBefore: worldBefore,
+                    FrameWorldOrientationAfter:
+                        hasWorldAfter ? worldAfter : null,
+                    ItemTextWorldAngle:
+                        AutoCadFramedBlockContentAnnotationService
+                            .TryReadAttributeRotationRadians(
+                                transaction,
+                                leader,
+                                TimberFramedBlockContentDefinitionRules.ItemNoTag),
+                    WidthTextWorldAngle:
+                        AutoCadFramedBlockContentAnnotationService
+                            .TryReadAttributeRotationRadians(
+                                transaction,
+                                leader,
+                                TimberFramedBlockContentDefinitionRules.WidthTag),
+                    HeightTextWorldAngle:
+                        AutoCadFramedBlockContentAnnotationService
+                            .TryReadAttributeRotationRadians(
+                                transaction,
+                                leader,
+                                TimberFramedBlockContentDefinitionRules.HeightTag),
+                    AppliedHalfTurn: revisionAfter > revisionBefore,
+                    BlockNameBeforeCorrection: blockName,
+                    BlockNameAfterCorrection: blockName,
+                    ContentVariant: blockName,
+                    DimensionsTowardKneeAfter:
+                        hasPlacement && placement.Current.IsCorrect,
+                    DimensionsTowardKneeDot: hasDot ? towardKneeDot : null,
+                    PresentationPath:
+                        revisionAfter > revisionBefore
+                            ? "ExistingUpdate"
+                            : "Refresh",
+                    PresentationOperationSequence: operationSequence,
+                    ReferenceRevisionBefore: revisionBefore,
+                    ReferenceRevisionAfter: revisionAfter,
+                    MeasurementNote:
+                        $"{note}; worldAfter={worldAfterNote}; " +
+                        $"placement={placementNote}"));
+    }
+#endif
+
+    private static void TrySyncG5CombinedContentVariant(
+        Database database,
+        Transaction transaction,
+        MLeader leader,
+        Entity sourceEntity,
+        AutoCadFramedBlockContentAnnotationRequest request,
+        double effectiveContentWorldAngleRadians)
+    {
+        if (leader.ContentType != ContentType.BlockContent ||
+            leader.BlockContentId.IsNull)
+        {
+            return;
+        }
+
+        Point3d start;
+        Point3d end;
+        switch (sourceEntity)
+        {
+            case Line line:
+                start = line.StartPoint;
+                end = line.EndPoint;
+                break;
+            case Polyline polyline:
+                start = polyline.StartPoint;
+                end = polyline.EndPoint;
+                break;
+            default:
+                return;
+        }
+
+        if (transaction.GetObject(leader.BlockContentId, OpenMode.ForRead, true) is not
+                BlockTableRecord block ||
+            block.IsErased ||
+            !TimberFramedBlockContentVariantRules.IsProductionR3Combined(block.Name))
+        {
+            return;
+        }
+
+        var values = new List<(string Tag, string Text, double Height)>
+        {
+            (
+                TimberFramedBlockContentDefinitionRules.ItemNoTag,
+                request.ItemNoText,
+                request.ItemAttributeBaselineHeightMm),
+            (
+                TimberFramedBlockContentDefinitionRules.WidthTag,
+                request.WidthText,
+                request.DimensionAttributeBaselineHeightMm),
+            (
+                TimberFramedBlockContentDefinitionRules.HeightTag,
+                request.HeightText,
+                request.DimensionAttributeBaselineHeightMm),
+        };
+
+        _ = AutoCadFramedBlockContentDimensionColumnPlacementService
+            .EnsureCorrectR3ContentVariantFromFinalGeometry(
+                database,
+                transaction,
+                leader,
+                start.X,
+                start.Y,
+                end.X,
+                end.Y,
+                request.ContentKind,
+                request.ItemTextStyleName,
+                request.DimensionTextStyleName,
+                request.ItemTextStyleId,
+                request.DimensionTextStyleId,
+                request.ItemPaperHeightMm,
+                request.DimensionPaperHeightMm,
+                request.ItemNoText,
+                values,
+                out _,
+                out _,
+                out _,
+                out _,
+                effectiveContentWorldAngleRadians);
+    }
+
+    private static void ApplyG5CombinedAttributeValues(
+        Transaction transaction,
+        MLeader leader,
+        ObjectId blockId,
+        AutoCadFramedBlockContentAnnotationRequest request)
+    {
+        var block = (BlockTableRecord)transaction.GetObject(blockId, OpenMode.ForRead);
+        foreach (ObjectId id in block)
+        {
+            if (transaction.GetObject(id, OpenMode.ForRead, true) is not
+                    AttributeDefinition definition ||
+                definition.IsErased)
+            {
+                continue;
+            }
+
+            string? text = null;
+            double height = double.NaN;
+            if (string.Equals(
+                    definition.Tag,
+                    TimberFramedBlockContentDefinitionRules.ItemNoTag,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                text = request.ItemNoText;
+                height = request.ItemAttributeBaselineHeightMm;
+            }
+            else if (string.Equals(
+                         definition.Tag,
+                         TimberFramedBlockContentDefinitionRules.WidthTag,
+                         StringComparison.OrdinalIgnoreCase))
+            {
+                text = request.WidthText;
+                height = request.DimensionAttributeBaselineHeightMm;
+            }
+            else if (string.Equals(
+                         definition.Tag,
+                         TimberFramedBlockContentDefinitionRules.HeightTag,
+                         StringComparison.OrdinalIgnoreCase))
+            {
+                text = request.HeightText;
+                height = request.DimensionAttributeBaselineHeightMm;
+            }
+            else
+            {
+                continue;
+            }
+
+            using var attribute = new AttributeReference();
+            attribute.SetAttributeFromBlock(definition, Matrix3d.Identity);
+            attribute.TextString = text;
+            attribute.Height = height;
+            leader.SetBlockAttribute(definition.ObjectId, attribute);
+        }
+    }
+
+    private static bool TryBuildG5CombinedRequest(
+        Database database,
+        Transaction transaction,
+        Entity sourceEntity,
+        TimberElementData data,
+        LeaderPlacement placement,
+        TimberAnnotationScaleContext annotationScaleContext,
+        AutoCadAnnotationPresentationContext presentationContext,
+        out AutoCadFramedBlockContentAnnotationRequest request,
+        out TimberItemLeaderBlockDefinition? frameDefinition,
+        out string diagnostic)
+    {
+        request = null!;
+        frameDefinition = null;
+        diagnostic = string.Empty;
+
+        var itemRole = presentationContext.FramedItemCodeText;
+        var dimRole = presentationContext.DimensionText;
+        if (itemRole.ResolvedTextStyleId is not ObjectId itemStyleId ||
+            itemStyleId.IsNull ||
+            dimRole.ResolvedTextStyleId is not ObjectId dimStyleId ||
+            dimStyleId.IsNull ||
+            string.IsNullOrWhiteSpace(itemRole.ResolvedTextStyleName) ||
+            string.IsNullOrWhiteSpace(dimRole.ResolvedTextStyleName))
+        {
+            diagnostic =
+                "G5 Combined requires resolved item and dimension text styles.";
+            return false;
+        }
+
+        TimberFramedBlockContentKind contentKind;
+        try
+        {
+            contentKind =
+                TimberFramedBlockContentDefinitionRules.FromItemNumberLeaderStyle(
+                    data.ItemNumberLeaderStyle);
+        }
+        catch (ArgumentOutOfRangeException exception)
+        {
+            diagnostic = exception.Message;
+            return false;
+        }
+
+        frameDefinition = TimberItemLeaderBlockDefinitionRules.Resolve(
+            ItemNumberLeaderStyleRules.Normalize(data.ItemNumberLeaderStyle),
+            data.ElementId);
+        var scale = annotationScaleContext.ScaleFactor;
+        var denom = annotationScaleContext.Denominator;
+        var frameWidth = frameDefinition.WidthMm * scale;
+        var frameHeight = frameDefinition.HeightMm * scale;
+        var envelope =
+            TimberFramedBlockContentDefinitionRules
+                .CalculateReferenceDimensionEnvelopeWidthMm(dimRole.PaperHeightMm) *
+            scale;
+        var firstSegment =
+            TimberItemLeaderLayoutCalculator.FirstSegmentLengthMm * scale;
+        var landing =
+            TimberItemLeaderLayoutCalculator.CombinedFramedLandingDistanceMm *
+            scale;
+        var layerId = EnsureLabelLayer(database, transaction, updateExisting: true);
+
+        // Raw Start→End axis (not the already-readable placement rotation) so
+        // readability flip can mirror layout Side and keep ActualWorldSide=Right.
+        var rawAxisRadians = TryGetSourceElementAxisRadians(
+            sourceEntity,
+            out var sourceAxis)
+            ? sourceAxis
+            : placement.RotationRadians;
+        var createLayoutSide =
+            TimberFramedCombinedG5CreatePlacementRules.ResolveCreateLayoutSide(
+                rawAxisRadians);
+        request = new AutoCadFramedBlockContentAnnotationRequest(
+            placement.Anchor.X,
+            placement.Anchor.Y,
+            rawAxisRadians,
+            createLayoutSide,
+            contentKind,
+            TimberFramedBlockContentPresentation.Combined,
+            frameWidth,
+            frameHeight,
+            envelope,
+            denom,
+            itemRole.PaperHeightMm,
+            dimRole.PaperHeightMm,
+            itemRole.ResolvedTextStyleName!,
+            dimRole.ResolvedTextStyleName!,
+            itemStyleId,
+            dimStyleId,
+            data.ElementId,
+            $"{data.WidthMm:0}",
+            $"{data.HeightMm:0}",
+            firstSegment,
+            landing,
+            layerId,
+            AutoCadFramedBlockContentStabilizationMode.RecordGraphicsRefresh);
+        return true;
+    }
+
+    private static bool TryGetSourceElementAxisRadians(
+        Entity sourceEntity,
+        out double axisRadians)
+    {
+        axisRadians = 0d;
+        Point3d start;
+        Point3d end;
+        switch (sourceEntity)
+        {
+            case Line line:
+                start = line.StartPoint;
+                end = line.EndPoint;
+                break;
+            case Polyline polyline:
+                start = polyline.StartPoint;
+                end = polyline.EndPoint;
+                break;
+            default:
+                return false;
+        }
+
+        var dx = end.X - start.X;
+        var dy = end.Y - start.Y;
+        if (Math.Sqrt((dx * dx) + (dy * dy)) <= PlacementToleranceMm)
+        {
+            return false;
+        }
+
+        axisRadians = Math.Atan2(dy, dx);
+        return true;
+    }
+
+    private static void WriteG5CombinedMetadata(
+        MLeader leader,
+        Transaction transaction,
+        TimberElementData data,
+        string sourceHandle,
+        LeaderPlacement placement,
+        LeaderPlacement automaticPlacement,
+        double sourcePhysicalAxisRadians,
+        TimberItemLeaderBlockDefinition? frameDefinition,
+        int referencePresentationRevision)
+    {
+        // Persist live MLeader geometry so the next refresh Capture residual is
+        // zero unless the user actually moved BlockPosition.
+        var liveAttachment = ReadG5Attachment(leader);
+        var liveKnee = ReadG5Knee(leader);
+        var liveBlockPosition = leader.BlockPosition;
+        var placementRotation = placement.RotationRadians;
+        var sourcePhysicalAxis =
+            TimberAnnotationReadabilityRules.WrapPhysicalAngleRadians(
+                sourcePhysicalAxisRadians);
+        var dogleg = placement.DoglegDirection;
+        if (dogleg is null &&
+            liveKnee.DistanceTo(liveBlockPosition) > 1e-9d)
+        {
+            dogleg = (liveBlockPosition - liveKnee).GetNormal();
+        }
+
+        ElementLabelStore.Write(leader, transaction, new ElementLabelData
+        {
+            SchemaVersion =
+                AutoCadFramedBlockContentProductionPolicy.LabelMetadataSchemaVersion,
+            ElementId = data.ElementId,
+            SourceHandle = sourceHandle,
+            AnnotationMode = TimberAnnotationModeRules.Normalize(data.AnnotationMode),
+            ItemNumberLeaderStyle = ItemNumberLeaderStyleRules.Normalize(
+                data.ItemNumberLeaderStyle),
+            Contents = data.ElementId,
+            AnchorX = liveAttachment.X,
+            AnchorY = liveAttachment.Y,
+            TextX = liveBlockPosition.X,
+            TextY = liveBlockPosition.Y,
+            // Existing field, G5-specific semantics: physical Start→End source
+            // direction. PlacementRotationRadians remains the readable layout
+            // angle. Keeping both like-for-like prevents ±90° readability flips
+            // from masquerading as ~180° source rotations.
+            RotationRadians = sourcePhysicalAxis,
+            EnvelopeWidthMm = placement.EnvelopeWidthMm,
+            EnvelopeHeightMm = placement.EnvelopeHeightMm,
+            AutomaticTextX = automaticPlacement.TextLocation.X,
+            AutomaticTextY = automaticPlacement.TextLocation.Y,
+            LocalManualOffsetAlongAxisMm = 0d,
+            LocalManualOffsetNormalAxisMm = 0d,
+            PlacementRotationRadians = placementRotation,
+            CombinedDoglegDirectionX = dogleg?.X,
+            CombinedDoglegDirectionY = dogleg?.Y,
+            ComponentRole = AutoCadFramedBlockContentProductionPolicy.CombinedRole,
+            AnnotationGroupId = null,
+            RendererGeneration =
+                AutoCadFramedBlockContentProductionPolicy.RendererGeneration,
+            FrameSize = frameDefinition?.Size,
+            R3ReferencePresentationRevision = referencePresentationRevision,
+        });
+    }
+
+    private static void DeleteOwnedG4CombinedPartsForSourceHandle(
+        Database database,
+        Transaction transaction,
+        string sourceHandle,
+        ObjectId keepLeaderId)
+    {
+        foreach (var entry in ReadAnnotationEntities(database, transaction))
+        {
+            if (!string.Equals(
+                    entry.Data.SourceHandle,
+                    sourceHandle,
+                    StringComparison.OrdinalIgnoreCase) ||
+                entry.Id == keepLeaderId)
+            {
+                continue;
+            }
+
+            var isLegacyG4 = AutoCadFramedG4CompositePolicy.IsG4CompositeRole(
+                entry.Data.ComponentRole);
+            var isPrimary = entry.Data.ComponentRole ==
+                TimberMainAnnotationComponentRole.Primary;
+            var isNonG5FramedItem =
+                entry.Data.ComponentRole ==
+                    TimberMainAnnotationComponentRole.FramedItem &&
+                entry.Data.RendererGeneration !=
+                    AutoCadFramedBlockContentProductionPolicy.RendererGeneration;
+            if (!isLegacyG4 && !isPrimary && !isNonG5FramedItem)
+            {
+                continue;
+            }
+
+            if (AutoCadObjectIdAccess.TryGetObject<Entity>(
+                    transaction,
+                    entry.Id,
+                    OpenMode.ForWrite,
+                    out var entity) &&
+                entity is not null &&
+                !entity.IsErased)
+            {
+                EraseMainAnnotation(transaction, entity);
+            }
+        }
+    }
+
+    private static Point3d ReadG5Attachment(MLeader leader)
+    {
+        foreach (int leaderIndex in leader.GetLeaderIndexes())
+        {
+            foreach (int lineIndex in leader.GetLeaderLineIndexes(leaderIndex))
+            {
+                return leader.GetFirstVertex(lineIndex);
+            }
+        }
+
+        return Point3d.Origin;
+    }
+
+    private static Point3d ReadG5Knee(MLeader leader)
+    {
+        foreach (int leaderIndex in leader.GetLeaderIndexes())
+        {
+            foreach (int lineIndex in leader.GetLeaderLineIndexes(leaderIndex))
+            {
+                return leader.GetLastVertex(lineIndex);
+            }
+        }
+
+        return Point3d.Origin;
     }
 
     private static void DeleteUnexpectedCompositeComponents(
@@ -956,6 +2042,7 @@ internal static partial class ElementLabelService
                     ElementId = entry.Data.ElementId,
                     SourceHandle = entry.Data.SourceHandle,
                     ComponentRole = entry.Data.ComponentRole,
+                    AnnotationGroupId = entry.Data.AnnotationGroupId,
                 }).ToArray());
         foreach (var entry in matchingEntries.Where(entry =>
             keysToDelete.Contains(entry.Id.ToString(), StringComparer.OrdinalIgnoreCase)))
@@ -1337,9 +2424,12 @@ internal static partial class ElementLabelService
         interval = new TimberSlopeAnnotationLongitudinalInterval(0d, 0d);
         var sourceHandle = sourceEntity.Handle.ToString();
         var matchingLabel = ReadLabels(database, transaction)
-            .FirstOrDefault(label => TimberSlopeAnnotationRules.HasSameSourceHandle(
-                label.Data.SourceHandle,
-                sourceHandle));
+            .FirstOrDefault(label =>
+                TimberSlopeAnnotationRules.IsLongitudinalIntervalLabelRole(
+                    label.Data.ComponentRole) &&
+                TimberSlopeAnnotationRules.HasSameSourceHandle(
+                    label.Data.SourceHandle,
+                    sourceHandle));
         if (matchingLabel is null ||
             !AutoCadObjectIdAccess.TryGetObject<Entity>(
                 transaction,
@@ -1349,6 +2439,15 @@ internal static partial class ElementLabelService
                 database) ||
             annotation is not (MText or MLeader or BlockReference))
         {
+            return false;
+        }
+
+        if (annotation is MLeader candidateLeader &&
+            candidateLeader.ContentType == ContentType.NoneContent)
+        {
+            // G4 leader-only MLeaders have no text content; TextLocation throws
+            // eNullPtr. They are also filtered by role above — keep this guard
+            // for any mis-tagged legacy entity.
             return false;
         }
 
@@ -1362,7 +2461,10 @@ internal static partial class ElementLabelService
             MLeader leader when leader.ContentType == ContentType.BlockContent => (
                 leader.BlockPosition,
                 matchingLabel.Data.EnvelopeWidthMm ?? 0d),
-            MLeader leader => (leader.TextLocation, leader.MText?.ActualWidth ?? 0d),
+            MLeader leader when leader.ContentType == ContentType.MTextContent &&
+                leader.MText is not null => (
+                    leader.TextLocation,
+                    leader.MText.ActualWidth),
             BlockReference => (
                 new Point3d(
                     matchingLabel.Data.TextX ?? 0d,
@@ -1471,19 +2573,138 @@ internal static partial class ElementLabelService
         }
 
         var labelIdsByKey = labels.ToDictionary(label => label.Id.ToString(), label => label.Id);
+        var candidates = labels
+            .Select(ToOwnershipCandidate)
+            .ToList();
+        var timberElementIdBySourceHandle =
+            ReadTimberElementIdsBySourceHandle(database, transaction);
         var keysToDelete = TimberElementLabelCleanupRules.SelectDuplicateLabelKeysToDelete(
-            labels
-                .Select(label => new TimberElementLabelCandidate
-                {
-                    LabelKey = label.Id.ToString(),
-                    ElementId = label.Data.ElementId,
-                    SourceHandle = label.Data.SourceHandle,
-                    ComponentRole = label.Data.ComponentRole,
-                })
-                .ToList(),
-            ReadTimberSourceHandles(database, transaction));
+                candidates,
+                ReadTimberSourceHandles(database, transaction))
+            .Concat(
+                TimberMainAnnotationOwnershipRules.SelectSupersededLegacyFramedLeaderKeys(
+                    candidates))
+            .Concat(
+                TimberMainAnnotationOwnershipRules
+                    .SelectLegacyCombinedPartsToDeleteWhenG5Present(candidates))
+            .Concat(
+                TimberMainAnnotationOwnershipRules.SelectExtraG4GroupKeysToDelete(
+                    candidates))
+            .ToList();
+        foreach (var sourceGroup in candidates
+                     .Where(candidate => !string.IsNullOrWhiteSpace(candidate.SourceHandle))
+                     .GroupBy(
+                         candidate => candidate.SourceHandle.Trim(),
+                         StringComparer.OrdinalIgnoreCase))
+        {
+            timberElementIdBySourceHandle.TryGetValue(sourceGroup.Key, out var preferredElementId);
+            var owned = sourceGroup.ToList();
+            keysToDelete.AddRange(
+                TimberMainAnnotationOwnershipRules.SelectSurplusRoleKeysToDelete(
+                    owned,
+                    preferredElementId));
+            // Do not run stale-ElementId cleanup here: Combined upsert updates
+            // G4 before Primary, so Primary briefly still has the previous id.
+        }
 
-        return DeleteLabelsByKey(transaction, labelIdsByKey, keysToDelete);
+        return DeleteLabelsByKey(
+            transaction,
+            labelIdsByKey,
+            keysToDelete.Distinct(StringComparer.OrdinalIgnoreCase).ToList());
+    }
+
+    private static void DeleteOwnedAnnotationOwnershipViolations(
+        Database database,
+        Transaction transaction,
+        string sourceHandle,
+        string preferredElementId,
+        bool deleteStaleElementIds = false)
+    {
+        var labels = ReadLabels(database, transaction)
+            .Where(label =>
+                TimberSlopeAnnotationRules.HasSameSourceHandle(
+                    label.Data.SourceHandle,
+                    sourceHandle))
+            .ToList();
+        if (labels.Count == 0)
+        {
+            return;
+        }
+
+        var labelIdsByKey = labels.ToDictionary(label => label.Id.ToString(), label => label.Id);
+        var candidates = labels.Select(ToOwnershipCandidate).ToList();
+        var keysToDelete = TimberMainAnnotationOwnershipRules
+            .SelectSupersededLegacyFramedLeaderKeys(candidates)
+            .Concat(
+                TimberMainAnnotationOwnershipRules
+                    .SelectLegacyCombinedPartsToDeleteWhenG5Present(candidates))
+            .Concat(
+                TimberMainAnnotationOwnershipRules.SelectExtraG4GroupKeysToDelete(
+                    candidates,
+                    preferredElementId))
+            .Concat(
+                TimberMainAnnotationOwnershipRules.SelectSurplusRoleKeysToDelete(
+                    candidates,
+                    preferredElementId))
+            .ToList();
+        if (deleteStaleElementIds)
+        {
+            keysToDelete.AddRange(
+                TimberMainAnnotationOwnershipRules.SelectStaleElementIdKeysToDelete(
+                    candidates,
+                    preferredElementId));
+        }
+
+        DeleteLabelsByKey(
+            transaction,
+            labelIdsByKey,
+            keysToDelete.Distinct(StringComparer.OrdinalIgnoreCase).ToList());
+    }
+
+    private static TimberElementLabelCandidate ToOwnershipCandidate(
+        MainAnnotationEntry label) =>
+        new()
+        {
+            LabelKey = label.Id.ToString(),
+            ElementId = label.Data.ElementId,
+            SourceHandle = label.Data.SourceHandle,
+            ComponentRole = label.Data.ComponentRole,
+            AnnotationGroupId = label.Data.AnnotationGroupId,
+            RendererGeneration = label.Data.RendererGeneration,
+        };
+
+    private static void EraseLegacyFramedLeaderBesideG4(
+        Transaction transaction,
+        ObjectId existingId)
+    {
+        if (!AutoCadObjectIdAccess.TryGetObject<Entity>(
+                transaction,
+                existingId,
+                OpenMode.ForWrite,
+                out var entity) ||
+            entity is null ||
+            entity.IsErased ||
+            !ElementLabelStore.TryRead(entity, out var data) ||
+            data is null)
+        {
+            return;
+        }
+
+        if (AutoCadFramedG4CompositePolicy.IsG4CompositeRole(data.ComponentRole))
+        {
+            return;
+        }
+
+        if (data.ComponentRole == TimberMainAnnotationComponentRole.FramedItem ||
+            (entity is MLeader &&
+             AutoCadFramedG4CompositePolicy.IsLegacyG2G3BlockLeaderRole(
+                 data.ComponentRole) &&
+             AutoCadFramedG4CompositeService.IsLegacyG2G3BlockLeader(
+                 transaction,
+                 existingId)))
+        {
+            EraseMainAnnotation(transaction, entity);
+        }
     }
 
     internal static int DeleteInsertedLabelsWithoutCurrentSourceHandles(
@@ -1659,6 +2880,7 @@ internal static partial class ElementLabelService
                     ElementId = label.Data.ElementId,
                     SourceHandle = label.Data.SourceHandle,
                     ComponentRole = label.Data.ComponentRole,
+                    AnnotationGroupId = label.Data.AnnotationGroupId,
                 })
                 .ToList(),
             CountTimberElementsWithElementId(database, transaction, elementId),
@@ -1693,6 +2915,8 @@ internal static partial class ElementLabelService
                 entry.Data.ComponentRole is
                     TimberMainAnnotationComponentRole.Primary or
                     TimberMainAnnotationComponentRole.CircleText or
+                    TimberMainAnnotationComponentRole.CircleLeaderLine or
+                    TimberMainAnnotationComponentRole.CircleFrame or
                     TimberMainAnnotationComponentRole.FramedItem)
             .Select(entry => new MainAnnotationEntry(
                 entry.Id,
@@ -1708,8 +2932,10 @@ internal static partial class ElementLabelService
     private static TimberMainAnnotationRepresentation ResolveMainAnnotationRepresentation(
         AnnotationEntityEntry entry)
     {
-        if (entry.Data.ComponentRole ==
-            TimberMainAnnotationComponentRole.CircleText)
+        if (entry.Data.ComponentRole is
+                TimberMainAnnotationComponentRole.CircleText or
+                TimberMainAnnotationComponentRole.CircleLeaderLine or
+                TimberMainAnnotationComponentRole.CircleFrame)
         {
             return TimberMainAnnotationRepresentation.BlockLeader;
         }
@@ -1805,6 +3031,35 @@ internal static partial class ElementLabelService
         }
 
         return handles;
+    }
+
+    private static IReadOnlyDictionary<string, string> ReadTimberElementIdsBySourceHandle(
+        Database database,
+        Transaction transaction)
+    {
+        var metadataStore = new AutoCadTimberElementMetadataStore(transaction);
+        var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var id in DrawingScanner.FindAllTimberElements(database, transaction, metadataStore))
+        {
+            if (!AutoCadObjectIdAccess.TryGetObject<Entity>(
+                    transaction,
+                    id,
+                    OpenMode.ForRead,
+                    out var entity,
+                    database) ||
+                entity is null ||
+                !metadataStore.TryRead(entity, out var data) ||
+                data is null ||
+                string.IsNullOrWhiteSpace(data.ElementId))
+            {
+                continue;
+            }
+
+            result[entity.Handle.ToString()] = data.ElementId.Trim();
+        }
+
+        return result;
     }
 
     private static string? ReadExistingG4AnnotationGroupId(
@@ -2210,12 +3465,15 @@ internal static partial class ElementLabelService
         // Landing length and DoglegLength share CombinedFramedLandingDistanceMm *
         // presentationScaleFactor. TextLocation adds envelope half-width once beyond
         // that landing end; the landing distance itself is never applied twice.
-        var contentDirection = framedPlacement.TextLocation - framedPlacement.Knee;
-        var normalizedDirection = contentDirection.Length > PlacementToleranceMm
-            ? contentDirection.GetNormal()
-            : framedPlacement.Side == TimberLeaderHorizontalSide.Left
-                ? -Vector3d.XAxis
-                : Vector3d.XAxis;
+        // CalculateBlock leaves Content==Knee, so direction must come from the
+        // element-aligned plane (±local H) — never world ±XAxis.
+        var contentDelta = framedPlacement.TextLocation - framedPlacement.Knee;
+        var landing = TimberItemLeaderLayoutCalculator.ResolveCombinedLandingDirection(
+            framedPlacement.RotationRadians,
+            framedPlacement.Side,
+            contentDelta.X,
+            contentDelta.Y);
+        var normalizedDirection = new Vector3d(landing.X, landing.Y, 0d);
         var combinedLandingDistanceMm =
             TimberItemLeaderLayoutCalculator.CombinedFramedLandingDistanceMm *
             presentationScaleFactor;
@@ -2264,6 +3522,7 @@ internal static partial class ElementLabelService
         {
             var landingDirection =
                 (landingEndPoint - landingStartPoint).GetNormal();
+            var landingRotation = Math.Atan2(landingDirection.Y, landingDirection.X);
             return new LabelPlacement(
                 landingStartPoint +
                     landingDirection *
@@ -2272,7 +3531,8 @@ internal static partial class ElementLabelService
                                 landingStartPoint.DistanceTo(landingEndPoint),
                                 dimensionEnvelopeWidthMm,
                                 dimensionTextHeightMm),
-                RotationRadians: 0d);
+                TimberAnnotationReadabilityRules.NormalizeReadableRotationRadians(
+                    landingRotation));
         }
 
         var fallbackDirection = fallbackPlacement.DoglegDirection ??
@@ -2290,7 +3550,8 @@ internal static partial class ElementLabelService
                             fallbackPlacement.Knee.DistanceTo(fallbackEnd),
                             dimensionEnvelopeWidthMm,
                             dimensionTextHeightMm),
-            RotationRadians: 0d);
+            TimberAnnotationReadabilityRules.NormalizeReadableRotationRadians(
+                fallbackPlacement.RotationRadians));
     }
 
     private static bool TryGetLandingSegment(

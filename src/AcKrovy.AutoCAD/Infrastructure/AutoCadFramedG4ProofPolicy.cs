@@ -37,8 +37,8 @@ internal static class AutoCadFramedG4ProofPolicy
             TimberAnnotationTextStylePresetRules.TechnicalStyleName, 2.5d, 100, false),
         new("E", ItemNumberLeaderStyle.Rectangle, "W3",
             TimberAnnotationTextStylePresetRules.BuildAutoCadTextStyleName("PROOF"), 3.5d, 50, false),
-        // Unique ItemText/ElementId — must not collide with Case A ("K1"), or
-        // FindExistingComposite ElementId fallback steals Case A's G4 group.
+        // Unique ItemText/ElementId remains a defense-in-depth for the proof suite.
+        // Production matching is SourceHandle-first via TimberFramedG4CompositeMatchRules.
         new("F", ItemNumberLeaderStyle.Circle, "KF",
             TimberAnnotationTextStylePresetRules.ClassicStyleName, 3.5d, 50, true),
     ];

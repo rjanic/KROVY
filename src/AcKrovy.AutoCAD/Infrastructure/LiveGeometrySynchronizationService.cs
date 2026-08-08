@@ -136,6 +136,8 @@ internal static class LiveGeometrySynchronizationService
             AutoCadFramedBlockContentGripReadonlyProofService.RemoveSession(_document);
             AutoCadFramedBlockContentGripNormalizeProofService.RemoveSession(_document);
 #endif
+            AutoCadFramedBlockContentProductionGripNormalizeService
+                .ForceReleaseProcessingGuard();
         }
 
         private void ObjectAppended(object? sender, ObjectEventArgs e)
@@ -178,7 +180,7 @@ internal static class LiveGeometrySynchronizationService
             }
 
             if (!_appendedLabelIds.IsSuppressed &&
-                entity is MText or MLeader or BlockReference)
+                entity is MText or MLeader or BlockReference or DBText)
             {
                 _appendedLabelIds.TryAdd(entity.ObjectId);
             }

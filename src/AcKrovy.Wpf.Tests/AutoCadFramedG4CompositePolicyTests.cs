@@ -8,13 +8,13 @@ namespace AcKrovy.Wpf.Tests;
 public sealed class AutoCadFramedG4CompositePolicyTests
 {
     [Fact]
-    public void UsesG4Composite_ForStandaloneAndCombinedFramedRoles()
+    public void UsesG4Composite_ForStandaloneFramedOnlyNotCombined()
     {
         Assert.True(AutoCadFramedG4CompositePolicy.UsesG4Composite(
             TimberAnnotationMode.ItemNumberLeader,
             ItemNumberLeaderStyle.Circle,
             TimberMainAnnotationComponentRole.Primary));
-        Assert.True(AutoCadFramedG4CompositePolicy.UsesG4Composite(
+        Assert.False(AutoCadFramedG4CompositePolicy.UsesG4Composite(
             TimberAnnotationMode.DimensionsWithItemNumber,
             ItemNumberLeaderStyle.Slot,
             TimberMainAnnotationComponentRole.FramedItem));

@@ -38,7 +38,7 @@ public sealed class TimberFramedBlockContentGripUndoProofRulesTests
     public void Applicability_ItemOnlyIsNoOp()
     {
         var itemOnly = TimberFramedBlockContentVariantRules.CreateSafeBlockName(
-            TimberFramedBlockContentVariantRules.CreateRawKey(
+            TimberFramedBlockContentVariantRules.CreateLegacyR2RawKey(
                 TimberFramedBlockContentKind.Circle,
                 "MEDIUM",
                 "Standard",
@@ -237,7 +237,7 @@ public sealed class TimberFramedBlockContentGripUndoProofRulesTests
         TimberFramedBlockContentKind kind,
         TimberFramedBlockContentDimensionColumnSide side) =>
         TimberFramedBlockContentVariantRules.CreateSafeBlockName(
-            TimberFramedBlockContentVariantRules.CreateRawKey(
+            TimberFramedBlockContentVariantRules.CreateLegacyR2RawKey(
                 kind,
                 "MEDIUM",
                 "Standard",

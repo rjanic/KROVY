@@ -68,26 +68,70 @@ public sealed class FramedRendererProductionIntegrationSourceContractTests
     }
 
     [Fact]
-    public void CombinedFailure_ReturnsBeforeChangingTheDimensionsComponent()
+    public void CombinedFramed_RoutesToG5BeforePlainCompositePath()
     {
         var combined = Member(ElementLabelSource(),
             "private static bool UpsertCombinedLeader(");
-        var failure = combined.IndexOf(
-            "if (framedVariantResult is { Succeeded: false })",
+        var g5Gate = combined.IndexOf(
+            "AutoCadFramedBlockContentProductionPolicy.UsesG5CombinedFramed(",
             StringComparison.Ordinal);
-        var dimensions = combined.IndexOf(
-            "CalculateCombinedDimensionsTextPlacement(",
+        var g5Upsert = combined.IndexOf(
+            "UpsertG5CombinedFramedLeader(",
+            StringComparison.Ordinal);
+        var plainPrepare = combined.IndexOf(
+            "AutoCadDimensionsLeaderPresentationPolicy.TryPrepare(",
             StringComparison.Ordinal);
         var primary = combined.IndexOf(
             "var primaryCreated = UpsertLabel(",
             StringComparison.Ordinal);
 
-        Assert.True(failure >= 0 && failure < dimensions && dimensions < primary);
-        Assert.Contains("return false;", combined.Substring(failure,
-            dimensions - failure));
-        Assert.Contains("hasG4ItemCode", combined);
-        Assert.Contains("!framedCreated", combined);
-        Assert.Contains("framedOk", combined);
+        Assert.True(g5Gate >= 0 && g5Upsert > g5Gate);
+        Assert.True(plainPrepare > g5Upsert);
+        Assert.True(primary > plainPrepare);
+        Assert.Contains(
+            "AutoCadFramedBlockContentAnnotationService.Create(",
+            ElementLabelSource());
+        Assert.DoesNotContain("hasG4ItemCode", combined);
+        Assert.Contains(
+            "TimberFramedCombinedG5RefreshPlacementRules.DefaultCreateSide",
+            combined);
+        Assert.Contains("g5CreatePlacement", combined);
+    }
+
+    [Fact]
+    public void G5CombinedRefresh_UsesSameCanonicalRequestAsCreate()
+    {
+        var upsert = Member(
+            ElementLabelSource(),
+            "private static bool UpsertG5CombinedFramedLeader(");
+        var update = Member(
+            ElementLabelSource(),
+            "private static bool TryUpdateG5CombinedInPlace(");
+        var buildCall = upsert.IndexOf(
+            "TryBuildG5CombinedRequest(",
+            StringComparison.Ordinal);
+        Assert.True(buildCall >= 0);
+        var buildSlice = upsert.Substring(buildCall, Math.Min(450, upsert.Length - buildCall));
+        Assert.Contains("automaticPlacement", buildSlice);
+        Assert.Contains(
+            "TimberFramedCombinedG5RefreshPlacementRules.ShouldPreserveExistingPlacement(",
+            update);
+        Assert.Contains(
+            "AutoCadFramedBlockContentAnnotationService.Create(",
+            upsert);
+        Assert.DoesNotContain("Anchor = placement.Anchor + manualDelta", upsert);
+    }
+
+    [Fact]
+    public void CombinedPlain_StillCreatesPrimaryDimensionsComponent()
+    {
+        var combined = Member(ElementLabelSource(),
+            "private static bool UpsertCombinedLeader(");
+        Assert.Contains("var primaryCreated = UpsertLabel(", combined);
+        Assert.Contains("ItemNumberLeaderStyle.Plain", combined);
+        Assert.Contains(
+            "AutoCadFramedBlockContentProductionPolicy.UsesG5CombinedFramed(",
+            combined);
     }
 
     [Fact]
@@ -179,14 +223,19 @@ public sealed class FramedRendererProductionIntegrationSourceContractTests
         var elementSchema = Source(
             "src", "AcKrovy.Core", "Models",
             "TimberElementDataSchema.cs");
-        var policy = Source(
+        var g4Policy = Source(
             "src", "AcKrovy.AutoCAD", "Infrastructure",
             "AutoCadFramedG4CompositePolicy.cs");
+        var g5Policy = Source(
+            "src", "AcKrovy.AutoCAD", "Infrastructure",
+            "AutoCadFramedBlockContentProductionPolicy.cs");
 
         Assert.Contains("public int SchemaVersion { get; init; } = 4;", labelStore);
         Assert.Contains("AnnotationGroupId", labelStore);
         Assert.Contains("RendererGeneration", labelStore);
-        Assert.Contains("LabelMetadataSchemaVersion = 4", policy);
+        Assert.Contains("LabelMetadataSchemaVersion = 4", g4Policy);
+        Assert.Contains("LabelMetadataSchemaVersion = 5", g5Policy);
+        Assert.Contains("R3ReferencePresentationRevision", labelStore);
         Assert.Contains("CurrentVersion = 7", elementSchema);
     }
 

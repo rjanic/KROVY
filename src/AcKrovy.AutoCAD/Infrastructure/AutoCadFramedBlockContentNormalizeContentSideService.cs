@@ -1,4 +1,3 @@
-#if DEBUG
 using System.Globalization;
 using AcKrovy.Core.Models;
 using AcKrovy.Core.Services;
@@ -11,11 +10,12 @@ using AcApplication = Autodesk.AutoCAD.ApplicationServices.Application;
 namespace AcKrovy.AutoCAD.Infrastructure;
 
 /// <summary>
-/// DEBUG-only: swap Combined BlockContent to the mirrored R2 dimension-column
-/// variant when world-space WIDTH/HEIGHT center is not between knee and ITEM_NO
-/// (K→D→I). Preserves attachment, knee, BlockPosition, DoglegDirection/Length,
+/// Swap Combined BlockContent to the mirrored R2 dimension-column variant when
+/// world-space WIDTH/HEIGHT center is not between knee and ITEM_NO (K→D→I).
+/// Preserves attachment, knee, BlockPosition, DoglegDirection/Length,
 /// BlockScale/Rotation. Does not mutate shared BTRs, rewrite AttrRef
 /// Position/AlignmentPoint, or run dogleg normalize.
+/// Interactive <see cref="Run"/> remains DEBUG-command owned.
 /// </summary>
 internal static class AutoCadFramedBlockContentNormalizeContentSideService
 {
@@ -769,4 +769,3 @@ internal static class AutoCadFramedBlockContentNormalizeContentSideService
         string ItemTextForFrameSizing,
         IReadOnlyList<(string Tag, string Text, double Height)> AttributeValues);
 }
-#endif

@@ -26,6 +26,7 @@ public sealed class PluginEntry : IExtensionApplication
             // ho preto bezpečne vytvorí pri najbližšom idle AutoCADu.
             AcKrovyRibbon.ScheduleCreation();
             LiveGeometrySynchronizationService.Start();
+            AutoCadFramedBlockContentProductionGripNormalizeService.RegisterOnce();
 #if DEBUG
             AutoCadRedoDiagService.NoteDllInit();
 #endif
@@ -45,6 +46,7 @@ public sealed class PluginEntry : IExtensionApplication
     public void Terminate()
     {
         LiveGeometrySynchronizationService.Stop();
+        AutoCadFramedBlockContentProductionGripNormalizeService.Unregister();
 #if DEBUG
         // GripOverrule must never survive unload — selection crash risk.
         AutoCadFramedBlockContentGripUndoProofService.ForceUnregisterAll();

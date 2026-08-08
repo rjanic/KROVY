@@ -4,12 +4,13 @@ namespace AcKrovy.Core.Services;
 
 /// <summary>
 /// Effective G5 BlockContent world orientation. Create builds a horizontal
-/// MLeader (<c>BlockRotation = 0</c>) then applies
-/// <see cref="TimberAnnotationReadabilityRules.NormalizeReadableRotationRadians"/>
-/// via attachment-pivot TransformBy; AutoCAD often leaves <c>BlockRotation</c>
-/// at 0 while AttrRef.Rotation carries the upright content angle. Classifiers
-/// and WORLD→BLOCK-LOCAL diagnostics must use that effective angle, not
-/// BlockRotation alone.
+/// MLeader (<c>BlockRotation = 0</c>), applies attachment-pivot TransformBy for
+/// leader geometry (layer A), and keeps <c>BlockRotation = 0</c> afterward
+/// (G5C contract — presentation comes from TransformBy). Refresh paths that
+/// rebuild points without TransformBy may set presentation via
+/// <see cref="TimberFramedBlockContentReadableOrientationRules.Decide"/>.
+/// Classifiers may still recover upright angle from AttrRef.Rotation when
+/// BlockRotation is stale 0 after TransformBy-only paths.
 /// </summary>
 public static class TimberFramedBlockContentOrientationRules
 {

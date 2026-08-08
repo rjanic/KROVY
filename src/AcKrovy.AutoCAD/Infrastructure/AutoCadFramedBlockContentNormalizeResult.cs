@@ -1,11 +1,10 @@
-#if DEBUG
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.Geometry;
 
 namespace AcKrovy.AutoCAD.Infrastructure;
 
 /// <summary>
-/// Structured result for reusable dogleg / content-side normalize (DEBUG).
+/// Structured result for reusable dogleg / content-side normalize.
 /// </summary>
 internal readonly struct AutoCadFramedBlockContentNormalizeResult
 {
@@ -74,4 +73,3 @@ internal readonly struct AutoCadFramedBlockContentNormalizeResult
             0d,
             0d);
 }
-#endif

@@ -9,9 +9,11 @@ using Autodesk.AutoCAD.DatabaseServices;
 namespace AcKrovy.AutoCAD.Infrastructure;
 
 /// <summary>
-/// Host request for an immutable G5 BlockContent BTR family (R2).
-/// Side / angle / annotation denominator are intentionally absent.
-/// Combined requires <see cref="DimensionColumnSide"/>; ItemOnly omits it.
+/// Host request for an immutable G5 BlockContent BTR family (R3).
+/// Side / angle / annotation denominator are intentionally absent from the
+/// request shape itself. Combined DimensionColumnSide selects R3_RIGHT /
+/// R3_LEFT (WIDTH/HEIGHT on the landing between knee and frame; LEFT/RIGHT
+/// differ only by column X sign).
 /// </summary>
 internal sealed record AutoCadFramedBlockContentRequest(
     TimberFramedBlockContentKind ContentKind,
@@ -67,18 +69,15 @@ internal sealed record AutoCadFramedBlockContentRequest(
                 nameof(DimensionTextStyleId));
         }
 
+        TimberFramedBlockContentDimensionColumnSide? columnSide = null;
         if (Presentation == TimberFramedBlockContentPresentation.Combined)
         {
-            if (DimensionColumnSide is null)
-            {
-                throw new ArgumentNullException(
-                    nameof(DimensionColumnSide),
-                    "Combined R2 definitions require a dimension column side.");
-            }
-
+            columnSide = DimensionColumnSide ??
+                TimberFramedBlockContentDefinitionRules
+                    .DefaultCombinedDimensionColumnSide;
             if (!Enum.IsDefined(
                     typeof(TimberFramedBlockContentDimensionColumnSide),
-                    DimensionColumnSide.Value))
+                    columnSide.Value))
             {
                 throw new ArgumentOutOfRangeException(nameof(DimensionColumnSide));
             }
@@ -91,7 +90,7 @@ internal sealed record AutoCadFramedBlockContentRequest(
             ItemTextForFrameSizing = ItemTextForFrameSizing?.Trim() ?? string.Empty,
             DimensionColumnSide =
                 Presentation == TimberFramedBlockContentPresentation.Combined
-                    ? DimensionColumnSide
+                    ? columnSide
                     : null,
         };
     }

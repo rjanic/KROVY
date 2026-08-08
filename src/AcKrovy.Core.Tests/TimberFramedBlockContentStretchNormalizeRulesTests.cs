@@ -10,7 +10,7 @@ public sealed class TimberFramedBlockContentStretchNormalizeRulesTests
     public void R2Parser_AcceptsCombinedDimnxAndDimpx()
     {
         var negative = TimberFramedBlockContentVariantRules.CreateSafeBlockName(
-            TimberFramedBlockContentVariantRules.CreateRawKey(
+            TimberFramedBlockContentVariantRules.CreateLegacyR2RawKey(
                 TimberFramedBlockContentKind.Circle,
                 "MEDIUM",
                 "Standard",
@@ -20,7 +20,7 @@ public sealed class TimberFramedBlockContentStretchNormalizeRulesTests
                 TimberFramedBlockContentPresentation.Combined,
                 TimberFramedBlockContentDimensionColumnSide.NegativeLocalX));
         var positive = TimberFramedBlockContentVariantRules.CreateSafeBlockName(
-            TimberFramedBlockContentVariantRules.CreateRawKey(
+            TimberFramedBlockContentVariantRules.CreateLegacyR2RawKey(
                 TimberFramedBlockContentKind.Slot,
                 "SMALL",
                 "Standard",
@@ -52,7 +52,7 @@ public sealed class TimberFramedBlockContentStretchNormalizeRulesTests
     public void R2Parser_RejectsItemOnlyForeignLegacyAndPartialSubstrings()
     {
         var itemOnly = TimberFramedBlockContentVariantRules.CreateSafeBlockName(
-            TimberFramedBlockContentVariantRules.CreateRawKey(
+            TimberFramedBlockContentVariantRules.CreateLegacyR2RawKey(
                 TimberFramedBlockContentKind.Circle,
                 "MEDIUM",
                 "Standard",
@@ -98,7 +98,7 @@ public sealed class TimberFramedBlockContentStretchNormalizeRulesTests
     public void Filter_RequiresCombinedAttributeContract()
     {
         var combined = TimberFramedBlockContentVariantRules.CreateSafeBlockName(
-            TimberFramedBlockContentVariantRules.CreateRawKey(
+            TimberFramedBlockContentVariantRules.CreateLegacyR2RawKey(
                 TimberFramedBlockContentKind.Rectangle,
                 "LARGE",
                 "Standard",

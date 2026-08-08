@@ -56,7 +56,7 @@ public sealed class TimberFramedBlockContentGripStageProofRulesTests
                 hasHeight: true));
 
         var itemOnly = TimberFramedBlockContentVariantRules.CreateSafeBlockName(
-            TimberFramedBlockContentVariantRules.CreateRawKey(
+            TimberFramedBlockContentVariantRules.CreateLegacyR2RawKey(
                 TimberFramedBlockContentKind.Circle,
                 "MEDIUM",
                 "Standard",
@@ -274,7 +274,7 @@ public sealed class TimberFramedBlockContentGripStageProofRulesTests
         TimberFramedBlockContentKind kind,
         TimberFramedBlockContentDimensionColumnSide side) =>
         TimberFramedBlockContentVariantRules.CreateSafeBlockName(
-            TimberFramedBlockContentVariantRules.CreateRawKey(
+            TimberFramedBlockContentVariantRules.CreateLegacyR2RawKey(
                 kind,
                 "MEDIUM",
                 "Standard",

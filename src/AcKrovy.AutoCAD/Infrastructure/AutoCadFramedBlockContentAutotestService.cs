@@ -331,6 +331,37 @@ internal static class AutoCadFramedBlockContentAutotestService
 
         if (testCase.Presentation == TimberFramedBlockContentPresentation.Combined)
         {
+            if (!ValidateCreateReferenceFinalWorldAngles(
+                    testCase,
+                    handle,
+                    summary))
+            {
+                return leaderId;
+            }
+
+            if (!ValidateCreateWholeAnnotationHalfTurn(
+                    transaction,
+                    testCase,
+                    leader,
+                    created.ReferencePresentationRevision,
+                    summary))
+            {
+                return leaderId;
+            }
+
+            if (!ValidateAdoptedReferenceVerticalGripBoundary(
+                    database,
+                    transaction,
+                    testCase,
+                    request,
+                    leader,
+                    handle,
+                    runId,
+                    summary))
+            {
+                return leaderId;
+            }
+
             if (!TryEvaluatePlacement(
                     transaction,
                     leader,
@@ -354,6 +385,18 @@ internal static class AutoCadFramedBlockContentAutotestService
                 true);
             MarkAngleScaleCategories(testCase, summary, true);
             createOk = true;
+
+            if (!ValidateExistingReferenceUpdateAndSecondRefresh(
+                    database,
+                    transaction,
+                    testCase,
+                    request,
+                    leader,
+                    handle,
+                    summary))
+            {
+                return leaderId;
+            }
 
             leader.UpgradeOpen();
             var contentNoOp =
@@ -458,6 +501,784 @@ internal static class AutoCadFramedBlockContentAutotestService
         }
 
         return leaderId;
+    }
+
+    private static bool ValidateExistingReferenceUpdateAndSecondRefresh(
+        Database database,
+        Transaction transaction,
+        TimberFramedBlockContentAutotestCase testCase,
+        AutoCadFramedBlockContentAnnotationRequest request,
+        MLeader leader,
+        string originalHandle,
+        TimberFramedBlockContentAutotestSummary summary)
+    {
+        var sourcePhysical =
+            TimberAnnotationReadabilityRules.WrapPhysicalAngleRadians(
+                testCase.ElementAxisDegrees * Math.PI / 180d);
+        if (Math.Abs(Math.Abs(sourcePhysical) - (Math.PI / 2d)) <= 1e-9d)
+        {
+            return ValidateExistingVerticalWholeAnnotationRefreshTwice(
+                transaction,
+                testCase,
+                leader,
+                originalHandle,
+                summary);
+        }
+
+        // Test expectation is intentionally independent of the production
+        // classifier. The old test reused that classifier and silently skipped
+        // the real 270°/-90° CREATE case when production misclassified it.
+        if (!IsExpectedReferencePresentationCase(testCase))
+        {
+            return true;
+        }
+
+        if (!AutoCadFramedBlockContentDimensionColumnPlacementService
+                .TryResolveWorldContentXAxis(
+                    transaction,
+                    leader,
+                    out var adoptedCreateWorld,
+                    out var createNote))
+        {
+            summary.RecordFailure(
+                testCase.Key,
+                "ExistingReferenceUpdate",
+                "measurable create world",
+                createNote,
+                TimberFramedBlockContentAutotestCategory.CreatePlacement);
+            return false;
+        }
+
+        leader.UpgradeOpen();
+        var wrongWorld = TimberAnnotationReadabilityRules.WrapPhysicalAngleRadians(
+            adoptedCreateWorld + Math.PI);
+        var wrongBlockRotation =
+            TimberAnnotationReadabilityRules.WrapPhysicalAngleRadians(
+                leader.BlockRotation + Math.PI);
+        leader.BlockRotation = wrongBlockRotation;
+
+        var cos = Math.Cos(request.ElementAxisRadians);
+        var sin = Math.Sin(request.ElementAxisRadians);
+        var start = new Point3d(
+            request.AttachmentX - (cos * 1000d),
+            request.AttachmentY - (sin * 1000d),
+            0d);
+        var end = new Point3d(
+            request.AttachmentX + (cos * 1000d),
+            request.AttachmentY + (sin * 1000d),
+            0d);
+        using var source = new Line(start, end);
+        var revision = ElementLabelService
+            .ApplyG5CombinedReferencePresentationAfterRefresh(
+                database,
+                transaction,
+                leader,
+                source,
+                request,
+                sourceHandle: "AUTOTEST-" + testCase.Key,
+                currentRevision: 0);
+        var hasFirstRefreshWorld =
+            AutoCadFramedBlockContentDimensionColumnPlacementService
+                .TryResolveWorldContentXAxis(
+                    transaction,
+                    leader,
+                    out var firstRefreshWorld,
+                    out var firstRefreshNote);
+        if (revision !=
+                TimberFramedBlockContentReadableOrientationRules
+                    .ReferencePresentationRevision ||
+            !hasFirstRefreshWorld)
+        {
+#if DEBUG
+            var hasTrace = AutoCadFramedBlockContentAnnotationService
+                .TryGetCreatePresentationTrace(
+                    leader.ObjectId.Handle.ToString(),
+                    out var failedTrace);
+#endif
+            summary.RecordFailure(
+                testCase.Key,
+                "ExistingReferenceUpdate",
+                "revision=1 and measurable final world",
+                $"revision={revision}; world={firstRefreshNote}; " +
+#if DEBUG
+                (hasTrace
+                    ? $"trace={failedTrace.MeasurementNote}; " +
+                      $"sequence={failedTrace.PresentationOperationSequence}; " +
+                      $"BR={failedTrace.BlockRotationBefore * 180d / Math.PI:R}" +
+                      $"->{failedTrace.BlockRotationRequested * 180d / Math.PI:R}" +
+                      $"->{failedTrace.BlockRotationAfter * 180d / Math.PI:R}; " +
+                      $"world={failedTrace.FrameWorldOrientationBefore * 180d / Math.PI:R}" +
+                      $"->{failedTrace.VerticalRuleOutput * 180d / Math.PI:R}" +
+                      $"->{failedTrace.FrameWorldOrientationAfter * 180d / Math.PI:R}"
+                    : "trace=<unavailable>") +
+#else
+                "trace=<debug-only>" +
+#endif
+                string.Empty,
+                TimberFramedBlockContentAutotestCategory.CreatePlacement);
+            return false;
+        }
+
+        var expected = TimberAnnotationReadabilityRules.WrapPhysicalAngleRadians(
+            wrongWorld + Math.PI);
+        var firstDelta = Math.Abs(
+            TimberAnnotationReadabilityRules.NormalizeAngleDelta(
+                firstRefreshWorld - expected));
+        var blockBeforeSecondRefresh = leader.BlockRotation;
+        var revisionAfterSecond = ElementLabelService
+            .ApplyG5CombinedReferencePresentationAfterRefresh(
+                database,
+                transaction,
+                leader,
+                source,
+                request,
+                sourceHandle: "AUTOTEST-" + testCase.Key,
+                currentRevision: revision);
+        var hasSecondWorld =
+            AutoCadFramedBlockContentDimensionColumnPlacementService
+                .TryResolveWorldContentXAxis(
+                    transaction,
+                    leader,
+                    out var secondRefreshWorld,
+                    out var secondRefreshNote);
+        var secondDelta = hasSecondWorld
+            ? Math.Abs(TimberAnnotationReadabilityRules.NormalizeAngleDelta(
+                secondRefreshWorld - firstRefreshWorld))
+            : double.PositiveInfinity;
+        var blockDelta = Math.Abs(
+            TimberAnnotationReadabilityRules.NormalizeAngleDelta(
+                leader.BlockRotation - blockBeforeSecondRefresh));
+        var sameHandle = string.Equals(
+            originalHandle,
+            leader.ObjectId.Handle.ToString(),
+            StringComparison.OrdinalIgnoreCase);
+        var placementOk =
+            AutoCadFramedBlockContentDimensionColumnPlacementService
+                .TryEvaluate(
+                    transaction,
+                    leader,
+                    out var placement,
+                    out _,
+                    out var placementNote) &&
+            placement.Current.IsCorrect;
+        var itemWorld = AutoCadFramedBlockContentAnnotationService
+            .TryReadAttributeRotationRadians(
+                transaction,
+                leader,
+                TimberFramedBlockContentDefinitionRules.ItemNoTag);
+        var widthWorld = AutoCadFramedBlockContentAnnotationService
+            .TryReadAttributeRotationRadians(
+                transaction,
+                leader,
+                TimberFramedBlockContentDefinitionRules.WidthTag);
+        var heightWorld = AutoCadFramedBlockContentAnnotationService
+            .TryReadAttributeRotationRadians(
+                transaction,
+                leader,
+                TimberFramedBlockContentDefinitionRules.HeightTag);
+        var attributesCoherent =
+            itemWorld is double item &&
+            widthWorld is double width &&
+            heightWorld is double height &&
+            Math.Abs(TimberAnnotationReadabilityRules.NormalizeAngleDelta(
+                item - secondRefreshWorld)) <= 1e-6d &&
+            Math.Abs(TimberAnnotationReadabilityRules.NormalizeAngleDelta(
+                width - secondRefreshWorld)) <= 1e-6d &&
+            Math.Abs(TimberAnnotationReadabilityRules.NormalizeAngleDelta(
+                height - secondRefreshWorld)) <= 1e-6d;
+        const double tolerance = 1e-6d;
+        if (firstDelta > tolerance ||
+            revisionAfterSecond != revision ||
+            secondDelta > tolerance ||
+            blockDelta > tolerance ||
+            !sameHandle ||
+            !placementOk ||
+            !attributesCoherent)
+        {
+            summary.RecordFailure(
+                testCase.Key,
+                "ExistingReferenceUpdate",
+                "world+180; second refresh delta=0; same handle; K->D->F",
+                $"firstDeltaDeg={firstDelta * 180d / Math.PI:R}; " +
+                $"secondDeltaDeg={secondDelta * 180d / Math.PI:R}; " +
+                $"blockDeltaDeg={blockDelta * 180d / Math.PI:R}; " +
+                $"revision={revision}->{revisionAfterSecond}; " +
+                $"sameHandle={sameHandle}; placement={placementNote}; " +
+                $"attrsCoherent={attributesCoherent}; " +
+                $"secondWorld={secondRefreshNote}",
+                TimberFramedBlockContentAutotestCategory.CreatePlacement);
+            return false;
+        }
+
+        summary.RecordPass(
+            testCase.Key,
+            "ExistingReferenceUpdate",
+            $"before={wrongWorld * 180d / Math.PI:R}; " +
+            $"after={firstRefreshWorld * 180d / Math.PI:R}; " +
+            "secondRefreshDelta=0; sameHandle=True; towardKnee=True");
+        return true;
+    }
+
+    private static bool ValidateExistingVerticalWholeAnnotationRefreshTwice(
+        Transaction transaction,
+        TimberFramedBlockContentAutotestCase testCase,
+        MLeader leader,
+        string originalHandle,
+        TimberFramedBlockContentAutotestSummary summary)
+    {
+        leader.UpgradeOpen();
+        var legacyWorldReason = string.Empty;
+        if (!AutoCadWholeMLeaderHalfTurnService.TryApplyRigidHalfTurn(
+                transaction,
+                leader,
+                out var legacySetup,
+                out var setupReason) ||
+            !AutoCadFramedBlockContentDimensionColumnPlacementService
+                .TryResolveWorldContentXAxis(
+                    transaction,
+                    leader,
+                    out var legacyWorld,
+                    out legacyWorldReason))
+        {
+            summary.RecordFailure(
+                testCase.Key,
+                "ExistingVerticalWholeRefresh",
+                "legacy unadopted setup",
+                setupReason + "; " + legacyWorldReason,
+                TimberFramedBlockContentAutotestCategory.CreatePlacement);
+            return false;
+        }
+
+        var firstWorldReason = string.Empty;
+        if (!AutoCadWholeMLeaderHalfTurnService.TryApplyRequiredState(
+                transaction,
+                leader,
+                testCase.ElementAxisDegrees * Math.PI / 180d,
+                TimberFramedBlockContentReadableOrientationRules
+                    .ReferencePresentationRevision,
+                "AutotestExistingRefresh1",
+                out var first,
+                out var firstReason) ||
+            !AutoCadFramedBlockContentDimensionColumnPlacementService
+                .TryResolveWorldContentXAxis(
+                    transaction,
+                    leader,
+                    out var firstWorld,
+                    out firstWorldReason))
+        {
+            summary.RecordFailure(
+                testCase.Key,
+                "ExistingVerticalWholeRefresh",
+                "first refresh applies one whole transform",
+                firstReason + "; " + firstWorldReason,
+                TimberFramedBlockContentAutotestCategory.CreatePlacement);
+            return false;
+        }
+
+        var blockBeforeSecond = leader.BlockRotation;
+        var secondWorldReason = string.Empty;
+        if (!AutoCadWholeMLeaderHalfTurnService.TryApplyRequiredState(
+                transaction,
+                leader,
+                testCase.ElementAxisDegrees * Math.PI / 180d,
+                first.Decision.RevisionAfter,
+                "AutotestExistingRefresh2",
+                out var second,
+                out var secondReason) ||
+            !AutoCadFramedBlockContentDimensionColumnPlacementService
+                .TryResolveWorldContentXAxis(
+                    transaction,
+                    leader,
+                    out var secondWorld,
+                    out secondWorldReason))
+        {
+            summary.RecordFailure(
+                testCase.Key,
+                "ExistingVerticalWholeRefresh",
+                "second refresh is a no-op",
+                secondReason + "; " + secondWorldReason,
+                TimberFramedBlockContentAutotestCategory.CreatePlacement);
+            return false;
+        }
+
+        var expectedFirstWorld =
+            TimberAnnotationReadabilityRules.WrapPhysicalAngleRadians(
+                legacyWorld + Math.PI);
+        var sameHandle = string.Equals(
+            originalHandle,
+            leader.ObjectId.Handle.ToString(),
+            StringComparison.OrdinalIgnoreCase);
+        var placementOk =
+            AutoCadFramedBlockContentDimensionColumnPlacementService.TryEvaluate(
+                transaction,
+                leader,
+                out var placement,
+                out _,
+                out _) &&
+            placement.Current.IsCorrect;
+        const double tolerance = 1e-6d;
+        var pass = legacySetup.AttachmentDelta <= tolerance &&
+            first.Transform.TransformApplied &&
+            first.Transform.AttachmentDelta <= tolerance &&
+            first.Decision.RevisionAfter ==
+                TimberFramedBlockContentWholeAnnotationHalfTurnRules
+                    .AppliedStateRevision &&
+            Math.Abs(TimberAnnotationReadabilityRules.NormalizeAngleDelta(
+                firstWorld - expectedFirstWorld)) <= tolerance &&
+            !second.Transform.TransformApplied &&
+            second.Transform.AttachmentDelta <= tolerance &&
+            Math.Abs(TimberAnnotationReadabilityRules.NormalizeAngleDelta(
+                secondWorld - firstWorld)) <= tolerance &&
+            Math.Abs(TimberAnnotationReadabilityRules.NormalizeAngleDelta(
+                leader.BlockRotation - blockBeforeSecond)) <= tolerance &&
+            sameHandle &&
+            placementOk;
+        if (!pass)
+        {
+            summary.RecordFailure(
+                testCase.Key,
+                "ExistingVerticalWholeRefresh",
+                "first=180 second=0 attachmentDelta=0 sameHandle K→D→I",
+                $"firstTransform={first.Transform.TransformApplied}; " +
+                $"secondTransform={second.Transform.TransformApplied}; " +
+                $"attachment={first.Transform.AttachmentDelta:R}/" +
+                $"{second.Transform.AttachmentDelta:R}; " +
+                $"world={legacyWorld * 180d / Math.PI:R}->" +
+                $"{firstWorld * 180d / Math.PI:R}->" +
+                $"{secondWorld * 180d / Math.PI:R}; " +
+                $"sameHandle={sameHandle}; placement={placementOk}",
+                TimberFramedBlockContentAutotestCategory.CreatePlacement);
+            return false;
+        }
+
+        summary.RecordPass(
+            testCase.Key,
+            "ExistingVerticalWholeRefresh",
+            "first refresh whole=180; second refresh whole=0; " +
+            "attachmentDelta=0; sameHandle=True; K→D→I=True");
+        return true;
+    }
+
+    private static bool ValidateCreateReferenceFinalWorldAngles(
+        TimberFramedBlockContentAutotestCase testCase,
+        string leaderHandle,
+        TimberFramedBlockContentAutotestSummary summary)
+    {
+        if (!IsExpectedReferencePresentationCase(testCase))
+        {
+            return true;
+        }
+
+        var source = TimberAnnotationReadabilityRules.WrapPhysicalAngleRadians(
+            testCase.ElementAxisDegrees * Math.PI / 180d);
+
+        if (!AutoCadFramedBlockContentAnnotationService
+                .TryGetCreatePresentationTrace(leaderHandle, out var trace) ||
+            trace.VerticalRuleInput is not double input ||
+            trace.VerticalRuleOutput is not double output ||
+            trace.FrameWorldOrientationBefore is not double frameBefore ||
+            trace.FrameWorldOrientationAfter is not double frameAfter)
+        {
+            summary.RecordFailure(
+                testCase.Key,
+                "CreateReferenceFinalWorldAngles",
+                "CREATE trace with measured before/after half-turn",
+                "trace unavailable/incomplete",
+                TimberFramedBlockContentAutotestCategory.CreatePlacement);
+            return false;
+        }
+
+        _ = TryGetExpectedReferenceCreateContract(
+            source,
+            frameBefore,
+            out var expected,
+            out var expectedHalfTurn);
+        var sourceDelta = Math.Abs(
+            TimberAnnotationReadabilityRules.NormalizeAngleDelta(
+                trace.SourcePhysicalAxisAngle - source));
+        var frameDelta = Math.Abs(
+            TimberAnnotationReadabilityRules.NormalizeAngleDelta(
+                frameAfter - expected));
+        var ruleInputDelta = Math.Abs(
+            TimberAnnotationReadabilityRules.NormalizeAngleDelta(input - frameBefore));
+        var ruleOutputDelta = Math.Abs(
+            TimberAnnotationReadabilityRules.NormalizeAngleDelta(output - expected));
+        var itemDelta = trace.ItemTextWorldAngle is double item
+            ? Math.Abs(TimberAnnotationReadabilityRules.NormalizeAngleDelta(
+                item - frameAfter))
+            : double.PositiveInfinity;
+        var widthDelta = trace.WidthTextWorldAngle is double width
+            ? Math.Abs(TimberAnnotationReadabilityRules.NormalizeAngleDelta(
+                width - frameAfter))
+            : double.PositiveInfinity;
+        var heightDelta = trace.HeightTextWorldAngle is double height
+            ? Math.Abs(TimberAnnotationReadabilityRules.NormalizeAngleDelta(
+                height - frameAfter))
+            : double.PositiveInfinity;
+        var expectedBlockDelta = expectedHalfTurn ? Math.PI : 0d;
+        var requestedBlockDelta = Math.Abs(
+            Math.Abs(TimberAnnotationReadabilityRules.NormalizeAngleDelta(
+                trace.BlockRotationRequested - trace.BlockRotationBefore)) -
+            expectedBlockDelta);
+        var appliedBlockDelta = Math.Abs(
+            TimberAnnotationReadabilityRules.NormalizeAngleDelta(
+                trace.BlockRotationAfter - trace.BlockRotationRequested));
+        const double tolerance = 1e-6d;
+        if (sourceDelta > tolerance ||
+            frameDelta > tolerance ||
+            ruleInputDelta > tolerance ||
+            ruleOutputDelta > tolerance ||
+            itemDelta > tolerance ||
+            widthDelta > tolerance ||
+            heightDelta > tolerance ||
+            trace.AppliedHalfTurn != expectedHalfTurn ||
+            requestedBlockDelta > tolerance ||
+            appliedBlockDelta > tolerance ||
+            trace.ReferenceRevisionAfter !=
+                TimberFramedBlockContentReadableOrientationRules
+                    .ReferencePresentationRevision ||
+            !trace.DimensionsTowardKneeAfter)
+        {
+            summary.RecordFailure(
+                testCase.Key,
+                "CreateReferenceFinalWorldAngles",
+                "explicit source-sign world contract + coherent attributes",
+                $"input={input * 180d / Math.PI:R}; " +
+                $"output={output * 180d / Math.PI:R}; " +
+                $"frameBefore={frameBefore * 180d / Math.PI:R}; " +
+                $"frameAfter={frameAfter * 180d / Math.PI:R}; " +
+                $"item={trace.ItemTextWorldAngle * 180d / Math.PI:R}; " +
+                $"width={trace.WidthTextWorldAngle * 180d / Math.PI:R}; " +
+                $"height={trace.HeightTextWorldAngle * 180d / Math.PI:R}; " +
+                $"BTR={trace.BlockNameBeforeCorrection}->{trace.BlockNameAfterCorrection}; " +
+                $"towardKnee={trace.DimensionsTowardKneeAfter}; " +
+                trace.MeasurementNote,
+                TimberFramedBlockContentAutotestCategory.CreatePlacement);
+            return false;
+        }
+
+        summary.RecordPass(
+            testCase.Key,
+            "CreateReferenceFinalWorldAngles",
+            $"source={testCase.ElementAxisDegrees:R}; " +
+            $"input={input * 180d / Math.PI:R}; " +
+            $"output={frameAfter * 180d / Math.PI:R}; " +
+            $"BR={trace.BlockRotationBefore * 180d / Math.PI:R}" +
+            $"->{trace.BlockRotationAfter * 180d / Math.PI:R}; " +
+            $"BTR={trace.BlockNameBeforeCorrection}->{trace.BlockNameAfterCorrection}; " +
+            $"towardKnee={trace.DimensionsTowardKneeAfter}");
+        return true;
+    }
+
+    private static bool ValidateCreateWholeAnnotationHalfTurn(
+        Transaction transaction,
+        TimberFramedBlockContentAutotestCase testCase,
+        MLeader leader,
+        int resultingRevision,
+        TimberFramedBlockContentAutotestSummary summary)
+    {
+        var source = TimberAnnotationReadabilityRules.WrapPhysicalAngleRadians(
+            testCase.ElementAxisDegrees * Math.PI / 180d);
+        // Independent host oracle: exact vertical modulo directions only.
+        var expectedRequired =
+            Math.Abs(Math.Abs(source) - (Math.PI / 2d)) <= 1e-9d;
+        var handle = leader.ObjectId.Handle.ToString();
+        if (!AutoCadWholeMLeaderHalfTurnService.TryGetLatestTrace(
+                handle,
+                out var trace))
+        {
+            summary.RecordFailure(
+                testCase.Key,
+                "CreateWholeAnnotationHalfTurn",
+                "whole-annotation CREATE trace",
+                "trace unavailable",
+                TimberFramedBlockContentAutotestCategory.CreatePlacement);
+            return false;
+        }
+
+        var hasPlacement =
+            AutoCadFramedBlockContentDimensionColumnPlacementService.TryEvaluate(
+                transaction,
+                leader,
+                out var placement,
+                out _,
+                out var placementReason) &&
+            placement.Current.IsCorrect;
+        var expectedRotation = expectedRequired ? Math.PI : 0d;
+        const double tolerance = 1e-6d;
+        var pass = trace.Required == expectedRequired &&
+            trace.AppliedBefore == false &&
+            trace.AppliedAfter == expectedRequired &&
+            trace.TransformAppliedThisOperation == expectedRequired &&
+            Math.Abs(trace.RotationRadians - expectedRotation) <= tolerance &&
+            trace.AttachmentDelta <= tolerance &&
+            trace.DimensionsTowardKneeDotBefore > 0d &&
+            trace.DimensionsTowardKneeDotAfter > 0d &&
+            resultingRevision == trace.RevisionAfter &&
+            hasPlacement;
+        if (!pass)
+        {
+            summary.RecordFailure(
+                testCase.Key,
+                "CreateWholeAnnotationHalfTurn",
+                "vertical=one rigid 180; nonvertical=no transform; attachmentDelta=0",
+                $"required={trace.Required}; before={trace.AppliedBefore}; " +
+                $"after={trace.AppliedAfter}; " +
+                $"transform={trace.TransformAppliedThisOperation}; " +
+                $"rotationDeg={trace.RotationRadians * 180d / Math.PI:R}; " +
+                $"attachmentDelta={trace.AttachmentDelta:R}; " +
+                $"revision={trace.RevisionBefore}->{trace.RevisionAfter}/" +
+                $"{resultingRevision}; placement={placementReason}",
+                TimberFramedBlockContentAutotestCategory.CreatePlacement);
+            return false;
+        }
+
+        summary.RecordPass(
+            testCase.Key,
+            "CreateWholeAnnotationHalfTurn",
+            $"required={expectedRequired}; " +
+            $"transform={(expectedRequired ? 180d : 0d):R}; " +
+            $"attachmentDelta={trace.AttachmentDelta:R}; K→D→I=True");
+        return true;
+    }
+
+    private static bool IsExpectedReferencePresentationCase(
+        TimberFramedBlockContentAutotestCase testCase)
+    {
+        var source = TimberAnnotationReadabilityRules.WrapPhysicalAngleRadians(
+            testCase.ElementAxisDegrees * Math.PI / 180d);
+        var isVertical = Math.Abs(
+            Math.Abs(source) - (Math.PI / 2d)) <= 1e-9d;
+        var isOneEighty = Math.Abs(Math.Abs(source) - Math.PI) <= 1e-9d;
+        return isVertical || isOneEighty;
+    }
+
+    private static bool TryGetExpectedReferenceCreateContract(
+        double source,
+        double frameBefore,
+        out double expectedWorld,
+        out bool expectedHalfTurn)
+    {
+        // Independent host oracle. Never derive this table from the production
+        // ResolveCreateReferenceFinalWorldPresentation implementation.
+        if (Math.Abs(source - (Math.PI / 2d)) <= 1e-9d)
+        {
+            expectedWorld = Math.PI / 2d;
+            expectedHalfTurn = true;
+            return true;
+        }
+
+        if (Math.Abs(source + (Math.PI / 2d)) <= 1e-9d)
+        {
+            expectedWorld = -Math.PI / 2d;
+            expectedHalfTurn = false;
+            return true;
+        }
+
+        if (Math.Abs(Math.Abs(source) - Math.PI) <= 1e-9d)
+        {
+            expectedWorld =
+                TimberAnnotationReadabilityRules.WrapPhysicalAngleRadians(
+                    frameBefore + Math.PI);
+            expectedHalfTurn = true;
+            return true;
+        }
+
+        expectedWorld = frameBefore;
+        expectedHalfTurn = false;
+        return false;
+    }
+
+    private static bool ValidateAdoptedReferenceVerticalGripBoundary(
+        Database database,
+        Transaction transaction,
+        TimberFramedBlockContentAutotestCase testCase,
+        AutoCadFramedBlockContentAnnotationRequest request,
+        MLeader leader,
+        string originalHandle,
+        string runId,
+        TimberFramedBlockContentAutotestSummary summary)
+    {
+        var sourcePhysical =
+            TimberAnnotationReadabilityRules.WrapPhysicalAngleRadians(
+                testCase.ElementAxisDegrees * Math.PI / 180d);
+        if (Math.Abs(Math.Abs(sourcePhysical) - (Math.PI / 2d)) > 1e-9d)
+        {
+            return true;
+        }
+
+        var expected = TimberAnnotationReadabilityRules.WrapPhysicalAngleRadians(
+            sourcePhysical + Math.PI);
+        var expectedDirection = new Vector3d(
+            Math.Cos(expected),
+            Math.Sin(expected),
+            0d);
+
+        var cos = Math.Cos(request.ElementAxisRadians);
+        var sin = Math.Sin(request.ElementAxisRadians);
+        var source = new Line(
+            new Point3d(
+                request.AttachmentX - (cos * 1000d),
+                request.AttachmentY - (sin * 1000d),
+                0d),
+            new Point3d(
+                request.AttachmentX + (cos * 1000d),
+                request.AttachmentY + (sin * 1000d),
+                0d));
+        var modelSpace = OpenModelSpace(database, transaction, OpenMode.ForWrite);
+        var sourceId = modelSpace.AppendEntity(source);
+        transaction.AddNewlyCreatedDBObject(source, true);
+        MarkAutotestEntity(
+            database,
+            transaction,
+            sourceId,
+            runId,
+            testCase.Key + "-SOURCE");
+
+        leader.UpgradeOpen();
+        ElementLabelStore.Write(
+            leader,
+            transaction,
+            new ElementLabelData
+            {
+                SchemaVersion =
+                    AutoCadFramedBlockContentProductionPolicy
+                        .LabelMetadataSchemaVersion,
+                ElementId = "AUTOTEST-" + testCase.Key,
+                SourceHandle = sourceId.Handle.ToString(),
+                RendererGeneration =
+                    AutoCadFramedBlockContentProductionPolicy
+                        .RendererGeneration,
+                R3ReferencePresentationRevision =
+                    TimberFramedBlockContentWholeAnnotationHalfTurnRules
+                        .AppliedStateRevision,
+            });
+
+        var frame = leader.BlockPosition;
+        var oldKnee = ReadKnee(leader);
+        var landingLength = Math.Max(frame.DistanceTo(oldKnee), 1d);
+        leader.SetLastVertex(
+            GetPrimaryLeaderLineIndex(leader),
+            new Point3d(
+                frame.X - (expectedDirection.X * landingLength),
+                frame.Y - (expectedDirection.Y * landingLength),
+                frame.Z));
+        // Native MLeader grip emulation may drag BlockPosition with the knee.
+        // The reported production case has the frame fixed and final
+        // knee→frame landing exactly +90°, so restore only that captured frame
+        // point in the test fixture before invoking the real post-grip sync.
+        var movedKnee = ReadKnee(leader);
+        leader.BlockPosition = new Point3d(
+            movedKnee.X + (expectedDirection.X * landingLength),
+            movedKnee.Y + (expectedDirection.Y * landingLength),
+            frame.Z);
+        var primaryLeaderIndex = leader.GetLeaderIndexes().Cast<int>().First();
+        leader.SetDogleg(primaryLeaderIndex, expectedDirection);
+
+        var hasBeforeWorld =
+            AutoCadFramedBlockContentDimensionColumnPlacementService
+                .TryResolveWorldContentXAxis(
+                    transaction,
+                    leader,
+                    out var worldBefore,
+                    out var beforeNote);
+        var blockBefore = leader.BlockRotation;
+        var outcome = AutoCadFramedBlockContentProductionGripNormalizeService
+            .TryNormalizeR3ContentVariantOnlyForAutotest(
+                database,
+                transaction,
+                leader,
+                out var normalizeNote);
+        var hasAfterWorld =
+            AutoCadFramedBlockContentDimensionColumnPlacementService
+                .TryResolveWorldContentXAxis(
+                    transaction,
+                    leader,
+                    out var worldAfter,
+                    out var afterNote);
+        var kneeAfter = ReadKnee(leader);
+        var landingAfter = Math.Atan2(
+            leader.BlockPosition.Y - kneeAfter.Y,
+            leader.BlockPosition.X - kneeAfter.X);
+        var placementOk =
+            AutoCadFramedBlockContentDimensionColumnPlacementService
+                .TryEvaluate(
+                    transaction,
+                    leader,
+                    out var placement,
+                    out _,
+                    out var placementNote) &&
+            placement.Current.IsCorrect;
+        var itemWorld = AutoCadFramedBlockContentAnnotationService
+            .TryReadAttributeRotationRadians(
+            transaction,
+            leader,
+            TimberFramedBlockContentDefinitionRules.ItemNoTag);
+        var widthWorld = AutoCadFramedBlockContentAnnotationService
+            .TryReadAttributeRotationRadians(
+            transaction,
+            leader,
+            TimberFramedBlockContentDefinitionRules.WidthTag);
+        var heightWorld = AutoCadFramedBlockContentAnnotationService
+            .TryReadAttributeRotationRadians(
+            transaction,
+            leader,
+            TimberFramedBlockContentDefinitionRules.HeightTag);
+        var tolerance = 1e-6d;
+        var pass = hasBeforeWorld &&
+            hasAfterWorld &&
+            Math.Abs(TimberAnnotationReadabilityRules.NormalizeAngleDelta(
+                worldBefore - expected)) <= tolerance &&
+            Math.Abs(TimberAnnotationReadabilityRules.NormalizeAngleDelta(
+                worldAfter - expected)) <= tolerance &&
+            Math.Abs(TimberAnnotationReadabilityRules.NormalizeAngleDelta(
+                landingAfter - expected)) <= tolerance &&
+            Math.Abs(TimberAnnotationReadabilityRules.NormalizeAngleDelta(
+                leader.BlockRotation - blockBefore)) <= tolerance &&
+            itemWorld is double item &&
+            widthWorld is double width &&
+            heightWorld is double height &&
+            Math.Abs(TimberAnnotationReadabilityRules.NormalizeAngleDelta(
+                item - expected)) <= tolerance &&
+            Math.Abs(TimberAnnotationReadabilityRules.NormalizeAngleDelta(
+                width - expected)) <= tolerance &&
+            Math.Abs(TimberAnnotationReadabilityRules.NormalizeAngleDelta(
+                height - expected)) <= tolerance &&
+            placementOk &&
+            string.Equals(
+                originalHandle,
+                leader.ObjectId.Handle.ToString(),
+                StringComparison.OrdinalIgnoreCase) &&
+            outcome is
+                TimberFramedBlockContentGripNormalizeOutcome.SuccessNoOp or
+                TimberFramedBlockContentGripNormalizeOutcome.SuccessChanged;
+        if (!pass)
+        {
+            summary.RecordFailure(
+                testCase.Key,
+                "AdoptedReferenceVerticalGripBoundary",
+                "directed landing/world/attrs; BR delta=0; revision=current; K->D->I",
+                $"before={beforeNote}; after={afterNote}; " +
+                $"normalize={outcome}:{normalizeNote}; " +
+                $"world={worldBefore * 180d / Math.PI:R}" +
+                $"->{worldAfter * 180d / Math.PI:R}; " +
+                $"landing={landingAfter * 180d / Math.PI:R}; " +
+                $"BR={blockBefore * 180d / Math.PI:R}" +
+                $"->{leader.BlockRotation * 180d / Math.PI:R}; " +
+                $"placement={placementNote}",
+                TimberFramedBlockContentAutotestCategory.CreatePlacement);
+            return false;
+        }
+
+        summary.RecordPass(
+            testCase.Key,
+            "AdoptedReferenceVerticalGripBoundary",
+            $"source={sourcePhysical * 180d / Math.PI:R}; " +
+            $"landing={expected * 180d / Math.PI:R}; " +
+            $"world={expected * 180d / Math.PI:R}; BR delta=0; " +
+            $"revision={TimberFramedBlockContentReadableOrientationRules.ReferencePresentationRevision}; " +
+            "towardKnee=True");
+        return true;
     }
 
     /// <summary>

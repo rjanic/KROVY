@@ -30,6 +30,21 @@ public sealed record TimberLeaderPlaneBasis(
     double VerticalY)
 {
     public static TimberLeaderPlaneBasis WorldXY { get; } = new(1d, 0d, 0d, 1d);
+
+    /// <summary>
+    /// Element-aligned annotation plane: +H along readable element axis,
+    /// +V rotated 90° CCW (same convention as WorldXY for rotation 0).
+    /// </summary>
+    public static TimberLeaderPlaneBasis FromRotationRadians(double rotationRadians)
+    {
+        var horizontalX = Math.Cos(rotationRadians);
+        var horizontalY = Math.Sin(rotationRadians);
+        return new TimberLeaderPlaneBasis(
+            horizontalX,
+            horizontalY,
+            -horizontalY,
+            horizontalX);
+    }
 }
 
 public sealed record TimberItemLeaderLayout(

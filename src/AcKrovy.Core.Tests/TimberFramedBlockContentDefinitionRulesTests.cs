@@ -91,7 +91,7 @@ public sealed class TimberFramedBlockContentDefinitionRulesTests
     }
 
     [Fact]
-    public void DimensionColumnLocalX_IsSignedByColumnSide()
+    public void DimensionColumnLocalX_RightNegative_LeftPositiveMirror()
     {
         var plainNeg = TimberFramedBlockContentDefinitionRules
             .CalculateDimensionColumnLocalX(
@@ -118,10 +118,33 @@ public sealed class TimberFramedBlockContentDefinitionRulesTests
                 2.5d,
                 TimberFramedBlockContentDimensionColumnSide.PositiveLocalX);
 
+        // PositiveLocalX = +offset; NegativeLocalX = −offset (literal enum bake).
+        // R3_RIGHT = NegativeLocalX (PASS); R3_LEFT = PositiveLocalX.
+        Assert.True(plainPos > 0d);
         Assert.True(plainNeg < 0d);
-        Assert.Equal(-plainNeg, plainPos, 1e-9);
-        Assert.True(framedNeg < plainNeg);
-        Assert.Equal(-framedNeg, framedPos, 1e-9);
+        Assert.Equal(-plainPos, plainNeg, 1e-9);
+        Assert.True(framedPos > 0d);
+        Assert.True(framedNeg < 0d);
+        Assert.Equal(-framedPos, framedNeg, 1e-9);
+        Assert.True(Math.Abs(framedPos) > Math.Abs(plainPos));
+        Assert.Equal(
+            TimberFramedBlockContentDimensionColumnSide.NegativeLocalX,
+            TimberFramedCombinedG5ContentVariantRules.RightColumnSide);
+        Assert.Equal(
+            TimberFramedBlockContentDimensionColumnSide.PositiveLocalX,
+            TimberFramedCombinedG5ContentVariantRules.LeftColumnSide);
+        Assert.True(
+            TimberFramedBlockContentDefinitionRules.CalculateDimensionColumnLocalX(
+                TimberFramedBlockContentKind.Circle,
+                TimberItemLeaderBlockDefinitionRules.CircleDiameterMm,
+                2.5d,
+                TimberFramedCombinedG5ContentVariantRules.RightColumnSide) < 0d);
+        Assert.True(
+            TimberFramedBlockContentDefinitionRules.CalculateDimensionColumnLocalX(
+                TimberFramedBlockContentKind.Circle,
+                TimberItemLeaderBlockDefinitionRules.CircleDiameterMm,
+                2.5d,
+                TimberFramedCombinedG5ContentVariantRules.LeftColumnSide) > 0d);
     }
 
     [Theory]

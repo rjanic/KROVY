@@ -25,13 +25,15 @@ public static class TimberCompositeAnnotationLifecycleRules
             TimberMainAnnotationComponentRole.FramedItem,
         };
 
+    /// <summary>
+    /// Production framed Combined is one G5 BlockContent MLeader on
+    /// <see cref="TimberMainAnnotationComponentRole.FramedItem"/>.
+    /// Legacy G4 Circle* + Primary dimensions are unexpected after migration.
+    /// </summary>
     private static readonly HashSet<TimberMainAnnotationComponentRole>
-        DimensionsWithFramedG4 = new HashSet<TimberMainAnnotationComponentRole>
+        DimensionsWithFramedG5 = new HashSet<TimberMainAnnotationComponentRole>
         {
-            TimberMainAnnotationComponentRole.Primary,
-            TimberMainAnnotationComponentRole.CircleLeaderLine,
-            TimberMainAnnotationComponentRole.CircleFrame,
-            TimberMainAnnotationComponentRole.CircleText,
+            TimberMainAnnotationComponentRole.FramedItem,
         };
 
     public static IReadOnlyCollection<TimberMainAnnotationComponentRole> RequiredRoles(
@@ -46,7 +48,7 @@ public static class TimberCompositeAnnotationLifecycleRules
         var framed = TimberAnnotationModeRules.IsFramedItemLeader(mode, itemStyle);
         if (normalizedMode == TimberAnnotationMode.DimensionsWithItemNumber)
         {
-            return framed ? DimensionsWithFramedG4 : DimensionsWithFramedItem;
+            return framed ? DimensionsWithFramedG5 : DimensionsWithFramedItem;
         }
 
         if (normalizedMode == TimberAnnotationMode.ItemNumberLeader && framed)

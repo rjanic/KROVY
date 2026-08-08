@@ -172,6 +172,14 @@ internal static class AutoCadFramedG4CompositeService
             data.ElementId,
             sourceHandle,
             previousElementId,
+            currentElementOwnerCount: ElementLabelService.CountTimberElementsWithElementIdForG4(
+                database,
+                transaction,
+                data.ElementId),
+            previousElementOwnerCount: ElementLabelService.CountTimberElementsWithElementIdForG4(
+                database,
+                transaction,
+                previousElementId),
             allowElementIdFallback: !copySourcePreservation);
 
         // Migrate legacy G2/G3 BlockContent MLeaders by replacing the whole
@@ -306,6 +314,8 @@ internal static class AutoCadFramedG4CompositeService
         string elementId,
         string sourceHandle,
         string? previousElementId,
+        int currentElementOwnerCount,
+        int previousElementOwnerCount,
         bool allowElementIdFallback)
     {
         var blockTable = (BlockTable)transaction.GetObject(
@@ -315,11 +325,8 @@ internal static class AutoCadFramedG4CompositeService
             blockTable[BlockTableRecord.ModelSpace],
             OpenMode.ForRead);
 
-        ObjectId leaderId = ObjectId.Null;
-        ObjectId frameId = ObjectId.Null;
-        ObjectId itemCodeId = ObjectId.Null;
-        ObjectId legacyId = ObjectId.Null;
-        string? groupId = null;
+        var candidates = new List<TimberFramedG4CompositeCandidate>();
+        var entityIdsByKey = new Dictionary<string, ObjectId>(StringComparer.OrdinalIgnoreCase);
 
         foreach (ObjectId id in modelSpace)
         {
@@ -336,72 +343,82 @@ internal static class AutoCadFramedG4CompositeService
                 continue;
             }
 
-            var sourceMatches = string.Equals(
-                data.SourceHandle,
-                sourceHandle,
-                StringComparison.OrdinalIgnoreCase);
-            var elementMatches = allowElementIdFallback &&
-                string.Equals(
-                    data.ElementId,
-                    elementId,
-                    StringComparison.OrdinalIgnoreCase);
-            var previousMatches = allowElementIdFallback &&
-                !string.IsNullOrWhiteSpace(previousElementId) &&
-                string.Equals(
-                    data.ElementId,
-                    previousElementId,
-                    StringComparison.OrdinalIgnoreCase);
-            if (!sourceMatches && !elementMatches && !previousMatches)
-            {
-                continue;
-            }
-
-            if (!AutoCadFramedG4CompositePolicy.IsG4CompositeRole(
-                    data.ComponentRole) &&
-                !AutoCadFramedG4CompositePolicy.IsLegacyG2G3BlockLeaderRole(
-                    data.ComponentRole))
-            {
-                continue;
-            }
-
-            if (data.RendererGeneration ==
-                    AutoCadFramedG4CompositePolicy.RendererGeneration &&
-                !string.IsNullOrWhiteSpace(data.AnnotationGroupId))
-            {
-                groupId ??= data.AnnotationGroupId;
-            }
-
-            if (data.ComponentRole == AutoCadFramedG4CompositePolicy.LeaderRole &&
-                entity is MLeader)
-            {
-                leaderId = id;
-            }
-            else if (data.ComponentRole == AutoCadFramedG4CompositePolicy.FrameRole &&
-                     entity is BlockReference)
-            {
-                frameId = id;
-            }
-            else if (data.ComponentRole == AutoCadFramedG4CompositePolicy.ItemCodeRole)
-            {
-                itemCodeId = id;
-            }
-            else if (
+            var isG4Role = AutoCadFramedG4CompositePolicy.IsG4CompositeRole(
+                data.ComponentRole);
+            var isLegacyRole =
                 AutoCadFramedG4CompositePolicy.IsLegacyG2G3BlockLeaderRole(
                     data.ComponentRole) &&
                 entity is MLeader &&
-                IsLegacyG2G3BlockLeader(transaction, id))
+                IsLegacyG2G3BlockLeader(transaction, id);
+            if (!isG4Role && !isLegacyRole)
             {
-                legacyId = id;
+                continue;
+            }
+
+            if (isG4Role)
+            {
+                if (data.ComponentRole == AutoCadFramedG4CompositePolicy.LeaderRole &&
+                    entity is not MLeader)
+                {
+                    continue;
+                }
+
+                if (data.ComponentRole == AutoCadFramedG4CompositePolicy.FrameRole &&
+                    entity is not BlockReference)
+                {
+                    continue;
+                }
+            }
+
+            var entityKey = id.ToString();
+            entityIdsByKey[entityKey] = id;
+            candidates.Add(new TimberFramedG4CompositeCandidate
+            {
+                EntityKey = entityKey,
+                ElementId = data.ElementId,
+                SourceHandle = data.SourceHandle,
+                ComponentRole = data.ComponentRole,
+                AnnotationGroupId =
+                    data.RendererGeneration ==
+                        AutoCadFramedG4CompositePolicy.RendererGeneration
+                        ? data.AnnotationGroupId
+                        : null,
+                IsLegacyBlockLeader = isLegacyRole,
+            });
+        }
+
+        var selection = TimberFramedG4CompositeMatchRules.SelectCompositeForUpsert(
+            sourceHandle,
+            elementId,
+            previousElementId,
+            candidates,
+            currentElementOwnerCount,
+            previousElementOwnerCount,
+            allowElementIdFallback);
+
+        foreach (var obsoleteKey in selection.EntityKeysToDelete)
+        {
+            if (entityIdsByKey.TryGetValue(obsoleteKey, out var obsoleteId))
+            {
+                EraseEntityIfPresent(transaction, obsoleteId);
             }
         }
 
         return new AutoCadFramedG4ExistingComposite(
-            leaderId,
-            frameId,
-            itemCodeId,
-            legacyId,
-            groupId);
+            ResolveSelectedEntityId(selection.LeaderKey, entityIdsByKey),
+            ResolveSelectedEntityId(selection.FrameKey, entityIdsByKey),
+            ResolveSelectedEntityId(selection.ItemCodeKey, entityIdsByKey),
+            ResolveSelectedEntityId(selection.LegacyBlockLeaderKey, entityIdsByKey),
+            selection.AnnotationGroupId);
     }
+
+    private static ObjectId ResolveSelectedEntityId(
+        string? entityKey,
+        IReadOnlyDictionary<string, ObjectId> entityIdsByKey) =>
+        !string.IsNullOrWhiteSpace(entityKey) &&
+        entityIdsByKey.TryGetValue(entityKey, out var id)
+            ? id
+            : ObjectId.Null;
 
     private static AutoCadFramedG4ExistingComposite CreateComposite(
         Database database,
@@ -479,7 +496,7 @@ internal static class AutoCadFramedG4CompositeService
         frame.BlockTableRecord = preparation.FrameBlockTableRecordId;
         frame.Position = placement.TextLocation;
         frame.ScaleFactors = new Scale3d(preparation.FrameBlockScale);
-        frame.Rotation = 0d;
+        frame.Rotation = placement.RotationRadians;
         frame.LayerId = layerId;
         ApplyByLayerAppearance(frame, database);
 
@@ -690,7 +707,7 @@ internal static class AutoCadFramedG4CompositeService
             preparation.FrameBlockTableRecordId);
         frame.SetDatabaseDefaults(database);
         frame.ScaleFactors = new Scale3d(preparation.FrameBlockScale);
-        frame.Rotation = 0d;
+        frame.Rotation = placement.RotationRadians;
         frame.LayerId = layerId;
         ApplyByLayerAppearance(frame, database);
         return frame;
@@ -903,8 +920,9 @@ internal sealed record AutoCadFramedG4ExistingComposite(
 }
 
 /// <summary>
-/// Narrow bridge so the G4 composite service can ensure the label layer without
-/// widening ElementLabelService's private surface beyond one helper.
+/// Narrow bridge so the G4 composite service can ensure the label layer and
+/// reuse timber owner counts without widening ElementLabelService's private
+/// surface beyond these helpers.
 /// </summary>
 internal static partial class ElementLabelService
 {
@@ -913,4 +931,10 @@ internal static partial class ElementLabelService
         Transaction transaction,
         bool updateExistingLayer) =>
         EnsureLabelLayer(database, transaction, updateExistingLayer);
+
+    internal static int CountTimberElementsWithElementIdForG4(
+        Database database,
+        Transaction transaction,
+        string? elementId) =>
+        CountTimberElementsWithElementId(database, transaction, elementId);
 }

@@ -50,10 +50,14 @@ public sealed class FramedBlockContentDefinitionSourceContractTests
         Assert.DoesNotContain("SourceHandle", createRawKey);
         Assert.DoesNotContain("ElementId", createRawKey);
         Assert.Contains("AK_KROVY_FBC", variant);
-        Assert.Contains("FamilyRevisionToken = \"R2\"", variant);
+        Assert.Contains("FamilyRevisionToken = \"R3\"", variant);
+        Assert.Contains("LegacyR2FamilyRevisionToken", variant);
         Assert.Contains("DimensionsNegativeXToken", variant);
         Assert.Contains("DimensionsPositiveXToken", variant);
         Assert.Contains("dimensionColumnSide", createRawKey);
+        Assert.Contains("ToContentVariantToken", createRawKey);
+        Assert.Contains("ContentVariantRightToken", variant);
+        Assert.Contains("ContentVariantLeftToken", variant);
         Assert.Contains("NameFamilyPrefix = \"AK_KROVY_FBC_\"", policy);
         Assert.Contains("IsProductionFamilyName", policy);
         Assert.Contains("!name.StartsWith(\"AK_G5C_\"", Normalize(policy));

@@ -55,4 +55,17 @@ public static class TimberSlopeAnnotationRules
             timberSourceHandle!.Trim(),
             StringComparison.OrdinalIgnoreCase);
     }
+
+    /// <summary>
+    /// Roles whose geometry may drive slope longitudinal clearance. G4
+    /// <see cref="TimberMainAnnotationComponentRole.CircleLeaderLine"/>
+    /// (NoneContent) and frame-only block refs are excluded — they are not
+    /// text annotations and must not be probed via MLeader.TextLocation.
+    /// </summary>
+    public static bool IsLongitudinalIntervalLabelRole(
+        TimberMainAnnotationComponentRole role) =>
+        role is
+            TimberMainAnnotationComponentRole.Primary or
+            TimberMainAnnotationComponentRole.FramedItem or
+            TimberMainAnnotationComponentRole.CircleText;
 }

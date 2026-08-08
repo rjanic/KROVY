@@ -91,6 +91,12 @@ public sealed class CombinedPlainLandingDistanceSourceContractTests
         Assert.Contains(
             "landingStartPoint.DistanceTo(landingEndPoint)",
             dimensionsPlacement);
+        Assert.Contains(
+            "TimberAnnotationReadabilityRules.NormalizeReadableRotationRadians(",
+            dimensionsPlacement);
+        Assert.DoesNotContain(
+            "RotationRadians: 0d",
+            dimensionsPlacement);
         Assert.DoesNotContain(
             "landingDistanceMm <= 0",
             dimensionsPlacement);

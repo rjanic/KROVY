@@ -136,12 +136,14 @@ public sealed class TimberFramedBlockContentLayoutCalculatorTests
         }
 
         Assert.Equal(
-            TimberAnnotationReadabilityRules.NormalizeReadableRotationRadians(
-                request.ElementAxisRadians),
+            TimberFramedBlockContentReadableOrientationRules
+                .Decide(request.ElementAxisRadians)
+                .PresentationAngle,
             layout.ReadableAngleRadians);
         Assert.Equal(
-            TimberAnnotationReadabilityRules.IsReadabilityFlipped(
-                request.ElementAxisRadians),
+            TimberFramedBlockContentReadableOrientationRules
+                .Decide(request.ElementAxisRadians)
+                .ReadableFlip,
             layout.ReadabilityFlipped);
     }
 

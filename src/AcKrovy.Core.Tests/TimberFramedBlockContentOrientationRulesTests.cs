@@ -42,7 +42,7 @@ public sealed class TimberFramedBlockContentOrientationRulesTests
     [InlineData(0d, 1d, 0d)]
     [InlineData(90d, 0d, 1d)]
     [InlineData(180d, 1d, 0d)] // readable 0 → +X
-    [InlineData(270d, 0d, 1d)] // readable +90 → +Y (create contract)
+    [InlineData(270d, 0d, -1d)] // readable −90° → −Y (WHITE DOBRÉ; not +90°)
     [InlineData(35d, /* cos35 */ 0.8191520442889918d, /* sin35 */ 0.5735764363510461d)]
     public void EffectiveLocalXAxis_MatchesReadableOrientation(
         double degrees,
@@ -289,7 +289,7 @@ public sealed class TimberFramedBlockContentOrientationRulesTests
     public void ItemOnly_IsNotContentSideNormalizeTarget()
     {
         var itemOnly = TimberFramedBlockContentVariantRules.CreateSafeBlockName(
-            TimberFramedBlockContentVariantRules.CreateRawKey(
+            TimberFramedBlockContentVariantRules.CreateLegacyR2RawKey(
                 TimberFramedBlockContentKind.Circle,
                 "MEDIUM",
                 "Standard",
@@ -311,7 +311,7 @@ public sealed class TimberFramedBlockContentOrientationRulesTests
     {
         var size = kind == TimberFramedBlockContentKind.Plain ? "NONE" : "MEDIUM";
         return TimberFramedBlockContentVariantRules.CreateSafeBlockName(
-            TimberFramedBlockContentVariantRules.CreateRawKey(
+            TimberFramedBlockContentVariantRules.CreateLegacyR2RawKey(
                 kind,
                 size,
                 "Standard",

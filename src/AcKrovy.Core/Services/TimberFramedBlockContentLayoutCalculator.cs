@@ -6,9 +6,11 @@ namespace AcKrovy.Core.Services;
 /// Canonical local G5 BlockContent layout (pre-host TransformBy).
 /// First segment: knee = attachment + T·(L·cos60) + sideSign·N·(L·sin60),
 /// with sideSign = +1 Right / −1 Left (G5C proof contract).
-/// Combined WIDTH/HEIGHT local X follows
-/// <see cref="TimberFramedBlockContentDimensionColumnSide"/> so the column
-/// stays on the frame side toward the knee (not screen Left/Right).
+/// Combined WIDTH/HEIGHT local X in this create T/N model is always −offset
+/// (toward knee along +T landing). Immutable R3_RIGHT/LEFT BTR AttrDef bake
+/// uses <see cref="TimberFramedBlockContentDefinitionRules.CreateR3Layout"/>
+/// with literal enum signs (RIGHT=−offset / LEFT=+offset) selected from
+/// final knee-vs-frame landing — not from world L/R alone.
 /// Landing stays along +T for both Left and Right at create; dogleg direction
 /// after grip STRETCH is resolved separately by
 /// <see cref="TimberFramedBlockContentDoglegRules"/>.
@@ -32,9 +34,14 @@ public static class TimberFramedBlockContentLayoutCalculator
         ValidateRequest(request);
 
         var rawAngle = request.ElementAxisRadians;
-        var readable =
+        var orientation = request.Presentation ==
+            TimberFramedBlockContentPresentation.Combined
+                ? TimberFramedBlockContentReadableOrientationRules.Decide(rawAngle)
+                : null;
+        var readable = orientation?.PresentationAngle ??
             TimberAnnotationReadabilityRules.NormalizeReadableRotationRadians(rawAngle);
-        var flipped = TimberAnnotationReadabilityRules.IsReadabilityFlipped(rawAngle);
+        var flipped = orientation?.ReadableFlip ??
+            TimberAnnotationReadabilityRules.IsReadabilityFlipped(rawAngle);
         var sideSign = SideSign(request.Side);
 
         var attachment = new TimberPlanarPoint(
@@ -72,13 +79,10 @@ public static class TimberFramedBlockContentLayoutCalculator
             frameWidth / 2d +
             minimumFrameGap +
             request.DimensionColumnEnvelopeWidthMm / 2d;
-        var dimensionColumnLocalX =
-            request.Presentation == TimberFramedBlockContentPresentation.Combined
-                ? (request.DimensionColumnSide ==
-                    TimberFramedBlockContentDimensionColumnSide.NegativeLocalX
-                    ? -dimensionColumnOffset
-                    : dimensionColumnOffset)
-                : -dimensionColumnOffset;
+        // Create T/N space: landing +T, toward-knee column always −X from frame.
+        // R3_LEFT/+offset BTR mirror lives in DefinitionRules.CreateR3Layout.
+        _ = request.DimensionColumnSide;
+        var dimensionColumnLocalX = -dimensionColumnOffset;
 
         var itemHeight =
             TimberAnnotationTextSettingsRules.CalculateModelHeightMm(
