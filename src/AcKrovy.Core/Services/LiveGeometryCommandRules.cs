@@ -12,7 +12,7 @@ public static class LiveGeometryCommandRules
 
     /// <summary>
     /// Normalizes AutoCAD Managed API GlobalCommandName values for comparison:
-    /// trim whitespace and transparent/international prefixes ('_', '.').
+    /// trim whitespace and transparent/international prefixes ('_', '.', '\'').
     /// </summary>
     public static string NormalizeCommandName(string? globalCommandName)
     {
@@ -21,7 +21,7 @@ public static class LiveGeometryCommandRules
             return string.Empty;
         }
 
-        return globalCommandName!.Trim().TrimStart('_', '.');
+        return globalCommandName!.Trim().TrimStart('_', '.', '\'');
     }
 
     /// <summary>

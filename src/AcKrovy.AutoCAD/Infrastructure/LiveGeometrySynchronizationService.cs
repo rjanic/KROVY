@@ -266,7 +266,6 @@ internal static class LiveGeometrySynchronizationService
                 IsAcKrovyCommand(e.GlobalCommandName);
             var refreshAllTimberAnnotations = _refreshAllTimberAnnotationsAfterCommand;
             var preserveCopySources = _preserveCopySourcesForCurrentCommand;
-            _ignoreCurrentCommand = false;
             _refreshAllTimberAnnotationsAfterCommand = false;
             _preserveCopySourcesForCurrentCommand = false;
 #if DEBUG
@@ -277,6 +276,12 @@ internal static class LiveGeometrySynchronizationService
                 // Undo/Redo (and AK_): clear queued dirty state only — never
                 // LockDocument / StartTransaction / RefreshTimberElements.
                 ClearPendingLiveGeometryState();
+                // Keep ignore armed after U/UNDO/REDO/MREDO so deferred
+                // ObjectModified/Appended from annotation restore cannot
+                // re-queue work that a later non-undo CommandEnded would
+                // refresh (that write txn clears the native REDO stack).
+                // CommandWillStart of the next real edit disarms this.
+                _ignoreCurrentCommand = isUndoRedo;
 #if DEBUG
                 AutoCadFramedBlockContentStretchNormalizeLifecycleService
                     .TraceCancelledOrFailed(_document, "CommandIgnored", e.GlobalCommandName);
@@ -292,6 +297,7 @@ internal static class LiveGeometrySynchronizationService
                 return;
             }
 
+            _ignoreCurrentCommand = false;
             RefreshCandidates(
                 e.GlobalCommandName,
                 refreshAllTimberAnnotations,
@@ -300,10 +306,11 @@ internal static class LiveGeometrySynchronizationService
 
         private void CommandCancelled(object? sender, CommandEventArgs e)
         {
-            _ignoreCurrentCommand = false;
+            var isUndoRedo = LiveGeometryCommandRules.IsUndoRedoCommand(e.GlobalCommandName);
             ClearPendingLiveGeometryState();
             _refreshAllTimberAnnotationsAfterCommand = false;
             _preserveCopySourcesForCurrentCommand = false;
+            _ignoreCurrentCommand = isUndoRedo;
 #if DEBUG
             AutoCadRedoDiagService.OnCommandCancelledOrFailed(
                 "CommandCancelled",
@@ -317,10 +324,11 @@ internal static class LiveGeometrySynchronizationService
 
         private void CommandFailed(object? sender, CommandEventArgs e)
         {
-            _ignoreCurrentCommand = false;
+            var isUndoRedo = LiveGeometryCommandRules.IsUndoRedoCommand(e.GlobalCommandName);
             ClearPendingLiveGeometryState();
             _refreshAllTimberAnnotationsAfterCommand = false;
             _preserveCopySourcesForCurrentCommand = false;
+            _ignoreCurrentCommand = isUndoRedo;
 #if DEBUG
             AutoCadRedoDiagService.OnCommandCancelledOrFailed(
                 "CommandFailed",

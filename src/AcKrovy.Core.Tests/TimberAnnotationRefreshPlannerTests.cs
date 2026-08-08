@@ -95,9 +95,12 @@ public sealed class TimberAnnotationRefreshPlannerTests
     [InlineData(" UNDO ")]
     [InlineData("_UNDO")]
     [InlineData(".UNDO")]
+    [InlineData("'U")]
+    [InlineData("'_UNDO")]
     [InlineData("REDO")]
     [InlineData("_REDO")]
     [InlineData(".MREDO")]
+    [InlineData("'REDO")]
     [InlineData(" mredo ")]
     public void UndoRedoCommands_AreFiltered(string commandName)
     {
@@ -122,6 +125,8 @@ public sealed class TimberAnnotationRefreshPlannerTests
     [InlineData(null)]
     [InlineData("UPDATE")]
     [InlineData("UNDOMARK")]
+    [InlineData("ERASE")]
+    [InlineData("_ERASE")]
     public void OrdinaryEditCommands_AreNotFilteredAsUndoRedo(string? commandName)
     {
         Assert.False(LiveGeometryCommandRules.IsUndoRedoCommand(commandName));
@@ -131,9 +136,28 @@ public sealed class TimberAnnotationRefreshPlannerTests
     [InlineData("  _U  ", "U")]
     [InlineData(".REDO", "REDO")]
     [InlineData("\tMREDO", "MREDO")]
+    [InlineData("'U", "U")]
+    [InlineData("'_UNDO", "UNDO")]
+    [InlineData(".'REDO", "REDO")]
     public void NormalizeCommandName_StripsPrefixesAndWhitespace(string raw, string expected)
     {
         Assert.Equal(expected, LiveGeometryCommandRules.NormalizeCommandName(raw));
+    }
+
+    [Theory]
+    [InlineData("U")]
+    [InlineData("UNDO")]
+    [InlineData("_U")]
+    [InlineData(".UNDO")]
+    [InlineData("'U")]
+    [InlineData("REDO")]
+    [InlineData("_REDO")]
+    [InlineData("MREDO")]
+    [InlineData("'MREDO")]
+    public void UndoRedoLifecycle_MatrixCommands_StayFiltered(string commandName)
+    {
+        // Host matrix A–J: after these commands LiveGeometry must not open a write txn.
+        Assert.True(LiveGeometryCommandRules.IsUndoRedoCommand(commandName));
     }
 
     [Theory]

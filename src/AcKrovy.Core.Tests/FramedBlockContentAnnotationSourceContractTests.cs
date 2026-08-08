@@ -585,6 +585,10 @@ public sealed class FramedBlockContentAnnotationSourceContractTests
         Assert.Contains("LiveGeometryCommandRules.IsUndoRedoCommand(", liveGeometry);
         Assert.Contains("OnLiveGeometryRefreshSkippedUndoRedo(", liveGeometry);
         Assert.Contains("ClearPendingLiveGeometryState(", liveGeometry);
+        Assert.Contains("_ignoreCurrentCommand = isUndoRedo;", liveGeometry);
+        Assert.Contains(
+            "Keep ignore armed after U/UNDO/REDO/MREDO",
+            liveGeometry);
         Assert.Contains(
             "AutoCadFramedBlockContentGripPassthroughProofService.RemoveSession(",
             liveGeometry);
@@ -1062,6 +1066,7 @@ public sealed class FramedBlockContentAnnotationSourceContractTests
         Assert.Contains(
             "normalized.Equals(\"MREDO\", StringComparison.OrdinalIgnoreCase)",
             LiveGeometryCommandRulesSource());
+        Assert.Contains("TrimStart('_', '.', '\\'')", LiveGeometryCommandRulesSource());
 
         var autotestCommands = AutotestCommandsSource().Trim();
         var autotest = AutotestServiceSource().Trim();
