@@ -61,7 +61,10 @@ public sealed class CombinedPlainLandingDistanceSourceContractTests
             "combinedLandingDistanceMm: combinedLandingDistanceMm",
             combined);
         Assert.Contains(
-            "doglegLengthOverride: combinedLandingDistanceMm",
+            "double? doglegLengthOverride = combinedLandingDistanceMm",
+            create);
+        Assert.Contains(
+            "doglegLengthOverride: doglegLengthOverride",
             create);
         Assert.Contains(
             "doglegLengthOverride: combinedLandingDistanceMm",

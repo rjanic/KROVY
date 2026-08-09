@@ -7,32 +7,35 @@ public sealed class FramedRendererProductionIntegrationSourceContractTests
     private static readonly string RepositoryRoot = FindRepositoryRoot();
 
     [Fact]
-    public void ProductionFramedPath_UsesG4CompositeBeforeLegacyBlockLeaderMutation()
+    public void ProductionFramedPath_UsesStandaloneBlockContentBeforeLegacyMutation()
     {
         var member = Member(
             ElementLabelSource(),
             "private static bool UpsertLeader(");
 
+        var standalone = member.IndexOf(
+            "AutoCadStandaloneFramedItemOnlyProductionPolicy.UsesStandaloneFramedItemOnly(",
+            StringComparison.Ordinal);
+        var upsertStandalone = member.IndexOf(
+            "UpsertStandaloneFramedItemOnlyLeader(",
+            StringComparison.Ordinal);
         var g4 = member.IndexOf(
             "AutoCadFramedG4CompositePolicy.UsesG4Composite(",
-            StringComparison.Ordinal);
-        var prepare = member.IndexOf(
-            "AutoCadFramedG4CompositeService.TryPrepare(",
-            StringComparison.Ordinal);
-        var upsert = member.IndexOf(
-            "AutoCadFramedG4CompositeService.TryUpsert(",
             StringComparison.Ordinal);
         var legacyWrite = member.IndexOf(
             "TryUpdateBlockLeader(",
             StringComparison.Ordinal);
 
-        Assert.True(g4 >= 0 && prepare > g4 && upsert > prepare);
-        Assert.True(legacyWrite < 0 || upsert < legacyWrite);
-        Assert.Contains("ContentType.NoneContent", G4ServiceSource());
+        Assert.True(standalone >= 0 && upsertStandalone > standalone);
+        Assert.True(g4 < 0 || standalone < g4);
+        Assert.True(legacyWrite < 0 || upsertStandalone < legacyWrite);
+        Assert.Contains(
+            "AutoCadStandaloneFramedItemOnlyAnnotationService.Create(",
+            ElementLabelSource());
+        Assert.Contains("ContentType.BlockContent", Source(
+            "src", "AcKrovy.AutoCAD", "Infrastructure",
+            "AutoCadStandaloneFramedItemOnlyAnnotationService.cs"));
         Assert.Contains("new DBText()", G4ServiceSource());
-        Assert.DoesNotContain(
-            "leader.BlockContentId = preparation.BlockTableRecordId",
-            member.Substring(g4, Math.Min(1200, member.Length - g4)));
     }
 
     [Fact]

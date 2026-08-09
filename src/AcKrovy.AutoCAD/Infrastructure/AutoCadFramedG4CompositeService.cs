@@ -570,6 +570,7 @@ internal static class AutoCadFramedG4CompositeService
                 leaderLineIndex,
                 placement.Side,
                 preparation.FrameBlockScale);
+            ApplyStandaloneFramedItemOnlyStraightLeader(leader, leaderLineIndex);
         }
 
         // Re-assert after style helpers that may assume BlockContent.
@@ -651,9 +652,27 @@ internal static class AutoCadFramedG4CompositeService
                 leaderLineIndex,
                 placement.Side,
                 preparation.FrameBlockScale);
+            ApplyStandaloneFramedItemOnlyStraightLeader(leader, leaderLineIndex);
         }
 
         leader.ContentType = ContentType.NoneContent;
+    }
+
+    /// <summary>
+    /// Standalone G4 ItemOnly only: one ordinary straight leader segment
+    /// Anchor→frame (Content==Knee). Does not enable Combined landing/dogleg.
+    /// CombinedFramed keeps ApplyCombinedBlockInstanceProperties untouched.
+    /// </summary>
+    private static void ApplyStandaloneFramedItemOnlyStraightLeader(
+        MLeader leader,
+        int leaderLineIndex)
+    {
+        leader.LeaderLineType = LeaderType.StraightLeader;
+        leader.SetLeaderLineType(leaderLineIndex, LeaderType.StraightLeader);
+        leader.EnableLanding = false;
+        leader.EnableDogleg = false;
+        leader.DoglegLength = 0d;
+        leader.LandingGap = 0d;
     }
 
     private static void RebuildLeaderLine(

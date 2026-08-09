@@ -32,15 +32,16 @@ internal static class AutoCadFramedG4CompositePolicy
     public static bool UsesG4Composite(
         TimberAnnotationMode mode,
         ItemNumberLeaderStyle style,
-        TimberMainAnnotationComponentRole componentRole) =>
-        TimberAnnotationModeRules.IsFramedItemLeader(mode, style) &&
-        // Framed Combined production is G5 single BlockContent MLeader —
-        // only ItemNumberLeader (Iba popis) framed stays on G4 composite.
-        (TimberAnnotationModeRules.Normalize(mode) ==
-            TimberAnnotationMode.ItemNumberLeader &&
-         componentRole == TimberMainAnnotationComponentRole.Primary ||
-         IsG4CompositeRole(componentRole));
-
+        TimberMainAnnotationComponentRole componentRole)
+    {
+        // CREATE for ItemNumberLeader framed migrated to one BlockContent MLeader
+        // (AutoCadStandaloneFramedItemOnly*). G4 remains for role classification /
+        // legacy erase only — never for new composite CREATE.
+        _ = mode;
+        _ = style;
+        _ = componentRole;
+        return false;
+    }
     public static bool IsLegacyG2G3BlockLeaderRole(
         TimberMainAnnotationComponentRole role) =>
         role is

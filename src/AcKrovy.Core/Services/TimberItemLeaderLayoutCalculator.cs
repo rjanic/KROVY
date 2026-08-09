@@ -19,6 +19,71 @@ public static class TimberItemLeaderLayoutCalculator
     public const double MinimumLeaderRunMm = 180d;
     public const double FirstSegmentAngleRadians = Math.PI / 3d;
     public const double FirstSegmentLengthMm = 360d;
+    /// <summary>
+    /// Standalone Plain / DimensionsLeader only: first leader segment length at
+    /// annotation scale 1:50. Other scales multiply by
+    /// <c>presentationScaleFactor</c> =
+    /// <see cref="TimberAnnotationScaleRules.GetScaleFactor"/> (denominator / 50).
+    /// Must not replace <see cref="FirstSegmentLengthMm"/> on Combined paths.
+    /// Framed ItemOnly uses the canonical framed length minus
+    /// <see cref="StandaloneNativeFramedItemOnlyLeaderReductionAtScale50Mm"/>.
+    /// </summary>
+    public const double StandaloneNativeFirstSegmentLengthMm = 250d;
+    /// <summary>
+    /// Standalone framed ItemOnly (Circle/Rectangle/Slot) only: model-space
+    /// shortening of the straight Source→frame leader at annotation scale 1:50.
+    /// Other scales multiply by <c>presentationScaleFactor</c>. Applied after the
+    /// original canonical length
+    /// (<see cref="FirstSegmentLengthMm"/> +
+    /// <see cref="FramedLeaderAdditionalOffsetMm"/>) × scale — never an absolute
+    /// 250 mm length. Must not affect Plain, Dimensions, or Combined.
+    /// </summary>
+    public const double StandaloneNativeFramedItemOnlyLeaderReductionAtScale50Mm = 250d;
+    /// <summary>
+    /// Standalone framed ItemOnly only: clamp after reduction so leader length
+    /// never becomes zero or negative.
+    /// </summary>
+    public const double StandaloneNativeFramedItemOnlyLeaderMinimumLengthMm = 1e-6d;
+    /// <summary>
+    /// Standalone Plain ItemOnly only: tiny margin from the knee to the near
+    /// text edge. Landing DoglegLength reaches MiddleCenter TextLocation at
+    /// half envelope + this padding — keep it near-zero so the visible landing
+    /// stays only slightly past the text (card-like), not a clearance overhang.
+    /// Not TextClearance / MinimumLeaderRun / PlainTextClearance.
+    /// </summary>
+    public const double StandaloneNativeLandingPaddingMm = 1d;
+    /// <summary>
+    /// Standalone DimensionsLeader only: flush knee→near-edge pad (no extra
+    /// overhang). Stacked digit landings use this instead of
+    /// <see cref="StandaloneNativeLandingPaddingMm"/>.
+    /// </summary>
+    public const double StandaloneNativeDimensionsLandingPaddingMm = 0d;
+    /// <summary>
+    /// Standalone DimensionsLeader only: fraction of estimated envelope width
+    /// for Knee→MiddleCenter. Slightly under 1/2 so AttachmentBottomLine
+    /// landings stay tight when the digit-width estimate runs wide.
+    /// Plain ItemOnly keeps the exact half-envelope factor (1/2).
+    /// </summary>
+    public const double StandaloneNativeDimensionsLandingEnvelopeFactor = 0.45d;
+    /// <summary>
+    /// Standalone DimensionsLeader only: model-space shortening of the second
+    /// (landing) segment at annotation scale 1:50. Other scales multiply by
+    /// <c>presentationScaleFactor</c> =
+    /// <see cref="TimberAnnotationScaleRules.GetScaleFactor"/> (denominator / 50).
+    /// Plain ItemOnly must not apply this reduction.
+    /// </summary>
+    public const double StandaloneNativeDimensionsLandingReductionAtScale50Mm = 250d;
+    /// <summary>
+    /// Standalone DimensionsLeader only: clamp after reduction so DoglegLength
+    /// never becomes zero or negative.
+    /// </summary>
+    public const double StandaloneNativeDimensionsLandingMinimumLengthMm = 1e-6d;
+    /// <summary>
+    /// Standalone Plain / DimensionsLeader only: interior elbow angle when
+    /// segment A is 60° from source axis T and segment B is parallel to T
+    /// (180° − 60° = 120°). Not a rotate(dirA) construction angle.
+    /// </summary>
+    public const double SecondSegmentBendRadians = 2d * Math.PI / 3d;
     public const double FramedLeaderAdditionalOffsetMm = 350d;
     public const double FramedFirstSegmentAngleRadians = Math.PI / 3d;
     public const double FramedItemLandingDistanceMm = 0d;
@@ -185,6 +250,7 @@ public static class TimberItemLeaderLayoutCalculator
         // Native Plain item text remains horizontal. Use its projected
         // half-envelope along the source normal so every orientation keeps
         // the same edge clearance from the source axis.
+        // Combined Plain keeps this pre-baked world layout (no TransformBy).
         var projectedHalfEnvelope =
             Math.Abs(normalX) * envelopeWidth / 2d +
             Math.Abs(normalY) * effectiveTextHeight / 2d;
@@ -205,6 +271,382 @@ public static class TimberItemLeaderLayoutCalculator
             side,
             envelopeWidth,
             effectiveTextHeight);
+    }
+
+    /// <summary>
+    /// Standalone DimensionsLeader (Iba rozmery) only: canonical WorldXY layout
+    /// (T=+X, N=+Y). Segment A is exactly 60° from +T; segment B continues from
+    /// the knee parallel to ±T (interior elbow 120°). Host finishes with absolute
+    /// <see cref="OrientAroundAnchor"/> using
+    /// <see cref="ResolveNativeLeaderTransformRadians"/> (physical Start→End) and
+    /// absolute MText rotation — not cumulative <c>TransformBy</c>.
+    /// Must not be used by Combined dimensions / R3 paths.
+    /// </summary>
+    public static TimberItemLeaderLayout CalculateStandaloneNativeDimensionsLeader(
+        TimberLeaderPlacement placement,
+        string dimensionText,
+        TimberLeaderHorizontalSide? preferredSide = null,
+        double presentationScaleFactor = 1d)
+    {
+        if (placement is null)
+        {
+            throw new ArgumentNullException(nameof(placement));
+        }
+        if (presentationScaleFactor <= 0d ||
+            double.IsNaN(presentationScaleFactor) ||
+            double.IsInfinity(presentationScaleFactor))
+        {
+            throw new ArgumentOutOfRangeException(nameof(presentationScaleFactor));
+        }
+
+        var effectiveTextHeight = TextHeightMm * presentationScaleFactor;
+        var normalizedText = dimensionText?.Trim() ?? string.Empty;
+        // Stacked "W\PH" uses the longest line — not the raw string with \P.
+        var envelopeWidth = EstimateStandaloneTextEnvelopeWidthMm(
+            normalizedText,
+            effectiveTextHeight);
+        var side = preferredSide ?? TimberLeaderHorizontalSide.Right;
+        var firstLength =
+            StandaloneNativeFirstSegmentLengthMm * presentationScaleFactor;
+        var knee = CalculateKnee(
+            placement.AnchorX,
+            placement.AnchorY,
+            side,
+            firstLength,
+            TimberLeaderPlaneBasis.WorldXY,
+            TimberLeaderVerticalSide.Up);
+        var secondLength = CalculateStandaloneNativeDimensionsLandingLengthMm(
+            envelopeWidth,
+            presentationScaleFactor);
+        var content = CalculateStandaloneSecondSegmentContent(
+            knee.X,
+            knee.Y,
+            placement.AnchorX,
+            placement.AnchorY,
+            side,
+            secondLength);
+
+        return new TimberItemLeaderLayout(
+            placement.AnchorX,
+            placement.AnchorY,
+            knee.X,
+            knee.Y,
+            content.X,
+            content.Y,
+            side,
+            envelopeWidth,
+            effectiveTextHeight);
+    }
+
+    /// <summary>
+    /// Standalone Plain ItemOnly only: canonical WorldXY layout (T=+X, N=+Y).
+    /// Segment A is exactly 60° from +T; segment B continues from the knee
+    /// parallel to ±T (interior elbow 120°). Host finishes with absolute
+    /// <see cref="OrientAroundAnchor"/> using
+    /// <see cref="ResolveNativeLeaderTransformRadians"/> (physical Start→End) and
+    /// absolute MText rotation — not cumulative <c>TransformBy</c>.
+    /// Must not be used by Combined Plain / R3 framed paths.
+    /// </summary>
+    public static TimberItemLeaderLayout CalculateStandaloneNativePlainItemNumber(
+        TimberLeaderPlacement placement,
+        string itemText,
+        TimberLeaderHorizontalSide? preferredSide = null,
+        double presentationScaleFactor = 1d)
+    {
+        if (placement is null)
+        {
+            throw new ArgumentNullException(nameof(placement));
+        }
+        if (presentationScaleFactor <= 0d ||
+            double.IsNaN(presentationScaleFactor) ||
+            double.IsInfinity(presentationScaleFactor))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(presentationScaleFactor));
+        }
+
+        var effectiveTextHeight =
+            TimberItemNumberTypographyRules.CalculateTextHeightMm(
+                presentationScaleFactor);
+        var normalizedText = itemText?.Trim() ?? string.Empty;
+        var envelopeWidth = EstimateStandaloneTextEnvelopeWidthMm(
+            normalizedText,
+            effectiveTextHeight);
+        var side = preferredSide ?? TimberLeaderHorizontalSide.Right;
+        var firstLength =
+            StandaloneNativeFirstSegmentLengthMm * presentationScaleFactor;
+        var knee = CalculateKnee(
+            placement.AnchorX,
+            placement.AnchorY,
+            side,
+            firstLength,
+            TimberLeaderPlaneBasis.WorldXY,
+            TimberLeaderVerticalSide.Up);
+
+        // Landing B ‖ source axis (±T from knee). Never rotate(dirA, ±120°) —
+        // that puts B at −60° to T. Never Combined CalculatePlainItemNumber's
+        // anchor-normal content placement. Length = half text envelope + tiny
+        // near-edge pad (MiddleCenter TextLocation), not PlainTextClearance.
+        var secondLength = CalculateStandaloneNativeLandingLengthMm(
+            envelopeWidth,
+            presentationScaleFactor);
+        var content = CalculateStandaloneSecondSegmentContent(
+            knee.X,
+            knee.Y,
+            placement.AnchorX,
+            placement.AnchorY,
+            side,
+            secondLength);
+
+        return new TimberItemLeaderLayout(
+            placement.AnchorX,
+            placement.AnchorY,
+            knee.X,
+            knee.Y,
+            content.X,
+            content.Y,
+            side,
+            envelopeWidth,
+            effectiveTextHeight);
+    }
+
+    /// <summary>
+    /// Standalone DimensionsLeader only: Knee→MiddleCenter DoglegLength.
+    /// Starts from the shared envelope-factor landing, then shortens by
+    /// <see cref="StandaloneNativeDimensionsLandingReductionAtScale50Mm"/> ×
+    /// <paramref name="presentationScaleFactor"/> (1.0 at 1:50). Clamped to
+    /// <see cref="StandaloneNativeDimensionsLandingMinimumLengthMm"/>.
+    /// Must not be used by Plain ItemOnly.
+    /// </summary>
+    public static double CalculateStandaloneNativeDimensionsLandingLengthMm(
+        double textEnvelopeWidthMm,
+        double presentationScaleFactor = 1d)
+    {
+        var baseLanding = CalculateStandaloneNativeLandingLengthMm(
+            textEnvelopeWidthMm,
+            presentationScaleFactor,
+            StandaloneNativeDimensionsLandingPaddingMm,
+            StandaloneNativeDimensionsLandingEnvelopeFactor);
+
+        if (presentationScaleFactor <= 0d ||
+            double.IsNaN(presentationScaleFactor) ||
+            double.IsInfinity(presentationScaleFactor))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(presentationScaleFactor));
+        }
+
+        var reduction =
+            StandaloneNativeDimensionsLandingReductionAtScale50Mm *
+            presentationScaleFactor;
+        return Math.Max(
+            StandaloneNativeDimensionsLandingMinimumLengthMm,
+            baseLanding - reduction);
+    }
+
+    /// <summary>
+    /// Standalone Plain / DimensionsLeader only: DoglegLength / |Knee→Content|
+    /// for MiddleCenter text on AttachmentBottomLine. Equals
+    /// <paramref name="envelopeFactor"/> × text envelope plus
+    /// <paramref name="landingPaddingMm"/> (knee→near-edge pad only — do not
+    /// add a second half-envelope; MiddleCenter already accounts for center
+    /// placement). Plain defaults: half envelope +
+    /// <see cref="StandaloneNativeLandingPaddingMm"/>. Dimensions uses
+    /// <see cref="StandaloneNativeDimensionsLandingEnvelopeFactor"/> +
+    /// <see cref="StandaloneNativeDimensionsLandingPaddingMm"/>, then applies
+    /// <see cref="CalculateStandaloneNativeDimensionsLandingLengthMm"/>
+    /// reduction. Not the legacy TextClearance / MinimumLeaderRun /
+    /// PlainTextClearance stack.
+    /// </summary>
+    public static double CalculateStandaloneNativeLandingLengthMm(
+        double textEnvelopeWidthMm,
+        double presentationScaleFactor = 1d,
+        double landingPaddingMm = StandaloneNativeLandingPaddingMm,
+        double envelopeFactor = 0.5d)
+    {
+        if (textEnvelopeWidthMm <= 0d ||
+            double.IsNaN(textEnvelopeWidthMm) ||
+            double.IsInfinity(textEnvelopeWidthMm))
+        {
+            throw new ArgumentOutOfRangeException(nameof(textEnvelopeWidthMm));
+        }
+
+        if (presentationScaleFactor <= 0d ||
+            double.IsNaN(presentationScaleFactor) ||
+            double.IsInfinity(presentationScaleFactor))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(presentationScaleFactor));
+        }
+
+        if (landingPaddingMm < 0d ||
+            double.IsNaN(landingPaddingMm) ||
+            double.IsInfinity(landingPaddingMm))
+        {
+            throw new ArgumentOutOfRangeException(nameof(landingPaddingMm));
+        }
+
+        if (envelopeFactor <= 0d ||
+            envelopeFactor > 0.5d ||
+            double.IsNaN(envelopeFactor) ||
+            double.IsInfinity(envelopeFactor))
+        {
+            throw new ArgumentOutOfRangeException(nameof(envelopeFactor));
+        }
+
+        // Knee → MiddleCenter: envelope factor (≤ half) + tiny near-edge pad.
+        return (textEnvelopeWidthMm * envelopeFactor) +
+            (landingPaddingMm * presentationScaleFactor);
+    }
+
+    /// <summary>
+    /// Standalone Plain / DimensionsLeader only: place content at
+    /// Knee + (±T) × length so segment B is parallel to the source axis.
+    /// Right uses +T, Left uses −T. With A at 60° from T this yields interior
+    /// elbow <see cref="SecondSegmentBendRadians"/> (120°). Must not rotate
+    /// dirA by ±120° (that leaves B at −60° to T).
+    /// </summary>
+    public static (double X, double Y) CalculateStandaloneSecondSegmentContent(
+        double kneeX,
+        double kneeY,
+        double anchorX,
+        double anchorY,
+        TimberLeaderHorizontalSide side,
+        double secondSegmentLengthMm)
+    {
+        if (secondSegmentLengthMm <= 0d ||
+            double.IsNaN(secondSegmentLengthMm) ||
+            double.IsInfinity(secondSegmentLengthMm))
+        {
+            throw new ArgumentOutOfRangeException(nameof(secondSegmentLengthMm));
+        }
+
+        var firstDx = kneeX - anchorX;
+        var firstDy = kneeY - anchorY;
+        var firstLength = Math.Sqrt((firstDx * firstDx) + (firstDy * firstDy));
+        if (firstLength <= AngleToleranceRadians ||
+            double.IsNaN(firstLength) ||
+            double.IsInfinity(firstLength))
+        {
+            throw new ArgumentOutOfRangeException(nameof(kneeX));
+        }
+
+        // Canonical WorldXY authoring: T = +X. Landing stays parallel to T —
+        // never rotate(dirA, ±120°).
+        var alongT = side == TimberLeaderHorizontalSide.Left ? -1d : 1d;
+        return (
+            kneeX + (secondSegmentLengthMm * alongT),
+            kneeY);
+    }
+
+    /// <summary>
+    /// Standalone Plain / DimensionsLeader only: measurable segment B for the
+    /// AutoCAD MLeader dogleg — direction Knee→Content (‖ ±T after
+    /// <see cref="OrientAroundAnchor"/>) and length |Content−Knee|.
+    /// Host must set DoglegLength to this length and call SetDogleg; style
+    /// LandingDistance remains 0 and must not be treated as the landing.
+    /// </summary>
+    public static (double DirX, double DirY, double LengthMm)
+        ResolveStandaloneNativeLanding(
+            double kneeX,
+            double kneeY,
+            double contentX,
+            double contentY)
+    {
+        if (double.IsNaN(kneeX) || double.IsNaN(kneeY) ||
+            double.IsNaN(contentX) || double.IsNaN(contentY) ||
+            double.IsInfinity(kneeX) || double.IsInfinity(kneeY) ||
+            double.IsInfinity(contentX) || double.IsInfinity(contentY))
+        {
+            throw new ArgumentOutOfRangeException(nameof(contentX));
+        }
+
+        var dx = contentX - kneeX;
+        var dy = contentY - kneeY;
+        var length = Math.Sqrt((dx * dx) + (dy * dy));
+        if (length <= AngleToleranceRadians)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(contentX),
+                "Standalone landing requires Content distinct from Knee.");
+        }
+
+        return (dx / length, dy / length, length);
+    }
+
+    /// <summary>
+    /// Rigid world orientation of a canonical-horizontal native leader layout
+    /// around the attachment. Absolute CREATE / source-sync contract for
+    /// standalone Plain ItemOnly and DimensionsLeader (not cumulative TransformBy).
+    /// </summary>
+    public static TimberItemLeaderLayout OrientAroundAnchor(
+        TimberItemLeaderLayout layout,
+        double rotationRadians)
+    {
+        if (layout is null)
+        {
+            throw new ArgumentNullException(nameof(layout));
+        }
+
+        if (double.IsNaN(rotationRadians) || double.IsInfinity(rotationRadians))
+        {
+            throw new ArgumentOutOfRangeException(nameof(rotationRadians));
+        }
+
+        if (Math.Abs(rotationRadians) <= AngleToleranceRadians)
+        {
+            return layout;
+        }
+
+        var cos = Math.Cos(rotationRadians);
+        var sin = Math.Sin(rotationRadians);
+        return new TimberItemLeaderLayout(
+            layout.AnchorX,
+            layout.AnchorY,
+            RotateX(layout.KneeX, layout.KneeY, layout.AnchorX, layout.AnchorY, cos, sin),
+            RotateY(layout.KneeX, layout.KneeY, layout.AnchorX, layout.AnchorY, cos, sin),
+            RotateX(layout.ContentX, layout.ContentY, layout.AnchorX, layout.AnchorY, cos, sin),
+            RotateY(layout.ContentX, layout.ContentY, layout.AnchorX, layout.AnchorY, cos, sin),
+            layout.Side,
+            layout.EnvelopeWidthMm,
+            layout.EnvelopeHeightMm);
+    }
+
+    /// <summary>
+    /// Whole-annotation transform angle for standalone native leaders laid out
+    /// in canonical horizontal space. Delegates to
+    /// <see cref="TimberStandaloneNativeLeaderOrientationRules"/> —
+    /// physical Start→End only; never feed an already-readable angle.
+    /// </summary>
+    public static double ResolveNativeLeaderTransformRadians(
+        double physicalSourceAxisRadians) =>
+        TimberStandaloneNativeLeaderOrientationRules.ResolveTransformRadians(
+            physicalSourceAxisRadians);
+
+    private static double RotateX(
+        double x,
+        double y,
+        double pivotX,
+        double pivotY,
+        double cos,
+        double sin)
+    {
+        var dx = x - pivotX;
+        var dy = y - pivotY;
+        return pivotX + (dx * cos) - (dy * sin);
+    }
+
+    private static double RotateY(
+        double x,
+        double y,
+        double pivotX,
+        double pivotY,
+        double cos,
+        double sin)
+    {
+        var dx = x - pivotX;
+        var dy = y - pivotY;
+        return pivotY + (dx * sin) + (dy * cos);
     }
 
     public static TimberItemLeaderLayout CalculateBlock(
@@ -238,6 +680,60 @@ public static class TimberItemLeaderLayoutCalculator
             side,
             (FirstSegmentLengthMm + FramedLeaderAdditionalOffsetMm) * presentationScaleFactor,
             planeBasis,
+            TimberLeaderVerticalSide.Up,
+            FramedFirstSegmentAngleRadians);
+        return new TimberItemLeaderLayout(
+            placement.AnchorX,
+            placement.AnchorY,
+            knee.X,
+            knee.Y,
+            knee.X,
+            knee.Y,
+            side,
+            definition.WidthMm * presentationScaleFactor,
+            definition.HeightMm * presentationScaleFactor);
+    }
+
+    /// <summary>
+    /// Standalone framed ItemOnly only: canonical WorldXY layout (T=+X, N=+Y),
+    /// Content==Knee (frame at terminal vertex). Host finishes with absolute
+    /// <see cref="OrientAroundAnchor"/> (same CREATE contract as Plain /
+    /// Dimensions). Must not be used by R3 Combined.
+    /// </summary>
+    public static TimberItemLeaderLayout CalculateStandaloneNativeFramedItem(
+        TimberLeaderPlacement placement,
+        string itemText,
+        ItemNumberLeaderStyle style,
+        double presentationScaleFactor = 1d)
+    {
+        if (placement is null)
+        {
+            throw new ArgumentNullException(nameof(placement));
+        }
+        if (presentationScaleFactor <= 0d ||
+            double.IsNaN(presentationScaleFactor) ||
+            double.IsInfinity(presentationScaleFactor))
+        {
+            throw new ArgumentOutOfRangeException(nameof(presentationScaleFactor));
+        }
+
+        var definition = TimberItemLeaderBlockDefinitionRules.Resolve(style, itemText);
+        var side = TimberLeaderHorizontalSide.Right;
+        var originalCanonicalLength =
+            (FirstSegmentLengthMm + FramedLeaderAdditionalOffsetMm) *
+            presentationScaleFactor;
+        var reduction =
+            StandaloneNativeFramedItemOnlyLeaderReductionAtScale50Mm *
+            presentationScaleFactor;
+        var firstLength = Math.Max(
+            StandaloneNativeFramedItemOnlyLeaderMinimumLengthMm,
+            originalCanonicalLength - reduction);
+        var knee = CalculateKnee(
+            placement.AnchorX,
+            placement.AnchorY,
+            side,
+            firstLength,
+            TimberLeaderPlaneBasis.WorldXY,
             TimberLeaderVerticalSide.Up,
             FramedFirstSegmentAngleRadians);
         return new TimberItemLeaderLayout(
@@ -375,6 +871,32 @@ public static class TimberItemLeaderLayoutCalculator
         }
 
         return new TimberLeaderPlaneBasis(horizontalX, horizontalY, verticalX, verticalY);
+    }
+
+    /// <summary>
+    /// Estimated text envelope width for standalone native landings. Stacked
+    /// dimension lines (<c>\P</c> / newlines) use the longest line only.
+    /// </summary>
+    private static double EstimateStandaloneTextEnvelopeWidthMm(
+        string normalizedText,
+        double effectiveTextHeightMm)
+    {
+        var maximumLineLength = 0;
+        foreach (var line in normalizedText
+            .Replace("\r\n", "\n")
+            .Split(["\\P", "\n"], StringSplitOptions.None))
+        {
+            if (line.Length > maximumLineLength)
+            {
+                maximumLineLength = line.Length;
+            }
+        }
+
+        return Math.Max(
+            effectiveTextHeightMm,
+            maximumLineLength *
+            effectiveTextHeightMm *
+            EstimatedCharacterWidthFactor);
     }
 
     private static double QuantizeUp(double value) =>

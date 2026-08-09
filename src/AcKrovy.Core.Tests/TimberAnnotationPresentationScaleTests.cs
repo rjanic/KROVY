@@ -155,6 +155,62 @@ public sealed class TimberAnnotationPresentationScaleTests
     }
 
     [Theory]
+    [InlineData(0d)]
+    [InlineData(90d)]
+    [InlineData(37d)]
+    [InlineData(-30d)]
+    [InlineData(150d)]
+    public void StandaloneNativePlainItemNumber_PreservesSixtyOneTwentyAfterOrient(
+        double sourceAngleDegrees)
+    {
+        var physical = sourceAngleDegrees * Math.PI / 180d;
+        var transform =
+            TimberItemLeaderLayoutCalculator.ResolveNativeLeaderTransformRadians(
+                physical);
+        var sourceX = Math.Cos(transform);
+        var sourceY = Math.Sin(transform);
+        var placement = new TimberLeaderPlacement(0d, 0d, 0d, 360d, physical);
+
+        var layout = TimberItemLeaderLayoutCalculator.OrientAroundAnchor(
+            TimberItemLeaderLayoutCalculator.CalculateStandaloneNativePlainItemNumber(
+                placement,
+                "VT1",
+                TimberLeaderHorizontalSide.Right,
+                presentationScaleFactor: 1d),
+            transform);
+
+        var firstX = layout.KneeX - layout.AnchorX;
+        var firstY = layout.KneeY - layout.AnchorY;
+        var secondX = layout.ContentX - layout.KneeX;
+        var secondY = layout.ContentY - layout.KneeY;
+        var firstLength = Math.Sqrt((firstX * firstX) + (firstY * firstY));
+        var secondLength = Math.Sqrt((secondX * secondX) + (secondY * secondY));
+        Assert.True(firstLength > 1e-9d);
+        Assert.True(secondLength > 1e-9d);
+
+        var sourceToFirst = Math.Acos(Math.Min(
+            1d,
+            Math.Max(
+                -1d,
+                ((firstX * sourceX) + (firstY * sourceY)) / firstLength))) *
+            180d / Math.PI;
+        var interiorElbow = Math.Acos(Math.Min(
+            1d,
+            Math.Max(
+                -1d,
+                ((-firstX * secondX) + (-firstY * secondY)) /
+                (firstLength * secondLength)))) *
+            180d / Math.PI;
+        var parallelDot = Math.Abs(
+            ((secondX * sourceX) + (secondY * sourceY)) / secondLength);
+
+        Assert.Equal(60d, sourceToFirst, 8);
+        Assert.Equal(120d, interiorElbow, 8);
+        Assert.Equal(1d, parallelDot, 8);
+        Assert.True((firstX * secondY) - (firstY * secondX) < 0d);
+    }
+
+    [Theory]
     [InlineData(ItemNumberLeaderStyle.Circle)]
     [InlineData(ItemNumberLeaderStyle.Slot)]
     [InlineData(ItemNumberLeaderStyle.Rectangle)]
