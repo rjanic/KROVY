@@ -13,16 +13,16 @@ public sealed class StandaloneNativeLeaderOrientationTests
         {
             { 0d, 0d },
             { 89d, 89d },
-            { 90d, -90d },
+            { 90d, 90d },
             { 91d, -89d },
             { 179d, -1d },
             { 180d, 0d },
             { 181d, 1d },
             { 269d, 89d },
-            { 270d, 90d },
+            { 270d, -90d },
             { 271d, -89d },
             { 359d, -1d },
-            { -90d, 90d },
+            { -90d, -90d },
             { -180d, 0d },
         };
 
@@ -63,10 +63,10 @@ public sealed class StandaloneNativeLeaderOrientationTests
     }
 
     [Theory]
-    [InlineData(90d, -90d)]
-    [InlineData(-90d, 90d)]
-    [InlineData(270d, 90d)]
-    public void ResolveNativeLeaderTransform_AppliesVerticalHalfTurn(
+    [InlineData(90d, 90d)]
+    [InlineData(-90d, -90d)]
+    [InlineData(270d, -90d)]
+    public void ResolveNativeLeaderTransform_KeepsDirectedVerticalGeometry(
         double physicalDegrees,
         double expectedDegrees)
     {
@@ -75,6 +75,22 @@ public sealed class StandaloneNativeLeaderOrientationTests
                 physicalDegrees * Math.PI / 180d) *
             180d / Math.PI;
 
+        Assert.Equal(expectedDegrees, actual, 8);
+    }
+
+    [Theory]
+    [InlineData(90d, 90d)]
+    [InlineData(-90d, 90d)]
+    [InlineData(270d, 90d)]
+    public void ResolveTextPresentation_VerticalsShareBottomToTop(
+        double physicalDegrees,
+        double expectedDegrees)
+    {
+        var actual =
+            TimberStandaloneNativeLeaderOrientationRules
+                .ResolveTextPresentationRadians(
+                    physicalDegrees * Math.PI / 180d) *
+            180d / Math.PI;
         Assert.Equal(expectedDegrees, actual, 8);
     }
 
@@ -107,7 +123,8 @@ public sealed class StandaloneNativeLeaderOrientationTests
 
         if (TimberStandaloneNativeLeaderOrientationRules.IsExactVertical(forward))
         {
-            // +90° → −90°, −90°/270° → +90° — reversed vertical is the other vertical.
+            // Directed verticals: +90° and −90° stay themselves (no invert half-turn).
+            // Reversed Start→End is the opposite directed vertical.
             Assert.Equal(
                 TimberAnnotationReadabilityRules.WrapPhysicalAngleRadians(
                     forwardTransform + Math.PI),
@@ -992,25 +1009,34 @@ public sealed class StandaloneNativeLeaderOrientationTests
     }
 
     [Fact]
-    public void ResolveTransform_NeverUsesAlreadyReadableAngleForHalfTurn()
+    public void ResolveTransform_NeverInvertsDirectedVerticalGeometry()
     {
-        // Feeding an already-readable +90° must still half-turn (same as physical).
-        // Feeding readable 0° from a prior 180° fold must NOT half-turn — but the
-        // API contract requires physical input; 180° physical is the authority.
+        // Geometry stays directed; text presentation is a separate helper.
+        Assert.Equal(
+            Math.PI / 2d,
+            TimberStandaloneNativeLeaderOrientationRules.ResolveTransformRadians(
+                Math.PI / 2d),
+            8);
         Assert.Equal(
             -Math.PI / 2d,
             TimberStandaloneNativeLeaderOrientationRules.ResolveTransformRadians(
-                Math.PI / 2d),
+                -Math.PI / 2d),
+            8);
+        Assert.Equal(
+            Math.PI / 2d,
+            TimberStandaloneNativeLeaderOrientationRules
+                .ResolveTextPresentationRadians(Math.PI / 2d),
+            8);
+        Assert.Equal(
+            Math.PI / 2d,
+            TimberStandaloneNativeLeaderOrientationRules
+                .ResolveTextPresentationRadians(-Math.PI / 2d),
             8);
         Assert.Equal(
             0d,
             TimberStandaloneNativeLeaderOrientationRules.ResolveTransformRadians(
                 Math.PI),
             8);
-        Assert.False(
-            TimberStandaloneNativeLeaderOrientationRules.IsExactVertical(Math.PI));
-        Assert.True(
-            TimberStandaloneNativeLeaderOrientationRules.IsExactOneEighty(Math.PI));
     }
 
     [Fact]
@@ -1094,18 +1120,14 @@ public sealed class StandaloneNativeLeaderOrientationTests
         Assert.DoesNotContain("leader.TransformBy(", service);
         Assert.DoesNotContain("Matrix3d.Rotation(", service);
         Assert.DoesNotContain("ApplyPhysicalOrientation(", service);
-        // Existing-owner: content-only unless source sync rebuilds CREATE canonical.
-        Assert.Contains("ApplyCanonicalLayout(", update);
+        // Existing-owner: content-only only; source rebuild returns false → erase+Create.
         Assert.Contains("RequiresCanonicalRebuild", update);
+        Assert.Contains("return false;", update);
         Assert.Contains("ApplyItemNoAttribute(", update);
         Assert.Contains("ReassertStraightLeader(", update);
+        Assert.DoesNotContain("ApplyCanonicalLayout(", service);
         Assert.DoesNotContain("ApplySourceEndpointReattach(", update);
         Assert.DoesNotContain("RequiresSourceEndpointReattach", update);
-        var applyCanonical = Member(
-            service,
-            "private static void ApplyCanonicalLayout(");
-        Assert.Contains("OrientAroundAnchor(", applyCanonical);
-        Assert.Contains("ApplyAbsoluteBlockContentOrientation(", applyCanonical);
     }
 
     [Fact]
@@ -1152,6 +1174,12 @@ public sealed class StandaloneNativeLeaderOrientationTests
         Assert.True(standaloneBranch >= 0 && createMTextInStandalone >= 0);
         Assert.True(requiresRebuild >= 0);
         Assert.Contains("TryUpdateInPlace(", framedUpsert);
+        Assert.Contains(
+            "!sourceSync.RequiresCanonicalRebuild",
+            framedUpsert);
+        Assert.Contains(
+            "createUsesCanonicalManualOffset",
+            framedUpsert);
         Assert.Contains(
             "AutoCadStandaloneFramedItemOnlyAnnotationService.Create(",
             framedUpsert);
@@ -1251,9 +1279,13 @@ public sealed class StandaloneNativeLeaderOrientationTests
 
         Assert.Contains("ResolveStandaloneNativeLanding(", resolve);
         Assert.Contains("isStandaloneNativeMText", create);
-        Assert.Contains("doglegLengthOverride = standaloneLandingLength", create);
+        Assert.Contains("doglegLengthOverride = null", create);
+        Assert.Contains("doglegDirectionOverride = null", create);
+        Assert.DoesNotContain(
+            "doglegLengthOverride = standaloneLandingLength",
+            create);
         Assert.Contains("ApplyStandaloneNativeMTextLanding(", create);
-        Assert.Contains("leader.DoglegLength = doglegLength", landing);
+        Assert.Contains("ShouldCallSetDogleg(", landing);
         Assert.Contains("leader.SetDogleg(leaderIndex, doglegDirection)", landing);
         Assert.Contains("leader.EnableLanding = true", landing);
         Assert.Contains("leader.EnableDogleg = true", landing);
@@ -1444,13 +1476,13 @@ public sealed class StandaloneNativeLeaderOrientationTests
     [InlineData(30d, 30d)]
     [InlineData(-30d, -30d)]
     [InlineData(89d, 89d)]
-    [InlineData(90d, -90d)]
+    [InlineData(90d, 90d)]
     [InlineData(91d, -89d)]
     [InlineData(179d, -1d)]
     [InlineData(180d, 0d)]
     [InlineData(181d, 1d)]
     [InlineData(269d, 89d)]
-    [InlineData(270d, 90d)]
+    [InlineData(270d, -90d)]
     [InlineData(271d, -89d)]
     public void PlainItemOnly_StandaloneOrientAroundAnchor_MatchesAbsoluteTransform(
         double physicalDegrees,
@@ -1932,13 +1964,13 @@ public sealed class StandaloneNativeLeaderOrientationTests
     [InlineData(30d, 30d)]
     [InlineData(-30d, -30d)]
     [InlineData(89d, 89d)]
-    [InlineData(90d, -90d)]
+    [InlineData(90d, 90d)]
     [InlineData(91d, -89d)]
     [InlineData(179d, -1d)]
     [InlineData(180d, 0d)]
     [InlineData(181d, 1d)]
     [InlineData(269d, 89d)]
-    [InlineData(270d, 90d)]
+    [InlineData(270d, -90d)]
     [InlineData(271d, -89d)]
     public void DimensionsLeader_StandaloneOrientAroundAnchor_MatchesAbsoluteTransform(
         double physicalDegrees,

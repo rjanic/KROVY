@@ -17,9 +17,13 @@ public sealed class SettingsAnnotationApplyScopesSourceContractTests
 
         Assert.Contains("TimberAnnotationSettingsApplyScope.AllElements", method);
         Assert.Contains("AutoCadDrawingAnnotationScaleStore(", method);
+        Assert.Contains("annotationSettings.ApplyScaleChange", method);
         Assert.Contains(".Write(annotationSettings.ScaleDenominator);", method);
         Assert.Contains("annotationSettings.CreateElementPatch()", method);
-        Assert.Contains("var refreshIds = drawingScaleChanged ? eligibleIds : changedIds;", method);
+        Assert.Contains(
+            "TimberAnnotationSettingsChangeRules.ShouldRefreshAllEligible(",
+            method);
+        Assert.Contains("annotationSettings.PresentationSettingsChanged", method);
         Assert.Equal(1, Count(method, "UpdateLabelsForChangedEntities("));
         Assert.DoesNotContain("ElementLabelService.UpdateAll", method);
     }

@@ -103,6 +103,36 @@ public sealed class TimberFramedBlockContentVariantRulesTests
         Assert.Equal(
             TimberFramedCombinedG5ContentVariantRules.RightColumnSide,
             parse.ContentVariantSide);
+        Assert.Equal(TimberFramedBlockContentKind.Circle, parse.ContentKind);
+        Assert.True(parse.IsProductionCombinedContentIdentity);
+    }
+
+    [Theory]
+    [InlineData(TimberFramedBlockContentKind.Circle, "CIR")]
+    [InlineData(TimberFramedBlockContentKind.Rectangle, "REC")]
+    [InlineData(TimberFramedBlockContentKind.Slot, "SLT")]
+    public void TryParseR3VariantKey_ParsesContentKind(
+        TimberFramedBlockContentKind kind,
+        string kindToken)
+    {
+        var key = TimberFramedBlockContentVariantRules.CreateRawKey(
+            kind,
+            "MEDIUM",
+            "Standard",
+            "Standard",
+            2.7d,
+            2.5d,
+            TimberFramedBlockContentPresentation.Combined,
+            TimberFramedCombinedG5ContentVariantRules.LeftColumnSide);
+        Assert.Contains(kindToken, key, StringComparison.Ordinal);
+        Assert.True(
+            TimberFramedBlockContentVariantRules.TryParseR3VariantKey(
+                key,
+                out var parse));
+        Assert.Equal(kind, parse.ContentKind);
+        Assert.Equal(
+            TimberFramedCombinedG5ContentVariantRules.LeftColumnSide,
+            parse.ContentVariantSide);
     }
 
     [Fact]

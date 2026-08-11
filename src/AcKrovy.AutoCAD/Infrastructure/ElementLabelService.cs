@@ -1135,6 +1135,11 @@ internal static partial class ElementLabelService
         var layerId = EnsureLabelLayer(database, transaction, updateExisting: true);
 
         ObjectId ownerId = ObjectId.Null;
+        // Source MOVE/STRETCH/ROTATE: TryUpdateInPlace returns false so we erase
+        // and fall through to Create — absolute BlockRotation on a fresh MLeader
+        // (in-place rewrite cannot clear AutoCAD ROTATE TransformBy residue when
+        // framed BlockRotation is π-invariant under the readable 180° fold).
+        var createUsesCanonicalManualOffset = false;
         if (!existingId.IsNull &&
             AutoCadObjectIdAccess.TryGetObject<MLeader>(
                 transaction,
@@ -1157,7 +1162,8 @@ internal static partial class ElementLabelService
                 automaticPlacement.TextLocation.X,
                 automaticPlacement.TextLocation.Y,
                 physicalAxis);
-            if (AutoCadStandaloneFramedItemOnlyAnnotationService.TryUpdateInPlace(
+            if (!sourceSync.RequiresCanonicalRebuild &&
+                AutoCadStandaloneFramedItemOnlyAnnotationService.TryUpdateInPlace(
                     database,
                     transaction,
                     existingLeader,
@@ -1174,15 +1180,14 @@ internal static partial class ElementLabelService
                     sourceHandle,
                     placement,
                     automaticPlacement,
-                    sourceSync.RequiresCanonicalRebuild
-                        ? TimberFramedLeaderManualOffset.Zero
-                        : manualOffset,
+                    manualOffset,
                     contents,
                     physicalAxis);
                 ownerId = existingLeader.ObjectId;
             }
             else
             {
+                createUsesCanonicalManualOffset = sourceSync.RequiresCanonicalRebuild;
                 EraseMainAnnotation(transaction, existingLeader);
             }
         }
@@ -1224,7 +1229,9 @@ internal static partial class ElementLabelService
                 sourceHandle,
                 placement,
                 automaticPlacement,
-                manualOffset,
+                createUsesCanonicalManualOffset
+                    ? TimberFramedLeaderManualOffset.Zero
+                    : manualOffset,
                 contents,
                 physicalAxis);
             ownerId = leader.ObjectId;
@@ -1293,8 +1300,8 @@ internal static partial class ElementLabelService
             LocalManualOffsetAlongAxisMm = manualOffset.AlongAxisMm,
             LocalManualOffsetNormalAxisMm = manualOffset.NormalAxisMm,
             PlacementRotationRadians =
-                TimberStandaloneNativeLeaderOrientationRules.ResolveTransformRadians(
-                    physicalAxisRadians),
+                TimberStandaloneNativeLeaderOrientationRules
+                    .ResolveFramedItemOnlyBlockRotationRadians(physicalAxisRadians),
             ComponentRole =
                 AutoCadStandaloneFramedItemOnlyAnnotationService.OwnerRole,
             RendererGeneration =
@@ -1600,15 +1607,18 @@ internal static partial class ElementLabelService
                 oldPlacementRotation,
                 newPlacementRotation,
                 livePresentation);
-        // Content-only refresh: pick R3_RIGHT/LEFT for the live relative side.
-        // Never re-apply CREATE 60°. Preserve leader vertices + user placement.
-        TrySyncG5CombinedContentVariant(
-            database,
-            transaction,
-            leader,
-            sourceEntity,
-            request,
-            refreshPresentation);
+        // Content-only refresh: pick R3 kind + RIGHT/LEFT for the live relative
+        // side. Never re-apply CREATE 60°. Preserve leader vertices + user placement.
+        if (!TrySyncG5CombinedContentVariant(
+                database,
+                transaction,
+                leader,
+                sourceEntity,
+                request,
+                refreshPresentation))
+        {
+            return false;
+        }
 
         ApplyG5CombinedAttributeValues(
             transaction,
@@ -1786,7 +1796,7 @@ internal static partial class ElementLabelService
         if (decision.AppliesHalfTurn)
         {
             leader.BlockRotation = decision.TargetBlockRotation;
-            TrySyncG5CombinedContentVariant(
+            _ = TrySyncG5CombinedContentVariant(
                 database,
                 transaction,
                 leader,
@@ -1985,7 +1995,7 @@ internal static partial class ElementLabelService
     }
 #endif
 
-    private static void TrySyncG5CombinedContentVariant(
+    private static bool TrySyncG5CombinedContentVariant(
         Database database,
         Transaction transaction,
         MLeader leader,
@@ -1996,7 +2006,7 @@ internal static partial class ElementLabelService
         if (leader.ContentType != ContentType.BlockContent ||
             leader.BlockContentId.IsNull)
         {
-            return;
+            return true;
         }
 
         Point3d start;
@@ -2012,7 +2022,7 @@ internal static partial class ElementLabelService
                 end = polyline.EndPoint;
                 break;
             default:
-                return;
+                return true;
         }
 
         if (transaction.GetObject(leader.BlockContentId, OpenMode.ForRead, true) is not
@@ -2020,7 +2030,7 @@ internal static partial class ElementLabelService
             block.IsErased ||
             !TimberFramedBlockContentVariantRules.IsProductionR3Combined(block.Name))
         {
-            return;
+            return true;
         }
 
         var values = new List<(string Tag, string Text, double Height)>
@@ -2039,29 +2049,54 @@ internal static partial class ElementLabelService
                 request.DimensionAttributeBaselineHeightMm),
         };
 
-        _ = AutoCadFramedBlockContentDimensionColumnPlacementService
-            .EnsureCorrectR3ContentVariantFromFinalGeometry(
-                database,
-                transaction,
-                leader,
-                start.X,
-                start.Y,
-                end.X,
-                end.Y,
-                request.ContentKind,
-                request.ItemTextStyleName,
-                request.DimensionTextStyleName,
-                request.ItemTextStyleId,
-                request.DimensionTextStyleId,
-                request.ItemPaperHeightMm,
-                request.DimensionPaperHeightMm,
-                request.ItemNoText,
-                values,
-                out _,
-                out _,
-                out _,
-                out _,
-                effectiveContentWorldAngleRadians);
+        if (!AutoCadFramedBlockContentDimensionColumnPlacementService
+                .EnsureCorrectR3ContentVariantFromFinalGeometry(
+                    database,
+                    transaction,
+                    leader,
+                    start.X,
+                    start.Y,
+                    end.X,
+                    end.Y,
+                    request.ContentKind,
+                    request.ItemTextStyleName,
+                    request.DimensionTextStyleName,
+                    request.ItemTextStyleId,
+                    request.DimensionTextStyleId,
+                    request.ItemPaperHeightMm,
+                    request.DimensionPaperHeightMm,
+                    request.ItemNoText,
+                    values,
+                    out _,
+                    out _,
+                    out var afterBlockContentId,
+                    out var note,
+                    effectiveContentWorldAngleRadians))
+        {
+            AcKrovyDiagnostics.Warning(
+                "G5CombinedR3ContentIdentity",
+                note);
+            return false;
+        }
+
+        if (afterBlockContentId.IsNull ||
+            transaction.GetObject(afterBlockContentId, OpenMode.ForRead, true) is not
+                BlockTableRecord afterBlock ||
+            afterBlock.IsErased ||
+            !TimberFramedBlockContentVariantRules.TryParseR3VariantKey(
+                afterBlock.Name,
+                out var afterParse) ||
+            !TimberFramedCombinedG5ContentVariantRules.IsContentKindMatch(
+                afterParse.ContentKind,
+                request.ContentKind))
+        {
+            AcKrovyDiagnostics.Warning(
+                "G5CombinedR3ContentIdentity",
+                "final physical BTR content kind disagrees with requested style");
+            return false;
+        }
+
+        return true;
     }
 
     private static void ApplyG5CombinedAttributeValues(
@@ -2438,15 +2473,16 @@ internal static partial class ElementLabelService
     {
         var normalizedMode = TimberAnnotationModeRules.Normalize(data.AnnotationMode);
         // DimensionsLeader + standalone Plain ItemOnly: RotationRadians = physical
-        // Start→End; PlacementRotation = absolute transform (readable + vertical
-        // half-turn). Combined / other modes keep PlacementRotation = placement.
+        // Start→End; PlacementRotation = absolute text presentation (vertical
+        // 90°/270° share BOTTOM→TOP). Combined / other modes keep
+        // PlacementRotation = placement.
         var placementRotationRadians =
             normalizedMode == TimberAnnotationMode.DimensionsLeader ||
             (normalizedMode == TimberAnnotationMode.ItemNumberLeader &&
              ItemNumberLeaderStyleRules.Normalize(data.ItemNumberLeaderStyle) ==
                  ItemNumberLeaderStyle.Plain)
-                ? TimberStandaloneNativeLeaderOrientationRules.ResolveTransformRadians(
-                    placement.RotationRadians)
+                ? TimberStandaloneNativeLeaderOrientationRules
+                    .ResolveTextPresentationRadians(placement.RotationRadians)
                 : placement.RotationRadians;
         ElementLabelStore.Write(leader, transaction, new ElementLabelData
         {
@@ -3719,8 +3755,17 @@ internal static partial class ElementLabelService
                 .CalculateFullLabelCenterOffsetMm(
                     fullLabelTextHeightMm));
         var location = new Point3d(placement.X, placement.Y, midpoint.Z);
+        // Offset keeps calculator readable fold; text rotation matches Plain
+        // ItemOnly directed readability (90° and 270° → BOTTOM→TOP).
+        var dx = end.X - start.X;
+        var dy = end.Y - start.Y;
+        var planarLength = Math.Sqrt((dx * dx) + (dy * dy));
+        var physicalAxis = planarLength < 0.001d ? 0d : Math.Atan2(dy, dx);
+        var textRotation =
+            TimberStandaloneNativeLeaderOrientationRules
+                .ResolveTextPresentationRadians(physicalAxis);
 
-        return new LabelPlacement(location, placement.RotationRadians);
+        return new LabelPlacement(location, textRotation);
     }
 
     private static LeaderPlacement CalculateLeaderPlacement(Entity sourceEntity)
@@ -4100,8 +4145,8 @@ internal static partial class ElementLabelService
             (dimensionsLeaderPresentation is not null || isStandalonePlainAbsolute);
         var absoluteTextRotation =
             dimensionsLeaderPresentation is not null || isStandalonePlainAbsolute
-                ? TimberStandaloneNativeLeaderOrientationRules.ResolveTransformRadians(
-                    placement.RotationRadians)
+                ? TimberStandaloneNativeLeaderOrientationRules
+                    .ResolveTextPresentationRadians(placement.RotationRadians)
                 : (double?)null;
         var mText = CreateLeaderMText(
             database,
@@ -4127,15 +4172,15 @@ internal static partial class ElementLabelService
         {
             doglegDirectionOverride = placement.DoglegDirection;
         }
-        else if (isStandaloneNativeMText &&
-            TryResolveStandaloneNativeLanding(
-                placement,
-                out var standaloneLandingLength,
-                out var standaloneLandingDirection))
+        // Standalone Plain / DimensionsOnly: NEVER SetDogleg inside
+        // ApplyInstanceProperties before AppendEntity. Host throws eInvalidInput
+        // for DimensionsOnly on that early call even when the direction vector is
+        // finite/non-zero (timing/topology). Dogleg is applied only after the
+        // MLeader is database-resident via ApplyStandaloneNativeMTextLanding.
+        else if (isStandaloneNativeMText)
         {
-            // Style LandingDistance stays 0; instance dogleg is |Knee→Content| ‖ ±T.
-            doglegLengthOverride = standaloneLandingLength;
-            doglegDirectionOverride = standaloneLandingDirection;
+            doglegLengthOverride = null;
+            doglegDirectionOverride = null;
         }
 
         AcKrovyMLeaderStyleService.ApplyInstanceProperties(
@@ -4696,8 +4741,8 @@ internal static partial class ElementLabelService
                 var liveTextLocation = leader.TextLocation;
                 var absoluteTextRotation =
                     dimensionsLeaderPresentation is not null || isStandalonePlainAbsolute
-                        ? TimberStandaloneNativeLeaderOrientationRules.ResolveTransformRadians(
-                            placement.RotationRadians)
+                        ? TimberStandaloneNativeLeaderOrientationRules
+                            .ResolveTextPresentationRadians(placement.RotationRadians)
                         : (double?)null;
                 leader.MText = CreateLeaderMText(
                     database,
@@ -4772,8 +4817,8 @@ internal static partial class ElementLabelService
         ObjectId? resolvedTextStyleId)
     {
         var absoluteTextRotation =
-            TimberStandaloneNativeLeaderOrientationRules.ResolveTransformRadians(
-                placement.RotationRadians);
+            TimberStandaloneNativeLeaderOrientationRules
+                .ResolveTextPresentationRadians(placement.RotationRadians);
         leader.MText = CreateLeaderMText(
             database,
             placement.TextLocation,
@@ -4804,8 +4849,8 @@ internal static partial class ElementLabelService
         ObjectId? resolvedTextStyleId)
     {
         var absoluteTextRotation =
-            TimberStandaloneNativeLeaderOrientationRules.ResolveTransformRadians(
-                placement.RotationRadians);
+            TimberStandaloneNativeLeaderOrientationRules
+                .ResolveTextPresentationRadians(placement.RotationRadians);
         leader.MText = CreateLeaderMText(
             database,
             placement.TextLocation,
@@ -4888,22 +4933,61 @@ internal static partial class ElementLabelService
             landingEnd.X,
             landingEnd.Y,
             placement.TextLocation.Z);
-        var doglegDirection = (landing - knee).GetNormal();
+        var rawDirection = landing - knee;
+        var canSetDogleg =
+            TimberNativeMLeaderDoglegInputRules.ShouldCallSetDogleg(
+                doglegLength,
+                rawDirection.X,
+                rawDirection.Y,
+                out var unitX,
+                out var unitY);
 
         // Combined-style reassert: vertices → dogleg → TextLocation → vertices.
+        // Never call SetDogleg with a near-zero / non-finite vector (eInvalidInput).
         leader.SetFirstVertex(leaderLineIndex, placement.Anchor);
         leader.SetLastVertex(leaderLineIndex, knee);
         leader.EnableLanding = true;
-        leader.EnableDogleg = true;
         leader.ExtendLeaderToText = false;
         leader.LandingGap = 0d;
-        leader.DoglegLength = doglegLength;
-        leader.SetDogleg(leaderIndex, doglegDirection);
-        leader.TextLocation = landing;
-        leader.SetLastVertex(leaderLineIndex, knee);
-        leader.SetFirstVertex(leaderLineIndex, placement.Anchor);
-        leader.SetDogleg(leaderIndex, doglegDirection);
-        leader.DoglegLength = doglegLength;
+        if (canSetDogleg)
+        {
+            var doglegDirection = new Vector3d(unitX, unitY, 0d);
+#if DEBUG
+            AcKrovyDiagnostics.Info(
+                "StandaloneNativeLandingSetDoglegProbe",
+                "leaderIndex=" +
+                leaderIndex.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                ";DoglegLength=" +
+                doglegLength.ToString("R", System.Globalization.CultureInfo.InvariantCulture) +
+                ";vectorX=" +
+                unitX.ToString("R", System.Globalization.CultureInfo.InvariantCulture) +
+                ";vectorY=" +
+                unitY.ToString("R", System.Globalization.CultureInfo.InvariantCulture) +
+                ";objectIdIsNull=" +
+                leader.ObjectId.IsNull +
+                ";kneeToLanding=" +
+                knee.DistanceTo(landing).ToString(
+                    "R",
+                    System.Globalization.CultureInfo.InvariantCulture));
+#endif
+            leader.EnableDogleg = true;
+            leader.DoglegLength = doglegLength;
+            leader.SetDogleg(leaderIndex, doglegDirection);
+            leader.TextLocation = landing;
+            leader.SetLastVertex(leaderLineIndex, knee);
+            leader.SetFirstVertex(leaderLineIndex, placement.Anchor);
+            leader.SetDogleg(leaderIndex, doglegDirection);
+            leader.DoglegLength = doglegLength;
+        }
+        else
+        {
+            leader.EnableDogleg = false;
+            leader.DoglegLength = 0d;
+            leader.TextLocation = landing;
+            leader.SetLastVertex(leaderLineIndex, knee);
+            leader.SetFirstVertex(leaderLineIndex, placement.Anchor);
+        }
+
         leader.RecordGraphicsModified(true);
     }
 
@@ -4962,8 +5046,8 @@ internal static partial class ElementLabelService
 
         content.Rotation =
             TimberAnnotationReadabilityRules.WrapPhysicalAngleRadians(
-                TimberStandaloneNativeLeaderOrientationRules.ResolveTransformRadians(
-                    physicalSourceAxisRadians));
+                TimberStandaloneNativeLeaderOrientationRules
+                    .ResolveTextPresentationRadians(physicalSourceAxisRadians));
         leader.MText = content;
     }
 
@@ -4983,8 +5067,8 @@ internal static partial class ElementLabelService
 
         content.Rotation =
             TimberAnnotationReadabilityRules.WrapPhysicalAngleRadians(
-                TimberStandaloneNativeLeaderOrientationRules.ResolveTransformRadians(
-                    physicalSourceAxisRadians));
+                TimberStandaloneNativeLeaderOrientationRules
+                    .ResolveTextPresentationRadians(physicalSourceAxisRadians));
         leader.MText = content;
     }
 

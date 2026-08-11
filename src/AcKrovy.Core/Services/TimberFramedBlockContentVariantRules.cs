@@ -35,6 +35,11 @@ public static class TimberFramedBlockContentVariantRules
     public const string ContentVariantLeftToken =
         TimberFramedCombinedG5ContentVariantRules.LeftToken;
 
+    public const string CircleKindToken = "CIR";
+    public const string RectangleKindToken = "REC";
+    public const string SlotKindToken = "SLT";
+    public const string PlainKindToken = "PLAIN";
+
     public static string CreateRawKey(
         TimberFramedBlockContentKind contentKind,
         string frameSizeToken,
@@ -64,14 +69,7 @@ public static class TimberFramedBlockContentVariantRules
             presentation == TimberFramedBlockContentPresentation.ItemOnly
                 ? "ITEM"
                 : "COMB";
-        var kindToken = contentKind switch
-        {
-            TimberFramedBlockContentKind.Plain => "PLAIN",
-            TimberFramedBlockContentKind.Circle => "CIR",
-            TimberFramedBlockContentKind.Rectangle => "REC",
-            TimberFramedBlockContentKind.Slot => "SLT",
-            _ => throw new ArgumentOutOfRangeException(nameof(contentKind), contentKind, null),
-        };
+        var kindToken = ToContentKindToken(contentKind);
 
         var parts = new List<string>
         {
@@ -136,14 +134,7 @@ public static class TimberFramedBlockContentVariantRules
             presentation == TimberFramedBlockContentPresentation.ItemOnly
                 ? "ITEM"
                 : "COMB";
-        var kindToken = contentKind switch
-        {
-            TimberFramedBlockContentKind.Plain => "PLAIN",
-            TimberFramedBlockContentKind.Circle => "CIR",
-            TimberFramedBlockContentKind.Rectangle => "REC",
-            TimberFramedBlockContentKind.Slot => "SLT",
-            _ => throw new ArgumentOutOfRangeException(nameof(contentKind), contentKind, null),
-        };
+        var kindToken = ToContentKindToken(contentKind);
 
         var parts = new List<string>
         {
@@ -300,11 +291,25 @@ public static class TimberFramedBlockContentVariantRules
         string? blockNameOrRawKey,
         out bool isCombined,
         out bool isItemOnly,
-        out TimberFramedBlockContentDimensionColumnSide? contentVariantSide)
+        out TimberFramedBlockContentDimensionColumnSide? contentVariantSide) =>
+        TryParseR3VariantKey(
+            blockNameOrRawKey,
+            out isCombined,
+            out isItemOnly,
+            out contentVariantSide,
+            out _);
+
+    public static bool TryParseR3VariantKey(
+        string? blockNameOrRawKey,
+        out bool isCombined,
+        out bool isItemOnly,
+        out TimberFramedBlockContentDimensionColumnSide? contentVariantSide,
+        out TimberFramedBlockContentKind? contentKind)
     {
         isCombined = false;
         isItemOnly = false;
         contentVariantSide = null;
+        contentKind = null;
         if (string.IsNullOrWhiteSpace(blockNameOrRawKey))
         {
             return false;
@@ -359,6 +364,7 @@ public static class TimberFramedBlockContentVariantRules
             }
         }
 
+        contentKind = TryParseContentKindToken(sanitized);
         return true;
     }
 
@@ -371,7 +377,8 @@ public static class TimberFramedBlockContentVariantRules
                 blockNameOrRawKey,
                 out var isCombined,
                 out var isItemOnly,
-                out var side))
+                out var side,
+                out var contentKind))
         {
             return false;
         }
@@ -379,8 +386,60 @@ public static class TimberFramedBlockContentVariantRules
         parse = new TimberFramedBlockContentR3VariantParse(
             isCombined,
             isItemOnly,
-            side);
+            side,
+            contentKind);
         return true;
+    }
+
+    public static string ToContentKindToken(TimberFramedBlockContentKind contentKind) =>
+        contentKind switch
+        {
+            TimberFramedBlockContentKind.Plain => PlainKindToken,
+            TimberFramedBlockContentKind.Circle => CircleKindToken,
+            TimberFramedBlockContentKind.Rectangle => RectangleKindToken,
+            TimberFramedBlockContentKind.Slot => SlotKindToken,
+            _ => throw new ArgumentOutOfRangeException(nameof(contentKind), contentKind, null),
+        };
+
+    /// <summary>
+    /// Fail-closed: exactly one CIR/REC/SLT/PLAIN token must be present.
+    /// </summary>
+    public static TimberFramedBlockContentKind? TryParseContentKindToken(
+        string? blockNameOrRawKey)
+    {
+        if (string.IsNullOrWhiteSpace(blockNameOrRawKey))
+        {
+            return null;
+        }
+
+        var sanitized = SanitizeToken(blockNameOrRawKey!);
+        TimberFramedBlockContentKind? kind = null;
+        var matches = 0;
+        if (ContainsBoundedToken(sanitized, CircleKindToken))
+        {
+            kind = TimberFramedBlockContentKind.Circle;
+            matches++;
+        }
+
+        if (ContainsBoundedToken(sanitized, RectangleKindToken))
+        {
+            kind = TimberFramedBlockContentKind.Rectangle;
+            matches++;
+        }
+
+        if (ContainsBoundedToken(sanitized, SlotKindToken))
+        {
+            kind = TimberFramedBlockContentKind.Slot;
+            matches++;
+        }
+
+        if (ContainsBoundedToken(sanitized, PlainKindToken))
+        {
+            kind = TimberFramedBlockContentKind.Plain;
+            matches++;
+        }
+
+        return matches == 1 ? kind : null;
     }
 
     public static bool IsP3R2CombinedStretchNormalizeTarget(

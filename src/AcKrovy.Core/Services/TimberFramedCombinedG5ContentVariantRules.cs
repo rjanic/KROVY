@@ -184,6 +184,8 @@ public static class TimberFramedCombinedG5ContentVariantRules
 
     /// <summary>
     /// True when the live BTR content variant already matches the required side.
+    /// Side-only — use <see cref="IsR3ContentIdentityMatch"/> when content kind
+    /// must also be enforced (Settings refresh / same-family migration).
     /// </summary>
     public static bool IsContentVariantMatch(
         TimberFramedBlockContentDimensionColumnSide? currentSide,
@@ -192,12 +194,98 @@ public static class TimberFramedCombinedG5ContentVariantRules
         live == requiredSide;
 
     /// <summary>
+    /// True when the live BTR content kind already matches the requested kind.
+    /// </summary>
+    public static bool IsContentKindMatch(
+        TimberFramedBlockContentKind? currentKind,
+        TimberFramedBlockContentKind requestedKind) =>
+        currentKind is TimberFramedBlockContentKind live &&
+        live == requestedKind;
+
+    /// <summary>
+    /// No-op only when BOTH requested content kind and RIGHT/LEFT side match.
+    /// Side match alone is never sufficient for R3 Combined refresh/migration.
+    /// </summary>
+    public static bool IsR3ContentIdentityMatch(
+        TimberFramedBlockContentKind? currentKind,
+        TimberFramedBlockContentDimensionColumnSide? currentSide,
+        TimberFramedBlockContentKind requestedKind,
+        TimberFramedBlockContentDimensionColumnSide requiredSide) =>
+        IsContentKindMatch(currentKind, requestedKind) &&
+        IsContentVariantMatch(currentSide, requiredSide);
+
+    /// <summary>
     /// Grip side-crossing: swap only when required variant differs from current.
     /// </summary>
     public static bool ShouldSwapContentVariant(
         TimberFramedBlockContentDimensionColumnSide? currentSide,
         TimberFramedBlockContentDimensionColumnSide requiredSide) =>
         !IsContentVariantMatch(currentSide, requiredSide);
+
+    /// <summary>
+    /// Same-family R3 Combined: replace BlockContentId when kind and/or side
+    /// differ from the requested identity.
+    /// </summary>
+    public static bool ShouldReplaceR3ContentVariant(
+        TimberFramedBlockContentKind? currentKind,
+        TimberFramedBlockContentDimensionColumnSide? currentSide,
+        TimberFramedBlockContentKind requestedKind,
+        TimberFramedBlockContentDimensionColumnSide requiredSide) =>
+        !IsR3ContentIdentityMatch(
+            currentKind,
+            currentSide,
+            requestedKind,
+            requiredSide);
+
+    /// <summary>
+    /// Fail-closed verifier: final BTR name must parse to the requested
+    /// content kind and RIGHT/LEFT side.
+    /// </summary>
+    public static bool TryVerifyFinalR3ContentIdentity(
+        string? finalBlockNameOrRawKey,
+        TimberFramedBlockContentKind requestedKind,
+        TimberFramedBlockContentDimensionColumnSide requiredSide,
+        out string note)
+    {
+        note = string.Empty;
+        if (!TimberFramedBlockContentVariantRules.TryParseR3VariantKey(
+                finalBlockNameOrRawKey,
+                out var parse) ||
+            !parse.IsCombined)
+        {
+            note = "final BTR is not production R3 Combined";
+            return false;
+        }
+
+        if (!IsContentKindMatch(parse.ContentKind, requestedKind))
+        {
+            note =
+                "final BTR content kind mismatch: live=" +
+                (parse.ContentKind?.ToString() ?? "unparsed") +
+                " requested=" +
+                requestedKind;
+            return false;
+        }
+
+        if (!IsContentVariantMatch(parse.ContentVariantSide, requiredSide))
+        {
+            note =
+                "final BTR content side mismatch: live=" +
+                (parse.ContentVariantSide is TimberFramedBlockContentDimensionColumnSide live
+                    ? ToContentVariantToken(live)
+                    : "unparsed") +
+                " requested=" +
+                ToContentVariantToken(requiredSide);
+            return false;
+        }
+
+        note =
+            "final R3 identity " +
+            requestedKind +
+            "_" +
+            ToContentVariantToken(requiredSide);
+        return true;
+    }
 
     /// <summary>
     /// Visual contract: WIDTH/HEIGHT column lies on the landing between knee

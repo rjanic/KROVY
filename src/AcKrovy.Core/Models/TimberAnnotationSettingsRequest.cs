@@ -28,7 +28,9 @@ public sealed record TimberAnnotationSettingsRequest
             applyScope,
             annotationTextSettings: null,
             allowMissingTextSettings: true,
-            annotationTextPatch: TimberAnnotationTextSettingsPatch.Unchanged)
+            annotationTextPatch: TimberAnnotationTextSettingsPatch.Unchanged,
+            applyScaleChange: true,
+            presentationSettingsChanged: false)
     {
     }
 
@@ -45,7 +47,9 @@ public sealed record TimberAnnotationSettingsRequest
             applyScope,
             annotationTextSettings,
             allowMissingTextSettings: false,
-            annotationTextPatch: TimberAnnotationTextSettingsPatch.Unchanged)
+            annotationTextPatch: TimberAnnotationTextSettingsPatch.Unchanged,
+            applyScaleChange: true,
+            presentationSettingsChanged: false)
     {
     }
 
@@ -64,7 +68,32 @@ public sealed record TimberAnnotationSettingsRequest
             annotationTextSettings,
             allowMissingTextSettings: false,
             annotationTextPatch: annotationTextPatch ??
-                throw new ArgumentNullException(nameof(annotationTextPatch)))
+                throw new ArgumentNullException(nameof(annotationTextPatch)),
+            applyScaleChange: true,
+            presentationSettingsChanged: false)
+    {
+    }
+
+    public TimberAnnotationSettingsRequest(
+        TimberAnnotationMode annotationMode,
+        ItemNumberLeaderStyle itemNumberLeaderStyle,
+        int scaleDenominator,
+        TimberAnnotationSettingsApplyScope applyScope,
+        TimberAnnotationTextSettings annotationTextSettings,
+        TimberAnnotationTextSettingsPatch annotationTextPatch,
+        bool applyScaleChange,
+        bool presentationSettingsChanged)
+        : this(
+            annotationMode,
+            itemNumberLeaderStyle,
+            scaleDenominator,
+            applyScope,
+            annotationTextSettings,
+            allowMissingTextSettings: false,
+            annotationTextPatch: annotationTextPatch ??
+                throw new ArgumentNullException(nameof(annotationTextPatch)),
+            applyScaleChange,
+            presentationSettingsChanged)
     {
     }
 
@@ -75,7 +104,9 @@ public sealed record TimberAnnotationSettingsRequest
         TimberAnnotationSettingsApplyScope applyScope,
         TimberAnnotationTextSettings? annotationTextSettings,
         bool allowMissingTextSettings,
-        TimberAnnotationTextSettingsPatch annotationTextPatch)
+        TimberAnnotationTextSettingsPatch annotationTextPatch,
+        bool applyScaleChange,
+        bool presentationSettingsChanged)
     {
         if (!TimberAnnotationScaleRules.IsValidDenominator(scaleDenominator))
         {
@@ -102,6 +133,8 @@ public sealed record TimberAnnotationSettingsRequest
                 annotationTextSettings ??
                 throw new ArgumentNullException(nameof(annotationTextSettings)));
         AnnotationTextPatch = annotationTextPatch;
+        ApplyScaleChange = applyScaleChange;
+        PresentationSettingsChanged = presentationSettingsChanged;
     }
 
     public TimberAnnotationMode AnnotationMode { get; }
@@ -111,17 +144,26 @@ public sealed record TimberAnnotationSettingsRequest
     public TimberAnnotationTextSettings? AnnotationTextSettings { get; }
     public TimberAnnotationTextSettingsPatch AnnotationTextPatch { get; }
 
+    /// <summary>
+    /// When false, existing-element apply leaves per-element scale overrides and
+    /// the drawing annotation scale untouched.
+    /// </summary>
+    public bool ApplyScaleChange { get; }
+
+    /// <summary>
+    /// True when AnnotationMode, ItemNumberLeaderStyle, and/or annotation text
+    /// settings changed in the Settings Annotation section. Forces eligible
+    /// label refresh without requiring a scale change.
+    /// </summary>
+    public bool PresentationSettingsChanged { get; }
+
     public TimberAnnotationSettingsPatch CreateElementPatch() => new(
         AnnotationMode,
         ItemNumberLeaderStyle,
-        ApplyScope switch
-        {
-            TimberAnnotationSettingsApplyScope.SelectedElements =>
-                TimberAnnotationScaleOverridePatch.Set(ScaleDenominator),
-            TimberAnnotationSettingsApplyScope.AllElements =>
-                TimberAnnotationScaleOverridePatch.Clear,
-            _ => TimberAnnotationScaleOverridePatch.Unchanged,
-        },
+        TimberAnnotationSettingsChangeRules.ResolveScaleOverride(
+            ApplyScope,
+            ApplyScaleChange,
+            ScaleDenominator),
         ResolveTextPatch());
 
     private TimberAnnotationTextSettingsPatch ResolveTextPatch()

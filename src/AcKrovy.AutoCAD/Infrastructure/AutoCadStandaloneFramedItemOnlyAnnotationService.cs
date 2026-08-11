@@ -18,9 +18,10 @@ namespace AcKrovy.AutoCAD.Infrastructure;
 /// for leader geometry, (3) assign absolute <see cref="MLeader.BlockRotation"/>.
 /// CREATE always writes that canonical once. Existing-owner refresh
 /// (<see cref="TryUpdateInPlace"/>) is content-only when source Automatic*/axis
-/// is unchanged (AK_LABELS / annotation grip); when source timber MOVE/STRETCH/
-/// ROTATE, rewrites the same absolute CREATE canonical — never preserves old
-/// manual content placement and never <c>TransformBy(readable)</c>.
+/// is unchanged (AK_LABELS / annotation grip). Source timber MOVE/STRETCH/ROTATE
+/// must erase + CREATE (same absolute BlockRotation) — never in-place
+/// <c>BlockRotation</c> rewrite after AutoCAD native <c>TransformBy</c>, and
+/// never <c>TransformBy(readable)</c> from this service.
 /// </para>
 /// </summary>
 internal static class AutoCadStandaloneFramedItemOnlyAnnotationService
@@ -73,12 +74,15 @@ internal static class AutoCadStandaloneFramedItemOnlyAnnotationService
                 database,
                 transaction,
                 updateExisting: false);
-            var desiredRotation =
+            var geometryRotation =
                 TimberStandaloneNativeLeaderOrientationRules.ResolveTransformRadians(
                     physicalAxisRadians);
+            var blockRotation =
+                TimberStandaloneNativeLeaderOrientationRules
+                    .ResolveFramedItemOnlyBlockRotationRadians(physicalAxisRadians);
             var oriented = TimberItemLeaderLayoutCalculator.OrientAroundAnchor(
                 canonicalLayout,
-                desiredRotation);
+                geometryRotation);
             var attachment = new Point3d(oriented.AnchorX, oriented.AnchorY, 0d);
             var framePoint = new Point3d(oriented.ContentX, oriented.ContentY, 0d);
 
@@ -130,7 +134,7 @@ internal static class AutoCadStandaloneFramedItemOnlyAnnotationService
             ApplyStraightSourceToFrameLeader(leader);
             leader.BlockPosition = framePoint;
             ApplyItemNoAttribute(transaction, leader, blockId, definitionRequest);
-            ApplyAbsoluteBlockContentOrientation(leader, desiredRotation);
+            ApplyAbsoluteBlockContentOrientation(leader, blockRotation);
             ReassertStraightLeader(leader);
 
             return AutoCadStandaloneFramedItemOnlyCreateResult.Ok(
@@ -145,9 +149,12 @@ internal static class AutoCadStandaloneFramedItemOnlyAnnotationService
     }
 
     /// <summary>
-    /// Existing-owner refresh. AK_LABELS / unchanged source: ITEM_NO/content only
-    /// (live attachment/frame/BlockRotation preserved). Source timber MOVE/STRETCH/
-    /// ROTATE: rewrite absolute CREATE canonical via OrientAroundAnchor.
+    /// Existing-owner content-only refresh. AK_LABELS / unchanged source:
+    /// ITEM_NO/content only (live attachment/frame/BlockRotation preserved).
+    /// Returns <c>false</c> when <see cref="TimberStandaloneNativeLeaderSourceSyncDecision.RequiresCanonicalRebuild"/>
+    /// so the caller erases and runs <see cref="Create"/> — in-place absolute
+    /// <c>BlockRotation</c> cannot clear AutoCAD source-ROTATE <c>TransformBy</c>
+    /// residue when the canonical framed angle is π-invariant (180° fold).
     /// </summary>
     public static bool TryUpdateInPlace(
         Database database,
@@ -164,6 +171,14 @@ internal static class AutoCadStandaloneFramedItemOnlyAnnotationService
         ArgumentNullException.ThrowIfNull(leader);
         ArgumentNullException.ThrowIfNull(definitionRequest);
         ArgumentNullException.ThrowIfNull(canonicalLayout);
+        _ = canonicalLayout;
+        _ = physicalAxisRadians;
+
+        // Source MOVE/STRETCH/ROTATE: force erase + Create (absolute CREATE path).
+        if (sourceSync.RequiresCanonicalRebuild)
+        {
+            return false;
+        }
 
         var definition = AcKrovyFramedBlockContentDefinitionService.Ensure(
             database,
@@ -186,18 +201,9 @@ internal static class AutoCadStandaloneFramedItemOnlyAnnotationService
             ApplyStraightSourceToFrameLeader(leader);
             EnsureSingleLeaderLine(leader);
             ApplyItemNoAttribute(transaction, leader, blockId, definitionRequest);
-
-            if (sourceSync.RequiresCanonicalRebuild)
-            {
-                ApplyCanonicalLayout(leader, canonicalLayout, physicalAxisRadians);
-            }
-            else
-            {
-                // Keep live vertices / BlockPosition / BlockRotation — do not
-                // re-orient around the anchor or assign absolute rotation here.
-                ReassertStraightLeader(leader);
-            }
-
+            // Keep live vertices / BlockPosition / BlockRotation — do not
+            // re-orient around the anchor or assign absolute rotation here.
+            ReassertStraightLeader(leader);
             return true;
         }
         catch (Exception exception) when (
@@ -205,33 +211,6 @@ internal static class AutoCadStandaloneFramedItemOnlyAnnotationService
         {
             return false;
         }
-    }
-
-    /// <summary>
-    /// Source MOVE/STRETCH/ROTATE: same absolute CREATE geometry as
-    /// <see cref="Create"/> — OrientAroundAnchor + absolute BlockRotation.
-    /// </summary>
-    private static void ApplyCanonicalLayout(
-        MLeader leader,
-        TimberItemLeaderLayout canonicalLayout,
-        double physicalAxisRadians)
-    {
-        var desiredRotation =
-            TimberStandaloneNativeLeaderOrientationRules.ResolveTransformRadians(
-                physicalAxisRadians);
-        var oriented = TimberItemLeaderLayoutCalculator.OrientAroundAnchor(
-            canonicalLayout,
-            desiredRotation);
-        var attachment = new Point3d(oriented.AnchorX, oriented.AnchorY, 0d);
-        var framePoint = new Point3d(oriented.ContentX, oriented.ContentY, 0d);
-        var lineIndex = EnsureSingleLeaderLine(leader);
-        ApplyStraightSourceToFrameLeader(leader);
-        leader.SetFirstVertex(lineIndex, attachment);
-        leader.SetLastVertex(lineIndex, framePoint);
-        leader.SetLeaderLineType(lineIndex, LeaderType.StraightLeader);
-        leader.BlockPosition = framePoint;
-        ApplyAbsoluteBlockContentOrientation(leader, desiredRotation);
-        ReassertStraightLeader(leader);
     }
 
     private static void ApplyStraightSourceToFrameLeader(MLeader leader)
@@ -245,7 +224,8 @@ internal static class AutoCadStandaloneFramedItemOnlyAnnotationService
     }
 
     /// <summary>
-    /// Assigns absolute BlockContent orientation. Idempotent: same
+    /// Assigns absolute BlockContent orientation (framed ItemOnly BlockRotation,
+    /// already including the Plain-matching π base correction). Idempotent: same
     /// <paramref name="desiredRotationRadians"/> converges to the same state.
     /// Must not call <see cref="Entity.TransformBy"/> — that compounds on refresh.
     /// </summary>

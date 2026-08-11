@@ -613,10 +613,13 @@ public static class TimberItemLeaderLayoutCalculator
     }
 
     /// <summary>
-    /// Whole-annotation transform angle for standalone native leaders laid out
-    /// in canonical horizontal space. Delegates to
-    /// <see cref="TimberStandaloneNativeLeaderOrientationRules"/> —
-    /// physical Start→End only; never feed an already-readable angle.
+    /// Whole-annotation geometry transform for standalone native leaders laid
+    /// out in canonical horizontal space. Delegates to
+    /// <see cref="TimberStandaloneNativeLeaderOrientationRules.ResolveTransformRadians"/> —
+    /// physical Start→End only. Plain/Dimensions MText uses
+    /// <see cref="TimberStandaloneNativeLeaderOrientationRules.ResolveTextPresentationRadians"/>;
+    /// framed ItemOnly BlockRotation uses
+    /// <see cref="TimberStandaloneNativeLeaderOrientationRules.ResolveFramedItemOnlyBlockRotationRadians"/>.
     /// </summary>
     public static double ResolveNativeLeaderTransformRadians(
         double physicalSourceAxisRadians) =>

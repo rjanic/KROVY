@@ -532,18 +532,39 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
         TimberAnnotationSettingsRequest? annotationSettings = null;
         if (annotationApplyScope.HasValue)
         {
+            // Commit ListBox selection before building the request so a card click
+            // followed immediately by Apply cannot leave mode/style stale.
+            if (AnnotationPresetSelector?.SelectedValue is SettingsAnnotationPreset
+                selectedPreset)
+            {
+                SelectedAnnotationPreset = selectedPreset;
+            }
+
             // DWG TextStyle Ensure must run under DocumentLock inside AcKrovyCommands
             // (modeless Settings must not lock the document here). Pass settings/patch only.
             var pendingTextSettings = defaultProfile.DefaultAnnotationTextSettings
                 ?? TimberAnnotationTextStylePresetRules.CreateFreshProfileTextSettings();
             var pendingTextPatch = BuildPendingAnnotationTextPatch(pendingTextSettings);
+            var acceptedDefaults = _acceptedDefaultProfile.Normalize();
+            var presentationSettingsChanged =
+                TimberAnnotationSettingsChangeRules.HasPresentationChanged(
+                    acceptedDefaults.DefaultAnnotationMode,
+                    acceptedDefaults.DefaultItemNumberLeaderStyle,
+                    SelectedAnnotationMode,
+                    SelectedItemNumberLeaderStyle,
+                    pendingTextPatch);
+            var applyScaleChange = TimberAnnotationSettingsChangeRules.HasScaleChanged(
+                _loadedDrawingScaleDenominator,
+                selectedScaleDenominator);
             annotationSettings = new TimberAnnotationSettingsRequest(
                 SelectedAnnotationMode,
                 SelectedItemNumberLeaderStyle,
                 selectedScaleDenominator,
                 annotationApplyScope.Value,
                 pendingTextSettings,
-                pendingTextPatch);
+                pendingTextPatch,
+                applyScaleChange,
+                presentationSettingsChanged);
         }
 
         var request = new SettingsApplyRequest(
@@ -607,7 +628,8 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
                              SettingsSectionScope.Annotation));
             }
             LanguageCode = languageCode;
-            if (annotationApplyScope == TimberAnnotationSettingsApplyScope.AllElements)
+            if (annotationApplyScope == TimberAnnotationSettingsApplyScope.AllElements &&
+                annotationSettings is { ApplyScaleChange: true })
             {
                 _loadedDrawingScaleDenominator = selectedScaleDenominator;
             }

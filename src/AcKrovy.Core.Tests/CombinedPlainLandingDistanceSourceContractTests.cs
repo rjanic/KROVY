@@ -72,9 +72,9 @@ public sealed class CombinedPlainLandingDistanceSourceContractTests
         Assert.Contains(
             "doglegLengthOverride ??",
             apply);
-        Assert.Contains("leader.DoglegLength = doglegLength", apply);
-        Assert.Contains("doglegLength > 1e-9d", apply);
+        Assert.Contains("ShouldCallSetDogleg(", apply);
         Assert.Contains("leader.SetDogleg(", apply);
+        Assert.DoesNotContain("doglegLength > 1e-9d", apply);
 
         Assert.Contains("combinedLandingDistanceMm", applyCombined);
         Assert.Contains(

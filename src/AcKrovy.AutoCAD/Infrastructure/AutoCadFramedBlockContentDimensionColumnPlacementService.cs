@@ -456,9 +456,10 @@ internal static class AutoCadFramedBlockContentDimensionColumnPlacementService
     /// <summary>
     /// Shared CREATE-final + post-native-grip ensure: resolve required R3 content
     /// variant from FINAL MLeader world geometry (attachment→BlockPosition in
-    /// source Start→End T/N) and swap R3_RIGHT↔R3_LEFT only when mismatched.
+    /// source Start→End T/N) and replace the live BlockContentId when the
+    /// requested content kind and/or R3_RIGHT/LEFT side is mismatched.
     /// Same algorithm as <see cref="TrySwapR3ContentVariantIfSideChanged"/> —
-    /// do not invent a second side rule.
+    /// do not invent a second side/kind rule.
     /// </summary>
     public static bool EnsureCorrectR3ContentVariantFromFinalGeometry(
         Database database,
@@ -506,10 +507,12 @@ internal static class AutoCadFramedBlockContentDimensionColumnPlacementService
             effectiveContentWorldAngleRadians);
 
     /// <summary>
-    /// Production R3: swap R3_RIGHT ↔ R3_LEFT when final world side (source T/N)
-    /// no longer matches the live content variant. Preserves attachment, knee,
-    /// BlockPosition, dogleg, scale, rotation. Never forces 60° or dogleg rewrite.
-    /// Prefer <see cref="EnsureCorrectR3ContentVariantFromFinalGeometry"/> at
+    /// Production R3: ensure the live BlockContentId matches BOTH the requested
+    /// content kind (Circle/Rectangle/Slot) and the required R3_RIGHT/LEFT side
+    /// from final knee/frame landing. Side match alone must never skip replacement.
+    /// Preserves attachment, knee, BlockPosition, dogleg, scale, rotation.
+    /// Never forces 60° or dogleg rewrite. Prefer
+    /// <see cref="EnsureCorrectR3ContentVariantFromFinalGeometry"/> at
     /// CREATE-final and post-grip call sites.
     /// </summary>
     public static bool TrySwapR3ContentVariantIfSideChanged(
@@ -613,11 +616,25 @@ internal static class AutoCadFramedBlockContentDimensionColumnPlacementService
         _ = sourceEndY;
 
         var currentSide = parse.ContentVariantSide;
-        if (TimberFramedCombinedG5ContentVariantRules.IsContentVariantMatch(
+        var currentContentKind = parse.ContentKind;
+        // Content-kind comparison MUST occur before any successful early return.
+        // Side-only equality cannot bypass block replacement.
+        if (TimberFramedCombinedG5ContentVariantRules.IsR3ContentIdentityMatch(
+                currentContentKind,
                 currentSide,
+                contentKind,
                 requiredSide))
         {
-            note = "R3 content variant already matches knee-side landing";
+            if (!TimberFramedCombinedG5ContentVariantRules.TryVerifyFinalR3ContentIdentity(
+                    currentBlock.Name,
+                    contentKind,
+                    requiredSide,
+                    out note))
+            {
+                return false;
+            }
+
+            note = "R3 content kind and variant already match requested identity";
             return true;
         }
 
@@ -640,6 +657,21 @@ internal static class AutoCadFramedBlockContentDimensionColumnPlacementService
             targetBlockId.IsNull)
         {
             note = "Ensure R3 content variant: " + ensure.DiagnosticReason;
+            return false;
+        }
+
+        if (transaction.GetObject(targetBlockId, OpenMode.ForRead, true) is not
+                BlockTableRecord targetBlock ||
+            targetBlock.IsErased ||
+            !TimberFramedCombinedG5ContentVariantRules.TryVerifyFinalR3ContentIdentity(
+                targetBlock.Name,
+                contentKind,
+                requiredSide,
+                out note))
+        {
+            note =
+                "requested R3 Ensure BTR failed final identity verify: " +
+                note;
             return false;
         }
 
@@ -669,6 +701,35 @@ internal static class AutoCadFramedBlockContentDimensionColumnPlacementService
             beforeRotation,
             beforeItemAttrRotation);
 
+        if (transaction.GetObject(leader.BlockContentId, OpenMode.ForRead, true) is not
+                BlockTableRecord afterBlock ||
+            afterBlock.IsErased ||
+            !TimberFramedCombinedG5ContentVariantRules.TryVerifyFinalR3ContentIdentity(
+                afterBlock.Name,
+                contentKind,
+                requiredSide,
+                out note))
+        {
+            leader.BlockContentId = beforeBlockContentId;
+            ReapplyAttributes(
+                transaction,
+                leader,
+                beforeBlockContentId,
+                attributeValues);
+            leader.BlockScale = beforeScale;
+            leader.BlockRotation = beforeRotation;
+            leader.BlockPosition = beforeBlockPosition;
+            RestoreReadableContentOrientation(
+                leader,
+                beforeRotation,
+                beforeItemAttrRotation);
+            afterBlockContentId = beforeBlockContentId;
+            note =
+                "post-replace R3 identity verify failed; restored original BlockContentId. " +
+                note;
+            return false;
+        }
+
         _ = attachment;
         _ = beforeKnee;
         _ = beforeDoglegLength;
@@ -677,11 +738,15 @@ internal static class AutoCadFramedBlockContentDimensionColumnPlacementService
         changed = true;
         afterBlockContentId = targetBlockId;
         note =
-            "swapped R3 " +
+            "replaced R3 " +
+            (currentContentKind?.ToString() ?? "UNPARSED") +
+            "_" +
             (currentSide is TimberFramedBlockContentDimensionColumnSide live
                 ? TimberFramedCombinedG5ContentVariantRules.ToContentVariantToken(live)
                 : "LEGACY") +
             " -> " +
+            contentKind +
+            "_" +
             TimberFramedCombinedG5ContentVariantRules.ToContentVariantToken(requiredSide);
         return true;
     }

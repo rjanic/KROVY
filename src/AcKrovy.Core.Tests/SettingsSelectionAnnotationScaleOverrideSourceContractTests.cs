@@ -23,6 +23,10 @@ public sealed class SettingsSelectionAnnotationScaleOverrideSourceContractTests
         Assert.Contains("new TimberAnnotationSettingsRequest(", apply);
         Assert.Contains("selectedScaleDenominator", apply);
         Assert.Contains("annotationApplyScope.Value", apply);
+        Assert.Contains("TimberAnnotationSettingsChangeRules.HasPresentationChanged(", apply);
+        Assert.Contains("TimberAnnotationSettingsChangeRules.HasScaleChanged(", apply);
+        Assert.Contains("presentationSettingsChanged", apply);
+        Assert.Contains("applyScaleChange", apply);
     }
 
     [Fact]

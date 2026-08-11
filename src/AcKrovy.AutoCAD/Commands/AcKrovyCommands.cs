@@ -1304,9 +1304,10 @@ public sealed class AcKrovyCommands
             transaction);
         var hasDrawingScale = drawingScaleStore.TryRead(out var drawingScaleDenominator);
         var drawingScaleChanged = applyAll &&
+            annotationSettings.ApplyScaleChange &&
             (!hasDrawingScale ||
              drawingScaleDenominator != annotationSettings.ScaleDenominator);
-        if (applyAll)
+        if (applyAll && annotationSettings.ApplyScaleChange)
         {
             drawingScaleStore.Write(annotationSettings.ScaleDenominator);
         }
@@ -1372,7 +1373,12 @@ public sealed class AcKrovyCommands
             }
         }
 
-        var refreshIds = drawingScaleChanged ? eligibleIds : changedIds;
+        var refreshIds =
+            TimberAnnotationSettingsChangeRules.ShouldRefreshAllEligible(
+                drawingScaleChanged,
+                annotationSettings.PresentationSettingsChanged)
+                ? eligibleIds
+                : changedIds;
         UpdateLabelsForChangedEntities(
             document.Database,
             transaction,
@@ -1388,7 +1394,9 @@ public sealed class AcKrovyCommands
             updated,
             skipped,
             eligible,
-            drawingScaleChanged || changedIds.Count > 0);
+            drawingScaleChanged ||
+            changedIds.Count > 0 ||
+            (annotationSettings.PresentationSettingsChanged && eligible > 0));
     }
 
     private sealed record SettingsDrawingApplyResult(

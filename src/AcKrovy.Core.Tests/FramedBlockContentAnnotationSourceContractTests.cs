@@ -518,6 +518,15 @@ public sealed class FramedBlockContentAnnotationSourceContractTests
         Assert.DoesNotContain("SetFirstVertex(", r3Swap);
         Assert.DoesNotContain("SetLastVertex(", r3Swap);
         Assert.DoesNotContain("SetDogleg(", r3Swap);
+        Assert.Contains("IsR3ContentIdentityMatch(", r3Swap);
+        Assert.Contains("TryVerifyFinalR3ContentIdentity(", r3Swap);
+        Assert.Contains("parse.ContentKind", r3Swap);
+        Assert.Contains(
+            "Content-kind comparison MUST occur before any successful early return",
+            r3Swap);
+        Assert.DoesNotContain(
+            "R3 content variant already matches knee-side landing",
+            r3Swap);
         Assert.Contains("post-swap K→D→I failed", columnPlacement);
         Assert.Contains("TryNormalizeContentSide(", contentSide);
         Assert.Contains("TryNormalizeDogleg(", NormalizeDoglegServiceSource());
