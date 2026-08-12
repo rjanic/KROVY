@@ -366,6 +366,9 @@ internal static class LiveGeometrySynchronizationService
                 return;
             }
 
+#if DEBUG
+            var commandCompletionWatch = System.Diagnostics.Stopwatch.StartNew();
+#endif
             var ids = _modifiedIds.Drain();
             var appendedTimberIds = _appendedTimberIds.Drain();
             var modifiedFramedLabelIds = _modifiedFramedLabelIds.Drain();
@@ -412,6 +415,13 @@ internal static class LiveGeometrySynchronizationService
                     AutoCadRedoDiagService.OnLiveGeometryRefreshSkippedEmpty(globalCommandName);
                 }
 
+                TraceLiveGeometryTiming(
+                    globalCommandName,
+                    "command_completion_handler",
+                    commandCompletionWatch.ElapsedMilliseconds,
+                    $"hasWork={hasLiveGeometryWork} refreshAll={refreshAllTimberAnnotations} " +
+                    $"modified={ids.Count} framedLabels={modifiedFramedLabelIds.Count}");
+
                 // P4A DEBUG proof runs under the same reentrancy suppress scopes so
                 // normalize writes do not re-queue LiveGeometry candidates.
                 AutoCadFramedBlockContentStretchNormalizeLifecycleService.ProcessCommandEnded(
@@ -454,119 +464,249 @@ internal static class LiveGeometrySynchronizationService
                     erasedSourceHandles.Count,
                     modifiedFramedLabelIds.Count);
                 var committed = false;
+                var totalWatch = System.Diagnostics.Stopwatch.StartNew();
 #else
                 _ = globalCommandName;
 #endif
                 using (document.LockDocument())
                 using (var transaction = document.Database.TransactionManager.StartTransaction())
                 {
+#if DEBUG
+                    var classifyWatch = System.Diagnostics.Stopwatch.StartNew();
+#endif
                     var metadataStore = new AutoCadTimberElementMetadataStore(transaction);
-                    if (preserveCopySources)
+                    var modifiedTimberIds = FilterTimberElementIds(
+                        document.Database,
+                        transaction,
+                        metadataStore,
+                        ids);
+                    var annotationPresentationCount = CountOwnedAnnotationPresentationIds(
+                        document.Database,
+                        transaction,
+                        ids,
+                        modifiedFramedLabelIds,
+                        appendedLabelIds,
+                        appendedSlopeArrowIds,
+                        appendedSlopeAngleTextIds);
+                    var modificationKind = LiveGeometryModificationClassifier.Classify(
+                        modifiedTimberSourceCount: modifiedTimberIds.Count,
+                        modifiedAnnotationPresentationCount: annotationPresentationCount,
+                        appendedTimberCount: appendedTimberIds.Count,
+                        erasedSourceHandleCount: erasedSourceHandles.Count,
+                        requiresFullTimberAnnotationRefresh: refreshAllTimberAnnotations);
+#if DEBUG
+                    TraceLiveGeometryTiming(
+                        globalCommandName,
+                        "modified_object_classification",
+                        classifyWatch.ElapsedMilliseconds,
+                        $"kind={modificationKind} timber={modifiedTimberIds.Count} " +
+                        $"annotationPresentation={annotationPresentationCount} " +
+                        $"refreshAllFlag={refreshAllTimberAnnotations}");
+#endif
+
+                    if (LiveGeometryModificationClassifier.ShouldPreserveAnnotationPresentationOnly(
+                            modificationKind) &&
+                        !preserveCopySources)
                     {
-                        EraseAppendedAnnotationCopies(
-                            transaction,
-                            appendedLabelIds,
-                            appendedSlopeArrowIds,
-                            appendedSlopeAngleTextIds);
-                    }
-                    else
-                    {
+                        // Classic annotation-only MOVE/ROTATE: keep the native
+                        // presentation edit. Do not mark the source dirty, do not
+                        // EnsureForElement, and do not run whole-drawing scans.
+#if DEBUG
+                        var presentationWatch = System.Diagnostics.Stopwatch.StartNew();
+#endif
                         ElementLabelService.PersistFramedManualOffsets(
                             document.Database,
                             transaction,
                             modifiedFramedLabelIds);
+#if DEBUG
+                        TraceLiveGeometryTiming(
+                            globalCommandName,
+                            "annotation_presentation_only",
+                            presentationWatch.ElapsedMilliseconds,
+                            "PersistFramedManualOffsets only; skipped EnsureForElement/" +
+                            "FindAllTimberElements/SynchronizeElementIds/duplicate+orphan scans");
+#endif
+                        transaction.Commit();
+#if DEBUG
+                        committed = true;
+                        TraceLiveGeometryTiming(
+                            globalCommandName,
+                            "transaction_commit_presentation_only",
+                            totalWatch.ElapsedMilliseconds,
+                            "ok");
+#endif
                     }
-                    TimberAnnotationService.DeleteForMissingSourceHandles(
-                        document.Database,
-                        transaction,
-                        erasedSourceHandles);
+                    else
+                    {
+                        if (preserveCopySources)
+                        {
+                            EraseAppendedAnnotationCopies(
+                                transaction,
+                                appendedLabelIds,
+                                appendedSlopeArrowIds,
+                                appendedSlopeAngleTextIds);
+                        }
+                        else
+                        {
+                            ElementLabelService.PersistFramedManualOffsets(
+                                document.Database,
+                                transaction,
+                                modifiedFramedLabelIds);
+                        }
 
-                    var defaultProfile = TimberElementDefaultProfileStore.Load();
-                    var roundingStepMm = defaultProfile.GetCuttingLengthRoundingStepMm();
-                    var presentationBatchContext =
-                        AutoCadAnnotationPresentationBatchContext.Create(
-                        document.Database,
-                        transaction,
-                        defaultProfile);
-                    var candidateIds = refreshAllTimberAnnotations && !preserveCopySources
-                        ? DrawingScanner.FindAllTimberElements(
+                        TimberAnnotationService.DeleteForMissingSourceHandles(
                             document.Database,
                             transaction,
-                            metadataStore)
-                        : LiveGeometryCommandRules.SelectIncrementalCandidates(
-                            preserveCopySources,
-                            ids,
-                            appendedTimberIds);
-                    TimberElementCopyInitializationService.InitializeLocalCopies(
-                        document.Database,
-                        transaction,
-                        metadataStore,
-                        candidateIds,
-                        defaultProfile);
+                            erasedSourceHandles);
 
-                    var previousElementIdById = ReadElementIds(
-                        document.Database,
-                        transaction,
-                        metadataStore,
-                        candidateIds);
-                    var timberIds = FilterTimberElementIds(
-                        document.Database,
-                        transaction,
-                        metadataStore,
-                        candidateIds);
-                    if (timberIds.Count > 0)
-                    {
-                        var synchronizedDataById = TimberElementItemIdentityService.SynchronizeElementIds(
+                        var defaultProfile = TimberElementDefaultProfileStore.Load();
+                        var roundingStepMm = defaultProfile.GetCuttingLengthRoundingStepMm();
+                        var presentationBatchContext =
+                            AutoCadAnnotationPresentationBatchContext.Create(
+                            document.Database,
+                            transaction,
+                            defaultProfile);
+#if DEBUG
+                        var scanWatch = System.Diagnostics.Stopwatch.StartNew();
+#endif
+                        // Prefer ObjectModified timber sources over historical
+                        // ROTATE FindAll. 1 rotated source → 1 EnsureForElement.
+                        var candidateIds = LiveGeometryCommandRules.SelectSourceRefreshCandidates(
+                            preserveCopySources,
+                            refreshAllTimberAnnotations,
+                            ids,
+                            appendedTimberIds,
+                            modifiedTimberIds,
+                            () => DrawingScanner.FindAllTimberElements(
+                                document.Database,
+                                transaction,
+                                metadataStore));
+#if DEBUG
+                        TraceLiveGeometryTiming(
+                            globalCommandName,
+                            "timber_candidate_resolution",
+                            scanWatch.ElapsedMilliseconds,
+                            $"refreshAllFlag={refreshAllTimberAnnotations} " +
+                            $"modifiedTimber={modifiedTimberIds.Count} " +
+                            $"candidates={candidateIds.Count} " +
+                            $"usedFindAllFallback=" +
+                            $"{refreshAllTimberAnnotations && !preserveCopySources && modifiedTimberIds.Count == 0}");
+#endif
+                        // COPY/PASTE init only — pure ROTATE/MOVE of existing
+                        // timber does not need ModelSpace handle re-scan here.
+                        if (preserveCopySources || appendedTimberIds.Count > 0)
+                        {
+                            TimberElementCopyInitializationService.InitializeLocalCopies(
+                                document.Database,
+                                transaction,
+                                metadataStore,
+                                candidateIds,
+                                defaultProfile);
+                        }
+
+                        var previousElementIdById = ReadElementIds(
                             document.Database,
                             transaction,
                             metadataStore,
-                            timberIds,
-                            roundingStepMm);
-
-                        foreach (var id in timberIds)
-                        {
-                            if (!AutoCadObjectIdAccess.TryGetObject<Entity>(
-                                    transaction,
-                                    id,
-                                    OpenMode.ForRead,
-                                    out var entity,
-                                    document.Database) ||
-                                entity is null ||
-                                !synchronizedDataById.TryGetValue(id, out var data))
-                            {
-                                continue;
-                            }
-
-                            previousElementIdById.TryGetValue(id, out var previousElementId);
-                            TimberAnnotationService.EnsureForElement(
-                                document.Database,
-                                transaction,
-                                entity,
-                                data,
-                                presentationBatchContext,
-                                previousElementId,
-                                roundingStepMm,
-                                copySourcePreservation: preserveCopySources);
-                        }
-                    }
-
-                    if (!preserveCopySources)
-                    {
-                        TimberAnnotationService.DeleteInsertedWithoutCurrentSourceHandles(
+                            candidateIds);
+                        var timberIds = FilterTimberElementIds(
                             document.Database,
                             transaction,
-                            appendedLabelIds,
-                            appendedSlopeArrowIds,
-                            appendedSlopeAngleTextIds);
-                        TimberAnnotationService.DeleteDuplicatesForExistingSourceHandles(
-                            document.Database,
-                            transaction);
-                    }
-
-                    transaction.Commit();
+                            metadataStore,
+                            candidateIds);
+                        if (timberIds.Count > 0)
+                        {
 #if DEBUG
-                    committed = true;
+                            var syncWatch = System.Diagnostics.Stopwatch.StartNew();
 #endif
+                            var synchronizedDataById =
+                                TimberElementItemIdentityService.SynchronizeElementIds(
+                                    document.Database,
+                                    transaction,
+                                    metadataStore,
+                                    timberIds,
+                                    roundingStepMm);
+#if DEBUG
+                            TraceLiveGeometryTiming(
+                                globalCommandName,
+                                "SynchronizeElementIds",
+                                syncWatch.ElapsedMilliseconds,
+                                $"ensureTargets={timberIds.Count} " +
+                                $"drawingTimberMeasured={synchronizedDataById.Count}");
+                            var ensureWatch = System.Diagnostics.Stopwatch.StartNew();
+                            var ensureCalls = 0;
+#endif
+
+                            foreach (var id in timberIds)
+                            {
+                                if (!AutoCadObjectIdAccess.TryGetObject<Entity>(
+                                        transaction,
+                                        id,
+                                        OpenMode.ForRead,
+                                        out var entity,
+                                        document.Database) ||
+                                    entity is null ||
+                                    !synchronizedDataById.TryGetValue(id, out var data))
+                                {
+                                    continue;
+                                }
+
+                                previousElementIdById.TryGetValue(id, out var previousElementId);
+                                TimberAnnotationService.EnsureForElement(
+                                    document.Database,
+                                    transaction,
+                                    entity,
+                                    data,
+                                    presentationBatchContext,
+                                    previousElementId,
+                                    roundingStepMm,
+                                    copySourcePreservation: preserveCopySources);
+#if DEBUG
+                                ensureCalls++;
+#endif
+                            }
+#if DEBUG
+                            TraceLiveGeometryTiming(
+                                globalCommandName,
+                                "EnsureForElement_batch",
+                                ensureWatch.ElapsedMilliseconds,
+                                $"calls={ensureCalls} modifiedTimber={modifiedTimberIds.Count}");
+#endif
+                        }
+
+                        if (!preserveCopySources)
+                        {
+#if DEBUG
+                            var cleanupWatch = System.Diagnostics.Stopwatch.StartNew();
+#endif
+                            TimberAnnotationService.DeleteInsertedWithoutCurrentSourceHandles(
+                                document.Database,
+                                transaction,
+                                appendedLabelIds,
+                                appendedSlopeArrowIds,
+                                appendedSlopeAngleTextIds);
+                            TimberAnnotationService.DeleteDuplicatesForExistingSourceHandles(
+                                document.Database,
+                                transaction);
+#if DEBUG
+                            TraceLiveGeometryTiming(
+                                globalCommandName,
+                                "duplicate_orphan_cleanup",
+                                cleanupWatch.ElapsedMilliseconds,
+                                "DeleteInserted+DeleteDuplicates");
+#endif
+                        }
+
+                        transaction.Commit();
+#if DEBUG
+                        committed = true;
+                        TraceLiveGeometryTiming(
+                            globalCommandName,
+                            "transaction_commit_source_refresh",
+                            totalWatch.ElapsedMilliseconds,
+                            $"kind={modificationKind}");
+#endif
+                    }
                 }
 #if DEBUG
                 AutoCadRedoDiagService.OnLiveGeometryRefreshEnd(globalCommandName, committed);
@@ -584,6 +724,69 @@ internal static class LiveGeometrySynchronizationService
 #endif
                 editor.WriteMessage(UiStrings.Format(UiStrings.WarningLiveRefreshSkippedFormat, ex.Message));
             }
+        }
+
+#if DEBUG
+        private static void TraceLiveGeometryTiming(
+            string? globalCommandName,
+            string stage,
+            long elapsedMilliseconds,
+            string detail)
+        {
+            Diagnostics.AcKrovyDiagnostics.Info(
+                "LiveGeometryTiming",
+                $"stage={stage}; elapsedMs={elapsedMilliseconds}; {detail}",
+                LiveGeometryCommandRules.NormalizeCommandName(globalCommandName));
+        }
+#endif
+
+        private static int CountOwnedAnnotationPresentationIds(
+            Database database,
+            Transaction transaction,
+            IReadOnlyList<ObjectId> modifiedIds,
+            IReadOnlyCollection<ObjectId> modifiedFramedLabelIds,
+            IReadOnlyCollection<ObjectId> appendedLabelIds,
+            IReadOnlyCollection<ObjectId> appendedSlopeArrowIds,
+            IReadOnlyCollection<ObjectId> appendedSlopeAngleTextIds)
+        {
+            var counted = new HashSet<ObjectId>();
+            foreach (var id in modifiedFramedLabelIds
+                         .Concat(appendedLabelIds)
+                         .Concat(appendedSlopeArrowIds)
+                         .Concat(appendedSlopeAngleTextIds))
+            {
+                if (!id.IsNull && !id.IsErased)
+                {
+                    counted.Add(id);
+                }
+            }
+
+            foreach (var id in modifiedIds.Distinct())
+            {
+                if (id.IsNull ||
+                    id.IsErased ||
+                    counted.Contains(id) ||
+                    !AutoCadObjectIdAccess.TryGetObject<Entity>(
+                        transaction,
+                        id,
+                        OpenMode.ForRead,
+                        out var entity,
+                        database) ||
+                    entity is null)
+                {
+                    continue;
+                }
+
+                if (ElementLabelStore.TryRead(entity, out _) ||
+                    SlopeArrowStore.TryRead(entity, out _) ||
+                    SlopeAngleTextStore.TryRead(entity, out _) ||
+                    PostFootprintPerpendicularAnnotationStore.TryRead(entity, out _))
+                {
+                    counted.Add(id);
+                }
+            }
+
+            return counted.Count;
         }
 
         private static void EraseAppendedAnnotationCopies(

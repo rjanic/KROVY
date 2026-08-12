@@ -52,9 +52,47 @@ public static class LiveGeometryCommandRules
                normalized.Equals("PASTECLIP", StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// Historical ROTATE full-refresh flag (rotate-aware labels, Jul 2026).
+    /// Kept as a <em>fallback</em> when ObjectModified captured no timber sources.
+    /// When modified timber identifiers are available, prefer
+    /// <see cref="SelectSourceRefreshCandidates{T}"/> incremental refresh.
+    /// </summary>
     public static bool RequiresFullTimberAnnotationRefresh(string? globalCommandName)
     {
         var normalized = NormalizeCommandName(globalCommandName);
         return string.Equals(normalized, "ROTATE", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Chooses which timber sources receive EnsureForElement after a live edit.
+    /// Prefer the ObjectModified timber set (1 rotated source → 1 refresh, N → N).
+    /// Full ModelSpace FindAll is only the ROTATE fallback when no timber mods
+    /// were observed.
+    /// </summary>
+    public static IReadOnlyList<T> SelectSourceRefreshCandidates<T>(
+        bool preserveCopySources,
+        bool requiresFullTimberAnnotationRefresh,
+        IReadOnlyList<T> modifiedIds,
+        IReadOnlyList<T> appendedIds,
+        IReadOnlyList<T> modifiedTimberIds,
+        Func<IReadOnlyList<T>> findAllTimberElements)
+    {
+        if (preserveCopySources)
+        {
+            return SelectIncrementalCandidates(true, modifiedIds, appendedIds);
+        }
+
+        if (modifiedTimberIds.Count > 0)
+        {
+            return modifiedTimberIds.Distinct().ToArray();
+        }
+
+        if (requiresFullTimberAnnotationRefresh)
+        {
+            return findAllTimberElements() ?? Array.Empty<T>();
+        }
+
+        return SelectIncrementalCandidates(false, modifiedIds, appendedIds);
     }
 }

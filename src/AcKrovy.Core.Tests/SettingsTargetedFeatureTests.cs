@@ -1157,7 +1157,7 @@ public sealed class SettingsTargetedFeatureTests
 
         Assert.Contains("_appendedTimberIds.TryAdd(entity.ObjectId)", service);
         Assert.Contains("EraseAppendedAnnotationCopies(", service);
-        Assert.Contains("SelectIncrementalCandidates(", service);
+        Assert.Contains("SelectSourceRefreshCandidates(", service);
         Assert.Contains("preserveCopySources", service);
         Assert.Contains("copySourcePreservation: preserveCopySources", service);
         Assert.Contains("allowElementIdFallback: !copySourcePreservation", labels);
