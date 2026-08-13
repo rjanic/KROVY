@@ -1036,13 +1036,10 @@ public sealed class FramedBlockContentAnnotationSourceContractTests
         // Native move first (leader authority), then post-move landing sync + R3.
         Assert.True(productionBaseMoveBeforeNormalize > 0);
         Assert.True(productionAfter > productionBaseMoveBeforeNormalize);
-        var r3Idx = productionGrip.IndexOf(
-            "TryNormalizeR3ContentVariantOnly(",
-            StringComparison.Ordinal);
-        Assert.True(r3Idx > 0);
-        var r3Slice = productionGrip.Substring(
-            r3Idx,
-            Math.Min(3500, productionGrip.Length - r3Idx));
+        var r3Slice = Member(
+            productionGrip,
+            "private static TimberFramedBlockContentGripNormalizeOutcome\n" +
+            "        TryNormalizeR3ContentVariantOnly(");
         Assert.Contains("TrySyncPresentationFromFinalLanding(", r3Slice);
         Assert.Contains(
             "EnsureCorrectR3ContentVariantFromFinalGeometry(",
