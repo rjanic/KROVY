@@ -3,14 +3,15 @@ using AcKrovy.Core.Models.Roofs;
 
 namespace AcKrovy.Core.Services.Roofs;
 
-/// <summary>
-/// Deterministic invariant payload codec. Field order is schema, kind, slope,
-/// canonical ridge X/Y and the canonical footprint signature.
-/// </summary>
+/// <summary>Deterministic invariant codec for legacy schema 1 and topology-relative schema 2.</summary>
 public static class RoofDefinitionDataCodec
 {
     private const char Separator = '|';
     private const string SimpleGableToken = "SimpleGable";
+    private const string Edge01Token = "Edge01";
+    private const string Edge12Token = "Edge12";
+    private const string ClockwiseToken = "CW";
+    private const string CounterClockwiseToken = "CCW";
     private const double UnitDirectionTolerance = 0.000000001d;
 
     public static string Encode(RoofDefinitionData data)
@@ -24,14 +25,12 @@ public static class RoofDefinitionDataCodec
             throw new ArgumentException($"Invalid roof definition data: {error}.", nameof(data));
         }
 
-        return string.Join(
-            Separator.ToString(),
-            data.SchemaVersion.ToString(CultureInfo.InvariantCulture),
-            SimpleGableToken,
-            data.SlopeDegrees.ToString("R", CultureInfo.InvariantCulture),
-            data.RidgeDirectionX.ToString("R", CultureInfo.InvariantCulture),
-            data.RidgeDirectionY.ToString("R", CultureInfo.InvariantCulture),
-            data.FootprintSignature);
+        return data.SchemaVersion switch
+        {
+            RoofDefinitionDataSchema.LegacyAbsoluteVersion => EncodeV1(data),
+            RoofDefinitionDataSchema.CurrentVersion => EncodeV2(data),
+            _ => throw new ArgumentException("Unsupported roof schema.", nameof(data)),
+        };
     }
 
     public static bool TryDecode(
@@ -62,45 +61,14 @@ public static class RoofDefinitionDataCodec
             return false;
         }
 
-        if (schemaVersion != RoofDefinitionDataSchema.CurrentVersion || fields.Length != 6)
+        return schemaVersion switch
         {
-            return false;
-        }
-
-        if (!string.Equals(fields[1], SimpleGableToken, StringComparison.Ordinal))
-        {
-            error = RoofDefinitionDataDecodeError.UnsupportedRoofKind;
-            return false;
-        }
-
-        if (!TryParseFinite(fields[2], out var slope))
-        {
-            error = RoofDefinitionDataDecodeError.InvalidSlope;
-            return false;
-        }
-
-        if (!TryParseFinite(fields[3], out var directionX) ||
-            !TryParseFinite(fields[4], out var directionY))
-        {
-            error = RoofDefinitionDataDecodeError.InvalidRidgeDirection;
-            return false;
-        }
-
-        var candidate = new RoofDefinitionData(
-            schemaVersion,
-            RoofKind.SimpleGable,
-            slope,
-            directionX,
-            directionY,
-            fields[5]);
-        if (!TryValidate(candidate, out error))
-        {
-            return false;
-        }
-
-        data = candidate;
-        error = RoofDefinitionDataDecodeError.None;
-        return true;
+            RoofDefinitionDataSchema.LegacyAbsoluteVersion =>
+                TryDecodeV1(fields, out data, out error),
+            RoofDefinitionDataSchema.CurrentVersion =>
+                TryDecodeV2(fields, out data, out error),
+            _ => false,
+        };
     }
 
     public static bool TryValidate(
@@ -112,11 +80,16 @@ public static class RoofDefinitionDataCodec
             throw new ArgumentNullException(nameof(data));
         }
         error = RoofDefinitionDataDecodeError.MalformedPayload;
-        if (data.SchemaVersion != RoofDefinitionDataSchema.CurrentVersion)
+        if (data.SchemaVersion > RoofDefinitionDataSchema.CurrentVersion)
         {
-            error = data.SchemaVersion > RoofDefinitionDataSchema.CurrentVersion
-                ? RoofDefinitionDataDecodeError.UnsupportedFutureSchema
-                : RoofDefinitionDataDecodeError.MalformedPayload;
+            error = RoofDefinitionDataDecodeError.UnsupportedFutureSchema;
+            return false;
+        }
+
+        if (data.SchemaVersion is not (
+                RoofDefinitionDataSchema.LegacyAbsoluteVersion or
+                RoofDefinitionDataSchema.CurrentVersion))
+        {
             return false;
         }
 
@@ -134,15 +107,146 @@ public static class RoofDefinitionDataCodec
             return false;
         }
 
-        var directionLength = Math.Sqrt(
-            data.RidgeDirectionX * data.RidgeDirectionX +
-            data.RidgeDirectionY * data.RidgeDirectionY);
-        if (!IsFinite(data.RidgeDirectionX) ||
-            !IsFinite(data.RidgeDirectionY) ||
-            !IsFinite(directionLength) ||
+        return data.SchemaVersion == RoofDefinitionDataSchema.LegacyAbsoluteVersion
+            ? TryValidateV1(data, out error)
+            : TryValidateV2(data, out error);
+    }
+
+    private static string EncodeV1(RoofDefinitionData data) =>
+        string.Join(
+            Separator.ToString(),
+            data.SchemaVersion.ToString(CultureInfo.InvariantCulture),
+            SimpleGableToken,
+            data.SlopeDegrees.ToString("R", CultureInfo.InvariantCulture),
+            data.RidgeDirectionX!.Value.ToString("R", CultureInfo.InvariantCulture),
+            data.RidgeDirectionY!.Value.ToString("R", CultureInfo.InvariantCulture),
+            data.FootprintSignature);
+
+    private static string EncodeV2(RoofDefinitionData data)
+    {
+        var descriptor = data.RigidFootprint!;
+        return string.Join(
+            Separator.ToString(),
+            data.SchemaVersion.ToString(CultureInfo.InvariantCulture),
+            SimpleGableToken,
+            data.SlopeDegrees.ToString("R", CultureInfo.InvariantCulture),
+            data.RidgeEdgeFamily == RoofRidgeEdgeFamily.SourceEdge01
+                ? Edge01Token
+                : Edge12Token,
+            descriptor.VertexCount.ToString(CultureInfo.InvariantCulture),
+            descriptor.SourceOrientation == RoofPolygonOrientation.Clockwise
+                ? ClockwiseToken
+                : CounterClockwiseToken,
+            descriptor.Edge01LengthMm.ToString("R", CultureInfo.InvariantCulture),
+            descriptor.Edge12LengthMm.ToString("R", CultureInfo.InvariantCulture));
+    }
+
+    private static bool TryDecodeV1(
+        IReadOnlyList<string> fields,
+        out RoofDefinitionData? data,
+        out RoofDefinitionDataDecodeError error)
+    {
+        data = null;
+        error = RoofDefinitionDataDecodeError.MalformedPayload;
+        if (fields.Count != 6 || !TryReadKind(fields[1], out error))
+        {
+            return false;
+        }
+
+        if (!TryParseFinite(fields[2], out var slope))
+        {
+            error = RoofDefinitionDataDecodeError.InvalidSlope;
+            return false;
+        }
+
+        if (!TryParseFinite(fields[3], out var directionX) ||
+            !TryParseFinite(fields[4], out var directionY))
+        {
+            error = RoofDefinitionDataDecodeError.InvalidRidgeDirection;
+            return false;
+        }
+
+        var candidate = new RoofDefinitionData(
+            RoofDefinitionDataSchema.LegacyAbsoluteVersion,
+            RoofKind.SimpleGable,
+            slope,
+            directionX,
+            directionY,
+            fields[5]);
+        return Accept(candidate, out data, out error);
+    }
+
+    private static bool TryDecodeV2(
+        IReadOnlyList<string> fields,
+        out RoofDefinitionData? data,
+        out RoofDefinitionDataDecodeError error)
+    {
+        data = null;
+        error = RoofDefinitionDataDecodeError.MalformedPayload;
+        if (fields.Count != 8 || !TryReadKind(fields[1], out error))
+        {
+            return false;
+        }
+
+        if (!TryParseFinite(fields[2], out var slope))
+        {
+            error = RoofDefinitionDataDecodeError.InvalidSlope;
+            return false;
+        }
+
+        var edgeFamily = fields[3] switch
+        {
+            Edge01Token => RoofRidgeEdgeFamily.SourceEdge01,
+            Edge12Token => RoofRidgeEdgeFamily.SourceEdge12,
+            _ => RoofRidgeEdgeFamily.Undefined,
+        };
+        if (edgeFamily == RoofRidgeEdgeFamily.Undefined)
+        {
+            error = RoofDefinitionDataDecodeError.InvalidRidgeEdgeFamily;
+            return false;
+        }
+
+        if (!int.TryParse(fields[4], NumberStyles.None, CultureInfo.InvariantCulture, out var count) ||
+            !TryReadOrientation(fields[5], out var orientation) ||
+            !TryParseFinite(fields[6], out var edge01Length) ||
+            !TryParseFinite(fields[7], out var edge12Length))
+        {
+            error = RoofDefinitionDataDecodeError.InvalidRigidFootprintDescriptor;
+            return false;
+        }
+
+        var candidate = new RoofDefinitionData(
+            RoofDefinitionDataSchema.CurrentVersion,
+            RoofKind.SimpleGable,
+            slope,
+            RidgeEdgeFamily: edgeFamily,
+            RigidFootprint: new RoofRigidFootprintDescriptor(
+                count,
+                orientation,
+                edge01Length,
+                edge12Length));
+        return Accept(candidate, out data, out error);
+    }
+
+    private static bool TryValidateV1(
+        RoofDefinitionData data,
+        out RoofDefinitionDataDecodeError error)
+    {
+        if (data.RidgeEdgeFamily is not null || data.RigidFootprint is not null)
+        {
+            error = RoofDefinitionDataDecodeError.MalformedPayload;
+            return false;
+        }
+
+        var x = data.RidgeDirectionX;
+        var y = data.RidgeDirectionY;
+        var directionLength = x is not null && y is not null
+            ? Math.Sqrt(x.Value * x.Value + y.Value * y.Value)
+            : double.NaN;
+        if (x is null || y is null ||
+            !IsFinite(x.Value) || !IsFinite(y.Value) || !IsFinite(directionLength) ||
             Math.Abs(directionLength - 1d) > UnitDirectionTolerance ||
-            data.RidgeDirectionX < 0d ||
-            data.RidgeDirectionX == 0d && data.RidgeDirectionY < 0d)
+            x.Value < 0d || x.Value == 0d && y.Value < 0d)
         {
             error = RoofDefinitionDataDecodeError.InvalidRidgeDirection;
             return false;
@@ -158,6 +262,85 @@ public static class RoofDefinitionDataCodec
         return true;
     }
 
+    private static bool TryValidateV2(
+        RoofDefinitionData data,
+        out RoofDefinitionDataDecodeError error)
+    {
+        if (data.RidgeDirectionX is not null ||
+            data.RidgeDirectionY is not null ||
+            data.FootprintSignature is not null)
+        {
+            error = RoofDefinitionDataDecodeError.InvalidRigidFootprintDescriptor;
+            return false;
+        }
+
+        if (data.RidgeEdgeFamily is not (
+                RoofRidgeEdgeFamily.SourceEdge01 or RoofRidgeEdgeFamily.SourceEdge12))
+        {
+            error = RoofDefinitionDataDecodeError.InvalidRidgeEdgeFamily;
+            return false;
+        }
+
+        var descriptor = data.RigidFootprint;
+        if (descriptor is null || descriptor.VertexCount != 4 ||
+            descriptor.SourceOrientation is not (
+                RoofPolygonOrientation.Clockwise or RoofPolygonOrientation.CounterClockwise) ||
+            !IsFinite(descriptor.Edge01LengthMm) ||
+            !IsFinite(descriptor.Edge12LengthMm) ||
+            descriptor.Edge01LengthMm <= SimpleGableRoofGeometryTolerance.MinimumDimensionMm ||
+            descriptor.Edge12LengthMm <= SimpleGableRoofGeometryTolerance.MinimumDimensionMm)
+        {
+            error = RoofDefinitionDataDecodeError.InvalidRigidFootprintDescriptor;
+            return false;
+        }
+
+        error = RoofDefinitionDataDecodeError.None;
+        return true;
+    }
+
+    private static bool Accept(
+        RoofDefinitionData candidate,
+        out RoofDefinitionData? data,
+        out RoofDefinitionDataDecodeError error)
+    {
+        if (!TryValidate(candidate, out error))
+        {
+            data = null;
+            return false;
+        }
+
+        data = candidate;
+        error = RoofDefinitionDataDecodeError.None;
+        return true;
+    }
+
+    private static bool TryReadKind(
+        string token,
+        out RoofDefinitionDataDecodeError error)
+    {
+        if (string.Equals(token, SimpleGableToken, StringComparison.Ordinal))
+        {
+            error = RoofDefinitionDataDecodeError.None;
+            return true;
+        }
+
+        error = RoofDefinitionDataDecodeError.UnsupportedRoofKind;
+        return false;
+    }
+
+    private static bool TryReadOrientation(
+        string token,
+        out RoofPolygonOrientation orientation)
+    {
+        orientation = token switch
+        {
+            ClockwiseToken => RoofPolygonOrientation.Clockwise,
+            CounterClockwiseToken => RoofPolygonOrientation.CounterClockwise,
+            _ => RoofPolygonOrientation.Undefined,
+        };
+        return orientation != RoofPolygonOrientation.Undefined;
+    }
+
     private static bool IsValidFootprintSignature(string? signature)
     {
         if (string.IsNullOrWhiteSpace(signature) || signature.Contains(Separator))
@@ -171,18 +354,13 @@ public static class RoofDefinitionDataCodec
             return false;
         }
 
-        foreach (var vertex in vertices)
+        return vertices.All(vertex =>
         {
             var coordinates = vertex.Split(',');
-            if (coordinates.Length != 2 ||
-                !TryParseFinite(coordinates[0], out _) ||
-                !TryParseFinite(coordinates[1], out _))
-            {
-                return false;
-            }
-        }
-
-        return true;
+            return coordinates.Length == 2 &&
+                   TryParseFinite(coordinates[0], out _) &&
+                   TryParseFinite(coordinates[1], out _);
+        });
     }
 
     private static bool TryParseFinite(string value, out double result) =>

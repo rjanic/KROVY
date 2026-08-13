@@ -8,8 +8,8 @@
 
 **Verzia aplikácie:** autoritatívne v `Directory.Build.props`
 
-**Aktuálny míľnik:** STRECHY S2 Stage 3 „Persistent Roof Definition“,
-implementovaný a automaticky overený; manuálny AutoCAD SAVE/REOPEN/DBMOD test je otvorený
+**Aktuálny míľnik:** STRECHY S2 Stage 4 „Rigid-Transform Roof Lifecycle Foundation“,
+implementovaný lokálne a automaticky overený; manuálne AutoCAD lifecycle/DBMOD testy sú otvorené
 
 **Overovanie:** Debug/Release build, kompletné automatické testy a Portable/Full Compatibility Gate
 
@@ -418,6 +418,21 @@ Stabilný commit: `4a951041e2deef40a127ac9560cf6fb2ba4b6a5b`
 - SAVE/CLOSE/REOPEN a DBMOD host proof je povinný otvorený test; MOVE/ROTATE/
   STRETCH/COPY/WBLOCK lifecycle a roof edit/regeneration zostávajú budúcou etapou,
 - bez permanentnej roof geometrie, Xrecordov, drawing-settings storage a timber generation.
+
+### STRECHY S2 Stage 4 – rigid-transform roof lifecycle foundation
+- nové definície používajú roof schema `2`: plný sklon, ridge edge-family viazanú
+  na natívnu topológiu Polyline `0→1`/`1→2` a rigidne invariantný descriptor
+  `vertex count + CW/CCW + dve susedné dĺžky`; neukladajú absolútny WCS smer ani súradnice,
+- lazy read extrahuje aktuálnu Polyline `ForRead`, overí S1 a descriptor, odvodí
+  aktuálny WCS ridge smer zo zvolenej source edge-family a znovu použije Stage 1 solver,
+- MOVE, ROTATE a opakované rigidné transformácie sú podporené Core kontraktom bez
+  prepisovania XData; os štvorca zostáva viazaná na fyzickú source edge-family,
+- STRETCH/zmena rozmerov zostáva stale bez preview, opravy alebo zápisu; schema `1`
+  sa číta pôvodnou absolútnou Stage 3 cestou a automaticky sa nemigruje,
+- COPY je automaticky pokrytá rovnakou owner-local semantikou, ale produkčná podpora
+  sa potvrdí až HOST dôkazom, že AutoCAD kopíruje dedikované XData,
+- bez reactorov, write-on-read, permanentnej roof geometrie a timber generation;
+  MOVE/ROTATE/COPY/SAVE-REOPEN a DBMOD HOST acceptance zostáva otvorená.
 
 ## Povinné kompatibilitné pravidlá
 

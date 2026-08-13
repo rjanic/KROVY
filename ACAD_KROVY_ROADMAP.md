@@ -5,7 +5,7 @@
 **Predchádzajúci stabilný commit v0.19.0:** `41373d235a357dee05033872a1df8fed8b3286d3`
 **Predchádzajúci stabilný commit v0.20.0:** `6564fc930d98e3eca591bafcccef709af07dc9a5`
 **Predchádzajúci stabilný commit v0.21.0:** `f98900c1bd257a8e5357f6e77eb6f118bd4930d3`
-**Aktuálny míľnik:** STRECHY S2 Stage 3 „Persistent Roof Definition“, implementovaný a automaticky overený; manuálny AutoCAD SAVE/REOPEN/DBMOD test je otvorený
+**Aktuálny míľnik:** STRECHY S2 Stage 4 „Rigid-Transform Roof Lifecycle Foundation“, implementovaný lokálne a automaticky overený; manuálne AutoCAD lifecycle/DBMOD testy sú otvorené
 
 Tento dokument určuje odporúčané poradie ďalšieho vývoja. Úplný zásobník nápadov je v `ACAD_KROVY_BACKLOG.md`.
 
@@ -215,6 +215,18 @@ overiť abstractions pred veľkým roof automation modulom.
 - bez permanentnej roof geometrie a timber generation; SAVE/CLOSE/REOPEN host proof
   a MOVE/ROTATE/STRETCH/COPY/WBLOCK lifecycle zostávajú otvorené.
 
+### Stage 4 – rigid-transform roof lifecycle foundation – IMPLEMENTOVANÝ LOKÁLNE
+- nové roof schema `2` ukladá sklon, natívnu source edge-family `0→1`/`1→2`
+  a descriptor `4 vertices + CW/CCW + adjacent edge lengths`, nie WCS umiestnenie,
+- read-only lazy restore z aktuálnej source topológie podporuje MOVE, ROTATE a ich
+  opakovanie bez reactorov alebo metadata rewrite; štvorce zachovávajú zvolenú os,
+- STRETCH a zmena rozmerov ostávajú stale; schema `1` sa číta bez migrácie a po
+  MOVE/ROTATE zachováva pôvodné Stage 3 stale správanie,
+- COPY má neutrálnu owner-local podporu, ale bude označená za produkčne podporenú
+  až po reálnom HOST potvrdení kopírovania `DECORAIR_ACADKROVY_ROOF` XData,
+- bez permanentnej roof geometrie a timber generation; HOST lifecycle/DBMOD
+  acceptance je otvorená a celý S2 týmto nie je dokončený.
+
 ### Ďalšie S2 stages
 - doplniť neutrálne vstupy: presah, rozostup a prierez krokiev,
 - vytvoriť pomúrnice, hrebeňovú väznicu a common rafters,
@@ -379,8 +391,10 @@ Priebežne pri dotyku s danou oblasťou:
 
 # ODPORÚČANÉ NAJBLIŽŠIE PORADIE
 
-1. Manuálny AutoCAD 2027 SAVE/CLOSE/REOPEN a DBMOD test S2 Stage 3.
-2. Roof lifecycle/editing pre MOVE/ROTATE/STRETCH/COPY/WBLOCK, potom ďalšie simple-gable členy.
+1. Manuálny AutoCAD 2027 Stage 4 lifecycle/DBMOD test: new v2, MOVE, ROTATE,
+   opakované transformácie, square 90°, STRETCH stale, COPY a OpenLoop regresia.
+2. Po HOST acceptance pokračovať roof editingom a ďalšími simple-gable členmi;
+   SCALE/MIRROR/REVERSE/WBLOCK zostávajú mimo Stage 4 kontraktu.
 3. AutoCAD 2021–2027 compatibility checkpoint a BricsCAD PoC.
 4. Komplexné footprints, hip/valley a ďalšie typy strechy.
 5. True-width a automatický vizuálny trim.

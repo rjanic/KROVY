@@ -7,21 +7,23 @@ namespace AcKrovy.Core.Tests;
 public sealed class RoofDefinitionPersistenceTests
 {
     [Fact]
-    public void CurrentSchema_RoundTripsAllFieldsAtFullPrecision()
+    public void LegacySchemaV1_RoundTripsAllFieldsAtFullPrecision()
     {
         var footprint = Rectangle();
         var geometry = Solve(footprint, 37.1234567890123d, 1d, 0d);
-        var original = RoofDefinitionPersistence.Create(footprint, geometry);
+        var original = LegacyData(footprint, geometry);
 
         var payload = RoofDefinitionDataCodec.Encode(original);
         var decoded = Decode(payload);
 
-        Assert.Equal(RoofDefinitionDataSchema.CurrentVersion, decoded.SchemaVersion);
+        Assert.Equal(RoofDefinitionDataSchema.LegacyAbsoluteVersion, decoded.SchemaVersion);
         Assert.Equal(RoofKind.SimpleGable, decoded.Kind);
         Assert.Equal(original.SlopeDegrees, decoded.SlopeDegrees);
         Assert.Equal(original.RidgeDirectionX, decoded.RidgeDirectionX);
         Assert.Equal(original.RidgeDirectionY, decoded.RidgeDirectionY);
         Assert.Equal(footprint.Signature, decoded.FootprintSignature);
+        Assert.Null(decoded.RidgeEdgeFamily);
+        Assert.Null(decoded.RigidFootprint);
         Assert.Contains("37.1234567890123", payload);
     }
 
@@ -33,9 +35,9 @@ public sealed class RoofDefinitionPersistenceTests
         var reverse = Solve(footprint, 42d, -0.8571673007021123d, -0.5150380749100542d);
 
         var first = RoofDefinitionDataCodec.Encode(
-            RoofDefinitionPersistence.Create(footprint, forward));
+            LegacyData(footprint, forward));
         var second = RoofDefinitionDataCodec.Encode(
-            RoofDefinitionPersistence.Create(footprint, reverse));
+            LegacyData(footprint, reverse));
 
         Assert.Equal(first, second);
     }
@@ -55,7 +57,7 @@ public sealed class RoofDefinitionPersistenceTests
     [Fact]
     public void FutureSchema_IsRejectedWithoutNormalization()
     {
-        const string payload = "2|SimpleGable|35|1|0|0,0;100,0;100,100;0,100|future";
+        const string payload = "3|SimpleGable|35|future";
         Assert.False(RoofDefinitionDataCodec.TryDecode(payload, out _, out var error));
         Assert.Equal(RoofDefinitionDataDecodeError.UnsupportedFutureSchema, error);
     }
@@ -109,7 +111,8 @@ public sealed class RoofDefinitionPersistenceTests
     public void ChangedFootprint_IsDetectedAsStale()
     {
         var original = Rectangle();
-        var data = RoofDefinitionPersistence.Create(original, Solve(original, 35d, 1d, 0d));
+        var originalInput = RectangleInput();
+        var data = LegacyData(original, Solve(original, 35d, 1d, 0d));
         var changed = Validate([
             new RoofPoint2D(0d, 0d),
             new RoofPoint2D(12000d, 0d),
@@ -117,7 +120,7 @@ public sealed class RoofDefinitionPersistenceTests
             new RoofPoint2D(0d, 6000d),
         ]);
 
-        var result = RoofDefinitionPersistence.Restore(changed, data);
+        var result = RoofDefinitionPersistence.Restore(originalInput, changed, data);
 
         Assert.False(result.IsValid);
         Assert.Null(result.Geometry);
@@ -130,9 +133,12 @@ public sealed class RoofDefinitionPersistenceTests
         var footprint = RotatedRectangle(29d);
         var original = Solve(footprint, 33.75d, 0.8746197071393957d, 0.48480962024633706d);
         var decoded = Decode(RoofDefinitionDataCodec.Encode(
-            RoofDefinitionPersistence.Create(footprint, original)));
+            LegacyData(footprint, original)));
 
-        var restored = RoofDefinitionPersistence.Restore(footprint, decoded);
+        var restored = RoofDefinitionPersistence.Restore(
+            RotatedRectangleInput(29d),
+            footprint,
+            decoded);
 
         Assert.True(restored.IsValid);
         Assert.NotNull(restored.Geometry);
@@ -143,7 +149,7 @@ public sealed class RoofDefinitionPersistenceTests
     public void RepeatedEncoding_IsDeterministic()
     {
         var footprint = Rectangle();
-        var data = RoofDefinitionPersistence.Create(footprint, Solve(footprint, 35d, 1d, 0d));
+        var data = LegacyData(footprint, Solve(footprint, 35d, 1d, 0d));
         Assert.Equal(
             RoofDefinitionDataCodec.Encode(data),
             RoofDefinitionDataCodec.Encode(data));
@@ -155,6 +161,17 @@ public sealed class RoofDefinitionPersistenceTests
         Assert.Equal(RoofDefinitionDataDecodeError.None, error);
         return Assert.IsType<RoofDefinitionData>(data);
     }
+
+    private static RoofDefinitionData LegacyData(
+        RoofFootprint footprint,
+        SimpleGableRoofGeometry geometry) =>
+        new(
+            RoofDefinitionDataSchema.LegacyAbsoluteVersion,
+            RoofKind.SimpleGable,
+            geometry.SlopeDegrees,
+            geometry.RidgeDirection.X,
+            geometry.RidgeDirection.Y,
+            footprint.Signature);
 
     private static SimpleGableRoofGeometry Solve(
         RoofFootprint footprint,
@@ -170,26 +187,31 @@ public sealed class RoofDefinitionPersistenceTests
         return Assert.IsType<SimpleGableRoofGeometry>(result.Geometry);
     }
 
-    private static RoofFootprint Rectangle() => Validate([
+    private static RoofFootprint Rectangle() => Validate(RectangleInput().Vertices!);
+
+    private static RoofFootprintInput RectangleInput() => new([
         new RoofPoint2D(0d, 0d),
         new RoofPoint2D(10000d, 0d),
         new RoofPoint2D(10000d, 6000d),
         new RoofPoint2D(0d, 6000d),
-    ]);
+    ], true, false, true);
 
-    private static RoofFootprint RotatedRectangle(double angleDegrees)
+    private static RoofFootprint RotatedRectangle(double angleDegrees) =>
+        Validate(RotatedRectangleInput(angleDegrees).Vertices!);
+
+    private static RoofFootprintInput RotatedRectangleInput(double angleDegrees)
     {
         var angle = angleDegrees * Math.PI / 180d;
         var cosine = Math.Cos(angle);
         var sine = Math.Sin(angle);
         RoofPoint2D Rotate(double x, double y) =>
             new(2500d + x * cosine - y * sine, -1800d + x * sine + y * cosine);
-        return Validate([
+        return new RoofFootprintInput([
             Rotate(0d, 0d),
             Rotate(10000d, 0d),
             Rotate(10000d, 6000d),
             Rotate(0d, 6000d),
-        ]);
+        ], true, false, true);
     }
 
     private static RoofFootprint Validate(IReadOnlyList<RoofPoint2D> vertices)

@@ -130,6 +130,15 @@
 - otvorené: reálny SAVE/CLOSE/REOPEN + DBMOD host proof a neskorší lifecycle pre
   MOVE/ROTATE/STRETCH/COPY/WBLOCK bez reactorov v tejto etape.
 
+### S2 Stage 4 – rigid-transform roof lifecycle foundation implementovaný lokálne
+- roof schema `2` pre nové definície: `SimpleGable`, plný slope, source edge-family
+  `0→1`/`1→2`, vertex count, CW/CCW a dĺžky dvoch natívnych susedných hrán,
+- lazy `ForRead` reconstruction odvodzuje aktuálny ridge smer zo source Polyline;
+  MOVE/ROTATE/opakovanie nemenia XData a square ridge nepreskakuje na druhú os,
+- STRETCH/zmena rozmerov je stale; legacy schema `1` zostáva nezmenená a bez migrácie,
+- COPY Core semantika je pripravená, ale produkčný status čaká na HOST XData dôkaz,
+- bez reactorov, permanentnej roof geometrie a timber generation; HOST acceptance otvorená.
+
 ### Ďalšie S2 stages – jednoduchá sedlová strecha MVP
 - roof edit/lifecycle, potom presah, rozostup a prierez krokiev,
 - pomúrnice, hrebeňová väznica a common rafters,

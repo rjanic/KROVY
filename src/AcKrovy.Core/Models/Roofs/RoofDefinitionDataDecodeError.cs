@@ -9,4 +9,6 @@ public enum RoofDefinitionDataDecodeError
     InvalidSlope,
     InvalidRidgeDirection,
     InvalidFootprintSignature,
+    InvalidRidgeEdgeFamily,
+    InvalidRigidFootprintDescriptor,
 }

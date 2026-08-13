@@ -8,7 +8,7 @@ using Autodesk.AutoCAD.EditorInput;
 
 namespace AcKrovy.AutoCAD.Infrastructure;
 
-/// <summary>S1 validation, S2 transient preview and explicit S3 definition persistence.</summary>
+/// <summary>S1 validation, transient preview and lazy persisted-definition lifecycle.</summary>
 internal static class RoofCommandWorkflow
 {
     public static void Run(Document document)
@@ -29,6 +29,7 @@ internal static class RoofCommandWorkflow
             }
 
             RoofValidationResult validation;
+            RoofFootprintInput sourceInput;
             double sourceElevation;
             RoofDefinitionStoreReadResult storedDefinition;
             using (var transaction = document.Database.TransactionManager.StartTransaction())
@@ -39,8 +40,8 @@ internal static class RoofCommandWorkflow
                     continue;
                 }
 
-                validation = RoofFootprintValidator.Validate(
-                    RoofPolylineExtractor.Extract(polyline));
+                sourceInput = RoofPolylineExtractor.Extract(polyline);
+                validation = RoofFootprintValidator.Validate(sourceInput);
                 sourceElevation = RoofPolylineExtractor.GetSourceElevation(polyline);
                 storedDefinition = RoofDefinitionStore.Read(polyline);
             }
@@ -72,6 +73,7 @@ internal static class RoofCommandWorkflow
                 }
 
                 var restored = RoofDefinitionPersistence.Restore(
+                    sourceInput,
                     validation.Footprint,
                     storedDefinition.Data);
                 if (!restored.IsValid || restored.Geometry is null)
@@ -117,6 +119,7 @@ internal static class RoofCommandWorkflow
             }
 
             var definitionData = RoofDefinitionPersistence.Create(
+                sourceInput,
                 validation.Footprint,
                 geometryResult.Geometry);
             if (TryPersist(
@@ -199,12 +202,13 @@ internal static class RoofCommandWorkflow
                 return false;
             }
 
-            var current = RoofFootprintValidator.Validate(RoofPolylineExtractor.Extract(owner));
+            var currentInput = RoofPolylineExtractor.Extract(owner);
+            var current = RoofFootprintValidator.Validate(currentInput);
             if (!current.IsValid || current.Footprint is null ||
-                !string.Equals(
-                    current.Footprint.Signature,
-                    data.FootprintSignature,
-                    StringComparison.Ordinal))
+                !RoofDefinitionPersistence.Restore(
+                    currentInput,
+                    current.Footprint,
+                    data).IsValid)
             {
                 failureMessageKey = "Command_Roof_PersistSourceChanged";
                 return false;
