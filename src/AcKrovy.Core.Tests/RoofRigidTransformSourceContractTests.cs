@@ -145,7 +145,10 @@ public sealed class RoofRigidTransformSourceContractTests
     }
 
     private static string Read(params string[] path) =>
-        File.ReadAllText(Path.Combine([Repository, .. path]));
+        NormalizeLineEndings(File.ReadAllText(Path.Combine([Repository, .. path])));
+
+    private static string NormalizeLineEndings(string source) =>
+        source.Replace("\r\n", "\n").Replace("\r", "\n");
 
     private static string RepositoryRoot()
     {
