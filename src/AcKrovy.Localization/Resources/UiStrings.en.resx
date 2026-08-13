@@ -526,4 +526,14 @@
   <data name="Command_Roof_OrientationCounterClockwise" xml:space="preserve"><value>counter-clockwise</value></data>
   <data name="Command_Roof_OpenLoopNotificationTitle" xml:space="preserve"><value>Roof footprint is not closed</value></data>
   <data name="Command_Roof_OpenLoopNotificationBody" xml:space="preserve"><value>Connect the last point to the first or use PLINE → Close.</value></data>
+  <data name="Command_Roof_SlopePrompt" xml:space="preserve"><value>&#xA;Enter the roof slope in degrees: </value></data>
+  <data name="Command_Roof_RidgeDirectionStartPrompt" xml:space="preserve"><value>&#xA;Specify the first point of the ridge direction: </value></data>
+  <data name="Command_Roof_RidgeDirectionEndPrompt" xml:space="preserve"><value>&#xA;Specify the second point of the ridge direction: </value></data>
+  <data name="Command_Roof_PreviewClosePrompt" xml:space="preserve"><value>&#xA;The transient roof preview is displayed. Press Enter or Esc to close it: </value></data>
+  <data name="Command_Roof_GeometryErrorFourSided" xml:space="preserve"><value>&#xA;A simple gable roof requires a four-vertex footprint.</value></data>
+  <data name="Command_Roof_GeometryErrorRectangular" xml:space="preserve"><value>&#xA;A simple gable roof requires a rectangular footprint.</value></data>
+  <data name="Command_Roof_GeometryErrorDirection" xml:space="preserve"><value>&#xA;The ridge direction must match one axis of the rectangle.</value></data>
+  <data name="Command_Roof_GeometryErrorSlope" xml:space="preserve"><value>&#xA;The roof slope must be finite, greater than 0°, and less than 90°.</value></data>
+  <data name="Command_Roof_GeometryErrorDimensions" xml:space="preserve"><value>&#xA;The roof-footprint dimensions are too small for a simple gable roof.</value></data>
+  <data name="Command_Roof_GeometryErrorNonFinite" xml:space="preserve"><value>&#xA;The roof-geometry calculation produced an infinite or invalid value.</value></data>
 </root>

@@ -526,4 +526,14 @@
   <data name="Command_Roof_OrientationCounterClockwise" xml:space="preserve"><value>przeciwnie do ruchu wskazówek zegara</value></data>
   <data name="Command_Roof_OpenLoopNotificationTitle" xml:space="preserve"><value>Obrys dachu nie jest zamknięty</value></data>
   <data name="Command_Roof_OpenLoopNotificationBody" xml:space="preserve"><value>Połącz ostatni punkt z pierwszym lub użyj PLINE → Close.</value></data>
+  <data name="Command_Roof_SlopePrompt" xml:space="preserve"><value>&#xA;Podaj kąt nachylenia dachu w stopniach: </value></data>
+  <data name="Command_Roof_RidgeDirectionStartPrompt" xml:space="preserve"><value>&#xA;Wskaż pierwszy punkt kierunku kalenicy: </value></data>
+  <data name="Command_Roof_RidgeDirectionEndPrompt" xml:space="preserve"><value>&#xA;Wskaż drugi punkt kierunku kalenicy: </value></data>
+  <data name="Command_Roof_PreviewClosePrompt" xml:space="preserve"><value>&#xA;Wyświetlono tymczasowy podgląd dachu. Naciśnij Enter lub Esc, aby go zamknąć: </value></data>
+  <data name="Command_Roof_GeometryErrorFourSided" xml:space="preserve"><value>&#xA;Prosty dach dwuspadowy wymaga obrysu z czterema wierzchołkami.</value></data>
+  <data name="Command_Roof_GeometryErrorRectangular" xml:space="preserve"><value>&#xA;Prosty dach dwuspadowy wymaga prostokątnego obrysu.</value></data>
+  <data name="Command_Roof_GeometryErrorDirection" xml:space="preserve"><value>&#xA;Kierunek kalenicy musi odpowiadać jednej osi prostokąta.</value></data>
+  <data name="Command_Roof_GeometryErrorSlope" xml:space="preserve"><value>&#xA;Kąt nachylenia dachu musi być skończony, większy niż 0° i mniejszy niż 90°.</value></data>
+  <data name="Command_Roof_GeometryErrorDimensions" xml:space="preserve"><value>&#xA;Wymiary obrysu dachu są zbyt małe dla prostego dachu dwuspadowego.</value></data>
+  <data name="Command_Roof_GeometryErrorNonFinite" xml:space="preserve"><value>&#xA;Obliczenie geometrii dachu zwróciło nieskończoną lub nieprawidłową wartość.</value></data>
 </root>

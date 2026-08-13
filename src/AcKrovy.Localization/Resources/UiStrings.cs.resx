@@ -526,4 +526,14 @@
   <data name="Command_Roof_OrientationCounterClockwise" xml:space="preserve"><value>proti směru hodinových ručiček</value></data>
   <data name="Command_Roof_OpenLoopNotificationTitle" xml:space="preserve"><value>Obrys střechy není uzavřený</value></data>
   <data name="Command_Roof_OpenLoopNotificationBody" xml:space="preserve"><value>Spojte poslední bod s prvním nebo použijte PLINE → Close.</value></data>
+  <data name="Command_Roof_SlopePrompt" xml:space="preserve"><value>&#xA;Zadejte sklon střechy ve stupních: </value></data>
+  <data name="Command_Roof_RidgeDirectionStartPrompt" xml:space="preserve"><value>&#xA;Určete první bod směru hřebene: </value></data>
+  <data name="Command_Roof_RidgeDirectionEndPrompt" xml:space="preserve"><value>&#xA;Určete druhý bod směru hřebene: </value></data>
+  <data name="Command_Roof_PreviewClosePrompt" xml:space="preserve"><value>&#xA;Dočasný náhled střechy je zobrazen. Stiskněte Enter nebo Esc pro zavření: </value></data>
+  <data name="Command_Roof_GeometryErrorFourSided" xml:space="preserve"><value>&#xA;Jednoduchá sedlová střecha vyžaduje čtyřvrcholový obrys.</value></data>
+  <data name="Command_Roof_GeometryErrorRectangular" xml:space="preserve"><value>&#xA;Jednoduchá sedlová střecha vyžaduje obdélníkový obrys.</value></data>
+  <data name="Command_Roof_GeometryErrorDirection" xml:space="preserve"><value>&#xA;Směr hřebene se musí shodovat s jednou osou obdélníku.</value></data>
+  <data name="Command_Roof_GeometryErrorSlope" xml:space="preserve"><value>&#xA;Sklon střechy musí být konečný, větší než 0° a menší než 90°.</value></data>
+  <data name="Command_Roof_GeometryErrorDimensions" xml:space="preserve"><value>&#xA;Rozměry obrysu střechy jsou příliš malé pro jednoduchou sedlovou střechu.</value></data>
+  <data name="Command_Roof_GeometryErrorNonFinite" xml:space="preserve"><value>&#xA;Výpočet geometrie střechy vytvořil nekonečnou nebo neplatnou hodnotu.</value></data>
 </root>

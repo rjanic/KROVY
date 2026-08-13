@@ -526,4 +526,14 @@
   <data name="Command_Roof_OrientationCounterClockwise" xml:space="preserve"><value>antihoraire</value></data>
   <data name="Command_Roof_OpenLoopNotificationTitle" xml:space="preserve"><value>L’emprise de toiture n’est pas fermée</value></data>
   <data name="Command_Roof_OpenLoopNotificationBody" xml:space="preserve"><value>Reliez le dernier point au premier ou utilisez PLINE → Close.</value></data>
+  <data name="Command_Roof_SlopePrompt" xml:space="preserve"><value>&#xA;Saisissez la pente du toit en degrés : </value></data>
+  <data name="Command_Roof_RidgeDirectionStartPrompt" xml:space="preserve"><value>&#xA;Indiquez le premier point de la direction du faîtage : </value></data>
+  <data name="Command_Roof_RidgeDirectionEndPrompt" xml:space="preserve"><value>&#xA;Indiquez le second point de la direction du faîtage : </value></data>
+  <data name="Command_Roof_PreviewClosePrompt" xml:space="preserve"><value>&#xA;L’aperçu temporaire du toit est affiché. Appuyez sur Entrée ou Échap pour le fermer : </value></data>
+  <data name="Command_Roof_GeometryErrorFourSided" xml:space="preserve"><value>&#xA;Un toit à deux pans simple nécessite une emprise à quatre sommets.</value></data>
+  <data name="Command_Roof_GeometryErrorRectangular" xml:space="preserve"><value>&#xA;Un toit à deux pans simple nécessite une emprise rectangulaire.</value></data>
+  <data name="Command_Roof_GeometryErrorDirection" xml:space="preserve"><value>&#xA;La direction du faîtage doit correspondre à un axe du rectangle.</value></data>
+  <data name="Command_Roof_GeometryErrorSlope" xml:space="preserve"><value>&#xA;La pente du toit doit être finie, supérieure à 0° et inférieure à 90°.</value></data>
+  <data name="Command_Roof_GeometryErrorDimensions" xml:space="preserve"><value>&#xA;Les dimensions de l’emprise sont trop petites pour un toit à deux pans simple.</value></data>
+  <data name="Command_Roof_GeometryErrorNonFinite" xml:space="preserve"><value>&#xA;Le calcul de la géométrie du toit a produit une valeur infinie ou non valide.</value></data>
 </root>

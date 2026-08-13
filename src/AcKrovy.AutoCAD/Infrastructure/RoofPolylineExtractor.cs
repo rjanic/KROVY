@@ -33,4 +33,16 @@ internal static class RoofPolylineExtractor
             hasCurvedSegments,
             isPlanarInWorldXy);
     }
+
+    /// <summary>
+    /// Returns the WCS elevation used to place neutral local-Z preview geometry.
+    /// S1 supports only lightweight polylines whose plane normal is parallel to WCS Z.
+    /// </summary>
+    public static double GetSourceElevation(Polyline polyline)
+    {
+        ArgumentNullException.ThrowIfNull(polyline);
+        return polyline.NumberOfVertices > 0
+            ? polyline.GetPoint3dAt(0).Z
+            : 0d;
+    }
 }

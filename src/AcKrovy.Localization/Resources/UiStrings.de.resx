@@ -526,4 +526,14 @@
   <data name="Command_Roof_OrientationCounterClockwise" xml:space="preserve"><value>gegen den Uhrzeigersinn</value></data>
   <data name="Command_Roof_OpenLoopNotificationTitle" xml:space="preserve"><value>Dachgrundriss ist nicht geschlossen</value></data>
   <data name="Command_Roof_OpenLoopNotificationBody" xml:space="preserve"><value>Verbinden Sie den letzten Punkt mit dem ersten oder verwenden Sie PLINE → Close.</value></data>
+  <data name="Command_Roof_SlopePrompt" xml:space="preserve"><value>&#xA;Geben Sie die Dachneigung in Grad ein: </value></data>
+  <data name="Command_Roof_RidgeDirectionStartPrompt" xml:space="preserve"><value>&#xA;Geben Sie den ersten Punkt der Firstrichtung an: </value></data>
+  <data name="Command_Roof_RidgeDirectionEndPrompt" xml:space="preserve"><value>&#xA;Geben Sie den zweiten Punkt der Firstrichtung an: </value></data>
+  <data name="Command_Roof_PreviewClosePrompt" xml:space="preserve"><value>&#xA;Die temporäre Dachvorschau wird angezeigt. Drücken Sie Enter oder Esc zum Schließen: </value></data>
+  <data name="Command_Roof_GeometryErrorFourSided" xml:space="preserve"><value>&#xA;Ein einfaches Satteldach erfordert einen Grundriss mit vier Eckpunkten.</value></data>
+  <data name="Command_Roof_GeometryErrorRectangular" xml:space="preserve"><value>&#xA;Ein einfaches Satteldach erfordert einen rechteckigen Grundriss.</value></data>
+  <data name="Command_Roof_GeometryErrorDirection" xml:space="preserve"><value>&#xA;Die Firstrichtung muss mit einer Rechteckachse übereinstimmen.</value></data>
+  <data name="Command_Roof_GeometryErrorSlope" xml:space="preserve"><value>&#xA;Die Dachneigung muss endlich, größer als 0° und kleiner als 90° sein.</value></data>
+  <data name="Command_Roof_GeometryErrorDimensions" xml:space="preserve"><value>&#xA;Die Dachgrundrissabmessungen sind für ein einfaches Satteldach zu klein.</value></data>
+  <data name="Command_Roof_GeometryErrorNonFinite" xml:space="preserve"><value>&#xA;Die Dachgeometrieberechnung hat einen unendlichen oder ungültigen Wert erzeugt.</value></data>
 </root>

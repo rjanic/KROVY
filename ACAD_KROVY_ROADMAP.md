@@ -5,7 +5,7 @@
 **Predchádzajúci stabilný commit v0.19.0:** `41373d235a357dee05033872a1df8fed8b3286d3`
 **Predchádzajúci stabilný commit v0.20.0:** `6564fc930d98e3eca591bafcccef709af07dc9a5`
 **Predchádzajúci stabilný commit v0.21.0:** `f98900c1bd257a8e5357f6e77eb6f118bd4930d3`
-**Aktuálny míľnik:** STRECHY S1 „Roof Domain Foundation + Input Geometry“, implementovaný, automaticky overený a manuálne potvrdený v AutoCADe 2027
+**Aktuálny míľnik:** STRECHY S2 Stage 2 „AutoCAD Transient Preview“, implementovaný a automaticky overený; manuálny AutoCAD 2027 visual/DBMOD test je otvorený
 
 Tento dokument určuje odporúčané poradie ďalšieho vývoja. Úplný zásobník nápadov je v `ACAD_KROVY_BACKLOG.md`.
 
@@ -193,8 +193,18 @@ overiť abstractions pred veľkým roof automation modulom.
   lokálny eave datum `Z = 0`, ridge `Z = rise`, bez zaokrúhľovania,
 - bez AutoCAD entity/preview, persistence, XData/Xrecord, UI a timber generation.
 
+### Stage 2 – AutoCAD transient preview – IMPLEMENTOVANÝ
+- `AK_ROOF` získava explicitný sklon a dvojbodový WCS smer a používa Stage 1 solver,
+- dočasný wireframe obsahuje jeden ridge, dva eaves a štyri gable-slope edges;
+  local eave `Z = 0` sa mapuje na WCS eleváciu zdrojovej Polyline,
+- `TransientManager` drawables nie sú DB entities; scoped session zabezpečuje
+  erase/dispose pri Enter, Esc/cancel, výnimke a document destruction,
+- bez write transaction, ModelSpace/PaperSpace appendu, vrstiev, XData/Xrecord,
+  persistence, permanentných roof entities a timber generation,
+- OpenLoop Fashion WPF retry zostáva bez zmeny; ostatné Stage 2 chyby sú CLI-only,
+- manuálny AutoCAD 2027 visual/DBMOD preview test zostáva otvorený.
+
 ### Ďalšie S2 stages
-- host preview neutrálnej Stage 1 geometrie bez persistence,
 - doplniť neutrálne vstupy: presah, rozostup a prierez krokiev,
 - vytvoriť pomúrnice, hrebeňovú väznicu a common rafters,
 - definovať stabilnú DWG persistence a `RoofPlaneId` až spolu s reálnym S2
@@ -358,7 +368,7 @@ Priebežne pri dotyku s danou oblasťou:
 
 # ODPORÚČANÉ NAJBLIŽŠIE PORADIE
 
-1. S2 Stage 2 host preview nad neutral simple-gable geometry.
+1. Manuálny AutoCAD 2027 visual/DBMOD test S2 Stage 2 preview a cleanup.
 2. Ďalšie simple-gable stages pre členy a až potom stabilná persistence lifecycle.
 3. AutoCAD 2021–2027 compatibility checkpoint a BricsCAD PoC.
 4. Komplexné footprints, hip/valley a ďalšie typy strechy.

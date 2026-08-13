@@ -111,8 +111,16 @@
 - eave datum `Z = 0`, `run = width / 2`, `rise = run * tan(slope)`,
 - bez AutoCAD outputu, persistence, timber generation, UI a zmeny schémy/verzie.
 
+### S2 Stage 2 – AutoCAD transient preview implementovaný
+- `AK_ROOF` explicitne získava sklon a WCS smer a používa Stage 1 solver,
+- dočasný wireframe: ridge, dva eaves a štyri gable-slope edges,
+- local `Z` sa mapuje na eleváciu zdrojovej Polyline bez zmeny Stage 1 modelu,
+- scoped transient cleanup pre Enter, Esc/cancel, výnimku a destruction dokumentu,
+- read-only bez DB entities, persistence, vrstiev, XData/Xrecord a timber generation,
+- otvorené: manuálny AutoCAD 2027 visual/DBMOD host test.
+
 ### Ďalšie S2 stages – jednoduchá sedlová strecha MVP
-- host preview, potom presah, rozostup a prierez krokiev,
+- presah, rozostup a prierez krokiev,
 - pomúrnice, hrebeňová väznica a common rafters,
 - stabilný source/roof-plane/member lifecycle a až potom persistence schema,
 - položky, anotácie a report/BOM integrácia v rozsahu simple-gable MVP.

@@ -8,8 +8,8 @@
 
 **Verzia aplikácie:** autoritatívne v `Directory.Build.props`
 
-**Aktuálny míľnik:** STRECHY S1 „Roof Domain Foundation + Input Geometry“,
-implementovaný, automaticky overený a manuálne potvrdený v AutoCADe 2027
+**Aktuálny míľnik:** STRECHY S2 Stage 2 „AutoCAD Transient Preview“,
+implementovaný a automaticky overený; manuálny AutoCAD 2027 visual/DBMOD test je otvorený
 
 **Overovanie:** Debug/Release build, kompletné automatické testy a Portable/Full Compatibility Gate
 
@@ -392,6 +392,19 @@ Stabilný commit: `4a951041e2deef40a127ac9560cf6fb2ba4b6a5b`
   timber generation, UI ani zmenu verzie alebo schémy; tieto časti S2 zostávajú
   budúcimi etapami.
 
+### STRECHY S2 Stage 2 – AutoCAD transient wireframe preview
+- `AK_ROOF` po S1 validácii explicitne vyžiada sklon a dva WCS body smeru
+  hrebeňa, zavolá existujúci Stage 1 solver a host adapter už geometriu nerieši,
+- `RoofTransientPreviewSession` mapuje local roof `Z` na konštantnú WCS eleváciu
+  vybranej Polyline a cez `TransientManager` zobrazuje sedem unikátnych `Line`
+  drawables: ridge, dva odkvapy a štyri štítové šikmé hrany,
+- preview je viditeľné počas jednoduchého Enter/Esc inspection promptu; scoped
+  `IDisposable` ho odstráni pri dokončení, cancel/Escape, výnimke a zrušení dokumentu,
+- source Polyline zostáva `ForRead`; adapter neotvára write transaction, nepridáva
+  DB entity, vrstvu, XData/Xrecord ani settings a nemení `Polyline.Closed`,
+- ide iba o dočasnú vývojovú vizualizáciu geometrie, nie o roof object alebo
+  timber generation; manuálne visual/DBMOD host overenie zostáva otvorené.
+
 ## Povinné kompatibilitné pravidlá
 
 1. Výpočty a geometrické rozhodovanie preferovať v Core.
@@ -417,7 +430,7 @@ Poradie:
 Multi-CAD kompatibilita sa má overiť ešte pred tým, než projekt prerastie do príliš veľkého AutoCAD-špecifického roof automation modulu.
 
 ## Najbližšia priorita
-1. S2 Stage 2: host preview neutrálnej Stage 1 geometrie bez persistence,
+1. manuálny AutoCAD 2027 visual/DBMOD test S2 Stage 2 preview a cleanup,
 2. ďalšie S2 etapy: presah, rozostup a prierez krokiev, pomúrnice, hrebeňová
    väznica a prvé common rafters,
 3. persistence navrhnúť až spolu so stabilnou S2 identitou zdroja a rovín,
