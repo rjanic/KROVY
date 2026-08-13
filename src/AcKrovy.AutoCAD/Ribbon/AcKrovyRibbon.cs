@@ -169,9 +169,9 @@ internal static class AcKrovyRibbon
             Button(CommandUiCatalog.Settings),
         }));
 
-        tab.Panels.Add(BuildPanel(UiStrings.RibbonPanelLabels, new[]
+        tab.Panels.Add(BuildPanel(UiStrings.RibbonPanelLabels, new RibbonItem[]
         {
-            Button(CommandUiCatalog.Labels),
+            LabelsSplitButton(),
         }));
 
         tab.Panels.Add(BuildPanel(UiStrings.RibbonPanelToolbar, new[]
@@ -182,16 +182,16 @@ internal static class AcKrovyRibbon
         return tab;
     }
 
-    private static RibbonPanel BuildPanel(string title, IEnumerable<RibbonButton> buttons)
+    private static RibbonPanel BuildPanel(string title, IEnumerable<RibbonItem> items)
     {
         var source = new RibbonPanelSource
         {
             Title = title,
         };
 
-        foreach (var button in buttons)
+        foreach (var item in items)
         {
-            source.Items.Add(button);
+            source.Items.Add(item);
         }
 
         return new RibbonPanel
@@ -200,12 +200,51 @@ internal static class AcKrovyRibbon
         };
     }
 
-    private static RibbonButton Button(CommandUiDescriptor descriptor) => new()
+    /// <summary>
+    /// Native Autodesk.Windows split button: main click = MissingOnly,
+    /// arrow opens Missing / Select / ResetAll. Commands are direct (no keywords).
+    /// </summary>
+    private static RibbonSplitButton LabelsSplitButton()
+    {
+        var parent = CommandUiCatalog.Labels;
+        var split = new RibbonSplitButton
+        {
+            Id = parent.RibbonControlId,
+            Text = parent.GetLabel(),
+            Size = RibbonItemSize.Large,
+            Orientation = WpfOrientation.Vertical,
+            ShowText = true,
+            ShowImage = true,
+            IsToolTipEnabled = true,
+            LargeImage = RibbonIconProvider.Get(parent.IconKey, 32),
+            Image = RibbonIconProvider.Get(parent.IconKey, 16),
+            ToolTip = parent.GetToolTip(),
+            // True split: icon/text = MissingOnly; arrow = dropdown.
+            IsSplit = true,
+            // Keep main action fixed on MissingOnly (do not adopt last dropdown pick).
+            IsSynchronizedWithCurrentItem = false,
+            CommandParameter = AcKrovyCommandNames.LabelMissing,
+            CommandHandler = RibbonCommandHandler.Instance,
+        };
+
+        foreach (var action in CommandUiCatalog.LabelsSplitActions)
+        {
+            split.Items.Add(Button(action, RibbonItemSize.Standard));
+        }
+
+        return split;
+    }
+
+    private static RibbonButton Button(
+        CommandUiDescriptor descriptor,
+        RibbonItemSize size = RibbonItemSize.Large) => new()
     {
         Id = descriptor.RibbonControlId,
         Text = descriptor.GetLabel(),
-        Size = RibbonItemSize.Large,
-        Orientation = WpfOrientation.Vertical,
+        Size = size,
+        Orientation = size == RibbonItemSize.Large
+            ? WpfOrientation.Vertical
+            : WpfOrientation.Horizontal,
         ShowText = true,
         ShowImage = true,
         IsToolTipEnabled = true,

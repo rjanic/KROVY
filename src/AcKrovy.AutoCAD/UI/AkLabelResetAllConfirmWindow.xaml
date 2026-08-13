@@ -1,0 +1,53 @@
+<Window x:Class="AcKrovy.AutoCAD.UI.AkLabelResetAllConfirmWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:localization="clr-namespace:AcKrovy.AutoCAD.UI.Localization"
+        Title="{localization:Loc Command_Labels_ResetAllTitle}"
+        MinWidth="440"
+        MaxWidth="560"
+        SizeToContent="WidthAndHeight"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource SettingsWindowBackgroundBrush}"
+        FontFamily="{DynamicResource SettingsFontFamily}"
+        Loaded="Window_Loaded">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Design/SettingsColors.Light.xaml" />
+                <ResourceDictionary Source="Design/SettingsDesignSystem.xaml" />
+                <ResourceDictionary Source="Design/SettingsControls.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+    <Border Margin="18"
+            Style="{DynamicResource SettingsCardStyle}">
+        <StackPanel MaxWidth="500">
+            <TextBlock Style="{DynamicResource SettingsSectionTitleStyle}"
+                       FontSize="18"
+                       TextWrapping="Wrap"
+                       Text="{localization:Loc Command_Labels_ResetAllTitle}" />
+            <TextBlock Margin="0,10,0,0"
+                       Style="{DynamicResource SettingsDescriptionStyle}"
+                       TextWrapping="Wrap"
+                       Text="{localization:Loc Command_Labels_ResetAllWarning}" />
+            <StackPanel Margin="0,20,0,0"
+                        HorizontalAlignment="Right"
+                        Orientation="Horizontal">
+                <Button x:Name="CancelButton"
+                        MinWidth="108"
+                        Margin="0,0,8,0"
+                        Style="{DynamicResource SettingsSecondaryButtonStyle}"
+                        IsCancel="True"
+                        IsDefault="True"
+                        Click="Cancel_Click"
+                        Content="{localization:Loc Common_Cancel}" />
+                <Button MinWidth="132"
+                        Style="{DynamicResource SettingsPrimaryButtonStyle}"
+                        Click="Confirm_Click"
+                        Content="{localization:Loc AkLabelResetAllConfirm_Confirm}" />
+            </StackPanel>
+        </StackPanel>
+    </Border>
+</Window>

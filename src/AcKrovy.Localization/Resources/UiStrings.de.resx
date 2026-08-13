@@ -46,6 +46,25 @@
   <data name="Command_Labels_PromptSelected" xml:space="preserve"><value>&#xA;Wählen Sie die Bauteile aus, deren Beschriftungen erstellt oder aktualisiert werden sollen: </value></data>
   <data name="Command_Labels_UpdatedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: Beschriftungen aktualisiert: {0}. Neu: {1}. Übersprungen: {2}.</value></data>
   <data name="Command_Labels_RefreshFailedFormat" xml:space="preserve"><value>&#xA;Die Beschriftung für Bauteil {0} wurde nicht erstellt oder aktualisiert: {1}</value></data>
+  <data name="Command_Labels_IntentionPrompt" xml:space="preserve"><value>&#xA;AK_LABEL&#xA;[Fehlende/Auswählen/Zurücksetzen: alle] &lt;Fehlende&gt;: </value></data>
+  <data name="Command_Labels_KeywordMissingLocal" xml:space="preserve"><value>Fehlende</value></data>
+  <data name="Command_Labels_KeywordSelectLocal" xml:space="preserve"><value>Auswählen</value></data>
+  <data name="Command_Labels_KeywordAllLocal" xml:space="preserve"><value>Zuruecksetzen</value></data>
+  <data name="Command_Labels_KeywordMissing" xml:space="preserve"><value>Fehlende</value></data>
+  <data name="Command_Labels_KeywordSelect" xml:space="preserve"><value>Auswählen</value></data>
+  <data name="Command_Labels_KeywordAll" xml:space="preserve"><value>Zurücksetzen: alle</value></data>
+  <data name="Command_Labels_ResetAllTitle" xml:space="preserve"><value>Alle Beschriftungen zurücksetzen</value></data>
+  <data name="Command_Labels_ResetAllWarning" xml:space="preserve"><value>Alle KROVY-Beschriftungen in der aktuellen Zeichnung werden auf die Grundposition zurückgesetzt.&#xA;Manuelle Beschriftungsänderungen wie ROTATE, MOVE oder Griffbearbeitung werden entfernt.&#xA;KROVY-Bauteile bleiben unverändert.</value></data>
+  <data name="AkLabelResetAllConfirm_Confirm" xml:space="preserve"><value>Alle zurücksetzen</value></data>
+  <data name="AkLabelResetAllProgress_Title" xml:space="preserve"><value>ACAD KROVY – Beschriftungen zurücksetzen</value></data>
+  <data name="AkLabelResetAllProgress_Status" xml:space="preserve"><value>Beschriftungen werden zurückgesetzt…</value></data>
+  <data name="AkLabelResetAllProgress_CountFormat" xml:space="preserve"><value>{0} / {1}</value></data>
+  <data name="AkLabelResetAllProgress_ProcessedFormat" xml:space="preserve"><value>Verarbeitet: {0}</value></data>
+  <data name="AkLabelResetAllProgress_ElapsedFormat" xml:space="preserve"><value>Verstrichene Zeit: {0}</value></data>
+  <data name="AkLabelResetAllProgress_EtaFormat" xml:space="preserve"><value>Noch etwa: {0}</value></data>
+  <data name="Command_Labels_Cancelled" xml:space="preserve"><value>&#xA;ACAD KROVY: AK_LABEL wurde abgebrochen; die Zeichnung wurde nicht geändert.</value></data>
+  <data name="Command_Labels_NoOwnedSelection" xml:space="preserve"><value>&#xA;ACAD KROVY: die Auswahl enthält keine eigene KROVY-Beschriftung.</value></data>
+  <data name="Command_Labels_PromptSelectAnnotations" xml:space="preserve"><value>&#xA;KROVY-Beschriftungen für kanonisches Zurücksetzen wählen: </value></data>
   <data name="Command_Edit_Prompt" xml:space="preserve"><value>&#xA;Wählen Sie intelligente Dachstuhlbauteile zur Bearbeitung aus: </value></data>
   <data name="Command_Edit_NoData" xml:space="preserve"><value>&#xA;Das ausgewählte Objekt enthält keine ACAD KROVY-Daten. Verwenden Sie zuerst AK_ASSIGN oder ein Bauteiltyp-Symbol.</value></data>
   <data name="Command_Edit_NoChanges" xml:space="preserve"><value>&#xA;ACAD KROVY: Es wurde keine Änderung ausgewählt.</value></data>
@@ -264,7 +283,7 @@
   <data name="CommandUi_Settings_Label" xml:space="preserve"><value>Einstellungen</value></data>
   <data name="CommandUi_Settings_Tooltip" xml:space="preserve"><value>Konfiguriert Layer, Farben, Fertigungsvorgaben und den Beschriftungsmodus.</value></data>
   <data name="CommandUi_Labels_Label" xml:space="preserve"><value>Beschriftungen</value></data>
-  <data name="CommandUi_Labels_Tooltip" xml:space="preserve"><value>Erstellt oder aktualisiert automatische Beschriftungen aller Dachstuhlbauteile.</value></data>
+  <data name="CommandUi_Labels_Tooltip" xml:space="preserve"><value>Hauptklick stellt fehlende Beschriftungen wieder her. Der Pfeil wählt Fehlende / Auswählen / Zurücksetzen: alle.</value></data>
   <data name="CommandUi_Toolbar_Label" xml:space="preserve"><value>Klassische Symbolleiste</value></data>
   <data name="CommandUi_Toolbar_Tooltip" xml:space="preserve"><value>Zeigt oder verbirgt die klassische schwebende Symbolleiste.</value></data>
   <data name="Command_Renumber_ConfirmPrompt" xml:space="preserve"><value>&#xA;Alle Positionen nach Zuschnittslänge von der kürzesten bis zur längsten neu nummerieren? [Ja/Nein] &lt;Nein&gt;: </value></data>

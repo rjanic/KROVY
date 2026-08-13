@@ -36,7 +36,7 @@ internal sealed class RibbonCommandHandler : ICommand
     {
         command = parameter switch
         {
-            RibbonButton { CommandParameter: string value } => value,
+            RibbonCommandItem { CommandParameter: string value } => value,
             string value => value,
             _ => string.Empty,
         };

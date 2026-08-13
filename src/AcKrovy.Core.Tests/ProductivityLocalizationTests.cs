@@ -34,6 +34,13 @@ public sealed class ProductivityLocalizationTests
         "DiagnosticsEvent_SubjectCustomElementDefinitions",
         "DiagnosticsEvent_ActionSaved",
         "Help_ProductivityCommands",
+        "AkLabelResetAllConfirm_Confirm",
+        "AkLabelResetAllProgress_Title",
+        "AkLabelResetAllProgress_Status",
+        "AkLabelResetAllProgress_CountFormat",
+        "AkLabelResetAllProgress_ProcessedFormat",
+        "AkLabelResetAllProgress_ElapsedFormat",
+        "AkLabelResetAllProgress_EtaFormat",
     ];
 
     [Fact]
@@ -49,6 +56,73 @@ public sealed class ProductivityLocalizationTests
                 Assert.NotEqual(key, value);
             }
         }
+    }
+
+    [Fact]
+    public void AkLabelResetAllConfirmResources_ExistWithValidPlaceholdersInAllLanguages()
+    {
+        var confirmKeys = new[]
+        {
+            "Command_Labels_ResetAllTitle",
+            "Command_Labels_ResetAllWarning",
+            "AkLabelResetAllConfirm_Confirm",
+            "Common_Cancel",
+            "AkLabelResetAllProgress_Title",
+            "AkLabelResetAllProgress_Status",
+            "AkLabelResetAllProgress_CountFormat",
+            "AkLabelResetAllProgress_ProcessedFormat",
+            "AkLabelResetAllProgress_ElapsedFormat",
+            "AkLabelResetAllProgress_EtaFormat",
+        };
+
+        string? skTitle = null;
+        foreach (var cultureName in CultureNames)
+        {
+            var culture = CultureInfo.GetCultureInfo(cultureName);
+            foreach (var key in confirmKeys)
+            {
+                var value = UiStrings.GetString(key, culture);
+                Assert.False(string.IsNullOrWhiteSpace(value), $"{cultureName}:{key}");
+                Assert.NotEqual(key, value);
+                Assert.DoesNotContain('\0', value);
+            }
+
+            var countFormat = UiStrings.GetString("AkLabelResetAllProgress_CountFormat", culture);
+            var processedFormat = UiStrings.GetString("AkLabelResetAllProgress_ProcessedFormat", culture);
+            var elapsedFormat = UiStrings.GetString("AkLabelResetAllProgress_ElapsedFormat", culture);
+            var etaFormat = UiStrings.GetString("AkLabelResetAllProgress_EtaFormat", culture);
+
+            Assert.Equal(
+                "1 / 2",
+                string.Format(culture, countFormat, 1, 2));
+            Assert.Contains(
+                "3",
+                string.Format(culture, processedFormat, 3),
+                StringComparison.Ordinal);
+            Assert.Contains(
+                "00:01",
+                string.Format(culture, elapsedFormat, "00:01"),
+                StringComparison.Ordinal);
+            Assert.Contains(
+                "00:02",
+                string.Format(culture, etaFormat, "00:02"),
+                StringComparison.Ordinal);
+
+            var title = UiStrings.GetString("Command_Labels_ResetAllTitle", culture);
+            if (cultureName.StartsWith("sk", StringComparison.OrdinalIgnoreCase))
+            {
+                skTitle = title;
+            }
+            else if (cultureName.StartsWith("de", StringComparison.OrdinalIgnoreCase))
+            {
+                Assert.Equal("Alle Beschriftungen zurücksetzen", title);
+                Assert.Equal("Alle zurücksetzen", UiStrings.GetString("AkLabelResetAllConfirm_Confirm", culture));
+                Assert.Equal("Abbrechen", UiStrings.GetString("Common_Cancel", culture));
+                Assert.NotEqual(skTitle, title);
+            }
+        }
+
+        Assert.False(string.IsNullOrWhiteSpace(skTitle));
     }
 
     [Fact]

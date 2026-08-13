@@ -46,6 +46,25 @@
   <data name="Command_Labels_PromptSelected" xml:space="preserve"><value>&#xA;Select the elements whose labels you want to create or refresh: </value></data>
   <data name="Command_Labels_UpdatedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: labels refreshed: {0}. New: {1}. Skipped: {2}.</value></data>
   <data name="Command_Labels_RefreshFailedFormat" xml:space="preserve"><value>&#xA;The label for element {0} was not created or refreshed: {1}</value></data>
+  <data name="Command_Labels_IntentionPrompt" xml:space="preserve"><value>&#xA;AK_LABEL&#xA;[Missing/Select/All] &lt;Missing&gt;: </value></data>
+  <data name="Command_Labels_KeywordMissingLocal" xml:space="preserve"><value>Missing</value></data>
+  <data name="Command_Labels_KeywordSelectLocal" xml:space="preserve"><value>Select</value></data>
+  <data name="Command_Labels_KeywordAllLocal" xml:space="preserve"><value>All</value></data>
+  <data name="Command_Labels_KeywordMissing" xml:space="preserve"><value>Missing</value></data>
+  <data name="Command_Labels_KeywordSelect" xml:space="preserve"><value>Select</value></data>
+  <data name="Command_Labels_KeywordAll" xml:space="preserve"><value>All</value></data>
+  <data name="Command_Labels_ResetAllTitle" xml:space="preserve"><value>Reset all labels</value></data>
+  <data name="Command_Labels_ResetAllWarning" xml:space="preserve"><value>All KROVY labels in the current drawing will be restored to their base position.&#xA;Manual label edits such as ROTATE, MOVE, or grip changes will be removed.&#xA;KROVY elements will not change.</value></data>
+  <data name="AkLabelResetAllConfirm_Confirm" xml:space="preserve"><value>Restore all</value></data>
+  <data name="AkLabelResetAllProgress_Title" xml:space="preserve"><value>ACAD KROVY – restoring labels</value></data>
+  <data name="AkLabelResetAllProgress_Status" xml:space="preserve"><value>Restoring labels…</value></data>
+  <data name="AkLabelResetAllProgress_CountFormat" xml:space="preserve"><value>{0} / {1}</value></data>
+  <data name="AkLabelResetAllProgress_ProcessedFormat" xml:space="preserve"><value>Processed: {0}</value></data>
+  <data name="AkLabelResetAllProgress_ElapsedFormat" xml:space="preserve"><value>Elapsed: {0}</value></data>
+  <data name="AkLabelResetAllProgress_EtaFormat" xml:space="preserve"><value>About {0} remaining</value></data>
+  <data name="Command_Labels_Cancelled" xml:space="preserve"><value>&#xA;ACAD KROVY: AK_LABEL was cancelled; the drawing was not changed.</value></data>
+  <data name="Command_Labels_NoOwnedSelection" xml:space="preserve"><value>&#xA;ACAD KROVY: the selection contains no owned KROVY annotation.</value></data>
+  <data name="Command_Labels_PromptSelectAnnotations" xml:space="preserve"><value>&#xA;Select KROVY annotations for canonical reset: </value></data>
   <data name="Command_Edit_Prompt" xml:space="preserve"><value>&#xA;Select smart roof-framing elements to edit: </value></data>
   <data name="Command_Edit_NoData" xml:space="preserve"><value>&#xA;The selected object has no ACAD KROVY data. Use AK_ASSIGN or an element-type icon first.</value></data>
   <data name="Command_Edit_NoChanges" xml:space="preserve"><value>&#xA;ACAD KROVY: no change was selected.</value></data>
@@ -264,7 +283,7 @@
   <data name="CommandUi_Settings_Label" xml:space="preserve"><value>Settings</value></data>
   <data name="CommandUi_Settings_Tooltip" xml:space="preserve"><value>Configures layers, colors, manufacturing defaults, and element annotation mode.</value></data>
   <data name="CommandUi_Labels_Label" xml:space="preserve"><value>Refresh labels</value></data>
-  <data name="CommandUi_Labels_Tooltip" xml:space="preserve"><value>Creates or refreshes automatic labels for all roof-framing elements.</value></data>
+  <data name="CommandUi_Labels_Tooltip" xml:space="preserve"><value>Main click restores missing labels. The arrow chooses Missing / Select / All.</value></data>
   <data name="CommandUi_Toolbar_Label" xml:space="preserve"><value>Classic toolbar</value></data>
   <data name="CommandUi_Toolbar_Tooltip" xml:space="preserve"><value>Displays or hides the classic floating toolbar with small icons.</value></data>
   <data name="Command_Renumber_ConfirmPrompt" xml:space="preserve"><value>&#xA;Renumber all items by cutting length from shortest to longest? [Yes/No] &lt;No&gt;: </value></data>

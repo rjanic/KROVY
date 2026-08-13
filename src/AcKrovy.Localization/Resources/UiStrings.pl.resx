@@ -46,6 +46,25 @@
   <data name="Command_Labels_PromptSelected" xml:space="preserve"><value>&#xA;Wybierz elementy, których opisy chcesz utworzyć lub odświeżyć: </value></data>
   <data name="Command_Labels_UpdatedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: odświeżone opisy: {0}. Nowe: {1}. Pominięte: {2}.</value></data>
   <data name="Command_Labels_RefreshFailedFormat" xml:space="preserve"><value>&#xA;Nie utworzono ani nie odświeżono opisu elementu {0}: {1}</value></data>
+  <data name="Command_Labels_IntentionPrompt" xml:space="preserve"><value>&#xA;AK_LABEL&#xA;[Brakujące/Wybierz/Przywróć wszystkie] &lt;Brakujące&gt;: </value></data>
+  <data name="Command_Labels_KeywordMissingLocal" xml:space="preserve"><value>Brakujące</value></data>
+  <data name="Command_Labels_KeywordSelectLocal" xml:space="preserve"><value>Wybierz</value></data>
+  <data name="Command_Labels_KeywordAllLocal" xml:space="preserve"><value>PrzywrocWszystkie</value></data>
+  <data name="Command_Labels_KeywordMissing" xml:space="preserve"><value>Brakujące</value></data>
+  <data name="Command_Labels_KeywordSelect" xml:space="preserve"><value>Wybierz</value></data>
+  <data name="Command_Labels_KeywordAll" xml:space="preserve"><value>Przywróć wszystkie</value></data>
+  <data name="Command_Labels_ResetAllTitle" xml:space="preserve"><value>Przywróć wszystkie opisy</value></data>
+  <data name="Command_Labels_ResetAllWarning" xml:space="preserve"><value>Wszystkie opisy KROVY w bieżącym rysunku zostaną przywrócone do pozycji podstawowej.&#xA;Ręczne zmiany opisów, na przykład ROTATE, MOVE lub uchwyty, zostaną usunięte.&#xA;Elementy KROVY nie ulegną zmianie.</value></data>
+  <data name="AkLabelResetAllConfirm_Confirm" xml:space="preserve"><value>Przywróć wszystkie</value></data>
+  <data name="AkLabelResetAllProgress_Title" xml:space="preserve"><value>ACAD KROVY – przywracanie opisów</value></data>
+  <data name="AkLabelResetAllProgress_Status" xml:space="preserve"><value>Trwa przywracanie opisów…</value></data>
+  <data name="AkLabelResetAllProgress_CountFormat" xml:space="preserve"><value>{0} / {1}</value></data>
+  <data name="AkLabelResetAllProgress_ProcessedFormat" xml:space="preserve"><value>Przetworzono: {0}</value></data>
+  <data name="AkLabelResetAllProgress_ElapsedFormat" xml:space="preserve"><value>Czas: {0}</value></data>
+  <data name="AkLabelResetAllProgress_EtaFormat" xml:space="preserve"><value>Pozostało ok.: {0}</value></data>
+  <data name="Command_Labels_Cancelled" xml:space="preserve"><value>&#xA;ACAD KROVY: polecenie AK_LABEL zostało anulowane; rysunek nie został zmieniony.</value></data>
+  <data name="Command_Labels_NoOwnedSelection" xml:space="preserve"><value>&#xA;ACAD KROVY: zaznaczenie nie zawiera żadnej własnej adnotacji KROVY.</value></data>
+  <data name="Command_Labels_PromptSelectAnnotations" xml:space="preserve"><value>&#xA;Wybierz opisy KROVY do kanonicznego resetu: </value></data>
   <data name="Command_Edit_Prompt" xml:space="preserve"><value>&#xA;Wybierz inteligentne elementy więźby do edycji: </value></data>
   <data name="Command_Edit_NoData" xml:space="preserve"><value>&#xA;Wybrany obiekt nie zawiera danych ACAD KROVY. Najpierw użyj AK_ASSIGN lub ikony typu elementu.</value></data>
   <data name="Command_Edit_NoChanges" xml:space="preserve"><value>&#xA;ACAD KROVY: nie wybrano żadnej zmiany.</value></data>
@@ -264,7 +283,7 @@
   <data name="CommandUi_Settings_Label" xml:space="preserve"><value>Ustawienia</value></data>
   <data name="CommandUi_Settings_Tooltip" xml:space="preserve"><value>Konfiguruje warstwy, kolory, domyślne dane produkcyjne i tryb opisu elementów.</value></data>
   <data name="CommandUi_Labels_Label" xml:space="preserve"><value>Odśwież opisy</value></data>
-  <data name="CommandUi_Labels_Tooltip" xml:space="preserve"><value>Tworzy lub odświeża automatyczne opisy wszystkich elementów więźby.</value></data>
+  <data name="CommandUi_Labels_Tooltip" xml:space="preserve"><value>Główne kliknięcie odtwarza brakujące opisy. Strzałka wybiera Brakujące / Wybierz / Przywróć wszystkie.</value></data>
   <data name="CommandUi_Toolbar_Label" xml:space="preserve"><value>Klasyczny pasek</value></data>
   <data name="CommandUi_Toolbar_Tooltip" xml:space="preserve"><value>Wyświetla lub ukrywa klasyczny pływający pasek małych ikon.</value></data>
   <data name="Command_Renumber_ConfirmPrompt" xml:space="preserve"><value>&#xA;Przenumerować wszystkie pozycje według długości cięcia od najkrótszej do najdłuższej? [Tak/Nie] &lt;Nie&gt;: </value></data>

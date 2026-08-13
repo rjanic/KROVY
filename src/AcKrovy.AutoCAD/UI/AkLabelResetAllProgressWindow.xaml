@@ -1,0 +1,47 @@
+<Window x:Class="AcKrovy.AutoCAD.UI.AkLabelResetAllProgressWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:localization="clr-namespace:AcKrovy.AutoCAD.UI.Localization"
+        Title="{localization:Loc AkLabelResetAllProgress_Title}"
+        Width="420"
+        SizeToContent="Height"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="ToolWindow"
+        Background="{DynamicResource SettingsWindowBackgroundBrush}"
+        FontFamily="{DynamicResource SettingsFontFamily}"
+        Topmost="True">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Design/SettingsColors.Light.xaml" />
+                <ResourceDictionary Source="Design/SettingsDesignSystem.xaml" />
+                <ResourceDictionary Source="Design/SettingsControls.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+    <Border Margin="18"
+            Style="{DynamicResource SettingsCardStyle}">
+        <StackPanel>
+            <TextBlock Style="{DynamicResource SettingsSectionTitleStyle}"
+                       Text="{localization:Loc AkLabelResetAllProgress_Status}" />
+            <ProgressBar x:Name="ProgressBar"
+                         Height="10"
+                         Margin="0,14,0,0"
+                         Minimum="0"
+                         Maximum="100"
+                         IsIndeterminate="True" />
+            <TextBlock x:Name="CountText"
+                       Margin="0,12,0,0"
+                       Style="{DynamicResource SettingsDescriptionStyle}" />
+            <TextBlock x:Name="ElapsedText"
+                       Margin="0,4,0,0"
+                       Style="{DynamicResource SettingsDescriptionStyle}" />
+            <TextBlock x:Name="EtaText"
+                       Margin="0,4,0,0"
+                       Style="{DynamicResource SettingsDescriptionStyle}"
+                       Visibility="Collapsed" />
+        </StackPanel>
+    </Border>
+</Window>

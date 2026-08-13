@@ -11,8 +11,11 @@ public static class AcKrovyCommandNames
     public const string ToolbarHide = "AK_TOOLBARHIDE";
     public const string Settings = "AK_SETTINGS";
     public const string ApplyLayers = "AK_APPLYLAYERS";
+    public const string Label = "AK_LABEL";
     public const string Labels = "AK_LABELS";
+    public const string LabelMissing = "AK_LABELMISSING";
     public const string LabelSelected = "AK_LABELSELECTED";
+    public const string LabelAll = "AK_LABELALL";
     public const string LabelShow = "AK_LABELSHOW";
     public const string LabelHide = "AK_LABELHIDE";
     public const string Assign = "AK_ASSIGN";
@@ -37,10 +40,10 @@ public static class AcKrovyCommandNames
 
     public static IReadOnlyList<string> All { get; } =
     [
-        Help, Ribbon, Toolbar, ToolbarShow, ToolbarHide, Settings, ApplyLayers, Labels, LabelSelected,
-        LabelShow, LabelHide, Assign, Rafter, WallPlate, Purlin, Post, CollarTie, Brace, TieBeam, Custom,
-        Edit, FlipSlope, Inspect, Report, ReportAll, Recalc, Renumber,
-        Diagnostics, SelectSimilar, ExportCsv,
+        Help, Ribbon, Toolbar, ToolbarShow, ToolbarHide, Settings, ApplyLayers, Label, Labels,
+        LabelMissing, LabelSelected, LabelAll, LabelShow, LabelHide, Assign, Rafter, WallPlate, Purlin,
+        Post, CollarTie, Brace, TieBeam, Custom, Edit, FlipSlope, Inspect, Report, ReportAll, Recalc,
+        Renumber, Diagnostics, SelectSimilar, ExportCsv,
     ];
 }
 
@@ -130,7 +133,36 @@ public static class CommandUiCatalog
     public static CommandUiDescriptor ReportAll { get; } = Create("REPORTALL", "report_all", AcKrovyCommandNames.ReportAll, "ReportAll");
     public static CommandUiDescriptor Settings { get; } = Create("SETTINGS", "settings", AcKrovyCommandNames.Settings, "Settings");
     public static CommandUiDescriptor Labels { get; } = Create("LABELS", "labels", AcKrovyCommandNames.Labels, "Labels");
+    public static CommandUiDescriptor LabelMissing { get; } = CreateDirect(
+        AcKrovyCommandNames.LabelMissing,
+        "DECORAIR_AK_LABELMISSING",
+        "labels",
+        "Command_Labels_KeywordMissing",
+        "Command_Labels_KeywordMissing");
+    public static CommandUiDescriptor LabelSelected { get; } = CreateDirect(
+        AcKrovyCommandNames.LabelSelected,
+        "DECORAIR_AK_LABELSELECTED",
+        "labels",
+        "Command_Labels_KeywordSelect",
+        "Command_Labels_KeywordSelect");
+    public static CommandUiDescriptor LabelAll { get; } = CreateDirect(
+        AcKrovyCommandNames.LabelAll,
+        "DECORAIR_AK_LABELALL",
+        "labels",
+        "Command_Labels_KeywordAll",
+        "Command_Labels_KeywordAll");
     public static CommandUiDescriptor Toolbar { get; } = Create("TOOLBAR", "toolbar", AcKrovyCommandNames.Toolbar, "Toolbar");
+
+    /// <summary>
+    /// Ribbon Labels split-button children in display order (Missing / Select / All).
+    /// Parent split uses <see cref="Labels"/> identity; children command directly.
+    /// </summary>
+    public static IReadOnlyList<CommandUiDescriptor> LabelsSplitActions { get; } =
+    [
+        LabelMissing,
+        LabelSelected,
+        LabelAll,
+    ];
 
     public static IReadOnlyList<CommandUiDescriptor> RibbonCommands { get; } =
     [
@@ -153,12 +185,25 @@ public static class CommandUiCatalog
         string iconKey,
         string commandName,
         string resourceSuffix) =>
-        new(
+        CreateDirect(
             commandName,
             $"DECORAIR_AK_{controlSuffix}",
             iconKey,
             $"CommandUi_{resourceSuffix}_Label",
             $"CommandUi_{resourceSuffix}_Tooltip");
+
+    private static CommandUiDescriptor CreateDirect(
+        string commandName,
+        string ribbonControlId,
+        string iconKey,
+        string labelResourceKey,
+        string toolTipResourceKey) =>
+        new(
+            commandName,
+            ribbonControlId,
+            iconKey,
+            labelResourceKey,
+            toolTipResourceKey);
 }
 
 public static class CommandMacroBuilder

@@ -25,7 +25,13 @@ public sealed class LocalizationFoundationTests
         "Command_Ribbon_Ready", "Command_Ribbon_Pending", "Command_Toolbar_Shown", "Command_Toolbar_Hidden",
         "Command_Settings_SaveFailedFormat", "Command_Settings_Saved", "Command_Settings_PromptApplyAllowances",
         "Command_Settings_SelectionCancelled", "Command_Labels_PromptSelected", "Command_Labels_UpdatedFormat",
-        "Command_Labels_RefreshFailedFormat", "Command_Edit_Prompt", "Command_Edit_NoData",
+        "Command_Labels_RefreshFailedFormat", "Command_Labels_IntentionPrompt",
+        "Command_Labels_KeywordMissingLocal", "Command_Labels_KeywordSelectLocal", "Command_Labels_KeywordAllLocal",
+        "Command_Labels_KeywordMissing",
+        "Command_Labels_KeywordSelect",
+        "Command_Labels_KeywordAll", "Command_Labels_ResetAllTitle", "Command_Labels_ResetAllWarning",
+        "Command_Labels_Cancelled", "Command_Labels_NoOwnedSelection", "Command_Labels_PromptSelectAnnotations",
+        "Command_Edit_Prompt", "Command_Edit_NoData",
         "Command_Edit_TitleSingleFormat", "Command_Edit_TitleMultipleFormat", "Command_Edit_ResultFormat",
         "Command_FlipSlope_Prompt", "Command_FlipSlope_NotTimberOrAnnotation", "Command_FlipSlope_Horizontal",
         "Command_FlipSlope_PostPerpendicular",
@@ -311,7 +317,7 @@ public sealed class LocalizationFoundationTests
     [Fact]
     public void CommandAndMessageResourceKeys_AllExist()
     {
-        Assert.Equal(97, CommandAndMessageResourceKeys.Length);
+        Assert.Equal(109, CommandAndMessageResourceKeys.Length);
         Assert.All(CommandAndMessageResourceKeys, key =>
         {
             var value = UiStrings.GetString(key, CultureInfo.GetCultureInfo("sk-SK"));
@@ -412,13 +418,14 @@ public sealed class LocalizationFoundationTests
         var expected = new[]
         {
             "AK_HELP", "AK_RIBBON", "AK_TOOLBAR", "AK_TOOLBARSHOW", "AK_TOOLBARHIDE", "AK_SETTINGS",
-            "AK_APPLYLAYERS", "AK_LABELS", "AK_LABELSELECTED", "AK_LABELSHOW", "AK_LABELHIDE",
+            "AK_APPLYLAYERS", "AK_LABEL", "AK_LABELS", "AK_LABELMISSING", "AK_LABELSELECTED", "AK_LABELALL",
+            "AK_LABELSHOW", "AK_LABELHIDE",
             "AK_ASSIGN", "AK_KROKVA", "AK_POMURNICA", "AK_VAZNICA", "AK_STLPIK", "AK_KLIESTINA",
             "AK_VZPERA", "AK_VAZNYTRAM", "AK_CUSTOM", "AK_EDIT", "AK_FLIPSLOPE", "AK_INSPECT", "AK_REPORT",
             "AK_REPORTALL", "AK_RECALC", "AK_RENUMBER", "AK_DIAGNOSTICS", "AK_SELECTSIMILAR", "AK_EXPORTCSV",
         };
 
-        Assert.Equal(30, AcKrovyCommandNames.All.Count);
+        Assert.Equal(33, AcKrovyCommandNames.All.Count);
         Assert.Equal(expected, AcKrovyCommandNames.All);
         Assert.All(AcKrovyCommandNames.All, command => Assert.StartsWith("AK_", command, StringComparison.Ordinal));
     }

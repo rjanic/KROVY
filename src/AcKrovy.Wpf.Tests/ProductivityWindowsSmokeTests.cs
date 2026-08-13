@@ -1,6 +1,7 @@
 using System.Threading;
 using System.Windows;
 using System.Windows.Media;
+using System.Windows.Threading;
 using AcKrovy.AutoCAD.Diagnostics;
 using AcKrovy.AutoCAD.UI;
 using AcKrovy.Core.Models;
@@ -89,6 +90,33 @@ public sealed class ProductivityWindowsSmokeTests
                     Assert.NotNull(diagnostics.Background);
                     Assert.NotEqual("DiagnosticsWindow_Title", diagnostics.Title);
                     diagnostics.Close();
+
+                    var confirm = new AkLabelResetAllConfirmWindow(theme)
+                    {
+                        Left = -30000,
+                        Top = -30000,
+                        ShowInTaskbar = false,
+                        WindowStyle = WindowStyle.None,
+                    };
+                    confirm.Show();
+                    confirm.UpdateLayout();
+                    Assert.NotNull(confirm.Background);
+                    Assert.NotEqual("Command_Labels_ResetAllTitle", confirm.Title);
+                    confirm.Close();
+
+                    var progress = new AkLabelResetAllProgressWindow(12, theme)
+                    {
+                        Left = -30000,
+                        Top = -30000,
+                        ShowInTaskbar = false,
+                        WindowStyle = WindowStyle.None,
+                    };
+                    progress.Show();
+                    progress.UpdateLayout();
+                    progress.Report(3, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(6));
+                    Assert.NotNull(progress.Background);
+                    Assert.Equal(WindowStartupLocation.CenterScreen, progress.WindowStartupLocation);
+                    progress.Close();
                 }
             }
             catch (Exception exception)
@@ -100,6 +128,64 @@ public sealed class ProductivityWindowsSmokeTests
         thread.SetApartmentState(ApartmentState.STA);
         thread.Start();
         Assert.True(thread.Join(TimeSpan.FromSeconds(30)), "WPF productivity smoke test timed out.");
+        Assert.Null(failure);
+    }
+
+    [Fact]
+    public void AkLabelResetAllConfirmWindow_ConstructsInAllLanguagesIncludingGerman()
+    {
+        Exception? failure = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                foreach (var languageCode in new[] { "sk", "cs", "en", "de", "pl", "fr" })
+                {
+                    AppLanguageService.Apply(languageCode);
+                    foreach (var theme in new[] { SettingsTheme.Light, SettingsTheme.Dark })
+                    {
+                        var confirm = new AkLabelResetAllConfirmWindow(theme)
+                        {
+                            Left = -30000,
+                            Top = -30000,
+                            ShowInTaskbar = false,
+                            WindowStyle = WindowStyle.None,
+                        };
+
+                        // Defensive arming: Cancel must not be IsDefault until idle,
+                        // otherwise leftover Enter from AutoCAD GetKeywords auto-cancels.
+                        Assert.False(confirm.CancelButton.IsDefault);
+
+                        confirm.Show();
+                        confirm.UpdateLayout();
+                        Dispatcher.CurrentDispatcher.Invoke(
+                            DispatcherPriority.ApplicationIdle,
+                            static () => { });
+
+                        Assert.True(confirm.CancelButton.IsDefault);
+                        Assert.NotNull(confirm.Background);
+                        Assert.NotEqual("Command_Labels_ResetAllTitle", confirm.Title);
+                        Assert.Contains(
+                            UiStrings.GetString("Command_Labels_ResetAllTitle"),
+                            confirm.Title,
+                            StringComparison.Ordinal);
+                        Assert.True(confirm.ActualWidth >= confirm.MinWidth - 1);
+                        Assert.True(confirm.ActualHeight > 0);
+                        confirm.Close();
+                    }
+                }
+            }
+            catch (Exception exception)
+            {
+                failure = exception;
+            }
+        });
+
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        Assert.True(
+            thread.Join(TimeSpan.FromSeconds(45)),
+            "AkLabel ResetAll confirm localization smoke timed out.");
         Assert.Null(failure);
     }
 

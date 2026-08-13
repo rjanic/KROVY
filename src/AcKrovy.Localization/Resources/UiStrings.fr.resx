@@ -46,6 +46,25 @@
   <data name="Command_Labels_PromptSelected" xml:space="preserve"><value>&#xA;Sélectionnez les éléments dont les étiquettes doivent être créées ou actualisées : </value></data>
   <data name="Command_Labels_UpdatedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY : étiquettes actualisées : {0}. Nouvelles : {1}. Ignorées : {2}.</value></data>
   <data name="Command_Labels_RefreshFailedFormat" xml:space="preserve"><value>&#xA;L'étiquette de l'élément {0} n'a pas été créée ou actualisée : {1}</value></data>
+  <data name="Command_Labels_IntentionPrompt" xml:space="preserve"><value>&#xA;AK_LABEL&#xA;[Manquantes/Sélectionner/Restaurer toutes] &lt;Manquantes&gt;: </value></data>
+  <data name="Command_Labels_KeywordMissingLocal" xml:space="preserve"><value>Manquantes</value></data>
+  <data name="Command_Labels_KeywordSelectLocal" xml:space="preserve"><value>Sélectionner</value></data>
+  <data name="Command_Labels_KeywordAllLocal" xml:space="preserve"><value>RestaurerToutes</value></data>
+  <data name="Command_Labels_KeywordMissing" xml:space="preserve"><value>Manquantes</value></data>
+  <data name="Command_Labels_KeywordSelect" xml:space="preserve"><value>Sélectionner</value></data>
+  <data name="Command_Labels_KeywordAll" xml:space="preserve"><value>Restaurer toutes</value></data>
+  <data name="Command_Labels_ResetAllTitle" xml:space="preserve"><value>Restaurer toutes les étiquettes</value></data>
+  <data name="Command_Labels_ResetAllWarning" xml:space="preserve"><value>Toutes les étiquettes KROVY du dessin courant seront restaurées à leur position de base.&#xA;Les modifications manuelles des étiquettes, par exemple ROTATE, MOVE ou poignées, seront supprimées.&#xA;Les éléments KROVY ne changeront pas.</value></data>
+  <data name="AkLabelResetAllConfirm_Confirm" xml:space="preserve"><value>Restaurer toutes</value></data>
+  <data name="AkLabelResetAllProgress_Title" xml:space="preserve"><value>ACAD KROVY – restauration des étiquettes</value></data>
+  <data name="AkLabelResetAllProgress_Status" xml:space="preserve"><value>Restauration des étiquettes…</value></data>
+  <data name="AkLabelResetAllProgress_CountFormat" xml:space="preserve"><value>{0} / {1}</value></data>
+  <data name="AkLabelResetAllProgress_ProcessedFormat" xml:space="preserve"><value>Traité : {0}</value></data>
+  <data name="AkLabelResetAllProgress_ElapsedFormat" xml:space="preserve"><value>Temps écoulé : {0}</value></data>
+  <data name="AkLabelResetAllProgress_EtaFormat" xml:space="preserve"><value>Environ {0} restant</value></data>
+  <data name="Command_Labels_Cancelled" xml:space="preserve"><value>&#xA;ACAD KROVY : AK_LABEL a été annulé ; le dessin n'a pas été modifié.</value></data>
+  <data name="Command_Labels_NoOwnedSelection" xml:space="preserve"><value>&#xA;ACAD KROVY : la sélection ne contient aucune annotation KROVY appartenant.</value></data>
+  <data name="Command_Labels_PromptSelectAnnotations" xml:space="preserve"><value>&#xA;Sélectionnez les annotations KROVY pour une réinitialisation canonique : </value></data>
   <data name="Command_Edit_Prompt" xml:space="preserve"><value>&#xA;Sélectionnez les éléments de charpente intelligents à modifier : </value></data>
   <data name="Command_Edit_NoData" xml:space="preserve"><value>&#xA;L'objet sélectionné ne contient aucune donnée ACAD KROVY. Utilisez d'abord AK_ASSIGN ou l'icône d'un type d'élément.</value></data>
   <data name="Command_Edit_NoChanges" xml:space="preserve"><value>&#xA;ACAD KROVY : aucune modification n’a été sélectionnée.</value></data>
@@ -264,7 +283,7 @@
   <data name="CommandUi_Settings_Label" xml:space="preserve"><value>Paramètres</value></data>
   <data name="CommandUi_Settings_Tooltip" xml:space="preserve"><value>Configure les calques, les couleurs, les valeurs de fabrication et le mode d’annotation.</value></data>
   <data name="CommandUi_Labels_Label" xml:space="preserve"><value>Actualiser</value></data>
-  <data name="CommandUi_Labels_Tooltip" xml:space="preserve"><value>Crée ou actualise les étiquettes automatiques de tous les éléments de charpente.</value></data>
+  <data name="CommandUi_Labels_Tooltip" xml:space="preserve"><value>Le clic principal restaure les étiquettes manquantes. La flèche choisit Manquantes / Sélectionner / Restaurer toutes.</value></data>
   <data name="CommandUi_Toolbar_Label" xml:space="preserve"><value>Barre classique</value></data>
   <data name="CommandUi_Toolbar_Tooltip" xml:space="preserve"><value>Affiche ou masque la barre d'outils flottante classique à petites icônes.</value></data>
   <data name="Command_Renumber_ConfirmPrompt" xml:space="preserve"><value>&#xA;Renuméroter tous les articles selon la longueur de coupe, du plus court au plus long ? [Oui/Non] &lt;Non&gt; : </value></data>

@@ -46,6 +46,25 @@
   <data name="Command_Labels_PromptSelected" xml:space="preserve"><value>&#xA;Označ prvky, ktorým chceš vytvoriť alebo obnoviť popisy: </value></data>
   <data name="Command_Labels_UpdatedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: popisy obnovené: {0}. Nové: {1}. Preskočené: {2}.</value></data>
   <data name="Command_Labels_RefreshFailedFormat" xml:space="preserve"><value>&#xA;Popis nebol vytvorený/obnovený pre prvok {0}: {1}</value></data>
+  <data name="Command_Labels_IntentionPrompt" xml:space="preserve"><value>&#xA;AK_LABEL&#xA;[Chýbajúce/Vybrať/Obnoviť všetky] &lt;Chýbajúce&gt;: </value></data>
+  <data name="Command_Labels_KeywordMissingLocal" xml:space="preserve"><value>Chýbajúce</value></data>
+  <data name="Command_Labels_KeywordSelectLocal" xml:space="preserve"><value>Vybrať</value></data>
+  <data name="Command_Labels_KeywordAllLocal" xml:space="preserve"><value>ObnovitVsetky</value></data>
+  <data name="Command_Labels_KeywordMissing" xml:space="preserve"><value>Chýbajúce</value></data>
+  <data name="Command_Labels_KeywordSelect" xml:space="preserve"><value>Vybrať</value></data>
+  <data name="Command_Labels_KeywordAll" xml:space="preserve"><value>Obnoviť všetky</value></data>
+  <data name="Command_Labels_ResetAllTitle" xml:space="preserve"><value>Obnoviť všetky popisy</value></data>
+  <data name="Command_Labels_ResetAllWarning" xml:space="preserve"><value>Všetky popisy KROVY v aktuálnom výkrese budú obnovené do základnej polohy.&#xA;Ručné úpravy popisov, napríklad ROTATE, MOVE alebo úpravy gripmi, sa odstránia.&#xA;Prvky KROVY sa nezmenia.</value></data>
+  <data name="AkLabelResetAllConfirm_Confirm" xml:space="preserve"><value>Obnoviť všetky</value></data>
+  <data name="AkLabelResetAllProgress_Title" xml:space="preserve"><value>ACAD KROVY – obnovenie popisov</value></data>
+  <data name="AkLabelResetAllProgress_Status" xml:space="preserve"><value>Obnovujú sa popisy…</value></data>
+  <data name="AkLabelResetAllProgress_CountFormat" xml:space="preserve"><value>{0} / {1}</value></data>
+  <data name="AkLabelResetAllProgress_ProcessedFormat" xml:space="preserve"><value>Spracované: {0}</value></data>
+  <data name="AkLabelResetAllProgress_ElapsedFormat" xml:space="preserve"><value>Uplynutý čas: {0}</value></data>
+  <data name="AkLabelResetAllProgress_EtaFormat" xml:space="preserve"><value>Zostáva približne: {0}</value></data>
+  <data name="Command_Labels_Cancelled" xml:space="preserve"><value>&#xA;ACAD KROVY: príkaz AK_LABEL bol zrušený, výkres nebol zmenený.</value></data>
+  <data name="Command_Labels_NoOwnedSelection" xml:space="preserve"><value>&#xA;ACAD KROVY: vo výbere nie je žiadna vlastnícka KROVY anotácia.</value></data>
+  <data name="Command_Labels_PromptSelectAnnotations" xml:space="preserve"><value>&#xA;Označ KROVY popisy na kanonický reset: </value></data>
   <data name="Command_Edit_Prompt" xml:space="preserve"><value>&#xA;Označ inteligentné prvky krovu na úpravu: </value></data>
   <data name="Command_Edit_NoData" xml:space="preserve"><value>&#xA;Vybraný objekt nemá údaje ACAD KROVY. Najprv použi AK_ASSIGN alebo ikonku typu prvku.</value></data>
   <data name="Command_Edit_NoChanges" xml:space="preserve"><value>&#xA;ACAD KROVY: nebola vybraná žiadna zmena.</value></data>
@@ -264,7 +283,7 @@
   <data name="CommandUi_Settings_Label" xml:space="preserve"><value>Nastavenia</value></data>
   <data name="CommandUi_Settings_Tooltip" xml:space="preserve"><value>Nastaví hladiny, farby, výrobné defaulty a režim popisu prvkov.</value></data>
   <data name="CommandUi_Labels_Label" xml:space="preserve"><value>Obnoviť popisy</value></data>
-  <data name="CommandUi_Labels_Tooltip" xml:space="preserve"><value>Vytvorí alebo obnoví automatické popisy všetkých prvkov krovu.</value></data>
+  <data name="CommandUi_Labels_Tooltip" xml:space="preserve"><value>Hlavné kliknutie obnoví chýbajúce popisy. Šípka ponúka Chýbajúce / Vybrať / Obnoviť všetky.</value></data>
   <data name="CommandUi_Toolbar_Label" xml:space="preserve"><value>Klasický panel</value></data>
   <data name="CommandUi_Toolbar_Tooltip" xml:space="preserve"><value>Zobrazí alebo skryje klasický plávajúci panel malých ikon.</value></data>
   <data name="Command_Renumber_ConfirmPrompt" xml:space="preserve"><value>&#xA;Prečíslovať všetky položky podľa výrobnej dĺžky od najkratšej po najdlhšiu? [Áno/Nie] &lt;Nie&gt;: </value></data>

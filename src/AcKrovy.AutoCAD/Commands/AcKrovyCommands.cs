@@ -355,30 +355,86 @@ public sealed class AcKrovyCommands
         ApplyLayersToExistingElements(ActiveDocument(), ElementLayerProfileStore.Load());
     }
 
+    [CommandMethod(AcKrovyCommandNames.Label, CommandFlags.Modal)]
     [CommandMethod(AcKrovyCommandNames.Labels, CommandFlags.Modal)]
     public void UpdateAllLabels()
     {
         var document = ActiveDocument();
-        var result = ElementLabelService.UpdateAll(document.Database, document.Editor);
-        document.Editor.WriteMessage(UiStrings.Format(
-            UiStrings.CommandLabelsUpdatedFormat,
-            result.Processed,
-            result.Created,
-            result.Skipped));
-    }
-
-    [CommandMethod(AcKrovyCommandNames.LabelSelected, CommandFlags.Modal | CommandFlags.UsePickSet)]
-    public void UpdateSelectedLabels()
-    {
-        var document = ActiveDocument();
-        var ids = PromptForEntities(document.Editor, UiStrings.CommandLabelsPromptSelected);
-        if (ids.Count == 0)
+        var editor = document.Editor;
+        if (!AkLabelCommandService.TryPromptIntention(
+                editor,
+                out var intention,
+                out var cancelled) ||
+            cancelled)
         {
+            editor.WriteMessage(UiStrings.GetString(
+                "Command_Labels_Cancelled",
+                AppLanguageService.CurrentUiCulture));
             return;
         }
 
-        var result = ElementLabelService.UpdateSelected(document.Database, document.Editor, ids);
-        document.Editor.WriteMessage(UiStrings.Format(
+        ExecuteAkLabelIntention(intention);
+    }
+
+    /// <summary>
+    /// Ribbon / direct entry: MissingOnly without keyword prompt.
+    /// </summary>
+    [CommandMethod(AcKrovyCommandNames.LabelMissing, CommandFlags.Modal)]
+    public void UpdateMissingLabels() =>
+        ExecuteAkLabelIntention(AkLabelIntention.MissingOnly);
+
+    [CommandMethod(AcKrovyCommandNames.LabelSelected, CommandFlags.Modal | CommandFlags.UsePickSet)]
+    public void UpdateSelectedLabels() =>
+        ExecuteAkLabelIntention(AkLabelIntention.ResetSelected);
+
+    /// <summary>
+    /// Ribbon / direct entry: ResetAll with modern confirm, no selection prompt.
+    /// </summary>
+    [CommandMethod(AcKrovyCommandNames.LabelAll, CommandFlags.Modal)]
+    public void UpdateAllLabelsDirect() =>
+        ExecuteAkLabelIntention(AkLabelIntention.ResetAll);
+
+    /// <summary>
+    /// Shared intention execution for interactive AK_LABEL (after prompt) and
+    /// direct Ribbon commands. Does not parse keywords.
+    /// </summary>
+    private void ExecuteAkLabelIntention(AkLabelIntention intention)
+    {
+        var document = ActiveDocument();
+        var editor = document.Editor;
+
+        if (intention == AkLabelIntention.ResetAll &&
+            !AkLabelCommandService.ConfirmResetAll())
+        {
+            // Cancel before any write transaction / selection prompt.
+            editor.WriteMessage(UiStrings.GetString(
+                "Command_Labels_Cancelled",
+                AppLanguageService.CurrentUiCulture));
+            return;
+        }
+
+        // Selection acquisition is ResetSelected-only. ResetAll ignores pickfirst
+        // and never prompts for annotations.
+        IReadOnlyList<ObjectId>? selectedIds = null;
+        if (intention == AkLabelIntention.ResetSelected)
+        {
+            selectedIds = PromptForEntities(
+                editor,
+                UiStrings.GetString(
+                    "Command_Labels_PromptSelectAnnotations",
+                    AppLanguageService.CurrentUiCulture));
+            if (selectedIds.Count == 0)
+            {
+                return;
+            }
+        }
+
+        var result = AkLabelCommandService.Run(
+            document.Database,
+            editor,
+            intention,
+            selectedIds);
+        editor.WriteMessage(UiStrings.Format(
             UiStrings.CommandLabelsUpdatedFormat,
             result.Processed,
             result.Created,
