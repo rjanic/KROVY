@@ -505,4 +505,25 @@
   <data name="SettingsWindow_AnnotationText_HeightRangeError_Slope" xml:space="preserve"><value>La hauteur du texte de pente doit être comprise entre {0} et {1} mm.</value></data>
   <data name="SettingsWindow_AnnotationText_NumericValueRequired" xml:space="preserve"><value>Une valeur numérique est requise.</value></data>
   <data name="SettingsWindow_AnnotationText_ShxTypeApproximate" xml:space="preserve"><value>SHX · aperçu approximatif</value></data>
+  <data name="Ribbon_Panel_Roofs" xml:space="preserve"><value>Toitures</value></data>
+  <data name="CommandUi_Roof_Label" xml:space="preserve"><value>Toiture</value></data>
+  <data name="CommandUi_Roof_Tooltip" xml:space="preserve"><value>Valide une emprise de toiture fermée en plan.</value></data>
+  <data name="Command_Roof_Prompt" xml:space="preserve"><value>&#xA;Sélectionnez une polyligne fermée pour l’emprise de toiture en plan : </value></data>
+  <data name="Command_Roof_PolylineOnly" xml:space="preserve"><value>&#xA;Seule une polyligne légère peut être sélectionnée.</value></data>
+  <data name="Command_Roof_ErrorOpen" xml:space="preserve"><value>&#xA;L’emprise de toiture doit être fermée.</value></data>
+  <data name="Command_Roof_ErrorCurved" xml:space="preserve"><value>&#xA;Les segments courbes de l’emprise de toiture ne sont pas encore pris en charge.</value></data>
+  <data name="Command_Roof_ErrorNonPlanar" xml:space="preserve"><value>&#xA;L’emprise de toiture doit se trouver dans le plan XY pris en charge.</value></data>
+  <data name="Command_Roof_ErrorFewVertices" xml:space="preserve"><value>&#xA;L’emprise de toiture doit comporter au moins trois sommets distincts.</value></data>
+  <data name="Command_Roof_ErrorNonFinite" xml:space="preserve"><value>&#xA;L’emprise de toiture contient une coordonnée non valide.</value></data>
+  <data name="Command_Roof_ErrorDuplicateVertex" xml:space="preserve"><value>&#xA;L’emprise de toiture contient des sommets consécutifs en double.</value></data>
+  <data name="Command_Roof_ErrorZeroLengthEdge" xml:space="preserve"><value>&#xA;L’emprise de toiture contient une arête de longueur nulle ou trop courte.</value></data>
+  <data name="Command_Roof_ErrorSelfIntersection" xml:space="preserve"><value>&#xA;L’emprise de toiture s’auto-intersecte.</value></data>
+  <data name="Command_Roof_ErrorDegenerate" xml:space="preserve"><value>&#xA;L’emprise de toiture est dégénérée ou sa surface est trop petite.</value></data>
+  <data name="Command_Roof_ErrorCollinearVertex" xml:space="preserve"><value>&#xA;L’emprise de toiture contient un sommet colinéaire superflu.</value></data>
+  <data name="Command_Roof_ErrorUnsupported" xml:space="preserve"><value>&#xA;L’emprise de toiture contient une géométrie non prise en charge.</value></data>
+  <data name="Command_Roof_AcceptedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY : emprise de toiture acceptée – {0} sommets, surface {1:0.###} m², orientation source {2} ; orientation canonique antihoraire.</value></data>
+  <data name="Command_Roof_OrientationClockwise" xml:space="preserve"><value>horaire</value></data>
+  <data name="Command_Roof_OrientationCounterClockwise" xml:space="preserve"><value>antihoraire</value></data>
+  <data name="Command_Roof_OpenLoopNotificationTitle" xml:space="preserve"><value>L’emprise de toiture n’est pas fermée</value></data>
+  <data name="Command_Roof_OpenLoopNotificationBody" xml:space="preserve"><value>Reliez le dernier point au premier ou utilisez PLINE → Close.</value></data>
 </root>

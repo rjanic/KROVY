@@ -1,6 +1,6 @@
 # ACAD KROVY – BACKLOG
 
-**Aktualizované:** 1. 8. 2026
+**Aktualizované:** 13. 8. 2026
 **Stabilný commit v0.18.0:** `46ad0cfe555f9f3177de2d47d13bdda33d9a91a0`
 **Stabilný commit v0.19.0:** `41373d235a357dee05033872a1df8fed8b3286d3`
 **Stabilný commit v0.20.0:** `6564fc930d98e3eca591bafcccef709af07dc9a5`
@@ -90,10 +90,30 @@
 
 ## E. Automatická strecha
 
-### `AK_ROOF`
-- body obrysu,
-- strešné roviny,
-- stabilný RoofPlaneId.
+### `AK_ROOF` S1 – foundation implementovaný
+- closed lightweight Polyline ako prvý produkčný vstup,
+- CAD-neutrálny `RoofFootprintInput` → validácia → kanonický `RoofFootprint`,
+- deterministické CCW poradie, prvý vrchol, indexy hrán, plocha, bounds,
+  centroid a signature,
+- `EffectiveClosed` pre native closed alebo zhodný prvý/posledný bod s presnou
+  toleranciou `1e-9 mm`, bez zmeny zdrojovej Polyline,
+- odmietnutie open/curved/non-planar/degenerate/self-intersecting geometrie,
+- lokalizovaný výsledok, implied-selection preview a 2500 ms Fashion WPF
+  `OpenLoop` upozornenie s následným retry, všetko bez zmeny DWG,
+- bez persistence a bez zmeny timber metadata schema,
+- AutoCAD 2027 host potvrdený: CW/CCW, Endpoint+Enter a DBMOD 5 → 5 po
+  opakovaných neplatných `OpenLoop` výberoch.
+
+### S2 – jednoduchá sedlová strecha MVP
+- smer hrebeňa, sklon, presah, rozostup a prierez krokiev,
+- strešné roviny, pomúrnice, hrebeňová väznica a common rafters,
+- stabilný source/roof-plane/member lifecycle a až potom persistence schema,
+- položky, anotácie a report/BOM integrácia v rozsahu simple-gable MVP.
+
+### Budúci vstup bodmi a komplexné obrysy
+- point-by-point vstup cez rovnaký neutrálny Core kontrakt,
+- L/T/komplexné footprinty, viaceré hrebene, nárožia a úžľabia,
+- stabilný `RoofPlaneId`.
 
 ### Typy strechy podľa PDF
 - pultová,

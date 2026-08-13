@@ -1,6 +1,6 @@
 # ACAD KROVY – PROJECT CONTEXT
 
-**Aktualizované:** 1. 8. 2026
+**Aktualizované:** 13. 8. 2026
 
 **Predchádzajúci stabilný commit v0.21.0:** `f98900c1bd257a8e5357f6e77eb6f118bd4930d3`
 
@@ -8,8 +8,8 @@
 
 **Verzia aplikácie:** autoritatívne v `Directory.Build.props`
 
-**Aktuálny míľnik:** v0.22.0 „Per-Element Annotation Scale“,
-dokončený a manuálne overený v AutoCADe 2027
+**Aktuálny míľnik:** STRECHY S1 „Roof Domain Foundation + Input Geometry“,
+implementovaný, automaticky overený a manuálne potvrdený v AutoCADe 2027
 
 **Overovanie:** Debug/Release build, kompletné automatické testy a Portable/Full Compatibility Gate
 
@@ -36,6 +36,7 @@ CAD-neutrálna logika:
 - patching,
 - geometrické validačné pravidlá,
 - rectangle foundation pre Post footprint,
+- kanonický polygonálny roof footprint a jeho validácia,
 - plánovanie refreshu a testovateľné pravidlá.
 
 Core nesmie obsahovať `Autodesk.AutoCAD.*`.
@@ -345,6 +346,34 @@ Stabilný commit: `4a951041e2deef40a127ac9560cf6fb2ba4b6a5b`
 - produkčný adapter zostáva AutoCAD 2027 / .NET 10; metadata schema je 5
   a layer profile schema zostáva 3.
 
+### STRECHY S1 – Roof Domain Foundation + Input Geometry
+- `RoofPoint2D`, `RoofDirection2D`, `RoofEdge`, `RoofBoundingBox2D`,
+  `RoofFootprint`, `RoofParameters`, `RoofDefinition`, `RoofFootprintInput` a
+  typované validačné výsledky tvoria samostatný CAD-neutrálny Core základ,
+- platný uzavretý polygon sa normalizuje proti smeru hodinových ručičiek,
+  opakovaný koncový vrchol sa odstráni a prvý vrchol sa deterministicky volí
+  ako lexikograficky najmenší bod `(X, Y)`; hrany majú stabilné indexy od nuly,
+- `EffectiveClosed` akceptuje natívne `Polyline.Closed == true` alebo otvorenú
+  Polyline, ktorej posledný bod sa zhoduje s prvým v presnej tolerancii
+  `ClosingPointToleranceMm = 1e-9 mm`; väčší rozdiel sa neopravuje ani nesnapuje,
+- validátor odmieta otvorený obrys, menej než tri jedinečné vrcholy, neplatné
+  súradnice, duplicitné alebo príliš krátke hrany, samopriesek, degenerovanú
+  plochu, nadbytočný kolineárny vrchol, krivky a nepodporovanú rovinu,
+- `AK_ROOF` read-only vyberie closed lightweight Polyline, AutoCAD adapter
+  prevedie iba neutrálne hodnoty, Core obrys overí a úspešný zdroj zostane
+  zvýraznený cez implied selection ako ľahký nedeštruktívny S1 preview,
+- iba `OpenLoop` používa centrované Fashion WPF upozornenie s auto-close približne
+  2500 ms; klik myšou ho nezatvára, Esc sa aktivuje až po `ApplicationIdle` a po
+  zatvorení pokračuje existujúci výberový retry loop,
+- host test potvrdil zhodné CW/CCW kanonické výsledky, Endpoint+Enter
+  `EffectiveClosed` vstup a read-only správanie: DBMOD zostal 5 pred aj po
+  opakovaných neplatných `OpenLoop` výberoch,
+- S1 nezapisuje XData/Xrecord, nemení timber metadata schema 5 ani drawing
+  settings schema 1 a nepridáva roof nastavenia; persistence sa odkladá do S2,
+  keď bude známy stabilný lifecycle zdroja, strešných rovín a členov,
+- strešné roviny, hrebeňový solver, automatické krokvy, hip/valley geometria,
+  item numbering, anotácie a BOM sú zámerne odložené.
+
 ## Povinné kompatibilitné pravidlá
 
 1. Výpočty a geometrické rozhodovanie preferovať v Core.
@@ -370,9 +399,10 @@ Poradie:
 Multi-CAD kompatibilita sa má overiť ešte pred tým, než projekt prerastie do príliš veľkého AutoCAD-špecifického roof automation modulu.
 
 ## Najbližšia priorita
-1. kompatibilitný checkpoint AutoCAD 2021–2027,
-2. BricsCAD Proof of Concept,
-3. konfigurovateľné CAD text styles až po samostatnom rozhodnutí,
-4. potom veľký modul automatickej geometrie strechy.
+1. S2: jednoduchá sedlová strecha nad validovaným footprintom – smer hrebeňa,
+   sklon, presah, rozostup a prierez krokiev, strešné roviny a prvé common rafters,
+2. persistence navrhnúť až spolu so stabilnou S2 identitou zdroja a rovín,
+3. compatibility checkpoint a alternatívne CAD adaptéry naďalej riešiť bez
+   prenikania vendor typov do Core.
 
 Presné poradie je v `ACAD_KROVY_ROADMAP.md`, úplný zásobník nápadov v `ACAD_KROVY_BACKLOG.md`.

@@ -505,4 +505,25 @@
   <data name="SettingsWindow_AnnotationText_HeightRangeError_Slope" xml:space="preserve"><value>Slope text height must be between {0} and {1} mm.</value></data>
   <data name="SettingsWindow_AnnotationText_NumericValueRequired" xml:space="preserve"><value>A numeric value is required.</value></data>
   <data name="SettingsWindow_AnnotationText_ShxTypeApproximate" xml:space="preserve"><value>SHX · approximate preview</value></data>
+  <data name="Ribbon_Panel_Roofs" xml:space="preserve"><value>Roofs</value></data>
+  <data name="CommandUi_Roof_Label" xml:space="preserve"><value>Roof</value></data>
+  <data name="CommandUi_Roof_Tooltip" xml:space="preserve"><value>Validates a closed plan footprint for a roof.</value></data>
+  <data name="Command_Roof_Prompt" xml:space="preserve"><value>&#xA;Select a closed Polyline for the roof plan footprint: </value></data>
+  <data name="Command_Roof_PolylineOnly" xml:space="preserve"><value>&#xA;Only a lightweight Polyline can be selected.</value></data>
+  <data name="Command_Roof_ErrorOpen" xml:space="preserve"><value>&#xA;The roof footprint must be closed.</value></data>
+  <data name="Command_Roof_ErrorCurved" xml:space="preserve"><value>&#xA;Curved roof-footprint segments are not supported yet.</value></data>
+  <data name="Command_Roof_ErrorNonPlanar" xml:space="preserve"><value>&#xA;The roof footprint must lie in the supported XY plan plane.</value></data>
+  <data name="Command_Roof_ErrorFewVertices" xml:space="preserve"><value>&#xA;The roof footprint must have at least three unique vertices.</value></data>
+  <data name="Command_Roof_ErrorNonFinite" xml:space="preserve"><value>&#xA;The roof footprint contains an invalid coordinate.</value></data>
+  <data name="Command_Roof_ErrorDuplicateVertex" xml:space="preserve"><value>&#xA;The roof footprint contains consecutive duplicate vertices.</value></data>
+  <data name="Command_Roof_ErrorZeroLengthEdge" xml:space="preserve"><value>&#xA;The roof footprint contains a zero-length or excessively short edge.</value></data>
+  <data name="Command_Roof_ErrorSelfIntersection" xml:space="preserve"><value>&#xA;The roof footprint intersects itself.</value></data>
+  <data name="Command_Roof_ErrorDegenerate" xml:space="preserve"><value>&#xA;The roof footprint is degenerate or has too little area.</value></data>
+  <data name="Command_Roof_ErrorCollinearVertex" xml:space="preserve"><value>&#xA;The roof footprint contains a redundant collinear vertex.</value></data>
+  <data name="Command_Roof_ErrorUnsupported" xml:space="preserve"><value>&#xA;The roof footprint contains unsupported geometry.</value></data>
+  <data name="Command_Roof_AcceptedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: Roof footprint accepted – {0} vertices, area {1:0.###} m², source orientation {2}; canonical orientation counter-clockwise.</value></data>
+  <data name="Command_Roof_OrientationClockwise" xml:space="preserve"><value>clockwise</value></data>
+  <data name="Command_Roof_OrientationCounterClockwise" xml:space="preserve"><value>counter-clockwise</value></data>
+  <data name="Command_Roof_OpenLoopNotificationTitle" xml:space="preserve"><value>Roof footprint is not closed</value></data>
+  <data name="Command_Roof_OpenLoopNotificationBody" xml:space="preserve"><value>Connect the last point to the first or use PLINE → Close.</value></data>
 </root>

@@ -505,4 +505,25 @@
   <data name="SettingsWindow_AnnotationText_HeightRangeError_Slope" xml:space="preserve"><value>Die Höhe des Neigungstexts muss zwischen {0} und {1} mm liegen.</value></data>
   <data name="SettingsWindow_AnnotationText_NumericValueRequired" xml:space="preserve"><value>Ein numerischer Wert ist erforderlich.</value></data>
   <data name="SettingsWindow_AnnotationText_ShxTypeApproximate" xml:space="preserve"><value>SHX · ungefähre Vorschau</value></data>
+  <data name="Ribbon_Panel_Roofs" xml:space="preserve"><value>Dächer</value></data>
+  <data name="CommandUi_Roof_Label" xml:space="preserve"><value>Dach</value></data>
+  <data name="CommandUi_Roof_Tooltip" xml:space="preserve"><value>Prüft einen geschlossenen Dachgrundriss.</value></data>
+  <data name="Command_Roof_Prompt" xml:space="preserve"><value>&#xA;Geschlossene Polylinie für den Dachgrundriss wählen: </value></data>
+  <data name="Command_Roof_PolylineOnly" xml:space="preserve"><value>&#xA;Es kann nur eine Lightweight-Polylinie gewählt werden.</value></data>
+  <data name="Command_Roof_ErrorOpen" xml:space="preserve"><value>&#xA;Der Dachgrundriss muss geschlossen sein.</value></data>
+  <data name="Command_Roof_ErrorCurved" xml:space="preserve"><value>&#xA;Gekrümmte Segmente des Dachgrundrisses werden noch nicht unterstützt.</value></data>
+  <data name="Command_Roof_ErrorNonPlanar" xml:space="preserve"><value>&#xA;Der Dachgrundriss muss in der unterstützten XY-Grundrissebene liegen.</value></data>
+  <data name="Command_Roof_ErrorFewVertices" xml:space="preserve"><value>&#xA;Der Dachgrundriss muss mindestens drei eindeutige Eckpunkte haben.</value></data>
+  <data name="Command_Roof_ErrorNonFinite" xml:space="preserve"><value>&#xA;Der Dachgrundriss enthält eine ungültige Koordinate.</value></data>
+  <data name="Command_Roof_ErrorDuplicateVertex" xml:space="preserve"><value>&#xA;Der Dachgrundriss enthält aufeinanderfolgende doppelte Eckpunkte.</value></data>
+  <data name="Command_Roof_ErrorZeroLengthEdge" xml:space="preserve"><value>&#xA;Der Dachgrundriss enthält eine Kante ohne Länge oder eine zu kurze Kante.</value></data>
+  <data name="Command_Roof_ErrorSelfIntersection" xml:space="preserve"><value>&#xA;Der Dachgrundriss überschneidet sich selbst.</value></data>
+  <data name="Command_Roof_ErrorDegenerate" xml:space="preserve"><value>&#xA;Der Dachgrundriss ist degeneriert oder hat eine zu kleine Fläche.</value></data>
+  <data name="Command_Roof_ErrorCollinearVertex" xml:space="preserve"><value>&#xA;Der Dachgrundriss enthält einen überflüssigen kollinearen Eckpunkt.</value></data>
+  <data name="Command_Roof_ErrorUnsupported" xml:space="preserve"><value>&#xA;Der Dachgrundriss enthält nicht unterstützte Geometrie.</value></data>
+  <data name="Command_Roof_AcceptedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: Dachgrundriss akzeptiert – {0} Eckpunkte, Fläche {1:0.###} m², Quellorientierung {2}; kanonische Orientierung gegen den Uhrzeigersinn.</value></data>
+  <data name="Command_Roof_OrientationClockwise" xml:space="preserve"><value>im Uhrzeigersinn</value></data>
+  <data name="Command_Roof_OrientationCounterClockwise" xml:space="preserve"><value>gegen den Uhrzeigersinn</value></data>
+  <data name="Command_Roof_OpenLoopNotificationTitle" xml:space="preserve"><value>Dachgrundriss ist nicht geschlossen</value></data>
+  <data name="Command_Roof_OpenLoopNotificationBody" xml:space="preserve"><value>Verbinden Sie den letzten Punkt mit dem ersten oder verwenden Sie PLINE → Close.</value></data>
 </root>

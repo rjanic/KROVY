@@ -505,4 +505,25 @@
   <data name="SettingsWindow_AnnotationText_HeightRangeError_Slope" xml:space="preserve"><value>Výška textu spádu musí byť v rozsahu {0} až {1} mm.</value></data>
   <data name="SettingsWindow_AnnotationText_NumericValueRequired" xml:space="preserve"><value>Vyžaduje sa číselná hodnota.</value></data>
   <data name="SettingsWindow_AnnotationText_ShxTypeApproximate" xml:space="preserve"><value>SHX · približný náhľad</value></data>
+  <data name="Ribbon_Panel_Roofs" xml:space="preserve"><value>Strechy</value></data>
+  <data name="CommandUi_Roof_Label" xml:space="preserve"><value>Strecha</value></data>
+  <data name="CommandUi_Roof_Tooltip" xml:space="preserve"><value>Overí uzavretý pôdorysný obrys strechy.</value></data>
+  <data name="Command_Roof_Prompt" xml:space="preserve"><value>&#xA;Vyber uzavretú Polyline pôdorysného obrysu strechy: </value></data>
+  <data name="Command_Roof_PolylineOnly" xml:space="preserve"><value>&#xA;Vybrať možno iba lightweight Polyline.</value></data>
+  <data name="Command_Roof_ErrorOpen" xml:space="preserve"><value>&#xA;Obrys strechy musí byť uzavretý.</value></data>
+  <data name="Command_Roof_ErrorCurved" xml:space="preserve"><value>&#xA;Oblúkové segmenty obrysu strechy zatiaľ nie sú podporované.</value></data>
+  <data name="Command_Roof_ErrorNonPlanar" xml:space="preserve"><value>&#xA;Obrys strechy musí ležať v podporovanej pôdorysnej rovine XY.</value></data>
+  <data name="Command_Roof_ErrorFewVertices" xml:space="preserve"><value>&#xA;Obrys strechy musí mať aspoň tri jedinečné vrcholy.</value></data>
+  <data name="Command_Roof_ErrorNonFinite" xml:space="preserve"><value>&#xA;Obrys strechy obsahuje neplatnú súradnicu.</value></data>
+  <data name="Command_Roof_ErrorDuplicateVertex" xml:space="preserve"><value>&#xA;Obrys strechy obsahuje dva po sebe idúce duplicitné vrcholy.</value></data>
+  <data name="Command_Roof_ErrorZeroLengthEdge" xml:space="preserve"><value>&#xA;Obrys strechy obsahuje nulovú alebo príliš krátku hranu.</value></data>
+  <data name="Command_Roof_ErrorSelfIntersection" xml:space="preserve"><value>&#xA;Obrys strechy sa pretína sám so sebou.</value></data>
+  <data name="Command_Roof_ErrorDegenerate" xml:space="preserve"><value>&#xA;Obrys strechy je degenerovaný alebo má príliš malú plochu.</value></data>
+  <data name="Command_Roof_ErrorCollinearVertex" xml:space="preserve"><value>&#xA;Obrys strechy obsahuje nadbytočný kolineárny vrchol.</value></data>
+  <data name="Command_Roof_ErrorUnsupported" xml:space="preserve"><value>&#xA;Obrys strechy obsahuje nepodporovanú geometriu.</value></data>
+  <data name="Command_Roof_AcceptedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: Obrys strechy prijatý – {0} vrcholov, plocha {1:0.###} m², zdrojová orientácia {2}; kanonická orientácia proti smeru hodinových ručičiek.</value></data>
+  <data name="Command_Roof_OrientationClockwise" xml:space="preserve"><value>v smere hodinových ručičiek</value></data>
+  <data name="Command_Roof_OrientationCounterClockwise" xml:space="preserve"><value>proti smeru hodinových ručičiek</value></data>
+  <data name="Command_Roof_OpenLoopNotificationTitle" xml:space="preserve"><value>Obrys strechy nie je uzavretý</value></data>
+  <data name="Command_Roof_OpenLoopNotificationBody" xml:space="preserve"><value>Spojte posledný bod s prvým alebo použite PLINE → Close.</value></data>
 </root>

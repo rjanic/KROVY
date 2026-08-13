@@ -213,6 +213,7 @@ public static class UiStrings
     public static string InspectWindowHeading => GetString("InspectWindow_Heading");
     public static string InspectWindowClose => GetString("InspectWindow_Close");
     public static string RibbonTabTitle => GetString("Ribbon_Tab_Title");
+    public static string RibbonPanelRoofs => GetString("Ribbon_Panel_Roofs");
     public static string RibbonPanelElements => GetString("Ribbon_Panel_Elements");
     public static string RibbonPanelData => GetString("Ribbon_Panel_Data");
     public static string RibbonPanelReports => GetString("Ribbon_Panel_Reports");

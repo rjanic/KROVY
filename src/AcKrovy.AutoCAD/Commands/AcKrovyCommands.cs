@@ -355,6 +355,12 @@ public sealed class AcKrovyCommands
         ApplyLayersToExistingElements(ActiveDocument(), ElementLayerProfileStore.Load());
     }
 
+    [CommandMethod(AcKrovyCommandNames.Roof, CommandFlags.Modal | CommandFlags.Redraw)]
+    public void Roof() =>
+        CommandExecutionBoundary.Execute(
+            AcKrovyCommandNames.Roof,
+            () => RoofCommandWorkflow.Run(ActiveDocument()));
+
     [CommandMethod(AcKrovyCommandNames.Label, CommandFlags.Modal)]
     [CommandMethod(AcKrovyCommandNames.Labels, CommandFlags.Modal)]
     public void UpdateAllLabels()

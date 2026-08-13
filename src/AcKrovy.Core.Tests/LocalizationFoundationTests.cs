@@ -423,9 +423,10 @@ public sealed class LocalizationFoundationTests
             "AK_ASSIGN", "AK_KROKVA", "AK_POMURNICA", "AK_VAZNICA", "AK_STLPIK", "AK_KLIESTINA",
             "AK_VZPERA", "AK_VAZNYTRAM", "AK_CUSTOM", "AK_EDIT", "AK_FLIPSLOPE", "AK_INSPECT", "AK_REPORT",
             "AK_REPORTALL", "AK_RECALC", "AK_RENUMBER", "AK_DIAGNOSTICS", "AK_SELECTSIMILAR", "AK_EXPORTCSV",
+            "AK_ROOF",
         };
 
-        Assert.Equal(33, AcKrovyCommandNames.All.Count);
+        Assert.Equal(34, AcKrovyCommandNames.All.Count);
         Assert.Equal(expected, AcKrovyCommandNames.All);
         Assert.All(AcKrovyCommandNames.All, command => Assert.StartsWith("AK_", command, StringComparison.Ordinal));
     }
@@ -435,6 +436,7 @@ public sealed class LocalizationFoundationTests
     {
         var expected = new[]
         {
+            ("AK_ROOF", "DECORAIR_AK_ROOF", "rafter", "Strecha"),
             ("AK_KROKVA", "DECORAIR_AK_RAFTER", "rafter", "Krokva"),
             ("AK_POMURNICA", "DECORAIR_AK_WALLPLATE", "wallplate", "Pomúrnica"),
             ("AK_VAZNICA", "DECORAIR_AK_PURLIN", "purlin", "Väznica"),

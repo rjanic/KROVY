@@ -137,6 +137,11 @@ internal static class AcKrovyRibbon
             Title = UiStrings.RibbonTabTitle,
         };
 
+        tab.Panels.Add(BuildPanel(UiStrings.RibbonPanelRoofs, new[]
+        {
+            Button(CommandUiCatalog.Roof),
+        }));
+
         tab.Panels.Add(BuildPanel(UiStrings.RibbonPanelElements, new[]
         {
             Button(CommandUiCatalog.Rafter),

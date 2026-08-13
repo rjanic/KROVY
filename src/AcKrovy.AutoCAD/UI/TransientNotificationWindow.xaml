@@ -1,0 +1,56 @@
+<Window x:Class="AcKrovy.AutoCAD.UI.TransientNotificationWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Width="480"
+        SizeToContent="Height"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Design/SettingsColors.Light.xaml" />
+                <ResourceDictionary Source="Design/SettingsDesignSystem.xaml" />
+                <ResourceDictionary Source="Design/SettingsControls.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+    <Border x:Name="NotificationCard"
+            Margin="12"
+            Padding="20"
+            Background="{DynamicResource SettingsErrorBackgroundBrush}"
+            BorderBrush="{DynamicResource SettingsErrorBorderBrush}"
+            BorderThickness="1"
+            CornerRadius="10"
+            Effect="{DynamicResource SettingsCardElevation}">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="5" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Border Background="{DynamicResource SettingsErrorBorderBrush}"
+                    CornerRadius="3" />
+            <StackPanel Grid.Column="1"
+                        Margin="16,0,0,0">
+                <TextBlock x:Name="NotificationTitleText"
+                           Foreground="{DynamicResource SettingsErrorTextBrush}"
+                           FontFamily="{DynamicResource SettingsFontFamily}"
+                           FontSize="{DynamicResource SettingsFontSizeSection}"
+                           FontWeight="{DynamicResource SettingsFontWeightSemiBold}"
+                           TextWrapping="Wrap" />
+                <TextBlock x:Name="NotificationBodyText"
+                           Margin="0,7,0,0"
+                           Foreground="{DynamicResource SettingsTextSecondaryBrush}"
+                           FontFamily="{DynamicResource SettingsFontFamily}"
+                           FontSize="{DynamicResource SettingsFontSizeBody}"
+                           LineHeight="20"
+                           TextWrapping="Wrap" />
+            </StackPanel>
+        </Grid>
+    </Border>
+</Window>

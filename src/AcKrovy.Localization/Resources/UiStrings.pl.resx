@@ -505,4 +505,25 @@
   <data name="SettingsWindow_AnnotationText_HeightRangeError_Slope" xml:space="preserve"><value>Wysokość tekstu spadku musi być w zakresie od {0} do {1} mm.</value></data>
   <data name="SettingsWindow_AnnotationText_NumericValueRequired" xml:space="preserve"><value>Wymagana jest wartość liczbowa.</value></data>
   <data name="SettingsWindow_AnnotationText_ShxTypeApproximate" xml:space="preserve"><value>SHX · przybliżony podgląd</value></data>
+  <data name="Ribbon_Panel_Roofs" xml:space="preserve"><value>Dachy</value></data>
+  <data name="CommandUi_Roof_Label" xml:space="preserve"><value>Dach</value></data>
+  <data name="CommandUi_Roof_Tooltip" xml:space="preserve"><value>Sprawdza zamknięty obrys dachu w rzucie.</value></data>
+  <data name="Command_Roof_Prompt" xml:space="preserve"><value>&#xA;Wybierz zamkniętą polilinię obrysu dachu w rzucie: </value></data>
+  <data name="Command_Roof_PolylineOnly" xml:space="preserve"><value>&#xA;Można wybrać tylko lekką polilinię.</value></data>
+  <data name="Command_Roof_ErrorOpen" xml:space="preserve"><value>&#xA;Obrys dachu musi być zamknięty.</value></data>
+  <data name="Command_Roof_ErrorCurved" xml:space="preserve"><value>&#xA;Zakrzywione segmenty obrysu dachu nie są jeszcze obsługiwane.</value></data>
+  <data name="Command_Roof_ErrorNonPlanar" xml:space="preserve"><value>&#xA;Obrys dachu musi leżeć w obsługiwanej płaszczyźnie rzutu XY.</value></data>
+  <data name="Command_Roof_ErrorFewVertices" xml:space="preserve"><value>&#xA;Obrys dachu musi mieć co najmniej trzy unikalne wierzchołki.</value></data>
+  <data name="Command_Roof_ErrorNonFinite" xml:space="preserve"><value>&#xA;Obrys dachu zawiera nieprawidłową współrzędną.</value></data>
+  <data name="Command_Roof_ErrorDuplicateVertex" xml:space="preserve"><value>&#xA;Obrys dachu zawiera kolejne zduplikowane wierzchołki.</value></data>
+  <data name="Command_Roof_ErrorZeroLengthEdge" xml:space="preserve"><value>&#xA;Obrys dachu zawiera krawędź o zerowej lub zbyt małej długości.</value></data>
+  <data name="Command_Roof_ErrorSelfIntersection" xml:space="preserve"><value>&#xA;Obrys dachu przecina sam siebie.</value></data>
+  <data name="Command_Roof_ErrorDegenerate" xml:space="preserve"><value>&#xA;Obrys dachu jest zdegenerowany lub ma zbyt małe pole.</value></data>
+  <data name="Command_Roof_ErrorCollinearVertex" xml:space="preserve"><value>&#xA;Obrys dachu zawiera zbędny współliniowy wierzchołek.</value></data>
+  <data name="Command_Roof_ErrorUnsupported" xml:space="preserve"><value>&#xA;Obrys dachu zawiera nieobsługiwaną geometrię.</value></data>
+  <data name="Command_Roof_AcceptedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: Obrys dachu zaakceptowany – {0} wierzchołków, pole {1:0.###} m², orientacja źródłowa {2}; orientacja kanoniczna przeciwnie do ruchu wskazówek zegara.</value></data>
+  <data name="Command_Roof_OrientationClockwise" xml:space="preserve"><value>zgodnie z ruchem wskazówek zegara</value></data>
+  <data name="Command_Roof_OrientationCounterClockwise" xml:space="preserve"><value>przeciwnie do ruchu wskazówek zegara</value></data>
+  <data name="Command_Roof_OpenLoopNotificationTitle" xml:space="preserve"><value>Obrys dachu nie jest zamknięty</value></data>
+  <data name="Command_Roof_OpenLoopNotificationBody" xml:space="preserve"><value>Połącz ostatni punkt z pierwszym lub użyj PLINE → Close.</value></data>
 </root>

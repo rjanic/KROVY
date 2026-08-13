@@ -37,13 +37,14 @@ public static class AcKrovyCommandNames
     public const string Diagnostics = "AK_DIAGNOSTICS";
     public const string SelectSimilar = "AK_SELECTSIMILAR";
     public const string ExportCsv = "AK_EXPORTCSV";
+    public const string Roof = "AK_ROOF";
 
     public static IReadOnlyList<string> All { get; } =
     [
         Help, Ribbon, Toolbar, ToolbarShow, ToolbarHide, Settings, ApplyLayers, Label, Labels,
         LabelMissing, LabelSelected, LabelAll, LabelShow, LabelHide, Assign, Rafter, WallPlate, Purlin,
         Post, CollarTie, Brace, TieBeam, Custom, Edit, FlipSlope, Inspect, Report, ReportAll, Recalc,
-        Renumber, Diagnostics, SelectSimilar, ExportCsv,
+        Renumber, Diagnostics, SelectSimilar, ExportCsv, Roof,
     ];
 }
 
@@ -117,6 +118,7 @@ public static class CommandUiCatalog
     public const string ClassicToolbarPaletteId = "AE3310A6-6077-4FB3-B9BE-D4A1DCC866C4";
 
     public static CommandUiDescriptor Rafter { get; } = Create("RAFTER", "rafter", AcKrovyCommandNames.Rafter, "Rafter");
+    public static CommandUiDescriptor Roof { get; } = Create("ROOF", "rafter", AcKrovyCommandNames.Roof, "Roof");
     public static CommandUiDescriptor WallPlate { get; } = Create("WALLPLATE", "wallplate", AcKrovyCommandNames.WallPlate, "WallPlate");
     public static CommandUiDescriptor Purlin { get; } = Create("PURLIN", "purlin", AcKrovyCommandNames.Purlin, "Purlin");
     public static CommandUiDescriptor Post { get; } = Create("POST", "post", AcKrovyCommandNames.Post, "Post");
@@ -166,7 +168,7 @@ public static class CommandUiCatalog
 
     public static IReadOnlyList<CommandUiDescriptor> RibbonCommands { get; } =
     [
-        Rafter, WallPlate, Purlin, Post, CollarTie, Brace, TieBeam, Custom, Assign, Edit, Inspect, Recalc, Renumber,
+        Roof, Rafter, WallPlate, Purlin, Post, CollarTie, Brace, TieBeam, Custom, Assign, Edit, Inspect, Recalc, Renumber,
         Report, ReportAll, Settings, Labels, Toolbar,
     ];
 
