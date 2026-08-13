@@ -181,10 +181,22 @@ overiť abstractions pred veľkým roof automation modulom.
 - AutoCAD 2027 host test potvrdil CW/CCW kanonizáciu, Endpoint+Enter
   `EffectiveClosed` vstup a DBMOD 5 → 5 po opakovaných `OpenLoop` výberoch.
 
-## 15. S2 – jednoduchá sedlová strecha MVP
-- nadviazať na validovaný S1 footprint,
-- doplniť neutrálne vstupy: smer hrebeňa, sklon, presah, rozostup a prierez krokiev,
-- vytvoriť strešné roviny, pomúrnice, hrebeňovú väznicu a common rafters,
+## 15. S2 – jednoduchá sedlová strecha MVP – STAGE 1 IMPLEMENTOVANÝ
+### Stage 1 – CAD-neutrálna geometria
+- `RoofDefinition` + existujúci sklon/smer → `SimpleGableRoofGeometry`,
+- presná podpora štvorvrcholového obdĺžnika v jeho vlastnej otočenej XY báze,
+- samostatná rectangle validácia bez opravy vstupu a centralizované distance,
+  relative-length, angular, dimension a slope tolerancie,
+- explicitný smer sa musí zhodovať s jednou osou obdĺžnika; `+d`/`-d`, CW/CCW
+  a zdrojový prvý vrchol nemenia kanonický ridge ani dve bounded 3D faces,
+- centered ridge medzi odkvapmi, `run = width / 2`, `rise = run * tan(slope)`,
+  lokálny eave datum `Z = 0`, ridge `Z = rise`, bez zaokrúhľovania,
+- bez AutoCAD entity/preview, persistence, XData/Xrecord, UI a timber generation.
+
+### Ďalšie S2 stages
+- host preview neutrálnej Stage 1 geometrie bez persistence,
+- doplniť neutrálne vstupy: presah, rozostup a prierez krokiev,
+- vytvoriť pomúrnice, hrebeňovú väznicu a common rafters,
 - definovať stabilnú DWG persistence a `RoofPlaneId` až spolu s reálnym S2
   source/member lifecycle, bez zmeny timber schema, ak to kontrakt nevyžaduje,
 - pridať item numbering, anotácie a report/BOM integráciu iba v rozsahu
@@ -346,8 +358,8 @@ Priebežne pri dotyku s danou oblasťou:
 
 # ODPORÚČANÉ NAJBLIŽŠIE PORADIE
 
-1. S2 simple-gable MVP nad kanonickým footprintom.
-2. Stabilná S2 persistence source/roof-plane/member lifecycle.
+1. S2 Stage 2 host preview nad neutral simple-gable geometry.
+2. Ďalšie simple-gable stages pre členy a až potom stabilná persistence lifecycle.
 3. AutoCAD 2021–2027 compatibility checkpoint a BricsCAD PoC.
 4. Komplexné footprints, hip/valley a ďalšie typy strechy.
 5. True-width a automatický vizuálny trim.

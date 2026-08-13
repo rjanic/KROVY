@@ -104,9 +104,16 @@
 - AutoCAD 2027 host potvrdený: CW/CCW, Endpoint+Enter a DBMOD 5 → 5 po
   opakovaných neplatných `OpenLoop` výberoch.
 
-### S2 – jednoduchá sedlová strecha MVP
-- smer hrebeňa, sklon, presah, rozostup a prierez krokiev,
-- strešné roviny, pomúrnice, hrebeňová väznica a common rafters,
+### S2 Stage 1 – neutral simple-gable geometry implementovaný
+- `RoofDefinition` + sklon + explicitný smer rieši obdĺžnikovú sedlovú strechu,
+- axis-aligned aj otočené obdĺžniky, centered ridge, dve bounded 3D faces,
+- `+d`/`-d`, CW/CCW a zdrojový start nemenia deterministický výsledok,
+- eave datum `Z = 0`, `run = width / 2`, `rise = run * tan(slope)`,
+- bez AutoCAD outputu, persistence, timber generation, UI a zmeny schémy/verzie.
+
+### Ďalšie S2 stages – jednoduchá sedlová strecha MVP
+- host preview, potom presah, rozostup a prierez krokiev,
+- pomúrnice, hrebeňová väznica a common rafters,
 - stabilný source/roof-plane/member lifecycle a až potom persistence schema,
 - položky, anotácie a report/BOM integrácia v rozsahu simple-gable MVP.
 

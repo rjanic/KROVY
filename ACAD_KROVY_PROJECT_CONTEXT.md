@@ -343,7 +343,7 @@ Stabilný commit: `4a951041e2deef40a127ac9560cf6fb2ba4b6a5b`
   uchovávajú sa 14 dní a neobsahujú obsah/geometriu výkresu ani plnú DWG cestu,
 - všetkých päť lokálnych JSON stores používa deterministickú `.corrupt`
   zálohu; pri zlyhaní zálohy zostáva originál nedotknutý a defaults iba v pamäti,
-- produkčný adapter zostáva AutoCAD 2027 / .NET 10; metadata schema je 5
+- produkčný adapter zostáva AutoCAD 2027 / .NET 10; metadata schema je 7
   a layer profile schema zostáva 3.
 
 ### STRECHY S1 – Roof Domain Foundation + Input Geometry
@@ -368,11 +368,29 @@ Stabilný commit: `4a951041e2deef40a127ac9560cf6fb2ba4b6a5b`
 - host test potvrdil zhodné CW/CCW kanonické výsledky, Endpoint+Enter
   `EffectiveClosed` vstup a read-only správanie: DBMOD zostal 5 pred aj po
   opakovaných neplatných `OpenLoop` výberoch,
-- S1 nezapisuje XData/Xrecord, nemení timber metadata schema 5 ani drawing
+- S1 nezapisuje XData/Xrecord, nemení timber metadata schema 7 ani drawing
   settings schema 1 a nepridáva roof nastavenia; persistence sa odkladá do S2,
   keď bude známy stabilný lifecycle zdroja, strešných rovín a členov,
 - strešné roviny, hrebeňový solver, automatické krokvy, hip/valley geometria,
   item numbering, anotácie a BOM sú zámerne odložené.
+
+### STRECHY S2 Stage 1 – neutral simple-gable geometry
+- `SimpleGableRoofGeometrySolver` používa existujúci `RoofDefinition`, sklon a
+  `RoofDirection2D` a bez CAD hosta rieši jednoduchú sedlovú strechu nad
+  štvorvrcholovým obdĺžnikovým footprintom,
+- podporuje world-XY aj ľubovoľne otočené obdĺžniky; samostatne overuje dĺžky,
+  kolmosť, rovnobežnosť, zhodu protiľahlých strán a konvexnú orientáciu bez
+  snapovania alebo opravy vstupu,
+- explicitný smer hrebeňa musí byť rovnobežný s jednou osou obdĺžnika; opačný
+  vektor predstavuje rovnakú fyzickú strechu a vedie k rovnakému kanonickému
+  výsledku, takže aj štvorec zostáva deterministický,
+- hrebeň spája stredy štítových strán, `run = transverse width / 2` a
+  `rise = run * tan(slope)`; lokálna odkvapová rovina má `Z = 0`,
+- výsledok obsahuje kanonický 3D ridge segment a dve deterministicky zoradené
+  štvorbodové roof faces s actual footprint eave hranami a finite signature,
+- Stage 1 nepridáva AutoCAD preview/entity creation, persistence, XData/Xrecord,
+  timber generation, UI ani zmenu verzie alebo schémy; tieto časti S2 zostávajú
+  budúcimi etapami.
 
 ## Povinné kompatibilitné pravidlá
 
@@ -399,10 +417,11 @@ Poradie:
 Multi-CAD kompatibilita sa má overiť ešte pred tým, než projekt prerastie do príliš veľkého AutoCAD-špecifického roof automation modulu.
 
 ## Najbližšia priorita
-1. S2: jednoduchá sedlová strecha nad validovaným footprintom – smer hrebeňa,
-   sklon, presah, rozostup a prierez krokiev, strešné roviny a prvé common rafters,
-2. persistence navrhnúť až spolu so stabilnou S2 identitou zdroja a rovín,
-3. compatibility checkpoint a alternatívne CAD adaptéry naďalej riešiť bez
+1. S2 Stage 2: host preview neutrálnej Stage 1 geometrie bez persistence,
+2. ďalšie S2 etapy: presah, rozostup a prierez krokiev, pomúrnice, hrebeňová
+   väznica a prvé common rafters,
+3. persistence navrhnúť až spolu so stabilnou S2 identitou zdroja a rovín,
+4. compatibility checkpoint a alternatívne CAD adaptéry naďalej riešiť bez
    prenikania vendor typov do Core.
 
 Presné poradie je v `ACAD_KROVY_ROADMAP.md`, úplný zásobník nápadov v `ACAD_KROVY_BACKLOG.md`.
