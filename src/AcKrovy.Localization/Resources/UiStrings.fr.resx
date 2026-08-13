@@ -536,4 +536,14 @@
   <data name="Command_Roof_GeometryErrorSlope" xml:space="preserve"><value>&#xA;La pente du toit doit être finie, supérieure à 0° et inférieure à 90°.</value></data>
   <data name="Command_Roof_GeometryErrorDimensions" xml:space="preserve"><value>&#xA;Les dimensions de l’emprise sont trop petites pour un toit à deux pans simple.</value></data>
   <data name="Command_Roof_GeometryErrorNonFinite" xml:space="preserve"><value>&#xA;Le calcul de la géométrie du toit a produit une valeur infinie ou non valide.</value></data>
+  <data name="Command_Roof_PersistConfirmPrompt" xml:space="preserve"><value>&#xA;Enregistrer la définition du toit dans le dessin ? [Oui/Non] &lt;Non&gt; : </value></data>
+  <data name="Command_Roof_PersistedSaved" xml:space="preserve"><value>&#xA;La définition du toit a été enregistrée sur le contour sélectionné.</value></data>
+  <data name="Command_Roof_PersistedLoaded" xml:space="preserve"><value>&#xA;La définition de toit enregistrée a été chargée.</value></data>
+  <data name="Command_Roof_PersistedInvalid" xml:space="preserve"><value>&#xA;La définition de toit enregistrée est non valide ou endommagée.</value></data>
+  <data name="Command_Roof_PersistedFutureSchema" xml:space="preserve"><value>&#xA;La définition du toit utilise un schéma plus récent non pris en charge.</value></data>
+  <data name="Command_Roof_PersistedUnsupportedKind" xml:space="preserve"><value>&#xA;Le type de toit enregistré n'est pas pris en charge.</value></data>
+  <data name="Command_Roof_PersistedStale" xml:space="preserve"><value>&#xA;Le contour du toit a changé après l'enregistrement. La définition enregistrée n'a pas été utilisée.</value></data>
+  <data name="Command_Roof_PersistFailed" xml:space="preserve"><value>&#xA;La définition du toit n'a pas pu être enregistrée.</value></data>
+  <data name="Command_Roof_PersistSourceChanged" xml:space="preserve"><value>&#xA;Le contour du toit a changé pendant la commande. La définition n'a pas été enregistrée.</value></data>
+  <data name="Command_Roof_PersistConflict" xml:space="preserve"><value>&#xA;Le contour contient déjà une définition de toit. Les données existantes sont restées inchangées.</value></data>
 </root>

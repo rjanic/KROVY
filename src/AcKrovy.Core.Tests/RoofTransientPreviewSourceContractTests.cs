@@ -68,8 +68,8 @@ public sealed class RoofTransientPreviewSourceContractTests
     [Fact]
     public void RoofPreviewPath_RemainsReadOnlyAndNonPersistent()
     {
-        var source = Workflow + Extractor + Preview;
-        Assert.Contains("OpenMode.ForRead", Workflow);
+        var previewPath = Segment(Workflow, "private static void ShowPreview", "private static bool ConfirmPersistence");
+        var source = previewPath + Extractor + Preview;
         Assert.DoesNotContain("OpenMode.ForWrite", source);
         Assert.DoesNotContain("UpgradeOpen", source);
         Assert.DoesNotContain("transaction.Commit", source);
@@ -127,6 +127,15 @@ public sealed class RoofTransientPreviewSourceContractTests
     private static int CountOccurrences(string value, string token) =>
         (value.Length - value.Replace(token, string.Empty, StringComparison.Ordinal).Length) /
         token.Length;
+
+    private static string Segment(string source, string start, string end)
+    {
+        var startIndex = source.IndexOf(start, StringComparison.Ordinal);
+        var endIndex = source.IndexOf(end, startIndex, StringComparison.Ordinal);
+        Assert.True(startIndex >= 0, $"Start marker not found: {start}");
+        Assert.True(endIndex > startIndex, $"End marker not found: {end}");
+        return source[startIndex..endIndex];
+    }
 
     private static string Read(params string[] path) =>
         File.ReadAllText(Path.Combine([Repository, .. path]));

@@ -8,7 +8,7 @@ using Autodesk.AutoCAD.EditorInput;
 
 namespace AcKrovy.AutoCAD.Infrastructure;
 
-/// <summary>Read-only S1 selection plus S2 transient simple-gable preview workflow.</summary>
+/// <summary>S1 validation, S2 transient preview and explicit S3 definition persistence.</summary>
 internal static class RoofCommandWorkflow
 {
     public static void Run(Document document)
@@ -30,6 +30,7 @@ internal static class RoofCommandWorkflow
 
             RoofValidationResult validation;
             double sourceElevation;
+            RoofDefinitionStoreReadResult storedDefinition;
             using (var transaction = document.Database.TransactionManager.StartTransaction())
             {
                 if (transaction.GetObject(selected.ObjectId, OpenMode.ForRead) is not Polyline polyline)
@@ -41,6 +42,7 @@ internal static class RoofCommandWorkflow
                 validation = RoofFootprintValidator.Validate(
                     RoofPolylineExtractor.Extract(polyline));
                 sourceElevation = RoofPolylineExtractor.GetSourceElevation(polyline);
+                storedDefinition = RoofDefinitionStore.Read(polyline);
             }
 
             if (!validation.IsValid || validation.Footprint is null)
@@ -59,6 +61,32 @@ internal static class RoofCommandWorkflow
                 }
 
                 continue;
+            }
+
+            if (storedDefinition.Exists)
+            {
+                if (storedDefinition.Data is null)
+                {
+                    editor.WriteMessage(GetStoredDefinitionMessage(storedDefinition.Error));
+                    continue;
+                }
+
+                var restored = RoofDefinitionPersistence.Restore(
+                    validation.Footprint,
+                    storedDefinition.Data);
+                if (!restored.IsValid || restored.Geometry is null)
+                {
+                    editor.WriteMessage(UiStrings.GetString(
+                        restored.Error == RoofDefinitionRestoreError.StaleFootprint
+                            ? "Command_Roof_PersistedStale"
+                            : "Command_Roof_PersistedInvalid"));
+                    continue;
+                }
+
+                editor.SetImpliedSelection([selected.ObjectId]);
+                editor.WriteMessage(UiStrings.GetString("Command_Roof_PersistedLoaded"));
+                ShowPreview(document, restored.Geometry, sourceElevation);
+                return;
             }
 
             if (!TryPromptParameters(editor, out var parameters))
@@ -81,19 +109,120 @@ internal static class RoofCommandWorkflow
                 definition.Footprint.Vertices.Count,
                 definition.Footprint.AreaMm2 / 1_000_000d,
                 GetOrientationText(validation.SourceOrientation)));
-            using (RoofTransientPreviewSession.Show(
-                       document,
-                       geometryResult.Geometry,
-                       sourceElevation))
+            ShowPreview(document, geometryResult.Geometry, sourceElevation);
+
+            if (!ConfirmPersistence(editor))
             {
-                _ = editor.GetString(new PromptStringOptions(
-                    UiStrings.GetString("Command_Roof_PreviewClosePrompt"))
-                {
-                    AllowSpaces = false,
-                });
+                return;
+            }
+
+            var definitionData = RoofDefinitionPersistence.Create(
+                validation.Footprint,
+                geometryResult.Geometry);
+            if (TryPersist(
+                    document,
+                    selected.ObjectId,
+                    definitionData,
+                    out var failureMessageKey))
+            {
+                editor.WriteMessage(UiStrings.GetString("Command_Roof_PersistedSaved"));
+            }
+            else
+            {
+                editor.WriteMessage(UiStrings.GetString(failureMessageKey));
             }
 
             return;
+        }
+    }
+
+    private static void ShowPreview(
+        Document document,
+        SimpleGableRoofGeometry geometry,
+        double sourceElevation)
+    {
+        using (RoofTransientPreviewSession.Show(document, geometry, sourceElevation))
+        {
+            _ = document.Editor.GetString(new PromptStringOptions(
+                UiStrings.GetString("Command_Roof_PreviewClosePrompt"))
+            {
+                AllowSpaces = false,
+            });
+        }
+    }
+
+    private static bool ConfirmPersistence(Editor editor)
+    {
+        var uiCulture = AppLanguageService.CurrentUiCulture;
+        var yes = UiStrings.GetString("Message_Yes", uiCulture);
+        var no = UiStrings.GetString("Message_No", uiCulture);
+        var options = new PromptKeywordOptions(
+            UiStrings.GetString("Command_Roof_PersistConfirmPrompt", uiCulture))
+        {
+            AllowNone = true,
+            AppendKeywordsToMessage = false,
+        };
+        options.Keywords.Add("Yes", yes, yes);
+        if (RenumberConfirmationRules.SupportsSlovakAsciiYesAlias(uiCulture))
+        {
+            options.Keywords.Add(
+                RenumberConfirmationRules.SlovakAsciiYesKeyword,
+                RenumberConfirmationRules.SlovakAsciiYesKeyword,
+                RenumberConfirmationRules.SlovakAsciiYesKeyword,
+                false,
+                true);
+        }
+
+        options.Keywords.Add("No", no, no);
+        options.Keywords.Default = "No";
+        var response = editor.GetKeywords(options);
+        return response.Status == PromptStatus.OK &&
+               RenumberConfirmationRules.IsConfirmed(
+                   response.StringResult,
+                   yes,
+                   uiCulture);
+    }
+
+    private static bool TryPersist(
+        Document document,
+        ObjectId ownerId,
+        RoofDefinitionData data,
+        out string failureMessageKey)
+    {
+        failureMessageKey = "Command_Roof_PersistFailed";
+        try
+        {
+            using var documentLock = document.LockDocument();
+            using var transaction = document.Database.TransactionManager.StartTransaction();
+            if (transaction.GetObject(ownerId, OpenMode.ForWrite) is not Polyline owner)
+            {
+                return false;
+            }
+
+            var current = RoofFootprintValidator.Validate(RoofPolylineExtractor.Extract(owner));
+            if (!current.IsValid || current.Footprint is null ||
+                !string.Equals(
+                    current.Footprint.Signature,
+                    data.FootprintSignature,
+                    StringComparison.Ordinal))
+            {
+                failureMessageKey = "Command_Roof_PersistSourceChanged";
+                return false;
+            }
+
+            if (RoofDefinitionStore.Read(owner).Exists)
+            {
+                failureMessageKey = "Command_Roof_PersistConflict";
+                return false;
+            }
+
+            RoofDefinitionStore.Write(owner, transaction, data);
+            transaction.Commit();
+            return true;
+        }
+        catch (System.Exception)
+        {
+            return false;
         }
     }
 
@@ -181,5 +310,16 @@ internal static class RoofCommandWorkflow
             SimpleGableRoofGeometryError.DegenerateDimensions =>
                 "Command_Roof_GeometryErrorDimensions",
             _ => "Command_Roof_GeometryErrorNonFinite",
+        });
+
+    private static string GetStoredDefinitionMessage(
+        RoofDefinitionDataDecodeError error) =>
+        UiStrings.GetString(error switch
+        {
+            RoofDefinitionDataDecodeError.UnsupportedFutureSchema =>
+                "Command_Roof_PersistedFutureSchema",
+            RoofDefinitionDataDecodeError.UnsupportedRoofKind =>
+                "Command_Roof_PersistedUnsupportedKind",
+            _ => "Command_Roof_PersistedInvalid",
         });
 }

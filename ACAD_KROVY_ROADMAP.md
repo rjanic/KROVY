@@ -5,7 +5,7 @@
 **Predchádzajúci stabilný commit v0.19.0:** `41373d235a357dee05033872a1df8fed8b3286d3`
 **Predchádzajúci stabilný commit v0.20.0:** `6564fc930d98e3eca591bafcccef709af07dc9a5`
 **Predchádzajúci stabilný commit v0.21.0:** `f98900c1bd257a8e5357f6e77eb6f118bd4930d3`
-**Aktuálny míľnik:** STRECHY S2 Stage 2 „AutoCAD Transient Preview“, implementovaný a automaticky overený; manuálny AutoCAD 2027 visual/DBMOD test je otvorený
+**Aktuálny míľnik:** STRECHY S2 Stage 3 „Persistent Roof Definition“, implementovaný a automaticky overený; manuálny AutoCAD SAVE/REOPEN/DBMOD test je otvorený
 
 Tento dokument určuje odporúčané poradie ďalšieho vývoja. Úplný zásobník nápadov je v `ACAD_KROVY_BACKLOG.md`.
 
@@ -204,6 +204,17 @@ overiť abstractions pred veľkým roof automation modulom.
 - OpenLoop Fashion WPF retry zostáva bez zmeny; ostatné Stage 2 chyby sú CLI-only,
 - manuálny AutoCAD 2027 visual/DBMOD preview test zostáva otvorený.
 
+### Stage 3 – persistent roof definition – IMPLEMENTOVANÝ
+- source footprint Polyline vlastní dedikované `DECORAIR_ACADKROVY_ROOF` XData,
+- roof schema `1` perzistuje iba `SimpleGable`, slope, kanonický ridge direction
+  a Stage 1 footprint signature; geometriu po načítaní vždy znovu rieši Core solver,
+- čítanie je bez RegApp registrácie a DB write; zápis nastane iba po explicitnom
+  lokalizovanom Yes a v krátkom atomic transaction/DocumentLock scope,
+- writer nahrádza iba vlastnú roof sekciu a zachováva cudzie/timber XData,
+- malformed, future, unsupported a stale dáta sa neopravia ani neprepíšu,
+- bez permanentnej roof geometrie a timber generation; SAVE/CLOSE/REOPEN host proof
+  a MOVE/ROTATE/STRETCH/COPY/WBLOCK lifecycle zostávajú otvorené.
+
 ### Ďalšie S2 stages
 - doplniť neutrálne vstupy: presah, rozostup a prierez krokiev,
 - vytvoriť pomúrnice, hrebeňovú väznicu a common rafters,
@@ -368,8 +379,8 @@ Priebežne pri dotyku s danou oblasťou:
 
 # ODPORÚČANÉ NAJBLIŽŠIE PORADIE
 
-1. Manuálny AutoCAD 2027 visual/DBMOD test S2 Stage 2 preview a cleanup.
-2. Ďalšie simple-gable stages pre členy a až potom stabilná persistence lifecycle.
+1. Manuálny AutoCAD 2027 SAVE/CLOSE/REOPEN a DBMOD test S2 Stage 3.
+2. Roof lifecycle/editing pre MOVE/ROTATE/STRETCH/COPY/WBLOCK, potom ďalšie simple-gable členy.
 3. AutoCAD 2021–2027 compatibility checkpoint a BricsCAD PoC.
 4. Komplexné footprints, hip/valley a ďalšie typy strechy.
 5. True-width a automatický vizuálny trim.

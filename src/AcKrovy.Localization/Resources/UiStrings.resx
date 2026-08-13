@@ -536,4 +536,14 @@
   <data name="Command_Roof_GeometryErrorSlope" xml:space="preserve"><value>&#xA;Sklon strechy musí byť konečný, väčší ako 0° a menší ako 90°.</value></data>
   <data name="Command_Roof_GeometryErrorDimensions" xml:space="preserve"><value>&#xA;Rozmery obrysu strechy sú príliš malé pre jednoduchú sedlovú strechu.</value></data>
   <data name="Command_Roof_GeometryErrorNonFinite" xml:space="preserve"><value>&#xA;Výpočet geometrie strechy vytvoril nekonečnú alebo neplatnú hodnotu.</value></data>
+  <data name="Command_Roof_PersistConfirmPrompt" xml:space="preserve"><value>&#xA;Uložiť definíciu strechy do výkresu? [Áno/Nie] &lt;Nie&gt;: </value></data>
+  <data name="Command_Roof_PersistedSaved" xml:space="preserve"><value>&#xA;Definícia strechy bola uložená do vybraného obrysu.</value></data>
+  <data name="Command_Roof_PersistedLoaded" xml:space="preserve"><value>&#xA;Načítala sa uložená definícia strechy.</value></data>
+  <data name="Command_Roof_PersistedInvalid" xml:space="preserve"><value>&#xA;Uložená definícia strechy je neplatná alebo poškodená.</value></data>
+  <data name="Command_Roof_PersistedFutureSchema" xml:space="preserve"><value>&#xA;Definícia strechy používa novšiu nepodporovanú schému.</value></data>
+  <data name="Command_Roof_PersistedUnsupportedKind" xml:space="preserve"><value>&#xA;Uložený typ strechy nie je podporovaný.</value></data>
+  <data name="Command_Roof_PersistedStale" xml:space="preserve"><value>&#xA;Obrys strechy sa od uloženia zmenil. Uložená definícia sa nepoužila.</value></data>
+  <data name="Command_Roof_PersistFailed" xml:space="preserve"><value>&#xA;Definíciu strechy sa nepodarilo uložiť.</value></data>
+  <data name="Command_Roof_PersistSourceChanged" xml:space="preserve"><value>&#xA;Obrys strechy sa počas príkazu zmenil. Definícia sa neuložila.</value></data>
+  <data name="Command_Roof_PersistConflict" xml:space="preserve"><value>&#xA;Obrys už obsahuje definíciu strechy. Existujúce údaje zostali nezmenené.</value></data>
 </root>

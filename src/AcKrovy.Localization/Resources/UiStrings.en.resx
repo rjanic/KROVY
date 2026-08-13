@@ -536,4 +536,14 @@
   <data name="Command_Roof_GeometryErrorSlope" xml:space="preserve"><value>&#xA;The roof slope must be finite, greater than 0°, and less than 90°.</value></data>
   <data name="Command_Roof_GeometryErrorDimensions" xml:space="preserve"><value>&#xA;The roof-footprint dimensions are too small for a simple gable roof.</value></data>
   <data name="Command_Roof_GeometryErrorNonFinite" xml:space="preserve"><value>&#xA;The roof-geometry calculation produced an infinite or invalid value.</value></data>
+  <data name="Command_Roof_PersistConfirmPrompt" xml:space="preserve"><value>&#xA;Save the roof definition in the drawing? [Yes/No] &lt;No&gt;: </value></data>
+  <data name="Command_Roof_PersistedSaved" xml:space="preserve"><value>&#xA;The roof definition was saved on the selected footprint.</value></data>
+  <data name="Command_Roof_PersistedLoaded" xml:space="preserve"><value>&#xA;The saved roof definition was loaded.</value></data>
+  <data name="Command_Roof_PersistedInvalid" xml:space="preserve"><value>&#xA;The saved roof definition is invalid or damaged.</value></data>
+  <data name="Command_Roof_PersistedFutureSchema" xml:space="preserve"><value>&#xA;The roof definition uses a newer unsupported schema.</value></data>
+  <data name="Command_Roof_PersistedUnsupportedKind" xml:space="preserve"><value>&#xA;The saved roof type is not supported.</value></data>
+  <data name="Command_Roof_PersistedStale" xml:space="preserve"><value>&#xA;The roof footprint changed after it was saved. The saved definition was not used.</value></data>
+  <data name="Command_Roof_PersistFailed" xml:space="preserve"><value>&#xA;The roof definition could not be saved.</value></data>
+  <data name="Command_Roof_PersistSourceChanged" xml:space="preserve"><value>&#xA;The roof footprint changed during the command. The definition was not saved.</value></data>
+  <data name="Command_Roof_PersistConflict" xml:space="preserve"><value>&#xA;The footprint already contains a roof definition. Existing data was left unchanged.</value></data>
 </root>

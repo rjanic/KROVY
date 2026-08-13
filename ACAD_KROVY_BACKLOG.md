@@ -119,8 +119,19 @@
 - read-only bez DB entities, persistence, vrstiev, XData/Xrecord a timber generation,
 - otvorené: manuálny AutoCAD 2027 visual/DBMOD host test.
 
+### S2 Stage 3 – persistent roof definition implementovaný
+- footprint Polyline je vlastník dedikovaného `DECORAIR_ACADKROVY_ROOF` XData,
+- izolovaná roof schema `1`: `SimpleGable`, slope, kanonický ridge direction,
+  kanonický footprint signature; bez odvodených face/preview dát,
+- explicitné Yes po transient preview je jediná write cesta; No/Esc ostáva bez zápisu,
+- read-only load kontroluje malformed/future/unsupported/stale dáta a znovu používa
+  Stage 1 solver; cudzie XData sa pri zápise zachovávajú,
+- bez permanentnej geometrie a timber generation,
+- otvorené: reálny SAVE/CLOSE/REOPEN + DBMOD host proof a neskorší lifecycle pre
+  MOVE/ROTATE/STRETCH/COPY/WBLOCK bez reactorov v tejto etape.
+
 ### Ďalšie S2 stages – jednoduchá sedlová strecha MVP
-- presah, rozostup a prierez krokiev,
+- roof edit/lifecycle, potom presah, rozostup a prierez krokiev,
 - pomúrnice, hrebeňová väznica a common rafters,
 - stabilný source/roof-plane/member lifecycle a až potom persistence schema,
 - položky, anotácie a report/BOM integrácia v rozsahu simple-gable MVP.

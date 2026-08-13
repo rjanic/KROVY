@@ -28,15 +28,18 @@ public sealed class RoofCommandSourceContractTests
     }
 
     [Fact]
-    public void RoofWorkflow_IsReadOnlyAndUsesCoreValidator()
+    public void RoofSelectionAndValidationPath_IsReadOnlyAndUsesCoreValidator()
     {
+        var selectionPath = Segment(
+            Workflow,
+            "while (true)",
+            "private static void ShowPreview");
         Assert.Contains("RoofFootprintValidator.Validate", Workflow);
-        Assert.Contains("OpenMode.ForRead", Workflow);
+        Assert.Contains("OpenMode.ForRead", selectionPath);
         Assert.Contains("SetImpliedSelection", Workflow);
-        Assert.DoesNotContain("OpenMode.ForWrite", Workflow);
+        Assert.DoesNotContain("OpenMode.ForWrite", selectionPath);
         Assert.DoesNotContain("OpenMode.ForWrite", Extractor);
-        Assert.DoesNotContain("transaction.Commit", Workflow);
-        Assert.DoesNotContain("XData", Workflow + Extractor);
+        Assert.DoesNotContain("transaction.Commit", selectionPath);
         Assert.DoesNotContain("TimberElementDataSchema", Workflow + Extractor);
         Assert.DoesNotContain("ElementDataStore", Workflow + Extractor);
         Assert.DoesNotContain("Database", NotificationService + NotificationWindow);

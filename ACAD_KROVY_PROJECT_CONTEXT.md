@@ -8,8 +8,8 @@
 
 **Verzia aplikácie:** autoritatívne v `Directory.Build.props`
 
-**Aktuálny míľnik:** STRECHY S2 Stage 2 „AutoCAD Transient Preview“,
-implementovaný a automaticky overený; manuálny AutoCAD 2027 visual/DBMOD test je otvorený
+**Aktuálny míľnik:** STRECHY S2 Stage 3 „Persistent Roof Definition“,
+implementovaný a automaticky overený; manuálny AutoCAD SAVE/REOPEN/DBMOD test je otvorený
 
 **Overovanie:** Debug/Release build, kompletné automatické testy a Portable/Full Compatibility Gate
 
@@ -405,6 +405,20 @@ Stabilný commit: `4a951041e2deef40a127ac9560cf6fb2ba4b6a5b`
 - ide iba o dočasnú vývojovú vizualizáciu geometrie, nie o roof object alebo
   timber generation; manuálne visual/DBMOD host overenie zostáva otvorené.
 
+### STRECHY S2 Stage 3 – persistent roof-definition foundation
+- vlastníkom definície je vybraná footprint Polyline; samostatný RegApp
+  `DECORAIR_ACADKROVY_ROOF` uchováva iba roof schema `1`, typ `SimpleGable`,
+  plnú hodnotu sklonu, kanonický smer hrebeňa a kanonický footprint signature,
+- nový roof codec a restore politika sú CAD-neutral v Core; host XData reader je
+  read-only a ne registruje RegApp, kým používateľ po preview výslovne nepotvrdí zápis,
+- krátky zamknutý write scope zachová všetky cudzie XData sekcie a atomicky zapíše
+  najviac jednu roof sekciu; uložená definícia sa znovu rieši Stage 1 solverom,
+- neplatná, future-schema, unsupported alebo stale definícia sa neprepisuje ani
+  neopravuje; transient preview zostáva jedinou roof vizualizáciou,
+- SAVE/CLOSE/REOPEN a DBMOD host proof je povinný otvorený test; MOVE/ROTATE/
+  STRETCH/COPY/WBLOCK lifecycle a roof edit/regeneration zostávajú budúcou etapou,
+- bez permanentnej roof geometrie, Xrecordov, drawing-settings storage a timber generation.
+
 ## Povinné kompatibilitné pravidlá
 
 1. Výpočty a geometrické rozhodovanie preferovať v Core.
@@ -430,8 +444,8 @@ Poradie:
 Multi-CAD kompatibilita sa má overiť ešte pred tým, než projekt prerastie do príliš veľkého AutoCAD-špecifického roof automation modulu.
 
 ## Najbližšia priorita
-1. manuálny AutoCAD 2027 visual/DBMOD test S2 Stage 2 preview a cleanup,
-2. ďalšie S2 etapy: presah, rozostup a prierez krokiev, pomúrnice, hrebeňová
+1. manuálny AutoCAD 2027 SAVE/CLOSE/REOPEN a DBMOD test S2 Stage 3 persistence,
+2. ďalšie S2 etapy: lifecycle/edit roof a potom presah, rozostup a prierez krokiev, pomúrnice, hrebeňová
    väznica a prvé common rafters,
 3. persistence navrhnúť až spolu so stabilnou S2 identitou zdroja a rovín,
 4. compatibility checkpoint a alternatívne CAD adaptéry naďalej riešiť bez

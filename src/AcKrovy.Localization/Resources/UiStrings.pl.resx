@@ -536,4 +536,14 @@
   <data name="Command_Roof_GeometryErrorSlope" xml:space="preserve"><value>&#xA;Kąt nachylenia dachu musi być skończony, większy niż 0° i mniejszy niż 90°.</value></data>
   <data name="Command_Roof_GeometryErrorDimensions" xml:space="preserve"><value>&#xA;Wymiary obrysu dachu są zbyt małe dla prostego dachu dwuspadowego.</value></data>
   <data name="Command_Roof_GeometryErrorNonFinite" xml:space="preserve"><value>&#xA;Obliczenie geometrii dachu zwróciło nieskończoną lub nieprawidłową wartość.</value></data>
+  <data name="Command_Roof_PersistConfirmPrompt" xml:space="preserve"><value>&#xA;Zapisać definicję dachu w rysunku? [Tak/Nie] &lt;Nie&gt;: </value></data>
+  <data name="Command_Roof_PersistedSaved" xml:space="preserve"><value>&#xA;Definicja dachu została zapisana na wybranym obrysie.</value></data>
+  <data name="Command_Roof_PersistedLoaded" xml:space="preserve"><value>&#xA;Wczytano zapisaną definicję dachu.</value></data>
+  <data name="Command_Roof_PersistedInvalid" xml:space="preserve"><value>&#xA;Zapisana definicja dachu jest nieprawidłowa lub uszkodzona.</value></data>
+  <data name="Command_Roof_PersistedFutureSchema" xml:space="preserve"><value>&#xA;Definicja dachu używa nowszego, nieobsługiwanego schematu.</value></data>
+  <data name="Command_Roof_PersistedUnsupportedKind" xml:space="preserve"><value>&#xA;Zapisany typ dachu nie jest obsługiwany.</value></data>
+  <data name="Command_Roof_PersistedStale" xml:space="preserve"><value>&#xA;Obrys dachu zmienił się po zapisaniu. Zapisana definicja nie została użyta.</value></data>
+  <data name="Command_Roof_PersistFailed" xml:space="preserve"><value>&#xA;Nie udało się zapisać definicji dachu.</value></data>
+  <data name="Command_Roof_PersistSourceChanged" xml:space="preserve"><value>&#xA;Obrys dachu zmienił się podczas polecenia. Definicja nie została zapisana.</value></data>
+  <data name="Command_Roof_PersistConflict" xml:space="preserve"><value>&#xA;Obrys zawiera już definicję dachu. Istniejące dane pozostały bez zmian.</value></data>
 </root>
