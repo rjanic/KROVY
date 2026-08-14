@@ -139,6 +139,21 @@
 - COPY Core semantika je pripravená, ale produkčný status čaká na HOST XData dôkaz,
 - bez reactorov, permanentnej roof geometrie a timber generation; HOST acceptance otvorená.
 
+### S2 Stage 5 – permanent simple-gable roof display implementovaný lokálne
+- presne sedem solver-derived natívnych `Line` na `KROV_STRECHA`, s rolami ridge,
+  eaves a štyrmi gable-slope boundaries,
+- samostatný display RegApp/schema `1`, owner handle a generation signature; semantic
+  roof definition ostáva jediným zdrojom pravdy a roof schema ostáva `2`,
+- explicitný create/regenerate workflow bez write-on-read a reactorov; current a No/Esc
+  nemenia DWG, stale semantic roof sa neregeneruje,
+- bez timber generation; manuálny AutoCAD 2027 HOST checkpoint je otvorený a S2
+  nie je touto etapou dokončené.
+- UX checkpoint: owner + sedem display Lines sa pri create/rebuild normalizujú do
+  internej GROUP `AK_ROOF_<handle>`; `AK_ROOF` vie vybrať všetkých sedem proxy Lines,
+  ridge je ByLayer na `KROV_STRECHA_HREBEN` ACI 1 a PICKSTYLE zostáva user-controlled,
+- missing/broken group je opraviteľný UX stav, nie semantic invalidita; bez BlockReference,
+  custom entity, reactorov alebo timber generation.
+
 ### Ďalšie S2 stages – jednoduchá sedlová strecha MVP
 - roof edit/lifecycle, potom presah, rozostup a prierez krokiev,
 - pomúrnice, hrebeňová väznica a common rafters,

@@ -96,7 +96,7 @@ public sealed class RoofRigidTransformSourceContractTests
     }
 
     [Fact]
-    public void NoPermanentRoofEntityPathWasAdded()
+    public void StageFourSemanticFiles_DoNotOwnStageFiveDisplayEntityCreation()
     {
         var source = Workflow + Store + Extractor;
         Assert.DoesNotContain("AppendEntity", source);
@@ -117,8 +117,12 @@ public sealed class RoofRigidTransformSourceContractTests
         var persist = Workflow.IndexOf("TryPersist(", create, StringComparison.Ordinal);
         var write = Workflow.IndexOf("RoofDefinitionStore.Write", persist, StringComparison.Ordinal);
         Assert.True(confirmation >= 0 && create > confirmation && persist > create && write > persist);
-        Assert.Equal(1, CountOccurrences(Workflow, "transaction.Commit();"));
-        Assert.Equal(1, CountOccurrences(Workflow, "OpenMode.ForWrite"));
+        var persistPath = Segment(
+            Workflow,
+            "private static bool TryPersist",
+            "private static RoofDisplayInspection InspectDisplay");
+        Assert.Equal(1, CountOccurrences(persistPath, "transaction.Commit();"));
+        Assert.Equal(1, CountOccurrences(persistPath, "OpenMode.ForWrite"));
         Assert.Equal(1, CountOccurrences(Store, "entity.XData = buffer;"));
     }
 

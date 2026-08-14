@@ -508,7 +508,7 @@
   <data name="Ribbon_Panel_Roofs" xml:space="preserve"><value>Dächer</value></data>
   <data name="CommandUi_Roof_Label" xml:space="preserve"><value>Dach</value></data>
   <data name="CommandUi_Roof_Tooltip" xml:space="preserve"><value>Prüft einen geschlossenen Dachgrundriss.</value></data>
-  <data name="Command_Roof_Prompt" xml:space="preserve"><value>&#xA;Geschlossene Polylinie für den Dachgrundriss wählen: </value></data>
+  <data name="Command_Roof_Prompt" xml:space="preserve"><value>&#xA;Dachumriss oder einen Teil des Dachs wählen: </value></data>
   <data name="Command_Roof_PolylineOnly" xml:space="preserve"><value>&#xA;Es kann nur eine Lightweight-Polylinie gewählt werden.</value></data>
   <data name="Command_Roof_ErrorOpen" xml:space="preserve"><value>&#xA;Der Dachgrundriss muss geschlossen sein.</value></data>
   <data name="Command_Roof_ErrorCurved" xml:space="preserve"><value>&#xA;Gekrümmte Segmente des Dachgrundrisses werden noch nicht unterstützt.</value></data>
@@ -536,7 +536,7 @@
   <data name="Command_Roof_GeometryErrorSlope" xml:space="preserve"><value>&#xA;Die Dachneigung muss endlich, größer als 0° und kleiner als 90° sein.</value></data>
   <data name="Command_Roof_GeometryErrorDimensions" xml:space="preserve"><value>&#xA;Die Dachgrundrissabmessungen sind für ein einfaches Satteldach zu klein.</value></data>
   <data name="Command_Roof_GeometryErrorNonFinite" xml:space="preserve"><value>&#xA;Die Dachgeometrieberechnung hat einen unendlichen oder ungültigen Wert erzeugt.</value></data>
-  <data name="Command_Roof_PersistConfirmPrompt" xml:space="preserve"><value>&#xA;Dachdefinition in der Zeichnung speichern? [Ja/Nein] &lt;Nein&gt;: </value></data>
+  <data name="Command_Roof_PersistConfirmPrompt" xml:space="preserve"><value>&#xA;Dachdefinition speichern und permanente Darstellung erstellen? [Ja/Nein] &lt;Nein&gt;: </value></data>
   <data name="Command_Roof_PersistedSaved" xml:space="preserve"><value>&#xA;Die Dachdefinition wurde am ausgewählten Grundriss gespeichert.</value></data>
   <data name="Command_Roof_PersistedLoaded" xml:space="preserve"><value>&#xA;Die gespeicherte Dachdefinition wurde geladen.</value></data>
   <data name="Command_Roof_PersistedInvalid" xml:space="preserve"><value>&#xA;Die gespeicherte Dachdefinition ist ungültig oder beschädigt.</value></data>
@@ -546,4 +546,21 @@
   <data name="Command_Roof_PersistFailed" xml:space="preserve"><value>&#xA;Die Dachdefinition konnte nicht gespeichert werden.</value></data>
   <data name="Command_Roof_PersistSourceChanged" xml:space="preserve"><value>&#xA;Der Dachgrundriss wurde während des Befehls geändert. Die Definition wurde nicht gespeichert.</value></data>
   <data name="Command_Roof_PersistConflict" xml:space="preserve"><value>&#xA;Der Grundriss enthält bereits eine Dachdefinition. Vorhandene Daten blieben unverändert.</value></data>
+  <data name="Command_Roof_PersistedAndDisplaySaved" xml:space="preserve"><value>&#xA;Die Dachdefinition und ihre permanente Darstellung wurden gespeichert.</value></data>
+  <data name="Command_Roof_DisplayCurrent" xml:space="preserve"><value>&#xA;Die permanente Dachdarstellung ist aktuell.</value></data>
+  <data name="Command_Roof_DisplayMissing" xml:space="preserve"><value>&#xA;Das gespeicherte Dach hat noch keine permanente Darstellung.</value></data>
+  <data name="Command_Roof_DisplayStale" xml:space="preserve"><value>&#xA;Die permanente Dachdarstellung fehlt, wurde geändert oder ist veraltet.</value></data>
+  <data name="Command_Roof_DisplayCreatePrompt" xml:space="preserve"><value>&#xA;Permanente Dachdarstellung erstellen? [Ja/Nein] &lt;Nein&gt;: </value></data>
+  <data name="Command_Roof_DisplayUpdatePrompt" xml:space="preserve"><value>&#xA;Permanente Dachdarstellung neu erzeugen? [Ja/Nein] &lt;Nein&gt;: </value></data>
+  <data name="Command_Roof_DisplayCreated" xml:space="preserve"><value>&#xA;Die permanente Dachdarstellung wurde erstellt.</value></data>
+  <data name="Command_Roof_DisplayUpdated" xml:space="preserve"><value>&#xA;Die permanente Dachdarstellung wurde neu erzeugt.</value></data>
+  <data name="Command_Roof_DisplayFailed" xml:space="preserve"><value>&#xA;Die permanente Dachdarstellung konnte nicht erstellt oder neu erzeugt werden.</value></data>
+  <data name="Command_Roof_DisplayFutureSchema" xml:space="preserve"><value>&#xA;Die permanente Dachdarstellung verwendet ein neueres, nicht unterstütztes Schema und blieb unverändert.</value></data>
+  <data name="Command_Roof_SelectionInvalid" xml:space="preserve"><value>&#xA;Dachumriss oder eine erzeugte Dachlinie wählen.</value></data>
+  <data name="Command_Roof_SelectionInvalidDisplay" xml:space="preserve"><value>&#xA;Der gewählte Dachteil hat beschädigte Darstellungsdaten.</value></data>
+  <data name="Command_Roof_SelectionFutureDisplay" xml:space="preserve"><value>&#xA;Der gewählte Dachteil verwendet ein neueres, nicht unterstütztes Darstellungsschema.</value></data>
+  <data name="Command_Roof_SelectionOrphan" xml:space="preserve"><value>&#xA;Für den gewählten Dachteil ist kein gültiger Quellumriss verfügbar.</value></data>
+  <data name="Command_Roof_GroupMissing" xml:space="preserve"><value>&#xA;Das Dach ist gültig, aber seine Auswahlgruppe fehlt oder ist beschädigt.</value></data>
+  <data name="Command_Roof_GroupRepairPrompt" xml:space="preserve"><value>&#xA;Dach-Auswahlgruppe reparieren? [Ja/Nein] &lt;Nein&gt;: </value></data>
+  <data name="Command_Roof_GroupRepaired" xml:space="preserve"><value>&#xA;Die Dach-Auswahlgruppe wurde repariert.</value></data>
 </root>

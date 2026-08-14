@@ -28,11 +28,10 @@ public sealed class RoofTransientPreviewSourceContractTests
     public void PreviewMapping_AddsOnlySourceElevationToNeutralLocalZ()
     {
         Assert.Contains("MapSegments(geometry, sourceElevation)", Preview);
-        Assert.Contains("new(point.X, point.Y, sourceElevation + point.Z)", Preview);
-        Assert.Contains("geometry.Ridge.Start", Preview);
-        Assert.Contains("geometry.Ridge.End", Preview);
-        Assert.Contains("face.BoundaryPoints", Preview);
-        Assert.Contains("RoofPreviewSegmentKey.Create", Preview);
+        Assert.Contains("SimpleGableRoofWireframe.Create(geometry, sourceElevation)", Preview);
+        Assert.Contains("edge.Role == RoofDisplayEdgeRole.Ridge", Preview);
+        Assert.DoesNotContain("face.BoundaryPoints", Preview);
+        Assert.DoesNotContain("RoofPreviewSegmentKey", Preview);
         Assert.Contains("RoofPolylineExtractor.GetSourceElevation(polyline)", Workflow);
         Assert.Contains("polyline.GetPoint3dAt(0).Z", Extractor);
     }
@@ -138,7 +137,7 @@ public sealed class RoofTransientPreviewSourceContractTests
     }
 
     private static string Read(params string[] path) =>
-        File.ReadAllText(Path.Combine([Repository, .. path]));
+        File.ReadAllText(Path.Combine([Repository, .. path])).Replace("\r\n", "\n", StringComparison.Ordinal);
 
     private static string RepositoryRoot()
     {

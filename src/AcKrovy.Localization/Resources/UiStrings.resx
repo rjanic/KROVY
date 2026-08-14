@@ -508,7 +508,7 @@
   <data name="Ribbon_Panel_Roofs" xml:space="preserve"><value>Strechy</value></data>
   <data name="CommandUi_Roof_Label" xml:space="preserve"><value>Strecha</value></data>
   <data name="CommandUi_Roof_Tooltip" xml:space="preserve"><value>Overí uzavretý pôdorysný obrys strechy.</value></data>
-  <data name="Command_Roof_Prompt" xml:space="preserve"><value>&#xA;Vyber uzavretú Polyline pôdorysného obrysu strechy: </value></data>
+  <data name="Command_Roof_Prompt" xml:space="preserve"><value>&#xA;Vyber obrys alebo časť strechy: </value></data>
   <data name="Command_Roof_PolylineOnly" xml:space="preserve"><value>&#xA;Vybrať možno iba lightweight Polyline.</value></data>
   <data name="Command_Roof_ErrorOpen" xml:space="preserve"><value>&#xA;Obrys strechy musí byť uzavretý.</value></data>
   <data name="Command_Roof_ErrorCurved" xml:space="preserve"><value>&#xA;Oblúkové segmenty obrysu strechy zatiaľ nie sú podporované.</value></data>
@@ -536,7 +536,7 @@
   <data name="Command_Roof_GeometryErrorSlope" xml:space="preserve"><value>&#xA;Sklon strechy musí byť konečný, väčší ako 0° a menší ako 90°.</value></data>
   <data name="Command_Roof_GeometryErrorDimensions" xml:space="preserve"><value>&#xA;Rozmery obrysu strechy sú príliš malé pre jednoduchú sedlovú strechu.</value></data>
   <data name="Command_Roof_GeometryErrorNonFinite" xml:space="preserve"><value>&#xA;Výpočet geometrie strechy vytvoril nekonečnú alebo neplatnú hodnotu.</value></data>
-  <data name="Command_Roof_PersistConfirmPrompt" xml:space="preserve"><value>&#xA;Uložiť definíciu strechy do výkresu? [Áno/Nie] &lt;Nie&gt;: </value></data>
+  <data name="Command_Roof_PersistConfirmPrompt" xml:space="preserve"><value>&#xA;Uložiť definíciu a vytvoriť trvalé zobrazenie strechy? [Áno/Nie] &lt;Nie&gt;: </value></data>
   <data name="Command_Roof_PersistedSaved" xml:space="preserve"><value>&#xA;Definícia strechy bola uložená do vybraného obrysu.</value></data>
   <data name="Command_Roof_PersistedLoaded" xml:space="preserve"><value>&#xA;Načítala sa uložená definícia strechy.</value></data>
   <data name="Command_Roof_PersistedInvalid" xml:space="preserve"><value>&#xA;Uložená definícia strechy je neplatná alebo poškodená.</value></data>
@@ -546,4 +546,21 @@
   <data name="Command_Roof_PersistFailed" xml:space="preserve"><value>&#xA;Definíciu strechy sa nepodarilo uložiť.</value></data>
   <data name="Command_Roof_PersistSourceChanged" xml:space="preserve"><value>&#xA;Obrys strechy sa počas príkazu zmenil. Definícia sa neuložila.</value></data>
   <data name="Command_Roof_PersistConflict" xml:space="preserve"><value>&#xA;Obrys už obsahuje definíciu strechy. Existujúce údaje zostali nezmenené.</value></data>
+  <data name="Command_Roof_PersistedAndDisplaySaved" xml:space="preserve"><value>&#xA;Definícia strechy a jej trvalé zobrazenie boli uložené.</value></data>
+  <data name="Command_Roof_DisplayCurrent" xml:space="preserve"><value>&#xA;Trvalé zobrazenie strechy je aktuálne.</value></data>
+  <data name="Command_Roof_DisplayMissing" xml:space="preserve"><value>&#xA;Uložená strecha zatiaľ nemá trvalé zobrazenie.</value></data>
+  <data name="Command_Roof_DisplayStale" xml:space="preserve"><value>&#xA;Trvalé zobrazenie strechy chýba, bolo zmenené alebo je zastarané.</value></data>
+  <data name="Command_Roof_DisplayCreatePrompt" xml:space="preserve"><value>&#xA;Vytvoriť trvalé zobrazenie strechy? [Áno/Nie] &lt;Nie&gt;: </value></data>
+  <data name="Command_Roof_DisplayUpdatePrompt" xml:space="preserve"><value>&#xA;Obnoviť trvalé zobrazenie strechy? [Áno/Nie] &lt;Nie&gt;: </value></data>
+  <data name="Command_Roof_DisplayCreated" xml:space="preserve"><value>&#xA;Trvalé zobrazenie strechy bolo vytvorené.</value></data>
+  <data name="Command_Roof_DisplayUpdated" xml:space="preserve"><value>&#xA;Trvalé zobrazenie strechy bolo obnovené.</value></data>
+  <data name="Command_Roof_DisplayFailed" xml:space="preserve"><value>&#xA;Trvalé zobrazenie strechy sa nepodarilo vytvoriť alebo obnoviť.</value></data>
+  <data name="Command_Roof_DisplayFutureSchema" xml:space="preserve"><value>&#xA;Trvalé zobrazenie strechy používa novšiu nepodporovanú schému a zostalo nezmenené.</value></data>
+  <data name="Command_Roof_SelectionInvalid" xml:space="preserve"><value>&#xA;Vyber obrys alebo generovanú čiaru strechy.</value></data>
+  <data name="Command_Roof_SelectionInvalidDisplay" xml:space="preserve"><value>&#xA;Vybraná časť strechy má poškodené údaje zobrazenia.</value></data>
+  <data name="Command_Roof_SelectionFutureDisplay" xml:space="preserve"><value>&#xA;Vybraná časť strechy používa novšiu nepodporovanú schému zobrazenia.</value></data>
+  <data name="Command_Roof_SelectionOrphan" xml:space="preserve"><value>&#xA;Vybraná časť strechy nemá dostupný platný zdrojový obrys.</value></data>
+  <data name="Command_Roof_GroupMissing" xml:space="preserve"><value>&#xA;Strecha je platná, ale jej výberová skupina chýba alebo je poškodená.</value></data>
+  <data name="Command_Roof_GroupRepairPrompt" xml:space="preserve"><value>&#xA;Obnoviť výberovú skupinu strechy? [Áno/Nie] &lt;Nie&gt;: </value></data>
+  <data name="Command_Roof_GroupRepaired" xml:space="preserve"><value>&#xA;Výberová skupina strechy bola obnovená.</value></data>
 </root>

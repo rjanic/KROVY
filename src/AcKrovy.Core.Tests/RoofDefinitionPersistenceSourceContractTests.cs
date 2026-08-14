@@ -34,7 +34,11 @@ public sealed class RoofDefinitionPersistenceSourceContractTests
         Assert.Contains("PromptKeywordOptions", Workflow);
         Assert.Contains("GetKeywords", Workflow);
         Assert.Contains("OpenMode.ForWrite", Workflow);
-        Assert.Equal(1, CountOccurrences(Workflow, "transaction.Commit();"));
+        var persistPath = Segment(
+            Workflow,
+            "private static bool TryPersist",
+            "private static RoofDisplayInspection InspectDisplay");
+        Assert.Equal(1, CountOccurrences(persistPath, "transaction.Commit();"));
         Assert.DoesNotContain("GetKeywords", Segment(Workflow, "private static bool TryPersist", "private static bool TryPromptParameters"));
     }
 
@@ -64,7 +68,7 @@ public sealed class RoofDefinitionPersistenceSourceContractTests
     }
 
     [Fact]
-    public void NoPermanentRoofEntityAppendPathWasIntroduced()
+    public void SemanticDefinitionStore_DoesNotOwnDisplayEntityCreation()
     {
         var source = Store + Workflow;
         Assert.DoesNotContain("AppendEntity", source);

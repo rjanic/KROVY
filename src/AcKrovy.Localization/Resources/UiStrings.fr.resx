@@ -508,7 +508,7 @@
   <data name="Ribbon_Panel_Roofs" xml:space="preserve"><value>Toitures</value></data>
   <data name="CommandUi_Roof_Label" xml:space="preserve"><value>Toiture</value></data>
   <data name="CommandUi_Roof_Tooltip" xml:space="preserve"><value>Valide une emprise de toiture fermée en plan.</value></data>
-  <data name="Command_Roof_Prompt" xml:space="preserve"><value>&#xA;Sélectionnez une polyligne fermée pour l’emprise de toiture en plan : </value></data>
+  <data name="Command_Roof_Prompt" xml:space="preserve"><value>&#xA;Sélectionnez le contour ou une partie du toit : </value></data>
   <data name="Command_Roof_PolylineOnly" xml:space="preserve"><value>&#xA;Seule une polyligne légère peut être sélectionnée.</value></data>
   <data name="Command_Roof_ErrorOpen" xml:space="preserve"><value>&#xA;L’emprise de toiture doit être fermée.</value></data>
   <data name="Command_Roof_ErrorCurved" xml:space="preserve"><value>&#xA;Les segments courbes de l’emprise de toiture ne sont pas encore pris en charge.</value></data>
@@ -536,7 +536,7 @@
   <data name="Command_Roof_GeometryErrorSlope" xml:space="preserve"><value>&#xA;La pente du toit doit être finie, supérieure à 0° et inférieure à 90°.</value></data>
   <data name="Command_Roof_GeometryErrorDimensions" xml:space="preserve"><value>&#xA;Les dimensions de l’emprise sont trop petites pour un toit à deux pans simple.</value></data>
   <data name="Command_Roof_GeometryErrorNonFinite" xml:space="preserve"><value>&#xA;Le calcul de la géométrie du toit a produit une valeur infinie ou non valide.</value></data>
-  <data name="Command_Roof_PersistConfirmPrompt" xml:space="preserve"><value>&#xA;Enregistrer la définition du toit dans le dessin ? [Oui/Non] &lt;Non&gt; : </value></data>
+  <data name="Command_Roof_PersistConfirmPrompt" xml:space="preserve"><value>&#xA;Enregistrer la définition et créer la représentation permanente du toit ? [Oui/Non] &lt;Non&gt; : </value></data>
   <data name="Command_Roof_PersistedSaved" xml:space="preserve"><value>&#xA;La définition du toit a été enregistrée sur le contour sélectionné.</value></data>
   <data name="Command_Roof_PersistedLoaded" xml:space="preserve"><value>&#xA;La définition de toit enregistrée a été chargée.</value></data>
   <data name="Command_Roof_PersistedInvalid" xml:space="preserve"><value>&#xA;La définition de toit enregistrée est non valide ou endommagée.</value></data>
@@ -546,4 +546,21 @@
   <data name="Command_Roof_PersistFailed" xml:space="preserve"><value>&#xA;La définition du toit n'a pas pu être enregistrée.</value></data>
   <data name="Command_Roof_PersistSourceChanged" xml:space="preserve"><value>&#xA;Le contour du toit a changé pendant la commande. La définition n'a pas été enregistrée.</value></data>
   <data name="Command_Roof_PersistConflict" xml:space="preserve"><value>&#xA;Le contour contient déjà une définition de toit. Les données existantes sont restées inchangées.</value></data>
+  <data name="Command_Roof_PersistedAndDisplaySaved" xml:space="preserve"><value>&#xA;La définition du toit et sa représentation permanente ont été enregistrées.</value></data>
+  <data name="Command_Roof_DisplayCurrent" xml:space="preserve"><value>&#xA;La représentation permanente du toit est à jour.</value></data>
+  <data name="Command_Roof_DisplayMissing" xml:space="preserve"><value>&#xA;Le toit enregistré n’a pas encore de représentation permanente.</value></data>
+  <data name="Command_Roof_DisplayStale" xml:space="preserve"><value>&#xA;La représentation permanente du toit est absente, modifiée ou obsolète.</value></data>
+  <data name="Command_Roof_DisplayCreatePrompt" xml:space="preserve"><value>&#xA;Créer la représentation permanente du toit ? [Oui/Non] &lt;Non&gt; : </value></data>
+  <data name="Command_Roof_DisplayUpdatePrompt" xml:space="preserve"><value>&#xA;Régénérer la représentation permanente du toit ? [Oui/Non] &lt;Non&gt; : </value></data>
+  <data name="Command_Roof_DisplayCreated" xml:space="preserve"><value>&#xA;La représentation permanente du toit a été créée.</value></data>
+  <data name="Command_Roof_DisplayUpdated" xml:space="preserve"><value>&#xA;La représentation permanente du toit a été régénérée.</value></data>
+  <data name="Command_Roof_DisplayFailed" xml:space="preserve"><value>&#xA;La représentation permanente du toit n’a pas pu être créée ou régénérée.</value></data>
+  <data name="Command_Roof_DisplayFutureSchema" xml:space="preserve"><value>&#xA;La représentation permanente du toit utilise un schéma plus récent non pris en charge et est restée inchangée.</value></data>
+  <data name="Command_Roof_SelectionInvalid" xml:space="preserve"><value>&#xA;Sélectionnez un contour ou une ligne de toit générée.</value></data>
+  <data name="Command_Roof_SelectionInvalidDisplay" xml:space="preserve"><value>&#xA;La partie de toit sélectionnée contient des données de représentation endommagées.</value></data>
+  <data name="Command_Roof_SelectionFutureDisplay" xml:space="preserve"><value>&#xA;La partie de toit sélectionnée utilise un schéma de représentation plus récent non pris en charge.</value></data>
+  <data name="Command_Roof_SelectionOrphan" xml:space="preserve"><value>&#xA;La partie de toit sélectionnée ne possède aucun contour source valide disponible.</value></data>
+  <data name="Command_Roof_GroupMissing" xml:space="preserve"><value>&#xA;Le toit est valide, mais son groupe de sélection est absent ou endommagé.</value></data>
+  <data name="Command_Roof_GroupRepairPrompt" xml:space="preserve"><value>&#xA;Réparer le groupe de sélection du toit ? [Oui/Non] &lt;Non&gt; : </value></data>
+  <data name="Command_Roof_GroupRepaired" xml:space="preserve"><value>&#xA;Le groupe de sélection du toit a été réparé.</value></data>
 </root>

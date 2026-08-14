@@ -508,7 +508,7 @@
   <data name="Ribbon_Panel_Roofs" xml:space="preserve"><value>Roofs</value></data>
   <data name="CommandUi_Roof_Label" xml:space="preserve"><value>Roof</value></data>
   <data name="CommandUi_Roof_Tooltip" xml:space="preserve"><value>Validates a closed plan footprint for a roof.</value></data>
-  <data name="Command_Roof_Prompt" xml:space="preserve"><value>&#xA;Select a closed Polyline for the roof plan footprint: </value></data>
+  <data name="Command_Roof_Prompt" xml:space="preserve"><value>&#xA;Select the roof outline or any roof part: </value></data>
   <data name="Command_Roof_PolylineOnly" xml:space="preserve"><value>&#xA;Only a lightweight Polyline can be selected.</value></data>
   <data name="Command_Roof_ErrorOpen" xml:space="preserve"><value>&#xA;The roof footprint must be closed.</value></data>
   <data name="Command_Roof_ErrorCurved" xml:space="preserve"><value>&#xA;Curved roof-footprint segments are not supported yet.</value></data>
@@ -536,7 +536,7 @@
   <data name="Command_Roof_GeometryErrorSlope" xml:space="preserve"><value>&#xA;The roof slope must be finite, greater than 0°, and less than 90°.</value></data>
   <data name="Command_Roof_GeometryErrorDimensions" xml:space="preserve"><value>&#xA;The roof-footprint dimensions are too small for a simple gable roof.</value></data>
   <data name="Command_Roof_GeometryErrorNonFinite" xml:space="preserve"><value>&#xA;The roof-geometry calculation produced an infinite or invalid value.</value></data>
-  <data name="Command_Roof_PersistConfirmPrompt" xml:space="preserve"><value>&#xA;Save the roof definition in the drawing? [Yes/No] &lt;No&gt;: </value></data>
+  <data name="Command_Roof_PersistConfirmPrompt" xml:space="preserve"><value>&#xA;Save the definition and create the permanent roof display? [Yes/No] &lt;No&gt;: </value></data>
   <data name="Command_Roof_PersistedSaved" xml:space="preserve"><value>&#xA;The roof definition was saved on the selected footprint.</value></data>
   <data name="Command_Roof_PersistedLoaded" xml:space="preserve"><value>&#xA;The saved roof definition was loaded.</value></data>
   <data name="Command_Roof_PersistedInvalid" xml:space="preserve"><value>&#xA;The saved roof definition is invalid or damaged.</value></data>
@@ -546,4 +546,21 @@
   <data name="Command_Roof_PersistFailed" xml:space="preserve"><value>&#xA;The roof definition could not be saved.</value></data>
   <data name="Command_Roof_PersistSourceChanged" xml:space="preserve"><value>&#xA;The roof footprint changed during the command. The definition was not saved.</value></data>
   <data name="Command_Roof_PersistConflict" xml:space="preserve"><value>&#xA;The footprint already contains a roof definition. Existing data was left unchanged.</value></data>
+  <data name="Command_Roof_PersistedAndDisplaySaved" xml:space="preserve"><value>&#xA;The roof definition and its permanent display were saved.</value></data>
+  <data name="Command_Roof_DisplayCurrent" xml:space="preserve"><value>&#xA;The permanent roof display is current.</value></data>
+  <data name="Command_Roof_DisplayMissing" xml:space="preserve"><value>&#xA;The saved roof does not yet have a permanent display.</value></data>
+  <data name="Command_Roof_DisplayStale" xml:space="preserve"><value>&#xA;The permanent roof display is missing, modified, or out of date.</value></data>
+  <data name="Command_Roof_DisplayCreatePrompt" xml:space="preserve"><value>&#xA;Create the permanent roof display? [Yes/No] &lt;No&gt;: </value></data>
+  <data name="Command_Roof_DisplayUpdatePrompt" xml:space="preserve"><value>&#xA;Regenerate the permanent roof display? [Yes/No] &lt;No&gt;: </value></data>
+  <data name="Command_Roof_DisplayCreated" xml:space="preserve"><value>&#xA;The permanent roof display was created.</value></data>
+  <data name="Command_Roof_DisplayUpdated" xml:space="preserve"><value>&#xA;The permanent roof display was regenerated.</value></data>
+  <data name="Command_Roof_DisplayFailed" xml:space="preserve"><value>&#xA;The permanent roof display could not be created or regenerated.</value></data>
+  <data name="Command_Roof_DisplayFutureSchema" xml:space="preserve"><value>&#xA;The permanent roof display uses a newer unsupported schema and was left unchanged.</value></data>
+  <data name="Command_Roof_SelectionInvalid" xml:space="preserve"><value>&#xA;Select a roof outline or generated roof line.</value></data>
+  <data name="Command_Roof_SelectionInvalidDisplay" xml:space="preserve"><value>&#xA;The selected roof part has damaged display data.</value></data>
+  <data name="Command_Roof_SelectionFutureDisplay" xml:space="preserve"><value>&#xA;The selected roof part uses a newer unsupported display schema.</value></data>
+  <data name="Command_Roof_SelectionOrphan" xml:space="preserve"><value>&#xA;The selected roof part has no available valid source outline.</value></data>
+  <data name="Command_Roof_GroupMissing" xml:space="preserve"><value>&#xA;The roof is valid, but its selection group is missing or damaged.</value></data>
+  <data name="Command_Roof_GroupRepairPrompt" xml:space="preserve"><value>&#xA;Repair the roof selection group? [Yes/No] &lt;No&gt;: </value></data>
+  <data name="Command_Roof_GroupRepaired" xml:space="preserve"><value>&#xA;The roof selection group was repaired.</value></data>
 </root>

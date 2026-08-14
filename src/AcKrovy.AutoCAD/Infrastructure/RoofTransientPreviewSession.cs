@@ -1,4 +1,5 @@
 using AcKrovy.Core.Models.Roofs;
+using AcKrovy.Core.Services.Roofs;
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.Geometry;
@@ -64,41 +65,12 @@ internal sealed class RoofTransientPreviewSession : IDisposable
             throw new ArgumentOutOfRangeException(nameof(sourceElevation));
         }
 
-        var segments = new Dictionary<RoofPreviewSegmentKey, RoofPreviewSegment>();
-        AddSegment(geometry.Ridge.Start, geometry.Ridge.End, isRidge: true);
-        foreach (var face in geometry.Faces.OrderBy(face => face.Index))
-        {
-            for (var index = 0; index < face.BoundaryPoints.Count; index++)
-            {
-                AddSegment(
-                    face.BoundaryPoints[index],
-                    face.BoundaryPoints[(index + 1) % face.BoundaryPoints.Count],
-                    isRidge: false);
-            }
-        }
-
-        return segments.Values
-            .OrderByDescending(segment => segment.IsRidge)
-            .ThenBy(segment => segment.Start.X)
-            .ThenBy(segment => segment.Start.Y)
-            .ThenBy(segment => segment.Start.Z)
-            .ThenBy(segment => segment.End.X)
-            .ThenBy(segment => segment.End.Y)
-            .ThenBy(segment => segment.End.Z)
+        return SimpleGableRoofWireframe.Create(geometry, sourceElevation)
+            .Select(edge => new RoofPreviewSegment(
+                MapPoint(edge.Segment.Start),
+                MapPoint(edge.Segment.End),
+                edge.Role == RoofDisplayEdgeRole.Ridge))
             .ToArray();
-
-        void AddSegment(RoofPoint3D first, RoofPoint3D second, bool isRidge)
-        {
-            var key = RoofPreviewSegmentKey.Create(first, second);
-            var mapped = new RoofPreviewSegment(
-                MapPoint(key.Start, sourceElevation),
-                MapPoint(key.End, sourceElevation),
-                isRidge);
-            if (!segments.TryGetValue(key, out var existing) || isRidge && !existing.IsRidge)
-            {
-                segments[key] = mapped;
-            }
-        }
     }
 
     public void Dispose()
@@ -170,28 +142,8 @@ internal sealed class RoofTransientPreviewSession : IDisposable
         }
     }
 
-    private static Point3d MapPoint(RoofPoint3D point, double sourceElevation) =>
-        new(point.X, point.Y, sourceElevation + point.Z);
+    private static Point3d MapPoint(RoofPoint3D point) =>
+        new(point.X, point.Y, point.Z);
 
     internal sealed record RoofPreviewSegment(Point3d Start, Point3d End, bool IsRidge);
-
-    private readonly record struct RoofPreviewSegmentKey(RoofPoint3D Start, RoofPoint3D End)
-    {
-        public static RoofPreviewSegmentKey Create(RoofPoint3D first, RoofPoint3D second) =>
-            Compare(first, second) <= 0
-                ? new RoofPreviewSegmentKey(first, second)
-                : new RoofPreviewSegmentKey(second, first);
-
-        private static int Compare(RoofPoint3D first, RoofPoint3D second)
-        {
-            var x = first.X.CompareTo(second.X);
-            if (x != 0)
-            {
-                return x;
-            }
-
-            var y = first.Y.CompareTo(second.Y);
-            return y != 0 ? y : first.Z.CompareTo(second.Z);
-        }
-    }
 }

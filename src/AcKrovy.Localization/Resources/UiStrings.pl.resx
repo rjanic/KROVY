@@ -508,7 +508,7 @@
   <data name="Ribbon_Panel_Roofs" xml:space="preserve"><value>Dachy</value></data>
   <data name="CommandUi_Roof_Label" xml:space="preserve"><value>Dach</value></data>
   <data name="CommandUi_Roof_Tooltip" xml:space="preserve"><value>Sprawdza zamknięty obrys dachu w rzucie.</value></data>
-  <data name="Command_Roof_Prompt" xml:space="preserve"><value>&#xA;Wybierz zamkniętą polilinię obrysu dachu w rzucie: </value></data>
+  <data name="Command_Roof_Prompt" xml:space="preserve"><value>&#xA;Wybierz obrys lub dowolną część dachu: </value></data>
   <data name="Command_Roof_PolylineOnly" xml:space="preserve"><value>&#xA;Można wybrać tylko lekką polilinię.</value></data>
   <data name="Command_Roof_ErrorOpen" xml:space="preserve"><value>&#xA;Obrys dachu musi być zamknięty.</value></data>
   <data name="Command_Roof_ErrorCurved" xml:space="preserve"><value>&#xA;Zakrzywione segmenty obrysu dachu nie są jeszcze obsługiwane.</value></data>
@@ -536,7 +536,7 @@
   <data name="Command_Roof_GeometryErrorSlope" xml:space="preserve"><value>&#xA;Kąt nachylenia dachu musi być skończony, większy niż 0° i mniejszy niż 90°.</value></data>
   <data name="Command_Roof_GeometryErrorDimensions" xml:space="preserve"><value>&#xA;Wymiary obrysu dachu są zbyt małe dla prostego dachu dwuspadowego.</value></data>
   <data name="Command_Roof_GeometryErrorNonFinite" xml:space="preserve"><value>&#xA;Obliczenie geometrii dachu zwróciło nieskończoną lub nieprawidłową wartość.</value></data>
-  <data name="Command_Roof_PersistConfirmPrompt" xml:space="preserve"><value>&#xA;Zapisać definicję dachu w rysunku? [Tak/Nie] &lt;Nie&gt;: </value></data>
+  <data name="Command_Roof_PersistConfirmPrompt" xml:space="preserve"><value>&#xA;Zapisać definicję i utworzyć trwałe przedstawienie dachu? [Tak/Nie] &lt;Nie&gt;: </value></data>
   <data name="Command_Roof_PersistedSaved" xml:space="preserve"><value>&#xA;Definicja dachu została zapisana na wybranym obrysie.</value></data>
   <data name="Command_Roof_PersistedLoaded" xml:space="preserve"><value>&#xA;Wczytano zapisaną definicję dachu.</value></data>
   <data name="Command_Roof_PersistedInvalid" xml:space="preserve"><value>&#xA;Zapisana definicja dachu jest nieprawidłowa lub uszkodzona.</value></data>
@@ -546,4 +546,21 @@
   <data name="Command_Roof_PersistFailed" xml:space="preserve"><value>&#xA;Nie udało się zapisać definicji dachu.</value></data>
   <data name="Command_Roof_PersistSourceChanged" xml:space="preserve"><value>&#xA;Obrys dachu zmienił się podczas polecenia. Definicja nie została zapisana.</value></data>
   <data name="Command_Roof_PersistConflict" xml:space="preserve"><value>&#xA;Obrys zawiera już definicję dachu. Istniejące dane pozostały bez zmian.</value></data>
+  <data name="Command_Roof_PersistedAndDisplaySaved" xml:space="preserve"><value>&#xA;Definicja dachu i jej trwałe przedstawienie zostały zapisane.</value></data>
+  <data name="Command_Roof_DisplayCurrent" xml:space="preserve"><value>&#xA;Trwałe przedstawienie dachu jest aktualne.</value></data>
+  <data name="Command_Roof_DisplayMissing" xml:space="preserve"><value>&#xA;Zapisany dach nie ma jeszcze trwałego przedstawienia.</value></data>
+  <data name="Command_Roof_DisplayStale" xml:space="preserve"><value>&#xA;Trwałego przedstawienia dachu brakuje, zostało zmienione lub jest nieaktualne.</value></data>
+  <data name="Command_Roof_DisplayCreatePrompt" xml:space="preserve"><value>&#xA;Utworzyć trwałe przedstawienie dachu? [Tak/Nie] &lt;Nie&gt;: </value></data>
+  <data name="Command_Roof_DisplayUpdatePrompt" xml:space="preserve"><value>&#xA;Wygenerować ponownie trwałe przedstawienie dachu? [Tak/Nie] &lt;Nie&gt;: </value></data>
+  <data name="Command_Roof_DisplayCreated" xml:space="preserve"><value>&#xA;Trwałe przedstawienie dachu zostało utworzone.</value></data>
+  <data name="Command_Roof_DisplayUpdated" xml:space="preserve"><value>&#xA;Trwałe przedstawienie dachu zostało wygenerowane ponownie.</value></data>
+  <data name="Command_Roof_DisplayFailed" xml:space="preserve"><value>&#xA;Nie udało się utworzyć ani ponownie wygenerować trwałego przedstawienia dachu.</value></data>
+  <data name="Command_Roof_DisplayFutureSchema" xml:space="preserve"><value>&#xA;Trwałe przedstawienie dachu używa nowszego, nieobsługiwanego schematu i pozostało bez zmian.</value></data>
+  <data name="Command_Roof_SelectionInvalid" xml:space="preserve"><value>&#xA;Wybierz obrys lub wygenerowaną linię dachu.</value></data>
+  <data name="Command_Roof_SelectionInvalidDisplay" xml:space="preserve"><value>&#xA;Wybrana część dachu ma uszkodzone dane przedstawienia.</value></data>
+  <data name="Command_Roof_SelectionFutureDisplay" xml:space="preserve"><value>&#xA;Wybrana część dachu używa nowszego, nieobsługiwanego schematu przedstawienia.</value></data>
+  <data name="Command_Roof_SelectionOrphan" xml:space="preserve"><value>&#xA;Wybrana część dachu nie ma dostępnego prawidłowego obrysu źródłowego.</value></data>
+  <data name="Command_Roof_GroupMissing" xml:space="preserve"><value>&#xA;Dach jest prawidłowy, ale jego grupa wyboru nie istnieje lub jest uszkodzona.</value></data>
+  <data name="Command_Roof_GroupRepairPrompt" xml:space="preserve"><value>&#xA;Naprawić grupę wyboru dachu? [Tak/Nie] &lt;Nie&gt;: </value></data>
+  <data name="Command_Roof_GroupRepaired" xml:space="preserve"><value>&#xA;Grupa wyboru dachu została naprawiona.</value></data>
 </root>

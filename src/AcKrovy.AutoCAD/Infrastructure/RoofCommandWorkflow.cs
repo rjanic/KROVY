@@ -8,7 +8,7 @@ using Autodesk.AutoCAD.EditorInput;
 
 namespace AcKrovy.AutoCAD.Infrastructure;
 
-/// <summary>S1 validation, transient preview and lazy persisted-definition lifecycle.</summary>
+/// <summary>Validated roof definition, transient preview and explicit permanent-display lifecycle.</summary>
 internal static class RoofCommandWorkflow
 {
     public static void Run(Document document)
@@ -20,8 +20,6 @@ internal static class RoofCommandWorkflow
         {
             var prompt = new PromptEntityOptions(
                 UiStrings.GetString("Command_Roof_Prompt"));
-            prompt.SetRejectMessage(UiStrings.GetString("Command_Roof_PolylineOnly"));
-            prompt.AddAllowedClass(typeof(Polyline), exactMatch: true);
             var selected = editor.GetEntity(prompt);
             if (selected.Status != PromptStatus.OK)
             {
@@ -31,18 +29,31 @@ internal static class RoofCommandWorkflow
             RoofValidationResult validation;
             RoofFootprintInput sourceInput;
             double sourceElevation;
+            string sourceReference;
+            ObjectId ownerId;
             RoofDefinitionStoreReadResult storedDefinition;
             using (var transaction = document.Database.TransactionManager.StartTransaction())
             {
-                if (transaction.GetObject(selected.ObjectId, OpenMode.ForRead) is not Polyline polyline)
+                var resolution = RoofOwnerSelectionResolver.Resolve(
+                    document.Database,
+                    transaction,
+                    selected.ObjectId);
+                if (!resolution.IsResolved)
                 {
-                    editor.WriteMessage(UiStrings.GetString("Command_Roof_PolylineOnly"));
+                    editor.WriteMessage(GetSelectionMessage(resolution.Error));
+                    continue;
+                }
+                ownerId = resolution.OwnerId;
+                if (transaction.GetObject(ownerId, OpenMode.ForRead) is not Polyline polyline)
+                {
+                    editor.WriteMessage(UiStrings.GetString("Command_Roof_SelectionOrphan"));
                     continue;
                 }
 
                 sourceInput = RoofPolylineExtractor.Extract(polyline);
                 validation = RoofFootprintValidator.Validate(sourceInput);
                 sourceElevation = RoofPolylineExtractor.GetSourceElevation(polyline);
+                sourceReference = polyline.Handle.ToString();
                 storedDefinition = RoofDefinitionStore.Read(polyline);
             }
 
@@ -85,9 +96,67 @@ internal static class RoofCommandWorkflow
                     continue;
                 }
 
-                editor.SetImpliedSelection([selected.ObjectId]);
+                editor.SetImpliedSelection([ownerId]);
                 editor.WriteMessage(UiStrings.GetString("Command_Roof_PersistedLoaded"));
                 ShowPreview(document, restored.Geometry, sourceElevation);
+
+                var edges = SimpleGableRoofWireframe.Create(restored.Geometry, sourceElevation);
+                var signature = SimpleGableRoofWireframe.BuildGenerationSignature(edges);
+                var display = InspectDisplay(
+                    document.Database,
+                    ownerId,
+                    sourceReference,
+                    edges,
+                    signature);
+                if (display.Validation.IsCurrent)
+                {
+                    if (display.Group.IsCurrent)
+                    {
+                        editor.WriteMessage(UiStrings.GetString("Command_Roof_DisplayCurrent"));
+                        return;
+                    }
+
+                    editor.WriteMessage(UiStrings.GetString("Command_Roof_GroupMissing"));
+                    if (!ConfirmYesNo(editor, "Command_Roof_GroupRepairPrompt"))
+                    {
+                        return;
+                    }
+                    if (TryRebuildDisplay(document, ownerId, out var groupFailureKey))
+                    {
+                        editor.WriteMessage(UiStrings.GetString("Command_Roof_GroupRepaired"));
+                    }
+                    else
+                    {
+                        editor.WriteMessage(UiStrings.GetString(groupFailureKey));
+                    }
+                    return;
+                }
+                if (display.Validation.Issues.HasFlag(
+                        RoofDisplayValidationIssue.UnsupportedFutureSchema))
+                {
+                    editor.WriteMessage(UiStrings.GetString("Command_Roof_DisplayFutureSchema"));
+                    return;
+                }
+
+                var isMissing = display.Validation.State == RoofDisplayState.Missing;
+                editor.WriteMessage(UiStrings.GetString(isMissing
+                    ? "Command_Roof_DisplayMissing"
+                    : "Command_Roof_DisplayStale"));
+                if (!ConfirmDisplayPersistence(editor, isMissing))
+                {
+                    return;
+                }
+
+                if (TryRebuildDisplay(document, ownerId, out var displayFailureKey))
+                {
+                    editor.WriteMessage(UiStrings.GetString(isMissing
+                        ? "Command_Roof_DisplayCreated"
+                        : "Command_Roof_DisplayUpdated"));
+                }
+                else
+                {
+                    editor.WriteMessage(UiStrings.GetString(displayFailureKey));
+                }
                 return;
             }
 
@@ -104,7 +173,7 @@ internal static class RoofCommandWorkflow
                 continue;
             }
 
-            editor.SetImpliedSelection([selected.ObjectId]);
+            editor.SetImpliedSelection([ownerId]);
             editor.UpdateScreen();
             editor.WriteMessage(UiStrings.Format(
                 UiStrings.GetString("Command_Roof_AcceptedFormat"),
@@ -124,11 +193,11 @@ internal static class RoofCommandWorkflow
                 geometryResult.Geometry);
             if (TryPersist(
                     document,
-                    selected.ObjectId,
+                    ownerId,
                     definitionData,
                     out var failureMessageKey))
             {
-                editor.WriteMessage(UiStrings.GetString("Command_Roof_PersistedSaved"));
+                editor.WriteMessage(UiStrings.GetString("Command_Roof_PersistedAndDisplaySaved"));
             }
             else
             {
@@ -155,12 +224,22 @@ internal static class RoofCommandWorkflow
     }
 
     private static bool ConfirmPersistence(Editor editor)
+        => ConfirmYesNo(editor, "Command_Roof_PersistConfirmPrompt");
+
+    private static bool ConfirmDisplayPersistence(Editor editor, bool isMissing)
+        => ConfirmYesNo(
+            editor,
+            isMissing
+                ? "Command_Roof_DisplayCreatePrompt"
+                : "Command_Roof_DisplayUpdatePrompt");
+
+    private static bool ConfirmYesNo(Editor editor, string promptKey)
     {
         var uiCulture = AppLanguageService.CurrentUiCulture;
         var yes = UiStrings.GetString("Message_Yes", uiCulture);
         var no = UiStrings.GetString("Message_No", uiCulture);
         var options = new PromptKeywordOptions(
-            UiStrings.GetString("Command_Roof_PersistConfirmPrompt", uiCulture))
+            UiStrings.GetString(promptKey, uiCulture))
         {
             AllowNone = true,
             AppendKeywordsToMessage = false,
@@ -220,7 +299,106 @@ internal static class RoofCommandWorkflow
                 return false;
             }
 
+            var restored = RoofDefinitionPersistence.Restore(
+                currentInput,
+                current.Footprint,
+                data);
+            if (!restored.IsValid || restored.Geometry is null)
+            {
+                failureMessageKey = "Command_Roof_PersistSourceChanged";
+                return false;
+            }
+
+            var sourceElevation = RoofPolylineExtractor.GetSourceElevation(owner);
+            var edges = SimpleGableRoofWireframe.Create(restored.Geometry, sourceElevation);
+            var signature = SimpleGableRoofWireframe.BuildGenerationSignature(edges);
             RoofDefinitionStore.Write(owner, transaction, data);
+            if (!RoofDisplayService.Rebuild(
+                    document.Database,
+                    transaction,
+                    owner.ObjectId,
+                    owner.Handle.ToString(),
+                    edges,
+                    signature))
+            {
+                failureMessageKey = "Command_Roof_DisplayFutureSchema";
+                return false;
+            }
+            transaction.Commit();
+            return true;
+        }
+        catch (System.Exception)
+        {
+            return false;
+        }
+    }
+
+    private static RoofDisplayInspection InspectDisplay(
+        Database database,
+        ObjectId ownerId,
+        string ownerReference,
+        IReadOnlyList<RoofDisplayEdge> edges,
+        string signature)
+    {
+        using var transaction = database.TransactionManager.StartTransaction();
+        return RoofDisplayService.Inspect(
+            database,
+            transaction,
+            ownerId,
+            ownerReference,
+            edges,
+            signature);
+    }
+
+    private static bool TryRebuildDisplay(
+        Document document,
+        ObjectId ownerId,
+        out string failureMessageKey)
+    {
+        failureMessageKey = "Command_Roof_DisplayFailed";
+        try
+        {
+            using var documentLock = document.LockDocument();
+            using var transaction = document.Database.TransactionManager.StartTransaction();
+            if (transaction.GetObject(ownerId, OpenMode.ForRead) is not Polyline owner)
+            {
+                return false;
+            }
+
+            var input = RoofPolylineExtractor.Extract(owner);
+            var validation = RoofFootprintValidator.Validate(input);
+            var stored = RoofDefinitionStore.Read(owner);
+            if (!validation.IsValid || validation.Footprint is null || stored.Data is null)
+            {
+                failureMessageKey = "Command_Roof_PersistedInvalid";
+                return false;
+            }
+
+            var restored = RoofDefinitionPersistence.Restore(input, validation.Footprint, stored.Data);
+            if (!restored.IsValid || restored.Geometry is null)
+            {
+                failureMessageKey = restored.Error == RoofDefinitionRestoreError.StaleFootprint
+                    ? "Command_Roof_PersistedStale"
+                    : "Command_Roof_PersistedInvalid";
+                return false;
+            }
+
+            var edges = SimpleGableRoofWireframe.Create(
+                restored.Geometry,
+                RoofPolylineExtractor.GetSourceElevation(owner));
+            var signature = SimpleGableRoofWireframe.BuildGenerationSignature(edges);
+            if (!RoofDisplayService.Rebuild(
+                    document.Database,
+                    transaction,
+                    owner.ObjectId,
+                    owner.Handle.ToString(),
+                    edges,
+                    signature))
+            {
+                failureMessageKey = "Command_Roof_DisplayFutureSchema";
+                return false;
+            }
+
             transaction.Commit();
             return true;
         }
@@ -293,6 +471,20 @@ internal static class RoofCommandWorkflow
             RoofValidationError.DegenerateArea => "Command_Roof_ErrorDegenerate",
             RoofValidationError.RedundantCollinearVertex => "Command_Roof_ErrorCollinearVertex",
             _ => "Command_Roof_ErrorUnsupported",
+        });
+
+    private static string GetSelectionMessage(RoofOwnerSelectionError error) =>
+        UiStrings.GetString(error switch
+        {
+            RoofOwnerSelectionError.MalformedDisplayMetadata =>
+                "Command_Roof_SelectionInvalidDisplay",
+            RoofOwnerSelectionError.UnsupportedFutureDisplaySchema =>
+                "Command_Roof_SelectionFutureDisplay",
+            RoofOwnerSelectionError.InvalidOwnerReference or
+            RoofOwnerSelectionError.MissingOwner or
+            RoofOwnerSelectionError.OwnerIsNotPolyline =>
+                "Command_Roof_SelectionOrphan",
+            _ => "Command_Roof_SelectionInvalid",
         });
 
     private static string GetOrientationText(RoofPolygonOrientation orientation) =>

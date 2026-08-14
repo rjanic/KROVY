@@ -8,8 +8,8 @@
 
 **Verzia aplikácie:** autoritatívne v `Directory.Build.props`
 
-**Aktuálny míľnik:** STRECHY S2 Stage 4 „Rigid-Transform Roof Lifecycle Foundation“,
-implementovaný lokálne a automaticky overený; manuálne AutoCAD lifecycle/DBMOD testy sú otvorené
+**Aktuálny míľnik:** STRECHY S2 Stage 5 „Permanent Simple-Gable Roof Display“,
+implementovaný lokálne; automatická validácia a manuálny AutoCAD HOST checkpoint sú súčasťou etapy
 
 **Overovanie:** Debug/Release build, kompletné automatické testy a Portable/Full Compatibility Gate
 
@@ -433,6 +433,33 @@ Stabilný commit: `4a951041e2deef40a127ac9560cf6fb2ba4b6a5b`
   sa potvrdí až HOST dôkazom, že AutoCAD kopíruje dedikované XData,
 - bez reactorov, write-on-read, permanentnej roof geometrie a timber generation;
   MOVE/ROTATE/COPY/SAVE-REOPEN a DBMOD HOST acceptance zostáva otvorená.
+
+### STRECHY S2 Stage 5 – permanent simple-gable roof display
+- CAD-neutrálny `SimpleGableRoofWireframe` enumeruje výhradne zo solver výsledku
+  presne sedem rolí: hrebeň, dva odkvapy a štyri štítové sklonové hrany,
+- potvrdené uloženie novej strechy atomicky zapíše semantic roof definition aj sedem
+  natívnych `Line` na `KROV_STRECHA`; display je regenerovateľná cache, nie zdroj pravdy,
+- deti používajú samostatný RegApp `DECORAIR_ACADKROVY_ROOF_DISPLAY`, display schema `1`,
+  owner handle, stabilnú rolu a generation signature; roof schema zostáva `2`,
+- existujúci aktuálny display je read-only; missing/stale/damaged display sa obnoví iba
+  po explicitnom Yes a maže iba deti daného ownera, bez zápisu do source Polyline,
+- MOVE/ROTATE sa prejavia až explicitnou regeneráciou cez `AK_ROOF`; STRETCH stale
+  definícia sa naďalej odmieta a žiadne reactors ani timber generation neboli pridané,
+- S2 nie je dokončené; SAVE/REOPEN, lifecycle, DBMOD, Undo/Redo a vizuálny HOST test
+  tejto etapy zostávajú na manuálne AutoCAD 2027 overenie.
+- UX rozšírenie udržiava deterministickú AutoCAD GROUP `AK_ROOF_<OWNER_HANDLE>`
+  s presne ôsmimi členmi (owner + 7 display Lines); skupina je iba opraviteľná
+  interakčná cache a jej absencia nemení platnosť semantic roof definition,
+- `AK_ROOF` prijíma source Polyline aj ľubovoľné display dieťa a owner rieši výhradne
+  cez jeho display XData/handle, bez geometrických alebo nearest-object heuristík,
+- ridge používa samostatnú ByLayer vrstvu `KROV_STRECHA_HREBEN` ACI 1; ostatných
+  šesť hrán zostáva na `KROV_STRECHA` ACI 4,
+- PICKSTYLE zostáva používateľským nastavením; pri zapnutom group selection môže
+  spoločný MOVE/ROTATE všetkých ôsmich členov ponechať display geometricky current
+  bez rebuildu, aj keď pôvodná diagnostická generation signature ostala nezmenená,
+- žiadny BlockReference, custom entity, reactor ani timber generation nebol pridaný.
+- source-only COPY zostáva podporovaný cez nový owner handle; COPY celej GROUP sa bez
+  úplného deep-clone HOST dôkazu zámerne nevyhlasuje za podporovaný kontrakt.
 
 ## Povinné kompatibilitné pravidlá
 

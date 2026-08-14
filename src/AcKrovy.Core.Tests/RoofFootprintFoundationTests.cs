@@ -29,6 +29,20 @@ public sealed class RoofFootprintFoundationTests
     }
 
     [Fact]
+    public void CanonicalFirstVertex_IgnoresMeasuredRigidTransformResidueOnNominallyEqualX()
+    {
+        const double measuredHostMaxComponentDeltaMm = 2.9103830456733704e-11d;
+        var result = Validate(
+            P(2000d, 1000d),
+            P(2000d, 9000d),
+            P(-6000d - measuredHostMaxComponentDeltaMm, 9000d),
+            P(-6000d, 1000d));
+
+        Assert.True(result.IsValid);
+        Assert.Equal(P(-6000d, 1000d), result.Footprint!.Vertices[0]);
+    }
+
+    [Fact]
     public void IrregularConvexPolygon_IsAccepted()
     {
         var result = Validate(P(1, 1), P(8, 0), P(11, 5), P(7, 9), P(0, 6));

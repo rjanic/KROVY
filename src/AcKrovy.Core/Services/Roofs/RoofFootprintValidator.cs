@@ -223,9 +223,10 @@ public static class RoofFootprintValidator
         var first = 0;
         for (var index = 1; index < vertices.Count; index++)
         {
-            if (vertices[index].X < vertices[first].X ||
-                vertices[index].X == vertices[first].X &&
-                vertices[index].Y < vertices[first].Y)
+            var xDelta = vertices[index].X - vertices[first].X;
+            if (xDelta < -DuplicateVertexToleranceMm ||
+                Math.Abs(xDelta) <= DuplicateVertexToleranceMm &&
+                vertices[index].Y < vertices[first].Y - DuplicateVertexToleranceMm)
             {
                 first = index;
             }

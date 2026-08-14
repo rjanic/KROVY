@@ -5,7 +5,7 @@
 **Predchádzajúci stabilný commit v0.19.0:** `41373d235a357dee05033872a1df8fed8b3286d3`
 **Predchádzajúci stabilný commit v0.20.0:** `6564fc930d98e3eca591bafcccef709af07dc9a5`
 **Predchádzajúci stabilný commit v0.21.0:** `f98900c1bd257a8e5357f6e77eb6f118bd4930d3`
-**Aktuálny míľnik:** STRECHY S2 Stage 4 „Rigid-Transform Roof Lifecycle Foundation“, implementovaný lokálne a automaticky overený; manuálne AutoCAD lifecycle/DBMOD testy sú otvorené
+**Aktuálny míľnik:** STRECHY S2 Stage 5 „Permanent Simple-Gable Roof Display“, implementovaný lokálne; automatická validácia a manuálny AutoCAD HOST checkpoint sú súčasťou etapy
 
 Tento dokument určuje odporúčané poradie ďalšieho vývoja. Úplný zásobník nápadov je v `ACAD_KROVY_BACKLOG.md`.
 
@@ -226,6 +226,24 @@ overiť abstractions pred veľkým roof automation modulom.
   až po reálnom HOST potvrdení kopírovania `DECORAIR_ACADKROVY_ROOF` XData,
 - bez permanentnej roof geometrie a timber generation; HOST lifecycle/DBMOD
   acceptance je otvorená a celý S2 týmto nie je dokončený.
+
+### Stage 5 – permanent simple-gable roof display – IMPLEMENTOVANÝ LOKÁLNE
+- solver geometry sa mapuje na presne sedem natívnych `Line` cez neutrálny stabilný
+  role kontrakt, bez druhej strešnej matematiky v AutoCAD adaptéri,
+- `KROV_STRECHA` + `DECORAIR_ACADKROVY_ROOF_DISPLAY` schema `1` tvoria oddelenú,
+  odstrániteľnú a regenerovateľnú display cache vlastnenú source Polyline handle,
+- nový roof zapisuje definition + display jedným potvrdeným transaction commitom;
+  existujúci missing/stale display sa obnovuje iba po Yes, current/No/Esc sú read-only,
+- bez reactorov a timber generation; roof schema `2`, timber schema `7`, drawing schema `1`
+  a package version zostávajú nezmenené; S2 nie je dokončené,
+- manuálny AutoCAD 2027 visual/lifecycle/DBMOD/Undo HOST checkpoint zostáva otvorený.
+- lokálne UX rozšírenie pridáva opraviteľnú 8-member GROUP `AK_ROOF_<handle>`,
+  výber ownera cez každé tagged display dieťa a samostatnú červenú ridge vrstvu;
+  GROUP nie je semantic truth a PICKSTYLE sa nemení,
+- spoločný rigidný MOVE/ROTATE ownera a displaya sa validuje podľa skutočných hrán,
+  takže geometricky current cache nevyžaduje rebuild iba pre starú generation signature.
+- source-only COPY môže vytvoriť vlastný display/group; deep clone celej GROUP zostáva
+  mimo podporovaného kontraktu, kým nebude úplne HOST overený.
 
 ### Ďalšie S2 stages
 - doplniť neutrálne vstupy: presah, rozostup a prierez krokiev,

@@ -209,7 +209,9 @@ public static class SimpleGableRoofGeometrySolver
         }
 
         axis = Scale(axis, 1d / axisLength);
-        if (axis.X < 0d || axis.X == 0d && axis.Y < 0d)
+        if (axis.X < -SimpleGableRoofGeometryTolerance.AngularTolerance ||
+            Math.Abs(axis.X) <= SimpleGableRoofGeometryTolerance.AngularTolerance &&
+            axis.Y < 0d)
         {
             axis = Scale(axis, -1d);
         }
