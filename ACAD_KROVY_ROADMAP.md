@@ -1,11 +1,11 @@
 # ACAD KROVY – ROADMAP
 
-**Aktualizované:** 13. 8. 2026
+**Aktualizované:** 14. 8. 2026
 **Predchádzajúci stabilný commit v0.18.0:** `46ad0cfe555f9f3177de2d47d13bdda33d9a91a0`
 **Predchádzajúci stabilný commit v0.19.0:** `41373d235a357dee05033872a1df8fed8b3286d3`
 **Predchádzajúci stabilný commit v0.20.0:** `6564fc930d98e3eca591bafcccef709af07dc9a5`
 **Predchádzajúci stabilný commit v0.21.0:** `f98900c1bd257a8e5357f6e77eb6f118bd4930d3`
-**Aktuálny míľnik:** STRECHY S2 Stage 5 „Permanent Simple-Gable Roof Display“, implementovaný lokálne; automatická validácia a manuálny AutoCAD HOST checkpoint sú súčasťou etapy
+**Aktuálny míľnik:** post-Stage-5 „Roof Validation WPF Notifications Polish“, implementovaný lokálne; manuálny AutoCAD HOST W1–W4 checkpoint je otvorený
 
 Tento dokument určuje odporúčané poradie ďalšieho vývoja. Úplný zásobník nápadov je v `ACAD_KROVY_BACKLOG.md`.
 
@@ -227,7 +227,7 @@ overiť abstractions pred veľkým roof automation modulom.
 - bez permanentnej roof geometrie a timber generation; HOST lifecycle/DBMOD
   acceptance je otvorená a celý S2 týmto nie je dokončený.
 
-### Stage 5 – permanent simple-gable roof display – IMPLEMENTOVANÝ LOKÁLNE
+### Stage 5 – permanent simple-gable roof display – PUBLIKOVANÝ
 - solver geometry sa mapuje na presne sedem natívnych `Line` cez neutrálny stabilný
   role kontrakt, bez druhej strešnej matematiky v AutoCAD adaptéri,
 - `KROV_STRECHA` + `DECORAIR_ACADKROVY_ROOF_DISPLAY` schema `1` tvoria oddelenú,
@@ -236,7 +236,7 @@ overiť abstractions pred veľkým roof automation modulom.
   existujúci missing/stale display sa obnovuje iba po Yes, current/No/Esc sú read-only,
 - bez reactorov a timber generation; roof schema `2`, timber schema `7`, drawing schema `1`
   a package version zostávajú nezmenené; S2 nie je dokončené,
-- manuálny AutoCAD 2027 visual/lifecycle/DBMOD/Undo HOST checkpoint zostáva otvorený.
+- manuálny AutoCAD 2027 visual/lifecycle/DBMOD/Undo HOST checkpoint prešiel.
 - lokálne UX rozšírenie pridáva opraviteľnú 8-member GROUP `AK_ROOF_<handle>`,
   výber ownera cez každé tagged display dieťa a samostatnú červenú ridge vrstvu;
   GROUP nie je semantic truth a PICKSTYLE sa nemení,
@@ -244,6 +244,9 @@ overiť abstractions pred veľkým roof automation modulom.
   takže geometricky current cache nevyžaduje rebuild iba pre starú generation signature.
 - source-only COPY môže vytvoriť vlastný display/group; deep clone celej GROUP zostáva
   mimo podporovaného kontraktu, kým nebude úplne HOST overený.
+- post-Stage-5 polish používa existujúce transient WPF upozornenie iba pre blokujúce
+  selection/footprint validácie; normálne prompty, stale semantic/display workflow a
+  technické zlyhania zostávajú CLI, bez DB write alebo input bleed.
 
 ### Ďalšie S2 stages
 - doplniť neutrálne vstupy: presah, rozostup a prierez krokiev,

@@ -13,9 +13,18 @@ namespace AcKrovy.Wpf.Tests;
 public sealed class RoofTransientNotificationSmokeTests
 {
     private static readonly string[] LanguageCodes = ["sk", "cs", "en", "de", "pl", "fr"];
+    private static readonly (string TitleKey, string BodyKey)[] NotificationKeys =
+    [
+        ("Command_Roof_OpenLoopNotificationTitle", "Command_Roof_OpenLoopNotificationBody"),
+        ("Command_Roof_InvalidObjectNotificationTitle", "Command_Roof_InvalidObjectNotificationBody"),
+        ("Command_Roof_InvalidFootprintNotificationTitle", "Command_Roof_InvalidFootprintNotificationBody"),
+        ("Command_Roof_UnsupportedFootprintNotificationTitle", "Command_Roof_UnsupportedFootprintNotificationBody"),
+        ("Command_Roof_InvalidDirectionNotificationTitle", "Command_Roof_InvalidDirectionNotificationBody"),
+        ("Command_Roof_InvalidSlopeNotificationTitle", "Command_Roof_InvalidSlopeNotificationBody"),
+    ];
 
     [Fact]
-    public void OpenLoopNotification_ConstructsInAllLanguagesAndThemes()
+    public void RoofValidationNotifications_ConstructInAllLanguagesAndThemes()
     {
         Exception? failure = null;
         var thread = new Thread(() =>
@@ -30,31 +39,34 @@ public sealed class RoofTransientNotificationSmokeTests
                 foreach (var languageCode in LanguageCodes)
                 {
                     AppLanguageService.Apply(languageCode);
-                    var title = UiStrings.GetString("Command_Roof_OpenLoopNotificationTitle");
-                    var body = UiStrings.GetString("Command_Roof_OpenLoopNotificationBody");
-                    foreach (var theme in new[] { SettingsTheme.Light, SettingsTheme.Dark })
+                    foreach (var notificationKeys in NotificationKeys)
                     {
-                        var window = new TransientNotificationWindow(title, body, theme)
+                        var title = UiStrings.GetString(notificationKeys.TitleKey);
+                        var body = UiStrings.GetString(notificationKeys.BodyKey);
+                        foreach (var theme in new[] { SettingsTheme.Light, SettingsTheme.Dark })
                         {
-                            Left = -30000,
-                            Top = -30000,
-                            ShowInTaskbar = false,
-                        };
-                        window.Show();
-                        window.UpdateLayout();
+                            var window = new TransientNotificationWindow(title, body, theme)
+                            {
+                                Left = -30000,
+                                Top = -30000,
+                                ShowInTaskbar = false,
+                            };
+                            window.Show();
+                            window.UpdateLayout();
 
-                        Assert.Equal(TimeSpan.FromMilliseconds(2500), window.AutoCloseDuration);
-                        Assert.Equal(title, window.Title);
-                        Assert.Equal(title, window.NotificationTitleText.Text);
-                        Assert.Equal(body, window.NotificationBodyText.Text);
-                        Assert.DoesNotContain("Command_Roof_", window.Title, StringComparison.Ordinal);
-                        Assert.NotNull(window.NotificationCard.Background);
-                        Assert.NotNull(window.NotificationCard.BorderBrush);
-                        Assert.Equal(WindowStyle.None, window.WindowStyle);
-                        Assert.Equal(ResizeMode.NoResize, window.ResizeMode);
-                        Assert.True(window.AllowsTransparency);
-                        Assert.False(window.ShowInTaskbar);
-                        window.Close();
+                            Assert.Equal(TimeSpan.FromMilliseconds(2500), window.AutoCloseDuration);
+                            Assert.Equal(title, window.Title);
+                            Assert.Equal(title, window.NotificationTitleText.Text);
+                            Assert.Equal(body, window.NotificationBodyText.Text);
+                            Assert.DoesNotContain("Command_Roof_", window.Title, StringComparison.Ordinal);
+                            Assert.NotNull(window.NotificationCard.Background);
+                            Assert.NotNull(window.NotificationCard.BorderBrush);
+                            Assert.Equal(WindowStyle.None, window.WindowStyle);
+                            Assert.Equal(ResizeMode.NoResize, window.ResizeMode);
+                            Assert.True(window.AllowsTransparency);
+                            Assert.False(window.ShowInTaskbar);
+                            window.Close();
+                        }
                     }
                 }
 

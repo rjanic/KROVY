@@ -11,6 +11,25 @@ namespace AcKrovy.AutoCAD.Infrastructure;
 /// <summary>Validated roof definition, transient preview and explicit permanent-display lifecycle.</summary>
 internal static class RoofCommandWorkflow
 {
+    private static readonly RoofNotificationDescriptor InvalidObjectNotification = new(
+        "Command_Roof_InvalidObjectNotificationTitle",
+        "Command_Roof_InvalidObjectNotificationBody");
+    private static readonly RoofNotificationDescriptor OpenLoopNotification = new(
+        "Command_Roof_OpenLoopNotificationTitle",
+        "Command_Roof_OpenLoopNotificationBody");
+    private static readonly RoofNotificationDescriptor InvalidFootprintNotification = new(
+        "Command_Roof_InvalidFootprintNotificationTitle",
+        "Command_Roof_InvalidFootprintNotificationBody");
+    private static readonly RoofNotificationDescriptor UnsupportedFootprintNotification = new(
+        "Command_Roof_UnsupportedFootprintNotificationTitle",
+        "Command_Roof_UnsupportedFootprintNotificationBody");
+    private static readonly RoofNotificationDescriptor InvalidDirectionNotification = new(
+        "Command_Roof_InvalidDirectionNotificationTitle",
+        "Command_Roof_InvalidDirectionNotificationBody");
+    private static readonly RoofNotificationDescriptor InvalidSlopeNotification = new(
+        "Command_Roof_InvalidSlopeNotificationTitle",
+        "Command_Roof_InvalidSlopeNotificationBody");
+
     public static void Run(Document document)
     {
         ArgumentNullException.ThrowIfNull(document);
@@ -40,7 +59,14 @@ internal static class RoofCommandWorkflow
                     selected.ObjectId);
                 if (!resolution.IsResolved)
                 {
-                    editor.WriteMessage(GetSelectionMessage(resolution.Error));
+                    if (TryGetSelectionNotification(resolution.Error, out var notification))
+                    {
+                        ShowNotification(notification);
+                    }
+                    else
+                    {
+                        editor.WriteMessage(GetSelectionMessage(resolution.Error));
+                    }
                     continue;
                 }
                 ownerId = resolution.OwnerId;
@@ -59,13 +85,9 @@ internal static class RoofCommandWorkflow
 
             if (!validation.IsValid || validation.Footprint is null)
             {
-                if (validation.Error == RoofValidationError.OpenLoop)
+                if (TryGetValidationNotification(validation.Error, out var notification))
                 {
-                    // Custom transient window is the primary OpenLoop UX; avoid
-                    // duplicating the same error on the command line.
-                    TransientNotificationService.Show(
-                        "Command_Roof_OpenLoopNotificationTitle",
-                        "Command_Roof_OpenLoopNotificationBody");
+                    ShowNotification(notification);
                 }
                 else
                 {
@@ -169,7 +191,14 @@ internal static class RoofCommandWorkflow
             var geometryResult = SimpleGableRoofGeometrySolver.Solve(definition);
             if (!geometryResult.IsValid || geometryResult.Geometry is null)
             {
-                editor.WriteMessage(GetGeometryMessage(geometryResult.Error));
+                if (TryGetGeometryNotification(geometryResult.Error, out var notification))
+                {
+                    ShowNotification(notification);
+                }
+                else
+                {
+                    editor.WriteMessage(GetGeometryMessage(geometryResult.Error));
+                }
                 continue;
             }
 
@@ -457,6 +486,86 @@ internal static class RoofCommandWorkflow
         return true;
     }
 
+    private static void ShowNotification(RoofNotificationDescriptor notification) =>
+        TransientNotificationService.Show(
+            notification.TitleResourceKey,
+            notification.BodyResourceKey);
+
+    private static bool TryGetSelectionNotification(
+        RoofOwnerSelectionError error,
+        out RoofNotificationDescriptor notification)
+    {
+        if (error == RoofOwnerSelectionError.UnrelatedObject)
+        {
+            notification = InvalidObjectNotification;
+            return true;
+        }
+
+        notification = default;
+        return false;
+    }
+
+    private static bool TryGetValidationNotification(
+        RoofValidationError error,
+        out RoofNotificationDescriptor notification)
+    {
+        if (error == RoofValidationError.OpenLoop)
+        {
+            notification = OpenLoopNotification;
+            return true;
+        }
+
+        if (error is RoofValidationError.UnsupportedCurvedSegment or
+            RoofValidationError.NonPlanar or
+            RoofValidationError.FewerThanThreeUniqueVertices or
+            RoofValidationError.NonFiniteCoordinate or
+            RoofValidationError.DuplicateConsecutiveVertex or
+            RoofValidationError.ZeroLengthEdge or
+            RoofValidationError.SelfIntersection or
+            RoofValidationError.DegenerateArea or
+            RoofValidationError.RedundantCollinearVertex)
+        {
+            notification = InvalidFootprintNotification;
+            return true;
+        }
+
+        notification = default;
+        return false;
+    }
+
+    private static bool TryGetGeometryNotification(
+        SimpleGableRoofGeometryError error,
+        out RoofNotificationDescriptor notification)
+    {
+        if (error is SimpleGableRoofGeometryError.FootprintIsNotFourSided or
+            SimpleGableRoofGeometryError.FootprintIsNotRectangular)
+        {
+            notification = UnsupportedFootprintNotification;
+            return true;
+        }
+
+        if (error == SimpleGableRoofGeometryError.DegenerateDimensions)
+        {
+            notification = InvalidFootprintNotification;
+            return true;
+        }
+
+        if (error == SimpleGableRoofGeometryError.RidgeDirectionCannotBeResolved)
+        {
+            notification = InvalidDirectionNotification;
+            return true;
+        }
+
+        if (error == SimpleGableRoofGeometryError.InvalidSlope)
+        {
+            notification = InvalidSlopeNotification;
+            return true;
+        }
+
+        notification = default;
+        return false;
+    }
+
     private static string GetValidationMessage(RoofValidationError error) =>
         UiStrings.GetString(error switch
         {
@@ -518,4 +627,8 @@ internal static class RoofCommandWorkflow
                 "Command_Roof_PersistedUnsupportedKind",
             _ => "Command_Roof_PersistedInvalid",
         });
+
+    private readonly record struct RoofNotificationDescriptor(
+        string TitleResourceKey,
+        string BodyResourceKey);
 }

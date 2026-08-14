@@ -96,16 +96,21 @@ public sealed class RoofTransientPreviewSourceContractTests
     }
 
     [Fact]
-    public void UnsupportedGeometry_UsesCliWhileOpenLoopKeepsSpecialWpfPath()
+    public void CorrectableGeometryUsesSharedWpfWhileTechnicalNonFiniteStaysCli()
     {
+        var geometryMapping = Segment(
+            Workflow,
+            "private static bool TryGetGeometryNotification",
+            "private static string GetValidationMessage");
         Assert.Contains("GetGeometryMessage(geometryResult.Error)", Workflow);
-        Assert.Contains("Command_Roof_GeometryErrorFourSided", Workflow);
-        Assert.Contains("Command_Roof_GeometryErrorRectangular", Workflow);
-        Assert.Contains("Command_Roof_GeometryErrorDirection", Workflow);
-        Assert.Contains("Command_Roof_GeometryErrorSlope", Workflow);
-        Assert.Contains("Command_Roof_GeometryErrorDimensions", Workflow);
+        Assert.Contains("TryGetGeometryNotification(geometryResult.Error", Workflow);
+        Assert.Contains("UnsupportedFootprintNotification", geometryMapping);
+        Assert.Contains("InvalidFootprintNotification", geometryMapping);
+        Assert.Contains("InvalidDirectionNotification", geometryMapping);
+        Assert.Contains("InvalidSlopeNotification", geometryMapping);
+        Assert.DoesNotContain("NonFiniteGeometry", geometryMapping);
         Assert.Contains("Command_Roof_GeometryErrorNonFinite", Workflow);
-        Assert.Contains("validation.Error == RoofValidationError.OpenLoop", Workflow);
+        Assert.Contains("notification = OpenLoopNotification", Workflow);
         Assert.Contains("TransientNotificationService.Show", Workflow);
         Assert.Equal(1, CountOccurrences(Workflow, "TransientNotificationService.Show"));
     }
@@ -127,17 +132,11 @@ public sealed class RoofTransientPreviewSourceContractTests
         (value.Length - value.Replace(token, string.Empty, StringComparison.Ordinal).Length) /
         token.Length;
 
-    private static string Segment(string source, string start, string end)
-    {
-        var startIndex = source.IndexOf(start, StringComparison.Ordinal);
-        var endIndex = source.IndexOf(end, startIndex, StringComparison.Ordinal);
-        Assert.True(startIndex >= 0, $"Start marker not found: {start}");
-        Assert.True(endIndex > startIndex, $"End marker not found: {end}");
-        return source[startIndex..endIndex];
-    }
+    private static string Segment(string source, string start, string end) =>
+        RoofUxSourceContractText.Member(source, start, end);
 
     private static string Read(params string[] path) =>
-        File.ReadAllText(Path.Combine([Repository, .. path])).Replace("\r\n", "\n", StringComparison.Ordinal);
+        RoofUxSourceContractText.Read(path);
 
     private static string RepositoryRoot()
     {

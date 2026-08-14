@@ -55,24 +55,23 @@ public sealed class RoofCommandSourceContractTests
             Workflow,
             "if (!validation.IsValid || validation.Footprint is null)",
             "var definition = new RoofDefinition");
+        var notificationMapping = Segment(
+            Workflow,
+            "private static bool TryGetValidationNotification",
+            "private static bool TryGetGeometryNotification");
 
-        Assert.Contains(
-            "validation.Error == RoofValidationError.OpenLoop",
-            failurePath);
-        Assert.Contains("TransientNotificationService.Show", failurePath);
-        Assert.Contains("Command_Roof_OpenLoopNotificationTitle", failurePath);
-        Assert.Contains("Command_Roof_OpenLoopNotificationBody", failurePath);
+        Assert.Contains("TryGetValidationNotification(validation.Error", failurePath);
+        Assert.Contains("ShowNotification(notification)", failurePath);
+        Assert.Contains("error == RoofValidationError.OpenLoop", notificationMapping);
+        Assert.Contains("notification = OpenLoopNotification", notificationMapping);
+        Assert.Contains("Command_Roof_OpenLoopNotificationTitle", Workflow);
+        Assert.Contains("Command_Roof_OpenLoopNotificationBody", Workflow);
         Assert.Contains("continue;", failurePath);
         Assert.Equal(
             1,
             CountOccurrences(Workflow, "TransientNotificationService.Show"));
 
-        // OpenLoop is window-only; other errors keep WriteMessage.
-        var openLoopBranch = Segment(
-            failurePath,
-            "if (validation.Error == RoofValidationError.OpenLoop)",
-            "else");
-        Assert.DoesNotContain("WriteMessage", openLoopBranch);
+        Assert.DoesNotContain("WriteMessage", notificationMapping);
         Assert.Contains("editor.WriteMessage(GetValidationMessage(validation.Error))", failurePath);
     }
 
@@ -132,17 +131,11 @@ public sealed class RoofCommandSourceContractTests
         (value.Length - value.Replace(token, string.Empty, StringComparison.Ordinal).Length) /
         token.Length;
 
-    private static string Segment(string source, string start, string end)
-    {
-        var startIndex = source.IndexOf(start, StringComparison.Ordinal);
-        var endIndex = source.IndexOf(end, startIndex, StringComparison.Ordinal);
-        Assert.True(startIndex >= 0, $"Start marker not found: {start}");
-        Assert.True(endIndex > startIndex, $"End marker not found: {end}");
-        return source[startIndex..endIndex];
-    }
+    private static string Segment(string source, string start, string end) =>
+        RoofUxSourceContractText.Member(source, start, end);
 
     private static string Read(params string[] path) =>
-        File.ReadAllText(Path.Combine([Repository, .. path]));
+        RoofUxSourceContractText.Read(path);
 
     private static string RepositoryRoot()
     {

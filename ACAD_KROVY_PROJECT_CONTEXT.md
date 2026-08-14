@@ -1,6 +1,6 @@
 # ACAD KROVY – PROJECT CONTEXT
 
-**Aktualizované:** 13. 8. 2026
+**Aktualizované:** 14. 8. 2026
 
 **Predchádzajúci stabilný commit v0.21.0:** `f98900c1bd257a8e5357f6e77eb6f118bd4930d3`
 
@@ -8,8 +8,8 @@
 
 **Verzia aplikácie:** autoritatívne v `Directory.Build.props`
 
-**Aktuálny míľnik:** STRECHY S2 Stage 5 „Permanent Simple-Gable Roof Display“,
-implementovaný lokálne; automatická validácia a manuálny AutoCAD HOST checkpoint sú súčasťou etapy
+**Aktuálny míľnik:** post-Stage-5 „Roof Validation WPF Notifications Polish“,
+implementovaný lokálne a pripravený na manuálny AutoCAD HOST W1–W4 checkpoint
 
 **Overovanie:** Debug/Release build, kompletné automatické testy a Portable/Full Compatibility Gate
 
@@ -445,21 +445,24 @@ Stabilný commit: `4a951041e2deef40a127ac9560cf6fb2ba4b6a5b`
   po explicitnom Yes a maže iba deti daného ownera, bez zápisu do source Polyline,
 - MOVE/ROTATE sa prejavia až explicitnou regeneráciou cez `AK_ROOF`; STRETCH stale
   definícia sa naďalej odmieta a žiadne reactors ani timber generation neboli pridané,
-- S2 nie je dokončené; SAVE/REOPEN, lifecycle, DBMOD, Undo/Redo a vizuálny HOST test
-  tejto etapy zostávajú na manuálne AutoCAD 2027 overenie.
+- Stage 5 SAVE/REOPEN, lifecycle, DBMOD, Undo/Redo a vizuálny HOST checkpoint prešli;
+  S2 tým nie je dokončené,
 - UX rozšírenie udržiava deterministickú AutoCAD GROUP `AK_ROOF_<OWNER_HANDLE>`
   s presne ôsmimi členmi (owner + 7 display Lines); skupina je iba opraviteľná
   interakčná cache a jej absencia nemení platnosť semantic roof definition,
 - `AK_ROOF` prijíma source Polyline aj ľubovoľné display dieťa a owner rieši výhradne
   cez jeho display XData/handle, bez geometrických alebo nearest-object heuristík,
 - ridge používa samostatnú ByLayer vrstvu `KROV_STRECHA_HREBEN` ACI 1; ostatných
-  šesť hrán zostáva na `KROV_STRECHA` ACI 4,
+  šesť hrán zostáva na oddelenej `KROV_STRECHA`, tiež ACI 1,
 - PICKSTYLE zostáva používateľským nastavením; pri zapnutom group selection môže
   spoločný MOVE/ROTATE všetkých ôsmich členov ponechať display geometricky current
   bez rebuildu, aj keď pôvodná diagnostická generation signature ostala nezmenená,
 - žiadny BlockReference, custom entity, reactor ani timber generation nebol pridaný.
 - source-only COPY zostáva podporovaný cez nový owner handle; COPY celej GROUP sa bez
   úplného deep-clone HOST dôkazu zámerne nevyhlasuje za podporovaný kontrakt.
+- úzky post-Stage-5 UX checkpoint smeruje blokujúce selection/footprint validácie cez
+  existujúce 2500 ms WPF upozornenie bez mouse dismiss/input bleed a bez DWG zápisu;
+  stale semantic/display stavy, prompty a úspešný workflow zostávajú CLI.
 
 ## Povinné kompatibilitné pravidlá
 

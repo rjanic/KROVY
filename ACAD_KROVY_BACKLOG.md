@@ -1,6 +1,6 @@
 # ACAD KROVY – BACKLOG
 
-**Aktualizované:** 13. 8. 2026
+**Aktualizované:** 14. 8. 2026
 **Stabilný commit v0.18.0:** `46ad0cfe555f9f3177de2d47d13bdda33d9a91a0`
 **Stabilný commit v0.19.0:** `41373d235a357dee05033872a1df8fed8b3286d3`
 **Stabilný commit v0.20.0:** `6564fc930d98e3eca591bafcccef709af07dc9a5`
@@ -139,7 +139,7 @@
 - COPY Core semantika je pripravená, ale produkčný status čaká na HOST XData dôkaz,
 - bez reactorov, permanentnej roof geometrie a timber generation; HOST acceptance otvorená.
 
-### S2 Stage 5 – permanent simple-gable roof display implementovaný lokálne
+### S2 Stage 5 – permanent simple-gable roof display publikovaný
 - presne sedem solver-derived natívnych `Line` na `KROV_STRECHA`, s rolami ridge,
   eaves a štyrmi gable-slope boundaries,
 - samostatný display RegApp/schema `1`, owner handle a generation signature; semantic
@@ -153,6 +153,9 @@
   ridge je ByLayer na `KROV_STRECHA_HREBEN` ACI 1 a PICKSTYLE zostáva user-controlled,
 - missing/broken group je opraviteľný UX stav, nie semantic invalidita; bez BlockReference,
   custom entity, reactorov alebo timber generation.
+- post-Stage-5 WPF polish opakovane používa existujúce 2500 ms upozornenie pre blokujúci
+  invalid object, footprint, simple-gable shape, ridge-direction a slope rejection;
+  OpenLoop text ostáva nezmenený, stale/display workflow zostáva CLI a HOST W1–W4 čaká.
 
 ### Ďalšie S2 stages – jednoduchá sedlová strecha MVP
 - roof edit/lifecycle, potom presah, rozostup a prierez krokiev,

@@ -526,6 +526,16 @@
   <data name="Command_Roof_OrientationCounterClockwise" xml:space="preserve"><value>gegen den Uhrzeigersinn</value></data>
   <data name="Command_Roof_OpenLoopNotificationTitle" xml:space="preserve"><value>Dachgrundriss ist nicht geschlossen</value></data>
   <data name="Command_Roof_OpenLoopNotificationBody" xml:space="preserve"><value>Verbinden Sie den letzten Punkt mit dem ersten oder verwenden Sie PLINE → Close.</value></data>
+  <data name="Command_Roof_InvalidObjectNotificationTitle" xml:space="preserve"><value>Ungeeignetes Objekt</value></data>
+  <data name="Command_Roof_InvalidObjectNotificationBody" xml:space="preserve"><value>Wählen Sie einen Dachgrundriss oder einen vorhandenen Dachteil.</value></data>
+  <data name="Command_Roof_InvalidFootprintNotificationTitle" xml:space="preserve"><value>Dachgrundriss ist ungültig</value></data>
+  <data name="Command_Roof_InvalidFootprintNotificationBody" xml:space="preserve"><value>Verwenden Sie einen geschlossenen, ebenen Grundriss mit geraden, nicht überlappenden Kanten und ohne fehlerhafte Punkte.</value></data>
+  <data name="Command_Roof_UnsupportedFootprintNotificationTitle" xml:space="preserve"><value>Dieser Grundriss wird nicht unterstützt</value></data>
+  <data name="Command_Roof_UnsupportedFootprintNotificationBody" xml:space="preserve"><value>Wählen Sie für ein Satteldach einen rechteckigen Grundriss.</value></data>
+  <data name="Command_Roof_InvalidDirectionNotificationTitle" xml:space="preserve"><value>Ungeeignete Firstrichtung</value></data>
+  <data name="Command_Roof_InvalidDirectionNotificationBody" xml:space="preserve"><value>Geben Sie eine Richtung parallel zu einer Seite des Rechtecks an.</value></data>
+  <data name="Command_Roof_InvalidSlopeNotificationTitle" xml:space="preserve"><value>Ungeeignete Dachneigung</value></data>
+  <data name="Command_Roof_InvalidSlopeNotificationBody" xml:space="preserve"><value>Geben Sie eine Neigung größer als 0° und kleiner als 90° ein.</value></data>
   <data name="Command_Roof_SlopePrompt" xml:space="preserve"><value>&#xA;Geben Sie die Dachneigung in Grad ein: </value></data>
   <data name="Command_Roof_RidgeDirectionStartPrompt" xml:space="preserve"><value>&#xA;Geben Sie den ersten Punkt der Firstrichtung an: </value></data>
   <data name="Command_Roof_RidgeDirectionEndPrompt" xml:space="preserve"><value>&#xA;Geben Sie den zweiten Punkt der Firstrichtung an: </value></data>

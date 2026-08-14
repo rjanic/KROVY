@@ -526,6 +526,16 @@
   <data name="Command_Roof_OrientationCounterClockwise" xml:space="preserve"><value>counter-clockwise</value></data>
   <data name="Command_Roof_OpenLoopNotificationTitle" xml:space="preserve"><value>Roof footprint is not closed</value></data>
   <data name="Command_Roof_OpenLoopNotificationBody" xml:space="preserve"><value>Connect the last point to the first or use PLINE → Close.</value></data>
+  <data name="Command_Roof_InvalidObjectNotificationTitle" xml:space="preserve"><value>Unsuitable object</value></data>
+  <data name="Command_Roof_InvalidObjectNotificationBody" xml:space="preserve"><value>Select a roof outline or an existing roof part.</value></data>
+  <data name="Command_Roof_InvalidFootprintNotificationTitle" xml:space="preserve"><value>Roof footprint is invalid</value></data>
+  <data name="Command_Roof_InvalidFootprintNotificationBody" xml:space="preserve"><value>Use a closed planar outline with straight, non-overlapping edges and no invalid points.</value></data>
+  <data name="Command_Roof_UnsupportedFootprintNotificationTitle" xml:space="preserve"><value>This footprint is not supported</value></data>
+  <data name="Command_Roof_UnsupportedFootprintNotificationBody" xml:space="preserve"><value>Select a rectangular footprint for a gable roof.</value></data>
+  <data name="Command_Roof_InvalidDirectionNotificationTitle" xml:space="preserve"><value>Invalid ridge direction</value></data>
+  <data name="Command_Roof_InvalidDirectionNotificationBody" xml:space="preserve"><value>Specify a direction parallel to one side of the rectangle.</value></data>
+  <data name="Command_Roof_InvalidSlopeNotificationTitle" xml:space="preserve"><value>Invalid roof slope</value></data>
+  <data name="Command_Roof_InvalidSlopeNotificationBody" xml:space="preserve"><value>Enter a slope greater than 0° and less than 90°.</value></data>
   <data name="Command_Roof_SlopePrompt" xml:space="preserve"><value>&#xA;Enter the roof slope in degrees: </value></data>
   <data name="Command_Roof_RidgeDirectionStartPrompt" xml:space="preserve"><value>&#xA;Specify the first point of the ridge direction: </value></data>
   <data name="Command_Roof_RidgeDirectionEndPrompt" xml:space="preserve"><value>&#xA;Specify the second point of the ridge direction: </value></data>

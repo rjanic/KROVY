@@ -526,6 +526,16 @@
   <data name="Command_Roof_OrientationCounterClockwise" xml:space="preserve"><value>antihoraire</value></data>
   <data name="Command_Roof_OpenLoopNotificationTitle" xml:space="preserve"><value>L’emprise de toiture n’est pas fermée</value></data>
   <data name="Command_Roof_OpenLoopNotificationBody" xml:space="preserve"><value>Reliez le dernier point au premier ou utilisez PLINE → Close.</value></data>
+  <data name="Command_Roof_InvalidObjectNotificationTitle" xml:space="preserve"><value>Objet inadapté</value></data>
+  <data name="Command_Roof_InvalidObjectNotificationBody" xml:space="preserve"><value>Sélectionnez une emprise ou une partie de toiture existante.</value></data>
+  <data name="Command_Roof_InvalidFootprintNotificationTitle" xml:space="preserve"><value>L’emprise de toiture n’est pas valide</value></data>
+  <data name="Command_Roof_InvalidFootprintNotificationBody" xml:space="preserve"><value>Utilisez une emprise plane fermée avec des arêtes droites, sans chevauchement ni point incorrect.</value></data>
+  <data name="Command_Roof_UnsupportedFootprintNotificationTitle" xml:space="preserve"><value>Cette emprise n’est pas prise en charge</value></data>
+  <data name="Command_Roof_UnsupportedFootprintNotificationBody" xml:space="preserve"><value>Pour un toit à deux pans, sélectionnez une emprise rectangulaire.</value></data>
+  <data name="Command_Roof_InvalidDirectionNotificationTitle" xml:space="preserve"><value>Direction du faîtage inadaptée</value></data>
+  <data name="Command_Roof_InvalidDirectionNotificationBody" xml:space="preserve"><value>Indiquez une direction parallèle à l’un des côtés du rectangle.</value></data>
+  <data name="Command_Roof_InvalidSlopeNotificationTitle" xml:space="preserve"><value>Pente de toiture inadaptée</value></data>
+  <data name="Command_Roof_InvalidSlopeNotificationBody" xml:space="preserve"><value>Indiquez une pente supérieure à 0° et inférieure à 90°.</value></data>
   <data name="Command_Roof_SlopePrompt" xml:space="preserve"><value>&#xA;Saisissez la pente du toit en degrés : </value></data>
   <data name="Command_Roof_RidgeDirectionStartPrompt" xml:space="preserve"><value>&#xA;Indiquez le premier point de la direction du faîtage : </value></data>
   <data name="Command_Roof_RidgeDirectionEndPrompt" xml:space="preserve"><value>&#xA;Indiquez le second point de la direction du faîtage : </value></data>

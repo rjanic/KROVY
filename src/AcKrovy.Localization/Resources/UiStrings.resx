@@ -526,6 +526,16 @@
   <data name="Command_Roof_OrientationCounterClockwise" xml:space="preserve"><value>proti smeru hodinových ručičiek</value></data>
   <data name="Command_Roof_OpenLoopNotificationTitle" xml:space="preserve"><value>Obrys strechy nie je uzavretý</value></data>
   <data name="Command_Roof_OpenLoopNotificationBody" xml:space="preserve"><value>Spojte posledný bod s prvým alebo použite PLINE → Close.</value></data>
+  <data name="Command_Roof_InvalidObjectNotificationTitle" xml:space="preserve"><value>Nevhodný objekt</value></data>
+  <data name="Command_Roof_InvalidObjectNotificationBody" xml:space="preserve"><value>Vyberte obrys alebo existujúcu časť strechy.</value></data>
+  <data name="Command_Roof_InvalidFootprintNotificationTitle" xml:space="preserve"><value>Obrys strechy nie je platný</value></data>
+  <data name="Command_Roof_InvalidFootprintNotificationBody" xml:space="preserve"><value>Použite rovinný uzavretý obrys s priamymi hranami bez prekrytia a chybných bodov.</value></data>
+  <data name="Command_Roof_UnsupportedFootprintNotificationTitle" xml:space="preserve"><value>Tento obrys nie je podporovaný</value></data>
+  <data name="Command_Roof_UnsupportedFootprintNotificationBody" xml:space="preserve"><value>Pre sedlovú strechu vyberte obdĺžnikový pôdorys.</value></data>
+  <data name="Command_Roof_InvalidDirectionNotificationTitle" xml:space="preserve"><value>Nevhodný smer hrebeňa</value></data>
+  <data name="Command_Roof_InvalidDirectionNotificationBody" xml:space="preserve"><value>Zadajte smer rovnobežný s jednou stranou obdĺžnika.</value></data>
+  <data name="Command_Roof_InvalidSlopeNotificationTitle" xml:space="preserve"><value>Nevhodný sklon strechy</value></data>
+  <data name="Command_Roof_InvalidSlopeNotificationBody" xml:space="preserve"><value>Zadajte sklon väčší ako 0° a menší ako 90°.</value></data>
   <data name="Command_Roof_SlopePrompt" xml:space="preserve"><value>&#xA;Zadaj sklon strechy v stupňoch: </value></data>
   <data name="Command_Roof_RidgeDirectionStartPrompt" xml:space="preserve"><value>&#xA;Urči prvý bod smeru hrebeňa: </value></data>
   <data name="Command_Roof_RidgeDirectionEndPrompt" xml:space="preserve"><value>&#xA;Urči druhý bod smeru hrebeňa: </value></data>

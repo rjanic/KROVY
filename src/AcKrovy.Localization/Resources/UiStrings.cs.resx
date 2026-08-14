@@ -526,6 +526,16 @@
   <data name="Command_Roof_OrientationCounterClockwise" xml:space="preserve"><value>proti směru hodinových ručiček</value></data>
   <data name="Command_Roof_OpenLoopNotificationTitle" xml:space="preserve"><value>Obrys střechy není uzavřený</value></data>
   <data name="Command_Roof_OpenLoopNotificationBody" xml:space="preserve"><value>Spojte poslední bod s prvním nebo použijte PLINE → Close.</value></data>
+  <data name="Command_Roof_InvalidObjectNotificationTitle" xml:space="preserve"><value>Nevhodný objekt</value></data>
+  <data name="Command_Roof_InvalidObjectNotificationBody" xml:space="preserve"><value>Vyberte obrys nebo existující část střechy.</value></data>
+  <data name="Command_Roof_InvalidFootprintNotificationTitle" xml:space="preserve"><value>Obrys střechy není platný</value></data>
+  <data name="Command_Roof_InvalidFootprintNotificationBody" xml:space="preserve"><value>Použijte rovinný uzavřený obrys s přímými hranami bez překrytí a chybných bodů.</value></data>
+  <data name="Command_Roof_UnsupportedFootprintNotificationTitle" xml:space="preserve"><value>Tento obrys není podporován</value></data>
+  <data name="Command_Roof_UnsupportedFootprintNotificationBody" xml:space="preserve"><value>Pro sedlovou střechu vyberte obdélníkový půdorys.</value></data>
+  <data name="Command_Roof_InvalidDirectionNotificationTitle" xml:space="preserve"><value>Nevhodný směr hřebene</value></data>
+  <data name="Command_Roof_InvalidDirectionNotificationBody" xml:space="preserve"><value>Zadejte směr rovnoběžný s jednou stranou obdélníku.</value></data>
+  <data name="Command_Roof_InvalidSlopeNotificationTitle" xml:space="preserve"><value>Nevhodný sklon střechy</value></data>
+  <data name="Command_Roof_InvalidSlopeNotificationBody" xml:space="preserve"><value>Zadejte sklon větší než 0° a menší než 90°.</value></data>
   <data name="Command_Roof_SlopePrompt" xml:space="preserve"><value>&#xA;Zadejte sklon střechy ve stupních: </value></data>
   <data name="Command_Roof_RidgeDirectionStartPrompt" xml:space="preserve"><value>&#xA;Určete první bod směru hřebene: </value></data>
   <data name="Command_Roof_RidgeDirectionEndPrompt" xml:space="preserve"><value>&#xA;Určete druhý bod směru hřebene: </value></data>
