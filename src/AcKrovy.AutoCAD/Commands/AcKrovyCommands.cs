@@ -361,6 +361,12 @@ public sealed class AcKrovyCommands
             AcKrovyCommandNames.Roof,
             () => RoofCommandWorkflow.Run(ActiveDocument()));
 
+    [CommandMethod(AcKrovyCommandNames.RoofRafters, CommandFlags.Modal | CommandFlags.Redraw)]
+    public void RoofRafters() =>
+        CommandExecutionBoundary.Execute(
+            AcKrovyCommandNames.RoofRafters,
+            () => RoofRafterCommandWorkflow.Run(ActiveDocument()));
+
     [CommandMethod(AcKrovyCommandNames.Label, CommandFlags.Modal)]
     [CommandMethod(AcKrovyCommandNames.Labels, CommandFlags.Modal)]
     public void UpdateAllLabels()

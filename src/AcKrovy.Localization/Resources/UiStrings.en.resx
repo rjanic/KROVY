@@ -573,4 +573,48 @@
   <data name="Command_Roof_GroupMissing" xml:space="preserve"><value>&#xA;The roof is valid, but its selection group is missing or damaged.</value></data>
   <data name="Command_Roof_GroupRepairPrompt" xml:space="preserve"><value>&#xA;Repair the roof selection group? [Yes/No] &lt;No&gt;: </value></data>
   <data name="Command_Roof_GroupRepaired" xml:space="preserve"><value>&#xA;The roof selection group was repaired.</value></data>
+  <data name="Command_RoofRafters_SelectPrompt" xml:space="preserve"><value>&#xA;Select a roof for rafter creation: </value></data>
+  <data name="Command_RoofRafters_SpacingPrompt" xml:space="preserve"><value>&#xA;Enter the maximum rafter spacing in mm: </value></data>
+  <data name="Command_RoofRafters_InvalidSpacing" xml:space="preserve"><value>&#xA;Maximum rafter spacing must be a finite positive number.</value></data>
+  <data name="Command_RoofRafters_InvalidDefaults" xml:space="preserve"><value>&#xA;The default rafter plan width is invalid or does not fit between the gable planes.</value></data>
+  <data name="Command_RoofRafters_SummaryFormat" xml:space="preserve"><value>&#xA;Rafters: {3}, requested maximum {0:0.###} mm, actual spacing {1:0.###} mm, stations {2}.</value></data>
+  <data name="Command_RoofRafters_CreatePrompt" xml:space="preserve"><value>&#xA;Create automatic rafters? [Yes/No] &lt;No&gt;: </value></data>
+  <data name="Command_RoofRafters_ExistingFoundFormat" xml:space="preserve"><value>&#xA;The roof already has {0} automatically generated rafters.</value></data>
+  <data name="Command_RoofRafters_ReplacementDeferred" xml:space="preserve"><value>&#xA;Safe replacement of existing automatic rafters is deferred to the next lifecycle step. The drawing remains unchanged.</value></data>
+  <data name="Command_RoofRafters_CreatedFormat" xml:space="preserve"><value>&#xA;Intelligent rafters created: {0}.</value></data>
+  <data name="Command_RoofRafters_InvalidRoof" xml:space="preserve"><value>&#xA;The selected roof has no valid persisted SimpleGable definition.</value></data>
+  <data name="Command_RoofRafters_SourceChanged" xml:space="preserve"><value>&#xA;The roof source footprint changed. No rafters were created.</value></data>
+  <data name="Command_RoofRafters_GenerationFailed" xml:space="preserve"><value>&#xA;Automatic rafters could not be created. The drawing operation was rolled back.</value></data>
+  <data name="CommandUi_RoofMenu_Label" xml:space="preserve"><value>Roof</value></data>
+  <data name="CommandUi_RoofMenu_Tooltip" xml:space="preserve"><value>Select a roof type.</value></data>
+  <data name="CommandUi_RoofGable_Label" xml:space="preserve"><value>Gable roof</value></data>
+  <data name="CommandUi_RoofGable_Tooltip" xml:space="preserve"><value>Starts the existing gable-roof workflow.</value></data>
+  <data name="CommandUi_RoofHip_Label" xml:space="preserve"><value>Hip roof</value></data>
+  <data name="CommandUi_RoofHip_Tooltip" xml:space="preserve"><value>Not available yet.</value></data>
+  <data name="CommandUi_RoofHalfHip_Label" xml:space="preserve"><value>Half-hip roof</value></data>
+  <data name="CommandUi_RoofHalfHip_Tooltip" xml:space="preserve"><value>Not available yet.</value></data>
+  <data name="CommandUi_RoofMonoPitch_Label" xml:space="preserve"><value>Mono-pitch roof</value></data>
+  <data name="CommandUi_RoofMonoPitch_Tooltip" xml:space="preserve"><value>Not available yet.</value></data>
+  <data name="CommandUi_RoofRafters_Label" xml:space="preserve"><value>Rafters</value></data>
+  <data name="CommandUi_RoofRafters_Tooltip" xml:space="preserve"><value>Creates automatic rafters for a stored gable roof.</value></data>
+  <data name="RoofRafterWindow_Title" xml:space="preserve"><value>Rafters</value></data>
+  <data name="RoofRafterWindow_Heading" xml:space="preserve"><value>Automatic rafters</value></data>
+  <data name="RoofRafterWindow_Description" xml:space="preserve"><value>Set the rafter section, maximum spacing and material.</value></data>
+  <data name="RoofRafterWindow_WidthMm" xml:space="preserve"><value>Width [mm]</value></data>
+  <data name="RoofRafterWindow_HeightMm" xml:space="preserve"><value>Height [mm]</value></data>
+  <data name="RoofRafterWindow_MaximumSpacingMm" xml:space="preserve"><value>Max. spacing [mm]</value></data>
+  <data name="RoofRafterWindow_Material" xml:space="preserve"><value>Material</value></data>
+  <data name="RoofRafterWindow_RoofSlope" xml:space="preserve"><value>Roof slope</value></data>
+  <data name="RoofRafterWindow_RoofSlopeHint" xml:space="preserve"><value>The slope is loaded from the selected roof.</value></data>
+  <data name="RoofRafterWindow_RoofSlopeValueFormat" xml:space="preserve"><value>{0:0.###}°</value></data>
+  <data name="RoofRafterWindow_SummaryFormat" xml:space="preserve"><value>{0} rafters • {1} stations • spacing {2:0.#} mm</value></data>
+  <data name="RoofRafterWindow_SummaryUnavailable" xml:space="preserve"><value>Enter valid dimensions and spacing.</value></data>
+  <data name="RoofRafterWindow_Create" xml:space="preserve"><value>Create</value></data>
+  <data name="RoofRafterWindow_Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="RoofRafterWindow_InvalidWidth" xml:space="preserve"><value>Width must be a finite number greater than 0.</value></data>
+  <data name="RoofRafterWindow_WidthDoesNotFitRoof" xml:space="preserve"><value>Width must be less than the roof length.</value></data>
+  <data name="RoofRafterWindow_InvalidHeight" xml:space="preserve"><value>Height must be a finite number greater than 0.</value></data>
+  <data name="RoofRafterWindow_InvalidSpacing" xml:space="preserve"><value>Maximum spacing must be a finite number greater than 0.</value></data>
+  <data name="RoofRafterWindow_InvalidMaterial" xml:space="preserve"><value>Select a valid material.</value></data>
+  <data name="RoofRafterWindow_InvalidRoof" xml:space="preserve"><value>The rafter layout cannot be calculated for this roof.</value></data>
 </root>

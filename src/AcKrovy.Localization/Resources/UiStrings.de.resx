@@ -573,4 +573,48 @@
   <data name="Command_Roof_GroupMissing" xml:space="preserve"><value>&#xA;Das Dach ist gültig, aber seine Auswahlgruppe fehlt oder ist beschädigt.</value></data>
   <data name="Command_Roof_GroupRepairPrompt" xml:space="preserve"><value>&#xA;Dach-Auswahlgruppe reparieren? [Ja/Nein] &lt;Nein&gt;: </value></data>
   <data name="Command_Roof_GroupRepaired" xml:space="preserve"><value>&#xA;Die Dach-Auswahlgruppe wurde repariert.</value></data>
+  <data name="Command_RoofRafters_SelectPrompt" xml:space="preserve"><value>&#xA;Dach für die Sparrenerzeugung auswählen: </value></data>
+  <data name="Command_RoofRafters_SpacingPrompt" xml:space="preserve"><value>&#xA;Maximalen Sparrenabstand in mm eingeben: </value></data>
+  <data name="Command_RoofRafters_InvalidSpacing" xml:space="preserve"><value>&#xA;Der maximale Sparrenabstand muss eine endliche positive Zahl sein.</value></data>
+  <data name="Command_RoofRafters_InvalidDefaults" xml:space="preserve"><value>&#xA;Die Standard-Sparrenbreite im Grundriss ist ungültig oder passt nicht zwischen die Giebelebenen.</value></data>
+  <data name="Command_RoofRafters_SummaryFormat" xml:space="preserve"><value>&#xA;Sparren: {3}, gewünschtes Maximum {0:0.###} mm, tatsächlicher Abstand {1:0.###} mm, Stationen {2}.</value></data>
+  <data name="Command_RoofRafters_CreatePrompt" xml:space="preserve"><value>&#xA;Automatische Sparren erstellen? [Ja/Nein] &lt;Nein&gt;: </value></data>
+  <data name="Command_RoofRafters_ExistingFoundFormat" xml:space="preserve"><value>&#xA;Das Dach enthält bereits {0} automatisch erzeugte Sparren.</value></data>
+  <data name="Command_RoofRafters_ReplacementDeferred" xml:space="preserve"><value>&#xA;Der sichere Ersatz vorhandener automatischer Sparren folgt im nächsten Lebenszyklusschritt. Die Zeichnung bleibt unverändert.</value></data>
+  <data name="Command_RoofRafters_CreatedFormat" xml:space="preserve"><value>&#xA;Erstellte intelligente Sparren: {0}.</value></data>
+  <data name="Command_RoofRafters_InvalidRoof" xml:space="preserve"><value>&#xA;Das ausgewählte Dach besitzt keine gültige gespeicherte SimpleGable-Definition.</value></data>
+  <data name="Command_RoofRafters_SourceChanged" xml:space="preserve"><value>&#xA;Der Dachquellumriss wurde geändert. Es wurden keine Sparren erstellt.</value></data>
+  <data name="Command_RoofRafters_GenerationFailed" xml:space="preserve"><value>&#xA;Die automatischen Sparren konnten nicht erstellt werden. Der Zeichnungsvorgang wurde zurückgesetzt.</value></data>
+  <data name="CommandUi_RoofMenu_Label" xml:space="preserve"><value>Dach</value></data>
+  <data name="CommandUi_RoofMenu_Tooltip" xml:space="preserve"><value>Wählt einen Dachtyp aus.</value></data>
+  <data name="CommandUi_RoofGable_Label" xml:space="preserve"><value>Satteldach</value></data>
+  <data name="CommandUi_RoofGable_Tooltip" xml:space="preserve"><value>Startet den bestehenden Satteldach-Arbeitsablauf.</value></data>
+  <data name="CommandUi_RoofHip_Label" xml:space="preserve"><value>Walmdach</value></data>
+  <data name="CommandUi_RoofHip_Tooltip" xml:space="preserve"><value>Noch nicht verfügbar.</value></data>
+  <data name="CommandUi_RoofHalfHip_Label" xml:space="preserve"><value>Krüppelwalmdach</value></data>
+  <data name="CommandUi_RoofHalfHip_Tooltip" xml:space="preserve"><value>Noch nicht verfügbar.</value></data>
+  <data name="CommandUi_RoofMonoPitch_Label" xml:space="preserve"><value>Pultdach</value></data>
+  <data name="CommandUi_RoofMonoPitch_Tooltip" xml:space="preserve"><value>Noch nicht verfügbar.</value></data>
+  <data name="CommandUi_RoofRafters_Label" xml:space="preserve"><value>Sparren</value></data>
+  <data name="CommandUi_RoofRafters_Tooltip" xml:space="preserve"><value>Erzeugt automatische Sparren für ein gespeichertes Satteldach.</value></data>
+  <data name="RoofRafterWindow_Title" xml:space="preserve"><value>Sparren</value></data>
+  <data name="RoofRafterWindow_Heading" xml:space="preserve"><value>Automatische Sparren</value></data>
+  <data name="RoofRafterWindow_Description" xml:space="preserve"><value>Querschnitt, maximalen Abstand und Material der Sparren festlegen.</value></data>
+  <data name="RoofRafterWindow_WidthMm" xml:space="preserve"><value>Breite [mm]</value></data>
+  <data name="RoofRafterWindow_HeightMm" xml:space="preserve"><value>Höhe [mm]</value></data>
+  <data name="RoofRafterWindow_MaximumSpacingMm" xml:space="preserve"><value>Max. Abstand [mm]</value></data>
+  <data name="RoofRafterWindow_Material" xml:space="preserve"><value>Material</value></data>
+  <data name="RoofRafterWindow_RoofSlope" xml:space="preserve"><value>Dachneigung</value></data>
+  <data name="RoofRafterWindow_RoofSlopeHint" xml:space="preserve"><value>Die Neigung wird vom ausgewählten Dach geladen.</value></data>
+  <data name="RoofRafterWindow_RoofSlopeValueFormat" xml:space="preserve"><value>{0:0.###}°</value></data>
+  <data name="RoofRafterWindow_SummaryFormat" xml:space="preserve"><value>{0} Sparren • {1} Stationen • Abstand {2:0.#} mm</value></data>
+  <data name="RoofRafterWindow_SummaryUnavailable" xml:space="preserve"><value>Gültige Abmessungen und Abstände eingeben.</value></data>
+  <data name="RoofRafterWindow_Create" xml:space="preserve"><value>Erstellen</value></data>
+  <data name="RoofRafterWindow_Cancel" xml:space="preserve"><value>Abbrechen</value></data>
+  <data name="RoofRafterWindow_InvalidWidth" xml:space="preserve"><value>Die Breite muss eine endliche Zahl größer als 0 sein.</value></data>
+  <data name="RoofRafterWindow_WidthDoesNotFitRoof" xml:space="preserve"><value>Die Breite muss kleiner als die Dachlänge sein.</value></data>
+  <data name="RoofRafterWindow_InvalidHeight" xml:space="preserve"><value>Die Höhe muss eine endliche Zahl größer als 0 sein.</value></data>
+  <data name="RoofRafterWindow_InvalidSpacing" xml:space="preserve"><value>Der maximale Abstand muss eine endliche Zahl größer als 0 sein.</value></data>
+  <data name="RoofRafterWindow_InvalidMaterial" xml:space="preserve"><value>Ein gültiges Material auswählen.</value></data>
+  <data name="RoofRafterWindow_InvalidRoof" xml:space="preserve"><value>Die Sparrenaufteilung kann für dieses Dach nicht berechnet werden.</value></data>
 </root>

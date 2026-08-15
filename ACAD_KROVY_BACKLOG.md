@@ -144,6 +144,10 @@
   eaves a štyrmi gable-slope boundaries,
 - samostatný display RegApp/schema `1`, owner handle a generation signature; semantic
   roof definition ostáva jediným zdrojom pravdy a roof schema ostáva `2`,
+- lokálny full 8-member GROUP COPY fix používa clone-translated XData `1005` owner
+  soft-pointer; legacy schema-1 display bez `1005` resolve-ne copied source iba cez
+  jednoznačnú read-only group topológiu. Originál a generated rafters ostávajú oddelené;
+  finálny HOST proof 24 original + 24 copied = 48 je PASS; skorších 72 bolo COPY Multiple,
 - explicitný create/regenerate workflow bez write-on-read a reactorov; current a No/Esc
   nemenia DWG, stale semantic roof sa neregeneruje,
 - bez timber generation; manuálny AutoCAD 2027 HOST checkpoint je otvorený a S2
@@ -157,9 +161,31 @@
   invalid object, footprint, simple-gable shape, ridge-direction a slope rejection;
   OpenLoop text ostáva nezmenený, stale/display workflow zostáva CLI a HOST W1–W4 čaká.
 
+### S2 Stage 6 – automatic SimpleGable rafters dokončený a HOST overený
+- `AK_ROOF_RAFTERS` prijíma source Polyline aj tagged display Line, obnoví persisted
+  SimpleGable a otvorí compact Fashion WPF pre Width/Height/Smax/Material; slope je
+  read-only z roof a úspešné hodnoty sa pamätajú v existujúcom per-user UI store,
+- layout používa zadanú production `Krokva.WidthMm`: osi ležia `B/2` od oboch štítov a
+  usable span `L-B` je deterministicky rovnomerne rozdelený bez akumulačnej chyby,
+- dve eave→ridge krokvy na stanicu vznikajú ako normálne intelligent KROVY timber
+  Lines so schema `7`, defaults/layer/item identity a bez automatic annotations;
+  `IsSlopeDirectionReversed=true` dáva canonical downhill ridge→eave arrow bez roof
+  vetvy v renderer/live refresh a zachováva normálny `AK_FLIPSLOPE`,
+- ownership používa oddelený `DECORAIR_ACADKROVY_ROOF_TIMBER` schema `1`; rafters
+  ostávajú mimo presne 8-member roof GROUP,
+- Ribbon `Strecha` dropdown má iba Sedlovú enabled, tri future typy visible disabled;
+  samostatné `Krokvy` dispatchujú command cez existujúcu pipeline a technické 16/32 PNG,
+- WPF live summary nahrádza modal-live preview; Cancel nemení DWG, Vytvoriť je jediný
+  write confirmation; existujúci generated set sa deteguje a replacement je zatiaľ
+  bezpečne odmietnutý bez erase,
+- bez reactorov, live sync, iných roof timber typov a Stage 7,
+- HOST R1–R10, downhill MOVE/ROTATE, Width 100 → 50 mm, Ribbon/WPF localization,
+  independent full-GROUP COPY generation a AK_ROOF selection clear sú PASS.
+
 ### Ďalšie S2 stages – jednoduchá sedlová strecha MVP
-- roof edit/lifecycle, potom presah, rozostup a prierez krokiev,
-- pomúrnice, hrebeňová väznica a common rafters,
+- samostatný SimpleGable Roof STRETCH / Resize Lifecycle checkpoint,
+- následný explicitný stale/regeneration lifecycle pre generated rafters,
+- pomúrnice, hrebeňová väznica a ďalšie roof timber typy až samostatne,
 - stabilný source/roof-plane/member lifecycle a až potom persistence schema,
 - položky, anotácie a report/BOM integrácia v rozsahu simple-gable MVP.
 
@@ -173,6 +199,13 @@
 - sedlová,
 - valbová,
 - polovalbová.
+
+Stanová/Pyramídová sa nepridáva ako samostatný typ. Budúci `HipRoof` solver pokryje
+obdĺžnikovú valbovú strechu s kladnou dĺžkou hrebeňa aj jej štvorcový špeciálny
+prípad: keď sa rozmery footprintu rovnajú v rámci geometrickej tolerancie, hrebeň
+sa deterministicky zrúti na jeden vrchol (`ridgeLength -> 0`). Nepridávať samostatný
+command, Ribbon položku, ikonu ani persistence schema; Stage 6 zostáva bez tejto
+implementácie.
 
 ### Pultová
 - výber hrebeňa/vysokej hrany.

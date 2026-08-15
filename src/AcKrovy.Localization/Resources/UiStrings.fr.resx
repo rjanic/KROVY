@@ -573,4 +573,48 @@
   <data name="Command_Roof_GroupMissing" xml:space="preserve"><value>&#xA;Le toit est valide, mais son groupe de sélection est absent ou endommagé.</value></data>
   <data name="Command_Roof_GroupRepairPrompt" xml:space="preserve"><value>&#xA;Réparer le groupe de sélection du toit ? [Oui/Non] &lt;Non&gt; : </value></data>
   <data name="Command_Roof_GroupRepaired" xml:space="preserve"><value>&#xA;Le groupe de sélection du toit a été réparé.</value></data>
+  <data name="Command_RoofRafters_SelectPrompt" xml:space="preserve"><value>&#xA;Sélectionnez un toit pour créer les chevrons : </value></data>
+  <data name="Command_RoofRafters_SpacingPrompt" xml:space="preserve"><value>&#xA;Saisissez l'espacement maximal des chevrons en mm : </value></data>
+  <data name="Command_RoofRafters_InvalidSpacing" xml:space="preserve"><value>&#xA;L'espacement maximal doit être un nombre positif et fini.</value></data>
+  <data name="Command_RoofRafters_InvalidDefaults" xml:space="preserve"><value>&#xA;La largeur en plan par défaut du chevron est invalide ou ne tient pas entre les plans de pignon.</value></data>
+  <data name="Command_RoofRafters_SummaryFormat" xml:space="preserve"><value>&#xA;Chevrons : {3}, maximum demandé {0:0.###} mm, espacement réel {1:0.###} mm, stations {2}.</value></data>
+  <data name="Command_RoofRafters_CreatePrompt" xml:space="preserve"><value>&#xA;Créer les chevrons automatiques ? [Oui/Non] &lt;Non&gt; : </value></data>
+  <data name="Command_RoofRafters_ExistingFoundFormat" xml:space="preserve"><value>&#xA;Le toit contient déjà {0} chevrons générés automatiquement.</value></data>
+  <data name="Command_RoofRafters_ReplacementDeferred" xml:space="preserve"><value>&#xA;Le remplacement sûr des chevrons automatiques existants est reporté à la prochaine étape du cycle de vie. Le dessin reste inchangé.</value></data>
+  <data name="Command_RoofRafters_CreatedFormat" xml:space="preserve"><value>&#xA;Chevrons intelligents créés : {0}.</value></data>
+  <data name="Command_RoofRafters_InvalidRoof" xml:space="preserve"><value>&#xA;Le toit sélectionné ne possède pas de définition SimpleGable enregistrée valide.</value></data>
+  <data name="Command_RoofRafters_SourceChanged" xml:space="preserve"><value>&#xA;Le contour source du toit a changé. Aucun chevron n'a été créé.</value></data>
+  <data name="Command_RoofRafters_GenerationFailed" xml:space="preserve"><value>&#xA;Les chevrons automatiques n'ont pas pu être créés. L'opération de dessin a été annulée.</value></data>
+  <data name="CommandUi_RoofMenu_Label" xml:space="preserve"><value>Toiture</value></data>
+  <data name="CommandUi_RoofMenu_Tooltip" xml:space="preserve"><value>Sélectionne un type de toiture.</value></data>
+  <data name="CommandUi_RoofGable_Label" xml:space="preserve"><value>Toiture à deux pans</value></data>
+  <data name="CommandUi_RoofGable_Tooltip" xml:space="preserve"><value>Lance le flux existant de toiture à deux pans.</value></data>
+  <data name="CommandUi_RoofHip_Label" xml:space="preserve"><value>Toiture à croupes</value></data>
+  <data name="CommandUi_RoofHip_Tooltip" xml:space="preserve"><value>Pas encore disponible.</value></data>
+  <data name="CommandUi_RoofHalfHip_Label" xml:space="preserve"><value>Toiture à demi-croupes</value></data>
+  <data name="CommandUi_RoofHalfHip_Tooltip" xml:space="preserve"><value>Pas encore disponible.</value></data>
+  <data name="CommandUi_RoofMonoPitch_Label" xml:space="preserve"><value>Toiture monopente</value></data>
+  <data name="CommandUi_RoofMonoPitch_Tooltip" xml:space="preserve"><value>Pas encore disponible.</value></data>
+  <data name="CommandUi_RoofRafters_Label" xml:space="preserve"><value>Chevrons</value></data>
+  <data name="CommandUi_RoofRafters_Tooltip" xml:space="preserve"><value>Crée des chevrons automatiques pour une toiture à deux pans enregistrée.</value></data>
+  <data name="RoofRafterWindow_Title" xml:space="preserve"><value>Chevrons</value></data>
+  <data name="RoofRafterWindow_Heading" xml:space="preserve"><value>Chevrons automatiques</value></data>
+  <data name="RoofRafterWindow_Description" xml:space="preserve"><value>Définissez la section, l’espacement maximal et le matériau des chevrons.</value></data>
+  <data name="RoofRafterWindow_WidthMm" xml:space="preserve"><value>Largeur [mm]</value></data>
+  <data name="RoofRafterWindow_HeightMm" xml:space="preserve"><value>Hauteur [mm]</value></data>
+  <data name="RoofRafterWindow_MaximumSpacingMm" xml:space="preserve"><value>Espacement max. [mm]</value></data>
+  <data name="RoofRafterWindow_Material" xml:space="preserve"><value>Matériau</value></data>
+  <data name="RoofRafterWindow_RoofSlope" xml:space="preserve"><value>Pente de toiture</value></data>
+  <data name="RoofRafterWindow_RoofSlopeHint" xml:space="preserve"><value>La pente est chargée depuis la toiture sélectionnée.</value></data>
+  <data name="RoofRafterWindow_RoofSlopeValueFormat" xml:space="preserve"><value>{0:0.###}°</value></data>
+  <data name="RoofRafterWindow_SummaryFormat" xml:space="preserve"><value>{0} chevrons • {1} stations • espacement {2:0.#} mm</value></data>
+  <data name="RoofRafterWindow_SummaryUnavailable" xml:space="preserve"><value>Saisissez des dimensions et un espacement valides.</value></data>
+  <data name="RoofRafterWindow_Create" xml:space="preserve"><value>Créer</value></data>
+  <data name="RoofRafterWindow_Cancel" xml:space="preserve"><value>Annuler</value></data>
+  <data name="RoofRafterWindow_InvalidWidth" xml:space="preserve"><value>La largeur doit être un nombre fini supérieur à 0.</value></data>
+  <data name="RoofRafterWindow_WidthDoesNotFitRoof" xml:space="preserve"><value>La largeur doit être inférieure à la longueur de la toiture.</value></data>
+  <data name="RoofRafterWindow_InvalidHeight" xml:space="preserve"><value>La hauteur doit être un nombre fini supérieur à 0.</value></data>
+  <data name="RoofRafterWindow_InvalidSpacing" xml:space="preserve"><value>L’espacement maximal doit être un nombre fini supérieur à 0.</value></data>
+  <data name="RoofRafterWindow_InvalidMaterial" xml:space="preserve"><value>Sélectionnez un matériau valide.</value></data>
+  <data name="RoofRafterWindow_InvalidRoof" xml:space="preserve"><value>La disposition des chevrons ne peut pas être calculée pour cette toiture.</value></data>
 </root>

@@ -573,4 +573,48 @@
   <data name="Command_Roof_GroupMissing" xml:space="preserve"><value>&#xA;Strecha je platná, ale jej výberová skupina chýba alebo je poškodená.</value></data>
   <data name="Command_Roof_GroupRepairPrompt" xml:space="preserve"><value>&#xA;Obnoviť výberovú skupinu strechy? [Áno/Nie] &lt;Nie&gt;: </value></data>
   <data name="Command_Roof_GroupRepaired" xml:space="preserve"><value>&#xA;Výberová skupina strechy bola obnovená.</value></data>
+  <data name="Command_RoofRafters_SelectPrompt" xml:space="preserve"><value>&#xA;Vyber strechu pre vytvorenie krokiev: </value></data>
+  <data name="Command_RoofRafters_SpacingPrompt" xml:space="preserve"><value>&#xA;Zadaj maximálny rozstup krokiev v mm: </value></data>
+  <data name="Command_RoofRafters_InvalidSpacing" xml:space="preserve"><value>&#xA;Maximálny rozstup krokiev musí byť konečné kladné číslo.</value></data>
+  <data name="Command_RoofRafters_InvalidDefaults" xml:space="preserve"><value>&#xA;Predvolená pôdorysná šírka krokvy je neplatná alebo sa nezmestí medzi štítové roviny.</value></data>
+  <data name="Command_RoofRafters_SummaryFormat" xml:space="preserve"><value>&#xA;Krokvy: {3} ks, požadované maximum {0:0.###} mm, skutočný rozstup {1:0.###} mm, stanice {2}.</value></data>
+  <data name="Command_RoofRafters_CreatePrompt" xml:space="preserve"><value>&#xA;Vytvoriť automatické krokvy? [Áno/Nie] &lt;Nie&gt;: </value></data>
+  <data name="Command_RoofRafters_ExistingFoundFormat" xml:space="preserve"><value>&#xA;Strecha už obsahuje {0} automaticky vytvorených krokiev.</value></data>
+  <data name="Command_RoofRafters_ReplacementDeferred" xml:space="preserve"><value>&#xA;Bezpečné nahradenie existujúcich automatických krokiev bude doplnené v ďalšom kroku životného cyklu. Výkres zostal nezmenený.</value></data>
+  <data name="Command_RoofRafters_CreatedFormat" xml:space="preserve"><value>&#xA;Vytvorených inteligentných krokiev: {0}.</value></data>
+  <data name="Command_RoofRafters_InvalidRoof" xml:space="preserve"><value>&#xA;Vybraná strecha nemá platnú uloženú definíciu SimpleGable.</value></data>
+  <data name="Command_RoofRafters_SourceChanged" xml:space="preserve"><value>&#xA;Zdrojový obrys strechy sa zmenil. Krokvy neboli vytvorené.</value></data>
+  <data name="Command_RoofRafters_GenerationFailed" xml:space="preserve"><value>&#xA;Automatické krokvy sa nepodarilo vytvoriť. Výkresová operácia bola vrátená späť.</value></data>
+  <data name="CommandUi_RoofMenu_Label" xml:space="preserve"><value>Strecha</value></data>
+  <data name="CommandUi_RoofMenu_Tooltip" xml:space="preserve"><value>Vyberie typ strechy.</value></data>
+  <data name="CommandUi_RoofGable_Label" xml:space="preserve"><value>Sedlová strecha</value></data>
+  <data name="CommandUi_RoofGable_Tooltip" xml:space="preserve"><value>Spustí existujúci pracovný postup sedlovej strechy.</value></data>
+  <data name="CommandUi_RoofHip_Label" xml:space="preserve"><value>Valbová strecha</value></data>
+  <data name="CommandUi_RoofHip_Tooltip" xml:space="preserve"><value>Zatiaľ nie je dostupná.</value></data>
+  <data name="CommandUi_RoofHalfHip_Label" xml:space="preserve"><value>Polvalbová strecha</value></data>
+  <data name="CommandUi_RoofHalfHip_Tooltip" xml:space="preserve"><value>Zatiaľ nie je dostupná.</value></data>
+  <data name="CommandUi_RoofMonoPitch_Label" xml:space="preserve"><value>Pultová strecha</value></data>
+  <data name="CommandUi_RoofMonoPitch_Tooltip" xml:space="preserve"><value>Zatiaľ nie je dostupná.</value></data>
+  <data name="CommandUi_RoofRafters_Label" xml:space="preserve"><value>Krokvy</value></data>
+  <data name="CommandUi_RoofRafters_Tooltip" xml:space="preserve"><value>Vytvorí automatické krokvy pre uloženú sedlovú strechu.</value></data>
+  <data name="RoofRafterWindow_Title" xml:space="preserve"><value>Krokvy</value></data>
+  <data name="RoofRafterWindow_Heading" xml:space="preserve"><value>Automatické krokvy</value></data>
+  <data name="RoofRafterWindow_Description" xml:space="preserve"><value>Nastavte prierez, maximálny rozstup a materiál krokiev.</value></data>
+  <data name="RoofRafterWindow_WidthMm" xml:space="preserve"><value>Šírka [mm]</value></data>
+  <data name="RoofRafterWindow_HeightMm" xml:space="preserve"><value>Výška [mm]</value></data>
+  <data name="RoofRafterWindow_MaximumSpacingMm" xml:space="preserve"><value>Max. rozstup [mm]</value></data>
+  <data name="RoofRafterWindow_Material" xml:space="preserve"><value>Materiál</value></data>
+  <data name="RoofRafterWindow_RoofSlope" xml:space="preserve"><value>Sklon strechy</value></data>
+  <data name="RoofRafterWindow_RoofSlopeHint" xml:space="preserve"><value>Sklon je načítaný z vybranej strechy.</value></data>
+  <data name="RoofRafterWindow_RoofSlopeValueFormat" xml:space="preserve"><value>{0:0.###}°</value></data>
+  <data name="RoofRafterWindow_SummaryFormat" xml:space="preserve"><value>{0} krokiev • {1} staníc • rozstup {2:0.#} mm</value></data>
+  <data name="RoofRafterWindow_SummaryUnavailable" xml:space="preserve"><value>Zadajte platné rozmery a rozstup.</value></data>
+  <data name="RoofRafterWindow_Create" xml:space="preserve"><value>Vytvoriť</value></data>
+  <data name="RoofRafterWindow_Cancel" xml:space="preserve"><value>Zrušiť</value></data>
+  <data name="RoofRafterWindow_InvalidWidth" xml:space="preserve"><value>Šírka musí byť konečné číslo väčšie ako 0.</value></data>
+  <data name="RoofRafterWindow_WidthDoesNotFitRoof" xml:space="preserve"><value>Šírka musí byť menšia ako dĺžka strechy.</value></data>
+  <data name="RoofRafterWindow_InvalidHeight" xml:space="preserve"><value>Výška musí byť konečné číslo väčšie ako 0.</value></data>
+  <data name="RoofRafterWindow_InvalidSpacing" xml:space="preserve"><value>Maximálny rozstup musí byť konečné číslo väčšie ako 0.</value></data>
+  <data name="RoofRafterWindow_InvalidMaterial" xml:space="preserve"><value>Vyberte platný materiál.</value></data>
+  <data name="RoofRafterWindow_InvalidRoof" xml:space="preserve"><value>Rozloženie krokiev sa pre túto strechu nedá vypočítať.</value></data>
 </root>

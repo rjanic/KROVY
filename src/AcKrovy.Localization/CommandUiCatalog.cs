@@ -38,13 +38,14 @@ public static class AcKrovyCommandNames
     public const string SelectSimilar = "AK_SELECTSIMILAR";
     public const string ExportCsv = "AK_EXPORTCSV";
     public const string Roof = "AK_ROOF";
+    public const string RoofRafters = "AK_ROOF_RAFTERS";
 
     public static IReadOnlyList<string> All { get; } =
     [
         Help, Ribbon, Toolbar, ToolbarShow, ToolbarHide, Settings, ApplyLayers, Label, Labels,
         LabelMissing, LabelSelected, LabelAll, LabelShow, LabelHide, Assign, Rafter, WallPlate, Purlin,
         Post, CollarTie, Brace, TieBeam, Custom, Edit, FlipSlope, Inspect, Report, ReportAll, Recalc,
-        Renumber, Diagnostics, SelectSimilar, ExportCsv, Roof,
+        Renumber, Diagnostics, SelectSimilar, ExportCsv, Roof, RoofRafters,
     ];
 }
 
@@ -118,7 +119,27 @@ public static class CommandUiCatalog
     public const string ClassicToolbarPaletteId = "AE3310A6-6077-4FB3-B9BE-D4A1DCC866C4";
 
     public static CommandUiDescriptor Rafter { get; } = Create("RAFTER", "rafter", AcKrovyCommandNames.Rafter, "Rafter");
-    public static CommandUiDescriptor Roof { get; } = Create("ROOF", "rafter", AcKrovyCommandNames.Roof, "Roof");
+    public static CommandUiDescriptor RoofMenu { get; } = CreateDirect(
+        string.Empty,
+        "DECORAIR_AK_ROOF_MENU",
+        "roof",
+        "CommandUi_RoofMenu_Label",
+        "CommandUi_RoofMenu_Tooltip");
+    public static CommandUiDescriptor Roof { get; } = CreateDirect(
+        AcKrovyCommandNames.Roof,
+        "DECORAIR_AK_ROOF_GABLE",
+        "roof_gable",
+        "CommandUi_RoofGable_Label",
+        "CommandUi_RoofGable_Tooltip");
+    public static CommandUiDescriptor RoofHip { get; } = FutureRoof("HIP", "roof_hip", "RoofHip");
+    public static CommandUiDescriptor RoofHalfHip { get; } = FutureRoof("HALFHIP", "roof_halfhip", "RoofHalfHip");
+    public static CommandUiDescriptor RoofMonoPitch { get; } = FutureRoof("MONOPITCH", "roof_monopitch", "RoofMonoPitch");
+    public static CommandUiDescriptor RoofRafters { get; } = CreateDirect(
+        AcKrovyCommandNames.RoofRafters,
+        "DECORAIR_AK_ROOF_RAFTERS",
+        "roof_rafters",
+        "CommandUi_RoofRafters_Label",
+        "CommandUi_RoofRafters_Tooltip");
     public static CommandUiDescriptor WallPlate { get; } = Create("WALLPLATE", "wallplate", AcKrovyCommandNames.WallPlate, "WallPlate");
     public static CommandUiDescriptor Purlin { get; } = Create("PURLIN", "purlin", AcKrovyCommandNames.Purlin, "Purlin");
     public static CommandUiDescriptor Post { get; } = Create("POST", "post", AcKrovyCommandNames.Post, "Post");
@@ -168,7 +189,7 @@ public static class CommandUiCatalog
 
     public static IReadOnlyList<CommandUiDescriptor> RibbonCommands { get; } =
     [
-        Roof, Rafter, WallPlate, Purlin, Post, CollarTie, Brace, TieBeam, Custom, Assign, Edit, Inspect, Recalc, Renumber,
+        Roof, RoofRafters, Rafter, WallPlate, Purlin, Post, CollarTie, Brace, TieBeam, Custom, Assign, Edit, Inspect, Recalc, Renumber,
         Report, ReportAll, Settings, Labels, Toolbar,
     ];
 
@@ -206,6 +227,17 @@ public static class CommandUiCatalog
             iconKey,
             labelResourceKey,
             toolTipResourceKey);
+
+    private static CommandUiDescriptor FutureRoof(
+        string controlSuffix,
+        string iconKey,
+        string resourceSuffix) =>
+        CreateDirect(
+            string.Empty,
+            $"DECORAIR_AK_ROOF_{controlSuffix}",
+            iconKey,
+            $"CommandUi_{resourceSuffix}_Label",
+            $"CommandUi_{resourceSuffix}_Tooltip");
 }
 
 public static class CommandMacroBuilder

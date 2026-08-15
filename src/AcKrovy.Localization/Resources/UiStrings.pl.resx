@@ -573,4 +573,48 @@
   <data name="Command_Roof_GroupMissing" xml:space="preserve"><value>&#xA;Dach jest prawidłowy, ale jego grupa wyboru nie istnieje lub jest uszkodzona.</value></data>
   <data name="Command_Roof_GroupRepairPrompt" xml:space="preserve"><value>&#xA;Naprawić grupę wyboru dachu? [Tak/Nie] &lt;Nie&gt;: </value></data>
   <data name="Command_Roof_GroupRepaired" xml:space="preserve"><value>&#xA;Grupa wyboru dachu została naprawiona.</value></data>
+  <data name="Command_RoofRafters_SelectPrompt" xml:space="preserve"><value>&#xA;Wybierz dach do utworzenia krokwi: </value></data>
+  <data name="Command_RoofRafters_SpacingPrompt" xml:space="preserve"><value>&#xA;Podaj maksymalny rozstaw krokwi w mm: </value></data>
+  <data name="Command_RoofRafters_InvalidSpacing" xml:space="preserve"><value>&#xA;Maksymalny rozstaw krokwi musi być skończoną liczbą dodatnią.</value></data>
+  <data name="Command_RoofRafters_InvalidDefaults" xml:space="preserve"><value>&#xA;Domyślna szerokość krokwi w rzucie jest nieprawidłowa albo nie mieści się między płaszczyznami szczytowymi.</value></data>
+  <data name="Command_RoofRafters_SummaryFormat" xml:space="preserve"><value>&#xA;Krokwie: {3}, wymagane maksimum {0:0.###} mm, rzeczywisty rozstaw {1:0.###} mm, stanowiska {2}.</value></data>
+  <data name="Command_RoofRafters_CreatePrompt" xml:space="preserve"><value>&#xA;Utworzyć automatyczne krokwie? [Tak/Nie] &lt;Nie&gt;: </value></data>
+  <data name="Command_RoofRafters_ExistingFoundFormat" xml:space="preserve"><value>&#xA;Dach zawiera już {0} automatycznie utworzonych krokwi.</value></data>
+  <data name="Command_RoofRafters_ReplacementDeferred" xml:space="preserve"><value>&#xA;Bezpieczna wymiana istniejących automatycznych krokwi zostanie dodana w następnym kroku cyklu życia. Rysunek pozostał bez zmian.</value></data>
+  <data name="Command_RoofRafters_CreatedFormat" xml:space="preserve"><value>&#xA;Utworzono inteligentnych krokwi: {0}.</value></data>
+  <data name="Command_RoofRafters_InvalidRoof" xml:space="preserve"><value>&#xA;Wybrany dach nie ma poprawnej zapisanej definicji SimpleGable.</value></data>
+  <data name="Command_RoofRafters_SourceChanged" xml:space="preserve"><value>&#xA;Obrys źródłowy dachu uległ zmianie. Krokwie nie zostały utworzone.</value></data>
+  <data name="Command_RoofRafters_GenerationFailed" xml:space="preserve"><value>&#xA;Nie udało się utworzyć automatycznych krokwi. Operacja na rysunku została wycofana.</value></data>
+  <data name="CommandUi_RoofMenu_Label" xml:space="preserve"><value>Dach</value></data>
+  <data name="CommandUi_RoofMenu_Tooltip" xml:space="preserve"><value>Wybiera typ dachu.</value></data>
+  <data name="CommandUi_RoofGable_Label" xml:space="preserve"><value>Dach dwuspadowy</value></data>
+  <data name="CommandUi_RoofGable_Tooltip" xml:space="preserve"><value>Uruchamia istniejący proces dachu dwuspadowego.</value></data>
+  <data name="CommandUi_RoofHip_Label" xml:space="preserve"><value>Dach czterospadowy</value></data>
+  <data name="CommandUi_RoofHip_Tooltip" xml:space="preserve"><value>Jeszcze niedostępny.</value></data>
+  <data name="CommandUi_RoofHalfHip_Label" xml:space="preserve"><value>Dach naczółkowy</value></data>
+  <data name="CommandUi_RoofHalfHip_Tooltip" xml:space="preserve"><value>Jeszcze niedostępny.</value></data>
+  <data name="CommandUi_RoofMonoPitch_Label" xml:space="preserve"><value>Dach jednospadowy</value></data>
+  <data name="CommandUi_RoofMonoPitch_Tooltip" xml:space="preserve"><value>Jeszcze niedostępny.</value></data>
+  <data name="CommandUi_RoofRafters_Label" xml:space="preserve"><value>Krokwie</value></data>
+  <data name="CommandUi_RoofRafters_Tooltip" xml:space="preserve"><value>Tworzy automatyczne krokwie dla zapisanego dachu dwuspadowego.</value></data>
+  <data name="RoofRafterWindow_Title" xml:space="preserve"><value>Krokwie</value></data>
+  <data name="RoofRafterWindow_Heading" xml:space="preserve"><value>Automatyczne krokwie</value></data>
+  <data name="RoofRafterWindow_Description" xml:space="preserve"><value>Ustaw przekrój, maksymalny rozstaw i materiał krokwi.</value></data>
+  <data name="RoofRafterWindow_WidthMm" xml:space="preserve"><value>Szerokość [mm]</value></data>
+  <data name="RoofRafterWindow_HeightMm" xml:space="preserve"><value>Wysokość [mm]</value></data>
+  <data name="RoofRafterWindow_MaximumSpacingMm" xml:space="preserve"><value>Maks. rozstaw [mm]</value></data>
+  <data name="RoofRafterWindow_Material" xml:space="preserve"><value>Materiał</value></data>
+  <data name="RoofRafterWindow_RoofSlope" xml:space="preserve"><value>Nachylenie dachu</value></data>
+  <data name="RoofRafterWindow_RoofSlopeHint" xml:space="preserve"><value>Nachylenie jest wczytywane z wybranego dachu.</value></data>
+  <data name="RoofRafterWindow_RoofSlopeValueFormat" xml:space="preserve"><value>{0:0.###}°</value></data>
+  <data name="RoofRafterWindow_SummaryFormat" xml:space="preserve"><value>{0} krokwi • {1} stacji • rozstaw {2:0.#} mm</value></data>
+  <data name="RoofRafterWindow_SummaryUnavailable" xml:space="preserve"><value>Wprowadź prawidłowe wymiary i rozstaw.</value></data>
+  <data name="RoofRafterWindow_Create" xml:space="preserve"><value>Utwórz</value></data>
+  <data name="RoofRafterWindow_Cancel" xml:space="preserve"><value>Anuluj</value></data>
+  <data name="RoofRafterWindow_InvalidWidth" xml:space="preserve"><value>Szerokość musi być skończoną liczbą większą od 0.</value></data>
+  <data name="RoofRafterWindow_WidthDoesNotFitRoof" xml:space="preserve"><value>Szerokość musi być mniejsza niż długość dachu.</value></data>
+  <data name="RoofRafterWindow_InvalidHeight" xml:space="preserve"><value>Wysokość musi być skończoną liczbą większą od 0.</value></data>
+  <data name="RoofRafterWindow_InvalidSpacing" xml:space="preserve"><value>Maksymalny rozstaw musi być skończoną liczbą większą od 0.</value></data>
+  <data name="RoofRafterWindow_InvalidMaterial" xml:space="preserve"><value>Wybierz prawidłowy materiał.</value></data>
+  <data name="RoofRafterWindow_InvalidRoof" xml:space="preserve"><value>Nie można obliczyć układu krokwi dla tego dachu.</value></data>
 </root>

@@ -135,6 +135,7 @@ internal static class RoofCommandWorkflow
                     if (display.Group.IsCurrent)
                     {
                         editor.WriteMessage(UiStrings.GetString("Command_Roof_DisplayCurrent"));
+                        ClearCompletedWorkflowSelection(editor);
                         return;
                     }
 
@@ -146,6 +147,7 @@ internal static class RoofCommandWorkflow
                     if (TryRebuildDisplay(document, ownerId, out var groupFailureKey))
                     {
                         editor.WriteMessage(UiStrings.GetString("Command_Roof_GroupRepaired"));
+                        ClearCompletedWorkflowSelection(editor);
                     }
                     else
                     {
@@ -174,6 +176,7 @@ internal static class RoofCommandWorkflow
                     editor.WriteMessage(UiStrings.GetString(isMissing
                         ? "Command_Roof_DisplayCreated"
                         : "Command_Roof_DisplayUpdated"));
+                    ClearCompletedWorkflowSelection(editor);
                 }
                 else
                 {
@@ -227,6 +230,7 @@ internal static class RoofCommandWorkflow
                     out var failureMessageKey))
             {
                 editor.WriteMessage(UiStrings.GetString("Command_Roof_PersistedAndDisplaySaved"));
+                ClearCompletedWorkflowSelection(editor);
             }
             else
             {
@@ -236,6 +240,9 @@ internal static class RoofCommandWorkflow
             return;
         }
     }
+
+    private static void ClearCompletedWorkflowSelection(Editor editor)
+        => editor.SetImpliedSelection(Array.Empty<ObjectId>());
 
     private static void ShowPreview(
         Document document,

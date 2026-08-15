@@ -242,15 +242,49 @@ overiť abstractions pred veľkým roof automation modulom.
   GROUP nie je semantic truth a PICKSTYLE sa nemení,
 - spoločný rigidný MOVE/ROTATE ownera a displaya sa validuje podľa skutočných hrán,
   takže geometricky current cache nevyžaduje rebuild iba pre starú generation signature.
-- source-only COPY môže vytvoriť vlastný display/group; deep clone celej GROUP zostáva
-  mimo podporovaného kontraktu, kým nebude úplne HOST overený.
+- source-only COPY môže vytvoriť vlastný display/group; lokálny full 8-member GROUP
+  deep-clone fix persistuje display owner aj ako AutoCAD-remapovaný XData `1005`
+  soft-pointer a pre staršie schema-1 display dáta používa prísny read-only fallback
+  podľa kompletnej group topológie. Finálny HOST test 24 original + 24 copied = 48
+  je PASS; skorších 72 vzniklo používateľským COPY Multiple s dvoma kópiami,
 - post-Stage-5 polish používa existujúce transient WPF upozornenie iba pre blokujúce
   selection/footprint validácie; normálne prompty, stale semantic/display workflow a
   technické zlyhania zostávajú CLI, bez DB write alebo input bleed.
 
+### Stage 6 – automatic SimpleGable rafters – DOKONČENÝ A HOST OVERENÝ
+- nový explicitný `AK_ROOF_RAFTERS` vytvára iba intelligent `Krokva` source Lines,
+  bez automatických labels a bez pridania do 8-member roof GROUP,
+- kompaktný Fashion WPF dialóg načíta posledné úspešné Width/Height/Smax/Material z
+  existujúceho per-user UI store (first-use 80/160/900/Smrek C24); slope je vždy
+  read-only hodnota aktuálne vybranej persisted strechy a nevstupuje do preferences,
+- neutral layout používa zadanú pôdorysnú šírku `B=Krokva.WidthMm`; center span
+  `U=L-B` sa rozdelí na `max(1,ceil(U/Smax))` rovnakých intervalov, takže krajné
+  centerlines ležia `B/2` od štítových rovín a vonkajšie plochy krokiev lícujú štíty,
+- oba roof faces používajú eave→ridge source direction, uložený roof slope a canonical
+  `IsSlopeDirectionReversed=true`, aby bežná KROVY šípka smerovala downhill
+  ridge→eave pred aj po MOVE/ROTATE refresh; renderer ani refresh nemá roof vetvu,
+  rotated
+  rectangle aj square retained ridge-family ostávajú bez world-axis predpokladov,
+- štandardné timber metadata zostáva schema `7`; samostatné generated ownership XData
+  `DECORAIR_ACADKROVY_ROOF_TIMBER` používa schema `1`,
+- Ribbon má native `Strecha` dropdown (Sedlová enabled → `AK_ROOF`, Valbová,
+  Polvalbová a Pultová visible disabled) a samostatné `Krokvy` → `AK_ROOF_RAFTERS`;
+  16/32 PNG assets používajú existujúci loader a technický roof/PDF vizuálny jazyk,
+- dialóg live summary je zámerne bez modal-live transient preview; Cancel je read-only
+  a WPF Vytvoriť je jediné potvrdenie. Existujúci generated set sa
+  bezpečne deteguje, ale replacement je odložený, kým nebude jednotná cleanup služba
+  pre source aj neskôr pridané annotations,
+- bez reactorov, live synchronizácie, generated-rafter COPY ownership remap, iných
+  timber typov alebo Stage 7; display GROUP COPY ownership patrí do Stage 5 kontraktu.
+- HOST R1–R10, downhill MOVE/ROTATE, Ribbon/WPF localization, Width 100 → 50 mm
+  edge offset, full 8-member GROUP COPY independent generation a AK_ROOF successful
+  selection clear sú PASS.
+
 ### Ďalšie S2 stages
-- doplniť neutrálne vstupy: presah, rozostup a prierez krokiev,
-- vytvoriť pomúrnice, hrebeňovú väznicu a common rafters,
+- nasledujúci samostatný checkpoint je SimpleGable Roof STRETCH / Resize Lifecycle;
+  podporovaný obdĺžnik má zachovať roof type/slope/ridge family a prepočítať display,
+- potom doplniť explicitný stale/regeneration lifecycle pre generated rafters,
+- až v samostatných etapách vytvoriť pomúrnice, hrebeňovú väznicu a ďalšie timber typy,
 - definovať stabilnú DWG persistence a `RoofPlaneId` až spolu s reálnym S2
   source/member lifecycle, bez zmeny timber schema, ak to kontrakt nevyžaduje,
 - pridať item numbering, anotácie a report/BOM integráciu iba v rozsahu
@@ -271,6 +305,13 @@ Typy podľa PDF:
 
 ### Valbová
 - automatické odvodenie rovín a nároží.
+- jeden budúci `HipRoof` solver musí pokrývať obdĺžnikový prípad s kladnou dĺžkou
+  hrebeňa aj štvorcový stanový/pyramídový prípad. Ak sa pozdĺžny a priečny rozmer
+  footprintu rovnajú v rámci geometrickej tolerancie, hrebeň sa deterministicky
+  zrúti na jeden vrchol (`ridgeLength -> 0`),
+- Stanová/Pyramídová preto nebude samostatný sémantický roof type, Ribbon položka,
+  command, ikona ani persistence schema; v menu zostáva iba Valbová,
+- ide o budúcu solver architektúru, nie implementáciu v Stage 6.
 
 ### Polovalbová
 - výber štítu,

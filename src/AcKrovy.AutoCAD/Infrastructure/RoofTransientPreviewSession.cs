@@ -16,6 +16,7 @@ internal sealed class RoofTransientPreviewSession : IDisposable
 {
     internal const short RidgeColorIndex = 1;
     internal const short FaceBoundaryColorIndex = 4;
+    internal const short RafterColorIndex = 2;
     private const int TransientSubDrawingMode = 128;
 
     private readonly Document _document;
@@ -55,6 +56,32 @@ internal sealed class RoofTransientPreviewSession : IDisposable
         }
     }
 
+    public static RoofTransientPreviewSession ShowRafters(
+        Document document,
+        SimpleGableRafterLayout layout,
+        double sourceElevation)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(layout);
+        if (!double.IsFinite(sourceElevation))
+        {
+            throw new ArgumentOutOfRangeException(nameof(sourceElevation));
+        }
+
+        var session = new RoofTransientPreviewSession(document);
+        try
+        {
+            session.AddRafters(layout, sourceElevation);
+            document.Editor.UpdateScreen();
+            return session;
+        }
+        catch
+        {
+            session.Dispose();
+            throw;
+        }
+    }
+
     internal static IReadOnlyList<RoofPreviewSegment> MapSegments(
         SimpleGableRoofGeometry geometry,
         double sourceElevation)
@@ -70,6 +97,24 @@ internal sealed class RoofTransientPreviewSession : IDisposable
                 MapPoint(edge.Segment.Start),
                 MapPoint(edge.Segment.End),
                 edge.Role == RoofDisplayEdgeRole.Ridge))
+            .ToArray();
+    }
+
+    internal static IReadOnlyList<RoofPreviewSegment> MapRafterSegments(
+        SimpleGableRafterLayout layout,
+        double sourceElevation)
+    {
+        ArgumentNullException.ThrowIfNull(layout);
+        if (!double.IsFinite(sourceElevation))
+        {
+            throw new ArgumentOutOfRangeException(nameof(sourceElevation));
+        }
+
+        return layout.Rafters
+            .Select(rafter => new RoofPreviewSegment(
+                new Point3d(rafter.PlanStart.X, rafter.PlanStart.Y, sourceElevation),
+                new Point3d(rafter.PlanEnd.X, rafter.PlanEnd.Y, sourceElevation),
+                IsRidge: false))
             .ToArray();
     }
 
@@ -122,6 +167,25 @@ internal sealed class RoofTransientPreviewSession : IDisposable
                 LineWeight = segment.IsRidge
                     ? LineWeight.LineWeight050
                     : LineWeight.LineWeight025,
+            };
+            _drawables.Add(drawable);
+            transientManager.AddTransient(
+                drawable,
+                TransientDrawingMode.DirectShortTerm,
+                TransientSubDrawingMode,
+                _viewportNumbers);
+        }
+    }
+
+    private void AddRafters(SimpleGableRafterLayout layout, double sourceElevation)
+    {
+        var transientManager = TransientManager.CurrentTransientManager;
+        foreach (var segment in MapRafterSegments(layout, sourceElevation))
+        {
+            var drawable = new Line(segment.Start, segment.End)
+            {
+                ColorIndex = RafterColorIndex,
+                LineWeight = LineWeight.LineWeight025,
             };
             _drawables.Add(drawable);
             transientManager.AddTransient(

@@ -1,0 +1,112 @@
+<Window x:Class="AcKrovy.AutoCAD.UI.RoofRafterWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:localization="clr-namespace:AcKrovy.AutoCAD.UI.Localization"
+        Title="{localization:Loc RoofRafterWindow_Title}"
+        Width="470"
+        SizeToContent="Height"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource SettingsWindowBackgroundBrush}">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Design/SettingsColors.Light.xaml" />
+                <ResourceDictionary Source="Design/SettingsDesignSystem.xaml" />
+                <ResourceDictionary Source="Design/SettingsControls.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+    <Border Margin="18" Style="{DynamicResource SettingsCardStyle}">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <TextBlock Style="{DynamicResource SettingsSectionTitleStyle}"
+                       Text="{localization:Loc RoofRafterWindow_Heading}" />
+            <TextBlock Grid.Row="1" Margin="0,4,0,16"
+                       Style="{DynamicResource SettingsDescriptionStyle}"
+                       Text="{localization:Loc RoofRafterWindow_Description}" />
+
+            <Grid Grid.Row="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="18" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,0,12">
+                    <TextBlock Margin="0,0,0,5" Text="{localization:Loc RoofRafterWindow_WidthMm}" />
+                    <TextBox x:Name="WidthTextBox" TextChanged="Input_Changed" />
+                </StackPanel>
+                <StackPanel Grid.Row="0" Grid.Column="2" Margin="0,0,0,12">
+                    <TextBlock Margin="0,0,0,5" Text="{localization:Loc RoofRafterWindow_HeightMm}" />
+                    <TextBox x:Name="HeightTextBox" TextChanged="Input_Changed" />
+                </StackPanel>
+                <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,0,12">
+                    <TextBlock Margin="0,0,0,5" Text="{localization:Loc RoofRafterWindow_MaximumSpacingMm}" />
+                    <TextBox x:Name="MaximumSpacingTextBox" TextChanged="Input_Changed" />
+                </StackPanel>
+                <StackPanel Grid.Row="1" Grid.Column="2" Margin="0,0,0,12">
+                    <TextBlock Margin="0,0,0,5" Text="{localization:Loc RoofRafterWindow_Material}" />
+                    <ComboBox x:Name="MaterialComboBox"
+                              DisplayMemberPath="DisplayName"
+                              SelectionChanged="Input_Changed" />
+                </StackPanel>
+                <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,0,0,12">
+                    <TextBlock Margin="0,0,0,5" Text="{localization:Loc RoofRafterWindow_RoofSlope}" />
+                    <TextBox x:Name="RoofSlopeTextBox"
+                             IsReadOnly="True"
+                             IsTabStop="False"
+                             Background="{DynamicResource SettingsHoverBrush}"
+                             Foreground="{DynamicResource SettingsTextSecondaryBrush}" />
+                    <TextBlock Margin="0,4,0,0"
+                               Style="{DynamicResource SettingsHintStyle}"
+                               Text="{localization:Loc RoofRafterWindow_RoofSlopeHint}" />
+                </StackPanel>
+                <Border Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3"
+                        Padding="12"
+                        Background="{DynamicResource SettingsInfoBackgroundBrush}"
+                        BorderBrush="{DynamicResource SettingsInfoBorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="6">
+                    <TextBlock x:Name="SummaryTextBlock"
+                               Foreground="{DynamicResource SettingsInfoTextBrush}"
+                               TextWrapping="Wrap" />
+                </Border>
+            </Grid>
+
+            <TextBlock x:Name="ValidationTextBlock"
+                       Grid.Row="3"
+                       Margin="0,10,0,0"
+                       MinHeight="18"
+                       Foreground="{DynamicResource SettingsValidationBrush}"
+                       TextWrapping="Wrap" />
+
+            <StackPanel Grid.Row="4" Margin="0,18,0,0"
+                        Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button x:Name="CancelButton"
+                        Margin="0,0,10,0"
+                        IsCancel="True"
+                        Style="{DynamicResource SettingsSecondaryButtonStyle}"
+                        Content="{localization:Loc RoofRafterWindow_Cancel}" />
+                <Button x:Name="CreateButton"
+                        IsDefault="True"
+                        Click="CreateButton_Click"
+                        Style="{DynamicResource SettingsPrimaryButtonStyle}"
+                        Content="{localization:Loc RoofRafterWindow_Create}" />
+            </StackPanel>
+        </Grid>
+    </Border>
+</Window>

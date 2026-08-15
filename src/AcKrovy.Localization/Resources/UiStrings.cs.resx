@@ -573,4 +573,48 @@
   <data name="Command_Roof_GroupMissing" xml:space="preserve"><value>&#xA;Střecha je platná, ale její výběrová skupina chybí nebo je poškozená.</value></data>
   <data name="Command_Roof_GroupRepairPrompt" xml:space="preserve"><value>&#xA;Obnovit výběrovou skupinu střechy? [Ano/Ne] &lt;Ne&gt;: </value></data>
   <data name="Command_Roof_GroupRepaired" xml:space="preserve"><value>&#xA;Výběrová skupina střechy byla obnovena.</value></data>
+  <data name="Command_RoofRafters_SelectPrompt" xml:space="preserve"><value>&#xA;Vyberte střechu pro vytvoření krokví: </value></data>
+  <data name="Command_RoofRafters_SpacingPrompt" xml:space="preserve"><value>&#xA;Zadejte maximální rozteč krokví v mm: </value></data>
+  <data name="Command_RoofRafters_InvalidSpacing" xml:space="preserve"><value>&#xA;Maximální rozteč krokví musí být konečné kladné číslo.</value></data>
+  <data name="Command_RoofRafters_InvalidDefaults" xml:space="preserve"><value>&#xA;Výchozí půdorysná šířka krokve je neplatná nebo se nevejde mezi štítové roviny.</value></data>
+  <data name="Command_RoofRafters_SummaryFormat" xml:space="preserve"><value>&#xA;Krokve: {3} ks, požadované maximum {0:0.###} mm, skutečná rozteč {1:0.###} mm, stanice {2}.</value></data>
+  <data name="Command_RoofRafters_CreatePrompt" xml:space="preserve"><value>&#xA;Vytvořit automatické krokve? [Ano/Ne] &lt;Ne&gt;: </value></data>
+  <data name="Command_RoofRafters_ExistingFoundFormat" xml:space="preserve"><value>&#xA;Střecha již obsahuje {0} automaticky vytvořených krokví.</value></data>
+  <data name="Command_RoofRafters_ReplacementDeferred" xml:space="preserve"><value>&#xA;Bezpečné nahrazení existujících automatických krokví bude doplněno v dalším kroku životního cyklu. Výkres zůstal beze změny.</value></data>
+  <data name="Command_RoofRafters_CreatedFormat" xml:space="preserve"><value>&#xA;Vytvořeno inteligentních krokví: {0}.</value></data>
+  <data name="Command_RoofRafters_InvalidRoof" xml:space="preserve"><value>&#xA;Vybraná střecha nemá platnou uloženou definici SimpleGable.</value></data>
+  <data name="Command_RoofRafters_SourceChanged" xml:space="preserve"><value>&#xA;Zdrojový obrys střechy se změnil. Krokve nebyly vytvořeny.</value></data>
+  <data name="Command_RoofRafters_GenerationFailed" xml:space="preserve"><value>&#xA;Automatické krokve se nepodařilo vytvořit. Výkresová operace byla vrácena zpět.</value></data>
+  <data name="CommandUi_RoofMenu_Label" xml:space="preserve"><value>Střecha</value></data>
+  <data name="CommandUi_RoofMenu_Tooltip" xml:space="preserve"><value>Vybere typ střechy.</value></data>
+  <data name="CommandUi_RoofGable_Label" xml:space="preserve"><value>Sedlová střecha</value></data>
+  <data name="CommandUi_RoofGable_Tooltip" xml:space="preserve"><value>Spustí stávající pracovní postup sedlové střechy.</value></data>
+  <data name="CommandUi_RoofHip_Label" xml:space="preserve"><value>Valbová střecha</value></data>
+  <data name="CommandUi_RoofHip_Tooltip" xml:space="preserve"><value>Zatím není dostupná.</value></data>
+  <data name="CommandUi_RoofHalfHip_Label" xml:space="preserve"><value>Polovalbová střecha</value></data>
+  <data name="CommandUi_RoofHalfHip_Tooltip" xml:space="preserve"><value>Zatím není dostupná.</value></data>
+  <data name="CommandUi_RoofMonoPitch_Label" xml:space="preserve"><value>Pultová střecha</value></data>
+  <data name="CommandUi_RoofMonoPitch_Tooltip" xml:space="preserve"><value>Zatím není dostupná.</value></data>
+  <data name="CommandUi_RoofRafters_Label" xml:space="preserve"><value>Krokve</value></data>
+  <data name="CommandUi_RoofRafters_Tooltip" xml:space="preserve"><value>Vytvoří automatické krokve pro uloženou sedlovou střechu.</value></data>
+  <data name="RoofRafterWindow_Title" xml:space="preserve"><value>Krokve</value></data>
+  <data name="RoofRafterWindow_Heading" xml:space="preserve"><value>Automatické krokve</value></data>
+  <data name="RoofRafterWindow_Description" xml:space="preserve"><value>Nastavte průřez, maximální rozteč a materiál krokví.</value></data>
+  <data name="RoofRafterWindow_WidthMm" xml:space="preserve"><value>Šířka [mm]</value></data>
+  <data name="RoofRafterWindow_HeightMm" xml:space="preserve"><value>Výška [mm]</value></data>
+  <data name="RoofRafterWindow_MaximumSpacingMm" xml:space="preserve"><value>Max. rozteč [mm]</value></data>
+  <data name="RoofRafterWindow_Material" xml:space="preserve"><value>Materiál</value></data>
+  <data name="RoofRafterWindow_RoofSlope" xml:space="preserve"><value>Sklon střechy</value></data>
+  <data name="RoofRafterWindow_RoofSlopeHint" xml:space="preserve"><value>Sklon je načten z vybrané střechy.</value></data>
+  <data name="RoofRafterWindow_RoofSlopeValueFormat" xml:space="preserve"><value>{0:0.###}°</value></data>
+  <data name="RoofRafterWindow_SummaryFormat" xml:space="preserve"><value>{0} krokví • {1} stanic • rozteč {2:0.#} mm</value></data>
+  <data name="RoofRafterWindow_SummaryUnavailable" xml:space="preserve"><value>Zadejte platné rozměry a rozteč.</value></data>
+  <data name="RoofRafterWindow_Create" xml:space="preserve"><value>Vytvořit</value></data>
+  <data name="RoofRafterWindow_Cancel" xml:space="preserve"><value>Zrušit</value></data>
+  <data name="RoofRafterWindow_InvalidWidth" xml:space="preserve"><value>Šířka musí být konečné číslo větší než 0.</value></data>
+  <data name="RoofRafterWindow_WidthDoesNotFitRoof" xml:space="preserve"><value>Šířka musí být menší než délka střechy.</value></data>
+  <data name="RoofRafterWindow_InvalidHeight" xml:space="preserve"><value>Výška musí být konečné číslo větší než 0.</value></data>
+  <data name="RoofRafterWindow_InvalidSpacing" xml:space="preserve"><value>Maximální rozteč musí být konečné číslo větší než 0.</value></data>
+  <data name="RoofRafterWindow_InvalidMaterial" xml:space="preserve"><value>Vyberte platný materiál.</value></data>
+  <data name="RoofRafterWindow_InvalidRoof" xml:space="preserve"><value>Rozložení krokví nelze pro tuto střechu vypočítat.</value></data>
 </root>

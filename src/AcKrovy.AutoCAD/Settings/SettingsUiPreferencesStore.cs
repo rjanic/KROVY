@@ -3,6 +3,7 @@ using System.Text.Json;
 using AcKrovy.AutoCAD.Diagnostics;
 using AcKrovy.Infrastructure.Diagnostics;
 using AcKrovy.Localization;
+using AcKrovy.Core.Models.Roofs;
 
 namespace AcKrovy.AutoCAD.Settings;
 
@@ -15,6 +16,7 @@ internal sealed record SettingsUiPreferences
     public double? Left { get; init; }
     public double? Top { get; init; }
     public bool IsMaximized { get; init; }
+    public RoofRafterPreferences? AutomaticRafterPreferences { get; init; }
 
     public SettingsUiPreferences Normalize() => this with
     {
@@ -30,7 +32,18 @@ internal sealed record SettingsUiPreferences
             SettingsFashionLookRules.DefaultWindowHeight),
         Left = NormalizeCoordinate(Left),
         Top = NormalizeCoordinate(Top),
+        AutomaticRafterPreferences = NormalizeRafterPreferences(AutomaticRafterPreferences),
     };
+
+    private static RoofRafterPreferences? NormalizeRafterPreferences(
+        RoofRafterPreferences? preferences) =>
+        preferences is not null &&
+        double.IsFinite(preferences.WidthMm) && preferences.WidthMm > 0d &&
+        double.IsFinite(preferences.HeightMm) && preferences.HeightMm > 0d &&
+        double.IsFinite(preferences.MaximumSpacingMm) && preferences.MaximumSpacingMm > 0d &&
+        !string.IsNullOrWhiteSpace(preferences.Material)
+            ? preferences with { Material = preferences.Material.Trim() }
+            : null;
 
     private static double NormalizeDimension(double value, double minimum, double fallback) =>
         double.IsFinite(value) && value >= minimum ? value : fallback;

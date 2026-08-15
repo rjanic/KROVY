@@ -12,6 +12,7 @@ internal static class RoofDisplayStore
     internal const string RegAppName = "DECORAIR_ACADKROVY_ROOF_DISPLAY";
     private const int DxfRegAppNameCode = (int)DxfCode.ExtendedDataRegAppName;
     private const int DxfAsciiStringCode = (int)DxfCode.ExtendedDataAsciiString;
+    private const int DxfOwnerHandleCode = (int)DxfCode.ExtendedDataHandle;
     private const int MaxTextChunkLength = 240;
 
     public static RoofDisplayStoreReadResult Read(Entity entity)
@@ -39,22 +40,49 @@ internal static class RoofDisplayStore
             }
 
             var payload = new StringBuilder();
+            string? cloneSafeOwnerReference = null;
             for (var index = 1; index < values.Length; index++)
             {
-                if (values[index].TypeCode != DxfAsciiStringCode)
+                if (values[index].TypeCode == DxfAsciiStringCode)
                 {
-                    return RoofDisplayStoreReadResult.Invalid(
-                        null,
-                        RoofDisplayDataDecodeError.MalformedPayload);
+                    payload.Append(Convert.ToString(
+                        values[index].Value,
+                        CultureInfo.InvariantCulture));
+                    continue;
                 }
-                payload.Append(Convert.ToString(values[index].Value, CultureInfo.InvariantCulture));
+                if (values[index].TypeCode == DxfOwnerHandleCode &&
+                    cloneSafeOwnerReference is null &&
+                    TryNormalizeOwnerReference(
+                        Convert.ToString(values[index].Value, CultureInfo.InvariantCulture),
+                        out cloneSafeOwnerReference))
+                {
+                    continue;
+                }
+
+                return RoofDisplayStoreReadResult.Invalid(
+                    cloneSafeOwnerReference,
+                    RoofDisplayDataDecodeError.MalformedPayload);
             }
 
             var text = payload.ToString();
-            _ = RoofDisplayDataCodec.TryReadOwnerReference(text, out var ownerReference);
-            return RoofDisplayDataCodec.TryDecode(text, out var data, out var error) && data is not null
-                ? RoofDisplayStoreReadResult.Valid(data)
-                : RoofDisplayStoreReadResult.Invalid(ownerReference, error);
+            _ = RoofDisplayDataCodec.TryReadOwnerReference(
+                text,
+                out var payloadOwnerReference);
+            var effectiveOwnerReference = cloneSafeOwnerReference ?? payloadOwnerReference;
+            if (RoofDisplayDataCodec.TryDecode(
+                    text,
+                    out var data,
+                    out var error) && data is not null)
+            {
+                if (cloneSafeOwnerReference is not null)
+                {
+                    data = data with { OwnerReference = cloneSafeOwnerReference };
+                }
+
+                return RoofDisplayStoreReadResult.Valid(data);
+            }
+
+            return RoofDisplayStoreReadResult.Invalid(effectiveOwnerReference, error);
         }
         catch (Autodesk.AutoCAD.Runtime.Exception)
         {
@@ -74,10 +102,18 @@ internal static class RoofDisplayStore
             throw new InvalidOperationException("Roof display child must be opened ForWrite.");
         }
 
+        if (!TryNormalizeOwnerReference(data.OwnerReference, out var ownerReference))
+        {
+            throw new ArgumentException(
+                "Roof display owner reference must be a positive hexadecimal handle.",
+                nameof(data));
+        }
+
         var payload = RoofDisplayDataCodec.Encode(data);
         EnsureRegAppRegistered(entity.Database, transaction);
         var retained = ReadForeignXData(entity);
         retained.Add(new TypedValue(DxfRegAppNameCode, RegAppName));
+        retained.Add(new TypedValue(DxfOwnerHandleCode, ownerReference));
         retained.AddRange(SplitIntoChunks(payload)
             .Select(chunk => new TypedValue(DxfAsciiStringCode, chunk)));
         using var buffer = new ResultBuffer(retained.ToArray());
@@ -131,6 +167,24 @@ internal static class RoofDisplayStore
         {
             yield return value.Substring(index, Math.Min(MaxTextChunkLength, value.Length - index));
         }
+    }
+
+    private static bool TryNormalizeOwnerReference(
+        string? value,
+        out string normalized)
+    {
+        normalized = string.Empty;
+        if (!long.TryParse(
+                value,
+                NumberStyles.AllowHexSpecifier,
+                CultureInfo.InvariantCulture,
+                out var handleValue) || handleValue <= 0)
+        {
+            return false;
+        }
+
+        normalized = handleValue.ToString("X", CultureInfo.InvariantCulture);
+        return true;
     }
 }
 

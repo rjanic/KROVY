@@ -72,11 +72,13 @@ public sealed class RoofDisplayGroupSourceContractTests
     }
 
     [Fact]
-    public void GroupIsConvenienceOnlyAndNeverSemanticGeometryInput()
+    public void GroupIsNeverGeometryInputAndOnlyValidatesLegacyCopyOwnershipTopology()
     {
         Assert.DoesNotContain("SimpleGableRoofGeometrySolver", Group);
         Assert.DoesNotContain("RoofDefinitionPersistence", Group);
-        Assert.DoesNotContain("RoofDefinitionStore", Group);
+        Assert.Contains("RoofDefinitionStore.Read(member).Data", Group);
+        Assert.Contains("RoofDisplayStore.Read(member)", Group);
+        Assert.DoesNotContain("RoofPolylineExtractor", Group);
         Assert.DoesNotContain("StartPoint", Group);
         Assert.DoesNotContain("EndPoint", Group);
     }

@@ -464,6 +464,53 @@ Stabilný commit: `4a951041e2deef40a127ac9560cf6fb2ba4b6a5b`
   existujúce 2500 ms WPF upozornenie bez mouse dismiss/input bleed a bez DWG zápisu;
   stale semantic/display stavy, prompty a úspešný workflow zostávajú CLI.
 
+### STRECHY S2 Stage 6 – automatic SimpleGable rafters (dokončený HOST checkpoint)
+- explicitný `AK_ROOF_RAFTERS` obnoví platnú persisted SimpleGable definíciu cez
+  existujúci owner resolver a solver; display cache nie je autoritatívny vstup,
+- kompaktný Fashion WPF dialóg nastavuje Width/Height/Smax/Material, zobrazuje live
+  summary a read-only slope z vybranej strechy; prvé hodnoty sú 80/160/900/Smrek C24
+  a posledná úspešná štvorica sa ukladá do existujúceho per-user `settings-ui.json`,
+- Autodesk-free layout používa zadanú `Krokva.WidthMm` aj v production tvorbe: pre
+  `L`, pôdorysnú šírku `B` a maximum `Smax` platí
+  `U=L-B`, `intervals=max(1,ceil(U/Smax))`; osi sú rovnomerne od `B/2` po `L-B/2`,
+- každá stanica vytvorí dve source `Line` v smere odkvap→hrebeň s normálnym KROVY
+  `IsSlopeDirectionReversed=true`, takže slope arrow smeruje hrebeň→odkvap aj po
+  MOVE/ROTATE refresh a `AK_FLIPSLOPE` ho môže štandardne obrátiť; vznikajú ako bežné
+  inteligentné `Krokva` cez timber schema `7`, existujúce vrstvy/defaults a item identity,
+  bez automatických anotácií,
+- sekundárny RegApp `DECORAIR_ACADKROVY_ROOF_TIMBER` schema `1` nesie owner handle,
+  member/face rolu, index a počet staníc, requested spacing a layout signature,
+- krokvy nie sú členmi `AK_ROOF_<handle>`; roof GROUP zostáva presne owner + 7 display
+  Lines. Bezpečná replacement služba zatiaľ neexistuje, preto existujúci generated set
+  command iba deteguje a odmietne bez erase/write,
+- full 8-member roof GROUP COPY používa na nových display Lines hostový XData `1005`
+  soft-pointer owner handle, ktorý AutoCAD pri deep clone preloží na skopírovanú source
+  Polyline. Staršie schema-1 display dáta bez `1005` majú prísny read-only fallback iba
+  pre jednoznačnú topológiu 1 platná RoofDefinition Polyline + 7 Line rolí; originálna
+  strecha ani jej generated rafters sa neprepisujú a copied roof začína bez krokiev,
+- Ribbon panel Strechy používa native `Strecha` dropdown: Sedlová spúšťa existujúci
+  `AK_ROOF`, Valbová/Polvalbová/Pultová sú viditeľné disabled a samostatné `Krokvy`
+  spúšťajú `AK_ROOF_RAFTERS`; persistentné 16/32 PNG ikony sledujú technický roof/PDF
+  vizuálny jazyk a existujúcu resource pipeline,
+- budúca Stanová/Pyramídová strecha nebude samostatný sémantický typ, command, ikona
+  ani schéma. Je to štvorcový špeciálny prípad budúcej `HipRoof`: pri obdĺžnikovom
+  pôdoryse má vyriešený hrebeň kladnú dĺžku, pri rovnosti pozdĺžneho a priečneho
+  rozmeru v rámci budúcej geometrickej tolerancie sa deterministicky zrúti na jeden
+  vrchol (`ridgeLength -> 0`). Ribbon preto zachová iba typ Valbová; Stage 6 túto
+  geometriu neimplementuje,
+- modal WPF summary nahrádza riskantný live transient preview a je jediným potvrdením;
+  Cancel nevstúpi do write scope. Stage 6 nepridáva reactors, live sync,
+  generated-rafter COPY/WBLOCK remapping, iné timber typy ani Stage 7 funkcionalitu,
+- HOST R1–R10 je PASS: Width/2 offset a equalized spacing, normálny AK_INSPECT/report,
+  SAVE/CLOSE/REOPEN s DBMOD 0, rotated aj square retained-ridge prípady, Cancel 0→0,
+  bezpečné odmietnutie existujúceho setu, stale STRETCH rejection bez dodatočného
+  zápisu a coherent Undo/Redo batch. Downhill šípky Face0/Face1 ostávajú ridge→eave
+  po MOVE/ROTATE; Width 100 dáva 50 mm edge offset,
+- finálny full-GROUP COPY HOST test vytvoril 24 pôvodných + 24 nezávislých copied
+  krokiev = presne 48. Skorších 72 bolo potvrdené ako používateľský COPY Multiple,
+  ktorý vytvoril dve kópie, nie chyba ownership implementácie. AK_ROOF po úspechu
+  čistí iba implied selection a HOST potvrdil, že GROUP už nezostáva zvýraznený.
+
 ## Povinné kompatibilitné pravidlá
 
 1. Výpočty a geometrické rozhodovanie preferovať v Core.
@@ -489,9 +536,10 @@ Poradie:
 Multi-CAD kompatibilita sa má overiť ešte pred tým, než projekt prerastie do príliš veľkého AutoCAD-špecifického roof automation modulu.
 
 ## Najbližšia priorita
-1. manuálny AutoCAD 2027 SAVE/CLOSE/REOPEN a DBMOD test S2 Stage 3 persistence,
-2. ďalšie S2 etapy: lifecycle/edit roof a potom presah, rozostup a prierez krokiev, pomúrnice, hrebeňová
-   väznica a prvé common rafters,
+1. samostatný SimpleGable Roof STRETCH / Resize Lifecycle checkpoint; platný obdĺžnik
+   má zachovať typ, slope a ridge family a prepočítať roof geometry/display,
+2. explicitný stale/regeneration lifecycle pre už generated rafters; pomúrnice,
+   väznice a ostatné roof timber typy zostávajú mimo aktuálneho checkpointu,
 3. persistence navrhnúť až spolu so stabilnou S2 identitou zdroja a rovín,
 4. compatibility checkpoint a alternatívne CAD adaptéry naďalej riešiť bez
    prenikania vendor typov do Core.

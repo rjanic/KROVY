@@ -41,23 +41,34 @@ internal static class RoofOwnerSelectionResolver
                     ? RoofOwnerSelectionError.UnsupportedFutureDisplaySchema
                     : RoofOwnerSelectionError.MalformedDisplayMetadata);
         }
-        if (!long.TryParse(
+        ObjectId ownerId;
+        if (RoofDisplayGroupService.TryResolveLegacyCopiedOwner(
+                database,
+                transaction,
+                selectedId,
                 display.Data.OwnerReference,
-                NumberStyles.AllowHexSpecifier,
-                CultureInfo.InvariantCulture,
-                out var handleValue) || handleValue <= 0)
+                out var copiedOwnerId))
+        {
+            ownerId = copiedOwnerId;
+        }
+        else if (!long.TryParse(
+                     display.Data.OwnerReference,
+                     NumberStyles.AllowHexSpecifier,
+                     CultureInfo.InvariantCulture,
+                     out var handleValue) || handleValue <= 0)
         {
             return RoofOwnerSelectionResult.Failure(RoofOwnerSelectionError.InvalidOwnerReference);
         }
-
-        ObjectId ownerId;
-        try
+        else
         {
-            ownerId = database.GetObjectId(false, new Handle(handleValue), 0);
-        }
-        catch (Autodesk.AutoCAD.Runtime.Exception)
-        {
-            return RoofOwnerSelectionResult.Failure(RoofOwnerSelectionError.MissingOwner);
+            try
+            {
+                ownerId = database.GetObjectId(false, new Handle(handleValue), 0);
+            }
+            catch (Autodesk.AutoCAD.Runtime.Exception)
+            {
+                return RoofOwnerSelectionResult.Failure(RoofOwnerSelectionError.MissingOwner);
+            }
         }
 
         if (!AutoCadObjectIdAccess.TryGetObject<Entity>(

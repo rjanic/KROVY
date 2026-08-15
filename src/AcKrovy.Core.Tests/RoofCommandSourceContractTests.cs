@@ -49,6 +49,35 @@ public sealed class RoofCommandSourceContractTests
     }
 
     [Fact]
+    public void SuccessfulRoofWorkflow_ClearsOnlyItsImpliedSelection()
+    {
+        var commandPath = Segment(
+            Workflow,
+            "public static void Run",
+            "private static void ClearCompletedWorkflowSelection");
+        var clearHelper = Segment(
+            Workflow,
+            "private static void ClearCompletedWorkflowSelection",
+            "private static void ShowPreview");
+
+        Assert.Equal(4, CountOccurrences(
+            commandPath,
+            "ClearCompletedWorkflowSelection(editor);"));
+        Assert.Contains("Command_Roof_DisplayCurrent", commandPath);
+        Assert.Contains("Command_Roof_GroupRepaired", commandPath);
+        Assert.Contains("Command_Roof_DisplayCreated", commandPath);
+        Assert.Contains("Command_Roof_DisplayUpdated", commandPath);
+        Assert.Contains("Command_Roof_PersistedAndDisplaySaved", commandPath);
+        Assert.Contains(
+            "editor.SetImpliedSelection(Array.Empty<ObjectId>())",
+            clearHelper);
+        Assert.DoesNotContain("SendStringToExecute", clearHelper);
+        Assert.DoesNotContain("OpenMode.ForWrite", clearHelper);
+        Assert.DoesNotContain("Transaction", clearHelper);
+        Assert.DoesNotContain("Commit", clearHelper);
+    }
+
+    [Fact]
     public void OpenLoop_UsesTransientNotificationThenContinuesSelectionRetry()
     {
         var failurePath = Segment(
@@ -97,7 +126,7 @@ public sealed class RoofCommandSourceContractTests
     }
 
     [Fact]
-    public void AkRoof_IsRegisteredAndHasOneMinimalRibbonEntry()
+    public void AkRoof_IsRegisteredAndHasOneEnabledRoofDropdownEntry()
     {
         var commandNames = Read(
             "src", "AcKrovy.Localization", "CommandUiCatalog.cs");
@@ -108,8 +137,10 @@ public sealed class RoofCommandSourceContractTests
 
         Assert.Contains("public const string Roof = \"AK_ROOF\";", commandNames);
         Assert.Contains("[CommandMethod(AcKrovyCommandNames.Roof, CommandFlags.Modal | CommandFlags.Redraw)]", commands);
-        Assert.Contains("Button(CommandUiCatalog.Roof)", ribbon);
-        Assert.Equal(1, CountOccurrences(ribbon, "Button(CommandUiCatalog.Roof)"));
+        Assert.Contains("split.Items.Add(Button(CommandUiCatalog.Roof, RibbonItemSize.Standard))", ribbon);
+        Assert.Equal(1, CountOccurrences(
+            ribbon,
+            "split.Items.Add(Button(CommandUiCatalog.Roof, RibbonItemSize.Standard))"));
     }
 
     [Fact]

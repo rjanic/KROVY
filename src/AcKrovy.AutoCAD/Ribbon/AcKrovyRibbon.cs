@@ -139,7 +139,8 @@ internal static class AcKrovyRibbon
 
         tab.Panels.Add(BuildPanel(UiStrings.RibbonPanelRoofs, new[]
         {
-            Button(CommandUiCatalog.Roof),
+            RoofTypeDropDown(),
+            Button(CommandUiCatalog.RoofRafters),
         }));
 
         tab.Panels.Add(BuildPanel(UiStrings.RibbonPanelElements, new[]
@@ -238,6 +239,45 @@ internal static class AcKrovyRibbon
         }
 
         return split;
+    }
+
+    /// <summary>
+    /// Native dropdown-only roof-type control. Only the existing simple-gable
+    /// command is executable; future types remain visible and disabled.
+    /// </summary>
+    private static RibbonSplitButton RoofTypeDropDown()
+    {
+        var parent = CommandUiCatalog.RoofMenu;
+        var split = new RibbonSplitButton
+        {
+            Id = parent.RibbonControlId,
+            Text = parent.GetLabel(),
+            Size = RibbonItemSize.Large,
+            Orientation = WpfOrientation.Vertical,
+            ShowText = true,
+            ShowImage = true,
+            IsToolTipEnabled = true,
+            LargeImage = RibbonIconProvider.Get(parent.IconKey, 32),
+            Image = RibbonIconProvider.Get(parent.IconKey, 16),
+            ToolTip = parent.GetToolTip(),
+            IsSplit = false,
+            IsSynchronizedWithCurrentItem = false,
+        };
+
+        split.Items.Add(Button(CommandUiCatalog.Roof, RibbonItemSize.Standard));
+        split.Items.Add(DisabledButton(CommandUiCatalog.RoofHip));
+        split.Items.Add(DisabledButton(CommandUiCatalog.RoofHalfHip));
+        split.Items.Add(DisabledButton(CommandUiCatalog.RoofMonoPitch));
+        return split;
+    }
+
+    private static RibbonButton DisabledButton(CommandUiDescriptor descriptor)
+    {
+        var button = Button(descriptor, RibbonItemSize.Standard);
+        button.IsEnabled = false;
+        button.CommandParameter = null;
+        button.CommandHandler = null;
+        return button;
     }
 
     private static RibbonButton Button(
