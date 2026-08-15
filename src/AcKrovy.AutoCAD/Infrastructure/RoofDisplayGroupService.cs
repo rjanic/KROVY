@@ -22,9 +22,16 @@ internal static class RoofDisplayGroupService
             return RoofDisplayGroupInspection.MissingOrDamaged;
         }
 
-        var dictionary = (DBDictionary)transaction.GetObject(
-            database.GroupDictionaryId,
-            OpenMode.ForRead);
+        if (!TryGetExistingGroupDictionary(
+                database,
+                transaction,
+                OpenMode.ForRead,
+                out var dictionary) ||
+            dictionary is null)
+        {
+            return RoofDisplayGroupInspection.MissingOrDamaged;
+        }
+
         var name = BuildGroupName(transaction, ownerId);
         if (!dictionary.Contains(name) ||
             transaction.GetObject(dictionary.GetAt(name), OpenMode.ForRead) is not Group group)
@@ -83,6 +90,13 @@ internal static class RoofDisplayGroupService
         }
     }
 
+    public static void CreateGroupFromExistingValidatedDisplay(
+        Database database,
+        Transaction transaction,
+        ObjectId ownerId,
+        IReadOnlyList<ObjectId> childIds) =>
+        EnsureGroup(database, transaction, ownerId, childIds);
+
     public static bool TryResolveLegacyCopiedOwner(
         Database database,
         Transaction transaction,
@@ -98,9 +112,16 @@ internal static class RoofDisplayGroupService
             return false;
         }
 
-        var dictionary = (DBDictionary)transaction.GetObject(
-            database.GroupDictionaryId,
-            OpenMode.ForRead);
+        if (!TryGetExistingGroupDictionary(
+                database,
+                transaction,
+                OpenMode.ForRead,
+                out var dictionary) ||
+            dictionary is null)
+        {
+            return false;
+        }
+
         var candidates = new HashSet<ObjectId>();
         foreach (DBDictionaryEntry entry in dictionary)
         {
@@ -207,6 +228,27 @@ internal static class RoofDisplayGroupService
             copiedOwnerReference,
             storedOwnerReference,
             StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool TryGetExistingGroupDictionary(
+        Database database,
+        Transaction transaction,
+        OpenMode mode,
+        out DBDictionary? dictionary)
+    {
+        dictionary = null;
+        var namedObjects = (DBDictionary)transaction.GetObject(
+            database.NamedObjectsDictionaryId,
+            OpenMode.ForRead);
+        if (!namedObjects.Contains("ACAD_GROUP"))
+        {
+            return false;
+        }
+
+        dictionary = (DBDictionary)transaction.GetObject(
+            namedObjects.GetAt("ACAD_GROUP"),
+            mode);
+        return true;
     }
 
     private static string BuildGroupName(Transaction transaction, ObjectId ownerId)

@@ -570,8 +570,8 @@
   <data name="Command_Roof_SelectionInvalidDisplay" xml:space="preserve"><value>&#xA;La partie de toit sélectionnée contient des données de représentation endommagées.</value></data>
   <data name="Command_Roof_SelectionFutureDisplay" xml:space="preserve"><value>&#xA;La partie de toit sélectionnée utilise un schéma de représentation plus récent non pris en charge.</value></data>
   <data name="Command_Roof_SelectionOrphan" xml:space="preserve"><value>&#xA;La partie de toit sélectionnée ne possède aucun contour source valide disponible.</value></data>
-  <data name="Command_Roof_GroupMissing" xml:space="preserve"><value>&#xA;Le toit est valide, mais son groupe de sélection est absent ou endommagé.</value></data>
-  <data name="Command_Roof_GroupRepairPrompt" xml:space="preserve"><value>&#xA;Réparer le groupe de sélection du toit ? [Oui/Non] &lt;Non&gt; : </value></data>
+  <data name="Command_Roof_GroupMissing" xml:space="preserve"><value>&#xA;L'affichage permanent du toit est valide, mais le groupe est absent.</value></data>
+  <data name="Command_Roof_GroupRepairPrompt" xml:space="preserve"><value>&#xA;Restaurer le groupe du toit ? [Oui/Non] &lt;Non&gt; : </value></data>
   <data name="Command_Roof_GroupRepaired" xml:space="preserve"><value>&#xA;Le groupe de sélection du toit a été réparé.</value></data>
   <data name="Command_RoofRafters_SelectPrompt" xml:space="preserve"><value>&#xA;Sélectionnez un toit pour créer les chevrons : </value></data>
   <data name="Command_RoofRafters_SpacingPrompt" xml:space="preserve"><value>&#xA;Saisissez l'espacement maximal des chevrons en mm : </value></data>

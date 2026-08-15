@@ -570,8 +570,8 @@
   <data name="Command_Roof_SelectionInvalidDisplay" xml:space="preserve"><value>&#xA;Wybrana część dachu ma uszkodzone dane przedstawienia.</value></data>
   <data name="Command_Roof_SelectionFutureDisplay" xml:space="preserve"><value>&#xA;Wybrana część dachu używa nowszego, nieobsługiwanego schematu przedstawienia.</value></data>
   <data name="Command_Roof_SelectionOrphan" xml:space="preserve"><value>&#xA;Wybrana część dachu nie ma dostępnego prawidłowego obrysu źródłowego.</value></data>
-  <data name="Command_Roof_GroupMissing" xml:space="preserve"><value>&#xA;Dach jest prawidłowy, ale jego grupa wyboru nie istnieje lub jest uszkodzona.</value></data>
-  <data name="Command_Roof_GroupRepairPrompt" xml:space="preserve"><value>&#xA;Naprawić grupę wyboru dachu? [Tak/Nie] &lt;Nie&gt;: </value></data>
+  <data name="Command_Roof_GroupMissing" xml:space="preserve"><value>&#xA;Trwałe przedstawienie dachu jest prawidłowe, ale brakuje grupy.</value></data>
+  <data name="Command_Roof_GroupRepairPrompt" xml:space="preserve"><value>&#xA;Przywrócić grupę dachu? [Tak/Nie] &lt;Nie&gt;: </value></data>
   <data name="Command_Roof_GroupRepaired" xml:space="preserve"><value>&#xA;Grupa wyboru dachu została naprawiona.</value></data>
   <data name="Command_RoofRafters_SelectPrompt" xml:space="preserve"><value>&#xA;Wybierz dach do utworzenia krokwi: </value></data>
   <data name="Command_RoofRafters_SpacingPrompt" xml:space="preserve"><value>&#xA;Podaj maksymalny rozstaw krokwi w mm: </value></data>

@@ -42,6 +42,7 @@ internal static class RoofOwnerSelectionResolver
                     : RoofOwnerSelectionError.MalformedDisplayMetadata);
         }
         ObjectId ownerId;
+        var handleError = RoofOwnerSelectionError.MissingOwner;
         if (RoofDisplayGroupService.TryResolveLegacyCopiedOwner(
                 database,
                 transaction,
@@ -51,24 +52,37 @@ internal static class RoofOwnerSelectionResolver
         {
             ownerId = copiedOwnerId;
         }
-        else if (!long.TryParse(
+        else if (display.OwnerReferenceFromCloneHandle &&
+                 TryResolveHandleToPolyline(
+                     database,
+                     transaction,
                      display.Data.OwnerReference,
-                     NumberStyles.AllowHexSpecifier,
-                     CultureInfo.InvariantCulture,
-                     out var handleValue) || handleValue <= 0)
+                     out var cloneOwnerId,
+                     out handleError))
         {
-            return RoofOwnerSelectionResult.Failure(RoofOwnerSelectionError.InvalidOwnerReference);
+            ownerId = cloneOwnerId;
+        }
+        else if (RoofDisplayService.TryResolveTransferredOwner(
+                     database,
+                     transaction,
+                     selectedId,
+                     display.Data.OwnerReference,
+                     out var transferredOwnerId))
+        {
+            ownerId = transferredOwnerId;
+        }
+        else if (TryResolveHandleToPolyline(
+                     database,
+                     transaction,
+                     display.Data.OwnerReference,
+                     out var handleOwnerId,
+                     out handleError))
+        {
+            ownerId = handleOwnerId;
         }
         else
         {
-            try
-            {
-                ownerId = database.GetObjectId(false, new Handle(handleValue), 0);
-            }
-            catch (Autodesk.AutoCAD.Runtime.Exception)
-            {
-                return RoofOwnerSelectionResult.Failure(RoofOwnerSelectionError.MissingOwner);
-            }
+            return RoofOwnerSelectionResult.Failure(handleError);
         }
 
         if (!AutoCadObjectIdAccess.TryGetObject<Entity>(
@@ -86,6 +100,54 @@ internal static class RoofOwnerSelectionResolver
         }
 
         return RoofOwnerSelectionResult.Success(ownerId, selectedThroughDisplayChild: true);
+    }
+
+    private static bool TryResolveHandleToPolyline(
+        Database database,
+        Transaction transaction,
+        string ownerReference,
+        out ObjectId ownerId,
+        out RoofOwnerSelectionError error)
+    {
+        ownerId = ObjectId.Null;
+        if (!long.TryParse(
+                ownerReference,
+                NumberStyles.AllowHexSpecifier,
+                CultureInfo.InvariantCulture,
+                out var handleValue) || handleValue <= 0)
+        {
+            error = RoofOwnerSelectionError.InvalidOwnerReference;
+            return false;
+        }
+
+        try
+        {
+            ownerId = database.GetObjectId(false, new Handle(handleValue), 0);
+        }
+        catch (Autodesk.AutoCAD.Runtime.Exception)
+        {
+            error = RoofOwnerSelectionError.MissingOwner;
+            return false;
+        }
+
+        if (!AutoCadObjectIdAccess.TryGetObject<Entity>(
+                transaction,
+                ownerId,
+                OpenMode.ForRead,
+                out var owner,
+                database) || owner is null)
+        {
+            error = RoofOwnerSelectionError.MissingOwner;
+            return false;
+        }
+        if (owner is not Polyline)
+        {
+            error = RoofOwnerSelectionError.OwnerIsNotPolyline;
+            return false;
+        }
+
+        error = RoofOwnerSelectionError.None;
+        return true;
     }
 }
 

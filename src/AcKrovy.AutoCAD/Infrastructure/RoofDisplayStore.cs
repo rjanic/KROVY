@@ -50,12 +50,16 @@ internal static class RoofDisplayStore
                         CultureInfo.InvariantCulture));
                     continue;
                 }
-                if (values[index].TypeCode == DxfOwnerHandleCode &&
-                    cloneSafeOwnerReference is null &&
-                    TryNormalizeOwnerReference(
-                        Convert.ToString(values[index].Value, CultureInfo.InvariantCulture),
-                        out cloneSafeOwnerReference))
+                if (values[index].TypeCode == DxfOwnerHandleCode)
                 {
+                    if (cloneSafeOwnerReference is null &&
+                        TryNormalizeOwnerReference(
+                            Convert.ToString(values[index].Value, CultureInfo.InvariantCulture),
+                            out var remappedOwnerReference))
+                    {
+                        cloneSafeOwnerReference = remappedOwnerReference;
+                    }
+
                     continue;
                 }
 
@@ -79,7 +83,9 @@ internal static class RoofDisplayStore
                     data = data with { OwnerReference = cloneSafeOwnerReference };
                 }
 
-                return RoofDisplayStoreReadResult.Valid(data);
+                return RoofDisplayStoreReadResult.Valid(
+                    data,
+                    ownerReferenceFromCloneHandle: cloneSafeOwnerReference is not null);
             }
 
             return RoofDisplayStoreReadResult.Invalid(effectiveOwnerReference, error);
@@ -192,13 +198,16 @@ internal sealed record RoofDisplayStoreReadResult(
     bool Exists,
     string? OwnerReference,
     RoofDisplayData? Data,
-    RoofDisplayDataDecodeError Error)
+    RoofDisplayDataDecodeError Error,
+    bool OwnerReferenceFromCloneHandle = false)
 {
     public static RoofDisplayStoreReadResult Missing { get; } =
         new(false, null, null, RoofDisplayDataDecodeError.None);
 
-    public static RoofDisplayStoreReadResult Valid(RoofDisplayData data) =>
-        new(true, data.OwnerReference, data, RoofDisplayDataDecodeError.None);
+    public static RoofDisplayStoreReadResult Valid(
+        RoofDisplayData data,
+        bool ownerReferenceFromCloneHandle = false) =>
+        new(true, data.OwnerReference, data, RoofDisplayDataDecodeError.None, ownerReferenceFromCloneHandle);
 
     public static RoofDisplayStoreReadResult Invalid(
         string? ownerReference,

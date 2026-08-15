@@ -1,3 +1,4 @@
+using System.Globalization;
 using AcKrovy.Core.Models.Roofs;
 using AcKrovy.Core.Services.Roofs;
 using Autodesk.AutoCAD.DatabaseServices;
@@ -23,58 +24,137 @@ internal static class RoofDisplayService
     {
         ArgumentNullException.ThrowIfNull(database);
         ArgumentNullException.ThrowIfNull(transaction);
-        var observations = new List<RoofDisplayObservation>();
-        var childIds = new List<ObjectId>();
-        var blockTable = (BlockTable)transaction.GetObject(database.BlockTableId, OpenMode.ForRead);
-        var modelSpace = (BlockTableRecord)transaction.GetObject(
-            blockTable[BlockTableRecord.ModelSpace], OpenMode.ForRead);
-
-        foreach (ObjectId id in modelSpace)
-        {
-            if (!AutoCadObjectIdAccess.TryGetObject<Entity>(
-                    transaction,
-                    id,
-                    OpenMode.ForRead,
-                    out var entity,
-                    database) || entity is null)
-            {
-                continue;
-            }
-
-            var stored = RoofDisplayStore.Read(entity);
-            if (!stored.Exists || !string.Equals(
-                    stored.OwnerReference,
-                    ownerReference,
-                    StringComparison.OrdinalIgnoreCase))
-            {
-                continue;
-            }
-
-            childIds.Add(id);
-            var segment = entity is Line line
-                ? new RoofSegment3D(MapPoint(line.StartPoint), MapPoint(line.EndPoint))
-                : new RoofSegment3D(
-                    new RoofPoint3D(double.NaN, double.NaN, double.NaN),
-                    new RoofPoint3D(double.NaN, double.NaN, double.NaN));
-            observations.Add(new RoofDisplayObservation(
-                stored.OwnerReference,
-                stored.Data,
-                stored.Error,
-                segment,
-                entity is Line));
-        }
-
+        var records = ScanModelSpaceDisplayChildren(database, transaction);
+        var direct = records
+            .Where(record => string.Equals(
+                record.Stored.OwnerReference,
+                ownerReference,
+                StringComparison.OrdinalIgnoreCase))
+            .ToList();
         var validation = RoofDisplayValidator.Validate(
             ownerReference,
             expectedEdges,
             generationSignature,
-            observations);
+            direct.Select(record => record.Observation).ToArray());
+        var childIds = direct.Select(record => record.Id).ToList();
+        if (validation.State == RoofDisplayState.Missing)
+        {
+            var liveForeignOwners = CollectLiveForeignRoofOwners(
+                database,
+                transaction,
+                ownerId,
+                ownerReference,
+                records);
+            var transferredCandidates = records
+                .Where(record => !string.Equals(
+                    record.Stored.OwnerReference,
+                    ownerReference,
+                    StringComparison.OrdinalIgnoreCase))
+                .Select(record => record.Observation)
+                .ToArray();
+            if (RoofTransferredDisplayAssociation.TryMatch(
+                    ownerReference,
+                    expectedEdges,
+                    generationSignature,
+                    transferredCandidates,
+                    liveForeignOwners,
+                    out var match))
+            {
+                validation = match.Validation;
+                childIds = records
+                    .Where(record => string.Equals(
+                        record.Stored.OwnerReference,
+                        match.StoredOwnerReference,
+                        StringComparison.OrdinalIgnoreCase))
+                    .Select(record => record.Id)
+                    .ToList();
+            }
+        }
+
         var group = RoofDisplayGroupService.Inspect(
             database,
             transaction,
             ownerId,
             childIds);
         return new RoofDisplayInspection(validation, group, childIds);
+    }
+
+    public static bool TryResolveTransferredOwner(
+        Database database,
+        Transaction transaction,
+        ObjectId selectedChildId,
+        string storedOwnerReference,
+        out ObjectId transferredOwnerId)
+    {
+        ArgumentNullException.ThrowIfNull(database);
+        ArgumentNullException.ThrowIfNull(transaction);
+        transferredOwnerId = ObjectId.Null;
+        if (selectedChildId.IsNull || string.IsNullOrWhiteSpace(storedOwnerReference))
+        {
+            return false;
+        }
+
+        var records = ScanModelSpaceDisplayChildren(database, transaction)
+            .Where(record => string.Equals(
+                record.Stored.OwnerReference,
+                storedOwnerReference,
+                StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        if (records.Count == 0 || records.All(record => record.Id != selectedChildId))
+        {
+            return false;
+        }
+
+        var observations = records.Select(record => record.Observation).ToArray();
+        var matches = new HashSet<ObjectId>();
+        var blockTable = (BlockTable)transaction.GetObject(database.BlockTableId, OpenMode.ForRead);
+        var modelSpace = (BlockTableRecord)transaction.GetObject(
+            blockTable[BlockTableRecord.ModelSpace],
+            OpenMode.ForRead);
+        foreach (ObjectId id in modelSpace)
+        {
+            if (!AutoCadObjectIdAccess.TryGetObject<Polyline>(
+                    transaction,
+                    id,
+                    OpenMode.ForRead,
+                    out var polyline,
+                    database) || polyline is null)
+            {
+                continue;
+            }
+
+            if (!TryGetExpectedDisplay(polyline, out var edges, out var signature))
+            {
+                continue;
+            }
+
+            var ownerReference = polyline.Handle.ToString();
+            if (!RoofTransferredDisplayAssociation.TryMatch(
+                    ownerReference,
+                    edges,
+                    signature,
+                    observations,
+                    Array.Empty<string>(),
+                    out var match) ||
+                !match.Validation.IsCurrent ||
+                !string.Equals(
+                    match.StoredOwnerReference,
+                    storedOwnerReference,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            matches.Add(id);
+        }
+
+        if (matches.Count != 1)
+        {
+            return false;
+        }
+
+        transferredOwnerId = matches.Single();
+        return true;
     }
 
     public static bool Rebuild(
@@ -201,9 +281,167 @@ internal static class RoofDisplayService
         line.LinetypeScale = 1d;
         line.LineWeight = LineWeight.ByLayer;
     }
+
+    private static List<ScannedDisplayChild> ScanModelSpaceDisplayChildren(
+        Database database,
+        Transaction transaction)
+    {
+        var records = new List<ScannedDisplayChild>();
+        var blockTable = (BlockTable)transaction.GetObject(database.BlockTableId, OpenMode.ForRead);
+        var modelSpace = (BlockTableRecord)transaction.GetObject(
+            blockTable[BlockTableRecord.ModelSpace],
+            OpenMode.ForRead);
+        foreach (ObjectId id in modelSpace)
+        {
+            if (!AutoCadObjectIdAccess.TryGetObject<Entity>(
+                    transaction,
+                    id,
+                    OpenMode.ForRead,
+                    out var entity,
+                    database) || entity is null)
+            {
+                continue;
+            }
+
+            var stored = RoofDisplayStore.Read(entity);
+            if (!stored.Exists)
+            {
+                continue;
+            }
+
+            var segment = entity is Line line
+                ? new RoofSegment3D(MapPoint(line.StartPoint), MapPoint(line.EndPoint))
+                : new RoofSegment3D(
+                    new RoofPoint3D(double.NaN, double.NaN, double.NaN),
+                    new RoofPoint3D(double.NaN, double.NaN, double.NaN));
+            records.Add(new ScannedDisplayChild(
+                id,
+                stored,
+                new RoofDisplayObservation(
+                    stored.OwnerReference,
+                    stored.Data,
+                    stored.Error,
+                    segment,
+                    entity is Line)));
+        }
+
+        return records;
+    }
+
+    private static HashSet<string> CollectLiveForeignRoofOwners(
+        Database database,
+        Transaction transaction,
+        ObjectId selectedOwnerId,
+        string selectedOwnerReference,
+        IReadOnlyList<ScannedDisplayChild> records)
+    {
+        var liveForeignOwners = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var record in records)
+        {
+            if (string.IsNullOrWhiteSpace(record.Stored.OwnerReference) ||
+                string.Equals(
+                    record.Stored.OwnerReference,
+                    selectedOwnerReference,
+                    StringComparison.OrdinalIgnoreCase) ||
+                liveForeignOwners.Contains(record.Stored.OwnerReference) ||
+                !IsLiveForeignRoofOwner(
+                    database,
+                    transaction,
+                    selectedOwnerId,
+                    record.Stored.OwnerReference))
+            {
+                continue;
+            }
+
+            liveForeignOwners.Add(record.Stored.OwnerReference);
+        }
+
+        return liveForeignOwners;
+    }
+
+    private static bool IsLiveForeignRoofOwner(
+        Database database,
+        Transaction transaction,
+        ObjectId selectedOwnerId,
+        string storedOwnerReference)
+    {
+        if (!long.TryParse(
+                storedOwnerReference,
+                NumberStyles.AllowHexSpecifier,
+                CultureInfo.InvariantCulture,
+                out var handleValue) ||
+            handleValue <= 0)
+        {
+            return false;
+        }
+
+        ObjectId candidateId;
+        try
+        {
+            candidateId = database.GetObjectId(false, new Handle(handleValue), 0);
+        }
+        catch (Autodesk.AutoCAD.Runtime.Exception)
+        {
+            return false;
+        }
+
+        if (candidateId == selectedOwnerId)
+        {
+            return false;
+        }
+
+        return AutoCadObjectIdAccess.TryGetObject<Polyline>(
+                   transaction,
+                   candidateId,
+                   OpenMode.ForRead,
+                   out var polyline,
+                   database) &&
+               polyline is not null &&
+               RoofDefinitionStore.Read(polyline).Data is not null;
+    }
+
+    private static bool TryGetExpectedDisplay(
+        Polyline owner,
+        out IReadOnlyList<RoofDisplayEdge> edges,
+        out string signature)
+    {
+        edges = Array.Empty<RoofDisplayEdge>();
+        signature = string.Empty;
+        var input = RoofPolylineExtractor.Extract(owner);
+        var validation = RoofFootprintValidator.Validate(input);
+        var stored = RoofDefinitionStore.Read(owner);
+        if (!validation.IsValid || validation.Footprint is null || stored.Data is null)
+        {
+            return false;
+        }
+
+        var restored = RoofDefinitionPersistence.Restore(
+            input,
+            validation.Footprint,
+            stored.Data);
+        if (!restored.IsValid || restored.Geometry is null)
+        {
+            return false;
+        }
+
+        edges = SimpleGableRoofWireframe.Create(
+            restored.Geometry,
+            RoofPolylineExtractor.GetSourceElevation(owner));
+        signature = SimpleGableRoofWireframe.BuildGenerationSignature(edges);
+        return true;
+    }
+
+    private readonly record struct ScannedDisplayChild(
+        ObjectId Id,
+        RoofDisplayStoreReadResult Stored,
+        RoofDisplayObservation Observation);
 }
 
 internal sealed record RoofDisplayInspection(
     RoofDisplayValidationResult Validation,
     RoofDisplayGroupInspection Group,
-    IReadOnlyList<ObjectId> ChildIds);
+    IReadOnlyList<ObjectId> ChildIds)
+{
+    public RoofDisplayLifecycleKind Lifecycle =>
+        RoofDisplayLifecycleClassifier.Classify(Validation, Group.IsCurrent);
+}

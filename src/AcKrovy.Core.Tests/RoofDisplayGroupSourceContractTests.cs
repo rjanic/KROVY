@@ -45,6 +45,9 @@ public sealed class RoofDisplayGroupSourceContractTests
         Assert.Contains("ConfirmPersistence(editor)", Workflow);
         Assert.Contains("ConfirmDisplayPersistence(editor, isMissing)", Workflow);
         Assert.Contains("Command_Roof_GroupRepairPrompt", Workflow);
+        Assert.Contains("CreateGroupFromExistingValidatedDisplay", Workflow + Group);
+        Assert.Contains("TryRehydrateGroup", Workflow);
+        Assert.DoesNotContain("TryRebuildDisplay(document, ownerId, out var groupFailureKey)", Workflow);
     }
 
     [Fact]
@@ -66,9 +69,10 @@ public sealed class RoofDisplayGroupSourceContractTests
         Assert.Contains("RoofDisplayValidator.Validate", inspect);
         Assert.Contains("RoofDisplayGroupService.Inspect", inspect);
         Assert.Contains("new RoofDisplayInspection(validation, group, childIds)", inspect);
-        Assert.Contains("if (display.Validation.IsCurrent)", Workflow);
-        Assert.Contains("if (display.Group.IsCurrent)", Workflow);
+        Assert.Contains("display.Lifecycle", Workflow);
+        Assert.Contains("RoofDisplayLifecycleKind.GroupMissingRehydratable", Workflow);
         Assert.Contains("Command_Roof_GroupMissing", Workflow);
+        Assert.Contains("TryRehydrateGroup", Workflow);
     }
 
     [Fact]

@@ -570,8 +570,8 @@
   <data name="Command_Roof_SelectionInvalidDisplay" xml:space="preserve"><value>&#xA;Vybraná část střechy má poškozená data zobrazení.</value></data>
   <data name="Command_Roof_SelectionFutureDisplay" xml:space="preserve"><value>&#xA;Vybraná část střechy používá novější nepodporované schéma zobrazení.</value></data>
   <data name="Command_Roof_SelectionOrphan" xml:space="preserve"><value>&#xA;Vybraná část střechy nemá dostupný platný zdrojový obrys.</value></data>
-  <data name="Command_Roof_GroupMissing" xml:space="preserve"><value>&#xA;Střecha je platná, ale její výběrová skupina chybí nebo je poškozená.</value></data>
-  <data name="Command_Roof_GroupRepairPrompt" xml:space="preserve"><value>&#xA;Obnovit výběrovou skupinu střechy? [Ano/Ne] &lt;Ne&gt;: </value></data>
+  <data name="Command_Roof_GroupMissing" xml:space="preserve"><value>&#xA;Trvalé zobrazení střechy je platné, ale chybí skupina.</value></data>
+  <data name="Command_Roof_GroupRepairPrompt" xml:space="preserve"><value>&#xA;Obnovit skupinu střechy? [Ano/Ne] &lt;Ne&gt;: </value></data>
   <data name="Command_Roof_GroupRepaired" xml:space="preserve"><value>&#xA;Výběrová skupina střechy byla obnovena.</value></data>
   <data name="Command_RoofRafters_SelectPrompt" xml:space="preserve"><value>&#xA;Vyberte střechu pro vytvoření krokví: </value></data>
   <data name="Command_RoofRafters_SpacingPrompt" xml:space="preserve"><value>&#xA;Zadejte maximální rozteč krokví v mm: </value></data>

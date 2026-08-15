@@ -570,8 +570,8 @@
   <data name="Command_Roof_SelectionInvalidDisplay" xml:space="preserve"><value>&#xA;The selected roof part has damaged display data.</value></data>
   <data name="Command_Roof_SelectionFutureDisplay" xml:space="preserve"><value>&#xA;The selected roof part uses a newer unsupported display schema.</value></data>
   <data name="Command_Roof_SelectionOrphan" xml:space="preserve"><value>&#xA;The selected roof part has no available valid source outline.</value></data>
-  <data name="Command_Roof_GroupMissing" xml:space="preserve"><value>&#xA;The roof is valid, but its selection group is missing or damaged.</value></data>
-  <data name="Command_Roof_GroupRepairPrompt" xml:space="preserve"><value>&#xA;Repair the roof selection group? [Yes/No] &lt;No&gt;: </value></data>
+  <data name="Command_Roof_GroupMissing" xml:space="preserve"><value>&#xA;The permanent roof display is valid, but the group is missing.</value></data>
+  <data name="Command_Roof_GroupRepairPrompt" xml:space="preserve"><value>&#xA;Restore the roof group? [Yes/No] &lt;No&gt;: </value></data>
   <data name="Command_Roof_GroupRepaired" xml:space="preserve"><value>&#xA;The roof selection group was repaired.</value></data>
   <data name="Command_RoofRafters_SelectPrompt" xml:space="preserve"><value>&#xA;Select a roof for rafter creation: </value></data>
   <data name="Command_RoofRafters_SpacingPrompt" xml:space="preserve"><value>&#xA;Enter the maximum rafter spacing in mm: </value></data>

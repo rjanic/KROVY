@@ -130,21 +130,22 @@ internal static class RoofCommandWorkflow
                     sourceReference,
                     edges,
                     signature);
-                if (display.Validation.IsCurrent)
+                var lifecycle = display.Lifecycle;
+                if (lifecycle == RoofDisplayLifecycleKind.Current)
                 {
-                    if (display.Group.IsCurrent)
-                    {
-                        editor.WriteMessage(UiStrings.GetString("Command_Roof_DisplayCurrent"));
-                        ClearCompletedWorkflowSelection(editor);
-                        return;
-                    }
+                    editor.WriteMessage(UiStrings.GetString("Command_Roof_DisplayCurrent"));
+                    ClearCompletedWorkflowSelection(editor);
+                    return;
+                }
 
+                if (lifecycle == RoofDisplayLifecycleKind.GroupMissingRehydratable)
+                {
                     editor.WriteMessage(UiStrings.GetString("Command_Roof_GroupMissing"));
                     if (!ConfirmYesNo(editor, "Command_Roof_GroupRepairPrompt"))
                     {
                         return;
                     }
-                    if (TryRebuildDisplay(document, ownerId, out var groupFailureKey))
+                    if (TryRehydrateGroup(document, ownerId, out var groupFailureKey))
                     {
                         editor.WriteMessage(UiStrings.GetString("Command_Roof_GroupRepaired"));
                         ClearCompletedWorkflowSelection(editor);
@@ -155,14 +156,13 @@ internal static class RoofCommandWorkflow
                     }
                     return;
                 }
-                if (display.Validation.Issues.HasFlag(
-                        RoofDisplayValidationIssue.UnsupportedFutureSchema))
+                if (lifecycle == RoofDisplayLifecycleKind.UnsupportedFutureSchema)
                 {
                     editor.WriteMessage(UiStrings.GetString("Command_Roof_DisplayFutureSchema"));
                     return;
                 }
 
-                var isMissing = display.Validation.State == RoofDisplayState.Missing;
+                var isMissing = lifecycle == RoofDisplayLifecycleKind.MissingDisplay;
                 editor.WriteMessage(UiStrings.GetString(isMissing
                     ? "Command_Roof_DisplayMissing"
                     : "Command_Roof_DisplayStale"));
@@ -435,6 +435,73 @@ internal static class RoofCommandWorkflow
                 return false;
             }
 
+            transaction.Commit();
+            return true;
+        }
+        catch (System.Exception)
+        {
+            return false;
+        }
+    }
+
+    private static bool TryRehydrateGroup(
+        Document document,
+        ObjectId ownerId,
+        out string failureMessageKey)
+    {
+        failureMessageKey = "Command_Roof_DisplayFailed";
+        try
+        {
+            using var documentLock = document.LockDocument();
+            using var transaction = document.Database.TransactionManager.StartTransaction();
+            if (transaction.GetObject(ownerId, OpenMode.ForRead) is not Polyline owner)
+            {
+                return false;
+            }
+
+            var input = RoofPolylineExtractor.Extract(owner);
+            var validation = RoofFootprintValidator.Validate(input);
+            var stored = RoofDefinitionStore.Read(owner);
+            if (!validation.IsValid || validation.Footprint is null || stored.Data is null)
+            {
+                failureMessageKey = "Command_Roof_PersistedInvalid";
+                return false;
+            }
+
+            var restored = RoofDefinitionPersistence.Restore(input, validation.Footprint, stored.Data);
+            if (!restored.IsValid || restored.Geometry is null)
+            {
+                failureMessageKey = restored.Error == RoofDefinitionRestoreError.StaleFootprint
+                    ? "Command_Roof_PersistedStale"
+                    : "Command_Roof_PersistedInvalid";
+                return false;
+            }
+
+            var edges = SimpleGableRoofWireframe.Create(
+                restored.Geometry,
+                RoofPolylineExtractor.GetSourceElevation(owner));
+            var signature = SimpleGableRoofWireframe.BuildGenerationSignature(edges);
+            var inspection = RoofDisplayService.Inspect(
+                document.Database,
+                transaction,
+                owner.ObjectId,
+                owner.Handle.ToString(),
+                edges,
+                signature);
+            if (!inspection.Validation.IsCurrent)
+            {
+                failureMessageKey = inspection.Validation.Issues.HasFlag(
+                    RoofDisplayValidationIssue.UnsupportedFutureSchema)
+                    ? "Command_Roof_DisplayFutureSchema"
+                    : "Command_Roof_DisplayFailed";
+                return false;
+            }
+
+            RoofDisplayGroupService.CreateGroupFromExistingValidatedDisplay(
+                document.Database,
+                transaction,
+                owner.ObjectId,
+                inspection.ChildIds);
             transaction.Commit();
             return true;
         }

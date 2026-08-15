@@ -50,7 +50,8 @@ public sealed class RoofPermanentDisplaySourceContractTests
     public void Discovery_IsReadOnlyAndScansOnlyModelSpace()
     {
         var inspect = Segment(Service, "public static RoofDisplayInspection Inspect", "public static bool Rebuild");
-        Assert.Contains("BlockTableRecord.ModelSpace], OpenMode.ForRead", inspect);
+        Assert.Contains("ScanModelSpaceDisplayChildren", inspect);
+        Assert.Contains("BlockTableRecord.ModelSpace", inspect);
         Assert.Contains("OpenMode.ForRead", inspect);
         Assert.DoesNotContain("OpenMode.ForWrite", inspect);
         Assert.DoesNotContain("UpgradeOpen", inspect);
@@ -77,7 +78,7 @@ public sealed class RoofPermanentDisplaySourceContractTests
     [Fact]
     public void ExistingRoof_RebuildKeepsSemanticOwnerForReadAndCommitsOnlyAfterYes()
     {
-        var rebuild = Segment(Workflow, "private static bool TryRebuildDisplay", "private static bool TryPromptParameters");
+        var rebuild = Segment(Workflow, "private static bool TryRebuildDisplay", "private static bool TryRehydrateGroup");
         Assert.Contains("transaction.GetObject(ownerId, OpenMode.ForRead) is not Polyline owner", rebuild);
         Assert.DoesNotContain("OpenMode.ForWrite", rebuild);
         Assert.DoesNotContain("RoofDefinitionStore.Write", rebuild);
@@ -94,8 +95,8 @@ public sealed class RoofPermanentDisplaySourceContractTests
     {
         var current = Segment(
             Workflow,
-            "if (display.Group.IsCurrent)",
-            "editor.WriteMessage(UiStrings.GetString(\"Command_Roof_GroupMissing\"))");
+            "RoofDisplayLifecycleKind.Current",
+            "RoofDisplayLifecycleKind.GroupMissingRehydratable");
         Assert.Contains("Command_Roof_DisplayCurrent", current);
         Assert.Contains("return;", current);
         Assert.DoesNotContain("Rebuild", current);
@@ -117,7 +118,7 @@ public sealed class RoofPermanentDisplaySourceContractTests
     [Fact]
     public void RigidTransformAndCopyAreResolvedFromCurrentOwnerGeometryAndHandle()
     {
-        var rebuild = Segment(Workflow, "private static bool TryRebuildDisplay", "private static bool TryPromptParameters");
+        var rebuild = Segment(Workflow, "private static bool TryRebuildDisplay", "private static bool TryRehydrateGroup");
         Assert.Contains("RoofPolylineExtractor.Extract(owner)", rebuild);
         Assert.Contains("RoofDefinitionPersistence.Restore", rebuild);
         Assert.Contains("RoofPolylineExtractor.GetSourceElevation(owner)", rebuild);
@@ -178,6 +179,8 @@ public sealed class RoofPermanentDisplaySourceContractTests
             "Command_Roof_DisplayCreatePrompt", "Command_Roof_DisplayUpdatePrompt",
             "Command_Roof_DisplayCreated", "Command_Roof_DisplayUpdated",
             "Command_Roof_DisplayFailed", "Command_Roof_DisplayFutureSchema",
+            "Command_Roof_GroupMissing", "Command_Roof_GroupRepairPrompt",
+            "Command_Roof_GroupRepaired",
         };
 
         foreach (var file in files)

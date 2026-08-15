@@ -570,8 +570,8 @@
   <data name="Command_Roof_SelectionInvalidDisplay" xml:space="preserve"><value>&#xA;Der gewählte Dachteil hat beschädigte Darstellungsdaten.</value></data>
   <data name="Command_Roof_SelectionFutureDisplay" xml:space="preserve"><value>&#xA;Der gewählte Dachteil verwendet ein neueres, nicht unterstütztes Darstellungsschema.</value></data>
   <data name="Command_Roof_SelectionOrphan" xml:space="preserve"><value>&#xA;Für den gewählten Dachteil ist kein gültiger Quellumriss verfügbar.</value></data>
-  <data name="Command_Roof_GroupMissing" xml:space="preserve"><value>&#xA;Das Dach ist gültig, aber seine Auswahlgruppe fehlt oder ist beschädigt.</value></data>
-  <data name="Command_Roof_GroupRepairPrompt" xml:space="preserve"><value>&#xA;Dach-Auswahlgruppe reparieren? [Ja/Nein] &lt;Nein&gt;: </value></data>
+  <data name="Command_Roof_GroupMissing" xml:space="preserve"><value>&#xA;Die permanente Dachdarstellung ist gültig, aber die Gruppe fehlt.</value></data>
+  <data name="Command_Roof_GroupRepairPrompt" xml:space="preserve"><value>&#xA;Dachgruppe wiederherstellen? [Ja/Nein] &lt;Nein&gt;: </value></data>
   <data name="Command_Roof_GroupRepaired" xml:space="preserve"><value>&#xA;Die Dach-Auswahlgruppe wurde repariert.</value></data>
   <data name="Command_RoofRafters_SelectPrompt" xml:space="preserve"><value>&#xA;Dach für die Sparrenerzeugung auswählen: </value></data>
   <data name="Command_RoofRafters_SpacingPrompt" xml:space="preserve"><value>&#xA;Maximalen Sparrenabstand in mm eingeben: </value></data>

@@ -488,6 +488,9 @@ Stabilný commit: `4a951041e2deef40a127ac9560cf6fb2ba4b6a5b`
   Polyline. Staršie schema-1 display dáta bez `1005` majú prísny read-only fallback iba
   pre jednoznačnú topológiu 1 platná RoofDefinition Polyline + 7 Line rolí; originálna
   strecha ani jej generated rafters sa neprepisujú a copied roof začína bez krokiev,
+- cross-DWG COPYCLIP/PASTECLIP môže vynechať AutoCAD GROUP, kým semantic source aj 7
+  display Lines ostanú platné; `AK_ROOF` potom GROUP iba rehydratuje z existujúceho
+  validovaného 8-entity setu, bez reactors a bez nových display Lines,
 - Ribbon panel Strechy používa native `Strecha` dropdown: Sedlová spúšťa existujúci
   `AK_ROOF`, Valbová/Polvalbová/Pultová sú viditeľné disabled a samostatné `Krokvy`
   spúšťajú `AK_ROOF_RAFTERS`; persistentné 16/32 PNG ikony sledujú technický roof/PDF
