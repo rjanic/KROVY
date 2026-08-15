@@ -55,6 +55,15 @@ public static class TimberAnnotationSettingsChangeRules
         TimberAnnotationScaleRules.NormalizeDenominator(acceptedDenominator) !=
         TimberAnnotationScaleRules.NormalizeDenominator(selectedDenominator);
 
+    public static bool ShouldApplyScaleChange(
+        TimberAnnotationSettingsApplyScope applyScope,
+        int acceptedDrawingDenominator,
+        int selectedDenominator) =>
+        applyScope is
+            TimberAnnotationSettingsApplyScope.SelectedElements or
+            TimberAnnotationSettingsApplyScope.AllElements ||
+        HasScaleChanged(acceptedDrawingDenominator, selectedDenominator);
+
     public static bool ShouldRefreshAllEligible(
         bool drawingScaleChanged,
         bool presentationSettingsChanged) =>

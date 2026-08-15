@@ -52,12 +52,16 @@ internal static class TimberSourceLineCreationService
             createdIds.Add(id);
         }
 
-        return TimberElementItemIdentityService.SynchronizeElementIds(
+        var synchronizedDataById =
+            TimberElementItemIdentityService.SynchronizeElementIds(
             database,
             transaction,
             metadataStore,
             createdIds,
             defaultProfile.GetCuttingLengthRoundingStepMm());
+        return createdIds.ToDictionary(
+            id => id,
+            id => synchronizedDataById[id]);
     }
 }
 

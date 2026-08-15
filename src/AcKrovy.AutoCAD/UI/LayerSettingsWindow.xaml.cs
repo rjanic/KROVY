@@ -553,7 +553,9 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
                     SelectedAnnotationMode,
                     SelectedItemNumberLeaderStyle,
                     pendingTextPatch);
-            var applyScaleChange = TimberAnnotationSettingsChangeRules.HasScaleChanged(
+            var applyScaleChange =
+                TimberAnnotationSettingsChangeRules.ShouldApplyScaleChange(
+                annotationApplyScope.Value,
                 _loadedDrawingScaleDenominator,
                 selectedScaleDenominator);
             annotationSettings = new TimberAnnotationSettingsRequest(

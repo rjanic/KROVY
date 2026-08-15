@@ -28,7 +28,8 @@ public sealed class AkLabelCommandSourceContractTests
         Assert.Contains("ForceCanonicalRecreate", service);
         Assert.Contains("DeleteOwnedAnnotationsForSource(", service);
         Assert.Contains("EnsureForElement(", service);
-        Assert.Contains("AutoCadOwnedAnnotationSelectionService.Resolve(", service);
+        Assert.Contains("ResolveSelectedTimberSources(", service);
+        Assert.DoesNotContain("AutoCadOwnedAnnotationSelectionService.Resolve(", service);
         Assert.Contains("AkLabelIntentionPromptRules.Parse(", service);
         Assert.Contains("Keywords.Default = AkLabelIntentionPromptRules.GlobalMissing", service);
         Assert.Contains("AppendKeywordsToMessage = false", service);
@@ -227,7 +228,7 @@ public sealed class AkLabelCommandSourceContractTests
     }
 
     [Fact]
-    public void ResetSelected_OnlyUsesOwnedAnnotationResolve()
+    public void ResetSelected_UsesSelectedTimberSources_NotOwnedAnnotations()
     {
         var service = Normalize(Read(
             "src/AcKrovy.AutoCAD/Infrastructure/AkLabelCommandService.cs"));
@@ -241,13 +242,181 @@ public sealed class AkLabelCommandSourceContractTests
         Assert.True(resetSelectedStart >= 0 && executeStart > resetSelectedStart);
         var resetSelectedBody = service[resetSelectedStart..executeStart];
 
-        Assert.Contains("AutoCadOwnedAnnotationSelectionService.Resolve(", resetSelectedBody);
+        Assert.Contains("ResolveSelectedTimberSources(database, selectedIds)", resetSelectedBody);
+        Assert.Contains("resolved.AcceptedIds", resetSelectedBody);
+        Assert.DoesNotContain("AutoCadOwnedAnnotationSelectionService.Resolve(", resetSelectedBody);
 
         var resetAllExecute = service[executeStart..];
         Assert.DoesNotContain(
-            "AutoCadOwnedAnnotationSelectionService.Resolve(",
+            "ResolveSelectedTimberSources(",
             resetAllExecute);
         Assert.Contains("FindAllTimberElements(", resetAllExecute);
+    }
+
+    [Fact]
+    public void ResetSelected_PromptsForLocalizedSourceElements()
+    {
+        var commands = Normalize(Read(
+            "src/AcKrovy.AutoCAD/Commands/AcKrovyCommands.cs"));
+        var sk = Normalize(Read("src/AcKrovy.Localization/Resources/UiStrings.resx"));
+        var cs = Normalize(Read("src/AcKrovy.Localization/Resources/UiStrings.cs.resx"));
+        var en = Normalize(Read("src/AcKrovy.Localization/Resources/UiStrings.en.resx"));
+        var de = Normalize(Read("src/AcKrovy.Localization/Resources/UiStrings.de.resx"));
+        var pl = Normalize(Read("src/AcKrovy.Localization/Resources/UiStrings.pl.resx"));
+        var fr = Normalize(Read("src/AcKrovy.Localization/Resources/UiStrings.fr.resx"));
+
+        Assert.Contains("\"Command_Labels_PromptSelected\"", commands);
+        Assert.DoesNotContain("\"Command_Labels_PromptSelectAnnotations\"", commands);
+        foreach (var pack in new[] { sk, cs, en, de, pl, fr })
+        {
+            Assert.Contains("name=\"Command_Labels_PromptSelected\"", pack);
+        }
+
+        Assert.Contains(
+            "Označ prvky, ktorým chceš vytvoriť alebo obnoviť popisy:",
+            sk);
+    }
+
+    [Fact]
+    public void SelectedSourceResolution_IsReadOnly_MetadataBased_AndDeduplicated()
+    {
+        var service = Normalize(Read(
+            "src/AcKrovy.AutoCAD/Infrastructure/AkLabelCommandService.cs"));
+        var resolverStart = service.IndexOf(
+            "private static SelectedTimberSourceResolution ResolveSelectedTimberSources(",
+            StringComparison.Ordinal);
+        var executeStart = service.IndexOf(
+            "private static ElementLabelUpdateResult Execute(",
+            resolverStart,
+            StringComparison.Ordinal);
+        Assert.True(resolverStart >= 0 && executeStart > resolverStart);
+        var resolver = service[resolverStart..executeStart];
+
+        Assert.Contains("StartOpenCloseTransaction()", resolver);
+        Assert.Contains("OpenMode.ForRead", resolver);
+        Assert.Contains("IsSupportedTimberGeometry(entity)", resolver);
+        Assert.Contains("metadataStore.TryRead(entity, out var data)", resolver);
+        Assert.Contains("var seenIds = new HashSet<ObjectId>()", resolver);
+        Assert.Contains("if (!seenIds.Add(id))", resolver);
+        Assert.DoesNotContain("OpenMode.ForWrite", resolver);
+        Assert.DoesNotContain("UpgradeOpen(", resolver);
+        Assert.DoesNotContain("Write(", resolver);
+        Assert.DoesNotContain("RoofGeneratedTimberStore", resolver);
+        Assert.DoesNotContain("RoofDisplayStore", resolver);
+    }
+
+    [Fact]
+    public void SelectedSources_ReuseCanonicalCreateAndRebuildPath()
+    {
+        var service = Normalize(Read(
+            "src/AcKrovy.AutoCAD/Infrastructure/AkLabelCommandService.cs"));
+        var rules = Normalize(Read(
+            "src/AcKrovy.Core/Services/AkLabelCommandRules.cs"));
+
+        Assert.Contains("AkLabelCommandRules.Decide(", service);
+        Assert.Contains("DeleteOwnedAnnotationsForSource(", service);
+        Assert.Contains("TimberAnnotationService.EnsureForElement(", service);
+        Assert.Contains("DeleteDuplicatesForExistingSourceHandles(", service);
+        Assert.Contains("case AkLabelIntention.ResetSelected:", rules);
+        Assert.Contains("return AkLabelSourceAction.ForceCanonicalRecreate;", rules);
+        Assert.Contains("hasExistingMainAnnotation", rules);
+    }
+
+    [Fact]
+    public void SelectedSources_SkipUnsupportedBeforePresentationWrites()
+    {
+        var service = Normalize(Read(
+            "src/AcKrovy.AutoCAD/Infrastructure/AkLabelCommandService.cs"));
+        var resetStart = service.IndexOf(
+            "private static ElementLabelUpdateResult ExecuteResetSelected(",
+            StringComparison.Ordinal);
+        var resolverStart = service.IndexOf(
+            "private static SelectedTimberSourceResolution ResolveSelectedTimberSources(",
+            StringComparison.Ordinal);
+        Assert.True(resetStart >= 0 && resolverStart > resetStart);
+        var reset = service[resetStart..resolverStart];
+
+        var emptyGate = reset.IndexOf(
+            "if (resolved.AcceptedIds.Count == 0)",
+            StringComparison.Ordinal);
+        var execute = reset.IndexOf("var result = Execute(", StringComparison.Ordinal);
+        Assert.True(emptyGate >= 0 && execute > emptyGate);
+        Assert.DoesNotContain("AutoCadAnnotationPresentationBatchContext.Create(", reset[..execute]);
+    }
+
+    [Fact]
+    public void ResetSelected_CancelOrEmptySelection_ReturnsBeforeServiceRun()
+    {
+        var commands = Normalize(Read(
+            "src/AcKrovy.AutoCAD/Commands/AcKrovyCommands.cs"));
+        var executeStart = commands.IndexOf(
+            "private void ExecuteAkLabelIntention(",
+            StringComparison.Ordinal);
+        var showLabelsStart = commands.IndexOf(
+            "public void ShowLabels()",
+            executeStart,
+            StringComparison.Ordinal);
+        Assert.True(executeStart >= 0 && showLabelsStart > executeStart);
+        var execute = commands[executeStart..showLabelsStart];
+
+        var emptyGate = execute.IndexOf(
+            "if (selectedIds.Count == 0)",
+            StringComparison.Ordinal);
+        var run = execute.IndexOf(
+            "AkLabelCommandService.Run(",
+            StringComparison.Ordinal);
+        Assert.True(emptyGate >= 0 && run > emptyGate);
+        Assert.Contains("return;", execute[emptyGate..run]);
+    }
+
+    [Fact]
+    public void GeneratedRafter_IsEligibleOnlyThroughNormalTimberContract()
+    {
+        var service = Normalize(Read(
+            "src/AcKrovy.AutoCAD/Infrastructure/AkLabelCommandService.cs"));
+        var rafterWorkflow = Normalize(Read(
+            "src/AcKrovy.AutoCAD/Infrastructure/RoofRafterCommandWorkflow.cs"));
+
+        Assert.Contains("TimberSourceLineCreationService.Create(", rafterWorkflow);
+        Assert.Contains("AutoCadTimberElementMetadataStore", service);
+        Assert.DoesNotContain("RoofGeneratedTimberStore", service);
+        Assert.DoesNotContain("RoofGeneratedTimberData", service);
+        Assert.DoesNotContain("RoofDisplayStore", service);
+    }
+
+    [Fact]
+    public void MissingAndResetAllPaths_RemainIndependentOfSelectedResolution()
+    {
+        var service = Normalize(Read(
+            "src/AcKrovy.AutoCAD/Infrastructure/AkLabelCommandService.cs"));
+        var runStart = service.IndexOf(
+            "public static ElementLabelUpdateResult Run(",
+            StringComparison.Ordinal);
+        var confirmStart = service.IndexOf(
+            "public static bool ConfirmResetAll()",
+            StringComparison.Ordinal);
+        Assert.True(runStart >= 0 && confirmStart > runStart);
+        var run = service[runStart..confirmStart];
+
+        Assert.Contains("AkLabelIntention.MissingOnly => Execute(", run);
+        Assert.Contains("AkLabelIntention.ResetAll => Execute(", run);
+        Assert.Contains("AkLabelIntention.ResetSelected => ExecuteResetSelected(", run);
+    }
+
+    [Fact]
+    public void OwnedAnnotationResolver_RemainsAvailableButOutsideAkLabels()
+    {
+        var service = Normalize(Read(
+            "src/AcKrovy.AutoCAD/Infrastructure/AkLabelCommandService.cs"));
+        var ownedResolver = Normalize(Read(
+            "src/AcKrovy.AutoCAD/Infrastructure/AutoCadOwnedAnnotationSelectionService.cs"));
+
+        Assert.DoesNotContain("AutoCadOwnedAnnotationSelectionService", service);
+        Assert.Contains(
+            "internal static class AutoCadOwnedAnnotationSelectionService",
+            ownedResolver);
+        Assert.Contains("TimberSourceEntity", ownedResolver);
+        Assert.Contains("StartOpenCloseTransaction()", ownedResolver);
     }
 
     [Fact]

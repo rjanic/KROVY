@@ -12,7 +12,7 @@ public enum AkLabelIntention
     MissingOnly = 0,
 
     /// <summary>
-    /// Canonical reset of selected owned annotation groups only.
+    /// Create or canonically reset annotations for selected timber sources only.
     /// </summary>
     ResetSelected = 1,
 

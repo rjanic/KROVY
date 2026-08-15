@@ -227,7 +227,7 @@ internal static class RoofRafterCommandWorkflow
                     new Point3d(rafter.PlanEnd.X, rafter.PlanEnd.Y, sourceElevation),
                     canonicalRafterData))
                 .ToArray();
-            _ = TimberSourceLineCreationService.Create(
+            var createdRafters = TimberSourceLineCreationService.Create(
                 document.Database,
                 transaction,
                 document.Editor,
@@ -250,6 +250,11 @@ internal static class RoofRafterCommandWorkflow
                             layout.RequestedMaximumSpacingMm,
                             layout.Signature));
                 });
+            TimberCreatedElementAnnotationService.EnsureForCreatedElements(
+                document.Database,
+                transaction,
+                createdRafters,
+                defaultProfile);
             transaction.Commit();
             return RoofRafterCreationResult.Success(layout.Rafters.Count);
         }

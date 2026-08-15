@@ -426,14 +426,14 @@ public sealed class AcKrovyCommands
         }
 
         // Selection acquisition is ResetSelected-only. ResetAll ignores pickfirst
-        // and never prompts for annotations.
+        // and never prompts for source elements.
         IReadOnlyList<ObjectId>? selectedIds = null;
         if (intention == AkLabelIntention.ResetSelected)
         {
             selectedIds = PromptForEntities(
                 editor,
                 UiStrings.GetString(
-                    "Command_Labels_PromptSelectAnnotations",
+                    "Command_Labels_PromptSelected",
                     AppLanguageService.CurrentUiCulture));
             if (selectedIds.Count == 0)
             {

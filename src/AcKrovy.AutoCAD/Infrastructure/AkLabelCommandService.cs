@@ -238,26 +238,64 @@ internal static class AkLabelCommandService
             return new ElementLabelUpdateResult(0, 0, 0);
         }
 
-        var resolved = AutoCadOwnedAnnotationSelectionService.Resolve(database, selectedIds);
-        var timberIds = resolved.Accepted
-            .Select(group => group.SourceEntityId)
-            .Where(id => !id.IsNull)
-            .Distinct()
-            .ToList();
-
-        if (timberIds.Count == 0)
+        var resolved = ResolveSelectedTimberSources(database, selectedIds);
+        if (resolved.AcceptedIds.Count == 0)
         {
-            editor.WriteMessage(UiStrings.GetString(
-                "Command_Labels_NoOwnedSelection",
-                AppLanguageService.CurrentUiCulture));
-            return new ElementLabelUpdateResult(0, 0, selectedIds.Count);
+            return new ElementLabelUpdateResult(0, 0, resolved.Skipped);
         }
 
-        return Execute(
+        var result = Execute(
             database,
             editor,
             AkLabelIntention.ResetSelected,
-            timberIds);
+            resolved.AcceptedIds);
+        return new ElementLabelUpdateResult(
+            result.Created,
+            result.Updated,
+            result.Skipped + resolved.Skipped);
+    }
+
+    private static SelectedTimberSourceResolution ResolveSelectedTimberSources(
+        Database database,
+        IReadOnlyList<ObjectId> selectedIds)
+    {
+        using var transaction = database.TransactionManager.StartOpenCloseTransaction();
+        var metadataStore = new AutoCadTimberElementMetadataStore(transaction);
+        var acceptedIds = new List<ObjectId>();
+        var seenIds = new HashSet<ObjectId>();
+        var skipped = 0;
+
+        foreach (var id in selectedIds)
+        {
+            // Prompt selection already disallows duplicates, but keep direct and
+            // pickfirst callers deterministic without inflating skipped counts.
+            if (!seenIds.Add(id))
+            {
+                continue;
+            }
+
+            if (id.IsNull ||
+                !AutoCadObjectIdAccess.TryGetObject<Entity>(
+                    transaction,
+                    id,
+                    OpenMode.ForRead,
+                    out var entity,
+                    database) ||
+                entity is null ||
+                entity.IsErased ||
+                !AutoCadEntityHelpers.IsSupportedTimberGeometry(entity) ||
+                !metadataStore.TryRead(entity, out var data) ||
+                data is null)
+            {
+                skipped++;
+                continue;
+            }
+
+            acceptedIds.Add(id);
+        }
+
+        transaction.Commit();
+        return new SelectedTimberSourceResolution(acceptedIds, skipped);
     }
 
     private static ElementLabelUpdateResult Execute(
@@ -481,4 +519,8 @@ internal static class AkLabelCommandService
             }
         }
     }
+
+    private sealed record SelectedTimberSourceResolution(
+        IReadOnlyList<ObjectId> AcceptedIds,
+        int Skipped);
 }

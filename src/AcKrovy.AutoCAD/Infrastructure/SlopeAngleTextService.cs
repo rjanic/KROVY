@@ -199,7 +199,9 @@ internal static class SlopeAngleTextService
         angleText.AlignmentPoint = location;
         angleText.Height = slopePresentation.ModelHeightMm;
         angleText.TextStyleId = slopePresentation.TextStyleId;
-        angleText.Rotation = postGeometry?.RotationRadians ?? placement!.RotationRadians;
+        angleText.Rotation = postGeometry?.RotationRadians ??
+            TimberStandaloneNativeLeaderOrientationRules
+                .ResolveTextPresentationRadians(placement!.RotationRadians);
         angleText.TextString = TimberSlopeAngleFormatter.Format(
             TimberSlopeAnnotationRules.ResolveDisplayAngleDegrees(data.ElementType, data.SlopeDegrees));
         TimberLayerService.ApplyToAnnotationEntity(

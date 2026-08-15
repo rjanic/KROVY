@@ -24,7 +24,9 @@ public sealed class SettingsSelectionAnnotationScaleOverrideSourceContractTests
         Assert.Contains("selectedScaleDenominator", apply);
         Assert.Contains("annotationApplyScope.Value", apply);
         Assert.Contains("TimberAnnotationSettingsChangeRules.HasPresentationChanged(", apply);
-        Assert.Contains("TimberAnnotationSettingsChangeRules.HasScaleChanged(", apply);
+        Assert.Contains(
+            "TimberAnnotationSettingsChangeRules.ShouldApplyScaleChange(",
+            apply);
         Assert.Contains("presentationSettingsChanged", apply);
         Assert.Contains("applyScaleChange", apply);
     }
