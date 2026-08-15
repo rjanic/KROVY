@@ -1,0 +1,8 @@
+{
+  "name": "ACAD KROVY (portable .NET 10)",
+  "user": "ubuntu",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "install": "dotnet restore src/AcKrovy.Core.Tests/AcKrovy.Core.Tests.csproj"
+}
