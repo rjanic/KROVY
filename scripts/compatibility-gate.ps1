@@ -142,7 +142,17 @@ function Assert-NoForbiddenSourceDependencies(
 function Test-AutoCadAssembliesAvailable {
     $required = @("AcMgd.dll", "AcDbMgd.dll", "AcCoreMgd.dll", "AdWindows.dll")
     foreach ($assembly in $required) {
-        if (-not (Test-Path -LiteralPath (Join-Path $AutoCadInstallDir $assembly))) {
+        # Join-Path throws on non-Windows for a Windows-drive path (e.g. "C:\..."),
+        # so build the candidate path defensively and treat any failure as "not found".
+        $candidate = $null
+        try {
+            $candidate = Join-Path $AutoCadInstallDir $assembly
+        }
+        catch {
+            return $false
+        }
+
+        if (-not (Test-Path -LiteralPath $candidate)) {
             return $false
         }
     }
