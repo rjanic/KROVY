@@ -553,6 +553,10 @@
   <data name="Command_Roof_PersistedFutureSchema" xml:space="preserve"><value>&#xA;Die Dachdefinition verwendet ein neueres, nicht unterstütztes Schema.</value></data>
   <data name="Command_Roof_PersistedUnsupportedKind" xml:space="preserve"><value>&#xA;Der gespeicherte Dachtyp wird nicht unterstützt.</value></data>
   <data name="Command_Roof_PersistedStale" xml:space="preserve"><value>&#xA;Der Dachgrundriss wurde nach dem Speichern geändert. Die gespeicherte Definition wurde nicht verwendet.</value></data>
+  <data name="Command_Roof_UnsupportedStretchNotificationTitle" xml:space="preserve"><value>Die Dachform wird nicht mehr unterstützt.</value></data>
+  <data name="Command_Roof_UnsupportedStretchNotificationBody" xml:space="preserve"><value>Machen Sie die letzte Änderung mit Rückgängig (U) rückgängig.</value></data>
+  <data name="Command_Roof_DisplayTamperNotificationTitle" xml:space="preserve"><value>Die Dachdarstellung kann nicht allein bearbeitet werden.</value></data>
+  <data name="Command_Roof_DisplayTamperNotificationBody" xml:space="preserve"><value>Bearbeiten Sie den Dachgrundriss.</value></data>
   <data name="Command_Roof_PersistFailed" xml:space="preserve"><value>&#xA;Die Dachdefinition konnte nicht gespeichert werden.</value></data>
   <data name="Command_Roof_PersistSourceChanged" xml:space="preserve"><value>&#xA;Der Dachgrundriss wurde während des Befehls geändert. Die Definition wurde nicht gespeichert.</value></data>
   <data name="Command_Roof_PersistConflict" xml:space="preserve"><value>&#xA;Der Grundriss enthält bereits eine Dachdefinition. Vorhandene Daten blieben unverändert.</value></data>
@@ -581,6 +585,7 @@
   <data name="Command_RoofRafters_CreatePrompt" xml:space="preserve"><value>&#xA;Automatische Sparren erstellen? [Ja/Nein] &lt;Nein&gt;: </value></data>
   <data name="Command_RoofRafters_ExistingFoundFormat" xml:space="preserve"><value>&#xA;Das Dach enthält bereits {0} automatisch erzeugte Sparren.</value></data>
   <data name="Command_RoofRafters_ReplacementDeferred" xml:space="preserve"><value>&#xA;Der sichere Ersatz vorhandener automatischer Sparren folgt im nächsten Lebenszyklusschritt. Die Zeichnung bleibt unverändert.</value></data>
+  <data name="Command_RoofRafters_ExistingStale" xml:space="preserve"><value>&#xA;Vorhandene automatische Sparren stimmen nicht mehr mit der aktuellen Dachgeometrie überein.</value></data>
   <data name="Command_RoofRafters_CreatedFormat" xml:space="preserve"><value>&#xA;Erstellte intelligente Sparren: {0}.</value></data>
   <data name="Command_RoofRafters_InvalidRoof" xml:space="preserve"><value>&#xA;Das ausgewählte Dach besitzt keine gültige gespeicherte SimpleGable-Definition.</value></data>
   <data name="Command_RoofRafters_SourceChanged" xml:space="preserve"><value>&#xA;Der Dachquellumriss wurde geändert. Es wurden keine Sparren erstellt.</value></data>

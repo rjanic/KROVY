@@ -44,6 +44,18 @@ public static class LiveGeometryCommandRules
                normalized.Equals("MREDO", StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// Native source edits whose CommandEnded plugin writes must share one undo
+    /// group with the host command. Exact match after
+    /// <see cref="NormalizeCommandName"/> only.
+    /// </summary>
+    public static bool IsUndoGroupingSourceCommand(string? globalCommandName)
+    {
+        var normalized = NormalizeCommandName(globalCommandName);
+        return normalized.Equals("STRETCH", StringComparison.OrdinalIgnoreCase) ||
+               normalized.Equals("GRIP_STRETCH", StringComparison.OrdinalIgnoreCase);
+    }
+
     public static bool IsCopySourcePreservingCommand(string? globalCommandName)
     {
         var normalized = NormalizeCommandName(globalCommandName);

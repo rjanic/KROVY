@@ -553,6 +553,10 @@
   <data name="Command_Roof_PersistedFutureSchema" xml:space="preserve"><value>&#xA;Definícia strechy používa novšiu nepodporovanú schému.</value></data>
   <data name="Command_Roof_PersistedUnsupportedKind" xml:space="preserve"><value>&#xA;Uložený typ strechy nie je podporovaný.</value></data>
   <data name="Command_Roof_PersistedStale" xml:space="preserve"><value>&#xA;Obrys strechy sa od uloženia zmenil. Uložená definícia sa nepoužila.</value></data>
+  <data name="Command_Roof_UnsupportedStretchNotificationTitle" xml:space="preserve"><value>Tvar strechy už nie je podporovaný.</value></data>
+  <data name="Command_Roof_UnsupportedStretchNotificationBody" xml:space="preserve"><value>Vráťte poslednú zmenu príkazom Späť (U).</value></data>
+  <data name="Command_Roof_DisplayTamperNotificationTitle" xml:space="preserve"><value>Zobrazenie strechy nemožno upravovať samostatne.</value></data>
+  <data name="Command_Roof_DisplayTamperNotificationBody" xml:space="preserve"><value>Upravte základný obrys strechy.</value></data>
   <data name="Command_Roof_PersistFailed" xml:space="preserve"><value>&#xA;Definíciu strechy sa nepodarilo uložiť.</value></data>
   <data name="Command_Roof_PersistSourceChanged" xml:space="preserve"><value>&#xA;Obrys strechy sa počas príkazu zmenil. Definícia sa neuložila.</value></data>
   <data name="Command_Roof_PersistConflict" xml:space="preserve"><value>&#xA;Obrys už obsahuje definíciu strechy. Existujúce údaje zostali nezmenené.</value></data>
@@ -581,6 +585,7 @@
   <data name="Command_RoofRafters_CreatePrompt" xml:space="preserve"><value>&#xA;Vytvoriť automatické krokvy? [Áno/Nie] &lt;Nie&gt;: </value></data>
   <data name="Command_RoofRafters_ExistingFoundFormat" xml:space="preserve"><value>&#xA;Strecha už obsahuje {0} automaticky vytvorených krokiev.</value></data>
   <data name="Command_RoofRafters_ReplacementDeferred" xml:space="preserve"><value>&#xA;Bezpečné nahradenie existujúcich automatických krokiev bude doplnené v ďalšom kroku životného cyklu. Výkres zostal nezmenený.</value></data>
+  <data name="Command_RoofRafters_ExistingStale" xml:space="preserve"><value>&#xA;Existujúce automatické krokvy už nezodpovedajú aktuálnej geometrii strechy.</value></data>
   <data name="Command_RoofRafters_CreatedFormat" xml:space="preserve"><value>&#xA;Vytvorených inteligentných krokiev: {0}.</value></data>
   <data name="Command_RoofRafters_InvalidRoof" xml:space="preserve"><value>&#xA;Vybraná strecha nemá platnú uloženú definíciu SimpleGable.</value></data>
   <data name="Command_RoofRafters_SourceChanged" xml:space="preserve"><value>&#xA;Zdrojový obrys strechy sa zmenil. Krokvy neboli vytvorené.</value></data>

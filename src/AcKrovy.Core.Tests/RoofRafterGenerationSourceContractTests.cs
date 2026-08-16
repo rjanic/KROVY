@@ -106,6 +106,8 @@ public sealed class RoofRafterGenerationSourceContractTests
         Assert.DoesNotContain("OpenMode.ForWrite", discovery);
         Assert.DoesNotContain(".Erase(", discovery);
         Assert.Contains("Command_RoofRafters_ReplacementDeferred", Workflow);
+        Assert.Contains("Command_RoofRafters_ExistingStale", Workflow);
+        Assert.Contains("RoofGeneratedTimberFreshness.IsLayoutCurrent(", Workflow);
         Assert.DoesNotContain(".Erase(", Workflow);
     }
 

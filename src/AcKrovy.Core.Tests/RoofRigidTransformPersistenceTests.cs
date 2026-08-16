@@ -290,26 +290,32 @@ public sealed class RoofRigidTransformPersistenceTests
     [InlineData(100d, 0d)]
     [InlineData(0d, 100d)]
     [InlineData(-250d, 75d)]
-    public void ChangedEdgeDimensions_AreStale(double widthChange, double heightChange)
+    public void ChangedEdgeDimensions_AreSupportedRectangularResize(double widthChange, double heightChange)
     {
         var original = Rectangle();
         var data = Create(original, 35d, RoofRidgeEdgeFamily.SourceEdge01);
         var changed = Rectangle(10000d + widthChange, 6000d + heightChange);
         var result = RestoreResult(changed, data);
-        Assert.False(result.IsValid);
-        Assert.Equal(RoofDefinitionRestoreError.StaleFootprint, result.Error);
+        Assert.True(result.IsValid, result.Error.ToString());
+        Assert.Equal(
+            RoofSourceChangeKind.SupportedResize,
+            RoofDefinitionPersistence.Classify(changed, Validate(changed), data).Kind);
+        AssertParallel(result.Geometry!.RidgeDirection, EdgeDirection(changed, 0));
+        Assert.Equal(35d, result.Geometry.SlopeDegrees);
     }
 
     [Fact]
-    public void StretchLikeOneSideChange_IsStaleWithoutException()
+    public void StretchLikeOneSideChange_RestoresPreservedRidgeFamily()
     {
         var original = Rectangle();
         var data = Create(original, 35d, RoofRidgeEdgeFamily.SourceEdge01);
         var stretched = Input([
             new(0d, 0d), new(10250d, 0d), new(10250d, 6000d), new(0d, 6000d)]);
         var result = RestoreResult(stretched, data);
-        Assert.False(result.IsValid);
-        Assert.Equal(RoofDefinitionRestoreError.StaleFootprint, result.Error);
+        Assert.True(result.IsValid, result.Error.ToString());
+        Assert.Equal(RoofSourceChangeKind.SupportedResize,
+            RoofDefinitionPersistence.Classify(stretched, Validate(stretched), data).Kind);
+        AssertParallel(result.Geometry!.RidgeDirection, EdgeDirection(stretched, 0));
     }
 
     [Fact]

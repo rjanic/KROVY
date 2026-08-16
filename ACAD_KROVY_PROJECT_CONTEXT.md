@@ -1,6 +1,6 @@
 # ACAD KROVY – PROJECT CONTEXT
 
-**Aktualizované:** 14. 8. 2026
+**Aktualizované:** 16. 8. 2026
 
 **Predchádzajúci stabilný commit v0.21.0:** `f98900c1bd257a8e5357f6e77eb6f118bd4930d3`
 
@@ -8,8 +8,7 @@
 
 **Verzia aplikácie:** autoritatívne v `Directory.Build.props`
 
-**Aktuálny míľnik:** post-Stage-5 „Roof Validation WPF Notifications Polish“,
-implementovaný lokálne a pripravený na manuálny AutoCAD HOST W1–W4 checkpoint
+**Aktuálny míľnik:** SimpleGable Roof STRETCH / Resize Lifecycle (dokončený HOST + published checkpoint)
 
 **Overovanie:** Debug/Release build, kompletné automatické testy a Portable/Full Compatibility Gate
 
@@ -514,6 +513,24 @@ Stabilný commit: `4a951041e2deef40a127ac9560cf6fb2ba4b6a5b`
   ktorý vytvoril dve kópie, nie chyba ownership implementácie. AK_ROOF po úspechu
   čistí iba implied selection a HOST potvrdil, že GROUP už nezostáva zvýraznený.
 
+### STRECHY S2 – SimpleGable Roof STRETCH / Resize Lifecycle (dokončený HOST checkpoint)
+- natívny `STRETCH` / `GRIP_STRETCH` podporeného celého obdĺžnikového boku (štít aj
+  odkvap, aj po ROTATE a square→rectangle crossover) aktualizuje V2 rigid footprint
+  dĺžky, zachová `SimpleGable`, slope a ridge edge-family a cez existujúci
+  `RoofDisplayService` obnoví sedem display Lines + 8-člennú GROUP,
+- žiadny longest-side ridge heuristic, žiadne reactors/overrules/deep-clone hooks,
+  žiadna schema/version bump; package ostáva `0.23.0`,
+- generated rafters/anotácie sa pri STRETCH nemenia; `AK_ROOF_RAFTERS` pri stale
+  layoute bezpečne odmietne automatickú náhradu,
+- unsupported SOURCE (nesupportovaný neobdĺžnik) sa do RoofDefinition nepreberá;
+  transient WPF vyzve na natívne Späť (`U`); automatický ObjectId-preserving rollback
+  je zámerne DEFERRED (schema-2 nemá absolútny WCS footprint),
+- display-only STRETCH owned červených display Lines obnoví kanonický display cez
+  metadata ownera; source + RoofDefinition ostávajú nezmenené; SOURCE lifecycle má
+  absolútnu precedenciu (jedna notifikácia / owner / príkaz),
+- HOST ST1–ST8 PASS vrátane display-only ochrany a coherent Undo/Redo; SAVE/REOPEN
+  `DBMOD 0→0` a `AK_ROOF` read-only current.
+
 ## Povinné kompatibilitné pravidlá
 
 1. Výpočty a geometrické rozhodovanie preferovať v Core.
@@ -539,11 +556,14 @@ Poradie:
 Multi-CAD kompatibilita sa má overiť ešte pred tým, než projekt prerastie do príliš veľkého AutoCAD-špecifického roof automation modulu.
 
 ## Najbližšia priorita
-1. samostatný SimpleGable Roof STRETCH / Resize Lifecycle checkpoint; platný obdĺžnik
-   má zachovať typ, slope a ridge family a prepočítať roof geometry/display,
+1. DEFERRED – Unsupported STRETCH Auto-Recovery: iba pre `STRETCH`/`GRIP_STRETCH`
+   in-memory pre-command snapshot exaktnej natívnej source Polyline; pri unsupported
+   výsledku obnoviť ten istý ObjectId zo snapshotu (nie `SendStringToExecute("U")`),
+   bez schema change ak to stačí, potom kanonický display/GROUP; rafters/anotácie
+   nedotknuté; vyžaduje samostatný Undo/Redo HOST dôkaz,
 2. explicitný stale/regeneration lifecycle pre už generated rafters; pomúrnice,
    väznice a ostatné roof timber typy zostávajú mimo aktuálneho checkpointu,
-3. persistence navrhnúť až spolu so stabilnou S2 identitou zdroja a rovín,
+3. Stage 7 a nové roof typy (Hip/Shed/Pyramid) zostávajú mimo tohto checkpointu,
 4. compatibility checkpoint a alternatívne CAD adaptéry naďalej riešiť bez
    prenikania vendor typov do Core.
 

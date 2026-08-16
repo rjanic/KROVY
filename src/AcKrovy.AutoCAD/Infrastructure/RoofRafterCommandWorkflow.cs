@@ -30,6 +30,10 @@ internal static class RoofRafterCommandWorkflow
             editor.WriteMessage(UiStrings.Format(
                 UiStrings.GetString("Command_RoofRafters_ExistingFoundFormat"),
                 selectedRoof.ExistingGeneratedRafterCount));
+            if (selectedRoof.GeneratedSetIsStale)
+            {
+                editor.WriteMessage(UiStrings.GetString("Command_RoofRafters_ExistingStale"));
+            }
             editor.WriteMessage(UiStrings.GetString("Command_RoofRafters_ReplacementDeferred"));
             return;
         }
@@ -135,15 +139,21 @@ internal static class RoofRafterCommandWorkflow
             }
 
             var ownerReference = owner.Handle.ToString();
+            var generatedIds = RoofGeneratedTimberStore.FindByOwner(
+                document.Database,
+                transaction,
+                ownerReference);
             selectedRoof = new SelectedRoof(
                 resolution.OwnerId,
                 ownerReference,
                 RoofPolylineExtractor.GetSourceElevation(owner),
                 restored.Geometry,
-                RoofGeneratedTimberStore.FindByOwner(
+                generatedIds.Count,
+                IsGeneratedSetStale(
                     document.Database,
                     transaction,
-                    ownerReference).Count);
+                    generatedIds,
+                    restored.Geometry.Signature));
             return true;
         }
     }
@@ -264,6 +274,43 @@ internal static class RoofRafterCommandWorkflow
         }
     }
 
+    private static bool IsGeneratedSetStale(
+        Database database,
+        Transaction transaction,
+        IReadOnlyList<ObjectId> generatedIds,
+        string geometrySignature)
+    {
+        if (generatedIds.Count == 0)
+        {
+            return false;
+        }
+
+        foreach (var id in generatedIds)
+        {
+            if (!AutoCadObjectIdAccess.TryGetObject<Entity>(
+                    transaction,
+                    id,
+                    OpenMode.ForRead,
+                    out var entity,
+                    database) ||
+                entity is null)
+            {
+                return true;
+            }
+
+            var stored = RoofGeneratedTimberStore.Read(entity);
+            if (stored.Data is null ||
+                !RoofGeneratedTimberFreshness.IsLayoutCurrent(
+                    stored.Data.LayoutSignature,
+                    geometrySignature))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private static IntPtr TryGetAutoCadMainWindowHandle()
     {
         try
@@ -281,7 +328,8 @@ internal static class RoofRafterCommandWorkflow
         string OwnerReference,
         double SourceElevation,
         SimpleGableRoofGeometry Geometry,
-        int ExistingGeneratedRafterCount);
+        int ExistingGeneratedRafterCount,
+        bool GeneratedSetIsStale);
 
     private sealed record RoofRafterCreationResult(
         bool IsSuccess,

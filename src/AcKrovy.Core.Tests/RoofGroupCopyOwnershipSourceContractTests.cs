@@ -81,7 +81,7 @@ public sealed class RoofGroupCopyOwnershipSourceContractTests
     {
         Assert.Contains("var ownerReference = owner.Handle.ToString()", RafterWorkflow);
         Assert.Contains("RoofGeneratedTimberStore.FindByOwner(", RafterWorkflow);
-        Assert.Contains("ownerReference).Count", RafterWorkflow);
+        Assert.Contains("generatedIds.Count", RafterWorkflow);
         Assert.Contains("expectedOwnerReference", RafterWorkflow);
         Assert.Contains("RoofGeneratedTimberStore.Write(", RafterWorkflow);
         Assert.DoesNotContain("DxfCode.ExtendedDataHandle", GeneratedStore);

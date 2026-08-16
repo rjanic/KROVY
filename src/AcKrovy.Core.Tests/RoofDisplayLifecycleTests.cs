@@ -244,7 +244,7 @@ public sealed class RoofDisplayLifecycleTests
     }
 
     [Fact]
-    public void StretchStaleSemanticDefinition_ProducesNoGeometryForDisplayRegeneration()
+    public void StretchSupportedSemanticDefinition_ProducesGeometryForDisplayRegeneration()
     {
         var original = Rectangle();
         var definition = CreateDefinition(original);
@@ -253,6 +253,25 @@ public sealed class RoofDisplayLifecycleTests
             new(11250d, 4000d), new(1000d, 4000d)]);
 
         var result = RestoreResult(stretched, definition);
+        var edges = SimpleGableRoofWireframe.Create(result.Geometry!, 0d);
+
+        Assert.True(result.IsValid, result.Error.ToString());
+        Assert.Equal(7, edges.Count);
+        Assert.Equal(
+            RoofSourceChangeKind.SupportedResize,
+            RoofDefinitionPersistence.Classify(stretched, Validate(stretched), definition).Kind);
+    }
+
+    [Fact]
+    public void StretchUnsupportedTrapezoid_ProducesNoGeometryForDisplayRegeneration()
+    {
+        var original = Rectangle();
+        var definition = CreateDefinition(original);
+        var trapezoid = Input([
+            new(1000d, -2000d), new(11000d, -2000d),
+            new(10800d, 4000d), new(1200d, 4000d)]);
+
+        var result = RestoreResult(trapezoid, definition);
 
         Assert.False(result.IsValid);
         Assert.Equal(RoofDefinitionRestoreError.StaleFootprint, result.Error);

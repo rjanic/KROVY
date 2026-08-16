@@ -61,18 +61,56 @@ public static class RoofDefinitionPersistence
         {
             throw new ArgumentNullException(nameof(data));
         }
+
+        var classified = Classify(source, footprint, data);
+        return classified.Geometry is not null
+            ? new RoofDefinitionRestoreResult(
+                true,
+                classified.Geometry,
+                RoofDefinitionRestoreError.None)
+            : Invalid(classified.Error);
+    }
+
+    /// <summary>
+    /// Classifies the current source against persisted SimpleGable data without writing.
+    /// Rigid MOVE/ROTATE and supported rectangular STRETCH both restore geometry;
+    /// unsupported source shapes stay stale and produce no invented roof.
+    /// </summary>
+    public static RoofSourceChangeClassification Classify(
+        RoofFootprintInput source,
+        RoofFootprint footprint,
+        RoofDefinitionData data)
+    {
+        if (source is null)
+        {
+            throw new ArgumentNullException(nameof(source));
+        }
+        if (footprint is null)
+        {
+            throw new ArgumentNullException(nameof(footprint));
+        }
+        if (data is null)
+        {
+            throw new ArgumentNullException(nameof(data));
+        }
         if (!RoofDefinitionDataCodec.TryValidate(data, out _))
         {
-            return Invalid(RoofDefinitionRestoreError.InvalidDefinition);
+            return new RoofSourceChangeClassification(
+                RoofSourceChangeKind.InvalidDefinition,
+                null,
+                RoofDefinitionRestoreError.InvalidDefinition);
         }
 
         return data.SchemaVersion switch
         {
             RoofDefinitionDataSchema.LegacyAbsoluteVersion =>
-                RestoreV1(footprint, data),
+                ClassifyV1(footprint, data),
             RoofDefinitionDataSchema.CurrentVersion =>
-                RestoreV2(source, footprint, data),
-            _ => Invalid(RoofDefinitionRestoreError.InvalidDefinition),
+                ClassifyV2(source, footprint, data),
+            _ => new RoofSourceChangeClassification(
+                RoofSourceChangeKind.InvalidDefinition,
+                null,
+                RoofDefinitionRestoreError.InvalidDefinition),
         };
     }
 
@@ -99,13 +137,64 @@ public static class RoofDefinitionPersistence
         return Solve(footprint, data.SlopeDegrees, direction);
     }
 
+    private static RoofSourceChangeClassification ClassifyV1(
+        RoofFootprint footprint,
+        RoofDefinitionData data)
+    {
+        var restored = RestoreV1(footprint, data);
+        return restored.IsValid
+            ? new RoofSourceChangeClassification(
+                RoofSourceChangeKind.RigidEquivalent,
+                restored.Geometry,
+                RoofDefinitionRestoreError.None)
+            : new RoofSourceChangeClassification(
+                restored.Error == RoofDefinitionRestoreError.InvalidDefinition
+                    ? RoofSourceChangeKind.InvalidDefinition
+                    : RoofSourceChangeKind.Unsupported,
+                null,
+                restored.Error);
+    }
+
+    private static RoofSourceChangeClassification ClassifyV2(
+        RoofFootprintInput source,
+        RoofFootprint footprint,
+        RoofDefinitionData data)
+    {
+        var restored = RestoreV2(source, footprint, data);
+        if (!restored.IsValid || restored.Geometry is null)
+        {
+            return new RoofSourceChangeClassification(
+                restored.Error == RoofDefinitionRestoreError.InvalidDefinition
+                    ? RoofSourceChangeKind.InvalidDefinition
+                    : RoofSourceChangeKind.Unsupported,
+                null,
+                restored.Error);
+        }
+
+        if (!TryReadSourceTopology(source, out var topology))
+        {
+            return new RoofSourceChangeClassification(
+                RoofSourceChangeKind.Unsupported,
+                null,
+                RoofDefinitionRestoreError.StaleFootprint);
+        }
+
+        var kind = Matches(topology.Descriptor, data.RigidFootprint!)
+            ? RoofSourceChangeKind.RigidEquivalent
+            : RoofSourceChangeKind.SupportedResize;
+        return new RoofSourceChangeClassification(
+            kind,
+            restored.Geometry,
+            RoofDefinitionRestoreError.None);
+    }
+
     private static RoofDefinitionRestoreResult RestoreV2(
         RoofFootprintInput source,
         RoofFootprint footprint,
         RoofDefinitionData data)
     {
         if (!TryReadSourceTopology(source, out var topology) ||
-            !Matches(topology.Descriptor, data.RigidFootprint!))
+            !MatchesTopology(topology.Descriptor, data.RigidFootprint!))
         {
             return Invalid(RoofDefinitionRestoreError.StaleFootprint);
         }
@@ -118,7 +207,15 @@ public static class RoofDefinitionPersistence
             return Invalid(RoofDefinitionRestoreError.InvalidDefinition);
         }
 
-        return Solve(footprint, data.SlopeDegrees, direction);
+        var solved = SimpleGableRoofGeometrySolver.Solve(new RoofDefinition(
+            footprint,
+            new RoofParameters(data.SlopeDegrees, direction)));
+        return solved.IsValid && solved.Geometry is not null
+            ? new RoofDefinitionRestoreResult(
+                true,
+                solved.Geometry,
+                RoofDefinitionRestoreError.None)
+            : Invalid(RoofDefinitionRestoreError.StaleFootprint);
     }
 
     private static RoofDefinitionRestoreResult Solve(
@@ -217,11 +314,16 @@ public static class RoofDefinitionPersistence
         return false;
     }
 
-    private static bool Matches(
+    private static bool MatchesTopology(
         RoofRigidFootprintDescriptor current,
         RoofRigidFootprintDescriptor persisted) =>
         current.VertexCount == persisted.VertexCount &&
-        current.SourceOrientation == persisted.SourceOrientation &&
+        current.SourceOrientation == persisted.SourceOrientation;
+
+    private static bool Matches(
+        RoofRigidFootprintDescriptor current,
+        RoofRigidFootprintDescriptor persisted) =>
+        MatchesTopology(current, persisted) &&
         Math.Abs(current.Edge01LengthMm - persisted.Edge01LengthMm) <=
             SimpleGableRoofGeometryTolerance.LengthTolerance(
                 current.Edge01LengthMm,

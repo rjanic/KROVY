@@ -553,6 +553,10 @@
   <data name="Command_Roof_PersistedFutureSchema" xml:space="preserve"><value>&#xA;Definicja dachu używa nowszego, nieobsługiwanego schematu.</value></data>
   <data name="Command_Roof_PersistedUnsupportedKind" xml:space="preserve"><value>&#xA;Zapisany typ dachu nie jest obsługiwany.</value></data>
   <data name="Command_Roof_PersistedStale" xml:space="preserve"><value>&#xA;Obrys dachu zmienił się po zapisaniu. Zapisana definicja nie została użyta.</value></data>
+  <data name="Command_Roof_UnsupportedStretchNotificationTitle" xml:space="preserve"><value>Kształt dachu nie jest już obsługiwany.</value></data>
+  <data name="Command_Roof_UnsupportedStretchNotificationBody" xml:space="preserve"><value>Cofnij ostatnią zmianę poleceniem Cofnij (U).</value></data>
+  <data name="Command_Roof_DisplayTamperNotificationTitle" xml:space="preserve"><value>Wyświetlenia dachu nie można edytować osobno.</value></data>
+  <data name="Command_Roof_DisplayTamperNotificationBody" xml:space="preserve"><value>Edytuj podstawowy obrys dachu.</value></data>
   <data name="Command_Roof_PersistFailed" xml:space="preserve"><value>&#xA;Nie udało się zapisać definicji dachu.</value></data>
   <data name="Command_Roof_PersistSourceChanged" xml:space="preserve"><value>&#xA;Obrys dachu zmienił się podczas polecenia. Definicja nie została zapisana.</value></data>
   <data name="Command_Roof_PersistConflict" xml:space="preserve"><value>&#xA;Obrys zawiera już definicję dachu. Istniejące dane pozostały bez zmian.</value></data>
@@ -581,6 +585,7 @@
   <data name="Command_RoofRafters_CreatePrompt" xml:space="preserve"><value>&#xA;Utworzyć automatyczne krokwie? [Tak/Nie] &lt;Nie&gt;: </value></data>
   <data name="Command_RoofRafters_ExistingFoundFormat" xml:space="preserve"><value>&#xA;Dach zawiera już {0} automatycznie utworzonych krokwi.</value></data>
   <data name="Command_RoofRafters_ReplacementDeferred" xml:space="preserve"><value>&#xA;Bezpieczna wymiana istniejących automatycznych krokwi zostanie dodana w następnym kroku cyklu życia. Rysunek pozostał bez zmian.</value></data>
+  <data name="Command_RoofRafters_ExistingStale" xml:space="preserve"><value>&#xA;Istniejące automatyczne krokwie nie odpowiadają już bieżącej geometrii dachu.</value></data>
   <data name="Command_RoofRafters_CreatedFormat" xml:space="preserve"><value>&#xA;Utworzono inteligentnych krokwi: {0}.</value></data>
   <data name="Command_RoofRafters_InvalidRoof" xml:space="preserve"><value>&#xA;Wybrany dach nie ma poprawnej zapisanej definicji SimpleGable.</value></data>
   <data name="Command_RoofRafters_SourceChanged" xml:space="preserve"><value>&#xA;Obrys źródłowy dachu uległ zmianie. Krokwie nie zostały utworzone.</value></data>

@@ -553,6 +553,10 @@
   <data name="Command_Roof_PersistedFutureSchema" xml:space="preserve"><value>&#xA;The roof definition uses a newer unsupported schema.</value></data>
   <data name="Command_Roof_PersistedUnsupportedKind" xml:space="preserve"><value>&#xA;The saved roof type is not supported.</value></data>
   <data name="Command_Roof_PersistedStale" xml:space="preserve"><value>&#xA;The roof footprint changed after it was saved. The saved definition was not used.</value></data>
+  <data name="Command_Roof_UnsupportedStretchNotificationTitle" xml:space="preserve"><value>The roof shape is no longer supported.</value></data>
+  <data name="Command_Roof_UnsupportedStretchNotificationBody" xml:space="preserve"><value>Undo the last change with Undo (U).</value></data>
+  <data name="Command_Roof_DisplayTamperNotificationTitle" xml:space="preserve"><value>Roof display cannot be edited on its own.</value></data>
+  <data name="Command_Roof_DisplayTamperNotificationBody" xml:space="preserve"><value>Edit the source roof footprint.</value></data>
   <data name="Command_Roof_PersistFailed" xml:space="preserve"><value>&#xA;The roof definition could not be saved.</value></data>
   <data name="Command_Roof_PersistSourceChanged" xml:space="preserve"><value>&#xA;The roof footprint changed during the command. The definition was not saved.</value></data>
   <data name="Command_Roof_PersistConflict" xml:space="preserve"><value>&#xA;The footprint already contains a roof definition. Existing data was left unchanged.</value></data>
@@ -581,6 +585,7 @@
   <data name="Command_RoofRafters_CreatePrompt" xml:space="preserve"><value>&#xA;Create automatic rafters? [Yes/No] &lt;No&gt;: </value></data>
   <data name="Command_RoofRafters_ExistingFoundFormat" xml:space="preserve"><value>&#xA;The roof already has {0} automatically generated rafters.</value></data>
   <data name="Command_RoofRafters_ReplacementDeferred" xml:space="preserve"><value>&#xA;Safe replacement of existing automatic rafters is deferred to the next lifecycle step. The drawing remains unchanged.</value></data>
+  <data name="Command_RoofRafters_ExistingStale" xml:space="preserve"><value>&#xA;Existing automatic rafters no longer match the current roof geometry.</value></data>
   <data name="Command_RoofRafters_CreatedFormat" xml:space="preserve"><value>&#xA;Intelligent rafters created: {0}.</value></data>
   <data name="Command_RoofRafters_InvalidRoof" xml:space="preserve"><value>&#xA;The selected roof has no valid persisted SimpleGable definition.</value></data>
   <data name="Command_RoofRafters_SourceChanged" xml:space="preserve"><value>&#xA;The roof source footprint changed. No rafters were created.</value></data>
