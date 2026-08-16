@@ -12,6 +12,8 @@ public sealed class SlopeAngleTextReadabilityTests
         "src", "AcKrovy.AutoCAD", "Infrastructure", "SlopeAngleTextService.cs");
     private static readonly string RafterWorkflow = RoofUxSourceContractText.Read(
         "src", "AcKrovy.AutoCAD", "Infrastructure", "RoofRafterCommandWorkflow.cs");
+    private static readonly string RafterReplacement = RoofUxSourceContractText.Read(
+        "src", "AcKrovy.AutoCAD", "Infrastructure", "RoofGeneratedRafterSetService.cs");
     private static readonly string ArrowRenderer = RoofUxSourceContractText.Read(
         "src", "AcKrovy.AutoCAD", "Infrastructure", "SlopeArrowService.cs");
 
@@ -95,7 +97,8 @@ public sealed class SlopeAngleTextReadabilityTests
         Assert.True(face0.TipY < face0.TailY);
         Assert.True(face1.TipY > face1.TailY);
         Assert.Equal(TextRotation(90d), TextRotation(-90d), 12);
-        Assert.Contains("IsSlopeDirectionReversed = true", RafterWorkflow);
+        Assert.Contains("IsSlopeDirectionReversed = true", RafterReplacement);
+        Assert.Contains("RoofGeneratedRafterSetService.Materialize(", RafterWorkflow);
         Assert.DoesNotContain("RoofGeneratedTimber", ArrowRenderer);
     }
 

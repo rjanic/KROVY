@@ -10,6 +10,8 @@ public sealed class AutomaticRafterSlopeDirectionTests
 {
     private static readonly string Workflow = RoofUxSourceContractText.Read(
         "src", "AcKrovy.AutoCAD", "Infrastructure", "RoofRafterCommandWorkflow.cs");
+    private static readonly string Replacement = RoofUxSourceContractText.Read(
+        "src", "AcKrovy.AutoCAD", "Infrastructure", "RoofGeneratedRafterSetService.cs");
     private static readonly string ArrowRenderer = RoofUxSourceContractText.Read(
         "src", "AcKrovy.AutoCAD", "Infrastructure", "SlopeArrowService.cs");
     private static readonly string LiveRefresh = RoofUxSourceContractText.Read(
@@ -92,9 +94,10 @@ public sealed class AutomaticRafterSlopeDirectionTests
     [Fact]
     public void CreationUsesNormalMetadataContractWithoutRendererBranchOrSchemaChange()
     {
-        Assert.Contains("IsSlopeDirectionReversed = true", Workflow);
-        Assert.Contains("new Point3d(rafter.PlanStart.X", Workflow);
-        Assert.Contains("new Point3d(rafter.PlanEnd.X", Workflow);
+        Assert.Contains("RoofGeneratedRafterSetService.Materialize(", Workflow);
+        Assert.Contains("IsSlopeDirectionReversed = true", Replacement);
+        Assert.Contains("new Point3d(rafter.PlanStart.X", Replacement);
+        Assert.Contains("new Point3d(rafter.PlanEnd.X", Replacement);
         Assert.DoesNotContain("RoofGeneratedTimber", ArrowRenderer);
         Assert.Equal(7, TimberElementDataSchema.CurrentVersion);
         Assert.Equal(1, RoofGeneratedTimberDataSchema.CurrentVersion);

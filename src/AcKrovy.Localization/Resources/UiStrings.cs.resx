@@ -586,6 +586,7 @@
   <data name="Command_RoofRafters_ExistingFoundFormat" xml:space="preserve"><value>&#xA;Střecha již obsahuje {0} automaticky vytvořených krokví.</value></data>
   <data name="Command_RoofRafters_ReplacementDeferred" xml:space="preserve"><value>&#xA;Bezpečné nahrazení existujících automatických krokví bude doplněno v dalším kroku životního cyklu. Výkres zůstal beze změny.</value></data>
   <data name="Command_RoofRafters_ExistingStale" xml:space="preserve"><value>&#xA;Existující automatické krokve už neodpovídají aktuální geometrii střechy.</value></data>
+  <data name="Command_RoofRafters_RecipeAmbiguous" xml:space="preserve"><value>&#xA;Automatické krokve nebyly obnoveny: původní recept generování není jednoznačný. Existující sada zůstala beze změny.</value></data>
   <data name="Command_RoofRafters_CreatedFormat" xml:space="preserve"><value>&#xA;Vytvořeno inteligentních krokví: {0}.</value></data>
   <data name="Command_RoofRafters_InvalidRoof" xml:space="preserve"><value>&#xA;Vybraná střecha nemá platnou uloženou definici SimpleGable.</value></data>
   <data name="Command_RoofRafters_SourceChanged" xml:space="preserve"><value>&#xA;Zdrojový obrys střechy se změnil. Krokve nebyly vytvořeny.</value></data>

@@ -377,7 +377,7 @@ public sealed class AkLabelCommandSourceContractTests
         var rafterWorkflow = Normalize(Read(
             "src/AcKrovy.AutoCAD/Infrastructure/RoofRafterCommandWorkflow.cs"));
 
-        Assert.Contains("TimberSourceLineCreationService.Create(", rafterWorkflow);
+        Assert.Contains("RoofGeneratedRafterSetService.Materialize(", rafterWorkflow);
         Assert.Contains("AutoCadTimberElementMetadataStore", service);
         Assert.DoesNotContain("RoofGeneratedTimberStore", service);
         Assert.DoesNotContain("RoofGeneratedTimberData", service);

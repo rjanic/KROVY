@@ -8,7 +8,7 @@
 
 **Verzia aplikácie:** autoritatívne v `Directory.Build.props`
 
-**Aktuálny míľnik:** SimpleGable Roof STRETCH / Resize Lifecycle (dokončený HOST + published checkpoint)
+**Aktuálny míľnik:** Roof COPY / STRETCH / GROUP GRIP stabilization (HOST-proven dirty checkpoint; cleanup done)
 
 **Overovanie:** Debug/Release build, kompletné automatické testy a Portable/Full Compatibility Gate
 
@@ -513,23 +513,32 @@ Stabilný commit: `4a951041e2deef40a127ac9560cf6fb2ba4b6a5b`
   ktorý vytvoril dve kópie, nie chyba ownership implementácie. AK_ROOF po úspechu
   čistí iba implied selection a HOST potvrdil, že GROUP už nezostáva zvýraznený.
 
-### STRECHY S2 – SimpleGable Roof STRETCH / Resize Lifecycle (dokončený HOST checkpoint)
-- natívny `STRETCH` / `GRIP_STRETCH` podporeného celého obdĺžnikového boku (štít aj
-  odkvap, aj po ROTATE a square→rectangle crossover) aktualizuje V2 rigid footprint
-  dĺžky, zachová `SimpleGable`, slope a ridge edge-family a cez existujúci
-  `RoofDisplayService` obnoví sedem display Lines + 8-člennú GROUP,
-- žiadny longest-side ridge heuristic, žiadne reactors/overrules/deep-clone hooks,
-  žiadna schema/version bump; package ostáva `0.23.0`,
-- generated rafters/anotácie sa pri STRETCH nemenia; `AK_ROOF_RAFTERS` pri stale
-  layoute bezpečne odmietne automatickú náhradu,
-- unsupported SOURCE (nesupportovaný neobdĺžnik) sa do RoofDefinition nepreberá;
-  transient WPF vyzve na natívne Späť (`U`); automatický ObjectId-preserving rollback
-  je zámerne DEFERRED (schema-2 nemá absolútny WCS footprint),
-- display-only STRETCH owned červených display Lines obnoví kanonický display cez
-  metadata ownera; source + RoofDefinition ostávajú nezmenené; SOURCE lifecycle má
-  absolútnu precedenciu (jedna notifikácia / owner / príkaz),
-- HOST ST1–ST8 PASS vrátane display-only ochrany a coherent Undo/Redo; SAVE/REOPEN
-  `DBMOD 0→0` a `AK_ROOF` read-only current.
+### STRECHY S2 – Roof COPY / STRETCH / GROUP GRIP (stabilný HOST checkpoint)
+- **Supported source STRETCH:** gable-end aj eave-side, enlarge/shrink, rotated,
+  square/aspect crossover; rovnaký source ObjectId; RoofDefinition + 7-Line display +
+  GROUP; slope a ridge family zachované; package `0.23.0`, bez schema bump.
+- **Automatic rafter regeneration:** po SupportedResize sa stale roof-generated set
+  nahradí z receptu existujúceho setu (nie last-used dialóg); ambiguous recipe →
+  `Command_RoofRafters_RecipeAmbiguous`; unsupported/display-only regeneráciu nespúšťajú.
+- **COPY:** one independent copied semantic roof; display/GROUP rehydration; generated-
+  rafter ownership rehydration (`RoofGeneratedRafterCopyOwnershipRehydrationService`,
+  geometric station match — AutoCAD nepremapuje XData `1005`); original zostáva
+  nezávislý; COPY + generated + subsequent STRETCH manuálne HOST PASS.
+- **Display leak fix:** po COPY + display repair žiadne orphan `+7` Lines / duplicate
+  GROUP; strict foreign-group erase; finál 1 source + 7 display, 1 GROUP (8 členov).
+- **RigidGroupTransform:** coherent GROUP `GRIP_STRETCH` rigid translation →
+  `outcome=RigidGroupTransform` (pre-command baseline + mid-command snapshot); no false
+  display-only WPF; same ObjectId / 7 display / one GROUP. True DisplayTamper stále
+  chránený.
+- **Orientation flip:** reversed Polyline winding alone ≠ invalid; flipped rectangle
+  môže byť `RigidEquivalent` / `SupportedResize`; skutočný trapezoid/non-rectangle
+  zostáva `Unsupported` (rectangle validation neoslabená; žiadne angular snap hacks).
+- **DEBUG CLI:** automatický verbose grip/topology/classify spam odstránený. Manuálne
+  `#if DEBUG`: `AK_DEV_ROOF_GROUP_TOPOLOGY_DIAG`, `AK_DEV_ROOF_GENERATED_OWNER_DIAG`,
+  `AK_DEV_ROOF_RAFTER_REPLACE_DIAG_ON`/`OFF` (default OFF).
+- **Backlog (neimplementovať tu):** (A) Unsupported STRETCH Auto-Recovery —
+  in-memory pre-STRETCH vertex restore, no `U`/command injection; (B) generated rafters
+  following rigid MOVE / `RigidGroupTransform` (nie sú GROUP členovia).
 
 ## Povinné kompatibilitné pravidlá
 
@@ -556,15 +565,11 @@ Poradie:
 Multi-CAD kompatibilita sa má overiť ešte pred tým, než projekt prerastie do príliš veľkého AutoCAD-špecifického roof automation modulu.
 
 ## Najbližšia priorita
-1. DEFERRED – Unsupported STRETCH Auto-Recovery: iba pre `STRETCH`/`GRIP_STRETCH`
-   in-memory pre-command snapshot exaktnej natívnej source Polyline; pri unsupported
-   výsledku obnoviť ten istý ObjectId zo snapshotu (nie `SendStringToExecute("U")`),
-   bez schema change ak to stačí, potom kanonický display/GROUP; rafters/anotácie
-   nedotknuté; vyžaduje samostatný Undo/Redo HOST dôkaz,
-2. explicitný stale/regeneration lifecycle pre už generated rafters; pomúrnice,
-   väznice a ostatné roof timber typy zostávajú mimo aktuálneho checkpointu,
+1. DEFERRED – Unsupported STRETCH Auto-Recovery: STRETCH-only in-memory pre-command
+   source WCS vertices; pri Unsupported obnoviť ten istý ObjectId (nie `U` / command
+   injection); kanonický display/GROUP; Undo/Redo HOST dôkaz,
+2. DEFERRED – generated rafters following rigid MOVE / `RigidGroupTransform`,
 3. Stage 7 a nové roof typy (Hip/Shed/Pyramid) zostávajú mimo tohto checkpointu,
-4. compatibility checkpoint a alternatívne CAD adaptéry naďalej riešiť bez
-   prenikania vendor typov do Core.
+4. compatibility checkpoint a alternatívne CAD adaptéry bez vendor typov v Core.
 
 Presné poradie je v `ACAD_KROVY_ROADMAP.md`, úplný zásobník nápadov v `ACAD_KROVY_BACKLOG.md`.

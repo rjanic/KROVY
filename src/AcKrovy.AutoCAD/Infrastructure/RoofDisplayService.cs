@@ -205,26 +205,31 @@ internal static class RoofDisplayService
             return false;
         }
 
-        foreach (var childId in inspection.ChildIds)
+        var eraseIds = CollectDisplayIdsToErase(
+            database,
+            transaction,
+            ownerId,
+            ownerReference,
+            inspection.ChildIds);
+        foreach (var childId in eraseIds)
         {
             if (!AutoCadObjectIdAccess.TryGetObject<Entity>(
                     transaction,
                     childId,
                     OpenMode.ForWrite,
                     out var child,
-                    database) || child is null)
+                    database) || child is null || child.IsErased)
             {
                 continue;
             }
 
             var stored = RoofDisplayStore.Read(child);
-            if (stored.Exists && string.Equals(
-                    stored.OwnerReference,
-                    ownerReference,
-                    StringComparison.OrdinalIgnoreCase))
+            if (!RoofDisplayRebuildEraseRules.ShouldEraseInspectedDisplayChild(stored.Exists))
             {
-                child.Erase();
+                continue;
             }
+
+            child.Erase();
         }
 
         var blockTable = (BlockTable)transaction.GetObject(database.BlockTableId, OpenMode.ForRead);
@@ -256,6 +261,50 @@ internal static class RoofDisplayService
             newChildIds);
 
         return true;
+    }
+
+    private static List<ObjectId> CollectDisplayIdsToErase(
+        Database database,
+        Transaction transaction,
+        ObjectId ownerId,
+        string ownerReference,
+        IReadOnlyList<ObjectId> inspectedChildIds)
+    {
+        var eraseIds = new HashSet<ObjectId>();
+        foreach (var childId in inspectedChildIds)
+        {
+            eraseIds.Add(childId);
+        }
+
+        // Sweep orphans that still resolve to this owner even when Inspect missed them
+        // (stale transferred sets / prior non-idempotent repair residue).
+        foreach (var record in ScanModelSpaceDisplayChildren(database, transaction))
+        {
+            if (RoofDisplayRebuildEraseRules.ShouldEraseOwnerMatchedSweepChild(
+                    record.Stored.Exists,
+                    record.Stored.OwnerReference,
+                    ownerReference))
+            {
+                eraseIds.Add(record.Id);
+            }
+        }
+
+        // Strict structural fallback: native GROUP COPY leaves seven RoofDisplay Lines
+        // grouped with this source while JSON/1005 owner remains stale. Erase only —
+        // never adopt that metadata as current ownership.
+        if (RoofDisplayGroupService.TryCollectStrictStructuralDisplayEraseIds(
+                database,
+                transaction,
+                ownerId,
+                out var foreignGroupDisplayIds))
+        {
+            foreach (var childId in foreignGroupDisplayIds)
+            {
+                eraseIds.Add(childId);
+            }
+        }
+
+        return eraseIds.ToList();
     }
 
     private static RoofPoint3D MapPoint(Point3d point) =>

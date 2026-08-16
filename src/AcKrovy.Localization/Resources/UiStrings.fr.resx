@@ -586,6 +586,7 @@
   <data name="Command_RoofRafters_ExistingFoundFormat" xml:space="preserve"><value>&#xA;Le toit contient déjà {0} chevrons générés automatiquement.</value></data>
   <data name="Command_RoofRafters_ReplacementDeferred" xml:space="preserve"><value>&#xA;Le remplacement sûr des chevrons automatiques existants est reporté à la prochaine étape du cycle de vie. Le dessin reste inchangé.</value></data>
   <data name="Command_RoofRafters_ExistingStale" xml:space="preserve"><value>&#xA;Les chevrons automatiques existants ne correspondent plus à la géométrie actuelle du toit.</value></data>
+  <data name="Command_RoofRafters_RecipeAmbiguous" xml:space="preserve"><value>&#xA;Les chevrons automatiques n'ont pas été régénérés : la recette de génération d'origine est ambiguë. Le jeu existant est resté inchangé.</value></data>
   <data name="Command_RoofRafters_CreatedFormat" xml:space="preserve"><value>&#xA;Chevrons intelligents créés : {0}.</value></data>
   <data name="Command_RoofRafters_InvalidRoof" xml:space="preserve"><value>&#xA;Le toit sélectionné ne possède pas de définition SimpleGable enregistrée valide.</value></data>
   <data name="Command_RoofRafters_SourceChanged" xml:space="preserve"><value>&#xA;Le contour source du toit a changé. Aucun chevron n'a été créé.</value></data>

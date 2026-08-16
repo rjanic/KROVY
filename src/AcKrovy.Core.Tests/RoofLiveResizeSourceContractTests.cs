@@ -26,7 +26,8 @@ public sealed class RoofLiveResizeSourceContractTests
     {
         Assert.Contains("RoofLiveResizeService.Process(", LiveGeometry);
         Assert.Contains("RoofLiveResizeService.TryBeginGroupedUndo(", LiveGeometry);
-        Assert.Contains("IsUndoGroupingSourceCommand(", LiveGeometry);
+        Assert.Contains("RequiresGroupedUndoMark(e.GlobalCommandName)", LiveGeometry);
+        Assert.Contains("IsUndoGroupingSourceCommand(", CommandRules);
         Assert.Contains("EndStretchUndoMark(", LiveGeometry);
         Assert.Contains("LiveGeometryCommandRules.IsUndoRedoCommand(", LiveGeometry);
         Assert.DoesNotContain("DatabaseReactor", ResizeService);
@@ -119,7 +120,7 @@ public sealed class RoofLiveResizeSourceContractTests
         Assert.Contains("Command_RoofRafters_ExistingFoundFormat", RafterWorkflow);
         Assert.Contains("Command_RoofRafters_ExistingStale", RafterWorkflow);
         Assert.Contains("Command_RoofRafters_ReplacementDeferred", RafterWorkflow);
-        Assert.Contains("RoofGeneratedTimberFreshness.IsLayoutCurrent(", RafterWorkflow);
+        Assert.Contains("RoofGeneratedRafterSetService.IsGeneratedSetStale(", RafterWorkflow);
         Assert.Contains("GeneratedSetIsStale", RafterWorkflow);
         Assert.DoesNotContain(".Erase(", RafterWorkflow);
         Assert.DoesNotContain("SimpleGableRafterLayoutSolver.Solve(", Segment(
@@ -160,6 +161,7 @@ public sealed class RoofLiveResizeSourceContractTests
             "Command_Roof_DisplayTamperNotificationTitle",
             "Command_Roof_DisplayTamperNotificationBody",
             "Command_RoofRafters_ExistingStale",
+            "Command_RoofRafters_RecipeAmbiguous",
             "Command_RoofRafters_ReplacementDeferred",
         };
 

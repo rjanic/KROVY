@@ -104,12 +104,15 @@ public sealed class RoofPermanentDisplaySourceContractTests
     }
 
     [Fact]
-    public void RebuildErasesOnlyMatchingOwnerChildrenAndProtectsFutureSchema()
+    public void RebuildErasesInspectedAndOwnerMatchedChildrenAndProtectsFutureSchema()
     {
         var rebuild = Segment(Service, "public static bool Rebuild", "private static RoofPoint3D MapPoint");
         Assert.Contains("UnsupportedFutureSchema", rebuild);
         Assert.Contains("return false;", rebuild);
-        Assert.Contains("stored.OwnerReference", rebuild);
+        Assert.Contains("CollectDisplayIdsToErase", rebuild);
+        Assert.Contains("RoofDisplayRebuildEraseRules.ShouldEraseInspectedDisplayChild", rebuild);
+        Assert.Contains("RoofDisplayRebuildEraseRules.ShouldEraseOwnerMatchedSweepChild", rebuild);
+        Assert.Contains("TryCollectStrictStructuralDisplayEraseIds", rebuild);
         Assert.Contains("ownerReference", rebuild);
         Assert.Contains("child.Erase();", rebuild);
         Assert.DoesNotContain("Erase(true)", rebuild);

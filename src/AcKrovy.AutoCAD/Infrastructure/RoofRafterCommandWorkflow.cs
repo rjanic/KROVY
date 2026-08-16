@@ -8,7 +8,6 @@ using AcKrovy.Localization;
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
-using Autodesk.AutoCAD.Geometry;
 using AcApp = Autodesk.AutoCAD.ApplicationServices.Application;
 
 namespace AcKrovy.AutoCAD.Infrastructure;
@@ -217,56 +216,23 @@ internal static class RoofRafterCommandWorkflow
                 return RoofRafterCreationResult.Failure("Command_RoofRafters_InvalidSpacing");
             }
 
-            var layout = layoutResult.Layout;
-            var sourceElevation = RoofPolylineExtractor.GetSourceElevation(owner);
-            var canonicalRafterData = TimberElementDefaults.For(
-                TimberElementType.Rafter,
-                defaultProfile) with
-            {
-                WidthMm = request.WidthMm,
-                HeightMm = request.HeightMm,
-                SlopeDegrees = restored.Geometry.SlopeDegrees,
-                // Neutral layout stays eave -> ridge. Canonical KROVY arrows use
-                // Start -> End unless reversed, so true gives ridge -> eave.
-                IsSlopeDirectionReversed = true,
-                Material = request.Material,
-            };
-            var requests = layout.Rafters
-                .Select(rafter => new TimberSourceLineCreationRequest(
-                    new Point3d(rafter.PlanStart.X, rafter.PlanStart.Y, sourceElevation),
-                    new Point3d(rafter.PlanEnd.X, rafter.PlanEnd.Y, sourceElevation),
-                    canonicalRafterData))
-                .ToArray();
-            var createdRafters = TimberSourceLineCreationService.Create(
+            RoofGeneratedRafterSetService.Materialize(
                 document.Database,
                 transaction,
                 document.Editor,
-                requests,
+                owner,
+                expectedOwnerReference,
+                restored.Geometry,
+                layoutResult.Layout,
+                new RoofRafterGenerationRecipe(
+                    request.WidthMm,
+                    request.HeightMm,
+                    request.MaximumSpacingMm,
+                    request.Material),
                 defaultProfile,
-                layerProfile,
-                (line, currentTransaction, index) =>
-                {
-                    var rafter = layout.Rafters[index];
-                    RoofGeneratedTimberStore.Write(
-                        line,
-                        currentTransaction,
-                        new RoofGeneratedTimberData(
-                            RoofGeneratedTimberDataSchema.CurrentVersion,
-                            expectedOwnerReference,
-                            RoofGeneratedTimberKind.Rafter,
-                            rafter.Face,
-                            rafter.StationIndex,
-                            rafter.StationCount,
-                            layout.RequestedMaximumSpacingMm,
-                            layout.Signature));
-                });
-            TimberCreatedElementAnnotationService.EnsureForCreatedElements(
-                document.Database,
-                transaction,
-                createdRafters,
-                defaultProfile);
+                layerProfile);
             transaction.Commit();
-            return RoofRafterCreationResult.Success(layout.Rafters.Count);
+            return RoofRafterCreationResult.Success(layoutResult.Layout.Rafters.Count);
         }
         catch (System.Exception)
         {
@@ -278,38 +244,12 @@ internal static class RoofRafterCommandWorkflow
         Database database,
         Transaction transaction,
         IReadOnlyList<ObjectId> generatedIds,
-        string geometrySignature)
-    {
-        if (generatedIds.Count == 0)
-        {
-            return false;
-        }
-
-        foreach (var id in generatedIds)
-        {
-            if (!AutoCadObjectIdAccess.TryGetObject<Entity>(
-                    transaction,
-                    id,
-                    OpenMode.ForRead,
-                    out var entity,
-                    database) ||
-                entity is null)
-            {
-                return true;
-            }
-
-            var stored = RoofGeneratedTimberStore.Read(entity);
-            if (stored.Data is null ||
-                !RoofGeneratedTimberFreshness.IsLayoutCurrent(
-                    stored.Data.LayoutSignature,
-                    geometrySignature))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
+        string geometrySignature) =>
+        RoofGeneratedRafterSetService.IsGeneratedSetStale(
+            database,
+            transaction,
+            generatedIds,
+            geometrySignature);
 
     private static IntPtr TryGetAutoCadMainWindowHandle()
     {

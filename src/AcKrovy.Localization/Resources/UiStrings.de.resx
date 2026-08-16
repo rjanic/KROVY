@@ -586,6 +586,7 @@
   <data name="Command_RoofRafters_ExistingFoundFormat" xml:space="preserve"><value>&#xA;Das Dach enthält bereits {0} automatisch erzeugte Sparren.</value></data>
   <data name="Command_RoofRafters_ReplacementDeferred" xml:space="preserve"><value>&#xA;Der sichere Ersatz vorhandener automatischer Sparren folgt im nächsten Lebenszyklusschritt. Die Zeichnung bleibt unverändert.</value></data>
   <data name="Command_RoofRafters_ExistingStale" xml:space="preserve"><value>&#xA;Vorhandene automatische Sparren stimmen nicht mehr mit der aktuellen Dachgeometrie überein.</value></data>
+  <data name="Command_RoofRafters_RecipeAmbiguous" xml:space="preserve"><value>&#xA;Automatische Sparren wurden nicht neu erzeugt: Das ursprüngliche Generierungsrezept ist nicht eindeutig. Der vorhandene Satz blieb unverändert.</value></data>
   <data name="Command_RoofRafters_CreatedFormat" xml:space="preserve"><value>&#xA;Erstellte intelligente Sparren: {0}.</value></data>
   <data name="Command_RoofRafters_InvalidRoof" xml:space="preserve"><value>&#xA;Das ausgewählte Dach besitzt keine gültige gespeicherte SimpleGable-Definition.</value></data>
   <data name="Command_RoofRafters_SourceChanged" xml:space="preserve"><value>&#xA;Der Dachquellumriss wurde geändert. Es wurden keine Sparren erstellt.</value></data>

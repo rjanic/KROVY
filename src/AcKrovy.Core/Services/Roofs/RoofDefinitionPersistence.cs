@@ -179,7 +179,10 @@ public static class RoofDefinitionPersistence
                 RoofDefinitionRestoreError.StaleFootprint);
         }
 
-        var kind = Matches(topology.Descriptor, data.RigidFootprint!)
+        // Pure native winding reversal (AutoCAD STRETCH/GROUP) keeps edge-length pairs
+        // swapped but is still RigidEquivalent — not a supported resize write.
+        var kind = Matches(topology.Descriptor, data.RigidFootprint!) ||
+                   MatchesOrientationFlippedRigid(topology.Descriptor, data.RigidFootprint!)
             ? RoofSourceChangeKind.RigidEquivalent
             : RoofSourceChangeKind.SupportedResize;
         return new RoofSourceChangeClassification(
@@ -193,13 +196,25 @@ public static class RoofDefinitionPersistence
         RoofFootprint footprint,
         RoofDefinitionData data)
     {
-        if (!TryReadSourceTopology(source, out var topology) ||
-            !MatchesTopology(topology.Descriptor, data.RigidFootprint!))
+        if (data.RigidFootprint is null ||
+            data.RidgeEdgeFamily is not (
+                RoofRidgeEdgeFamily.SourceEdge01 or RoofRidgeEdgeFamily.SourceEdge12))
+        {
+            return Invalid(RoofDefinitionRestoreError.InvalidDefinition);
+        }
+
+        if (!TryResolveSourceTopologyForRestore(
+                source,
+                data.RigidFootprint,
+                data.RidgeEdgeFamily.Value,
+                out var topology,
+                out var ridgeFamily,
+                out _))
         {
             return Invalid(RoofDefinitionRestoreError.StaleFootprint);
         }
 
-        var edge = data.RidgeEdgeFamily == RoofRidgeEdgeFamily.SourceEdge01
+        var edge = ridgeFamily == RoofRidgeEdgeFamily.SourceEdge01
             ? topology.Edge01
             : topology.Edge12;
         if (!RoofDirection2D.TryCreate(edge.X, edge.Y, out var direction))
@@ -216,6 +231,163 @@ public static class RoofDefinitionPersistence
                 solved.Geometry,
                 RoofDefinitionRestoreError.None)
             : Invalid(RoofDefinitionRestoreError.StaleFootprint);
+    }
+
+    /// <summary>
+    /// Resolves native source topology for V2 restore. AutoCAD GROUP/STRETCH can reverse
+    /// polyline winding while preserving the rectangle; that is not Unsupported.
+    /// Opposite winding remaps SourceEdge01 ↔ SourceEdge12 on the reversed ring.
+    /// </summary>
+    private static bool TryResolveSourceTopologyForRestore(
+        RoofFootprintInput source,
+        RoofRigidFootprintDescriptor persisted,
+        RoofRidgeEdgeFamily persistedFamily,
+        out SourceTopology topology,
+        out RoofRidgeEdgeFamily ridgeFamily,
+        out string resolvePath)
+    {
+        topology = default;
+        ridgeFamily = RoofRidgeEdgeFamily.Undefined;
+        resolvePath = "none";
+        if (persistedFamily is not (
+                RoofRidgeEdgeFamily.SourceEdge01 or RoofRidgeEdgeFamily.SourceEdge12) ||
+            !TryReadSourceTopology(source, out topology))
+        {
+            return false;
+        }
+
+        if (MatchesTopology(topology.Descriptor, persisted))
+        {
+            ridgeFamily = persistedFamily;
+            resolvePath = "native";
+            return true;
+        }
+
+        if (!TryReverseClosedRectangleVertices(source, out var reversed) ||
+            !TryReadSourceTopology(reversed, out var reversedTopology) ||
+            !MatchesTopology(reversedTopology.Descriptor, persisted))
+        {
+            resolvePath = "orientation-mismatch";
+            return false;
+        }
+
+        // Full vertex-list reverse restores the persisted winding while keeping the
+        // same Edge01/Edge12 length families (rectangle). Do not swap ridge family.
+        topology = reversedTopology;
+        ridgeFamily = persistedFamily;
+        resolvePath = "orientation-flipped";
+        return true;
+    }
+
+    private static bool TryReverseClosedRectangleVertices(
+        RoofFootprintInput source,
+        out RoofFootprintInput reversed)
+    {
+        reversed = source;
+        if (source.Vertices is null || source.Vertices.Count < 4)
+        {
+            return false;
+        }
+
+        var vertices = source.Vertices.ToList();
+        if (vertices.Count > 1 &&
+            vertices[0].DistanceTo(vertices[vertices.Count - 1]) <=
+                RoofFootprintValidator.ClosingPointToleranceMm)
+        {
+            vertices.RemoveAt(vertices.Count - 1);
+        }
+
+        if (vertices.Count != 4)
+        {
+            return false;
+        }
+
+        vertices.Reverse();
+        reversed = new RoofFootprintInput(
+            vertices,
+            source.IsClosed,
+            source.HasCurvedSegments,
+            source.IsPlanar);
+        return true;
+    }
+
+    private static bool MatchesOrientationFlippedRigid(
+        RoofRigidFootprintDescriptor current,
+        RoofRigidFootprintDescriptor persisted) =>
+        current.VertexCount == persisted.VertexCount &&
+        current.SourceOrientation != persisted.SourceOrientation &&
+        current.SourceOrientation != RoofPolygonOrientation.Undefined &&
+        persisted.SourceOrientation != RoofPolygonOrientation.Undefined &&
+        Math.Abs(current.Edge01LengthMm - persisted.Edge01LengthMm) <=
+            SimpleGableRoofGeometryTolerance.LengthTolerance(
+                current.Edge01LengthMm,
+                persisted.Edge01LengthMm) &&
+        Math.Abs(current.Edge12LengthMm - persisted.Edge12LengthMm) <=
+            SimpleGableRoofGeometryTolerance.LengthTolerance(
+                current.Edge12LengthMm,
+                persisted.Edge12LengthMm);
+
+    /// <summary>
+    /// Public diagnostic breakdown for HOST A/B original-vs-copy resize classification.
+    /// Read-only. Does not mutate.
+    /// </summary>
+    public static string ExplainClassify(
+        RoofFootprintInput source,
+        RoofFootprint footprint,
+        RoofDefinitionData data)
+    {
+        if (source is null)
+        {
+            throw new ArgumentNullException(nameof(source));
+        }
+
+        if (footprint is null)
+        {
+            throw new ArgumentNullException(nameof(footprint));
+        }
+
+        if (data is null)
+        {
+            throw new ArgumentNullException(nameof(data));
+        }
+
+        var classification = Classify(source, footprint, data);
+        var hasTopology = TryReadSourceTopology(source, out var topology);
+        var persisted = data.RigidFootprint;
+        var resolvePath = "n/a";
+        if (persisted is not null &&
+            data.RidgeEdgeFamily is RoofRidgeEdgeFamily family)
+        {
+            _ = TryResolveSourceTopologyForRestore(
+                source,
+                persisted,
+                family,
+                out _,
+                out _,
+                out resolvePath);
+        }
+
+        var currentOrient = hasTopology
+            ? topology.Descriptor.SourceOrientation.ToString()
+            : "<none>";
+        var persistedOrient = persisted?.SourceOrientation.ToString() ?? "<none>";
+        var edge01 = hasTopology ? topology.Descriptor.Edge01LengthMm : double.NaN;
+        var edge12 = hasTopology ? topology.Descriptor.Edge12LengthMm : double.NaN;
+        return string.Format(
+            System.Globalization.CultureInfo.InvariantCulture,
+            "result={0} error={1} schema={2} ridgeFamily={3} resolvePath={4} " +
+            "orient={5}/{6} edge01={7:0.###}/{8:0.###} edge12={9:0.###}/{10:0.###}",
+            classification.Kind,
+            classification.Error,
+            data.SchemaVersion,
+            data.RidgeEdgeFamily,
+            resolvePath,
+            currentOrient,
+            persistedOrient,
+            edge01,
+            persisted?.Edge01LengthMm,
+            edge12,
+            persisted?.Edge12LengthMm);
     }
 
     private static RoofDefinitionRestoreResult Solve(

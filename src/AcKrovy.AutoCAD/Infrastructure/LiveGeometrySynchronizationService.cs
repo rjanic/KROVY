@@ -93,6 +93,7 @@ internal static class LiveGeometrySynchronizationService
         private bool _preserveCopySourcesForCurrentCommand;
         private bool _stretchUndoMarkOpen;
         private bool _isDisposed;
+        private string? _currentGlobalCommandName;
 
         public DocumentTracker(Document document)
         {
@@ -130,7 +131,11 @@ internal static class LiveGeometrySynchronizationService
             _erasedSourceHandles.Clear();
             _refreshAllTimberAnnotationsAfterCommand = false;
             _preserveCopySourcesForCurrentCommand = false;
+            _currentGlobalCommandName = null;
             EndStretchUndoMark();
+            RoofLiveResizeService.EndStretchCommandScope();
+            RoofGroupGripGeometrySnapshotService.EndCommandScope("dispose");
+            RoofGroupGripPreCommandBaselineService.Clear("dispose");
 #if DEBUG
             AutoCadFramedBlockContentStretchNormalizeLifecycleService.RemoveSession(_document);
             AutoCadFramedBlockContentGripUndoProofService.RemoveSession(_document);
@@ -191,10 +196,21 @@ internal static class LiveGeometrySynchronizationService
         private void ObjectModified(object? sender, ObjectEventArgs e)
         {
             if (_ignoreCurrentCommand ||
-                _modifiedIds.IsSuppressed ||
                 e.DBObject is not Entity entity ||
                 entity.ObjectId.IsNull ||
                 entity.IsErased)
+            {
+                return;
+            }
+
+            // Native GRIP/STRETCH geometry snapshot MUST run before suppress early-out
+            // is irrelevant for plugin writes: when suppressed, capture is skipped inside.
+            RoofGroupGripGeometrySnapshotService.TryCaptureNativeObjectModified(
+                entity,
+                _currentGlobalCommandName,
+                _modifiedIds.IsSuppressed);
+
+            if (_modifiedIds.IsSuppressed)
             {
                 return;
             }
@@ -241,15 +257,35 @@ internal static class LiveGeometrySynchronizationService
         {
             var isUndoRedo = LiveGeometryCommandRules.IsUndoRedoCommand(e.GlobalCommandName);
             _ignoreCurrentCommand = IsAcKrovyCommand(e.GlobalCommandName) || isUndoRedo;
+            _currentGlobalCommandName = e.GlobalCommandName;
             _refreshAllTimberAnnotationsAfterCommand =
                 !isUndoRedo &&
                 LiveGeometryCommandRules.RequiresFullTimberAnnotationRefresh(e.GlobalCommandName);
             _preserveCopySourcesForCurrentCommand =
                 !isUndoRedo &&
                 LiveGeometryCommandRules.IsCopySourcePreservingCommand(e.GlobalCommandName);
+            // Always clear SOURCE-handled owner suppression at the boundary of a new
+            // native command so a later genuine display-only GRIP_STRETCH is not masked.
+            RoofLiveResizeService.BeginStretchCommandScope();
+            RoofGroupGripGeometrySnapshotService.BeginCommandScope(e.GlobalCommandName);
+            // True pre-command baseline MUST be captured here, before any native
+            // ObjectModified can mutate DB geometry. Do not clear implied selection.
             if (!isUndoRedo &&
                 !_ignoreCurrentCommand &&
-                LiveGeometryCommandRules.IsUndoGroupingSourceCommand(e.GlobalCommandName))
+                LiveGeometryCommandRules.IsGripStretchCommand(e.GlobalCommandName))
+            {
+                RoofGroupGripPreCommandBaselineService.CaptureFromImpliedSelection(
+                    _document,
+                    e.GlobalCommandName);
+            }
+            else
+            {
+                RoofGroupGripPreCommandBaselineService.Clear("non-grip-command");
+            }
+
+            if (!isUndoRedo &&
+                !_ignoreCurrentCommand &&
+                LiveGeometryCommandRules.RequiresGroupedUndoMark(e.GlobalCommandName))
             {
                 _stretchUndoMarkOpen = RoofLiveResizeService.TryBeginGroupedUndo(_document);
             }
@@ -316,6 +352,10 @@ internal static class LiveGeometrySynchronizationService
             finally
             {
                 EndStretchUndoMark();
+                RoofLiveResizeService.EndStretchCommandScope();
+                RoofGroupGripGeometrySnapshotService.EndCommandScope("CommandEnded");
+                RoofGroupGripPreCommandBaselineService.Clear("CommandEnded");
+                _currentGlobalCommandName = null;
             }
         }
 
@@ -327,6 +367,10 @@ internal static class LiveGeometrySynchronizationService
             _preserveCopySourcesForCurrentCommand = false;
             _ignoreCurrentCommand = isUndoRedo;
             EndStretchUndoMark();
+            RoofLiveResizeService.EndStretchCommandScope();
+            RoofGroupGripGeometrySnapshotService.EndCommandScope("CommandCancelled");
+            RoofGroupGripPreCommandBaselineService.Clear("CommandCancelled");
+            _currentGlobalCommandName = null;
 #if DEBUG
             AutoCadRedoDiagService.OnCommandCancelledOrFailed(
                 "CommandCancelled",
@@ -346,6 +390,10 @@ internal static class LiveGeometrySynchronizationService
             _preserveCopySourcesForCurrentCommand = false;
             _ignoreCurrentCommand = isUndoRedo;
             EndStretchUndoMark();
+            RoofLiveResizeService.EndStretchCommandScope();
+            RoofGroupGripGeometrySnapshotService.EndCommandScope("CommandFailed");
+            RoofGroupGripPreCommandBaselineService.Clear("CommandFailed");
+            _currentGlobalCommandName = null;
 #if DEBUG
             AutoCadRedoDiagService.OnCommandCancelledOrFailed(
                 "CommandFailed",
@@ -398,10 +446,21 @@ internal static class LiveGeometrySynchronizationService
             var commandCompletionWatch = System.Diagnostics.Stopwatch.StartNew();
 #endif
             var ids = _modifiedIds.Drain();
-            var roofRelatedIds = RoofLiveResizeService.Process(
-                _document,
-                globalCommandName,
-                ids);
+            // Suppress ObjectModified while SOURCE resize rebuilds display / regenerates
+            // rafters. Otherwise GRIP_STRETCH display rebuild events re-queue and a later
+            // pass misclassifies them as independent display-only tamper.
+            // Freeze native grip geometry snapshot before any plugin Rebuild can overwrite it.
+            RoofGroupGripGeometrySnapshotService.FreezeAll();
+            IReadOnlyCollection<ObjectId> roofRelatedIds;
+            using (_modifiedIds.Suppress())
+            using (_appendedTimberIds.Suppress())
+            using (_erasedSourceHandles.Suppress())
+            {
+                roofRelatedIds = RoofLiveResizeService.Process(
+                    _document,
+                    globalCommandName,
+                    ids);
+            }
             if (roofRelatedIds.Count > 0)
             {
                 ids = ids.Where(id => !roofRelatedIds.Contains(id)).ToArray();
@@ -451,7 +510,15 @@ internal static class LiveGeometrySynchronizationService
                 {
                     AutoCadRedoDiagService.OnLiveGeometryRefreshSkippedEmpty(globalCommandName);
                 }
+#endif
 
+                // Same-DWG COPY: AutoCAD does not remap generated-rafter 1005.
+                // Geometry association rebinds copied members after timber copy init.
+                // Runs only for native COPY; never during U/UNDO/REDO/MREDO.
+                RoofGeneratedRafterCopyOwnershipRehydrationService.Process(
+                    _document,
+                    globalCommandName);
+#if DEBUG
                 TraceLiveGeometryTiming(
                     globalCommandName,
                     "command_completion_handler",

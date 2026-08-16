@@ -10,6 +10,7 @@ public sealed class RoofRafterGenerationSourceContractTests
     private static readonly string Workflow = Read("RoofRafterCommandWorkflow.cs");
     private static readonly string Creation = Read("TimberSourceLineCreationService.cs");
     private static readonly string Store = Read("RoofGeneratedTimberStore.cs");
+    private static readonly string Replacement = Read("RoofGeneratedRafterSetService.cs");
     private static readonly string Commands = RoofUxSourceContractText.Read(
         "src", "AcKrovy.AutoCAD", "Commands", "AcKrovyCommands.cs");
     private static readonly string CommandCatalog = RoofUxSourceContractText.Read(
@@ -84,15 +85,16 @@ public sealed class RoofRafterGenerationSourceContractTests
     [Fact]
     public void EveryGeneratedSourceGetsBothIndependentMetadataContracts()
     {
-        Assert.Contains("TimberSourceLineCreationService.Create(", Workflow);
-        Assert.Contains("RoofGeneratedTimberStore.Write(", Workflow);
-        Assert.Contains("RoofGeneratedTimberDataSchema.CurrentVersion", Workflow);
-        Assert.Contains("RoofGeneratedTimberKind.Rafter", Workflow);
-        Assert.Contains("rafter.Face", Workflow);
-        Assert.Contains("rafter.StationIndex", Workflow);
-        Assert.Contains("rafter.StationCount", Workflow);
-        Assert.Contains("layout.RequestedMaximumSpacingMm", Workflow);
-        Assert.Contains("layout.Signature", Workflow);
+        Assert.Contains("RoofGeneratedRafterSetService.Materialize(", Workflow);
+        Assert.Contains("TimberSourceLineCreationService.Create(", Replacement);
+        Assert.Contains("RoofGeneratedTimberStore.Write(", Replacement);
+        Assert.Contains("RoofGeneratedTimberDataSchema.CurrentVersion", Replacement);
+        Assert.Contains("RoofGeneratedTimberKind.Rafter", Replacement);
+        Assert.Contains("rafter.Face", Replacement);
+        Assert.Contains("rafter.StationIndex", Replacement);
+        Assert.Contains("rafter.StationCount", Replacement);
+        Assert.Contains("layout.RequestedMaximumSpacingMm", Replacement);
+        Assert.Contains("layout.Signature", Replacement);
         Assert.Contains("DECORAIR_ACADKROVY_ROOF_TIMBER", Store);
         Assert.Contains("ReadForeignXData", Store);
     }
@@ -107,7 +109,8 @@ public sealed class RoofRafterGenerationSourceContractTests
         Assert.DoesNotContain(".Erase(", discovery);
         Assert.Contains("Command_RoofRafters_ReplacementDeferred", Workflow);
         Assert.Contains("Command_RoofRafters_ExistingStale", Workflow);
-        Assert.Contains("RoofGeneratedTimberFreshness.IsLayoutCurrent(", Workflow);
+        Assert.Contains("RoofGeneratedRafterSetService.IsGeneratedSetStale(", Workflow);
+        Assert.Contains("RoofGeneratedTimberFreshness.IsLayoutCurrent(", Replacement);
         Assert.DoesNotContain(".Erase(", Workflow);
     }
 
@@ -123,17 +126,17 @@ public sealed class RoofRafterGenerationSourceContractTests
     [Fact]
     public void GeneratedSourceKeepsEaveToRidgeGeometryAndUsesCanonicalDownhillMetadata()
     {
-        Assert.Contains("new Point3d(rafter.PlanStart.X", Workflow);
-        Assert.Contains("new Point3d(rafter.PlanEnd.X", Workflow);
-        Assert.Contains("IsSlopeDirectionReversed = true", Workflow);
-        Assert.DoesNotContain("SlopeArrowService", Workflow);
-        Assert.DoesNotContain("LiveGeometrySynchronizationService", Workflow);
+        Assert.Contains("new Point3d(rafter.PlanStart.X", Replacement);
+        Assert.Contains("new Point3d(rafter.PlanEnd.X", Replacement);
+        Assert.Contains("IsSlopeDirectionReversed = true", Replacement);
+        Assert.DoesNotContain("SlopeArrowService", Workflow + Replacement);
+        Assert.DoesNotContain("LiveGeometrySynchronizationService", Workflow + Replacement);
     }
 
     [Fact]
     public void Stage6DoesNotAlterRoofGroupOrIntroduceOtherTimberOrReactiveEntities()
     {
-        var production = Workflow + Creation + Store;
+        var production = Workflow + Creation + Store + Replacement;
         Assert.DoesNotContain("RoofDisplayGroupService", production);
         Assert.DoesNotContain("BlockReference", production);
         Assert.DoesNotContain("Polyline3d", production);

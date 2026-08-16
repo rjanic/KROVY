@@ -586,6 +586,7 @@
   <data name="Command_RoofRafters_ExistingFoundFormat" xml:space="preserve"><value>&#xA;Dach zawiera już {0} automatycznie utworzonych krokwi.</value></data>
   <data name="Command_RoofRafters_ReplacementDeferred" xml:space="preserve"><value>&#xA;Bezpieczna wymiana istniejących automatycznych krokwi zostanie dodana w następnym kroku cyklu życia. Rysunek pozostał bez zmian.</value></data>
   <data name="Command_RoofRafters_ExistingStale" xml:space="preserve"><value>&#xA;Istniejące automatyczne krokwie nie odpowiadają już bieżącej geometrii dachu.</value></data>
+  <data name="Command_RoofRafters_RecipeAmbiguous" xml:space="preserve"><value>&#xA;Automatyczne krokwie nie zostały odtworzone: oryginalna receptura generowania jest niejednoznaczna. Istniejący zestaw pozostał bez zmian.</value></data>
   <data name="Command_RoofRafters_CreatedFormat" xml:space="preserve"><value>&#xA;Utworzono inteligentnych krokwi: {0}.</value></data>
   <data name="Command_RoofRafters_InvalidRoof" xml:space="preserve"><value>&#xA;Wybrany dach nie ma poprawnej zapisanej definicji SimpleGable.</value></data>
   <data name="Command_RoofRafters_SourceChanged" xml:space="preserve"><value>&#xA;Obrys źródłowy dachu uległ zmianie. Krokwie nie zostały utworzone.</value></data>

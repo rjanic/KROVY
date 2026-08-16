@@ -57,6 +57,8 @@ public sealed class RoofDisplayGroupSourceContractTests
         Assert.Contains("childIds.Distinct().Count()", Group);
         Assert.Contains("newChildIds", Display);
         Assert.Contains("RoofDisplayGroupService.EnsureGroup", Display);
+        Assert.Contains("CollectDisplayIdsToErase", Display);
+        Assert.Contains("DissociateOwnerFromForeignGroups", Group);
     }
 
     [Fact]

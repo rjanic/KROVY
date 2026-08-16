@@ -8,6 +8,7 @@ namespace AcKrovy.Core.Tests;
 public sealed class RoofAutomaticRafterAnnotationSourceContractTests
 {
     private static readonly string Workflow = Read("RoofRafterCommandWorkflow.cs");
+    private static readonly string Replacement = Read("RoofGeneratedRafterSetService.cs");
     private static readonly string SourceCreation =
         Read("TimberSourceLineCreationService.cs");
     private static readonly string ItemIdentity =
@@ -20,13 +21,14 @@ public sealed class RoofAutomaticRafterAnnotationSourceContractTests
     [Fact]
     public void FreshGenerationPassesOnlyExactCreationResultToCanonicalAnnotationPath()
     {
+        Assert.Contains("RoofGeneratedRafterSetService.Materialize(", Workflow);
         Assert.Contains(
-            "var createdRafters = TimberSourceLineCreationService.Create(",
-            Workflow);
+            "TimberSourceLineCreationService.Create(",
+            Replacement);
         Assert.Contains(
             "TimberCreatedElementAnnotationService.EnsureForCreatedElements(",
-            Workflow);
-        Assert.Contains("createdRafters,", Workflow);
+            Replacement);
+        Assert.Contains("created,", Replacement);
         Assert.Contains("createdElements", BatchAnnotations);
         Assert.Contains("TimberAnnotationService.EnsureForElement(", BatchAnnotations);
     }
@@ -126,8 +128,8 @@ public sealed class RoofAutomaticRafterAnnotationSourceContractTests
         Assert.Contains("AutoCadAnnotationPresentationBatchContext.Create(", BatchAnnotations);
         Assert.Contains("defaultProfile", BatchAnnotations);
         Assert.Contains("presentationBatchContext", BatchAnnotations);
-        Assert.Contains("TimberElementDefaults.For(", Workflow);
-        Assert.Contains("defaultProfile) with", Workflow);
+        Assert.Contains("TimberElementDefaults.For(", Replacement);
+        Assert.Contains("defaultProfile) with", Replacement);
     }
 
     [Fact]
@@ -137,16 +139,22 @@ public sealed class RoofAutomaticRafterAnnotationSourceContractTests
             "private static RoofRafterCreationResult TryCreateRafters",
             StringComparison.Ordinal);
         var createBody = Workflow[createStart..];
-        var sourceCreation = createBody.IndexOf(
-            "TimberSourceLineCreationService.Create(",
-            StringComparison.Ordinal);
-        var annotations = createBody.IndexOf(
-            "TimberCreatedElementAnnotationService.EnsureForCreatedElements(",
+        var materialize = createBody.IndexOf(
+            "RoofGeneratedRafterSetService.Materialize(",
             StringComparison.Ordinal);
         var commit = createBody.IndexOf("transaction.Commit();", StringComparison.Ordinal);
 
-        Assert.True(sourceCreation >= 0 && annotations > sourceCreation && commit > annotations);
+        Assert.True(materialize >= 0 && commit > materialize);
         Assert.Equal(1, Count(createBody, "transaction.Commit();"));
+        Assert.Contains("TimberSourceLineCreationService.Create(", Replacement);
+        Assert.Contains(
+            "TimberCreatedElementAnnotationService.EnsureForCreatedElements(",
+            Replacement);
+        Assert.True(
+            Replacement.IndexOf("TimberSourceLineCreationService.Create(", StringComparison.Ordinal) <
+            Replacement.IndexOf(
+                "TimberCreatedElementAnnotationService.EnsureForCreatedElements(",
+                StringComparison.Ordinal));
         Assert.DoesNotContain("StartTransaction", BatchAnnotations);
         Assert.DoesNotContain("Commit", BatchAnnotations);
     }
@@ -154,10 +162,10 @@ public sealed class RoofAutomaticRafterAnnotationSourceContractTests
     [Fact]
     public void ExistingSetRefusalAndCancelCannotReachAnnotationMaterialization()
     {
-        var firstAnnotationCall = Workflow.IndexOf(
-            "TimberCreatedElementAnnotationService.EnsureForCreatedElements(",
+        var firstMaterializeCall = Workflow.IndexOf(
+            "RoofGeneratedRafterSetService.Materialize(",
             StringComparison.Ordinal);
-        var prefix = Workflow[..firstAnnotationCall];
+        var prefix = Workflow[..firstMaterializeCall];
         Assert.Contains("selectedRoof.ExistingGeneratedRafterCount > 0", prefix);
         Assert.Contains("RoofGeneratedTimberStore.FindByOwner(", prefix);
         Assert.Contains("AcApp.ShowModalWindow(dialog) != true", prefix);
@@ -171,20 +179,21 @@ public sealed class RoofAutomaticRafterAnnotationSourceContractTests
         var success = Workflow.IndexOf("if (result.IsSuccess)", StringComparison.Ordinal);
         var save = Workflow.IndexOf("SettingsUiPreferencesStore.Save", StringComparison.Ordinal);
         Assert.True(success >= 0 && save > success);
-        Assert.Equal(1, Count(Workflow, "EnsureForCreatedElements("));
+        Assert.Equal(1, Count(Workflow, "RoofGeneratedRafterSetService.Materialize("));
+        Assert.Equal(1, Count(Replacement, "EnsureForCreatedElements("));
         Assert.Equal(1, Count(BatchAnnotations, "EnsureForElement("));
-        Assert.DoesNotContain("DeleteDuplicates", Workflow + BatchAnnotations);
+        Assert.DoesNotContain("DeleteDuplicates", Workflow + Replacement + BatchAnnotations);
     }
 
     [Fact]
     public void SlopeContractsAndStableArchitectureRemainUnchanged()
     {
-        Assert.Contains("IsSlopeDirectionReversed = true", Workflow);
-        Assert.Contains("new Point3d(rafter.PlanStart.X", Workflow);
-        Assert.Contains("new Point3d(rafter.PlanEnd.X", Workflow);
+        Assert.Contains("IsSlopeDirectionReversed = true", Replacement);
+        Assert.Contains("new Point3d(rafter.PlanStart.X", Replacement);
+        Assert.Contains("new Point3d(rafter.PlanEnd.X", Replacement);
         Assert.DoesNotContain("RoofGeneratedTimber", ArrowRenderer);
-        Assert.DoesNotContain("ObjectModified", Workflow + BatchAnnotations);
-        Assert.DoesNotContain("CommandEnded", Workflow + BatchAnnotations);
+        Assert.DoesNotContain("ObjectModified", Workflow + Replacement + BatchAnnotations);
+        Assert.DoesNotContain("CommandEnded", Workflow + Replacement + BatchAnnotations);
         Assert.DoesNotContain("RoofDisplayGroupService", BatchAnnotations);
         Assert.Equal(7, TimberElementDataSchema.CurrentVersion);
         Assert.Equal(2, RoofDefinitionDataSchema.CurrentVersion);

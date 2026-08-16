@@ -1,4 +1,5 @@
 using System.Reflection;
+using AcKrovy.AutoCAD.Settings;
 using AcKrovy.AutoCAD.UI;
 using AcKrovy.Core.Models.Roofs;
 using AcKrovy.Core.Services;
@@ -18,6 +19,18 @@ internal static class RoofLiveResizeService
 {
     private const BindingFlags ComInvoke =
         BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase;
+
+    /// <summary>
+    /// Owners that already received SOURCE SupportedResize / Unsupported in the current
+    /// STRETCH / GRIP_STRETCH command scope. Display rebuild side-effects must not be
+    /// reinterpreted as independent display-only tamper for these owners.
+    /// Cleared on the next CommandWillStart / cancel / fail boundary.
+    /// </summary>
+    private static readonly HashSet<ObjectId> SourceHandledOwnersThisCommand = new();
+
+    public static void BeginStretchCommandScope() => SourceHandledOwnersThisCommand.Clear();
+
+    public static void EndStretchCommandScope() => SourceHandledOwnersThisCommand.Clear();
 
     public static IReadOnlyCollection<ObjectId> Process(
         Document document,
@@ -41,11 +54,21 @@ internal static class RoofLiveResizeService
 
             if (plan.ResizeOwnerIds.Count > 0)
             {
+                foreach (var ownerId in plan.ResizeOwnerIds)
+                {
+                    SourceHandledOwnersThisCommand.Add(ownerId);
+                }
+
                 ApplyResizes(document, plan.ResizeOwnerIds);
             }
 
             if (plan.UnsupportedOwnerIds.Count > 0)
             {
+                foreach (var ownerId in plan.UnsupportedOwnerIds)
+                {
+                    SourceHandledOwnersThisCommand.Add(ownerId);
+                }
+
                 // One CLI diagnostic line remains for host-log visibility.
                 document.Editor.WriteMessage(
                     UiStrings.GetString("Command_Roof_PersistedStale"));
@@ -59,16 +82,38 @@ internal static class RoofLiveResizeService
             }
 
             // Display-only STRETCH / GRIP_STRETCH: source path already handled this owner
-            // when ResizeOwnerIds / UnsupportedOwnerIds contain it (precedence).
-            if (plan.DisplayTamperOwnerIds.Count > 0 &&
+            // when ResizeOwnerIds / UnsupportedOwnerIds contain it (precedence), including
+            // deferred display-rebuild batches of the same command.
+            IReadOnlyCollection<ObjectId> displayTamperOwners = plan.DisplayTamperOwnerIds;
+            if (displayTamperOwners.Count > 0 &&
+                LiveGeometryCommandRules.IsGripStretchCommand(globalCommandName))
+            {
+                // Coherent rigid GROUP transform (true MOVE-like grip) before side-resize
+                // adoption or DisplayTamper repair.
+                displayTamperOwners = TryAcceptRigidGroupTransforms(
+                    document,
+                    displayTamperOwners,
+                    modifiedIds,
+                    globalCommandName);
+            }
+
+            if (displayTamperOwners.Count > 0 &&
+                LiveGeometryCommandRules.IsGripStretchCommand(globalCommandName))
+            {
+                displayTamperOwners = TryAdoptGroupGripResizes(
+                    document,
+                    displayTamperOwners,
+                    globalCommandName);
+            }
+
+            if (displayTamperOwners.Count > 0 &&
                 LiveGeometryCommandRules.IsUndoGroupingSourceCommand(globalCommandName) &&
-                ApplyDisplayTampers(document, plan.DisplayTamperOwnerIds))
+                ApplyDisplayTampers(document, displayTamperOwners, modifiedIds))
             {
                 TransientNotificationService.Show(
                     "Command_Roof_DisplayTamperNotificationTitle",
                     "Command_Roof_DisplayTamperNotificationBody");
             }
-
             return plan.RelatedIds;
         }
         catch (System.Exception ex)
@@ -144,8 +189,11 @@ internal static class RoofLiveResizeService
         var displayTamperOwners = new HashSet<ObjectId>();
         foreach (var ownerId in displayTamperCandidates)
         {
-            // Source lifecycle wins: one outcome per owner per command.
-            if (resizeOwners.Contains(ownerId) || unsupportedOwners.Contains(ownerId))
+            // Source lifecycle wins: one outcome per owner per command, including
+            // deferred display-rebuild batches after SupportedResize/Unsupported.
+            if (resizeOwners.Contains(ownerId) ||
+                unsupportedOwners.Contains(ownerId) ||
+                SourceHandledOwnersThisCommand.Contains(ownerId))
             {
                 continue;
             }
@@ -166,13 +214,186 @@ internal static class RoofLiveResizeService
         using (var transaction = document.Database.TransactionManager.StartTransaction())
         {
             var wrote = false;
-            foreach (var ownerId in ownerIds)
+            try
             {
-                if (!TryApplyResize(document.Database, transaction, ownerId))
+                foreach (var ownerId in ownerIds)
+                {
+                    var result = TryApplyResize(document, transaction, ownerId);
+                    if (result == ResizeApplyResult.HardFailure)
+                    {
+                        document.Editor.WriteMessage(
+                            UiStrings.GetString("Command_RoofRafters_GenerationFailed"));
+                        return;
+                    }
+
+                    if (result == ResizeApplyResult.Applied)
+                    {
+                        wrote = true;
+                    }
+                }
+
+                if (wrote)
+                {
+                    transaction.Commit();
+                }
+            }
+            catch (System.Exception)
+            {
+                document.Editor.WriteMessage(
+                    UiStrings.GetString("Command_RoofRafters_GenerationFailed"));
+            }
+        }
+    }
+
+    private static ResizeApplyResult TryApplyResize(
+        Document document,
+        Transaction transaction,
+        ObjectId ownerId)
+    {
+        var database = document.Database;
+        if (!AutoCadObjectIdAccess.TryGetObject<Polyline>(
+                transaction,
+                ownerId,
+                OpenMode.ForWrite,
+                out var owner,
+                database) ||
+            owner is null)
+        {
+            return ResizeApplyResult.Skipped;
+        }
+
+        var classification = ClassifyOwner(owner);
+        if (classification.Kind != RoofSourceChangeKind.SupportedResize ||
+            classification.Geometry is null)
+        {
+            return ResizeApplyResult.Skipped;
+        }
+
+        var input = RoofPolylineExtractor.Extract(owner);
+        var validation = RoofFootprintValidator.Validate(input);
+        if (!validation.IsValid || validation.Footprint is null)
+        {
+            return ResizeApplyResult.Skipped;
+        }
+
+        var updated = RoofDefinitionPersistence.Create(
+            input,
+            validation.Footprint,
+            classification.Geometry);
+        RoofDefinitionStore.Write(owner, transaction, updated);
+        var edges = SimpleGableRoofWireframe.Create(
+            classification.Geometry,
+            RoofPolylineExtractor.GetSourceElevation(owner));
+        var signature = SimpleGableRoofWireframe.BuildGenerationSignature(edges);
+        if (!RoofDisplayService.Rebuild(
+                database,
+                transaction,
+                owner.ObjectId,
+                owner.Handle.ToString(),
+                edges,
+                signature))
+        {
+            return ResizeApplyResult.HardFailure;
+        }
+
+        var rafterOutcome = RoofGeneratedRafterSetService.TryReplaceForSupportedResize(
+            database,
+            transaction,
+            document.Editor,
+            owner,
+            classification.Geometry,
+            TimberElementDefaultProfileStore.Load(),
+            ElementLayerProfileStore.Load());
+        if (rafterOutcome == RoofGeneratedRafterSetService.ReplacementOutcome.Failed)
+        {
+            return ResizeApplyResult.HardFailure;
+        }
+
+        if (rafterOutcome == RoofGeneratedRafterSetService.ReplacementOutcome.SkippedAmbiguousRecipe)
+        {
+            document.Editor.WriteMessage(
+                UiStrings.GetString("Command_RoofRafters_RecipeAmbiguous"));
+        }
+        else if (rafterOutcome == RoofGeneratedRafterSetService.ReplacementOutcome.SkippedInvalidLayout)
+        {
+            document.Editor.WriteMessage(
+                UiStrings.GetString("Command_RoofRafters_InvalidSpacing"));
+        }
+
+        return ResizeApplyResult.Applied;
+    }
+
+    private static IReadOnlyCollection<ObjectId> TryAcceptRigidGroupTransforms(
+        Document document,
+        IReadOnlyCollection<ObjectId> displayTamperOwnerIds,
+        IReadOnlyList<ObjectId> modifiedIds,
+        string? globalCommandName)
+    {
+        _ = globalCommandName;
+        var remaining = new HashSet<ObjectId>(displayTamperOwnerIds);
+        var accepted = new List<ObjectId>();
+        using (document.LockDocument())
+        using (var transaction = document.Database.TransactionManager.StartTransaction())
+        {
+            // Read-only accept path — no Commit needed; avoid write side-effects.
+            foreach (var ownerId in displayTamperOwnerIds)
+            {
+                if (!RoofGroupGripRigidTransformService.TryAcceptRigidGroupTransform(
+                        document.Database,
+                        transaction,
+                        ownerId,
+                        modifiedIds,
+                        out var rejectionReason,
+                        out var result))
+                {
+                    _ = rejectionReason;
+                    continue;
+                }
+
+                remaining.Remove(ownerId);
+                accepted.Add(ownerId);
+                SourceHandledOwnersThisCommand.Add(ownerId);
+                _ = result;
+            }
+        }
+
+        _ = accepted;
+        return remaining;
+    }
+
+    private static IReadOnlyCollection<ObjectId> TryAdoptGroupGripResizes(
+        Document document,
+        IReadOnlyCollection<ObjectId> displayTamperOwnerIds,
+        string? globalCommandName)
+    {
+        _ = globalCommandName;
+        var remaining = new HashSet<ObjectId>(displayTamperOwnerIds);
+        var adopted = new List<ObjectId>();
+        using (document.LockDocument())
+        using (var transaction = document.Database.TransactionManager.StartTransaction())
+        {
+            var wrote = false;
+            foreach (var ownerId in displayTamperOwnerIds)
+            {
+                if (!RoofGroupGripResizeAdoptionService.TryAdoptSupportedGroupGripResize(
+                        document.Database,
+                        transaction,
+                        ownerId,
+                        out var rejectionReason))
+                {
+                    _ = rejectionReason;
+                    continue;
+                }
+
+                var resizeResult = TryApplyResize(document, transaction, ownerId);
+                if (resizeResult != ResizeApplyResult.Applied)
                 {
                     continue;
                 }
 
+                remaining.Remove(ownerId);
+                adopted.Add(ownerId);
+                SourceHandledOwnersThisCommand.Add(ownerId);
                 wrote = true;
             }
 
@@ -181,12 +402,17 @@ internal static class RoofLiveResizeService
                 transaction.Commit();
             }
         }
+
+        _ = adopted;
+        return remaining;
     }
 
     private static bool ApplyDisplayTampers(
         Document document,
-        IReadOnlyCollection<ObjectId> ownerIds)
+        IReadOnlyCollection<ObjectId> ownerIds,
+        IReadOnlyList<ObjectId> modifiedIds)
     {
+        _ = modifiedIds;
         using (document.LockDocument())
         using (var transaction = document.Database.TransactionManager.StartTransaction())
         {
@@ -208,54 +434,6 @@ internal static class RoofLiveResizeService
 
             return wrote;
         }
-    }
-
-    private static bool TryApplyResize(
-        Database database,
-        Transaction transaction,
-        ObjectId ownerId)
-    {
-        if (!AutoCadObjectIdAccess.TryGetObject<Polyline>(
-                transaction,
-                ownerId,
-                OpenMode.ForWrite,
-                out var owner,
-                database) ||
-            owner is null)
-        {
-            return false;
-        }
-
-        var classification = ClassifyOwner(owner);
-        if (classification.Kind != RoofSourceChangeKind.SupportedResize ||
-            classification.Geometry is null)
-        {
-            return false;
-        }
-
-        var input = RoofPolylineExtractor.Extract(owner);
-        var validation = RoofFootprintValidator.Validate(input);
-        if (!validation.IsValid || validation.Footprint is null)
-        {
-            return false;
-        }
-
-        var updated = RoofDefinitionPersistence.Create(
-            input,
-            validation.Footprint,
-            classification.Geometry);
-        RoofDefinitionStore.Write(owner, transaction, updated);
-        var edges = SimpleGableRoofWireframe.Create(
-            classification.Geometry,
-            RoofPolylineExtractor.GetSourceElevation(owner));
-        var signature = SimpleGableRoofWireframe.BuildGenerationSignature(edges);
-        return RoofDisplayService.Rebuild(
-            database,
-            transaction,
-            owner.ObjectId,
-            owner.Handle.ToString(),
-            edges,
-            signature);
     }
 
     private static bool TryApplyDisplayTamper(
@@ -316,7 +494,10 @@ internal static class RoofLiveResizeService
                 RoofDefinitionRestoreError.StaleFootprint);
         }
 
-        return RoofDefinitionPersistence.Classify(input, validation.Footprint, stored.Data);
+        return RoofDefinitionPersistence.Classify(
+            input,
+            validation.Footprint,
+            stored.Data);
     }
 
     private static bool TryInvokeUndoMark(Document document, string methodName)
@@ -365,4 +546,11 @@ internal static class RoofLiveResizeService
         HashSet<ObjectId> ResizeOwnerIds,
         HashSet<ObjectId> UnsupportedOwnerIds,
         HashSet<ObjectId> DisplayTamperOwnerIds);
+
+    private enum ResizeApplyResult
+    {
+        Skipped = 0,
+        Applied = 1,
+        HardFailure = 2,
+    }
 }

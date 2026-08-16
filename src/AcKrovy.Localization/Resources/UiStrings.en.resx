@@ -586,6 +586,7 @@
   <data name="Command_RoofRafters_ExistingFoundFormat" xml:space="preserve"><value>&#xA;The roof already has {0} automatically generated rafters.</value></data>
   <data name="Command_RoofRafters_ReplacementDeferred" xml:space="preserve"><value>&#xA;Safe replacement of existing automatic rafters is deferred to the next lifecycle step. The drawing remains unchanged.</value></data>
   <data name="Command_RoofRafters_ExistingStale" xml:space="preserve"><value>&#xA;Existing automatic rafters no longer match the current roof geometry.</value></data>
+  <data name="Command_RoofRafters_RecipeAmbiguous" xml:space="preserve"><value>&#xA;Automatic rafters were not regenerated: the original generation recipe is ambiguous. The existing set was left unchanged.</value></data>
   <data name="Command_RoofRafters_CreatedFormat" xml:space="preserve"><value>&#xA;Intelligent rafters created: {0}.</value></data>
   <data name="Command_RoofRafters_InvalidRoof" xml:space="preserve"><value>&#xA;The selected roof has no valid persisted SimpleGable definition.</value></data>
   <data name="Command_RoofRafters_SourceChanged" xml:space="preserve"><value>&#xA;The roof source footprint changed. No rafters were created.</value></data>

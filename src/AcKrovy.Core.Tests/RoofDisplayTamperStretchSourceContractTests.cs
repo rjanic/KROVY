@@ -48,7 +48,7 @@ public sealed class RoofDisplayTamperStretchSourceContractTests
         Assert.Contains("var displayTamperCandidates = new HashSet<ObjectId>();", ResizeService);
         Assert.Contains("var displayTamperOwners = new HashSet<ObjectId>();", ResizeService);
         Assert.Contains("foreach (var ownerId in displayTamperCandidates)", ResizeService);
-        Assert.Contains("ApplyDisplayTampers(document, plan.DisplayTamperOwnerIds)", ResizeService);
+        Assert.Contains("ApplyDisplayTampers(document, displayTamperOwners, modifiedIds)", ResizeService);
         Assert.Equal(1, Count(ResizeService, "ApplyDisplayTampers(document,"));
         Assert.Equal(1, Count(ResizeService, "TryApplyDisplayTamper(document.Database,"));
     }
@@ -93,7 +93,7 @@ public sealed class RoofDisplayTamperStretchSourceContractTests
     {
         var displayBranch = Segment(
             ResizeService,
-            "if (plan.DisplayTamperOwnerIds.Count > 0",
+            "IReadOnlyCollection<ObjectId> displayTamperOwners = plan.DisplayTamperOwnerIds",
             "return plan.RelatedIds;");
         Assert.Contains("IsUndoGroupingSourceCommand(globalCommandName)", displayBranch);
         Assert.Contains("ApplyDisplayTampers(", displayBranch);
@@ -120,8 +120,10 @@ public sealed class RoofDisplayTamperStretchSourceContractTests
             "private static InspectionPlan Inspect(",
             "private static void ApplyResizes");
         Assert.Contains(
-            "if (resizeOwners.Contains(ownerId) || unsupportedOwners.Contains(ownerId))",
+            "if (resizeOwners.Contains(ownerId) ||",
             inspect);
+        Assert.Contains("unsupportedOwners.Contains(ownerId)", inspect);
+        Assert.Contains("SourceHandledOwnersThisCommand.Contains(ownerId)", inspect);
         Assert.Contains("continue;", inspect);
         var process = Segment(
             ResizeService,
@@ -129,17 +131,17 @@ public sealed class RoofDisplayTamperStretchSourceContractTests
             "private static InspectionPlan Inspect(");
         Assert.Contains("if (plan.ResizeOwnerIds.Count > 0)", process);
         Assert.Contains("if (plan.UnsupportedOwnerIds.Count > 0)", process);
-        Assert.Contains("if (plan.DisplayTamperOwnerIds.Count > 0", process);
+        Assert.Contains("displayTamperOwners = plan.DisplayTamperOwnerIds", process);
         // Unsupported notification must not include display-tamper keys.
         var unsupportedBranch = Segment(
             process,
             "if (plan.UnsupportedOwnerIds.Count > 0)",
-            "if (plan.DisplayTamperOwnerIds.Count > 0");
+            "IReadOnlyCollection<ObjectId> displayTamperOwners = plan.DisplayTamperOwnerIds");
         Assert.Contains("Command_Roof_UnsupportedStretchNotificationTitle", unsupportedBranch);
         Assert.DoesNotContain("Command_Roof_DisplayTamperNotificationTitle", unsupportedBranch);
         var displayBranch = Segment(
             process,
-            "if (plan.DisplayTamperOwnerIds.Count > 0",
+            "IReadOnlyCollection<ObjectId> displayTamperOwners = plan.DisplayTamperOwnerIds",
             "return plan.RelatedIds;");
         Assert.DoesNotContain("Command_Roof_UnsupportedStretchNotificationTitle", displayBranch);
         // Exactly one Show per outcome branch; two total in Process for distinct keys.
@@ -166,7 +168,7 @@ public sealed class RoofDisplayTamperStretchSourceContractTests
         Assert.True(AcKrovy.Core.Services.LiveGeometryCommandRules.IsUndoGroupingSourceCommand("GRIP_STRETCH"));
         var displayBranch = Segment(
             ResizeService,
-            "if (plan.DisplayTamperOwnerIds.Count > 0",
+            "IReadOnlyCollection<ObjectId> displayTamperOwners = plan.DisplayTamperOwnerIds",
             "return plan.RelatedIds;");
         Assert.Contains("IsUndoGroupingSourceCommand(globalCommandName)", displayBranch);
         var stretchGrouping = Segment(

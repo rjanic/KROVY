@@ -27,7 +27,7 @@ public sealed class RoofUnsupportedStretchNotificationSourceContractTests
         var unsupportedBranch = Segment(
             ResizeService,
             "if (plan.UnsupportedOwnerIds.Count > 0)",
-            "if (plan.DisplayTamperOwnerIds.Count > 0");
+            "IReadOnlyCollection<ObjectId> displayTamperOwners = plan.DisplayTamperOwnerIds");
         Assert.Contains("Command_Roof_PersistedStale", unsupportedBranch);
         Assert.Contains("IsUndoGroupingSourceCommand(globalCommandName)", unsupportedBranch);
         Assert.Contains("TransientNotificationService.Show(", unsupportedBranch);
@@ -50,11 +50,11 @@ public sealed class RoofUnsupportedStretchNotificationSourceContractTests
         var apply = Segment(
             ResizeService,
             "private static void ApplyResizes",
-            "private static bool TryApplyResize");
+            "private static ResizeApplyResult TryApplyResize");
         var tryApply = Segment(
             ResizeService,
-            "private static bool TryApplyResize",
-            "private static RoofSourceChangeClassification ClassifyOwner");
+            "private static ResizeApplyResult TryApplyResize",
+            "private static bool ApplyDisplayTampers");
         Assert.Contains("RoofSourceChangeKind.SupportedResize", tryApply);
         Assert.DoesNotContain("TransientNotificationService.Show(", apply + tryApply);
         Assert.DoesNotContain(

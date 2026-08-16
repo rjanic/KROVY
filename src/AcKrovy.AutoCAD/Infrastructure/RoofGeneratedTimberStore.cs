@@ -6,12 +6,17 @@ using Autodesk.AutoCAD.DatabaseServices;
 
 namespace AcKrovy.AutoCAD.Infrastructure;
 
-/// <summary>Dedicated secondary XData ownership store for roof-generated timber sources.</summary>
+/// <summary>
+/// Dedicated secondary XData ownership store for roof-generated timber sources.
+/// Owner association uses AutoCAD-remappable XData handle (DXF 1005) as the
+/// clone-safe authority; the ASCII payload owner remains a diagnostic fallback.
+/// </summary>
 internal static class RoofGeneratedTimberStore
 {
     internal const string RegAppName = "DECORAIR_ACADKROVY_ROOF_TIMBER";
     private const int DxfRegAppNameCode = (int)DxfCode.ExtendedDataRegAppName;
     private const int DxfAsciiStringCode = (int)DxfCode.ExtendedDataAsciiString;
+    private const int DxfOwnerHandleCode = (int)DxfCode.ExtendedDataHandle;
     private const int MaxTextChunkLength = 240;
 
     public static RoofGeneratedTimberStoreReadResult Read(Entity entity)
@@ -38,22 +43,51 @@ internal static class RoofGeneratedTimberStore
             }
 
             var payload = new StringBuilder();
+            string? cloneSafeOwnerReference = null;
             for (var index = 1; index < values.Length; index++)
             {
-                if (values[index].TypeCode != DxfAsciiStringCode)
+                if (values[index].TypeCode == DxfAsciiStringCode)
                 {
-                    return RoofGeneratedTimberStoreReadResult.Invalid(
-                        RoofGeneratedTimberDataDecodeError.MalformedPayload);
+                    payload.Append(Convert.ToString(
+                        values[index].Value,
+                        CultureInfo.InvariantCulture));
+                    continue;
                 }
-                payload.Append(Convert.ToString(values[index].Value, CultureInfo.InvariantCulture));
+
+                if (values[index].TypeCode == DxfOwnerHandleCode)
+                {
+                    if (cloneSafeOwnerReference is null &&
+                        TryNormalizeOwnerReference(
+                            Convert.ToString(values[index].Value, CultureInfo.InvariantCulture),
+                            out var remappedOwnerReference))
+                    {
+                        cloneSafeOwnerReference = remappedOwnerReference;
+                    }
+
+                    continue;
+                }
+
+                return RoofGeneratedTimberStoreReadResult.Invalid(
+                    RoofGeneratedTimberDataDecodeError.MalformedPayload);
             }
 
-            return RoofGeneratedTimberDataCodec.TryDecode(
-                       payload.ToString(),
-                       out var data,
-                       out var error) && data is not null
-                ? RoofGeneratedTimberStoreReadResult.Valid(data)
-                : RoofGeneratedTimberStoreReadResult.Invalid(error);
+            var text = payload.ToString();
+            if (RoofGeneratedTimberDataCodec.TryDecode(
+                    text,
+                    out var data,
+                    out var error) && data is not null)
+            {
+                if (cloneSafeOwnerReference is not null)
+                {
+                    data = data with { RoofOwnerReference = cloneSafeOwnerReference };
+                }
+
+                return RoofGeneratedTimberStoreReadResult.Valid(
+                    data,
+                    ownerReferenceFromCloneHandle: cloneSafeOwnerReference is not null);
+            }
+
+            return RoofGeneratedTimberStoreReadResult.Invalid(error);
         }
         catch (Autodesk.AutoCAD.Runtime.Exception)
         {
@@ -76,10 +110,21 @@ internal static class RoofGeneratedTimberStore
                 "Roof-generated timber source must be opened ForWrite.");
         }
 
+        if (!TryNormalizeOwnerReference(data.RoofOwnerReference, out var ownerReference))
+        {
+            throw new ArgumentException(
+                "Roof-generated timber owner reference must be a positive hexadecimal handle.",
+                nameof(data));
+        }
+
+        // Persist the normalized handle in both the remappable soft pointer and the
+        // ASCII payload so legacy readers and clone-safe reads stay aligned on write.
+        data = data with { RoofOwnerReference = ownerReference };
         var payload = RoofGeneratedTimberDataCodec.Encode(data);
         EnsureRegAppRegistered(entity.Database, transaction);
         var retained = ReadForeignXData(entity);
         retained.Add(new TypedValue(DxfRegAppNameCode, RegAppName));
+        retained.Add(new TypedValue(DxfOwnerHandleCode, ownerReference));
         retained.AddRange(SplitIntoChunks(payload)
             .Select(chunk => new TypedValue(DxfAsciiStringCode, chunk)));
         using var buffer = new ResultBuffer(retained.ToArray());
@@ -93,7 +138,7 @@ internal static class RoofGeneratedTimberStore
     {
         ArgumentNullException.ThrowIfNull(database);
         ArgumentNullException.ThrowIfNull(transaction);
-        if (string.IsNullOrWhiteSpace(ownerReference))
+        if (!TryNormalizeOwnerReference(ownerReference, out var normalizedOwner))
         {
             return [];
         }
@@ -118,7 +163,7 @@ internal static class RoofGeneratedTimberStore
             if (stored.Data is not null &&
                 string.Equals(
                     stored.Data.RoofOwnerReference,
-                    ownerReference,
+                    normalizedOwner,
                     StringComparison.OrdinalIgnoreCase))
             {
                 matches.Add(id);
@@ -175,18 +220,39 @@ internal static class RoofGeneratedTimberStore
             yield return value.Substring(index, Math.Min(MaxTextChunkLength, value.Length - index));
         }
     }
+
+    private static bool TryNormalizeOwnerReference(
+        string? value,
+        out string normalized)
+    {
+        normalized = string.Empty;
+        if (!long.TryParse(
+                value,
+                NumberStyles.AllowHexSpecifier,
+                CultureInfo.InvariantCulture,
+                out var handleValue) || handleValue <= 0)
+        {
+            return false;
+        }
+
+        normalized = handleValue.ToString("X", CultureInfo.InvariantCulture);
+        return true;
+    }
 }
 
 internal sealed record RoofGeneratedTimberStoreReadResult(
     bool Exists,
     RoofGeneratedTimberData? Data,
-    RoofGeneratedTimberDataDecodeError Error)
+    RoofGeneratedTimberDataDecodeError Error,
+    bool OwnerReferenceFromCloneHandle = false)
 {
     public static RoofGeneratedTimberStoreReadResult Missing { get; } =
         new(false, null, RoofGeneratedTimberDataDecodeError.None);
 
-    public static RoofGeneratedTimberStoreReadResult Valid(RoofGeneratedTimberData data) =>
-        new(true, data, RoofGeneratedTimberDataDecodeError.None);
+    public static RoofGeneratedTimberStoreReadResult Valid(
+        RoofGeneratedTimberData data,
+        bool ownerReferenceFromCloneHandle = false) =>
+        new(true, data, RoofGeneratedTimberDataDecodeError.None, ownerReferenceFromCloneHandle);
 
     public static RoofGeneratedTimberStoreReadResult Invalid(
         RoofGeneratedTimberDataDecodeError error) =>

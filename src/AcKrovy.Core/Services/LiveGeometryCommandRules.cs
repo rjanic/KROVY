@@ -45,6 +45,16 @@ public static class LiveGeometryCommandRules
     }
 
     /// <summary>
+    /// Native grip stretch only (not classic STRETCH). Used for GROUP grip
+    /// semantic adoption while the source Polyline remains RigidEquivalent.
+    /// </summary>
+    public static bool IsGripStretchCommand(string? globalCommandName)
+    {
+        var normalized = NormalizeCommandName(globalCommandName);
+        return normalized.Equals("GRIP_STRETCH", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// Native source edits whose CommandEnded plugin writes must share one undo
     /// group with the host command. Exact match after
     /// <see cref="NormalizeCommandName"/> only.
@@ -55,6 +65,24 @@ public static class LiveGeometryCommandRules
         return normalized.Equals("STRETCH", StringComparison.OrdinalIgnoreCase) ||
                normalized.Equals("GRIP_STRETCH", StringComparison.OrdinalIgnoreCase);
     }
+
+    /// <summary>
+    /// Same-DWG native COPY whose CommandEnded generated-rafter ownership rebind
+    /// must share one undo group with the host COPY. Clipboard paste is out of scope.
+    /// </summary>
+    public static bool IsSameDwgCopyOwnershipCommand(string? globalCommandName)
+    {
+        var normalized = NormalizeCommandName(globalCommandName);
+        return normalized.Equals("COPY", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Commands whose CommandEnded plugin writes join the native command undo group
+    /// through Document StartUndoMark / EndUndoMark.
+    /// </summary>
+    public static bool RequiresGroupedUndoMark(string? globalCommandName) =>
+        IsUndoGroupingSourceCommand(globalCommandName) ||
+        IsSameDwgCopyOwnershipCommand(globalCommandName);
 
     public static bool IsCopySourcePreservingCommand(string? globalCommandName)
     {

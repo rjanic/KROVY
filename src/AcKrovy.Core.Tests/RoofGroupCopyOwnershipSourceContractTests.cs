@@ -77,16 +77,19 @@ public sealed class RoofGroupCopyOwnershipSourceContractTests
     }
 
     [Fact]
-    public void CopiedRoofStartsWithoutRaftersAndCanCreateAnIndependentSet()
+    public void GeneratedRafterOwnerUsesSameCloneTranslatedSoftPointerAsDisplay()
     {
+        Assert.Contains("DxfCode.ExtendedDataHandle", GeneratedStore);
+        Assert.Contains("new TypedValue(DxfOwnerHandleCode, ownerReference)", GeneratedStore);
+        Assert.Contains("cloneSafeOwnerReference", GeneratedStore);
+        Assert.Contains(
+            "data = data with { RoofOwnerReference = cloneSafeOwnerReference }",
+            GeneratedStore);
         Assert.Contains("var ownerReference = owner.Handle.ToString()", RafterWorkflow);
         Assert.Contains("RoofGeneratedTimberStore.FindByOwner(", RafterWorkflow);
-        Assert.Contains("generatedIds.Count", RafterWorkflow);
-        Assert.Contains("expectedOwnerReference", RafterWorkflow);
-        Assert.Contains("RoofGeneratedTimberStore.Write(", RafterWorkflow);
-        Assert.DoesNotContain("DxfCode.ExtendedDataHandle", GeneratedStore);
+        Assert.Contains("RoofGeneratedRafterSetService.Materialize(", RafterWorkflow);
         Assert.DoesNotContain("RoofDisplayGroupService", RafterWorkflow + GeneratedStore);
-        Assert.DoesNotContain(".Erase(", RafterWorkflow + GeneratedStore);
+        Assert.DoesNotContain(".Erase(", RafterWorkflow);
     }
 
     [Fact]
