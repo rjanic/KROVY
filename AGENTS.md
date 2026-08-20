@@ -12,6 +12,8 @@ Use this source-of-truth order:
 
 Keep `AcKrovy.Core`, `AcKrovy.Cad.Abstractions`, `AcKrovy.Localization`, and `AcKrovy.Infrastructure` free of Autodesk, BricsCAD, ZWCAD, ODA, and Teigha dependencies.
 
+Close AutoCAD before running any build that may load AutoCAD assemblies. Do not build against an active AutoCAD process.
+
 Commit and push only after all required verification succeeds. Never create a release tag without an explicit user request.
 
 Before prompts that ask Codex to perform substantial work, give the user an explicit model recommendation.
@@ -37,6 +39,7 @@ Before starting a repeated workflow, use the matching skill:
 - Localization Check: [.ai/skills/localization-check.md](.ai/skills/localization-check.md)
 - Git Diff Summary: [.ai/skills/git-diff-summary.md](.ai/skills/git-diff-summary.md)
 - HOST Regression Test: [.ai/skills/host-regression-test.md](.ai/skills/host-regression-test.md)
+- Roof Timber Lifecycle: [.ai/skills/roof-timber-lifecycle.md](.ai/skills/roof-timber-lifecycle.md)
 
 Hard rules:
 

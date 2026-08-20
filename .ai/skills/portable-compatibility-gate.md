@@ -82,8 +82,8 @@ If the repository has specific gate scripts, use those instead of inventing new 
 Examples may include:
 
 ```bash
-pwsh ./scripts/portable-compatibility-gate.ps1
-pwsh ./scripts/full-gate.ps1
+pwsh ./scripts/compatibility-gate.ps1 -Portable
+pwsh ./scripts/compatibility-gate.ps1 -Full
 ```
 
 Only use commands that actually exist in the repository.

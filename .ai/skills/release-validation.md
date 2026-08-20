@@ -57,8 +57,8 @@ dotnet test
 Use repository-specific scripts if they exist:
 
 ```bash
-pwsh ./scripts/portable-compatibility-gate.ps1
-pwsh ./scripts/full-gate.ps1
+pwsh ./scripts/compatibility-gate.ps1 -Portable
+pwsh ./scripts/compatibility-gate.ps1 -Full
 ```
 
 Only run commands that are appropriate for the current environment.
