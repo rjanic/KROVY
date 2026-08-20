@@ -46,6 +46,7 @@ Hard rules:
 - Do not commit or push unless explicitly approved.
 - Do not modify unrelated files.
 - Do not claim AutoCAD HOST behavior is validated unless it was actually tested in AutoCAD.
+- AutoCAD HOST behavior is authoritative for command/event lifecycle. Do not infer ObjectAppended/ObjectErased/CommandEnded ordering solely from source-contract tests or code structure. For lifecycle-sensitive CAD fixes, prove the real HOST event/control-flow sequence before designing persistence, undo/redo, ownership, or recovery behavior.
 - Keep CAD-neutral projects free from Autodesk, BricsCAD, ZWCAD, ODA, and Teigha dependencies.
 - Prefer existing repository scripts and tests.
 - Always report changed files, commands run, test results, PASS/FAIL verdict, and remaining risks.

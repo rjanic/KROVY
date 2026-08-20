@@ -1,5 +1,6 @@
 using AcKrovy.AutoCAD.Settings;
 using AcKrovy.Core.Services;
+using AcKrovy.Core.Services.Roofs;
 using AcKrovy.Localization;
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
@@ -92,6 +93,7 @@ internal static class LiveGeometrySynchronizationService
         private bool _refreshAllTimberAnnotationsAfterCommand;
         private bool _preserveCopySourcesForCurrentCommand;
         private bool _stretchUndoMarkOpen;
+        private bool _groupSelectabilityReconciled;
         private bool _isDisposed;
         private string? _currentGlobalCommandName;
 
@@ -105,6 +107,33 @@ internal static class LiveGeometrySynchronizationService
             _document.CommandEnded += CommandEnded;
             _document.CommandCancelled += CommandCancelled;
             _document.CommandFailed += CommandFailed;
+            TryReconcileRoofGroupSelectabilityOnce();
+        }
+
+        private void TryReconcileRoofGroupSelectabilityOnce()
+        {
+            if (_groupSelectabilityReconciled)
+            {
+                return;
+            }
+
+            _groupSelectabilityReconciled = true;
+            try
+            {
+                using (_document.LockDocument())
+                using (var transaction = _document.Database.TransactionManager.StartTransaction())
+                {
+                    if (RoofDisplayGroupSelectabilityService.ReconcileAllRoofOwners(
+                            _document.Database,
+                            transaction))
+                    {
+                        transaction.Commit();
+                    }
+                }
+            }
+            catch (Autodesk.AutoCAD.Runtime.Exception)
+            {
+            }
         }
 
         public void Dispose()
@@ -136,6 +165,7 @@ internal static class LiveGeometrySynchronizationService
             RoofLiveResizeService.EndStretchCommandScope();
             RoofGroupGripGeometrySnapshotService.EndCommandScope("dispose");
             RoofGroupGripPreCommandBaselineService.Clear("dispose");
+            RoofUnsupportedStretchRecoverySnapshotService.Clear("dispose");
 #if DEBUG
             AutoCadFramedBlockContentStretchNormalizeLifecycleService.RemoveSession(_document);
             AutoCadFramedBlockContentGripUndoProofService.RemoveSession(_document);
@@ -272,6 +302,13 @@ internal static class LiveGeometrySynchronizationService
             // ObjectModified can mutate DB geometry. Do not clear implied selection.
             if (!isUndoRedo &&
                 !_ignoreCurrentCommand &&
+                LiveGeometryCommandRules.IsSameDwgCopyOwnershipCommand(e.GlobalCommandName))
+            {
+                RoofGeneratedCopyPreCommandSnapshotService.CaptureForCopy(_document);
+            }
+
+            if (!isUndoRedo &&
+                !_ignoreCurrentCommand &&
                 LiveGeometryCommandRules.IsGripStretchCommand(e.GlobalCommandName))
             {
                 RoofGroupGripPreCommandBaselineService.CaptureFromImpliedSelection(
@@ -281,6 +318,21 @@ internal static class LiveGeometrySynchronizationService
             else
             {
                 RoofGroupGripPreCommandBaselineService.Clear("non-grip-command");
+            }
+
+            // Unsupported STRETCH Auto-Recovery: capture exact source WCS vertices for
+            // every currently valid SimpleGable roof before native mutation.
+            if (!isUndoRedo &&
+                !_ignoreCurrentCommand &&
+                RoofGeneratedMemberEditCommandRules.IsAssemblySnapshotCommand(e.GlobalCommandName))
+            {
+                RoofUnsupportedStretchRecoverySnapshotService.CaptureForCommand(
+                    _document,
+                    e.GlobalCommandName);
+            }
+            else
+            {
+                RoofUnsupportedStretchRecoverySnapshotService.Clear("non-recovery-command", e.GlobalCommandName);
             }
 
             if (!isUndoRedo &&
@@ -355,6 +407,7 @@ internal static class LiveGeometrySynchronizationService
                 RoofLiveResizeService.EndStretchCommandScope();
                 RoofGroupGripGeometrySnapshotService.EndCommandScope("CommandEnded");
                 RoofGroupGripPreCommandBaselineService.Clear("CommandEnded");
+                RoofUnsupportedStretchRecoverySnapshotService.Clear("CommandEnded", e.GlobalCommandName);
                 _currentGlobalCommandName = null;
             }
         }
@@ -370,6 +423,7 @@ internal static class LiveGeometrySynchronizationService
             RoofLiveResizeService.EndStretchCommandScope();
             RoofGroupGripGeometrySnapshotService.EndCommandScope("CommandCancelled");
             RoofGroupGripPreCommandBaselineService.Clear("CommandCancelled");
+            RoofUnsupportedStretchRecoverySnapshotService.Clear("CommandCancelled", e.GlobalCommandName);
             _currentGlobalCommandName = null;
 #if DEBUG
             AutoCadRedoDiagService.OnCommandCancelledOrFailed(
@@ -393,6 +447,7 @@ internal static class LiveGeometrySynchronizationService
             RoofLiveResizeService.EndStretchCommandScope();
             RoofGroupGripGeometrySnapshotService.EndCommandScope("CommandFailed");
             RoofGroupGripPreCommandBaselineService.Clear("CommandFailed");
+            RoofUnsupportedStretchRecoverySnapshotService.Clear("CommandFailed", e.GlobalCommandName);
             _currentGlobalCommandName = null;
 #if DEBUG
             AutoCadRedoDiagService.OnCommandCancelledOrFailed(
@@ -446,6 +501,19 @@ internal static class LiveGeometrySynchronizationService
             var commandCompletionWatch = System.Diagnostics.Stopwatch.StartNew();
 #endif
             var ids = _modifiedIds.Drain();
+            var appendedTimberIds = _appendedTimberIds.Drain();
+            // MIRROR Yes: AutoCAD modifies the selected Generated member IN PLACE (no
+            // ObjectAppended clone, no ObjectErased source). Preserve the raw modified
+            // timber ids BEFORE RoofLiveResizeService/roof-related filtering drops them,
+            // so the MIRROR service can convert the same entity. Appended clones (MIRROR
+            // No) are excluded here — they are handled by the clone branch and must not
+            // be double-processed as in-place conversions.
+            IReadOnlyCollection<ObjectId>? mirrorModifiedTimberIds = null;
+            if (RoofGeneratedMemberEditCommandRules.IsMirrorCommand(globalCommandName))
+            {
+                var appendedSet = new HashSet<ObjectId>(appendedTimberIds);
+                mirrorModifiedTimberIds = ids.Where(id => !appendedSet.Contains(id)).ToArray();
+            }
             // Suppress ObjectModified while SOURCE resize rebuilds display / regenerates
             // rafters. Otherwise GRIP_STRETCH display rebuild events re-queue and a later
             // pass misclassifies them as independent display-only tamper.
@@ -459,14 +527,14 @@ internal static class LiveGeometrySynchronizationService
                 roofRelatedIds = RoofLiveResizeService.Process(
                     _document,
                     globalCommandName,
-                    ids);
+                    ids,
+                    appendedTimberIds);
             }
             if (roofRelatedIds.Count > 0)
             {
                 ids = ids.Where(id => !roofRelatedIds.Contains(id)).ToArray();
             }
 
-            var appendedTimberIds = _appendedTimberIds.Drain();
             var modifiedFramedLabelIds = _modifiedFramedLabelIds.Drain();
             var appendedLabelIds = _appendedLabelIds.Drain();
             var appendedSlopeArrowIds = _appendedSlopeArrowIds.Drain();
@@ -515,9 +583,52 @@ internal static class LiveGeometrySynchronizationService
                 // Same-DWG COPY: AutoCAD does not remap generated-rafter 1005.
                 // Geometry association rebinds copied members after timber copy init.
                 // Runs only for native COPY; never during U/UNDO/REDO/MREDO.
+                // NOTE: AttachedManual COPY-of-COPY clones are re-initialized BEFORE this
+                // so a Generated→AttachedManual promotion here is not re-classified as an
+                // already-manual clone.
+                RoofAttachedManualCopyCloneReinitializeService.Process(
+                    _document,
+                    globalCommandName,
+                    appendedTimberIds);
                 RoofGeneratedRafterCopyOwnershipRehydrationService.Process(
                     _document,
-                    globalCommandName);
+                    globalCommandName,
+                    appendedTimberIds);
+                // MIRROR: a mirrored Generated rafter must not become a second live
+                // Generated member. Detach the clone and promote it to AttachedManual
+                // so the (owner, GeneratedMemberKey) invariant stays unique. MIRROR Yes
+                // additionally suppresses the erased source's Generated slot.
+                // Union of annotation entities APPENDED by this command (main labels +
+                // slope arrows + slope angle text). Passed to the MIRROR service so it can
+                // erase ONLY the annotation clones native MIRROR appended for the mirrored
+                // child — never a pre-existing source annotation (those are not in the
+                // appended set). Deterministic command-lifecycle identity, not geometry.
+                var appendedAnnotationIds = appendedLabelIds
+                    .Concat(appendedSlopeArrowIds)
+                    .Concat(appendedSlopeAngleTextIds)
+                    .Distinct()
+                    .ToArray();
+                RoofMirrorCloneDetachService.Process(
+                    _document,
+                    globalCommandName,
+                    appendedTimberIds,
+                    erasedSourceHandles,
+                    mirrorModifiedTimberIds ?? Array.Empty<ObjectId>(),
+                    appendedAnnotationIds);
+                if (LiveGeometryCommandRules.IsSameDwgCopyOwnershipCommand(globalCommandName))
+                {
+                    RoofGeneratedCopyPreCommandSnapshotService.Clear();
+                    using (_document.LockDocument())
+                    using (var transaction = _document.Database.TransactionManager.StartTransaction())
+                    {
+                        if (RoofUnlockIndicatorService.RebuildUnlockedOwners(
+                                _document.Database,
+                                transaction))
+                        {
+                            transaction.Commit();
+                        }
+                    }
+                }
 #if DEBUG
                 TraceLiveGeometryTiming(
                     globalCommandName,

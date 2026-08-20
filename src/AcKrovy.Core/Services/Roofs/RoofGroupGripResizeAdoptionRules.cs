@@ -28,7 +28,9 @@ public static class RoofGroupGripResizeAdoptionRules
         }
 
         if (definition is null ||
-            definition.SchemaVersion != RoofDefinitionDataSchema.CurrentVersion ||
+            definition.SchemaVersion is not (
+                RoofDefinitionDataSchema.TopologyVersion or
+                RoofDefinitionDataSchema.CurrentVersion) ||
             definition.RigidFootprint is null ||
             definition.RidgeEdgeFamily is not (
                 RoofRidgeEdgeFamily.SourceEdge01 or RoofRidgeEdgeFamily.SourceEdge12))

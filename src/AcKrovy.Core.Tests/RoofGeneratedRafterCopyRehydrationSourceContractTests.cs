@@ -35,7 +35,12 @@ public sealed class RoofGeneratedRafterCopyRehydrationSourceContractTests
         Assert.Contains("RoofGeneratedTimberStore.Write(", Rehydration);
         Assert.Contains("RoofOwnerReference = ownerReference", Rehydration);
         Assert.Contains("LayoutSignature = layoutSignature", Rehydration);
-        Assert.DoesNotContain("entity.Erase()", Rehydration);
+        var rewrite = Member(
+            Rehydration,
+            "private static bool TryRewriteMember",
+            "private static bool TryProcessCopiedClone");
+        Assert.DoesNotContain("entity.Erase()", rewrite);
+        Assert.Contains("TryEraseLockedCopyClone", Rehydration);
         Assert.DoesNotContain("ElementLabelService", Rehydration);
         Assert.DoesNotContain("SlopeAnnotationService", Rehydration);
         Assert.DoesNotContain("TimberSourceLineCreationService", Rehydration);
@@ -71,7 +76,7 @@ public sealed class RoofGeneratedRafterCopyRehydrationSourceContractTests
         Assert.DoesNotContain("DatabaseReactor", Rehydration);
         Assert.DoesNotContain("ObjectOverrule", Rehydration);
         Assert.Equal(1, RoofGeneratedTimberDataSchema.CurrentVersion);
-        Assert.Equal(2, RoofDefinitionDataSchema.CurrentVersion);
+        Assert.Equal(3, RoofDefinitionDataSchema.CurrentVersion);
         Assert.Equal(1, RoofDisplayDataSchema.CurrentVersion);
         Assert.Equal(7, TimberElementDataSchema.CurrentVersion);
         Assert.Equal(1, TimberDrawingSettings.DrawingSettingsSchemaVersion);

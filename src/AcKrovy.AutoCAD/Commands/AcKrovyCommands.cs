@@ -6,7 +6,9 @@ using AcKrovy.AutoCAD.Settings;
 using AcKrovy.AutoCAD.UI;
 using AcKrovy.Cad.Abstractions.Layers;
 using AcKrovy.Core.Models;
+using AcKrovy.Core.Models.Roofs;
 using AcKrovy.Core.Services;
+using AcKrovy.Core.Services.Roofs;
 using AcKrovy.Localization;
 using AcKrovy.Infrastructure.Diagnostics;
 using AcKrovy.Infrastructure.IO;
@@ -366,6 +368,24 @@ public sealed class AcKrovyCommands
         CommandExecutionBoundary.Execute(
             AcKrovyCommandNames.RoofRafters,
             () => RoofRafterCommandWorkflow.Run(ActiveDocument()));
+
+    [CommandMethod(AcKrovyCommandNames.RoofUnlock, CommandFlags.Modal | CommandFlags.Redraw)]
+    public void RoofUnlock() =>
+        CommandExecutionBoundary.Execute(
+            AcKrovyCommandNames.RoofUnlock,
+            () => RoofEditStateCommandWorkflow.Unlock(ActiveDocument()));
+
+    [CommandMethod(AcKrovyCommandNames.RoofLock, CommandFlags.Modal | CommandFlags.Redraw)]
+    public void RoofLock() =>
+        CommandExecutionBoundary.Execute(
+            AcKrovyCommandNames.RoofLock,
+            () => RoofEditStateCommandWorkflow.Lock(ActiveDocument()));
+
+    [CommandMethod(AcKrovyCommandNames.RoofResetEdits, CommandFlags.Modal | CommandFlags.Redraw)]
+    public void RoofResetEdits() =>
+        CommandExecutionBoundary.Execute(
+            AcKrovyCommandNames.RoofResetEdits,
+            () => RoofEditStateCommandWorkflow.ResetEdits(ActiveDocument()));
 
     [CommandMethod(AcKrovyCommandNames.Label, CommandFlags.Modal)]
     [CommandMethod(AcKrovyCommandNames.Labels, CommandFlags.Modal)]
@@ -852,13 +872,35 @@ public sealed class AcKrovyCommands
 
         using var transaction = document.Database.TransactionManager.StartTransaction();
         var metadataStore = new AutoCadTimberElementMetadataStore(transaction);
-        if (transaction.GetObject(result.ObjectId, OpenMode.ForRead) is not Entity entity ||
-            !AutoCadEntityReader.TryReadTimberElement(entity, metadataStore, out var snapshot) ||
-            snapshot is null)
+        if (transaction.GetObject(result.ObjectId, OpenMode.ForRead) is not Entity entity)
         {
             editor.WriteMessage(UiStrings.CommandInspectNoData);
             return;
         }
+
+        if (AutoCadEntityReader.TryReadTimberElement(entity, metadataStore, out var snapshot) &&
+            snapshot is not null)
+        {
+            ShowTimberInspect(document, transaction, editor, entity, snapshot, metadataStore);
+            return;
+        }
+
+        if (TryShowRoofInspect(document, transaction, editor, entity))
+        {
+            return;
+        }
+
+        editor.WriteMessage(UiStrings.CommandInspectNoData);
+    }
+
+    private static void ShowTimberInspect(
+        Document document,
+        Transaction transaction,
+        Editor editor,
+        Entity entity,
+        TimberElementSnapshot snapshot,
+        AutoCadTimberElementMetadataStore metadataStore)
+    {
 
         var data = snapshot.Data;
         var uiCulture = AppLanguageService.GetCultureInfo(AppLanguageService.CurrentLanguageCode);
@@ -866,10 +908,6 @@ public sealed class AcKrovyCommands
             data,
             uiCulture);
         var defaultProfile = TimberElementDefaultProfileStore.Load();
-        var annotationScaleService = AutoCadAnnotationScaleService.Create(
-            document.Database,
-            transaction,
-            defaultProfile);
         var roundingStepMm = defaultProfile.GetCuttingLengthRoundingStepMm();
         var measurement = TimberElementMeasurer.Measure(snapshot, roundingStepMm);
         var currentDefaultAllowance = defaultProfile.GetCuttingAllowanceMm(data.ElementType);
@@ -931,9 +969,180 @@ public sealed class AcKrovyCommands
             rows.Add(new InspectInfoRow(UiStrings.DialogInspectManualLength, $"{data.ManualLengthMm.Value:0} mm"));
         }
 
+        AppendGeneratedMemberInspectRows(document.Database, transaction, entity, rows, uiCulture);
+        AppendAttachedManualInspectRows(entity, rows);
+        _ = metadataStore;
+
         transaction.Commit();
         editor.WriteMessage(message);
         AcApp.ShowModalWindow(new InspectInfoWindow(rows));
+    }
+
+    private static bool TryShowRoofInspect(
+        Document document,
+        Transaction transaction,
+        Editor editor,
+        Entity entity)
+    {
+        var resolution = RoofOwnerSelectionResolver.Resolve(
+            document.Database,
+            transaction,
+            entity.ObjectId);
+        if (!resolution.IsResolved ||
+            !AutoCadObjectIdAccess.TryGetObject<Polyline>(
+                transaction,
+                resolution.OwnerId,
+                OpenMode.ForRead,
+                out var owner,
+                document.Database) ||
+            owner is null)
+        {
+            return false;
+        }
+
+        var stored = RoofDefinitionStore.Read(owner);
+        if (stored.Data is null)
+        {
+            return false;
+        }
+
+        var uiCulture = AppLanguageService.GetCultureInfo(AppLanguageService.CurrentLanguageCode);
+        var overrides = new RoofManualOverrideSet(stored.Data.Overrides);
+        var rows = new List<InspectInfoRow>
+        {
+            new(
+                UiStrings.GetString("Dialog_Inspect_RoofEditState", uiCulture),
+                UiStrings.GetString(
+                    stored.Data.EditState == RoofEditState.Unlocked
+                        ? "Dialog_Inspect_RoofEditStateUnlocked"
+                        : "Dialog_Inspect_RoofEditStateLocked",
+                    uiCulture)),
+            new(
+                UiStrings.GetString("Dialog_Inspect_RoofManualOverrideCount", uiCulture),
+                overrides.GeometryOverrideCount.ToString(uiCulture)),
+            new(
+                UiStrings.GetString("Dialog_Inspect_RoofSuppressedCount", uiCulture),
+                overrides.SuppressedCount.ToString(uiCulture)),
+            new(UiStrings.DialogInspectCadHandle, owner.Handle.ToString()),
+        };
+        transaction.Commit();
+        editor.WriteMessage(
+            UiStrings.GetString(
+                stored.Data.EditState == RoofEditState.Unlocked
+                    ? "Command_RoofUnlock_Unlocked"
+                    : "Command_RoofLock_Locked",
+                uiCulture));
+        AcApp.ShowModalWindow(new InspectInfoWindow(rows));
+        return true;
+    }
+
+    private static void AppendAttachedManualInspectRows(Entity entity, List<InspectInfoRow> rows)
+    {
+        var attached = RoofAttachedManualTimberStore.Read(entity);
+        if (attached.Data is null)
+        {
+            return;
+        }
+
+        rows.Add(new InspectInfoRow("Roof role", "AttachedManual"));
+        rows.Add(new InspectInfoRow("Roof owner", attached.Data.RoofOwnerReference));
+        if (attached.Data.AnchorGeneratedMemberKey is { } anchorKey)
+        {
+            rows.Add(new InspectInfoRow(
+                "Anchor",
+                RoofAttachedManualRelativeGeometryRules.FormatAnchorKey(anchorKey)));
+        }
+    }
+
+    private static void AppendGeneratedMemberInspectRows(
+        Database database,
+        Transaction transaction,
+        Entity entity,
+        List<InspectInfoRow> rows,
+        System.Globalization.CultureInfo uiCulture)
+    {
+        var generated = RoofGeneratedTimberStore.Read(entity);
+        if (generated.Data is null)
+        {
+            return;
+        }
+
+        rows.Add(new InspectInfoRow(
+            UiStrings.GetString("Dialog_Inspect_GeneratedByRoof", uiCulture),
+            UiStrings.GetString("Message_Yes", uiCulture)));
+        if (!RoofOwnerSelectionResolver.TryResolveGeneratedOrAnnotationOwner(
+                database,
+                transaction,
+                entity,
+                out var ownerId) ||
+            !AutoCadObjectIdAccess.TryGetObject<Polyline>(
+                transaction,
+                ownerId,
+                OpenMode.ForRead,
+                out var owner,
+                database) ||
+            owner is null)
+        {
+            rows.Add(new InspectInfoRow(
+                UiStrings.GetString("Dialog_Inspect_ManualOverride", uiCulture),
+                UiStrings.GetString("Message_No", uiCulture)));
+            return;
+        }
+
+        var stored = RoofDefinitionStore.Read(owner);
+        var key = RoofGeneratedMemberKey.From(generated.Data);
+        var set = new RoofManualOverrideSet(stored.Data?.Overrides);
+        var hasOverride = set.TryGet(key, out var overrideData) &&
+                          (overrideData.HasGeometryOverride || overrideData.Suppressed);
+        rows.Add(new InspectInfoRow(
+            UiStrings.GetString("Dialog_Inspect_RoofEditState", uiCulture),
+            UiStrings.GetString(
+                stored.Data?.EditState == RoofEditState.Unlocked
+                    ? "Dialog_Inspect_RoofEditStateUnlocked"
+                    : "Dialog_Inspect_RoofEditStateLocked",
+                uiCulture)));
+        rows.Add(new InspectInfoRow(
+            UiStrings.GetString("Dialog_Inspect_ManualOverride", uiCulture),
+            UiStrings.GetString(hasOverride ? "Message_Yes" : "Message_No", uiCulture)));
+        if (!hasOverride)
+        {
+            return;
+        }
+
+        if (Math.Abs(overrideData.AlongMm) > 0.000001d)
+        {
+            rows.Add(new InspectInfoRow(
+                UiStrings.GetString("Dialog_Inspect_OverrideAlong", uiCulture),
+                $"{overrideData.AlongMm:0.###} mm"));
+        }
+
+        if (Math.Abs(overrideData.LateralMm) > 0.000001d)
+        {
+            rows.Add(new InspectInfoRow(
+                UiStrings.GetString("Dialog_Inspect_OverrideLateral", uiCulture),
+                $"{overrideData.LateralMm:0.###} mm"));
+        }
+
+        if (Math.Abs(overrideData.RotationRadians) > 0.000001d)
+        {
+            rows.Add(new InspectInfoRow(
+                UiStrings.GetString("Dialog_Inspect_OverrideRotation", uiCulture),
+                $"{overrideData.RotationRadians * 180d / Math.PI:0.###}°"));
+        }
+
+        if (Math.Abs(overrideData.StartOffsetMm) > 0.000001d)
+        {
+            rows.Add(new InspectInfoRow(
+                UiStrings.GetString("Dialog_Inspect_OverrideStart", uiCulture),
+                $"{overrideData.StartOffsetMm:0.###} mm"));
+        }
+
+        if (Math.Abs(overrideData.EndOffsetMm) > 0.000001d)
+        {
+            rows.Add(new InspectInfoRow(
+                UiStrings.GetString("Dialog_Inspect_OverrideEnd", uiCulture),
+                $"{overrideData.EndOffsetMm:0.###} mm"));
+        }
     }
 
     [CommandMethod(AcKrovyCommandNames.Report, CommandFlags.Modal | CommandFlags.UsePickSet)]

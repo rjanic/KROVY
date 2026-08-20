@@ -28,20 +28,24 @@ public sealed class RoofUnsupportedStretchNotificationSourceContractTests
             ResizeService,
             "if (plan.UnsupportedOwnerIds.Count > 0)",
             "IReadOnlyCollection<ObjectId> displayTamperOwners = plan.DisplayTamperOwnerIds");
-        Assert.Contains("Command_Roof_PersistedStale", unsupportedBranch);
         Assert.Contains("IsUndoGroupingSourceCommand(globalCommandName)", unsupportedBranch);
+        Assert.Contains("TryRecoverUnsupportedOwners", unsupportedBranch);
         Assert.Contains("TransientNotificationService.Show(", unsupportedBranch);
+        Assert.Contains("Command_Roof_UnsupportedStretchRecoveredNotificationTitle", unsupportedBranch);
         Assert.Contains("Command_Roof_UnsupportedStretchNotificationTitle", unsupportedBranch);
         Assert.Contains("Command_Roof_UnsupportedStretchNotificationBody", unsupportedBranch);
+        Assert.Contains("Command_Roof_PersistedStale", unsupportedBranch);
         Assert.DoesNotContain("Command_Roof_DisplayTamperNotificationTitle", unsupportedBranch);
-        Assert.Equal(1, Count(unsupportedBranch, "TransientNotificationService.Show("));
-        Assert.Equal(1, Count(unsupportedBranch, "document.Editor.WriteMessage("));
+        Assert.Equal(2, Count(unsupportedBranch, "TransientNotificationService.Show("));
         Assert.Equal(
             "Tvar strechy už nie je podporovaný.",
             Resource("Command_Roof_UnsupportedStretchNotificationTitle"));
         Assert.Equal(
             "Vráťte poslednú zmenu príkazom Späť (U).",
             Resource("Command_Roof_UnsupportedStretchNotificationBody"));
+        Assert.Equal(
+            "Nepodporovaná zmena strechy bola vrátená.",
+            Resource("Command_Roof_UnsupportedStretchRecoveredNotificationTitle"));
     }
 
     [Fact]
@@ -111,7 +115,7 @@ public sealed class RoofUnsupportedStretchNotificationSourceContractTests
         Assert.DoesNotContain("PromptKeywordOptions", ResizeService);
         Assert.DoesNotContain("new Window(", ResizeService);
         Assert.DoesNotContain("TransientNotificationWindow", ResizeService);
-        Assert.Equal(2, Count(ResizeService, "TransientNotificationService.Show("));
+        Assert.Equal(3, Count(ResizeService, "TransientNotificationService.Show("));
         Assert.DoesNotContain("DatabaseReactor", ResizeService);
         Assert.DoesNotContain("ObjectOverrule", ResizeService);
         Assert.DoesNotContain("BeginDeepClone", ResizeService);
@@ -142,6 +146,8 @@ public sealed class RoofUnsupportedStretchNotificationSourceContractTests
         {
             "Command_Roof_UnsupportedStretchNotificationTitle",
             "Command_Roof_UnsupportedStretchNotificationBody",
+            "Command_Roof_UnsupportedStretchRecoveredNotificationTitle",
+            "Command_Roof_UnsupportedStretchRecoveredNotificationBody",
             "Command_Roof_OpenLoopNotificationTitle",
             "Command_Roof_OpenLoopNotificationBody",
         };

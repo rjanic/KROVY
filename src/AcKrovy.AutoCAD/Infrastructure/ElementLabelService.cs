@@ -2514,7 +2514,7 @@ internal static partial class ElementLabelService
     {
         using var transaction = database.TransactionManager.StartTransaction();
         var metadataStore = new AutoCadTimberElementMetadataStore(transaction);
-        var result = Update(
+        var result = UpdateInCurrentTransaction(
             database,
             transaction,
             editor,
@@ -2531,7 +2531,7 @@ internal static partial class ElementLabelService
     {
         using var transaction = database.TransactionManager.StartTransaction();
         var metadataStore = new AutoCadTimberElementMetadataStore(transaction);
-        var result = Update(database, transaction, editor, ids, metadataStore);
+        var result = UpdateInCurrentTransaction(database, transaction, editor, ids, metadataStore);
         transaction.Commit();
         return result;
     }
@@ -3154,12 +3154,67 @@ internal static partial class ElementLabelService
         return DeleteLabelsByKey(transaction, labelIdsByKey, keysToDelete);
     }
 
-    private static ElementLabelUpdateResult Update(
+    /// <summary>
+    /// AK_RECALC / targeted Hybrid recalc pipeline for an explicit id set.
+    /// Reuses the current transaction. Numbering context may read the drawing.
+    /// ElementId metadata is written only when the existing numbering service
+    /// actually changes an assignment. Annotation writes cover
+    /// <paramref name="ids"/> plus any other timber whose displayed number changed.
+    /// </summary>
+    internal static ElementLabelUpdateResult UpdateInCurrentTransaction(
+        Database database,
+        Transaction transaction,
+        Editor editor,
+        IReadOnlyList<ObjectId> ids) =>
+        UpdateInCurrentTransaction(
+            database,
+            transaction,
+            editor,
+            ids,
+            numberingTargetIds: null);
+
+    internal static ElementLabelUpdateResult UpdateInCurrentTransaction(
         Database database,
         Transaction transaction,
         Editor editor,
         IReadOnlyList<ObjectId> ids,
-        AutoCadTimberElementMetadataStore metadataStore)
+        IReadOnlyList<ObjectId>? numberingTargetIds)
+    {
+        ArgumentNullException.ThrowIfNull(database);
+        ArgumentNullException.ThrowIfNull(transaction);
+        ArgumentNullException.ThrowIfNull(editor);
+        ArgumentNullException.ThrowIfNull(ids);
+        var metadataStore = new AutoCadTimberElementMetadataStore(transaction);
+        return UpdateInCurrentTransaction(
+            database,
+            transaction,
+            editor,
+            ids,
+            metadataStore,
+            numberingTargetIds);
+    }
+
+    private static ElementLabelUpdateResult UpdateInCurrentTransaction(
+        Database database,
+        Transaction transaction,
+        Editor editor,
+        IReadOnlyList<ObjectId> ids,
+        AutoCadTimberElementMetadataStore metadataStore) =>
+        UpdateInCurrentTransaction(
+            database,
+            transaction,
+            editor,
+            ids,
+            metadataStore,
+            numberingTargetIds: null);
+
+    private static ElementLabelUpdateResult UpdateInCurrentTransaction(
+        Database database,
+        Transaction transaction,
+        Editor editor,
+        IReadOnlyList<ObjectId> ids,
+        AutoCadTimberElementMetadataStore metadataStore,
+        IReadOnlyList<ObjectId>? numberingTargetIds)
     {
         var created = 0;
         var updated = 0;
@@ -3178,15 +3233,38 @@ internal static partial class ElementLabelService
             metadataStore,
             distinctIds,
             defaultProfile);
-        var previousElementIdById = ReadElementIds(transaction, metadataStore, distinctIds);
-        var synchronizedDataById = TimberElementItemIdentityService.SynchronizeElementIds(
-            database,
-            transaction,
-            metadataStore,
-            distinctIds,
-            roundingStepMm);
 
-        foreach (var id in distinctIds)
+        IReadOnlyDictionary<ObjectId, TimberElementData> synchronizedDataById;
+        IReadOnlyDictionary<ObjectId, string> previousElementIdById;
+        IReadOnlyList<TimberElementNumberingChange> numberingChanges;
+        IReadOnlyList<ObjectId> refreshIds;
+
+        var numberingTargets = numberingTargetIds ?? distinctIds;
+        if (numberingTargets.Count > 0)
+        {
+            var sync = TimberElementItemIdentityService.SynchronizeElementIdsDetailed(
+                database,
+                transaction,
+                metadataStore,
+                numberingTargets,
+                roundingStepMm);
+            synchronizedDataById = sync.DataById;
+            previousElementIdById = sync.PreviousElementIdById;
+            numberingChanges = sync.NumberingChanges;
+            refreshIds = distinctIds
+                .Concat(sync.WrittenIds)
+                .Distinct()
+                .ToList();
+        }
+        else
+        {
+            previousElementIdById = ReadElementIds(transaction, metadataStore, distinctIds);
+            synchronizedDataById = ReadTimberData(transaction, metadataStore, distinctIds);
+            numberingChanges = Array.Empty<TimberElementNumberingChange>();
+            refreshIds = distinctIds;
+        }
+
+        foreach (var id in refreshIds)
         {
             try
             {
@@ -3233,7 +3311,35 @@ internal static partial class ElementLabelService
         }
 
         TimberAnnotationService.DeleteDuplicatesForExistingSourceHandles(database, transaction);
-        return new ElementLabelUpdateResult(created, updated, skipped);
+        return new ElementLabelUpdateResult(created, updated, skipped)
+        {
+            NumberingChanges = numberingChanges,
+        };
+    }
+
+    private static IReadOnlyDictionary<ObjectId, TimberElementData> ReadTimberData(
+        Transaction transaction,
+        AutoCadTimberElementMetadataStore metadataStore,
+        IReadOnlyList<ObjectId> ids)
+    {
+        var result = new Dictionary<ObjectId, TimberElementData>();
+
+        foreach (var id in ids)
+        {
+            if (AutoCadObjectIdAccess.TryGetObject<Entity>(
+                    transaction,
+                    id,
+                    OpenMode.ForRead,
+                    out var entity) &&
+                entity is not null &&
+                metadataStore.TryRead(entity, out var data) &&
+                data is not null)
+            {
+                result[id] = data;
+            }
+        }
+
+        return result;
     }
 
     private static IReadOnlyDictionary<ObjectId, string> ReadElementIds(
@@ -5208,7 +5314,13 @@ internal static partial class ElementLabelService
         double AcuteAngleRadians);
 }
 
-internal sealed record ElementLabelUpdateResult(int Created, int Updated, int Skipped)
+internal sealed record ElementLabelUpdateResult(
+    int Created,
+    int Updated,
+    int Skipped)
 {
+    public IReadOnlyList<TimberElementNumberingChange> NumberingChanges { get; init; } =
+        Array.Empty<TimberElementNumberingChange>();
+
     public int Processed => Created + Updated;
 }

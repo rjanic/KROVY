@@ -189,14 +189,15 @@ public sealed class RoofAutomaticRafterAnnotationSourceContractTests
     public void SlopeContractsAndStableArchitectureRemainUnchanged()
     {
         Assert.Contains("IsSlopeDirectionReversed = true", Replacement);
-        Assert.Contains("new Point3d(rafter.PlanStart.X", Replacement);
-        Assert.Contains("new Point3d(rafter.PlanEnd.X", Replacement);
+        Assert.Contains("TryApplyToLayout", Replacement);
+        Assert.Contains("appliedGeometry.Value.Start.X", Replacement);
+        Assert.Contains("appliedGeometry.Value.End.X", Replacement);
         Assert.DoesNotContain("RoofGeneratedTimber", ArrowRenderer);
         Assert.DoesNotContain("ObjectModified", Workflow + Replacement + BatchAnnotations);
         Assert.DoesNotContain("CommandEnded", Workflow + Replacement + BatchAnnotations);
         Assert.DoesNotContain("RoofDisplayGroupService", BatchAnnotations);
         Assert.Equal(7, TimberElementDataSchema.CurrentVersion);
-        Assert.Equal(2, RoofDefinitionDataSchema.CurrentVersion);
+        Assert.Equal(3, RoofDefinitionDataSchema.CurrentVersion);
         Assert.Equal(1, RoofDisplayDataSchema.CurrentVersion);
         Assert.Equal(1, RoofGeneratedTimberDataSchema.CurrentVersion);
     }

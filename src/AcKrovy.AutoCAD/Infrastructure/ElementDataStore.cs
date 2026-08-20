@@ -58,6 +58,24 @@ internal static class ElementDataStore
             entity.UpgradeOpen();
         }
 
+        // Zachovaj XData ostatných doplnkov a prepíš iba náš vlastný oddiel.
+        var values = ReadForeignXData(entity);
+        values.AddRange(BuildSection(entity, transaction, data));
+
+        using var newXData = new ResultBuffer(values.ToArray());
+        entity.XData = newXData;
+    }
+
+    /// <summary>
+    /// Builds the generic Timber XData section (RegApp + ASCII JSON chunks) WITHOUT
+    /// assigning Entity.XData, so callers can merge it with other sections and perform a
+    /// single atomic Entity.XData assignment.
+    /// </summary>
+    public static IReadOnlyList<TypedValue> BuildSection(
+        Entity entity,
+        Transaction transaction,
+        TimberElementData data)
+    {
         EnsureRegAppRegistered(entity.Database, transaction);
 
         var normalizedData = TimberElementDataVersioning.PrepareForWrite(data);
@@ -69,14 +87,13 @@ internal static class ElementDataStore
                 UiStrings.Format(UiStrings.ErrorXDataTooLargeFormat, jsonByteCount));
         }
 
-        // Zachovaj XData ostatných doplnkov a prepíš iba náš vlastný oddiel.
-        var values = ReadForeignXData(entity);
-        values.Add(new TypedValue(DxfRegAppNameCode, RegAppName));
+        var values = new List<TypedValue>
+        {
+            new TypedValue(DxfRegAppNameCode, RegAppName),
+        };
         values.AddRange(SplitIntoDxfTextChunks(json)
             .Select(chunk => new TypedValue(DxfAsciiStringCode, chunk)));
-
-        using var newXData = new ResultBuffer(values.ToArray());
-        entity.XData = newXData;
+        return values;
     }
 
     private static bool TryReadPortableXData(Entity entity, out TimberElementData? data)

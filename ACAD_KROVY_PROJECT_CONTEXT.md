@@ -536,9 +536,19 @@ Stabilný commit: `4a951041e2deef40a127ac9560cf6fb2ba4b6a5b`
 - **DEBUG CLI:** automatický verbose grip/topology/classify spam odstránený. Manuálne
   `#if DEBUG`: `AK_DEV_ROOF_GROUP_TOPOLOGY_DIAG`, `AK_DEV_ROOF_GENERATED_OWNER_DIAG`,
   `AK_DEV_ROOF_RAFTER_REPLACE_DIAG_ON`/`OFF` (default OFF).
-- **Backlog (neimplementovať tu):** (A) Unsupported STRETCH Auto-Recovery —
-  in-memory pre-STRETCH vertex restore, no `U`/command injection; (B) generated rafters
-  following rigid MOVE / `RigidGroupTransform` (nie sú GROUP členovia).
+- **Backlog (neimplementovať tu):** generated rafters following rigid MOVE /
+  `RigidGroupTransform` (nie sú GROUP členovia).
+
+### STRECHY S2 – Unsupported STRETCH Auto-Recovery
+- pri `STRETCH` / source `GRIP_STRETCH`, ak platný SimpleGable source skončí ako
+  `Unsupported`, KROVY obnoví **celú postihnutú assembly** z command-scoped snapshotu:
+  source Polyline + owned generated timber Lines + ich anotácie (rovnaké ObjectId /
+  Handle / ElementId), potom kanonický display Rebuild/GROUP,
+- bez `U` / schema bump / regenerácie rafterov (`TryReplaceForSupportedResize` sa
+  nevolá); snapshotuje všetky owned generated členovia (nie predikovaný subset),
+- RoofDefinition sa neprepisuje; úspech → recovered WPF; chýbajúci/ambiguous snapshot
+  → fallback „použi U“,
+- `SupportedResize`, `RigidGroupTransform` a display-only tamper ostávajú oddelené.
 
 ## Povinné kompatibilitné pravidlá
 
@@ -565,11 +575,8 @@ Poradie:
 Multi-CAD kompatibilita sa má overiť ešte pred tým, než projekt prerastie do príliš veľkého AutoCAD-špecifického roof automation modulu.
 
 ## Najbližšia priorita
-1. DEFERRED – Unsupported STRETCH Auto-Recovery: STRETCH-only in-memory pre-command
-   source WCS vertices; pri Unsupported obnoviť ten istý ObjectId (nie `U` / command
-   injection); kanonický display/GROUP; Undo/Redo HOST dôkaz,
-2. DEFERRED – generated rafters following rigid MOVE / `RigidGroupTransform`,
-3. Stage 7 a nové roof typy (Hip/Shed/Pyramid) zostávajú mimo tohto checkpointu,
-4. compatibility checkpoint a alternatívne CAD adaptéry bez vendor typov v Core.
+1. DEFERRED – generated rafters following rigid MOVE / `RigidGroupTransform`,
+2. Stage 7 a nové roof typy (Hip/Shed/Pyramid) zostávajú mimo tohto checkpointu,
+3. compatibility checkpoint a alternatívne CAD adaptéry bez vendor typov v Core.
 
 Presné poradie je v `ACAD_KROVY_ROADMAP.md`, úplný zásobník nápadov v `ACAD_KROVY_BACKLOG.md`.

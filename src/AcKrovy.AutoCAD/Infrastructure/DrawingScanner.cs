@@ -37,6 +37,13 @@ internal static class DrawingScanner
                 continue;
             }
 
+            // Dormant COPY AttachedManual children are hidden via the persisted DXF 60
+            // visibility flag; they must not participate in numbering/label/report scans.
+            if (!entity.Visible)
+            {
+                continue;
+            }
+
             if (metadataStore.TryRead(entity, out TimberElementData? _))
             {
                 result.Add(id);

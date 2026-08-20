@@ -34,7 +34,7 @@
   <data name="Report_TotalFormat" xml:space="preserve"><value>Razem: {0} elementów</value></data>
   <data name="Message_DialogTitle" xml:space="preserve"><value>ACAD KROVY</value></data>
   <data name="Message_PluginLoaded" xml:space="preserve"><value>&#xA;Wczytano ACAD KROVY {0}. Karta ACAD KROVY zostanie dodana do wstążki. Wpisz AK_HELP, aby wyświetlić listę poleceń, lub AK_TOOLBAR, aby wyświetlić klasyczny pasek małych ikon.</value></data>
-  <data name="Help_CommandOverview" xml:space="preserve"><value>&#xA;ACAD KROVY {0}&#xA;&#xA;ELEMENTY WIĘŹBY&#xA;  AK_KROKVA      – szybko przypisuje typ Krokiew&#xA;  AK_POMURNICA   – szybko przypisuje typ Murłata&#xA;  AK_VAZNICA     – szybko przypisuje typ Płatew&#xA;  AK_STLPIK      – szybko przypisuje typ Słup&#xA;  AK_KLIESTINA   – szybko przypisuje typ Jętka&#xA;  AK_VZPERA      – szybko przypisuje typ Zastrzał&#xA;  AK_VAZNYTRAM   – szybko przypisuje typ Belka wiązarowa&#xA;&#xA;DANE I ZESTAWIENIA&#xA;  AK_ASSIGN      – przypisuje dane do wybranych linii lub polilinii&#xA;  AK_EDIT        – zbiorczo edytuje zaznaczone wartości&#xA;  AK_FLIPSLOPE   – odwraca kierunek spadku elementu lub jego opisu&#xA;  AK_INSPECT     – wyświetla dane jednego elementu&#xA;  AK_REPORT      – wstawia tabelę z wybranych elementów&#xA;  AK_REPORTALL   – wstawia tabelę ze wszystkich elementów&#xA;  AK_RECALC      – sprawdza obliczenia wszystkich elementów&#xA;  AK_RENUMBER   – jawnie przenumerowuje wszystkie pozycje według długości cięcia&#xA;  AK_RIBBON      – wyświetla lub odświeża kartę ACAD KROVY na wstążce&#xA;  AK_TOOLBAR     – wyświetla lub ukrywa klasyczny pływający pasek małych ikon&#xA;  AK_SETTINGS    – konfiguruje warstwy i kolory poszczególnych typów elementów&#xA;  AK_APPLYLAYERS – stosuje bieżące ustawienia warstw w rysunku&#xA;&#xA;OPISY W RYSUNKU&#xA;  AK_LABELS      – tworzy lub odświeża opisy wszystkich elementów&#xA;  AK_LABELSELECTED – tworzy lub odświeża opisy wybranych elementów&#xA;  AK_LABELSHOW   – wyświetla warstwę KROV_POPIS&#xA;  AK_LABELHIDE   – ukrywa warstwę KROV_POPIS&#xA;&#xA;Wskazówka: opis jest odświeżany automatycznie po przypisaniu, edycji lub zmianie geometrii. AK_LABELS i AK_RECALC umożliwiają kontrolę ręczną.</value></data>
+  <data name="Help_CommandOverview" xml:space="preserve"><value>&#xA;ACAD KROVY {0}&#xA;&#xA;ELEMENTY WIĘŹBY&#xA;  AK_KROKVA      – szybko przypisuje typ Krokiew&#xA;  AK_POMURNICA   – szybko przypisuje typ Murłata&#xA;  AK_VAZNICA     – szybko przypisuje typ Płatew&#xA;  AK_STLPIK      – szybko przypisuje typ Słup&#xA;  AK_KLIESTINA   – szybko przypisuje typ Jętka&#xA;  AK_VZPERA      – szybko przypisuje typ Zastrzał&#xA;  AK_VAZNYTRAM   – szybko przypisuje typ Belka wiązarowa&#xA;&#xA;DANE I ZESTAWIENIA&#xA;  AK_ASSIGN      – przypisuje dane do wybranych linii lub polilinii&#xA;  AK_EDIT        – zbiorczo edytuje zaznaczone wartości&#xA;  AK_FLIPSLOPE   – odwraca kierunek spadku elementu lub jego opisu&#xA;  AK_INSPECT     – wyświetla dane jednego elementu&#xA;  AK_REPORT      – wstawia tabelę z wybranych elementów&#xA;  AK_REPORTALL   – wstawia tabelę ze wszystkich elementów&#xA;  AK_RECALC      – sprawdza obliczenia wszystkich elementów&#xA;  AK_RENUMBER   – jawnie przenumerowuje wszystkie pozycje według długości cięcia&#xA;  AK_RIBBON      – wyświetla lub odświeża kartę ACAD KROVY na wstążce&#xA;  AK_TOOLBAR     – wyświetla lub ukrywa klasyczny pływający pasek małych ikon&#xA;  AK_SETTINGS    – konfiguruje warstwy i kolory poszczególnych typów elementów&#xA;  AK_APPLYLAYERS – stosuje bieżące ustawienia warstw w rysunku&#xA;&#xA;OPISY W RYSUNKU&#xA;  AK_LABELS      – tworzy lub odświeża opisy wszystkich elementów&#xA;  AK_LABELSELECTED – tworzy lub odświeża opisy wybranych elementów&#xA;  AK_LABELSHOW   – wyświetla warstwę KROV_POPIS&#xA;  AK_LABELHIDE   – ukrywa warstwę KROV_POPIS&#xA;&#xA;DACH&#xA;  AK_ROOF            – tworzy dach dwuspadowy&#xA;  AK_ROOF_RAFTERS    – tworzy automatyczne krokwie&#xA;  AK_ROOF_UNLOCK     – odblokowuje ręczne zmiany wygenerowanego drewna&#xA;  AK_ROOF_LOCK       – blokuje ochronę wygenerowanego drewna&#xA;  AK_ROOF_RESET_EDITS – przywraca ręczne zmiany do geometrii kanonicznej&#xA;&#xA;Wskazówka: opis jest odświeżany automatycznie po przypisaniu, edycji lub zmianie geometrii. AK_LABELS i AK_RECALC umożliwiają kontrolę ręczną.</value></data>
   <data name="Command_Ribbon_Ready" xml:space="preserve"><value>&#xA;ACAD KROVY: karta wstążki jest gotowa.</value></data>
   <data name="Command_Ribbon_Pending" xml:space="preserve"><value>&#xA;ACAD KROVY: wstążka nie jest jeszcze gotowa; karta zostanie wkrótce dodana.</value></data>
   <data name="Command_Toolbar_Shown" xml:space="preserve"><value>&#xA;ACAD KROVY: klasyczny pasek ikon jest widoczny.</value></data>
@@ -555,6 +555,8 @@
   <data name="Command_Roof_PersistedStale" xml:space="preserve"><value>&#xA;Obrys dachu zmienił się po zapisaniu. Zapisana definicja nie została użyta.</value></data>
   <data name="Command_Roof_UnsupportedStretchNotificationTitle" xml:space="preserve"><value>Kształt dachu nie jest już obsługiwany.</value></data>
   <data name="Command_Roof_UnsupportedStretchNotificationBody" xml:space="preserve"><value>Cofnij ostatnią zmianę poleceniem Cofnij (U).</value></data>
+  <data name="Command_Roof_UnsupportedStretchRecoveredNotificationTitle" xml:space="preserve"><value>Nieobsługiwana zmiana dachu została przywrócona.</value></data>
+  <data name="Command_Roof_UnsupportedStretchRecoveredNotificationBody" xml:space="preserve"><value>Obrys dachu musi pozostać prostokątny.</value></data>
   <data name="Command_Roof_DisplayTamperNotificationTitle" xml:space="preserve"><value>Wyświetlenia dachu nie można edytować osobno.</value></data>
   <data name="Command_Roof_DisplayTamperNotificationBody" xml:space="preserve"><value>Edytuj podstawowy obrys dachu.</value></data>
   <data name="Command_Roof_PersistFailed" xml:space="preserve"><value>&#xA;Nie udało się zapisać definicji dachu.</value></data>
@@ -623,4 +625,29 @@
   <data name="RoofRafterWindow_InvalidSpacing" xml:space="preserve"><value>Maksymalny rozstaw musi być skończoną liczbą większą od 0.</value></data>
   <data name="RoofRafterWindow_InvalidMaterial" xml:space="preserve"><value>Wybierz prawidłowy materiał.</value></data>
   <data name="RoofRafterWindow_InvalidRoof" xml:space="preserve"><value>Nie można obliczyć układu krokwi dla tego dachu.</value></data>
+  <data name="Command_RoofUnlock_SelectPrompt" xml:space="preserve"><value>&#xA;Wybierz dach do odblokowania: </value></data>
+  <data name="Command_RoofUnlock_Unlocked" xml:space="preserve"><value>&#xA;Dach jest odblokowany. Wygenerowane drewno można edytować obsługiwanymi poleceniami.</value></data>
+  <data name="Command_RoofUnlock_AlreadyUnlocked" xml:space="preserve"><value>&#xA;Dach jest już odblokowany.</value></data>
+  <data name="Command_RoofUnlock_UnlockedNotificationTitle" xml:space="preserve"><value>Dach odblokowany</value></data>
+  <data name="Command_RoofUnlock_UnlockedNotificationBody" xml:space="preserve"><value>Wygenerowane drewno przyjmuje teraz obsługiwane ręczne zmiany.</value></data>
+  <data name="Command_RoofLock_Locked" xml:space="preserve"><value>&#xA;Dach jest zablokowany. Przyjęte ręczne zmiany zostały zachowane.</value></data>
+  <data name="Command_RoofLock_AlreadyLocked" xml:space="preserve"><value>&#xA;Dach jest już zablokowany.</value></data>
+  <data name="Command_RoofResetEdits_Reset" xml:space="preserve"><value>&#xA;Ręczne zmiany wygenerowanego drewna zostały przywrócone.</value></data>
+  <data name="Command_RoofResetEdits_NoEdits" xml:space="preserve"><value>&#xA;Wybrany dach nie ma ręcznych zmian.</value></data>
+  <data name="Command_Roof_LockedNotificationTitle" xml:space="preserve"><value>Dach jest zablokowany</value></data>
+  <data name="Command_Roof_LockedNotificationBody" xml:space="preserve"><value>Przed ręczną edycją najpierw go odblokuj.</value></data>
+  <data name="Command_Roof_UnsupportedMemberEditNotificationTitle" xml:space="preserve"><value>Edycja elementu nie była obsługiwana.</value></data>
+  <data name="Command_Roof_UnsupportedMemberEditNotificationBody" xml:space="preserve"><value>Element musi pozostać w płaszczyźnie dachu.</value></data>
+  <data name="Dialog_Inspect_RoofEditState" xml:space="preserve"><value>Stan edycji</value></data>
+  <data name="Dialog_Inspect_RoofEditStateLocked" xml:space="preserve"><value>Zablokowany</value></data>
+  <data name="Dialog_Inspect_RoofEditStateUnlocked" xml:space="preserve"><value>Odblokowany</value></data>
+  <data name="Dialog_Inspect_RoofManualOverrideCount" xml:space="preserve"><value>Ręczne zmiany</value></data>
+  <data name="Dialog_Inspect_RoofSuppressedCount" xml:space="preserve"><value>Wyciszone elementy</value></data>
+  <data name="Dialog_Inspect_GeneratedByRoof" xml:space="preserve"><value>Wygenerowane przez dach</value></data>
+  <data name="Dialog_Inspect_ManualOverride" xml:space="preserve"><value>Ręczna korekta</value></data>
+  <data name="Dialog_Inspect_OverrideAlong" xml:space="preserve"><value>Przesunięcie wzdłuż elementu</value></data>
+  <data name="Dialog_Inspect_OverrideLateral" xml:space="preserve"><value>Przesunięcie boczne</value></data>
+  <data name="Dialog_Inspect_OverrideRotation" xml:space="preserve"><value>Obrót</value></data>
+  <data name="Dialog_Inspect_OverrideStart" xml:space="preserve"><value>Offset początku</value></data>
+  <data name="Dialog_Inspect_OverrideEnd" xml:space="preserve"><value>Offset końca</value></data>
 </root>

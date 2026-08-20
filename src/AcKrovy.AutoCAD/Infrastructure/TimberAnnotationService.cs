@@ -7,6 +7,13 @@ namespace AcKrovy.AutoCAD.Infrastructure;
 
 internal static class TimberAnnotationService
 {
+    /// <summary>
+    /// Creates or refreshes derived annotations for one timber source.
+    /// Returns true only when a new main label is created. False means an
+    /// existing label was updated in place, annotations were removed, or the
+    /// upsert could not complete. Callers that need success-vs-failure must
+    /// not treat false as an error; AK_LABEL counts it as "updated".
+    /// </summary>
     public static bool EnsureForElement(
         Database database,
         Transaction transaction,
@@ -206,6 +213,28 @@ internal static class TimberAnnotationService
         }
 #endif
         return labelCreated;
+    }
+
+    /// <summary>
+    /// Removes all derived annotations owned by one timber source handle (MLeader, slope polyline, slope DBText, footprint).
+    /// </summary>
+    public static void DeleteForSourceHandle(
+        Database database,
+        Transaction transaction,
+        string sourceHandle)
+    {
+        if (string.IsNullOrWhiteSpace(sourceHandle))
+        {
+            throw new ArgumentException("Source handle is required.", nameof(sourceHandle));
+        }
+
+        var handle = sourceHandle.Trim();
+        ElementLabelService.DeleteForSourceHandle(database, transaction, handle);
+        SlopeAnnotationService.DeleteForSourceHandle(database, transaction, handle);
+        PostFootprintPerpendicularAnnotationService.DeleteForSourceHandle(
+            database,
+            transaction,
+            handle);
     }
 
     public static void DeleteForMissingSourceHandles(

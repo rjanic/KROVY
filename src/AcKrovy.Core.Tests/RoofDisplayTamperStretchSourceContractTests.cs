@@ -38,8 +38,9 @@ public sealed class RoofDisplayTamperStretchSourceContractTests
         Assert.Contains("resizeOwners.Contains(ownerId)", inspect);
         Assert.Contains("unsupportedOwners.Contains(ownerId)", inspect);
         Assert.Contains("displayTamperOwners.Add(ownerId)", inspect);
-        Assert.Contains("displayTamperOwners)", ResizeService);
+        Assert.Contains("generatedMemberTamperOwners", ResizeService);
         Assert.Contains("DisplayTamperOwnerIds", ResizeService);
+        Assert.Contains("GeneratedMemberTamperOwnerIds", ResizeService);
     }
 
     [Fact]
@@ -138,14 +139,15 @@ public sealed class RoofDisplayTamperStretchSourceContractTests
             "if (plan.UnsupportedOwnerIds.Count > 0)",
             "IReadOnlyCollection<ObjectId> displayTamperOwners = plan.DisplayTamperOwnerIds");
         Assert.Contains("Command_Roof_UnsupportedStretchNotificationTitle", unsupportedBranch);
+        Assert.Contains("Command_Roof_UnsupportedStretchRecoveredNotificationTitle", unsupportedBranch);
         Assert.DoesNotContain("Command_Roof_DisplayTamperNotificationTitle", unsupportedBranch);
         var displayBranch = Segment(
             process,
             "IReadOnlyCollection<ObjectId> displayTamperOwners = plan.DisplayTamperOwnerIds",
             "return plan.RelatedIds;");
         Assert.DoesNotContain("Command_Roof_UnsupportedStretchNotificationTitle", displayBranch);
-        // Exactly one Show per outcome branch; two total in Process for distinct keys.
-        Assert.Equal(2, Count(process, "TransientNotificationService.Show("));
+        // Recovered + fallback Unsupported + DisplayTamper = three Show call sites.
+        Assert.Equal(3, Count(process, "TransientNotificationService.Show("));
     }
 
     [Fact]
@@ -206,7 +208,7 @@ public sealed class RoofDisplayTamperStretchSourceContractTests
         Assert.DoesNotContain("MessageBox.Show", ResizeService + NotificationService);
         Assert.DoesNotContain("new Window(", ResizeService);
         Assert.DoesNotContain("TransientNotificationWindow", ResizeService);
-        Assert.Equal(2, Count(ResizeService, "TransientNotificationService.Show("));
+        Assert.Equal(3, Count(ResizeService, "TransientNotificationService.Show("));
         Assert.DoesNotContain("DatabaseReactor", ResizeService);
         Assert.DoesNotContain("ObjectOverrule", ResizeService);
         Assert.DoesNotContain("BeginDeepClone", ResizeService);

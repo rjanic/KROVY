@@ -26,7 +26,7 @@ public sealed class RoofGroupCopyOwnershipSourceContractTests
     [Fact]
     public void SourceOnlyCopyRemainsAValidIndependentSemanticOwner()
     {
-        var directPolyline = Resolver.IndexOf("if (selected is Polyline)", StringComparison.Ordinal);
+        var directPolyline = Resolver.IndexOf("if (selected is Polyline polyline)", StringComparison.Ordinal);
         var displayRead = Resolver.IndexOf("RoofDisplayStore.Read(selected)", StringComparison.Ordinal);
 
         Assert.True(directPolyline >= 0 && displayRead > directPolyline);
@@ -36,14 +36,13 @@ public sealed class RoofGroupCopyOwnershipSourceContractTests
     }
 
     [Fact]
-    public void FullRoofGroupKeepsExactlyOneOwnerAndSevenDisplayChildren()
+    public void FullRoofGroup_IncludesStructuralDisplayAndAssemblyMembers()
     {
-        Assert.Contains("internal const int ExpectedMemberCount = 8", Group);
-        Assert.Contains("var expected = new HashSet<ObjectId>(childIds) { ownerId }", Group);
-        Assert.Contains("actual.Length == ExpectedMemberCount", Group);
+        Assert.Contains("ExpectedStructuralDisplayChildCount = 7", Group);
+        Assert.Contains("RoofAssemblyGroupMemberCollector.TryCollect", Group);
         Assert.Contains("expected.SetEquals(actual)", Group);
-        Assert.Contains("group.Append(ownerId)", Group);
-        Assert.Contains("group.Append(childId)", Group);
+        Assert.Contains("group.Append(addId)", Group);
+        Assert.Contains("group.Remove(removeId)", Group);
     }
 
     [Fact]
@@ -73,18 +72,20 @@ public sealed class RoofGroupCopyOwnershipSourceContractTests
         Assert.DoesNotContain("OpenMode.ForWrite", Member(
             Group,
             "public static bool TryResolveLegacyCopiedOwner",
-            "private static string BuildGroupName"));
+            "public static bool TryOpenCanonicalGroup"));
     }
 
     [Fact]
-    public void GeneratedRafterOwnerUsesSameCloneTranslatedSoftPointerAsDisplay()
+    public void GeneratedRafterOwnerUsesCanonicalAsciiOwnerNotSoftPointer()
     {
+        // The generated child no longer carries a 1005 soft pointer (Entity.XData is
+        // replayed as one undo/redo mutation); legacy 1005 payloads stay readable.
         Assert.Contains("DxfCode.ExtendedDataHandle", GeneratedStore);
-        Assert.Contains("new TypedValue(DxfOwnerHandleCode, ownerReference)", GeneratedStore);
         Assert.Contains("cloneSafeOwnerReference", GeneratedStore);
         Assert.Contains(
             "data = data with { RoofOwnerReference = cloneSafeOwnerReference }",
             GeneratedStore);
+        Assert.DoesNotContain("new TypedValue(DxfOwnerHandleCode, ownerReference)", GeneratedStore);
         Assert.Contains("var ownerReference = owner.Handle.ToString()", RafterWorkflow);
         Assert.Contains("RoofGeneratedTimberStore.FindByOwner(", RafterWorkflow);
         Assert.Contains("RoofGeneratedRafterSetService.Materialize(", RafterWorkflow);
@@ -102,7 +103,7 @@ public sealed class RoofGroupCopyOwnershipSourceContractTests
         Assert.DoesNotContain("IdMapping", source);
         Assert.DoesNotContain("ObjectModified", source);
         Assert.DoesNotContain("CommandEnded", source);
-        Assert.Equal(2, RoofDefinitionDataSchema.CurrentVersion);
+        Assert.Equal(3, RoofDefinitionDataSchema.CurrentVersion);
         Assert.Equal(1, RoofDisplayDataSchema.CurrentVersion);
         Assert.Equal(7, TimberElementDataSchema.CurrentVersion);
         Assert.Equal(1, RoofGeneratedTimberDataSchema.CurrentVersion);

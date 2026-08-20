@@ -28,7 +28,8 @@ public static class RoofDefinitionDataCodec
         return data.SchemaVersion switch
         {
             RoofDefinitionDataSchema.LegacyAbsoluteVersion => EncodeV1(data),
-            RoofDefinitionDataSchema.CurrentVersion => EncodeV2(data),
+            RoofDefinitionDataSchema.TopologyVersion => EncodeV2(data),
+            RoofDefinitionDataSchema.CurrentVersion => EncodeV3(data),
             _ => throw new ArgumentException("Unsupported roof schema.", nameof(data)),
         };
     }
@@ -65,8 +66,10 @@ public static class RoofDefinitionDataCodec
         {
             RoofDefinitionDataSchema.LegacyAbsoluteVersion =>
                 TryDecodeV1(fields, out data, out error),
-            RoofDefinitionDataSchema.CurrentVersion =>
+            RoofDefinitionDataSchema.TopologyVersion =>
                 TryDecodeV2(fields, out data, out error),
+            RoofDefinitionDataSchema.CurrentVersion =>
+                TryDecodeV3(fields, out data, out error),
             _ => false,
         };
     }
@@ -88,6 +91,7 @@ public static class RoofDefinitionDataCodec
 
         if (data.SchemaVersion is not (
                 RoofDefinitionDataSchema.LegacyAbsoluteVersion or
+                RoofDefinitionDataSchema.TopologyVersion or
                 RoofDefinitionDataSchema.CurrentVersion))
         {
             return false;
@@ -109,7 +113,7 @@ public static class RoofDefinitionDataCodec
 
         return data.SchemaVersion == RoofDefinitionDataSchema.LegacyAbsoluteVersion
             ? TryValidateV1(data, out error)
-            : TryValidateV2(data, out error);
+            : TryValidateTopology(data, out error);
     }
 
     private static string EncodeV1(RoofDefinitionData data) =>
@@ -127,7 +131,7 @@ public static class RoofDefinitionDataCodec
         var descriptor = data.RigidFootprint!;
         return string.Join(
             Separator.ToString(),
-            data.SchemaVersion.ToString(CultureInfo.InvariantCulture),
+            RoofDefinitionDataSchema.TopologyVersion.ToString(CultureInfo.InvariantCulture),
             SimpleGableToken,
             data.SlopeDegrees.ToString("R", CultureInfo.InvariantCulture),
             data.RidgeEdgeFamily == RoofRidgeEdgeFamily.SourceEdge01
@@ -139,6 +143,20 @@ public static class RoofDefinitionDataCodec
                 : CounterClockwiseToken,
             descriptor.Edge01LengthMm.ToString("R", CultureInfo.InvariantCulture),
             descriptor.Edge12LengthMm.ToString("R", CultureInfo.InvariantCulture));
+    }
+
+    private static string EncodeV3(RoofDefinitionData data)
+    {
+        var topology = EncodeV2(data);
+        var firstSeparator = topology.IndexOf(Separator);
+        var editState = data.EditState == RoofEditState.Unlocked ? "Unlocked" : "Locked";
+        var overrides = RoofGeneratedMemberOverrideCodec.Encode(data.Overrides);
+        return string.Join(
+            Separator.ToString(),
+            RoofDefinitionDataSchema.CurrentVersion.ToString(CultureInfo.InvariantCulture),
+            topology.Substring(firstSeparator + 1),
+            editState,
+            overrides);
     }
 
     private static bool TryDecodeV1(
@@ -216,7 +234,7 @@ public static class RoofDefinitionDataCodec
         }
 
         var candidate = new RoofDefinitionData(
-            RoofDefinitionDataSchema.CurrentVersion,
+            RoofDefinitionDataSchema.TopologyVersion,
             RoofKind.SimpleGable,
             slope,
             RidgeEdgeFamily: edgeFamily,
@@ -228,11 +246,74 @@ public static class RoofDefinitionDataCodec
         return Accept(candidate, out data, out error);
     }
 
+    private static bool TryDecodeV3(
+        IReadOnlyList<string> fields,
+        out RoofDefinitionData? data,
+        out RoofDefinitionDataDecodeError error)
+    {
+        data = null;
+        error = RoofDefinitionDataDecodeError.MalformedPayload;
+        if (fields.Count < 10)
+        {
+            return false;
+        }
+
+        var topologyFields = new[]
+        {
+            RoofDefinitionDataSchema.TopologyVersion.ToString(CultureInfo.InvariantCulture),
+            fields[1],
+            fields[2],
+            fields[3],
+            fields[4],
+            fields[5],
+            fields[6],
+            fields[7],
+        };
+        if (!TryDecodeV2(topologyFields, out var topology, out error) || topology is null)
+        {
+            return false;
+        }
+
+        var editState = fields[8] switch
+        {
+            "Locked" => RoofEditState.Locked,
+            "Unlocked" => RoofEditState.Unlocked,
+            _ => (RoofEditState?)null,
+        };
+        if (editState is null)
+        {
+            error = RoofDefinitionDataDecodeError.InvalidEditState;
+            return false;
+        }
+
+        var overridePayload = fields.Count == 10
+            ? fields[9]
+            : string.Join(Separator.ToString(), fields.Skip(9));
+        if (!RoofGeneratedMemberOverrideCodec.TryDecode(overridePayload, out var overrides, out error))
+        {
+            return false;
+        }
+
+        var candidate = topology with
+        {
+            SchemaVersion = RoofDefinitionDataSchema.CurrentVersion,
+            EditState = editState.Value,
+            ManualOverrides = overrides,
+        };
+        return Accept(candidate, out data, out error);
+    }
+
     private static bool TryValidateV1(
         RoofDefinitionData data,
         out RoofDefinitionDataDecodeError error)
     {
         if (data.RidgeEdgeFamily is not null || data.RigidFootprint is not null)
+        {
+            error = RoofDefinitionDataDecodeError.MalformedPayload;
+            return false;
+        }
+
+        if (!HasDefaultEditState(data))
         {
             error = RoofDefinitionDataDecodeError.MalformedPayload;
             return false;
@@ -262,7 +343,7 @@ public static class RoofDefinitionDataCodec
         return true;
     }
 
-    private static bool TryValidateV2(
+    private static bool TryValidateTopology(
         RoofDefinitionData data,
         out RoofDefinitionDataDecodeError error)
     {
@@ -294,9 +375,37 @@ public static class RoofDefinitionDataCodec
             return false;
         }
 
+        if (data.SchemaVersion == RoofDefinitionDataSchema.TopologyVersion)
+        {
+            if (!HasDefaultEditState(data))
+            {
+                error = RoofDefinitionDataDecodeError.MalformedPayload;
+                return false;
+            }
+
+            error = RoofDefinitionDataDecodeError.None;
+            return true;
+        }
+
+        if (data.EditState is not (RoofEditState.Locked or RoofEditState.Unlocked))
+        {
+            error = RoofDefinitionDataDecodeError.InvalidEditState;
+            return false;
+        }
+
+        if (RoofGeneratedMemberOverrideRules.HasDuplicateKeys(data.Overrides) ||
+            data.Overrides.Any(item => item is null || item.Key.StationIndex < 0))
+        {
+            error = RoofDefinitionDataDecodeError.InvalidManualOverride;
+            return false;
+        }
+
         error = RoofDefinitionDataDecodeError.None;
         return true;
     }
+
+    private static bool HasDefaultEditState(RoofDefinitionData data) =>
+        data.EditState == RoofEditState.Locked && data.Overrides.Count == 0;
 
     private static bool Accept(
         RoofDefinitionData candidate,

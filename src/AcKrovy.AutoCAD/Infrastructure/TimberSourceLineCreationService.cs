@@ -20,7 +20,7 @@ internal static class TimberSourceLineCreationService
         IReadOnlyList<TimberSourceLineCreationRequest> requests,
         TimberElementDefaultProfile defaultProfile,
         ElementLayerProfile layerProfile,
-        Action<Line, Transaction, int>? writeSecondaryMetadata = null)
+        Func<Line, Transaction, int, IReadOnlyList<TypedValue>?>? writeSecondaryMetadata = null)
     {
         ArgumentNullException.ThrowIfNull(database);
         ArgumentNullException.ThrowIfNull(transaction);
@@ -36,19 +36,61 @@ internal static class TimberSourceLineCreationService
         var metadataStore = new AutoCadTimberElementMetadataStore(transaction);
         var layerService = new AutoCadTimberLayerService(database, transaction, editor);
         var createdIds = new List<ObjectId>(requests.Count);
+
+        // For Generated timber, pre-compute the final ElementId before the single atomic
+        // XData assignment so the SynchronizeElementIds pass (which runs over the whole
+        // drawing) finds no change and therefore performs no second Entity.XData write.
+        var roundingStepMm = defaultProfile.GetCuttingLengthRoundingStepMm();
+        IReadOnlyList<string>? finalElementIds = null;
+        if (writeSecondaryMetadata is not null)
+        {
+            var newSnapshots = requests
+                .Select(request => new TimberElementSnapshot(
+                    request.Data,
+                    request.Start.DistanceTo(request.End)))
+                .ToList();
+            finalElementIds = TimberElementItemIdentityService.ComputeFinalElementIds(
+                database,
+                transaction,
+                metadataStore,
+                newSnapshots,
+                roundingStepMm);
+        }
+
         for (var index = 0; index < requests.Count; index++)
         {
             var request = requests[index];
+            var effectiveData = finalElementIds is not null
+                ? request.Data with { ElementId = finalElementIds[index] }
+                : request.Data;
             var line = new Line(request.Start, request.End);
             var id = modelSpace.AppendEntity(line);
-            transaction.AddNewlyCreatedDBObject(line, true);
-            metadataStore.Write(line, request.Data);
+            var secondarySection = writeSecondaryMetadata?.Invoke(line, transaction, index);
+            if (secondarySection is null || secondarySection.Count == 0)
+            {
+                // Ordinary (non-Generated) timber: unchanged order.
+                transaction.AddNewlyCreatedDBObject(line, true);
+                metadataStore.Write(line, effectiveData);
+            }
+            else
+            {
+                // Generated timber: AppendEntity -> WriteAtomic -> AddNewlyCreatedDBObject
+                // (probe timing T2). Writing XData BEFORE AddNewlyCreatedDBObject is the
+                // timing proven to survive native STRETCH -> U -> REDO; the T3 order
+                // (AddNewlyCreatedDBObject then XData) dropped the secondary RegApp.
+                RoofGeneratedTimberStore.WriteAtomic(
+                    line,
+                    transaction,
+                    effectiveData,
+                    secondarySection);
+                transaction.AddNewlyCreatedDBObject(line, true);
+            }
+
             layerService.ApplyLayerForTimberType(
                 line,
-                request.Data.ElementType,
+                effectiveData.ElementType,
                 layerProfile,
                 CadLayerUpdateMode.PreserveExisting);
-            writeSecondaryMetadata?.Invoke(line, transaction, index);
             createdIds.Add(id);
         }
 
@@ -58,7 +100,10 @@ internal static class TimberSourceLineCreationService
             transaction,
             metadataStore,
             createdIds,
-            defaultProfile.GetCuttingLengthRoundingStepMm());
+            roundingStepMm);
+#if DEBUG
+        RoofGeneratedPostAtomicWriteDiag.EmitSummary(createdIds.Count);
+#endif
         return createdIds.ToDictionary(
             id => id,
             id => synchronizedDataById[id]);

@@ -34,7 +34,7 @@
   <data name="Report_TotalFormat" xml:space="preserve"><value>Total: {0} elements</value></data>
   <data name="Message_DialogTitle" xml:space="preserve"><value>ACAD KROVY</value></data>
   <data name="Message_PluginLoaded" xml:space="preserve"><value>&#xA;ACAD KROVY {0} loaded. The ACAD KROVY tab will be added to the Ribbon. Enter AK_HELP for the command list or AK_TOOLBAR for the classic toolbar with small icons.</value></data>
-  <data name="Help_CommandOverview" xml:space="preserve"><value>&#xA;ACAD KROVY {0}&#xA;&#xA;ROOF-FRAMING ELEMENTS&#xA;  AK_KROKVA      – quickly assigns the Rafter type&#xA;  AK_POMURNICA   – quickly assigns the Wall plate type&#xA;  AK_VAZNICA     – quickly assigns the Purlin type&#xA;  AK_STLPIK      – quickly assigns the Post type&#xA;  AK_KLIESTINA   – quickly assigns the Collar tie type&#xA;  AK_VZPERA      – quickly assigns the Brace type&#xA;  AK_VAZNYTRAM   – quickly assigns the Tie beam type&#xA;&#xA;DATA AND SCHEDULES&#xA;  AK_ASSIGN      – assigns data to selected lines or polylines&#xA;  AK_EDIT        – batch-edits the checked values&#xA;  AK_FLIPSLOPE   – reverses the slope direction of an element or its annotation&#xA;  AK_INSPECT     – displays the data of one element&#xA;  AK_REPORT      – inserts a table for selected elements&#xA;  AK_REPORTALL   – inserts a table for all elements&#xA;  AK_RECALC      – checks the calculations of all elements&#xA;  AK_RENUMBER   – explicitly renumbers all items by cutting length&#xA;  AK_RIBBON      – displays or refreshes the ACAD KROVY Ribbon tab&#xA;  AK_TOOLBAR     – displays or hides the classic floating toolbar with small icons&#xA;  AK_SETTINGS    – configures layers and colors for each roof-framing element type&#xA;  AK_APPLYLAYERS – applies the current layer settings to the drawing&#xA;&#xA;DRAWING LABELS&#xA;  AK_LABELS      – creates or refreshes labels for all roof-framing elements&#xA;  AK_LABELSELECTED – creates or refreshes labels for selected roof-framing elements&#xA;  AK_LABELSHOW   – displays the KROV_POPIS layer&#xA;  AK_LABELHIDE   – hides the KROV_POPIS layer&#xA;&#xA;Tip: labels refresh automatically after assignment, editing, or geometry changes. Use AK_LABELS and AK_RECALC for a manual check.</value></data>
+  <data name="Help_CommandOverview" xml:space="preserve"><value>&#xA;ACAD KROVY {0}&#xA;&#xA;ROOF-FRAMING ELEMENTS&#xA;  AK_KROKVA      – quickly assigns the Rafter type&#xA;  AK_POMURNICA   – quickly assigns the Wall plate type&#xA;  AK_VAZNICA     – quickly assigns the Purlin type&#xA;  AK_STLPIK      – quickly assigns the Post type&#xA;  AK_KLIESTINA   – quickly assigns the Collar tie type&#xA;  AK_VZPERA      – quickly assigns the Brace type&#xA;  AK_VAZNYTRAM   – quickly assigns the Tie beam type&#xA;&#xA;DATA AND SCHEDULES&#xA;  AK_ASSIGN      – assigns data to selected lines or polylines&#xA;  AK_EDIT        – batch-edits the checked values&#xA;  AK_FLIPSLOPE   – reverses the slope direction of an element or its annotation&#xA;  AK_INSPECT     – displays the data of one element&#xA;  AK_REPORT      – inserts a table for selected elements&#xA;  AK_REPORTALL   – inserts a table for all elements&#xA;  AK_RECALC      – checks the calculations of all elements&#xA;  AK_RENUMBER   – explicitly renumbers all items by cutting length&#xA;  AK_RIBBON      – displays or refreshes the ACAD KROVY Ribbon tab&#xA;  AK_TOOLBAR     – displays or hides the classic floating toolbar with small icons&#xA;  AK_SETTINGS    – configures layers and colors for each roof-framing element type&#xA;  AK_APPLYLAYERS – applies the current layer settings to the drawing&#xA;&#xA;DRAWING LABELS&#xA;  AK_LABELS      – creates or refreshes labels for all roof-framing elements&#xA;  AK_LABELSELECTED – creates or refreshes labels for selected roof-framing elements&#xA;  AK_LABELSHOW   – displays the KROV_POPIS layer&#xA;  AK_LABELHIDE   – hides the KROV_POPIS layer&#xA;&#xA;ROOF&#xA;  AK_ROOF            – creates a gable roof&#xA;  AK_ROOF_RAFTERS    – creates automatic rafters&#xA;  AK_ROOF_UNLOCK     – unlocks manual edits of generated timber&#xA;  AK_ROOF_LOCK       – locks generated-timber protection&#xA;  AK_ROOF_RESET_EDITS – resets manual edits to canonical geometry&#xA;&#xA;Tip: labels refresh automatically after assignment, editing, or geometry changes. Use AK_LABELS and AK_RECALC for a manual check.</value></data>
   <data name="Command_Ribbon_Ready" xml:space="preserve"><value>&#xA;ACAD KROVY: the Ribbon tab is ready.</value></data>
   <data name="Command_Ribbon_Pending" xml:space="preserve"><value>&#xA;ACAD KROVY: the Ribbon is not ready yet; the tab will be added shortly.</value></data>
   <data name="Command_Toolbar_Shown" xml:space="preserve"><value>&#xA;ACAD KROVY: the classic icon toolbar is visible.</value></data>
@@ -555,6 +555,8 @@
   <data name="Command_Roof_PersistedStale" xml:space="preserve"><value>&#xA;The roof footprint changed after it was saved. The saved definition was not used.</value></data>
   <data name="Command_Roof_UnsupportedStretchNotificationTitle" xml:space="preserve"><value>The roof shape is no longer supported.</value></data>
   <data name="Command_Roof_UnsupportedStretchNotificationBody" xml:space="preserve"><value>Undo the last change with Undo (U).</value></data>
+  <data name="Command_Roof_UnsupportedStretchRecoveredNotificationTitle" xml:space="preserve"><value>Unsupported roof change was restored.</value></data>
+  <data name="Command_Roof_UnsupportedStretchRecoveredNotificationBody" xml:space="preserve"><value>The roof outline must remain rectangular.</value></data>
   <data name="Command_Roof_DisplayTamperNotificationTitle" xml:space="preserve"><value>Roof display cannot be edited on its own.</value></data>
   <data name="Command_Roof_DisplayTamperNotificationBody" xml:space="preserve"><value>Edit the source roof footprint.</value></data>
   <data name="Command_Roof_PersistFailed" xml:space="preserve"><value>&#xA;The roof definition could not be saved.</value></data>
@@ -623,4 +625,29 @@
   <data name="RoofRafterWindow_InvalidSpacing" xml:space="preserve"><value>Maximum spacing must be a finite number greater than 0.</value></data>
   <data name="RoofRafterWindow_InvalidMaterial" xml:space="preserve"><value>Select a valid material.</value></data>
   <data name="RoofRafterWindow_InvalidRoof" xml:space="preserve"><value>The rafter layout cannot be calculated for this roof.</value></data>
+  <data name="Command_RoofUnlock_SelectPrompt" xml:space="preserve"><value>&#xA;Select a roof to unlock: </value></data>
+  <data name="Command_RoofUnlock_Unlocked" xml:space="preserve"><value>&#xA;The roof is unlocked. Generated timber can be edited with supported commands.</value></data>
+  <data name="Command_RoofUnlock_AlreadyUnlocked" xml:space="preserve"><value>&#xA;The roof is already unlocked.</value></data>
+  <data name="Command_RoofUnlock_UnlockedNotificationTitle" xml:space="preserve"><value>Roof unlocked</value></data>
+  <data name="Command_RoofUnlock_UnlockedNotificationBody" xml:space="preserve"><value>Generated timber now accepts supported manual edits.</value></data>
+  <data name="Command_RoofLock_Locked" xml:space="preserve"><value>&#xA;The roof is locked. Accepted manual edits were kept.</value></data>
+  <data name="Command_RoofLock_AlreadyLocked" xml:space="preserve"><value>&#xA;The roof is already locked.</value></data>
+  <data name="Command_RoofResetEdits_Reset" xml:space="preserve"><value>&#xA;Manual generated-timber edits were reset.</value></data>
+  <data name="Command_RoofResetEdits_NoEdits" xml:space="preserve"><value>&#xA;The selected roof has no manual edits.</value></data>
+  <data name="Command_Roof_LockedNotificationTitle" xml:space="preserve"><value>The roof is locked</value></data>
+  <data name="Command_Roof_LockedNotificationBody" xml:space="preserve"><value>Unlock it before making manual edits.</value></data>
+  <data name="Command_Roof_UnsupportedMemberEditNotificationTitle" xml:space="preserve"><value>The member edit was not supported.</value></data>
+  <data name="Command_Roof_UnsupportedMemberEditNotificationBody" xml:space="preserve"><value>The member must remain in the roof plane.</value></data>
+  <data name="Dialog_Inspect_RoofEditState" xml:space="preserve"><value>Edit state</value></data>
+  <data name="Dialog_Inspect_RoofEditStateLocked" xml:space="preserve"><value>Locked</value></data>
+  <data name="Dialog_Inspect_RoofEditStateUnlocked" xml:space="preserve"><value>Unlocked</value></data>
+  <data name="Dialog_Inspect_RoofManualOverrideCount" xml:space="preserve"><value>Manual edits</value></data>
+  <data name="Dialog_Inspect_RoofSuppressedCount" xml:space="preserve"><value>Suppressed members</value></data>
+  <data name="Dialog_Inspect_GeneratedByRoof" xml:space="preserve"><value>Generated by roof</value></data>
+  <data name="Dialog_Inspect_ManualOverride" xml:space="preserve"><value>Manual override</value></data>
+  <data name="Dialog_Inspect_OverrideAlong" xml:space="preserve"><value>Along-member offset</value></data>
+  <data name="Dialog_Inspect_OverrideLateral" xml:space="preserve"><value>Lateral offset</value></data>
+  <data name="Dialog_Inspect_OverrideRotation" xml:space="preserve"><value>Rotation</value></data>
+  <data name="Dialog_Inspect_OverrideStart" xml:space="preserve"><value>Start offset</value></data>
+  <data name="Dialog_Inspect_OverrideEnd" xml:space="preserve"><value>End offset</value></data>
 </root>

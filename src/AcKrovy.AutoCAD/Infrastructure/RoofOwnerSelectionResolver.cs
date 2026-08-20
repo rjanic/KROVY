@@ -24,9 +24,41 @@ internal static class RoofOwnerSelectionResolver
             return RoofOwnerSelectionResult.Failure(RoofOwnerSelectionError.UnrelatedObject);
         }
 
+        if (selected is Polyline polyline)
+        {
+            if (RoofDefinitionStore.Read(polyline).Data is not null)
+            {
+                return RoofOwnerSelectionResult.Success(selectedId, selectedThroughDisplayChild: false);
+            }
+        }
+
+        if (TryResolveUnlockIndicatorOwner(
+                database,
+                transaction,
+                selected,
+                out var indicatorOwnerId))
+        {
+            return RoofOwnerSelectionResult.Success(indicatorOwnerId, selectedThroughDisplayChild: true);
+        }
+
         if (selected is Polyline)
         {
             return RoofOwnerSelectionResult.Success(selectedId, selectedThroughDisplayChild: false);
+        }
+
+        if (TryResolveGeneratedOrAnnotationOwner(
+                database,
+                transaction,
+                selected,
+                out var generatedOwnerId))
+        {
+#if DEBUG
+            RoofDisplayGroupSelectabilityService.WriteGroupMembershipDiagnostics(
+                database,
+                transaction,
+                generatedOwnerId);
+#endif
+            return RoofOwnerSelectionResult.Success(generatedOwnerId, selectedThroughDisplayChild: true);
         }
 
         var display = RoofDisplayStore.Read(selected);
@@ -100,6 +132,162 @@ internal static class RoofOwnerSelectionResolver
         }
 
         return RoofOwnerSelectionResult.Success(ownerId, selectedThroughDisplayChild: true);
+    }
+
+    internal static bool TryResolveGeneratedOrAnnotationOwner(
+        Database database,
+        Transaction transaction,
+        Entity selected,
+        out ObjectId ownerId)
+    {
+        ownerId = ObjectId.Null;
+        var attached = RoofAttachedManualTimberStore.Read(selected);
+        if (attached.Data is not null &&
+            TryResolveHandleToPolyline(
+                database,
+                transaction,
+                attached.Data.RoofOwnerReference,
+                out ownerId,
+                out _))
+        {
+            return true;
+        }
+
+        var timber = RoofGeneratedTimberStore.Read(selected);
+        if (timber.Data is not null &&
+            TryResolveHandleToPolyline(
+                database,
+                transaction,
+                timber.Data.RoofOwnerReference,
+                out ownerId,
+                out _))
+        {
+            return true;
+        }
+
+        if (!TryReadAnnotationSourceHandle(selected, out var sourceHandle) ||
+            !TryResolveHandleToEntity(database, transaction, sourceHandle, out var sourceEntity) ||
+            sourceEntity is null)
+        {
+            return false;
+        }
+
+        var sourceAttached = RoofAttachedManualTimberStore.Read(sourceEntity);
+        if (sourceAttached.Data is not null &&
+            TryResolveHandleToPolyline(
+                database,
+                transaction,
+                sourceAttached.Data.RoofOwnerReference,
+                out ownerId,
+                out _))
+        {
+            return true;
+        }
+
+        var sourceTimber = RoofGeneratedTimberStore.Read(sourceEntity);
+        return sourceTimber.Data is not null &&
+               TryResolveHandleToPolyline(
+                   database,
+                   transaction,
+                   sourceTimber.Data.RoofOwnerReference,
+                   out ownerId,
+                   out _);
+    }
+
+    private static bool TryResolveUnlockIndicatorOwner(
+        Database database,
+        Transaction transaction,
+        Entity selected,
+        out ObjectId ownerId)
+    {
+        ownerId = ObjectId.Null;
+        var indicatorOwner = RoofUnlockIndicatorStore.TryReadOwnerReference(selected);
+        return !string.IsNullOrWhiteSpace(indicatorOwner) &&
+               TryResolveHandleToPolyline(
+                   database,
+                   transaction,
+                   indicatorOwner,
+                   out ownerId,
+                   out _) &&
+               AutoCadObjectIdAccess.TryGetObject<Polyline>(
+                   transaction,
+                   ownerId,
+                   OpenMode.ForRead,
+                   out var ownerPolyline,
+                   database) &&
+               ownerPolyline is not null &&
+               RoofDefinitionStore.Read(ownerPolyline).Data is not null;
+    }
+
+    private static bool TryReadAnnotationSourceHandle(Entity entity, out string sourceHandle)
+    {
+        sourceHandle = string.Empty;
+        if (ElementLabelStore.TryRead(entity, out var label) &&
+            label is not null &&
+            !string.IsNullOrWhiteSpace(label.SourceHandle))
+        {
+            sourceHandle = label.SourceHandle;
+            return true;
+        }
+
+        if (SlopeArrowStore.TryRead(entity, out var arrow) &&
+            arrow is not null &&
+            !string.IsNullOrWhiteSpace(arrow.SourceHandle))
+        {
+            sourceHandle = arrow.SourceHandle;
+            return true;
+        }
+
+        if (SlopeAngleTextStore.TryRead(entity, out var angle) &&
+            angle is not null &&
+            !string.IsNullOrWhiteSpace(angle.SourceHandle))
+        {
+            sourceHandle = angle.SourceHandle;
+            return true;
+        }
+
+        if (PostFootprintPerpendicularAnnotationStore.TryRead(entity, out var post) &&
+            post is not null &&
+            !string.IsNullOrWhiteSpace(post.SourceHandle))
+        {
+            sourceHandle = post.SourceHandle;
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool TryResolveHandleToEntity(
+        Database database,
+        Transaction transaction,
+        string handleText,
+        out Entity? entity)
+    {
+        entity = null;
+        if (!long.TryParse(
+                handleText,
+                NumberStyles.AllowHexSpecifier,
+                CultureInfo.InvariantCulture,
+                out var handleValue) ||
+            handleValue <= 0)
+        {
+            return false;
+        }
+
+        try
+        {
+            var id = database.GetObjectId(false, new Handle(handleValue), 0);
+            return AutoCadObjectIdAccess.TryGetObject(
+                transaction,
+                id,
+                OpenMode.ForRead,
+                out entity,
+                database) && entity is not null;
+        }
+        catch (Autodesk.AutoCAD.Runtime.Exception)
+        {
+            return false;
+        }
     }
 
     private static bool TryResolveHandleToPolyline(

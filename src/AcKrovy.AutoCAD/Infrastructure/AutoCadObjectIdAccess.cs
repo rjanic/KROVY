@@ -44,4 +44,41 @@ internal static class AutoCadObjectIdAccess
             return false;
         }
     }
+
+    public static bool TryGetObjectAllowErased<TObject>(
+        Transaction transaction,
+        ObjectId id,
+        OpenMode openMode,
+        out TObject? value,
+        Database? expectedDatabase = null)
+        where TObject : DBObject
+    {
+        ArgumentNullException.ThrowIfNull(transaction);
+        value = null;
+        if (id.IsNull || !id.IsValid)
+        {
+            return false;
+        }
+
+        if (expectedDatabase is not null &&
+            !AutoCadDatabaseIdentity.IsSame(expectedDatabase, id))
+        {
+            return false;
+        }
+
+        try
+        {
+            if (transaction.GetObject(id, openMode, true) is not TObject candidate)
+            {
+                return false;
+            }
+
+            value = candidate;
+            return true;
+        }
+        catch (AcadException)
+        {
+            return false;
+        }
+    }
 }

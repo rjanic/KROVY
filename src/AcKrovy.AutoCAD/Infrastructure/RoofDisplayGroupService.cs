@@ -9,6 +9,7 @@ internal static class RoofDisplayGroupService
 {
     internal const string GroupNamePrefix = "AK_ROOF_";
     internal const int ExpectedMemberCount = 8;
+    internal const int ExpectedStructuralDisplayChildCount = 7;
 
     public static RoofDisplayGroupInspection Inspect(
         Database database,
@@ -18,11 +19,23 @@ internal static class RoofDisplayGroupService
     {
         ArgumentNullException.ThrowIfNull(database);
         ArgumentNullException.ThrowIfNull(transaction);
-        if (childIds.Count != ExpectedMemberCount - 1)
+        if (childIds.Count != ExpectedStructuralDisplayChildCount)
         {
             return RoofDisplayGroupInspection.MissingOrDamaged;
         }
 
+        if (!RoofAssemblyGroupMemberCollector.TryCollect(
+                database,
+                transaction,
+                ownerId,
+                childIds,
+                out var collected) ||
+            collected is null)
+        {
+            return RoofDisplayGroupInspection.MissingOrDamaged;
+        }
+
+        var expected = new HashSet<ObjectId>(collected.MemberIds);
         if (!TryGetExistingGroupDictionary(
                 database,
                 transaction,
@@ -33,21 +46,24 @@ internal static class RoofDisplayGroupService
             return RoofDisplayGroupInspection.MissingOrDamaged;
         }
 
-        var name = BuildGroupName(transaction, ownerId);
+        var name = BuildCanonicalGroupName(transaction, ownerId);
         if (!dictionary.Contains(name) ||
             transaction.GetObject(dictionary.GetAt(name), OpenMode.ForRead) is not Group group)
         {
             return RoofDisplayGroupInspection.MissingOrDamaged;
         }
 
-        var expected = new HashSet<ObjectId>(childIds) { ownerId };
         var actual = group.GetAllEntityIds();
-        return group.Selectable &&
-               actual.Length == ExpectedMemberCount &&
-               actual.Distinct().Count() == ExpectedMemberCount &&
-               expected.SetEquals(actual)
+        var editState = ResolveEditState(database, transaction, ownerId);
+        var expectedSelectable = RoofDisplayGroupSelectabilityRules.ShouldEnableGroupSelection(editState);
+        var membershipCurrent =
+            actual.Length == expected.Count &&
+            actual.Distinct().Count() == expected.Count &&
+            expected.SetEquals(actual);
+        return membershipCurrent &&
+               group.Selectable == expectedSelectable
             ? new RoofDisplayGroupInspection(true, name)
-            : new RoofDisplayGroupInspection(false, name);
+            : new RoofDisplayGroupInspection(membershipCurrent, name);
     }
 
     public static void EnsureGroup(
@@ -58,41 +74,242 @@ internal static class RoofDisplayGroupService
     {
         ArgumentNullException.ThrowIfNull(database);
         ArgumentNullException.ThrowIfNull(transaction);
-        if (childIds.Count != ExpectedMemberCount - 1 ||
-            childIds.Distinct().Count() != ExpectedMemberCount - 1 ||
+        if (childIds.Count != ExpectedStructuralDisplayChildCount ||
+            childIds.Distinct().Count() != ExpectedStructuralDisplayChildCount ||
             childIds.Contains(ownerId))
         {
             throw new ArgumentException("A roof group requires one owner and seven unique display children.", nameof(childIds));
         }
 
+        if (!RoofAssemblyGroupMemberCollector.TryCollect(
+                database,
+                transaction,
+                ownerId,
+                childIds,
+                out var collected) ||
+            collected is null)
+        {
+            throw new InvalidOperationException("Roof assembly group membership could not be resolved.");
+        }
+
+        var memberIds = collected.MemberIds;
+        var editState = ResolveEditState(database, transaction, ownerId);
+        var groupSelectable = RoofDisplayGroupSelectabilityRules.ShouldEnableGroupSelection(editState);
         var dictionary = (DBDictionary)transaction.GetObject(
             database.GroupDictionaryId,
             OpenMode.ForRead);
-        var name = BuildGroupName(transaction, ownerId);
+        var name = BuildCanonicalGroupName(transaction, ownerId);
         Group group;
         if (dictionary.Contains(name))
         {
             group = (Group)transaction.GetObject(dictionary.GetAt(name), OpenMode.ForWrite);
-            group.Clear();
-            group.Selectable = true;
         }
         else
         {
             dictionary.UpgradeOpen();
-            group = new Group(string.Empty, selectable: true);
+            group = new Group(string.Empty, selectable: groupSelectable);
             dictionary.SetAt(name, group);
             transaction.AddNewlyCreatedDBObject(group, true);
         }
 
-        group.Append(ownerId);
-        foreach (var childId in childIds)
+        if (group.Selectable != groupSelectable)
         {
-            group.Append(childId);
+            group.Selectable = groupSelectable;
         }
 
-        // Native GROUP COPY often leaves a second AutoCAD group that still
-        // contains the same semantic source. Canonical membership must be unique.
-        DissociateOwnerFromForeignGroups(database, transaction, ownerId, name);
+        // Diff-based membership sync. Never Clear() the canonical group during the
+        // resize lifecycle: a full Clear records the entire prior membership for undo
+        // and can re-add erased ObjectIds when native U reverses the transaction
+        // (eInvalidInput). Remove only stale members, append only new ones.
+        var expected = new HashSet<ObjectId>(memberIds);
+        var current = new HashSet<ObjectId>(group.GetAllEntityIds());
+        var toRemove = current.Where(id => !expected.Contains(id)).ToList();
+        var toAdd = expected.Where(id => !current.Contains(id)).ToList();
+
+#if DEBUG
+        var editor = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument?.Editor;
+        var groupObjectId = group.ObjectId.Handle.ToString();
+#endif
+        foreach (var removeId in toRemove)
+        {
+            group.Remove(removeId);
+#if DEBUG
+            RoofGroupMutationDiag.Write(editor, name, "remove", groupObjectId, removeId.Handle.ToString(), "ensure-group");
+#endif
+        }
+
+        foreach (var addId in toAdd)
+        {
+            group.Append(addId);
+#if DEBUG
+            RoofGroupMutationDiag.Write(editor, name, "append", groupObjectId, addId.Handle.ToString(), "ensure-group");
+#endif
+        }
+
+        // Native GROUP COPY and prior assembly syncs can leave selectable duplicate
+        // groups containing the same roof members. Canonical membership must be unique.
+        DissociateOwnerFromForeignGroups(
+            database,
+            transaction,
+            ownerId,
+            name,
+            new HashSet<ObjectId>(memberIds));
+
+#if DEBUG
+        VerifyGroupUndoInvariant(database, transaction, group, name, editor);
+        if (AutoCadObjectIdAccess.TryGetObject<Entity>(
+                transaction,
+                ownerId,
+                OpenMode.ForRead,
+                out var ownerEntity,
+                database) &&
+            ownerEntity is not null)
+        {
+            RoofAssemblyGroupDiag.WriteSync(
+                editor,
+                ownerEntity.Handle.ToString(),
+                collected.GeneratedCount,
+                collected.AttachedManualCount,
+                collected.AnnotationCount,
+                memberIds.Count,
+                "ok");
+        }
+#endif
+    }
+
+#if DEBUG
+    private static void VerifyGroupUndoInvariant(
+        Database database,
+        Transaction transaction,
+        Group group,
+        string groupName,
+        Autodesk.AutoCAD.EditorInput.Editor? editor)
+    {
+        var memberIds = group.GetAllEntityIds();
+        var erased = 0;
+        var invalid = 0;
+        var wrongDatabase = 0;
+        foreach (var memberId in memberIds)
+        {
+            if (memberId.IsNull || memberId.IsErased)
+            {
+                erased++;
+                continue;
+            }
+
+            if (memberId.Database != database)
+            {
+                wrongDatabase++;
+                continue;
+            }
+
+            if (!AutoCadObjectIdAccess.TryGetObject<Entity>(
+                    transaction,
+                    memberId,
+                    OpenMode.ForRead,
+                    out var member,
+                    database) ||
+                member is null ||
+                member.IsErased)
+            {
+                invalid++;
+            }
+        }
+
+        RoofGroupUndoInvariantDiag.Write(
+            editor,
+            groupName,
+            memberIds.Length,
+            invalid,
+            erased,
+            wrongDatabase,
+            invalid + erased + wrongDatabase == 0 ? "ok" : "failure");
+    }
+#endif
+
+    /// <summary>
+    /// Removes timber members and their source-handle-bound annotations from the
+    /// canonical roof GROUP before they are erased. Erasing a still-grouped entity and
+    /// then clearing/rebuilding the GROUP in the same transaction leaves the inverse
+    /// undo record referencing an erased ObjectId (native U → eInvalidInput). Detaching
+    /// first keeps the undo order valid: un-erase runs before group re-add.
+    /// Returns the number of timber members actually detached.
+    /// </summary>
+    public static int DetachMembersBeforeErase(
+        Database database,
+        Transaction transaction,
+        ObjectId ownerId,
+        IReadOnlyCollection<ObjectId> timberIds)
+    {
+        if (ownerId.IsNull || timberIds is null || timberIds.Count == 0)
+        {
+            return 0;
+        }
+
+        if (!TryOpenCanonicalGroup(database, transaction, ownerId, OpenMode.ForWrite, out var group) ||
+            group is null)
+        {
+            return 0;
+        }
+
+        var detachedTimber = 0;
+        var handles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var currentMembers = new HashSet<ObjectId>(group.GetAllEntityIds());
+#if DEBUG
+        var editor = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument?.Editor;
+        var groupObjectId = group.ObjectId.Handle.ToString();
+        var ownerName = ownerId.Handle.ToString();
+#endif
+        foreach (var timberId in timberIds)
+        {
+            if (timberId.IsNull || timberId == ownerId)
+            {
+                continue;
+            }
+
+            handles.Add(timberId.Handle.ToString());
+            if (currentMembers.Contains(timberId))
+            {
+                group.Remove(timberId);
+                detachedTimber++;
+#if DEBUG
+                RoofGroupMutationDiag.Write(editor, ownerName, "remove", groupObjectId, timberId.Handle.ToString(), "detach-before-erase");
+#endif
+            }
+        }
+
+        if (handles.Count == 0)
+        {
+            return detachedTimber;
+        }
+
+        foreach (var memberId in group.GetAllEntityIds())
+        {
+            if (memberId == ownerId)
+            {
+                continue;
+            }
+
+            if (!AutoCadObjectIdAccess.TryGetObject<Entity>(
+                    transaction,
+                    memberId,
+                    OpenMode.ForRead,
+                    out var member,
+                    database) ||
+                member is null ||
+                !RoofOwnedAnnotationSourceResolver.TryResolveSourceHandle(member, out var sourceHandle) ||
+                !handles.Contains(sourceHandle))
+            {
+                continue;
+            }
+
+            group.Remove(memberId);
+#if DEBUG
+            RoofGroupMutationDiag.Write(editor, ownerName, "remove", groupObjectId, memberId.Handle.ToString(), "detach-before-erase");
+#endif
+        }
+
+        return detachedTimber;
     }
 
     /// <summary>
@@ -104,7 +321,8 @@ internal static class RoofDisplayGroupService
         Database database,
         Transaction transaction,
         ObjectId ownerId,
-        string canonicalGroupName)
+        string canonicalGroupName,
+        IReadOnlySet<ObjectId>? canonicalMemberIds = null)
     {
         ArgumentNullException.ThrowIfNull(database);
         ArgumentNullException.ThrowIfNull(transaction);
@@ -140,19 +358,23 @@ internal static class RoofDisplayGroupService
             }
 
             var members = foreign.GetAllEntityIds();
-            if (!members.Contains(ownerId))
+            var overlapsCanonicalMembers = canonicalMemberIds is not null &&
+                                           members.Any(canonicalMemberIds.Contains);
+            if (!members.Contains(ownerId) && !overlapsCanonicalMembers)
             {
                 continue;
             }
 
-            foreign.UpgradeOpen();
-            if (IsRoofOnlyGroupTopology(database, transaction, ownerId, members))
+            if (IsKrovyOwnedDuplicateRoofGroup(entry.Key, members, canonicalMemberIds) ||
+                IsRoofOnlyGroupTopology(database, transaction, ownerId, members))
             {
+                foreign.UpgradeOpen();
                 foreign.Clear();
                 dissolveNames.Add(entry.Key);
             }
-            else
+            else if (members.Contains(ownerId))
             {
+                foreign.UpgradeOpen();
                 foreign.Remove(ownerId);
             }
         }
@@ -164,6 +386,153 @@ internal static class RoofDisplayGroupService
                 dictionary.Remove(dissolveName);
             }
         }
+    }
+
+    public static int PruneStaleRoofGroupsContainingCanonicalMembers(
+        Database database,
+        Transaction transaction,
+        ObjectId ownerId)
+    {
+        if (ownerId.IsNull ||
+            !TryOpenCanonicalGroup(
+                database,
+                transaction,
+                ownerId,
+                OpenMode.ForRead,
+                out var canonical) ||
+            canonical is null)
+        {
+            return 0;
+        }
+
+        var canonicalName = BuildCanonicalGroupName(transaction, ownerId);
+        var canonicalMembers = canonical.GetAllEntityIds().ToHashSet();
+        return PruneStaleRoofGroupsContainingMembers(
+            database,
+            transaction,
+            canonicalName,
+            canonicalMembers);
+    }
+
+    public static IReadOnlyList<RoofGroupMembershipObservation> CollectGroupsContainingCanonicalMembers(
+        Database database,
+        Transaction transaction,
+        ObjectId ownerId)
+    {
+        if (ownerId.IsNull ||
+            !TryOpenCanonicalGroup(
+                database,
+                transaction,
+                ownerId,
+                OpenMode.ForRead,
+                out var canonical) ||
+            canonical is null ||
+            !TryGetExistingGroupDictionary(
+                database,
+                transaction,
+                OpenMode.ForRead,
+                out var dictionary) ||
+            dictionary is null)
+        {
+            return Array.Empty<RoofGroupMembershipObservation>();
+        }
+
+        var canonicalName = BuildCanonicalGroupName(transaction, ownerId);
+        var canonicalMembers = canonical.GetAllEntityIds().ToHashSet();
+        var observations = new List<RoofGroupMembershipObservation>();
+        foreach (DBDictionaryEntry entry in dictionary)
+        {
+            if (transaction.GetObject(entry.Value, OpenMode.ForRead) is not Group group)
+            {
+                continue;
+            }
+
+            var members = group.GetAllEntityIds();
+            if (!members.Any(canonicalMembers.Contains))
+            {
+                continue;
+            }
+
+            var isCanonical = string.Equals(
+                entry.Key,
+                canonicalName,
+                StringComparison.OrdinalIgnoreCase);
+            observations.Add(new RoofGroupMembershipObservation(
+                entry.Key,
+                entry.Value.Handle.ToString(),
+                group.Selectable,
+                members.Length,
+                isCanonical,
+                !isCanonical && IsKrovyOwnedDuplicateRoofGroup(entry.Key, members, canonicalMembers)));
+        }
+
+        return observations;
+    }
+
+    private static int PruneStaleRoofGroupsContainingMembers(
+        Database database,
+        Transaction transaction,
+        string canonicalGroupName,
+        IReadOnlySet<ObjectId> canonicalMemberIds)
+    {
+        if (!TryGetExistingGroupDictionary(
+                database,
+                transaction,
+                OpenMode.ForWrite,
+                out var dictionary) ||
+            dictionary is null)
+        {
+            return 0;
+        }
+
+        var dissolveNames = new List<string>();
+        foreach (DBDictionaryEntry entry in dictionary)
+        {
+            if (string.Equals(
+                    entry.Key,
+                    canonicalGroupName,
+                    StringComparison.OrdinalIgnoreCase) ||
+                transaction.GetObject(entry.Value, OpenMode.ForRead) is not Group group)
+            {
+                continue;
+            }
+
+            var members = group.GetAllEntityIds();
+            if (!members.Any(canonicalMemberIds.Contains) ||
+                !IsKrovyOwnedDuplicateRoofGroup(entry.Key, members, canonicalMemberIds))
+            {
+                continue;
+            }
+
+            group.UpgradeOpen();
+            group.Clear();
+            dissolveNames.Add(entry.Key);
+        }
+
+        foreach (var dissolveName in dissolveNames)
+        {
+            if (dictionary.Contains(dissolveName))
+            {
+                dictionary.Remove(dissolveName);
+            }
+        }
+
+        return dissolveNames.Count;
+    }
+
+    private static bool IsKrovyOwnedDuplicateRoofGroup(
+        string groupName,
+        IReadOnlyList<ObjectId> members,
+        IReadOnlySet<ObjectId>? canonicalMemberIds)
+    {
+        if (groupName.StartsWith(GroupNamePrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return canonicalMemberIds is not null &&
+               members.Count >= ExpectedStructuralDisplayChildCount &&
+               members.All(canonicalMemberIds.Contains);
     }
 
     private static bool IsRoofOnlyGroupTopology(
@@ -244,15 +613,61 @@ internal static class RoofDisplayGroupService
             }
 
             groupCount++;
-            if (members.Length == ExpectedMemberCount &&
-                members.Distinct().Count() == ExpectedMemberCount &&
-                IsRoofOnlyGroupTopology(database, transaction, ownerId, members))
+            if (ContainsStructuralDisplayTopology(
+                    database,
+                    transaction,
+                    ownerId,
+                    members))
             {
                 hasExactEightMemberRoofGroup = true;
             }
         }
 
         return groupCount > 0;
+    }
+
+    /// <summary>
+    /// True when members include the roof source and seven current RoofDisplay lines.
+    /// Additional assembly members (timber, annotations) are allowed.
+    /// </summary>
+    public static bool ContainsStructuralDisplayTopology(
+        Database database,
+        Transaction transaction,
+        ObjectId ownerId,
+        IReadOnlyList<ObjectId> members)
+    {
+        if (!members.Contains(ownerId))
+        {
+            return false;
+        }
+
+        var roles = new HashSet<RoofDisplayEdgeRole>();
+        foreach (var memberId in members)
+        {
+            if (memberId == ownerId)
+            {
+                continue;
+            }
+
+            if (!AutoCadObjectIdAccess.TryGetObject<Entity>(
+                    transaction,
+                    memberId,
+                    OpenMode.ForRead,
+                    out var member,
+                    database) ||
+                member is not Line line)
+            {
+                continue;
+            }
+
+            var stored = RoofDisplayStore.Read(line);
+            if (stored.Data is null || !roles.Add(stored.Data.Role))
+            {
+                continue;
+            }
+        }
+
+        return roles.Count == ExpectedStructuralDisplayChildCount;
     }
 
     /// <summary>
@@ -586,7 +1001,59 @@ internal static class RoofDisplayGroupService
         return true;
     }
 
-    private static string BuildGroupName(Transaction transaction, ObjectId ownerId)
+    public static bool TryOpenCanonicalGroup(
+        Database database,
+        Transaction transaction,
+        ObjectId ownerId,
+        OpenMode mode,
+        out Group? group)
+    {
+        group = null;
+        if (!TryGetExistingGroupDictionary(
+                database,
+                transaction,
+                OpenMode.ForRead,
+                out var dictionary) ||
+            dictionary is null)
+        {
+            return false;
+        }
+
+        var name = BuildCanonicalGroupName(transaction, ownerId);
+        if (!dictionary.Contains(name))
+        {
+            return false;
+        }
+
+        if (transaction.GetObject(dictionary.GetAt(name), mode) is not Group resolved)
+        {
+            return false;
+        }
+
+        group = resolved;
+        return true;
+    }
+
+    private static RoofEditState ResolveEditState(
+        Database database,
+        Transaction transaction,
+        ObjectId ownerId)
+    {
+        if (!AutoCadObjectIdAccess.TryGetObject<Polyline>(
+                transaction,
+                ownerId,
+                OpenMode.ForRead,
+                out var owner,
+                database) ||
+            owner is null)
+        {
+            return RoofEditState.Locked;
+        }
+
+        return RoofDefinitionStore.Read(owner).Data?.EditState ?? RoofEditState.Locked;
+    }
+
+    public static string BuildCanonicalGroupName(Transaction transaction, ObjectId ownerId)
     {
         if (!AutoCadObjectIdAccess.TryGetObject<Entity>(
                 transaction,
@@ -605,3 +1072,62 @@ internal sealed record RoofDisplayGroupInspection(bool IsCurrent, string? GroupN
 {
     public static RoofDisplayGroupInspection MissingOrDamaged { get; } = new(false, null);
 }
+
+internal sealed record RoofGroupMembershipObservation(
+    string GroupName,
+    string GroupObjectId,
+    bool Selectable,
+    int MemberCount,
+    bool IsCanonical,
+    bool IsStaleKrovyDuplicate);
+
+#if DEBUG
+internal static class RoofGroupMutationDiag
+{
+    public static void Write(
+        Autodesk.AutoCAD.EditorInput.Editor? editor,
+        string owner,
+        string operation,
+        string groupObjectId,
+        string member,
+        string stage)
+    {
+        // Suppressed: per-entity append/remove tracing was too verbose during normal
+        // group sync. The compact ROOF_GROUP_UNDO_INVARIANT summary remains available.
+    }
+}
+
+internal static class RoofGroupUndoInvariantDiag
+{
+    public static void Write(
+        Autodesk.AutoCAD.EditorInput.Editor? editor,
+        string owner,
+        int memberCount,
+        int invalidIds,
+        int erasedIds,
+        int wrongDatabase,
+        string result)
+    {
+        if (editor is null)
+        {
+            return;
+        }
+
+        var line =
+            "ROOF_GROUP_UNDO_INVARIANT" +
+            $" owner={owner}" +
+            $" memberCount={memberCount.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
+            $" invalidIds={invalidIds.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
+            $" erasedIds={erasedIds.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
+            $" wrongDatabase={wrongDatabase.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
+            $" result={result}";
+        try
+        {
+            editor.WriteMessage("\n" + line);
+        }
+        catch
+        {
+        }
+    }
+}
+#endif

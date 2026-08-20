@@ -1,3 +1,5 @@
+using AcKrovy.Core.Services.Roofs;
+
 namespace AcKrovy.Core.Services;
 
 public static class LiveGeometryCommandRules
@@ -82,7 +84,9 @@ public static class LiveGeometryCommandRules
     /// </summary>
     public static bool RequiresGroupedUndoMark(string? globalCommandName) =>
         IsUndoGroupingSourceCommand(globalCommandName) ||
-        IsSameDwgCopyOwnershipCommand(globalCommandName);
+        IsSameDwgCopyOwnershipCommand(globalCommandName) ||
+        RoofGeneratedMemberEditCommandRules.IsMirrorCommand(globalCommandName) ||
+        RoofGeneratedMemberEditCommandRules.IsGeneratedTimberEditCommand(globalCommandName);
 
     public static bool IsCopySourcePreservingCommand(string? globalCommandName)
     {

@@ -105,6 +105,7 @@ public static class RoofDefinitionPersistence
         {
             RoofDefinitionDataSchema.LegacyAbsoluteVersion =>
                 ClassifyV1(footprint, data),
+            RoofDefinitionDataSchema.TopologyVersion or
             RoofDefinitionDataSchema.CurrentVersion =>
                 ClassifyV2(source, footprint, data),
             _ => new RoofSourceChangeClassification(

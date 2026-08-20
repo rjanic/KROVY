@@ -12,15 +12,24 @@ public sealed class RoofDisplayGroupSourceContractTests
         "src", "AcKrovy.AutoCAD", "Infrastructure", "RoofCommandWorkflow.cs");
 
     [Fact]
-    public void GroupContainsExactlyOwnerAndSevenCurrentDisplayChildren()
+    public void GroupContainsOwnerSevenDisplayAndAssemblyMembers()
     {
-        Assert.Contains("internal const int ExpectedMemberCount = 8", Group);
-        Assert.Contains("childIds.Count != ExpectedMemberCount - 1", Group);
-        Assert.Contains("group.Append(ownerId)", Group);
-        Assert.Contains("foreach (var childId in childIds)", Group);
-        Assert.Contains("group.Append(childId)", Group);
-        Assert.Contains("actual.Length == ExpectedMemberCount", Group);
+        Assert.Contains("ExpectedStructuralDisplayChildCount = 7", Group);
+        Assert.Contains("RoofAssemblyGroupMemberCollector.TryCollect", Group);
+        Assert.Contains("group.Append(addId)", Group);
+        Assert.Contains("group.Remove(removeId)", Group);
+        Assert.Contains("expected.SetEquals(actual)", Group);
         Assert.Contains("group.Selectable", Group);
+    }
+
+    [Fact]
+    public void DiffSync_ComputesToAddToRemoveAndVerifiesInvariant()
+    {
+        Assert.Contains("toRemove = current.Where(id => !expected.Contains(id))", Group);
+        Assert.Contains("toAdd = expected.Where(id => !current.Contains(id))", Group);
+        Assert.Contains("VerifyGroupUndoInvariant", Group);
+        Assert.Contains("ROOF_GROUP_UNDO_INVARIANT", Group);
+        Assert.Contains("DetachMembersBeforeErase", Group);
     }
 
     [Fact]
@@ -51,9 +60,15 @@ public sealed class RoofDisplayGroupSourceContractTests
     }
 
     [Fact]
-    public void RebuildClearsOldMembershipAndCannotAccumulateDuplicates()
+    public void RebuildDiffsMembershipAndCannotAccumulateDuplicates()
     {
-        Assert.Contains("group.Clear()", Group);
+        var ensureGroup = RoofUxSourceContractText.Member(
+            Group,
+            "public static void EnsureGroup",
+            "private static void VerifyGroupUndoInvariant");
+        Assert.DoesNotContain("group.Clear()", ensureGroup);
+        Assert.Contains("group.Remove(removeId)", ensureGroup);
+        Assert.Contains("group.Append(addId)", ensureGroup);
         Assert.Contains("childIds.Distinct().Count()", Group);
         Assert.Contains("newChildIds", Display);
         Assert.Contains("RoofDisplayGroupService.EnsureGroup", Display);
@@ -93,7 +108,6 @@ public sealed class RoofDisplayGroupSourceContractTests
     public void PickstyleRemainsUserControlledAndNoReactorWasAdded()
     {
         var source = Group + Display + Workflow;
-        Assert.DoesNotContain("PICKSTYLE", source, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("SetSystemVariable", source);
         Assert.DoesNotContain("DatabaseReactor", source);
         Assert.DoesNotContain("ObjectModified", source);

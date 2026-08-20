@@ -44,9 +44,11 @@ public sealed class RoofGroupRehydrationSourceContractTests
         Assert.Contains("inspection.ChildIds", rehydrate);
         Assert.Contains("owner.ObjectId", rehydrate);
         Assert.Contains("CreateGroupFromExistingValidatedDisplay", rehydrate);
-        Assert.Contains("group.Append(ownerId)", Group);
-        Assert.Contains("foreach (var childId in childIds)", Group);
-        Assert.Contains("group.Append(childId)", Group);
+        // Incremental group sync: the canonical group reuses the existing owner + 7
+        // display members via the member collector, then appends only the diff.
+        Assert.Contains("RoofAssemblyGroupMemberCollector.TryCollect", Group);
+        Assert.Contains("foreach (var addId in toAdd)", Group);
+        Assert.Contains("group.Append(addId)", Group);
         Assert.Contains("ExpectedMemberCount = 8", Group);
         Assert.DoesNotContain("new Line(", rehydrate);
         Assert.DoesNotContain("AppendEntity", rehydrate);
@@ -149,11 +151,11 @@ public sealed class RoofGroupRehydrationSourceContractTests
         Assert.Contains("OwnerReferenceFromCloneHandle", Resolver + Store);
         Assert.Contains("TryResolveLegacyCopiedOwner", Resolver);
         Assert.Contains("TryResolveTransferredOwner", Resolver + Display);
-        Assert.Contains("if (selected is Polyline)", Resolver);
+        Assert.Contains("if (selected is Polyline polyline)", Resolver);
         Assert.Contains("Success(selectedId, selectedThroughDisplayChild: false)", Resolver);
         Assert.Contains("DxfCode.ExtendedDataHandle", Store);
         Assert.Equal(1, RoofDisplayDataSchema.CurrentVersion);
-        Assert.Equal(2, RoofDefinitionDataSchema.CurrentVersion);
+        Assert.Equal(3, RoofDefinitionDataSchema.CurrentVersion);
         Assert.Equal(7, TimberElementDataSchema.CurrentVersion);
         Assert.Equal(1, RoofGeneratedTimberDataSchema.CurrentVersion);
     }

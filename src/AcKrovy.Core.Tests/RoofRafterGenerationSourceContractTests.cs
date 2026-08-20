@@ -73,7 +73,7 @@ public sealed class RoofRafterGenerationSourceContractTests
     {
         Assert.Contains("new Line(request.Start, request.End)", Creation);
         Assert.Contains("AutoCadTimberElementMetadataStore", Creation);
-        Assert.Contains("metadataStore.Write(line, request.Data)", Creation);
+        Assert.Contains("metadataStore.Write(line, effectiveData)", Creation);
         Assert.Contains("AutoCadTimberLayerService", Creation);
         Assert.Contains("ApplyLayerForTimberType", Creation);
         Assert.Contains("TimberElementItemIdentityService.SynchronizeElementIds", Creation);
@@ -87,7 +87,10 @@ public sealed class RoofRafterGenerationSourceContractTests
     {
         Assert.Contains("RoofGeneratedRafterSetService.Materialize(", Workflow);
         Assert.Contains("TimberSourceLineCreationService.Create(", Replacement);
-        Assert.Contains("RoofGeneratedTimberStore.Write(", Replacement);
+        // The single Generated XData setter lives in the canonical source-line creation
+        // service (WriteAtomic, T2 order); RoofGeneratedRafterSetService only delegates.
+        Assert.Contains("RoofGeneratedTimberStore.WriteAtomic(", Creation);
+        Assert.DoesNotContain("RoofGeneratedTimberStore.Write(", Replacement);
         Assert.Contains("RoofGeneratedTimberDataSchema.CurrentVersion", Replacement);
         Assert.Contains("RoofGeneratedTimberKind.Rafter", Replacement);
         Assert.Contains("rafter.Face", Replacement);
@@ -126,8 +129,9 @@ public sealed class RoofRafterGenerationSourceContractTests
     [Fact]
     public void GeneratedSourceKeepsEaveToRidgeGeometryAndUsesCanonicalDownhillMetadata()
     {
-        Assert.Contains("new Point3d(rafter.PlanStart.X", Replacement);
-        Assert.Contains("new Point3d(rafter.PlanEnd.X", Replacement);
+        Assert.Contains("TryApplyToLayout", Replacement);
+        Assert.Contains("appliedGeometry.Value.Start.X", Replacement);
+        Assert.Contains("appliedGeometry.Value.End.X", Replacement);
         Assert.Contains("IsSlopeDirectionReversed = true", Replacement);
         Assert.DoesNotContain("SlopeArrowService", Workflow + Replacement);
         Assert.DoesNotContain("LiveGeometrySynchronizationService", Workflow + Replacement);
@@ -154,7 +158,7 @@ public sealed class RoofRafterGenerationSourceContractTests
     public void StableSchemasRemainIndependent()
     {
         Assert.Equal(7, TimberElementDataSchema.CurrentVersion);
-        Assert.Equal(2, RoofDefinitionDataSchema.CurrentVersion);
+        Assert.Equal(3, RoofDefinitionDataSchema.CurrentVersion);
         Assert.Equal(1, RoofDisplayDataSchema.CurrentVersion);
         Assert.Equal(1, RoofGeneratedTimberDataSchema.CurrentVersion);
         Assert.Equal(1, TimberDrawingSettings.DrawingSettingsSchemaVersion);

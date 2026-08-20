@@ -34,7 +34,7 @@
   <data name="Report_TotalFormat" xml:space="preserve"><value>Spolu: {0} prvkov</value></data>
   <data name="Message_DialogTitle" xml:space="preserve"><value>ACAD KROVY</value></data>
   <data name="Message_PluginLoaded" xml:space="preserve"><value>&#xA;ACAD KROVY {0} načítané. Karta ACAD KROVY sa pridá do Ribbonu. Zadaj AK_HELP pre zoznam príkazov alebo AK_TOOLBAR pre klasický panel malých ikon.</value></data>
-  <data name="Help_CommandOverview" xml:space="preserve"><value>&#xA;ACAD KROVY {0}&#xA;&#xA;PRVKY KROVU&#xA;  AK_KROKVA      – rýchlo priradí typ Krokva&#xA;  AK_POMURNICA   – rýchlo priradí typ Pomúrnica&#xA;  AK_VAZNICA     – rýchlo priradí typ Väznica&#xA;  AK_STLPIK      – rýchlo priradí typ Stĺpik&#xA;  AK_KLIESTINA   – rýchlo priradí typ Klieština / hambálok&#xA;  AK_VZPERA      – rýchlo priradí typ Vzpera&#xA;  AK_VAZNYTRAM   – rýchlo priradí typ Väzný trám&#xA;&#xA;ÚDAJE A VÝKAZY&#xA;  AK_ASSIGN      – priradí údaje vybraným čiaram/polyline&#xA;  AK_EDIT        – hromadne upraví zaškrtnuté hodnoty&#xA;  AK_FLIPSLOPE   – obráti smer spádu kliknutého prvku alebo jeho anotácie&#xA;  AK_INSPECT     – zobrazí údaje jedného prvku&#xA;  AK_REPORT      – vloží tabuľku z vybraných prvkov&#xA;  AK_REPORTALL   – vloží tabuľku zo všetkých prvkov&#xA;  AK_RECALC     – skontroluje prepočty všetkých prvkov&#xA;  AK_RENUMBER   – vedome prečísluje všetky položky podľa reznej dĺžky&#xA;  AK_RIBBON      – zobrazí/obnoví kartu ACAD KROVY v Ribbóne&#xA;  AK_TOOLBAR     – zobrazí/skryje klasický plávajúci panel malých ikon&#xA;  AK_SETTINGS    – nastaví hladiny a farby jednotlivých typov prvkov&#xA;  AK_APPLYLAYERS – premietne aktuálne nastavenia hladín do výkresu&#xA;&#xA;POPISY VO VÝKRESE&#xA;  AK_LABELS      – vytvorí alebo obnoví popisy všetkých prvkov&#xA;  AK_LABELSELECTED – vytvorí alebo obnoví popisy označených prvkov&#xA;  AK_LABELSHOW   – zobrazí hladinu KROV_POPIS&#xA;  AK_LABELHIDE   – skryje hladinu KROV_POPIS&#xA;&#xA;Tip: pri priradení, úprave alebo zmene geometrie sa popis obnoví automaticky. AK_LABELS a AK_RECALC môžeš použiť na ručnú kontrolu.</value></data>
+  <data name="Help_CommandOverview" xml:space="preserve"><value>&#xA;ACAD KROVY {0}&#xA;&#xA;PRVKY KROVU&#xA;  AK_KROKVA      – rýchlo priradí typ Krokva&#xA;  AK_POMURNICA   – rýchlo priradí typ Pomúrnica&#xA;  AK_VAZNICA     – rýchlo priradí typ Väznica&#xA;  AK_STLPIK      – rýchlo priradí typ Stĺpik&#xA;  AK_KLIESTINA   – rýchlo priradí typ Klieština / hambálok&#xA;  AK_VZPERA      – rýchlo priradí typ Vzpera&#xA;  AK_VAZNYTRAM   – rýchlo priradí typ Väzný trám&#xA;&#xA;ÚDAJE A VÝKAZY&#xA;  AK_ASSIGN      – priradí údaje vybraným čiaram/polyline&#xA;  AK_EDIT        – hromadne upraví zaškrtnuté hodnoty&#xA;  AK_FLIPSLOPE   – obráti smer spádu kliknutého prvku alebo jeho anotácie&#xA;  AK_INSPECT     – zobrazí údaje jedného prvku&#xA;  AK_REPORT      – vloží tabuľku z vybraných prvkov&#xA;  AK_REPORTALL   – vloží tabuľku zo všetkých prvkov&#xA;  AK_RECALC     – skontroluje prepočty všetkých prvkov&#xA;  AK_RENUMBER   – vedome prečísluje všetky položky podľa reznej dĺžky&#xA;  AK_RIBBON      – zobrazí/obnoví kartu ACAD KROVY v Ribbóne&#xA;  AK_TOOLBAR     – zobrazí/skryje klasický plávajúci panel malých ikon&#xA;  AK_SETTINGS    – nastaví hladiny a farby jednotlivých typov prvkov&#xA;  AK_APPLYLAYERS – premietne aktuálne nastavenia hladín do výkresu&#xA;&#xA;POPISY VO VÝKRESE&#xA;  AK_LABELS      – vytvorí alebo obnoví popisy všetkých prvkov&#xA;  AK_LABELSELECTED – vytvorí alebo obnoví popisy označených prvkov&#xA;  AK_LABELSHOW   – zobrazí hladinu KROV_POPIS&#xA;  AK_LABELHIDE   – skryje hladinu KROV_POPIS&#xA;&#xA;STRECHA&#xA;  AK_ROOF            – vytvorí sedlovú strechu&#xA;  AK_ROOF_RAFTERS    – vytvorí automatické krokvy&#xA;  AK_ROOF_UNLOCK     – odomkne ručné úpravy generovaného reziva&#xA;  AK_ROOF_LOCK       – zamkne ochranu generovaného reziva&#xA;  AK_ROOF_RESET_EDITS – vráti ručné úpravy na kanonickú geometriu&#xA;&#xA;Tip: pri priradení, úprave alebo zmene geometrie sa popis obnoví automaticky. AK_LABELS a AK_RECALC môžeš použiť na ručnú kontrolu.</value></data>
   <data name="Command_Ribbon_Ready" xml:space="preserve"><value>&#xA;ACAD KROVY: karta Ribbonu je pripravená.</value></data>
   <data name="Command_Ribbon_Pending" xml:space="preserve"><value>&#xA;ACAD KROVY: Ribbon ešte nie je pripravený, karta sa pridá o chvíľu.</value></data>
   <data name="Command_Toolbar_Shown" xml:space="preserve"><value>&#xA;ACAD KROVY: klasický panel ikoniek je zobrazený.</value></data>
@@ -555,6 +555,8 @@
   <data name="Command_Roof_PersistedStale" xml:space="preserve"><value>&#xA;Obrys strechy sa od uloženia zmenil. Uložená definícia sa nepoužila.</value></data>
   <data name="Command_Roof_UnsupportedStretchNotificationTitle" xml:space="preserve"><value>Tvar strechy už nie je podporovaný.</value></data>
   <data name="Command_Roof_UnsupportedStretchNotificationBody" xml:space="preserve"><value>Vráťte poslednú zmenu príkazom Späť (U).</value></data>
+  <data name="Command_Roof_UnsupportedStretchRecoveredNotificationTitle" xml:space="preserve"><value>Nepodporovaná zmena strechy bola vrátená.</value></data>
+  <data name="Command_Roof_UnsupportedStretchRecoveredNotificationBody" xml:space="preserve"><value>Obrys strechy musí zostať obdĺžnikový.</value></data>
   <data name="Command_Roof_DisplayTamperNotificationTitle" xml:space="preserve"><value>Zobrazenie strechy nemožno upravovať samostatne.</value></data>
   <data name="Command_Roof_DisplayTamperNotificationBody" xml:space="preserve"><value>Upravte základný obrys strechy.</value></data>
   <data name="Command_Roof_PersistFailed" xml:space="preserve"><value>&#xA;Definíciu strechy sa nepodarilo uložiť.</value></data>
@@ -623,4 +625,29 @@
   <data name="RoofRafterWindow_InvalidSpacing" xml:space="preserve"><value>Maximálny rozstup musí byť konečné číslo väčšie ako 0.</value></data>
   <data name="RoofRafterWindow_InvalidMaterial" xml:space="preserve"><value>Vyberte platný materiál.</value></data>
   <data name="RoofRafterWindow_InvalidRoof" xml:space="preserve"><value>Rozloženie krokiev sa pre túto strechu nedá vypočítať.</value></data>
+  <data name="Command_RoofUnlock_SelectPrompt" xml:space="preserve"><value>&#xA;Vyber strechu, ktorú chceš odomknúť: </value></data>
+  <data name="Command_RoofUnlock_Unlocked" xml:space="preserve"><value>&#xA;Strecha je odomknutá. Generované rezivo možno upravovať podporovanými príkazmi.</value></data>
+  <data name="Command_RoofUnlock_AlreadyUnlocked" xml:space="preserve"><value>&#xA;Strecha je už odomknutá.</value></data>
+  <data name="Command_RoofUnlock_UnlockedNotificationTitle" xml:space="preserve"><value>Strecha je odomknutá</value></data>
+  <data name="Command_RoofUnlock_UnlockedNotificationBody" xml:space="preserve"><value>Generované rezivo teraz prijíma podporované ručné úpravy.</value></data>
+  <data name="Command_RoofLock_Locked" xml:space="preserve"><value>&#xA;Strecha je zamknutá. Prijaté ručné úpravy ostali zachované.</value></data>
+  <data name="Command_RoofLock_AlreadyLocked" xml:space="preserve"><value>&#xA;Strecha je už zamknutá.</value></data>
+  <data name="Command_RoofResetEdits_Reset" xml:space="preserve"><value>&#xA;Ručné úpravy generovaného reziva boli vrátené.</value></data>
+  <data name="Command_RoofResetEdits_NoEdits" xml:space="preserve"><value>&#xA;Vybraná strecha nemá ručné úpravy.</value></data>
+  <data name="Command_Roof_LockedNotificationTitle" xml:space="preserve"><value>Strecha je zamknutá</value></data>
+  <data name="Command_Roof_LockedNotificationBody" xml:space="preserve"><value>Pre ručné úpravy ju najskôr odomknite.</value></data>
+  <data name="Command_Roof_UnsupportedMemberEditNotificationTitle" xml:space="preserve"><value>Úprava prvku nebola podporovaná.</value></data>
+  <data name="Command_Roof_UnsupportedMemberEditNotificationBody" xml:space="preserve"><value>Prvok musí zostať v rovine strechy.</value></data>
+  <data name="Dialog_Inspect_RoofEditState" xml:space="preserve"><value>Stav úprav</value></data>
+  <data name="Dialog_Inspect_RoofEditStateLocked" xml:space="preserve"><value>Zamknutá</value></data>
+  <data name="Dialog_Inspect_RoofEditStateUnlocked" xml:space="preserve"><value>Odomknutá</value></data>
+  <data name="Dialog_Inspect_RoofManualOverrideCount" xml:space="preserve"><value>Ručné úpravy</value></data>
+  <data name="Dialog_Inspect_RoofSuppressedCount" xml:space="preserve"><value>Potlačené prvky</value></data>
+  <data name="Dialog_Inspect_GeneratedByRoof" xml:space="preserve"><value>Generované strechou</value></data>
+  <data name="Dialog_Inspect_ManualOverride" xml:space="preserve"><value>Ručná úprava</value></data>
+  <data name="Dialog_Inspect_OverrideAlong" xml:space="preserve"><value>Posun pozdĺž prvku</value></data>
+  <data name="Dialog_Inspect_OverrideLateral" xml:space="preserve"><value>Bočný posun</value></data>
+  <data name="Dialog_Inspect_OverrideRotation" xml:space="preserve"><value>Natočenie</value></data>
+  <data name="Dialog_Inspect_OverrideStart" xml:space="preserve"><value>Offset začiatku</value></data>
+  <data name="Dialog_Inspect_OverrideEnd" xml:space="preserve"><value>Offset konca</value></data>
 </root>

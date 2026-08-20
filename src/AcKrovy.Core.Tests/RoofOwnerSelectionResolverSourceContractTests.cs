@@ -12,7 +12,7 @@ public sealed class RoofOwnerSelectionResolverSourceContractTests
     [Fact]
     public void DirectLightweightPolylineResolvesToItself()
     {
-        Assert.Contains("if (selected is Polyline)", Resolver);
+        Assert.Contains("if (selected is Polyline polyline)", Resolver);
         Assert.Contains("Success(selectedId, selectedThroughDisplayChild: false)", Resolver);
     }
 
@@ -36,6 +36,8 @@ public sealed class RoofOwnerSelectionResolverSourceContractTests
         Assert.Contains("Command_Roof_SelectionInvalid", Workflow);
         Assert.Contains("Command_Roof_SelectionInvalidDisplay", Workflow);
         Assert.Contains("Command_Roof_SelectionFutureDisplay", Workflow);
+        Assert.Contains("TryResolveUnlockIndicatorOwner", Resolver);
+        Assert.DoesNotContain("KROV_ROOF_UNLOCK_ICON", Resolver);
     }
 
     [Fact]

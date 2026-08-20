@@ -4,5 +4,6 @@ namespace AcKrovy.Core.Models.Roofs;
 public static class RoofDefinitionDataSchema
 {
     public const int LegacyAbsoluteVersion = 1;
-    public const int CurrentVersion = 2;
+    public const int TopologyVersion = 2;
+    public const int CurrentVersion = 3;
 }

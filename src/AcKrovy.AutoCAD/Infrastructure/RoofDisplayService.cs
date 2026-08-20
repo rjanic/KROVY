@@ -211,6 +211,11 @@ internal static class RoofDisplayService
             ownerId,
             ownerReference,
             inspection.ChildIds);
+        _ = RoofAssemblyGroupSyncService.DetachMembersBeforeErase(
+            database,
+            transaction,
+            ownerId,
+            eraseIds);
         foreach (var childId in eraseIds)
         {
             if (!AutoCadObjectIdAccess.TryGetObject<Entity>(
@@ -329,6 +334,23 @@ internal static class RoofDisplayService
         line.LinetypeId = database.ByLayerLinetype;
         line.LinetypeScale = 1d;
         line.LineWeight = LineWeight.ByLayer;
+    }
+
+    public static IReadOnlyList<ObjectId> CollectStructuralDisplayChildIds(
+        Database database,
+        Transaction transaction,
+        ObjectId ownerId,
+        string ownerReference)
+    {
+        ArgumentNullException.ThrowIfNull(database);
+        ArgumentNullException.ThrowIfNull(transaction);
+        return ScanModelSpaceDisplayChildren(database, transaction)
+            .Where(record => string.Equals(
+                record.Stored.OwnerReference,
+                ownerReference,
+                StringComparison.OrdinalIgnoreCase))
+            .Select(record => record.Id)
+            .ToList();
     }
 
     private static List<ScannedDisplayChild> ScanModelSpaceDisplayChildren(

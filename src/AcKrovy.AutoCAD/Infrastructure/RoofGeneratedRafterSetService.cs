@@ -82,7 +82,8 @@ internal static class RoofGeneratedRafterSetService
         Polyline owner,
         SimpleGableRoofGeometry geometry,
         TimberElementDefaultProfile defaultProfile,
-        ElementLayerProfile layerProfile)
+        ElementLayerProfile layerProfile,
+        bool forceRegenerateOnSourceResize = false)
     {
         ArgumentNullException.ThrowIfNull(database);
         ArgumentNullException.ThrowIfNull(transaction);
@@ -130,11 +131,20 @@ internal static class RoofGeneratedRafterSetService
             RoofGeneratedTimberCopyOwnershipDiagService.WriteReplaceDiag(
                 editor,
                 $"branch=OwnershipAmbiguousOrUnreadable memberCount={members.Count} uniqueStations={RoofGeneratedTimberOwnershipRules.HasUniqueMemberStations(members)} -> SkippedAmbiguousRecipe");
+            RoofGeneratedCopyLifecycleDiag.WriteResizeTrace(
+                editor,
+                ownerReference,
+                existingIds.Count,
+                members.Count,
+                RoofGeneratedTimberOwnershipRules.HasUniqueMemberStations(members),
+                RoofGeneratedCopyLifecycleDiag.DescribeDuplicateStations(members),
+                nameof(ReplacementOutcome.SkippedAmbiguousRecipe));
 #endif
             return ReplacementOutcome.SkippedAmbiguousRecipe;
         }
 
-        if (!IsGeneratedSetStale(database, transaction, existingIds, geometry.Signature))
+        if (!forceRegenerateOnSourceResize &&
+            !IsGeneratedSetStale(database, transaction, existingIds, geometry.Signature))
         {
 #if DEBUG
             RoofGeneratedTimberCopyOwnershipDiagService.WriteReplaceDiag(
@@ -169,7 +179,12 @@ internal static class RoofGeneratedRafterSetService
 
         try
         {
-            EraseGeneratedSet(database, transaction, existingIds);
+            var reservedElementIds = CollectReservedElementIds(
+                database,
+                transaction,
+                existingIds,
+                RoofDefinitionStore.Read(owner).Data);
+            EraseGeneratedSet(database, transaction, owner.ObjectId, existingIds);
             Materialize(
                 database,
                 transaction,
@@ -180,7 +195,8 @@ internal static class RoofGeneratedRafterSetService
                 layoutResult.Layout,
                 recipe,
                 defaultProfile,
-                layerProfile);
+                layerProfile,
+                reservedElementIds);
 #if DEBUG
             RoofGeneratedTimberCopyOwnershipDiagService.WriteReplaceDiag(
                 editor,
@@ -211,12 +227,15 @@ internal static class RoofGeneratedRafterSetService
         SimpleGableRafterLayout layout,
         RoofRafterGenerationRecipe recipe,
         TimberElementDefaultProfile defaultProfile,
-        ElementLayerProfile layerProfile)
+        ElementLayerProfile layerProfile,
+        IReadOnlyDictionary<RoofGeneratedMemberKey, string>? reservedElementIds = null)
     {
         ArgumentNullException.ThrowIfNull(layout);
         ArgumentNullException.ThrowIfNull(recipe);
 
         var sourceElevation = RoofPolylineExtractor.GetSourceElevation(owner);
+        var overrides = new RoofManualOverrideSet(RoofDefinitionStore.Read(owner).Data?.Overrides);
+        var planeNormal = RoofGeneratedMemberOverrideRules.SourceWorkingPlaneNormal;
         var canonicalRafterData = TimberElementDefaults.For(
             TimberElementType.Rafter,
             defaultProfile) with
@@ -227,11 +246,48 @@ internal static class RoofGeneratedRafterSetService
             IsSlopeDirectionReversed = true,
             Material = recipe.Material,
         };
-        var requests = layout.Rafters
-            .Select(rafter => new TimberSourceLineCreationRequest(
-                new Point3d(rafter.PlanStart.X, rafter.PlanStart.Y, sourceElevation),
-                new Point3d(rafter.PlanEnd.X, rafter.PlanEnd.Y, sourceElevation),
-                canonicalRafterData))
+        var accepted = new List<(SimpleGableRafter Rafter, Point3d Start, Point3d End, TimberElementData Data)>();
+        foreach (var rafter in layout.Rafters)
+        {
+            if (!RoofGeneratedMemberOverrideRules.TryApplyToLayout(
+                    rafter,
+                    sourceElevation,
+                    planeNormal,
+                    overrides,
+                    out var appliedGeometry,
+                    out var suppressed) ||
+                suppressed ||
+                appliedGeometry is null)
+            {
+                continue;
+            }
+
+            var key = RoofGeneratedMemberKey.From(rafter);
+            var memberData = canonicalRafterData;
+            if (overrides.TryGet(key, out var overrideData) &&
+                !string.IsNullOrWhiteSpace(overrideData.ReservedElementId))
+            {
+                memberData = memberData with { ElementId = overrideData.ReservedElementId };
+            }
+            else if (reservedElementIds is not null &&
+                     reservedElementIds.TryGetValue(key, out var reservedId) &&
+                     !string.IsNullOrWhiteSpace(reservedId))
+            {
+                memberData = memberData with { ElementId = reservedId };
+            }
+
+            accepted.Add((
+                rafter,
+                new Point3d(appliedGeometry.Value.Start.X, appliedGeometry.Value.Start.Y, appliedGeometry.Value.Start.Z),
+                new Point3d(appliedGeometry.Value.End.X, appliedGeometry.Value.End.Y, appliedGeometry.Value.End.Z),
+                memberData));
+        }
+
+        var requests = accepted
+            .Select(item => new TimberSourceLineCreationRequest(
+                item.Start,
+                item.End,
+                item.Data))
             .ToArray();
         var created = TimberSourceLineCreationService.Create(
             database,
@@ -242,8 +298,8 @@ internal static class RoofGeneratedRafterSetService
             layerProfile,
             (line, currentTransaction, index) =>
             {
-                var rafter = layout.Rafters[index];
-                RoofGeneratedTimberStore.Write(
+                var rafter = accepted[index].Rafter;
+                return RoofGeneratedTimberStore.BuildSection(
                     line,
                     currentTransaction,
                     new RoofGeneratedTimberData(
@@ -261,6 +317,12 @@ internal static class RoofGeneratedRafterSetService
             transaction,
             created,
             defaultProfile);
+        var document = editor.Document;
+        if (document is not null)
+        {
+            _ = RoofAssemblyGroupSyncService.TrySyncForOwner(document, transaction, owner.ObjectId);
+        }
+
         return created;
     }
 
@@ -297,6 +359,53 @@ internal static class RoofGeneratedRafterSetService
         }
 
         return members.Count > 0;
+    }
+
+    private static Dictionary<RoofGeneratedMemberKey, string> CollectReservedElementIds(
+        Database database,
+        Transaction transaction,
+        IReadOnlyList<ObjectId> generatedIds,
+        RoofDefinitionData? definition)
+    {
+        var reserved = new Dictionary<RoofGeneratedMemberKey, string>();
+        if (definition is not null)
+        {
+            foreach (var item in definition.Overrides)
+            {
+                if (!string.IsNullOrWhiteSpace(item.ReservedElementId))
+                {
+                    reserved[item.Key] = item.ReservedElementId;
+                }
+            }
+        }
+
+        var metadataStore = new AutoCadTimberElementMetadataStore(transaction);
+        foreach (var id in generatedIds)
+        {
+            if (!AutoCadObjectIdAccess.TryGetObject<Entity>(
+                    transaction,
+                    id,
+                    OpenMode.ForRead,
+                    out var entity,
+                    database) ||
+                entity is null)
+            {
+                continue;
+            }
+
+            var generated = RoofGeneratedTimberStore.Read(entity);
+            if (generated.Data is null ||
+                !metadataStore.TryRead(entity, out var timber) ||
+                timber is null ||
+                string.IsNullOrWhiteSpace(timber.ElementId))
+            {
+                continue;
+            }
+
+            reserved[RoofGeneratedMemberKey.From(generated.Data)] = timber.ElementId;
+        }
+
+        return reserved;
     }
 
     public static bool IsGeneratedSetStale(
@@ -339,8 +448,17 @@ internal static class RoofGeneratedRafterSetService
     private static void EraseGeneratedSet(
         Database database,
         Transaction transaction,
+        ObjectId ownerId,
         IReadOnlyList<ObjectId> generatedIds)
     {
+        // Detach the generated members + their annotation family from the GROUP before
+        // erasing so native U can reverse the erase without re-adding an erased ObjectId
+        // to the group (eInvalidInput).
+        _ = RoofAssemblyGroupSyncService.DetachMembersBeforeErase(
+            database,
+            transaction,
+            ownerId,
+            generatedIds);
         foreach (var id in generatedIds)
         {
             if (!AutoCadObjectIdAccess.TryGetObject<Entity>(

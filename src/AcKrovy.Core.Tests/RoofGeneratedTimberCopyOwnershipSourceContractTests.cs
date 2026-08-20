@@ -16,15 +16,18 @@ public sealed class RoofGeneratedTimberCopyOwnershipSourceContractTests
         "src", "AcKrovy.Core", "Services", "Roofs", "RoofGeneratedTimberOwnershipRules.cs");
 
     [Fact]
-    public void SameDwgCopy_UsesRemappableSoftPointerOwnerLikeDisplay()
+    public void SameDwgCopy_GeneratedUsesCanonicalAsciiOwnerNotSoftPointer()
     {
-        Assert.Contains("DxfCode.ExtendedDataHandle", GeneratedStore);
+        // The generated child no longer carries a 1005 soft pointer: Entity.XData is
+        // replayed as a single undo/redo mutation, so a failed 1005 replay would drop the
+        // canonical identity. Same-DWG COPY rebinds via geometry; the display store still
+        // uses the remappable soft pointer.
         Assert.Contains("DxfCode.ExtendedDataHandle", DisplayStore);
         Assert.Contains("cloneSafeOwnerReference", GeneratedStore);
         Assert.Contains(
             "data = data with { RoofOwnerReference = cloneSafeOwnerReference }",
             GeneratedStore);
-        Assert.Contains("new TypedValue(DxfOwnerHandleCode, ownerReference)", GeneratedStore);
+        Assert.DoesNotContain("new TypedValue(DxfOwnerHandleCode, ownerReference)", GeneratedStore);
         Assert.Equal(1, RoofGeneratedTimberDataSchema.CurrentVersion);
     }
 
@@ -105,7 +108,7 @@ public sealed class RoofGeneratedTimberCopyOwnershipSourceContractTests
         Assert.DoesNotContain("ObjectOverrule", source);
         Assert.Equal(1, RoofGeneratedTimberDataSchema.CurrentVersion);
         Assert.Equal(1, RoofDisplayDataSchema.CurrentVersion);
-        Assert.Equal(2, RoofDefinitionDataSchema.CurrentVersion);
+        Assert.Equal(3, RoofDefinitionDataSchema.CurrentVersion);
         Assert.Equal(7, TimberElementDataSchema.CurrentVersion);
     }
 

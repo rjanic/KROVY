@@ -11,4 +11,6 @@ public enum RoofDefinitionDataDecodeError
     InvalidFootprintSignature,
     InvalidRidgeEdgeFamily,
     InvalidRigidFootprintDescriptor,
+    InvalidEditState,
+    InvalidManualOverride,
 }
