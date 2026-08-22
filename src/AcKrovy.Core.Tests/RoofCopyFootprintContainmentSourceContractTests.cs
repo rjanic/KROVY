@@ -56,7 +56,7 @@ public sealed class RoofCopyFootprintContainmentSourceContractTests
         // successful replay against that anchor (anchor-missing uses the existing dormancy
         // path, independent of containment).
         var replay = Member(Lifecycle, "public static RoofCopyReplayResult ReplayAnchoredChildrenForOwner", "private static void MakeCopyChildDormant");
-        var anchorMissing = replay.IndexOf("anchorLine is null", StringComparison.Ordinal);
+        var anchorMissing = replay.IndexOf("if (!anchorResolution.IsResolved)", StringComparison.Ordinal);
         var containment = replay.IndexOf("RoofFootprintContainmentRules.IsSegmentInsideOrOnBoundary", StringComparison.Ordinal);
         Assert.True(anchorMissing >= 0, "anchor-missing path not found.");
         Assert.True(containment > anchorMissing, "containment must run after anchor resolution.");
@@ -66,7 +66,7 @@ public sealed class RoofCopyFootprintContainmentSourceContractTests
     public void Replay_NoNearestReanchorDuringResize()
     {
         // Source resize replay must never nearest-reanchor. The replay method only
-        // resolves the EXACT persisted anchor (TryFindGeneratedAnchorLine).
+        // resolves the EXACT persisted anchor (physical or virtual-suppressed).
         var replay = Member(Lifecycle, "public static RoofCopyReplayResult ReplayAnchoredChildrenForOwner", "private static void MakeCopyChildDormant");
         Assert.Contains("TryFindGeneratedAnchorLine", replay);
         Assert.DoesNotContain("SelectNearestAnchor", replay);

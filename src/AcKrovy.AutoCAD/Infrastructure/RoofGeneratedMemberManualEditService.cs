@@ -445,6 +445,15 @@ internal static class RoofGeneratedMemberManualEditService
             var roundingStepMm = defaultProfile.GetCuttingLengthRoundingStepMm();
             var standaloneIds = new List<ObjectId>();
             var keepStandalones = false;
+            var splitAnchorResolutionContext = CreateSplitAnchorResolutionContext(
+                document.Database,
+                transaction,
+                globalCommandName,
+                generatedIds,
+                appendedTimberIds,
+                restored.Geometry,
+                elevation,
+                definition.Overrides);
             if (!TryPromoteSplitFragments(
                     document,
                     transaction,
@@ -454,6 +463,7 @@ internal static class RoofGeneratedMemberManualEditService
                     modifiedIds,
                     appendedTimberIds,
                     metadataStore,
+                    splitAnchorResolutionContext,
                     globalCommandName,
                     out standaloneIds,
                     out reject))
@@ -740,6 +750,56 @@ internal static class RoofGeneratedMemberManualEditService
                 }
             }
         }
+    }
+
+    private static RoofGeneratedAnchorResolutionContext? CreateSplitAnchorResolutionContext(
+        Database database,
+        Transaction transaction,
+        string? globalCommandName,
+        IReadOnlyList<ObjectId> generatedIds,
+        IReadOnlyCollection<ObjectId> appendedTimberIds,
+        SimpleGableRoofGeometry geometry,
+        double elevation,
+        IEnumerable<RoofGeneratedMemberOverride>? overrides)
+    {
+        if (!RoofGeneratedMemberEditCommandRules.IsSplitCommand(globalCommandName))
+        {
+            return null;
+        }
+
+        // Native Generated BREAK can temporarily leave an appended duplicate carrying
+        // the same Generated key. The pre-existing (non-appended) set is the physical
+        // authority used by the split identity rules and by this owner-scoped context.
+        var appendedSet = new HashSet<ObjectId>(appendedTimberIds);
+        var physicalGeneratedIds = generatedIds
+            .Where(id => !appendedSet.Contains(id))
+            .ToArray();
+        if (!RoofGeneratedRafterSetService.TryRecoverRecipe(
+                database,
+                transaction,
+                physicalGeneratedIds,
+                out var recipe))
+        {
+            return null;
+        }
+
+        var layoutResult = SimpleGableRafterLayoutSolver.Solve(
+            geometry,
+            new RafterLayoutParameters(recipe.MaximumSpacingMm, recipe.WidthMm));
+        if (!layoutResult.IsValid || layoutResult.Layout is null)
+        {
+            return null;
+        }
+
+        _ = RoofGeneratedAnchorResolutionContext.TryCreate(
+            database,
+            transaction,
+            physicalGeneratedIds,
+            layoutResult.Layout,
+            elevation,
+            overrides,
+            out var context);
+        return context;
     }
 
     private static bool TryClassifyAcceptedMemberEdit(
@@ -1635,6 +1695,7 @@ internal static class RoofGeneratedMemberManualEditService
         IReadOnlyCollection<ObjectId> modifiedIds,
         IReadOnlyCollection<ObjectId> appendedTimberIds,
         AutoCadTimberElementMetadataStore metadataStore,
+        RoofGeneratedAnchorResolutionContext? anchorResolutionContext,
         string? globalCommandName,
         out List<ObjectId> standaloneIds,
         out ManualEditReject? reject)
@@ -1758,6 +1819,7 @@ internal static class RoofGeneratedMemberManualEditService
                         extra,
                         sourceData,
                         metadataStore,
+                        anchorResolutionContext,
                         owner.Handle.ToString(),
                         generatedFragment.Handle.ToString(),
                         extra.Handle.ToString(),
@@ -1837,6 +1899,7 @@ internal static class RoofGeneratedMemberManualEditService
                     candidate,
                     sourceData,
                     metadataStore,
+                    anchorResolutionContext,
                     owner.Handle.ToString(),
                     sourceHandle,
                     candidate.Handle.ToString(),
@@ -1858,6 +1921,7 @@ internal static class RoofGeneratedMemberManualEditService
         Line extra,
         TimberElementData sourceData,
         AutoCadTimberElementMetadataStore metadataStore,
+        RoofGeneratedAnchorResolutionContext? anchorResolutionContext,
         string ownerHandle,
         string generatedHandle,
         string attachedManualHandle,
@@ -1865,6 +1929,78 @@ internal static class RoofGeneratedMemberManualEditService
         out ManualEditReject? reject)
     {
         reject = null;
+        RoofAttachedManualTimberData attachedData;
+        var sourceRole = "Unknown";
+        var sourceOrigin = "-";
+        var resolution = "unavailable";
+        var resolvedAnchorKey = (RoofGeneratedMemberKey?)null;
+        var anchorStart = Point3d.Origin;
+        var anchorEnd = Point3d.Origin;
+        if (TryOpenSnapshotLine(document.Database, transaction, generatedHandle, out var anchorLine) &&
+            anchorLine is not null)
+        {
+            var generated = RoofGeneratedTimberStore.Read(anchorLine).Data;
+            if (generated is not null)
+            {
+                // BREAK of a Generated member: the surviving Generated fragment is the
+                // exact anchor. (Existing HOST PASS path, unchanged.)
+                sourceRole = "Generated";
+                sourceOrigin = "-";
+                resolution = "physical";
+                resolvedAnchorKey = RoofGeneratedMemberKey.From(generated);
+                anchorStart = anchorLine.StartPoint;
+                anchorEnd = anchorLine.EndPoint;
+            }
+            else if (RoofAttachedManualTimberStore.Read(anchorLine).Data is { } attachedSource)
+            {
+                // Role classification is authoritative and independent of anchor geometry.
+                // A valid AttachedManual source must never fall back to Generated merely
+                // because its exact logical anchor has no physical Line (Suppress(K)).
+                sourceRole = attachedSource.Origin == RoofAttachedManualOrigin.Copy
+                    ? "AttachedManualCopy"
+                    : "AttachedManual";
+                sourceOrigin = attachedSource.Origin.ToString();
+
+                if (attachedSource.AnchorGeneratedMemberKey is { } attachedAnchorKey)
+                {
+                    var anchorResolution = anchorResolutionContext?.Resolve(attachedAnchorKey)
+                        ?? new RoofGeneratedAnchorResolution(
+                            RoofGeneratedAnchorResolutionKind.Unavailable,
+                            Point3d.Origin,
+                            Point3d.Origin,
+                            "-");
+                    resolution = anchorResolution.DiagnosticToken;
+                    if (!anchorResolution.IsResolved)
+                    {
+                        // Fail before clearing or writing either ownership section. A valid
+                        // anchored v2/v3 AttachedManual payload must not be downgraded to
+                        // the legacy schema-1 no-anchor representation.
+                        WriteSplitResult(
+                            document,
+                            globalCommandName,
+                            ownerHandle,
+                            generatedHandle,
+                            attachedManualHandle,
+                            sourceRole,
+                            sourceOrigin,
+                            FormatKey(attachedAnchorKey),
+                            resolution,
+                            "anchor-unresolved");
+                        reject = new ManualEditReject(
+                            "split",
+                            "attached-anchor-" + resolution,
+                            extra.Handle.ToString(),
+                            FormatKey(attachedAnchorKey));
+                        return false;
+                    }
+
+                    resolvedAnchorKey = attachedAnchorKey;
+                    anchorStart = anchorResolution.Start;
+                    anchorEnd = anchorResolution.End;
+                }
+            }
+        }
+
         extra.UpgradeOpen();
         if (!RoofGeneratedTimberStore.TryClear(extra, transaction, out var clearReason))
         {
@@ -1883,48 +2019,27 @@ internal static class RoofGeneratedMemberManualEditService
             metadataStore.Write(extra, sourceData);
         }
 
-        RoofAttachedManualTimberData attachedData;
-        var sourceRole = "Generated";
-        var resolvedAnchorKey = (RoofGeneratedMemberKey?)null;
-        var anchorStart = Point3d.Origin;
-        var anchorEnd = Point3d.Origin;
-        if (TryOpenSnapshotLine(document.Database, transaction, generatedHandle, out var anchorLine) &&
-            anchorLine is not null)
+        if (sourceRole == "AttachedManualCopy" &&
+            string.Equals(
+                generatedHandle,
+                attachedManualHandle,
+                StringComparison.OrdinalIgnoreCase) &&
+            resolvedAnchorKey is { } preservedCopyAnchor)
         {
-            var generated = RoofGeneratedTimberStore.Read(anchorLine).Data;
-            if (generated is not null)
-            {
-                // BREAK of a Generated member: the surviving Generated fragment is the
-                // exact anchor. (Existing HOST PASS path, unchanged.)
-                sourceRole = "Generated";
-                resolvedAnchorKey = RoofGeneratedMemberKey.From(generated);
-                anchorStart = anchorLine.StartPoint;
-                anchorEnd = anchorLine.EndPoint;
-            }
-            else if (RoofAttachedManualTimberStore.Read(anchorLine).Data is
-                     { Origin: RoofAttachedManualOrigin.Split } splitSource &&
-                     splitSource.AnchorGeneratedMemberKey is { } splitAnchorKey &&
-                     RoofAttachedManualLifecycleService.TryFindGeneratedAnchorLine(
-                         document.Database,
-                         transaction,
-                         ownerHandle,
-                         splitAnchorKey,
-                         out var generatedAnchorLine) &&
-                     generatedAnchorLine is not null)
-            {
-                // BREAK of an existing AttachedManual Origin.Split child: no new Generated
-                // member is produced. Both resulting fragments keep the SOURCE's exact
-                // persisted anchor (BREAK is not MOVE — no nearest re-anchor) and
-                // Origin.Split; their independent RelativeSegments encode their separate
-                // geometry.
-                sourceRole = "AttachedManual";
-                resolvedAnchorKey = splitAnchorKey;
-                anchorStart = generatedAnchorLine.StartPoint;
-                anchorEnd = generatedAnchorLine.EndPoint;
-            }
+            // The modified original fragment of a BREAK/TRIM on an Origin.Copy child:
+            // preserve Origin.Copy (never downgrade to Split) with the same anchor and a
+            // fresh RelativeSegment captured from the post-edit segment.
+            attachedData = RoofAttachedManualLifecycleService.CreateAnchoredData(
+                ownerHandle,
+                attachedManualHandle,
+                preservedCopyAnchor,
+                anchorStart,
+                anchorEnd,
+                extra.StartPoint,
+                extra.EndPoint,
+                RoofAttachedManualOrigin.Copy);
         }
-
-        if (resolvedAnchorKey is { } resolvedAnchor)
+        else if (resolvedAnchorKey is { } resolvedAnchor)
         {
             attachedData = RoofAttachedManualLifecycleService.CreateAnchoredData(
                 ownerHandle,
@@ -1955,14 +2070,17 @@ internal static class RoofGeneratedMemberManualEditService
             "ok");
 #endif
 
-        WriteSplitOk(
+        WriteSplitResult(
             document,
             globalCommandName,
             ownerHandle,
             generatedHandle,
             attachedManualHandle,
             sourceRole,
-            resolvedAnchorKey is null ? null : FormatKey(resolvedAnchorKey.Value));
+            sourceOrigin,
+            resolvedAnchorKey is null ? null : FormatKey(resolvedAnchorKey.Value),
+            resolution,
+            "ok");
 
         _ = RoofAssemblyGroupSyncService.TrySyncForOwnerReference(
             document,
@@ -2079,17 +2197,21 @@ internal static class RoofGeneratedMemberManualEditService
         RoofUnsupportedStretchTimberLineSnapshotData timber) =>
         new(timber.Start, timber.End);
 
-    private static void WriteSplitOk(
+    private static void WriteSplitResult(
         Document document,
         string? globalCommandName,
         string ownerHandle,
         string generatedFragment,
         string standaloneFragment,
         string sourceRole,
-        string? anchor)
+        string sourceOrigin,
+        string? anchor,
+        string resolution,
+        string result)
     {
 #if DEBUG
-        if (string.Equals(sourceRole, "AttachedManual", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(sourceRole, "AttachedManual", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(sourceRole, "AttachedManualCopy", StringComparison.OrdinalIgnoreCase))
         {
             RoofGeneratedMemberManualEditDiag.WriteAttachedManualSplit(
                 document.Editor,
@@ -2098,7 +2220,9 @@ internal static class RoofGeneratedMemberManualEditService
                 sourceFragment: generatedFragment,
                 newFragment: standaloneFragment,
                 anchor: anchor,
-                "ok");
+                origin: sourceOrigin,
+                resolution: resolution,
+                result: result);
         }
         else
         {
@@ -2108,7 +2232,7 @@ internal static class RoofGeneratedMemberManualEditService
                 ownerHandle,
                 generatedFragment,
                 standaloneFragment,
-                "ok");
+                result);
         }
 #else
         _ = document;
@@ -2117,7 +2241,10 @@ internal static class RoofGeneratedMemberManualEditService
         _ = generatedFragment;
         _ = standaloneFragment;
         _ = sourceRole;
+        _ = sourceOrigin;
         _ = anchor;
+        _ = resolution;
+        _ = result;
 #endif
     }
 

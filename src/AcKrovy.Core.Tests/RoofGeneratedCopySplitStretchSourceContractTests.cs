@@ -73,7 +73,7 @@ public sealed class RoofGeneratedCopySplitStretchSourceContractTests
     [Fact]
     public void SchemasAndCopyInitRemainUnchanged()
     {
-        Assert.Equal(3, RoofDefinitionDataSchema.CurrentVersion);
+        Assert.Equal(5, RoofDefinitionDataSchema.CurrentVersion);
         Assert.Equal(1, RoofGeneratedTimberDataSchema.CurrentVersion);
         Assert.Equal(7, TimberElementDataSchema.CurrentVersion);
         Assert.DoesNotContain("RoofDefinitionStore.Write", Rehydration);

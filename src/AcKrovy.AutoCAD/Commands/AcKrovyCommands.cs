@@ -363,6 +363,12 @@ public sealed class AcKrovyCommands
             AcKrovyCommandNames.Roof,
             () => RoofCommandWorkflow.Run(ActiveDocument()));
 
+    [CommandMethod(AcKrovyCommandNames.RoofAsymmetric, CommandFlags.Modal | CommandFlags.Redraw)]
+    public void RoofAsymmetric() =>
+        CommandExecutionBoundary.Execute(
+            AcKrovyCommandNames.RoofAsymmetric,
+            () => RoofCommandWorkflow.Run(ActiveDocument(), RoofKind.AsymmetricGable));
+
     [CommandMethod(AcKrovyCommandNames.RoofRafters, CommandFlags.Modal | CommandFlags.Redraw)]
     public void RoofRafters() =>
         CommandExecutionBoundary.Execute(
@@ -386,6 +392,12 @@ public sealed class AcKrovyCommands
         CommandExecutionBoundary.Execute(
             AcKrovyCommandNames.RoofResetEdits,
             () => RoofEditStateCommandWorkflow.ResetEdits(ActiveDocument()));
+
+    [CommandMethod(AcKrovyCommandNames.RoofEdit, CommandFlags.Modal | CommandFlags.Redraw)]
+    public void RoofEdit() =>
+        CommandExecutionBoundary.Execute(
+            AcKrovyCommandNames.RoofEdit,
+            () => RoofEditCommandWorkflow.Run(ActiveDocument()));
 
     [CommandMethod(AcKrovyCommandNames.Label, CommandFlags.Modal)]
     [CommandMethod(AcKrovyCommandNames.Labels, CommandFlags.Modal)]

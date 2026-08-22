@@ -103,7 +103,7 @@ public sealed class RoofGroupCopyOwnershipSourceContractTests
         Assert.DoesNotContain("IdMapping", source);
         Assert.DoesNotContain("ObjectModified", source);
         Assert.DoesNotContain("CommandEnded", source);
-        Assert.Equal(3, RoofDefinitionDataSchema.CurrentVersion);
+        Assert.Equal(5, RoofDefinitionDataSchema.CurrentVersion);
         Assert.Equal(1, RoofDisplayDataSchema.CurrentVersion);
         Assert.Equal(7, TimberElementDataSchema.CurrentVersion);
         Assert.Equal(1, RoofGeneratedTimberDataSchema.CurrentVersion);

@@ -67,6 +67,49 @@ public sealed class RoofRafterWindowSmokeTests
     }
 
     [Fact]
+    public void AsymmetricGeometry_ShowsBothSlopesInAllSixLanguages()
+    {
+        Exception? failure = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                var geometry = AsymmetricGeometry(10000, 8000, 20, 35);
+                foreach (var language in new[] { "sk", "cs", "en", "de", "pl", "fr" })
+                {
+                    AppLanguageService.Apply(language);
+                    var window = new RoofRafterWindow(
+                        geometry,
+                        RoofRafterPreferences.CreateFirstUse("Smrek C24"),
+                        SettingsTheme.Light)
+                    {
+                        Left = -30000,
+                        Top = -30000,
+                        ShowInTaskbar = false,
+                        WindowStyle = WindowStyle.None,
+                    };
+                    window.Show();
+                    window.UpdateLayout();
+
+                    Assert.Contains("20", window.RoofSlopeTextBox.Text);
+                    Assert.Contains("35", window.RoofSlopeTextBox.Text);
+                    Assert.DoesNotContain("RoofRafterWindow_", window.RoofSlopeTextBox.Text);
+                    window.Close();
+                }
+            }
+            catch (Exception exception)
+            {
+                failure = exception;
+            }
+        });
+
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        Assert.True(thread.Join(TimeSpan.FromSeconds(45)), "Asymmetric rafter dialog smoke timed out.");
+        Assert.Null(failure);
+    }
+
+    [Fact]
     public void WidthRecalculatesSummaryAndCancelReturnsNoRequest()
     {
         Exception? failure = null;
@@ -160,5 +203,20 @@ public sealed class RoofRafterWindowSmokeTests
         return SimpleGableRoofGeometrySolver.Solve(new RoofDefinition(
             validation.Footprint!,
             new RoofParameters(slope, direction))).Geometry!;
+    }
+
+    private static SimpleGableRoofGeometry AsymmetricGeometry(
+        double length,
+        double width,
+        double face0Slope,
+        double face1Slope)
+    {
+        var validation = RoofFootprintValidator.Validate(new RoofFootprintInput(
+            [new(0, 0), new(length, 0), new(length, width), new(0, width)], true));
+        Assert.True(RoofDirection2D.TryCreate(1, 0, out var direction));
+        return RoofGeometrySolver.Solve(new RoofDefinition(
+            validation.Footprint!,
+            new RoofParameters(face0Slope, direction, Face1SlopeDegrees: face1Slope),
+            RoofKind.AsymmetricGable)).Geometry!;
     }
 }

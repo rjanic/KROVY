@@ -36,10 +36,68 @@ public static class RoofDefinitionPersistence
 
         var data = new RoofDefinitionData(
             RoofDefinitionDataSchema.CurrentVersion,
-            RoofKind.SimpleGable,
-            geometry.SlopeDegrees,
+            geometry.Kind,
+            geometry.Face0SlopeDegrees,
             RidgeEdgeFamily: edgeFamily,
-            RigidFootprint: topology.Descriptor);
+            RigidFootprint: topology.Descriptor,
+            Face1SlopeDegrees: geometry.Face1SlopeDegrees,
+            EaveHeightDifferenceMm: geometry.EaveHeightDifferenceMm);
+        _ = RoofDefinitionDataCodec.Encode(data);
+        return data;
+    }
+
+    /// <summary>
+    /// Rebases an existing persisted definition onto edited physical geometry without
+    /// touching unrelated metadata. Applies only the intentionally edited fields
+    /// (kind, face slopes, eave height difference, ridge-edge family re-resolved from
+    /// the new ridge direction) and always writes the current schema 5 payload.
+    /// Edit state and manual overrides are preserved verbatim.
+    /// </summary>
+    public static RoofDefinitionData UpdateGeometry(
+        RoofDefinitionData existing,
+        RoofFootprintInput source,
+        SimpleGableRoofGeometry geometry)
+    {
+        if (existing is null)
+        {
+            throw new ArgumentNullException(nameof(existing));
+        }
+        if (source is null)
+        {
+            throw new ArgumentNullException(nameof(source));
+        }
+        if (geometry is null)
+        {
+            throw new ArgumentNullException(nameof(geometry));
+        }
+        if (!RoofDefinitionDataCodec.TryValidate(existing, out _))
+        {
+            throw new ArgumentException("The existing roof definition is invalid.", nameof(existing));
+        }
+        if (!TryReadSourceTopology(source, out var topology) ||
+            !TryResolveRidgeEdgeFamily(
+                topology,
+                geometry.RidgeDirection,
+                out var edgeFamily))
+        {
+            throw new ArgumentException(
+                "Source topology cannot represent the solved ridge axis.",
+                nameof(source));
+        }
+
+        var data = existing with
+        {
+            SchemaVersion = RoofDefinitionDataSchema.CurrentVersion,
+            Kind = geometry.Kind,
+            SlopeDegrees = geometry.Face0SlopeDegrees,
+            Face1SlopeDegrees = geometry.Face1SlopeDegrees,
+            EaveHeightDifferenceMm = geometry.EaveHeightDifferenceMm,
+            RidgeEdgeFamily = edgeFamily,
+            RigidFootprint = topology.Descriptor,
+            RidgeDirectionX = null,
+            RidgeDirectionY = null,
+            FootprintSignature = null,
+        };
         _ = RoofDefinitionDataCodec.Encode(data);
         return data;
     }
@@ -106,6 +164,8 @@ public static class RoofDefinitionPersistence
             RoofDefinitionDataSchema.LegacyAbsoluteVersion =>
                 ClassifyV1(footprint, data),
             RoofDefinitionDataSchema.TopologyVersion or
+            RoofDefinitionDataSchema.HybridLifecycleVersion or
+            RoofDefinitionDataSchema.DualSlopeVersion or
             RoofDefinitionDataSchema.CurrentVersion =>
                 ClassifyV2(source, footprint, data),
             _ => new RoofSourceChangeClassification(
@@ -223,9 +283,14 @@ public static class RoofDefinitionPersistence
             return Invalid(RoofDefinitionRestoreError.InvalidDefinition);
         }
 
-        var solved = SimpleGableRoofGeometrySolver.Solve(new RoofDefinition(
+        var solved = RoofGeometrySolver.Solve(new RoofDefinition(
             footprint,
-            new RoofParameters(data.SlopeDegrees, direction)));
+            new RoofParameters(
+                data.Face0SlopeDegrees,
+                direction,
+                Face1SlopeDegrees: data.EffectiveFace1SlopeDegrees,
+                EaveHeightDifferenceMm: data.EaveHeightDifferenceMm),
+            data.Kind));
         return solved.IsValid && solved.Geometry is not null
             ? new RoofDefinitionRestoreResult(
                 true,
@@ -396,9 +461,10 @@ public static class RoofDefinitionPersistence
         double slopeDegrees,
         RoofDirection2D direction)
     {
-        var solved = SimpleGableRoofGeometrySolver.Solve(new RoofDefinition(
+        var solved = RoofGeometrySolver.Solve(new RoofDefinition(
             footprint,
-            new RoofParameters(slopeDegrees, direction)));
+            new RoofParameters(slopeDegrees, direction),
+            RoofKind.SimpleGable));
         return solved.IsValid && solved.Geometry is not null
             ? new RoofDefinitionRestoreResult(
                 true,

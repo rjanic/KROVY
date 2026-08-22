@@ -153,7 +153,7 @@ public sealed class RoofGeneratedMemberUnlockedEditSourceContractTests
         Assert.Contains("GRIP_STRETCH", CommandRules);
         Assert.Contains("MOVE", CommandRules);
         Assert.Contains("ROTATE", CommandRules);
-        Assert.Equal(3, RoofDefinitionDataSchema.CurrentVersion);
+        Assert.Equal(5, RoofDefinitionDataSchema.CurrentVersion);
     }
 
     [Fact]

@@ -16,6 +16,7 @@ internal sealed class RoofTransientPreviewSession : IDisposable
 {
     internal const short RidgeColorIndex = 1;
     internal const short FaceBoundaryColorIndex = 4;
+    internal const short Face1BoundaryColorIndex = 3;
     internal const short RafterColorIndex = 2;
     private const int TransientSubDrawingMode = 128;
 
@@ -96,7 +97,10 @@ internal sealed class RoofTransientPreviewSession : IDisposable
             .Select(edge => new RoofPreviewSegment(
                 MapPoint(edge.Segment.Start),
                 MapPoint(edge.Segment.End),
-                edge.Role == RoofDisplayEdgeRole.Ridge))
+                edge.Role == RoofDisplayEdgeRole.Ridge,
+                edge.Role is RoofDisplayEdgeRole.Eave1 or
+                    RoofDisplayEdgeRole.GableSlope10 or
+                    RoofDisplayEdgeRole.GableSlope11 ? 1 : 0))
             .ToArray();
     }
 
@@ -114,7 +118,8 @@ internal sealed class RoofTransientPreviewSession : IDisposable
             .Select(rafter => new RoofPreviewSegment(
                 new Point3d(rafter.PlanStart.X, rafter.PlanStart.Y, sourceElevation),
                 new Point3d(rafter.PlanEnd.X, rafter.PlanEnd.Y, sourceElevation),
-                IsRidge: false))
+                IsRidge: false,
+                FaceIndex: (int)rafter.Face))
             .ToArray();
     }
 
@@ -163,7 +168,9 @@ internal sealed class RoofTransientPreviewSession : IDisposable
         {
             var drawable = new Line(segment.Start, segment.End)
             {
-                ColorIndex = segment.IsRidge ? RidgeColorIndex : FaceBoundaryColorIndex,
+                ColorIndex = segment.IsRidge
+                    ? RidgeColorIndex
+                    : segment.FaceIndex == 1 ? Face1BoundaryColorIndex : FaceBoundaryColorIndex,
                 LineWeight = segment.IsRidge
                     ? LineWeight.LineWeight050
                     : LineWeight.LineWeight025,
@@ -209,5 +216,9 @@ internal sealed class RoofTransientPreviewSession : IDisposable
     private static Point3d MapPoint(RoofPoint3D point) =>
         new(point.X, point.Y, point.Z);
 
-    internal sealed record RoofPreviewSegment(Point3d Start, Point3d End, bool IsRidge);
+    internal sealed record RoofPreviewSegment(
+        Point3d Start,
+        Point3d End,
+        bool IsRidge,
+        int FaceIndex);
 }

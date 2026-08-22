@@ -131,7 +131,7 @@ public sealed class RoofGeneratedMemberClassicStretchTests
     [Fact]
     public void SchemaStaysAtThree()
     {
-        Assert.Equal(3, RoofDefinitionDataSchema.CurrentVersion);
+        Assert.Equal(5, RoofDefinitionDataSchema.CurrentVersion);
     }
 
     private static RoofGeneratedMemberGeometry Horizontal(double length) =>

@@ -85,6 +85,30 @@ internal static class RoofGeneratedRafterSetService
         ElementLayerProfile layerProfile,
         bool forceRegenerateOnSourceResize = false)
     {
+        return TryReplaceForSupportedResize(
+            database,
+            transaction,
+            editor,
+            owner,
+            geometry,
+            defaultProfile,
+            layerProfile,
+            out _,
+            forceRegenerateOnSourceResize);
+    }
+
+    public static ReplacementOutcome TryReplaceForSupportedResize(
+        Database database,
+        Transaction transaction,
+        Editor editor,
+        Polyline owner,
+        SimpleGableRoofGeometry geometry,
+        TimberElementDefaultProfile defaultProfile,
+        ElementLayerProfile layerProfile,
+        out RoofGeneratedAnchorResolutionContext? anchorResolutionContext,
+        bool forceRegenerateOnSourceResize = false)
+    {
+        anchorResolutionContext = null;
         ArgumentNullException.ThrowIfNull(database);
         ArgumentNullException.ThrowIfNull(transaction);
         ArgumentNullException.ThrowIfNull(editor);
@@ -179,13 +203,14 @@ internal static class RoofGeneratedRafterSetService
 
         try
         {
+            var definition = RoofDefinitionStore.Read(owner).Data;
             var reservedElementIds = CollectReservedElementIds(
                 database,
                 transaction,
                 existingIds,
-                RoofDefinitionStore.Read(owner).Data);
+                definition);
             EraseGeneratedSet(database, transaction, owner.ObjectId, existingIds);
-            Materialize(
+            var created = Materialize(
                 database,
                 transaction,
                 editor,
@@ -197,10 +222,18 @@ internal static class RoofGeneratedRafterSetService
                 defaultProfile,
                 layerProfile,
                 reservedElementIds);
+            _ = RoofGeneratedAnchorResolutionContext.TryCreate(
+                database,
+                transaction,
+                created.Keys.ToArray(),
+                layoutResult.Layout,
+                RoofPolylineExtractor.GetSourceElevation(owner),
+                definition?.Overrides,
+                out anchorResolutionContext);
 #if DEBUG
             RoofGeneratedTimberCopyOwnershipDiagService.WriteReplaceDiag(
                 editor,
-                $"branch=Replaced newCount={layoutResult.Layout.Rafters.Count} recipeW={recipe.WidthMm} recipeH={recipe.HeightMm} spacing={recipe.MaximumSpacingMm}");
+                $"branch=Replaced newCount={layoutResult.Layout.Rafters.Count} recipeW={recipe.WidthMm} recipeH={recipe.HeightMm} spacing={recipe.MaximumSpacingMm} anchorContext={(anchorResolutionContext is null ? "unavailable" : "ready")}");
 #endif
             return ReplacementOutcome.Replaced;
         }
@@ -242,7 +275,6 @@ internal static class RoofGeneratedRafterSetService
         {
             WidthMm = recipe.WidthMm,
             HeightMm = recipe.HeightMm,
-            SlopeDegrees = geometry.SlopeDegrees,
             IsSlopeDirectionReversed = true,
             Material = recipe.Material,
         };
@@ -263,7 +295,7 @@ internal static class RoofGeneratedRafterSetService
             }
 
             var key = RoofGeneratedMemberKey.From(rafter);
-            var memberData = canonicalRafterData;
+            var memberData = canonicalRafterData with { SlopeDegrees = rafter.SlopeDegrees };
             if (overrides.TryGet(key, out var overrideData) &&
                 !string.IsNullOrWhiteSpace(overrideData.ReservedElementId))
             {
@@ -361,7 +393,7 @@ internal static class RoofGeneratedRafterSetService
         return members.Count > 0;
     }
 
-    private static Dictionary<RoofGeneratedMemberKey, string> CollectReservedElementIds(
+    internal static Dictionary<RoofGeneratedMemberKey, string> CollectReservedElementIds(
         Database database,
         Transaction transaction,
         IReadOnlyList<ObjectId> generatedIds,

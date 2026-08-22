@@ -133,12 +133,12 @@ public sealed class RoofLiveResizeSourceContractTests
     [Fact]
     public void NoSchemaOrVersionChangeWasIntroduced()
     {
-        Assert.Equal(3, RoofDefinitionDataSchema.CurrentVersion);
+        Assert.Equal(5, RoofDefinitionDataSchema.CurrentVersion);
         Assert.Equal(7, TimberElementDataSchema.CurrentVersion);
         Assert.Equal(1, RoofDisplayDataSchema.CurrentVersion);
         Assert.Equal(1, RoofGeneratedTimberDataSchema.CurrentVersion);
         Assert.Equal(1, TimberDrawingSettings.DrawingSettingsSchemaVersion);
-        Assert.DoesNotContain("CurrentVersion = 4", Read(
+        Assert.Contains("CurrentVersion = 5", Read(
             "src", "AcKrovy.Core", "Models", "Roofs", "RoofDefinitionDataSchema.cs"));
         Assert.DoesNotContain("CurrentVersion = 8", Read(
             "src", "AcKrovy.Core", "Models", "TimberElementDataSchema.cs"));

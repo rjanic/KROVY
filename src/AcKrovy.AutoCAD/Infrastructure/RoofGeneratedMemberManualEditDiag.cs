@@ -276,6 +276,8 @@ internal static class RoofGeneratedMemberManualEditDiag
         string? sourceFragment,
         string? newFragment,
         string? anchor,
+        string? origin,
+        string? resolution,
         string result)
     {
         if (editor is null)
@@ -285,9 +287,9 @@ internal static class RoofGeneratedMemberManualEditDiag
 
         var line =
             $"ROOF_ATTACHED_MANUAL_SPLIT command={Token(command)} owner={Token(owner)}" +
-            $" sourceRole=AttachedManual origin=Split" +
+            $" sourceRole=AttachedManual origin={Token(origin)}" +
             $" sourceFragment={Token(sourceFragment)} newFragment={Token(newFragment)}" +
-            $" anchor={Token(anchor)} result={Token(result)}";
+            $" anchor={Token(anchor)} resolution={Token(resolution)} result={Token(result)}";
         WriteLine(editor, line);
     }
 

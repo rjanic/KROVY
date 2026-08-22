@@ -583,9 +583,30 @@ internal static class LiveGeometrySynchronizationService
                 // Same-DWG COPY: AutoCAD does not remap generated-rafter 1005.
                 // Geometry association rebinds copied members after timber copy init.
                 // Runs only for native COPY; never during U/UNDO/REDO/MREDO.
-                // NOTE: AttachedManual COPY-of-COPY clones are re-initialized BEFORE this
-                // so a Generated→AttachedManual promotion here is not re-classified as an
-                // already-manual clone.
+                // Union of annotation entities APPENDED by this command (main labels +
+                // slope arrows + slope angle text). Passed to the MIRROR service so it can
+                // erase ONLY the annotation clones native MIRROR appended for the mirrored
+                // child — never a pre-existing source annotation (those are not in the
+                // appended set). Deterministic command-lifecycle identity, not geometry.
+                var appendedAnnotationIds = appendedLabelIds
+                    .Concat(appendedSlopeArrowIds)
+                    .Concat(appendedSlopeAngleTextIds)
+                    .Distinct()
+                    .ToArray();
+                // Whole-roof assembly COPY: deterministic payload-based detection +
+                // rebind of the entire copied roof under its new owner. MUST run BEFORE
+                // AttachedManual clone re-initialization so whole-roof clones keep their
+                // logical anchor keys (nearest-anchor re-anchoring is single-member
+                // semantics and would corrupt a whole-roof set). Detected sets are
+                // registered as consumed so the per-rafter services below skip them.
+                RoofWholeRoofCopyRebindService.Process(
+                    _document,
+                    globalCommandName,
+                    appendedTimberIds,
+                    appendedAnnotationIds);
+                // NOTE: AttachedManual COPY-of-COPY clones are re-initialized BEFORE the
+                // per-rafter rehydration service so a Generated→AttachedManual promotion
+                // there is not re-classified as an already-manual clone.
                 RoofAttachedManualCopyCloneReinitializeService.Process(
                     _document,
                     globalCommandName,
@@ -598,16 +619,6 @@ internal static class LiveGeometrySynchronizationService
                 // Generated member. Detach the clone and promote it to AttachedManual
                 // so the (owner, GeneratedMemberKey) invariant stays unique. MIRROR Yes
                 // additionally suppresses the erased source's Generated slot.
-                // Union of annotation entities APPENDED by this command (main labels +
-                // slope arrows + slope angle text). Passed to the MIRROR service so it can
-                // erase ONLY the annotation clones native MIRROR appended for the mirrored
-                // child — never a pre-existing source annotation (those are not in the
-                // appended set). Deterministic command-lifecycle identity, not geometry.
-                var appendedAnnotationIds = appendedLabelIds
-                    .Concat(appendedSlopeArrowIds)
-                    .Concat(appendedSlopeAngleTextIds)
-                    .Distinct()
-                    .ToArray();
                 RoofMirrorCloneDetachService.Process(
                     _document,
                     globalCommandName,

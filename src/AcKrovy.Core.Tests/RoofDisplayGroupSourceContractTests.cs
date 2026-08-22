@@ -51,7 +51,7 @@ public sealed class RoofDisplayGroupSourceContractTests
         Assert.Contains("RoofDisplayGroupService.EnsureGroup", rebuild);
         Assert.DoesNotContain("StartTransaction", Group);
         Assert.DoesNotContain("transaction.Commit", Group + Display);
-        Assert.Contains("ConfirmPersistence(editor)", Workflow);
+        Assert.Contains("case GableRoofGeometryDialogAction.Apply:", Workflow);
         Assert.Contains("ConfirmDisplayPersistence(editor, isMissing)", Workflow);
         Assert.Contains("Command_Roof_GroupRepairPrompt", Workflow);
         Assert.Contains("CreateGroupFromExistingValidatedDisplay", Workflow + Group);

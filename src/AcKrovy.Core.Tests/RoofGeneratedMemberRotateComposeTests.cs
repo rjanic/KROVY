@@ -224,7 +224,7 @@ public sealed class RoofGeneratedMemberRotateComposeTests
         var payload = RoofDefinitionDataCodec.Encode(data);
         Assert.True(RoofDefinitionDataCodec.TryDecode(payload, out var decoded, out _));
         Assert.Equal(RoofEditState.Unlocked, decoded!.EditState);
-        Assert.Equal(3, decoded.SchemaVersion);
+        Assert.Equal(5, decoded.SchemaVersion);
         Assert.True(RoofGeneratedMemberOverrideMath.TryApply(
             HostBefore, ZUp, decoded.Overrides[0], out var replayed));
         Assert.True(RoofGeneratedMemberOverrideMath.GeometryEquals(HostAfter, replayed));

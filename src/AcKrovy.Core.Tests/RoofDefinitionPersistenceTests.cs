@@ -57,7 +57,7 @@ public sealed class RoofDefinitionPersistenceTests
     [Fact]
     public void FutureSchema_IsRejectedWithoutNormalization()
     {
-        const string payload = "4|SimpleGable|35|future";
+        const string payload = "6|SimpleGable|35|future";
         Assert.False(RoofDefinitionDataCodec.TryDecode(payload, out _, out var error));
         Assert.Equal(RoofDefinitionDataDecodeError.UnsupportedFutureSchema, error);
     }

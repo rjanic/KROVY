@@ -9,4 +9,6 @@ public enum SimpleGableRoofGeometryError
     InvalidSlope = 4,
     DegenerateDimensions = 5,
     NonFiniteGeometry = 6,
+    InvalidRoofKind = 7,
+    InvalidEaveHeightDifference = 8,
 }

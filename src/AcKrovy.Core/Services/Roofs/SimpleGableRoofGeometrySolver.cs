@@ -2,7 +2,7 @@ using AcKrovy.Core.Models.Roofs;
 
 namespace AcKrovy.Core.Services.Roofs;
 
-/// <summary>Solves one centered symmetric gable over a validated rectangular footprint.</summary>
+/// <summary>Solves canonical simple or asymmetric gable geometry over a rectangle.</summary>
 public static class SimpleGableRoofGeometrySolver
 {
     public static SimpleGableRoofGeometryResult Solve(RoofDefinition definition)
@@ -43,12 +43,27 @@ public static class SimpleGableRoofGeometrySolver
         }
 
         var slopeDegrees = definition.Parameters.SlopeDegrees;
-        if (slopeDegrees is not { } slope ||
-            !IsFinite(slope) ||
-            slope <= SimpleGableRoofGeometryTolerance.MinimumSlopeDegrees ||
-            slope >= SimpleGableRoofGeometryTolerance.MaximumSlopeDegrees)
+        var face1SlopeDegrees = definition.Kind == RoofKind.AsymmetricGable
+            ? definition.Parameters.Face1SlopeDegrees
+            : slopeDegrees;
+        if (definition.Kind is not (RoofKind.SimpleGable or RoofKind.AsymmetricGable) ||
+            slopeDegrees is not { } slope0 ||
+            face1SlopeDegrees is not { } slope1 ||
+            !IsValidSlope(slope0) ||
+            !IsValidSlope(slope1))
         {
             return Invalid(SimpleGableRoofGeometryError.InvalidSlope);
+        }
+
+        var eaveHeightDifference = definition.Kind == RoofKind.AsymmetricGable
+            ? definition.Parameters.EaveHeightDifferenceMm ?? 0d
+            : 0d;
+        if (!IsFinite(eaveHeightDifference) ||
+            definition.Kind == RoofKind.SimpleGable &&
+            Math.Abs(definition.Parameters.EaveHeightDifferenceMm ?? 0d) >
+                SimpleGableRoofGeometryTolerance.CoordinateToleranceMm)
+        {
+            return Invalid(SimpleGableRoofGeometryError.InvalidEaveHeightDifference);
         }
 
         if (!TryResolveRidgeAxis(
@@ -78,50 +93,72 @@ public static class SimpleGableRoofGeometrySolver
         var negativeEave = firstProjection <= secondProjection ? firstEave : secondEave;
         var positiveEave = firstProjection <= secondProjection ? secondEave : firstEave;
 
-        var firstGableEdgeIndex = (ridgeEdgeIndex + 1) % 4;
-        var secondGableEdgeIndex = (ridgeEdgeIndex + 3) % 4;
-        var firstRidgePoint = Midpoint(
-            vertices[firstGableEdgeIndex],
-            vertices[(firstGableEdgeIndex + 1) % 4]);
-        var secondRidgePoint = Midpoint(
-            vertices[secondGableEdgeIndex],
-            vertices[(secondGableEdgeIndex + 1) % 4]);
-        var ridgePlan = CanonicalSegment(firstRidgePoint, secondRidgePoint, ridgeDirection);
         var transverseWidth = firstEaveMidpoint.DistanceTo(secondEaveMidpoint);
-        var run = transverseWidth / 2d;
-        var rise = run * Math.Tan(slope * Math.PI / 180d);
-        if (!IsFinite(run) || !IsFinite(rise) ||
-            run <= SimpleGableRoofGeometryTolerance.MinimumDimensionMm / 2d ||
-            rise <= 0d)
+        var tangent0 = Math.Tan(slope0 * Math.PI / 180d);
+        var tangent1 = Math.Tan(slope1 * Math.PI / 180d);
+        var denominator = tangent0 + tangent1;
+        var run0 = definition.Kind == RoofKind.SimpleGable
+            ? transverseWidth / 2d
+            : (eaveHeightDifference + transverseWidth * tangent1) / denominator;
+        var run1 = transverseWidth - run0;
+        var rise = run0 * tangent0;
+        var riseFromPositiveEave = run1 * tangent1;
+        var commonRidgeElevationFromPositiveEave =
+            eaveHeightDifference + riseFromPositiveEave;
+        var ridgePlan = new Segment2D(
+            Translate(negativeEave.Start, transverse, run0),
+            Translate(negativeEave.End, transverse, run0));
+        if (!IsFinite(denominator) ||
+            denominator <= SimpleGableRoofGeometryTolerance.AngularTolerance ||
+            !IsFinite(run0) || !IsFinite(run1) || !IsFinite(rise) ||
+            !IsFinite(riseFromPositiveEave) ||
+            !IsFinite(commonRidgeElevationFromPositiveEave) ||
+            run0 <= SimpleGableRoofGeometryTolerance.CoordinateToleranceMm ||
+            run1 <= SimpleGableRoofGeometryTolerance.CoordinateToleranceMm ||
+            run0 >= transverseWidth - SimpleGableRoofGeometryTolerance.CoordinateToleranceMm ||
+            run1 >= transverseWidth - SimpleGableRoofGeometryTolerance.CoordinateToleranceMm ||
+            rise <= 0d ||
+            Math.Abs(rise - commonRidgeElevationFromPositiveEave) >
+                SimpleGableRoofGeometryTolerance.LengthTolerance(
+                    rise,
+                    commonRidgeElevationFromPositiveEave))
         {
-            return Invalid(SimpleGableRoofGeometryError.NonFiniteGeometry);
+            return Invalid(SimpleGableRoofGeometryError.InvalidEaveHeightDifference);
         }
 
         var ridge = new RoofSegment3D(
             AtElevation(ridgePlan.Start, rise),
             AtElevation(ridgePlan.End, rise));
-        var negativeEave3D = AtEave(negativeEave);
-        var positiveEave3D = AtEave(positiveEave);
+        var negativeEave3D = AtEave(negativeEave, 0d);
+        var positiveEave3D = AtEave(positiveEave, eaveHeightDifference);
         var faces = new[]
         {
             new SimpleGableRoofFace(
                 0,
                 SimpleGableRoofFaceSide.NegativeTransverse,
                 negativeEave3D,
-                [ridge.Start, negativeEave3D.Start, negativeEave3D.End, ridge.End]),
+                [ridge.Start, negativeEave3D.Start, negativeEave3D.End, ridge.End],
+                run0,
+                slope0),
             new SimpleGableRoofFace(
                 1,
                 SimpleGableRoofFaceSide.PositiveTransverse,
                 positiveEave3D,
-                [ridge.Start, ridge.End, positiveEave3D.End, positiveEave3D.Start]),
+                [ridge.Start, ridge.End, positiveEave3D.End, positiveEave3D.Start],
+                run1,
+                slope1),
         };
         var geometry = new SimpleGableRoofGeometry(
             ridge,
             faces,
             ridgeDirection,
-            run,
+            run0,
             rise,
-            slope);
+            slope0,
+            definition.Kind,
+            run1,
+            slope1,
+            eaveHeightDifference);
         return IsFinite(geometry)
             ? new SimpleGableRoofGeometryResult(true, geometry, SimpleGableRoofGeometryError.None)
             : Invalid(SimpleGableRoofGeometryError.NonFiniteGeometry);
@@ -228,14 +265,17 @@ public static class SimpleGableRoofGeometrySolver
             ? new Segment2D(first, second)
             : new Segment2D(second, first);
 
-    private static RoofSegment3D AtEave(Segment2D segment) =>
-        new(AtElevation(segment.Start, 0d), AtElevation(segment.End, 0d));
+    private static RoofSegment3D AtEave(Segment2D segment, double elevation) =>
+        new(AtElevation(segment.Start, elevation), AtElevation(segment.End, elevation));
 
     private static RoofPoint3D AtElevation(RoofPoint2D point, double elevation) =>
         new(point.X, point.Y, elevation);
 
     private static RoofPoint2D Midpoint(RoofPoint2D first, RoofPoint2D second) =>
         new((first.X + second.X) / 2d, (first.Y + second.Y) / 2d);
+
+    private static RoofPoint2D Translate(RoofPoint2D point, Vector2 direction, double distance) =>
+        new(point.X + direction.X * distance, point.Y + direction.Y * distance);
 
     private static Vector2 VectorBetween(RoofPoint2D start, RoofPoint2D end) =>
         new(end.X - start.X, end.Y - start.Y);
@@ -263,7 +303,10 @@ public static class SimpleGableRoofGeometrySolver
 
     private static bool IsFinite(SimpleGableRoofGeometry geometry) =>
         IsFinite(geometry.RunMm) &&
+        IsFinite(geometry.Face0RunMm) &&
+        IsFinite(geometry.Face1RunMm) &&
         IsFinite(geometry.RiseMm) &&
+        IsFinite(geometry.EaveHeightDifferenceMm) &&
         IsFinite(geometry.RidgeLengthMm) &&
         IsFinite(geometry.Ridge.Start) &&
         IsFinite(geometry.Ridge.End) &&
@@ -274,6 +317,11 @@ public static class SimpleGableRoofGeometrySolver
 
     private static bool IsFinite(double value) =>
         !double.IsNaN(value) && !double.IsInfinity(value);
+
+    private static bool IsValidSlope(double value) =>
+        IsFinite(value) &&
+        value > SimpleGableRoofGeometryTolerance.MinimumSlopeDegrees &&
+        value < SimpleGableRoofGeometryTolerance.MaximumSlopeDegrees;
 
     private static SimpleGableRoofGeometryResult Invalid(SimpleGableRoofGeometryError error) =>
         new(false, null, error);

@@ -158,7 +158,7 @@ public sealed class RoofHybridEditSourceContractTests
         Assert.DoesNotContain("EnsureGroup", Indicator);
         Assert.Contains("ExpectedMemberCount = 8", Group);
         Assert.Equal(RoofEditState.Locked, default(RoofEditState));
-        Assert.Equal(3, RoofDefinitionDataSchema.CurrentVersion);
+        Assert.Equal(5, RoofDefinitionDataSchema.CurrentVersion);
     }
 
     [Fact]

@@ -25,21 +25,25 @@ public sealed class RoofDefinitionPersistenceSourceContractTests
     [Fact]
     public void WritePath_IsAfterExplicitConfirmationAndUsesOneShortCommit()
     {
-        var confirmIndex = Workflow.IndexOf("ConfirmPersistence(editor)", StringComparison.Ordinal);
-        var persistIndex = Workflow.IndexOf("TryPersist(", confirmIndex, StringComparison.Ordinal);
+        var applyIndex = Workflow.IndexOf(
+            "case GableRoofGeometryDialogAction.Apply:",
+            StringComparison.Ordinal);
+        var persistIndex = Workflow.IndexOf("TryPersist(", applyIndex, StringComparison.Ordinal);
         var writeIndex = Workflow.IndexOf("RoofDefinitionStore.Write", StringComparison.Ordinal);
-        Assert.True(confirmIndex >= 0);
-        Assert.True(persistIndex > confirmIndex);
+        Assert.True(applyIndex >= 0);
+        Assert.True(persistIndex > applyIndex);
         Assert.True(writeIndex > persistIndex);
-        Assert.Contains("PromptKeywordOptions", Workflow);
-        Assert.Contains("GetKeywords", Workflow);
+        Assert.Contains("viewModel.TryGetGeometry", Workflow);
         Assert.Contains("OpenMode.ForWrite", Workflow);
         var persistPath = Segment(
             Workflow,
             "private static bool TryPersist",
             "private static RoofDisplayInspection InspectDisplay");
         Assert.Equal(1, CountOccurrences(persistPath, "transaction.Commit();"));
-        Assert.DoesNotContain("GetKeywords", Segment(Workflow, "private static bool TryPersist", "private static bool TryPromptParameters"));
+        Assert.DoesNotContain("GetKeywords", Segment(
+            Workflow,
+            "private static bool TryPersist",
+            "private static bool TryPromptRidgeDirection"));
     }
 
     [Fact]
@@ -92,7 +96,7 @@ public sealed class RoofDefinitionPersistenceSourceContractTests
         Assert.DoesNotContain("OpenMode.ForWrite", selectionPath);
         Assert.DoesNotContain("transaction.Commit", selectionPath);
         Assert.Contains("ShowPreview(document, restored.Geometry", selectionPath);
-        Assert.Contains("ShowPreview(document, geometryResult.Geometry", selectionPath);
+        Assert.Contains("ShowPreview(document, previewGeometry", selectionPath);
     }
 
     private static int CountOccurrences(string value, string token) =>

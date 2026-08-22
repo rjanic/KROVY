@@ -82,7 +82,8 @@ internal static class RoofAttachedManualLifecycleService
         string ownerReference,
         IReadOnlyDictionary<RoofGeneratedMemberKey, string>? oldAnchorHandleByKey = null,
         RoofAttachedManualOrigin? originFilter = null,
-        IReadOnlyList<RoofPoint2D>? sourceFootprintVertices = null)
+        IReadOnlyList<RoofPoint2D>? sourceFootprintVertices = null,
+        RoofGeneratedAnchorResolutionContext? anchorResolutionContext = null)
     {
         var replayed = 0;
         var dormant = 0;
@@ -138,18 +139,17 @@ internal static class RoofAttachedManualLifecycleService
             }
 
             var anchorKey = stored.Data.AnchorGeneratedMemberKey.Value;
-            var anchorHandle = "-";
-            if (!TryFindGeneratedAnchorLine(
-                    document.Database,
-                    transaction,
-                    ownerReference,
-                    anchorKey,
-                    out var anchorLine) ||
-                anchorLine is null)
+            var anchorResolution = ResolveAnchor(
+                document.Database,
+                transaction,
+                ownerReference,
+                anchorKey,
+                anchorResolutionContext);
+            if (!anchorResolution.IsResolved)
             {
-                // Exact anchor station no longer exists: the COPY child becomes
-                // dormant. Geometry is hidden (persisted) and annotations removed;
-                // owner/identity/Origin.Copy/anchor key/RelativeSegment stay intact.
+                // Logical key absent, physical/logical state inconsistent, or no exact
+                // deterministic context: fail closed through the existing dormancy path.
+                // Owner/identity/Origin/anchor key/RelativeSegment stay intact.
                 MakeCopyChildDormant(document, transaction, childLine);
                 dormant++;
 #if DEBUG
@@ -157,6 +157,7 @@ internal static class RoofAttachedManualLifecycleService
                     document.Editor,
                     childLine.Handle.ToString(),
                     RoofAttachedManualRelativeGeometryRules.FormatAnchorKey(anchorKey),
+                    anchorResolution.DiagnosticToken,
                     anchorResolved: false,
                     "-",
                     "-",
@@ -165,7 +166,7 @@ internal static class RoofAttachedManualLifecycleService
                 continue;
             }
 
-            anchorHandle = anchorLine.Handle.ToString();
+            var anchorHandle = anchorResolution.AnchorHandle;
             var oldAnchorHandle = "-";
             if (oldAnchorHandleByKey is not null &&
                 oldAnchorHandleByKey.TryGetValue(anchorKey, out var mappedOld))
@@ -174,8 +175,8 @@ internal static class RoofAttachedManualLifecycleService
             }
 
             if (!RoofAttachedManualRelativeGeometryRules.TryReplay(
-                    ToRoof(anchorLine.StartPoint),
-                    ToRoof(anchorLine.EndPoint),
+                    ToRoof(anchorResolution.Start),
+                    ToRoof(anchorResolution.End),
                     stored.Data.RelativeSegment,
                     out var childStart,
                     out var childEnd))
@@ -185,6 +186,7 @@ internal static class RoofAttachedManualLifecycleService
                     document.Editor,
                     childLine.Handle.ToString(),
                     RoofAttachedManualRelativeGeometryRules.FormatAnchorKey(anchorKey),
+                    anchorResolution.DiagnosticToken,
                     anchorResolved: true,
                     oldAnchorHandle,
                     anchorHandle,
@@ -214,6 +216,7 @@ internal static class RoofAttachedManualLifecycleService
                     document.Editor,
                     childLine.Handle.ToString(),
                     RoofAttachedManualRelativeGeometryRules.FormatAnchorKey(anchorKey),
+                    anchorResolution.DiagnosticToken,
                     anchorResolved: true,
                     oldAnchorHandle,
                     anchorHandle,
@@ -242,6 +245,7 @@ internal static class RoofAttachedManualLifecycleService
                 document.Editor,
                 childLine.Handle.ToString(),
                 RoofAttachedManualRelativeGeometryRules.FormatAnchorKey(anchorKey),
+                anchorResolution.DiagnosticToken,
                 anchorResolved: true,
                 oldAnchorHandle,
                 anchorHandle,
@@ -255,6 +259,42 @@ internal static class RoofAttachedManualLifecycleService
         }
 
         return new RoofCopyReplayResult(replayed, dormant, reactivated, dormancyOutsideFootprint);
+    }
+
+    private static RoofGeneratedAnchorResolution ResolveAnchor(
+        Database database,
+        Transaction transaction,
+        string ownerReference,
+        RoofGeneratedMemberKey anchorKey,
+        RoofGeneratedAnchorResolutionContext? context)
+    {
+        if (context is not null)
+        {
+            return context.Resolve(anchorKey);
+        }
+
+        // Legacy callers without a solved logical context retain exact physical replay.
+        // Missing physical geometry has no deterministic virtual fallback and fails closed.
+        if (TryFindGeneratedAnchorLine(
+                database,
+                transaction,
+                ownerReference,
+                anchorKey,
+                out var anchorLine) &&
+            anchorLine is not null)
+        {
+            return new RoofGeneratedAnchorResolution(
+                RoofGeneratedAnchorResolutionKind.Physical,
+                anchorLine.StartPoint,
+                anchorLine.EndPoint,
+                anchorLine.Handle.ToString());
+        }
+
+        return new RoofGeneratedAnchorResolution(
+            RoofGeneratedAnchorResolutionKind.Unavailable,
+            Point3d.Origin,
+            Point3d.Origin,
+            "-");
     }
 
     private static void MakeCopyChildDormant(
@@ -560,6 +600,7 @@ internal static class RoofAttachedManualAnchorDiag
         Autodesk.AutoCAD.EditorInput.Editor? editor,
         string handle,
         string anchor,
+        string resolution,
         bool anchorResolved,
         string oldAnchorHandle,
         string newAnchorHandle,
@@ -574,6 +615,7 @@ internal static class RoofAttachedManualAnchorDiag
             "ROOF_ATTACHED_MANUAL_REPLAY" +
             $" handle={handle}" +
             $" anchor={anchor}" +
+            $" resolution={resolution}" +
             $" anchorResolved={anchorResolved.ToString().ToLowerInvariant()}" +
             $" oldAnchorHandle={oldAnchorHandle}" +
             $" newAnchorHandle={newAnchorHandle}" +

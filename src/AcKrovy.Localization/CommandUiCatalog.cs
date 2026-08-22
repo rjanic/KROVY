@@ -38,18 +38,20 @@ public static class AcKrovyCommandNames
     public const string SelectSimilar = "AK_SELECTSIMILAR";
     public const string ExportCsv = "AK_EXPORTCSV";
     public const string Roof = "AK_ROOF";
+    public const string RoofAsymmetric = "AK_ROOF_ASYM";
     public const string RoofRafters = "AK_ROOF_RAFTERS";
     public const string RoofUnlock = "AK_ROOF_UNLOCK";
     public const string RoofLock = "AK_ROOF_LOCK";
     public const string RoofResetEdits = "AK_ROOF_RESET_EDITS";
+    public const string RoofEdit = "AK_ROOF_EDIT";
 
     public static IReadOnlyList<string> All { get; } =
     [
         Help, Ribbon, Toolbar, ToolbarShow, ToolbarHide, Settings, ApplyLayers, Label, Labels,
         LabelMissing, LabelSelected, LabelAll, LabelShow, LabelHide, Assign, Rafter, WallPlate, Purlin,
         Post, CollarTie, Brace, TieBeam, Custom, Edit, FlipSlope, Inspect, Report, ReportAll, Recalc,
-        Renumber, Diagnostics, SelectSimilar, ExportCsv, Roof, RoofRafters, RoofUnlock, RoofLock,
-        RoofResetEdits,
+        Renumber, Diagnostics, SelectSimilar, ExportCsv, Roof, RoofAsymmetric, RoofRafters, RoofUnlock, RoofLock,
+        RoofResetEdits, RoofEdit,
     ];
 }
 

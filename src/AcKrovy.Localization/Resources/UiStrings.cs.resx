@@ -537,6 +537,10 @@
   <data name="Command_Roof_InvalidSlopeNotificationTitle" xml:space="preserve"><value>Nevhodný sklon střechy</value></data>
   <data name="Command_Roof_InvalidSlopeNotificationBody" xml:space="preserve"><value>Zadejte sklon větší než 0° a menší než 90°.</value></data>
   <data name="Command_Roof_SlopePrompt" xml:space="preserve"><value>&#xA;Zadejte sklon střechy ve stupních: </value></data>
+  <data name="Command_RoofAsym_Face0SlopePrompt" xml:space="preserve"><value>&#xA;Zadejte sklon první střešní roviny ve stupních (modrá strana náhledu): </value></data>
+  <data name="Command_RoofAsym_Face1SlopePrompt" xml:space="preserve"><value>&#xA;Zadejte sklon druhé střešní roviny ve stupních (zelená strana náhledu): </value></data>
+  <data name="Command_RoofAsym_FacePreviewFormat" xml:space="preserve"><value>&#xA;Náhled: modrá první rovina = {0:0.###}°, zelená druhá rovina = {1:0.###}°.</value></data>
+  <data name="RoofRafterWindow_RoofSlopesValueFormat" xml:space="preserve"><value>První {0:0.###}° / druhá {1:0.###}°</value></data>
   <data name="Command_Roof_RidgeDirectionStartPrompt" xml:space="preserve"><value>&#xA;Určete první bod směru hřebene: </value></data>
   <data name="Command_Roof_RidgeDirectionEndPrompt" xml:space="preserve"><value>&#xA;Určete druhý bod směru hřebene: </value></data>
   <data name="Command_Roof_PreviewClosePrompt" xml:space="preserve"><value>&#xA;Dočasný náhled střechy je zobrazen. Stiskněte Enter nebo Esc pro zavření: </value></data>
@@ -634,6 +638,8 @@
   <data name="Command_RoofLock_AlreadyLocked" xml:space="preserve"><value>&#xA;Střecha je již zamčená.</value></data>
   <data name="Command_RoofResetEdits_Reset" xml:space="preserve"><value>&#xA;Ruční úpravy generovaného řeziva byly vráceny.</value></data>
   <data name="Command_RoofResetEdits_NoEdits" xml:space="preserve"><value>&#xA;Vybraná střecha nemá ruční úpravy.</value></data>
+  <data name="Command_RoofEdit_SelectPrompt" xml:space="preserve"><value>&#xA;Vyberte střechu pro úpravu: </value></data>
+  <data name="Command_RoofEdit_UpdatedFormat" xml:space="preserve"><value>&#xA;Střecha byla upravena.</value></data>
   <data name="Command_Roof_LockedNotificationTitle" xml:space="preserve"><value>Střecha je zamčená</value></data>
   <data name="Command_Roof_LockedNotificationBody" xml:space="preserve"><value>Pro ruční úpravy ji nejprve odemkněte.</value></data>
   <data name="Command_Roof_UnsupportedMemberEditNotificationTitle" xml:space="preserve"><value>Úprava prvku nebyla podporována.</value></data>
@@ -650,4 +656,47 @@
   <data name="Dialog_Inspect_OverrideRotation" xml:space="preserve"><value>Natočení</value></data>
   <data name="Dialog_Inspect_OverrideStart" xml:space="preserve"><value>Offset začátku</value></data>
   <data name="Dialog_Inspect_OverrideEnd" xml:space="preserve"><value>Offset konce</value></data>
+  <data name="RoofGeometryWindow_Title" xml:space="preserve"><value>Geometrie sedlové střechy</value></data>
+  <data name="RoofGeometryWindow_Heading" xml:space="preserve"><value>Sedlová střecha</value></data>
+  <data name="RoofGeometryWindow_Description" xml:space="preserve"><value>Nastavte geometrii střechy, vyberte směr hřebene ve výkresu a výsledek zkontrolujte náhledem.</value></data>
+  <data name="RoofGeometryWindow_SymmetricGable" xml:space="preserve"><value>Sedlová symetrická</value></data>
+  <data name="RoofGeometryWindow_AsymmetricGable" xml:space="preserve"><value>Sedlová asymetrická</value></data>
+  <data name="RoofGeometryWindow_EnteredValues" xml:space="preserve"><value>Zadané hodnoty</value></data>
+  <data name="RoofGeometryWindow_SymmetricPitch" xml:space="preserve"><value>Sklon střechy α = β (°)</value></data>
+  <data name="RoofGeometryWindow_AlphaPitch" xml:space="preserve"><value>Sklon roviny α (°)</value></data>
+  <data name="RoofGeometryWindow_BetaPitch" xml:space="preserve"><value>Sklon roviny β (°)</value></data>
+  <data name="RoofGeometryWindow_DeltaHeight" xml:space="preserve"><value>Rozdíl výšek okapů ΔH (mm)</value></data>
+  <data name="RoofGeometryWindow_DeltaHeightHint" xml:space="preserve"><value>ΔH = zB − zA; kladná hodnota znamená, že okap B je výše.</value></data>
+  <data name="RoofGeometryWindow_RidgeDirection" xml:space="preserve"><value>Směr hřebene</value></data>
+  <data name="RoofGeometryWindow_RidgeDirectionValueFormat" xml:space="preserve"><value>X {0:0.###}; Y {1:0.###}</value></data>
+  <data name="RoofGeometryWindow_RidgeDirectionNotSelected" xml:space="preserve"><value>Směr ještě nebyl vybrán.</value></data>
+  <data name="RoofGeometryWindow_PickRidgeDirection" xml:space="preserve"><value>Vybrat směr hřebene ve výkresu</value></data>
+  <data name="RoofGeometryWindow_CalculatedValues" xml:space="preserve"><value>Vypočítané hodnoty</value></data>
+  <data name="RoofGeometryWindow_RidgePlanPosition" xml:space="preserve"><value>Poloha hřebene od A</value></data>
+  <data name="RoofGeometryWindow_RidgeElevation" xml:space="preserve"><value>Výška hřebene od okapu A</value></data>
+  <data name="RoofGeometryWindow_Schematic" xml:space="preserve"><value>Živé schéma příčného řezu</value></data>
+  <data name="RoofGeometryWindow_Cancel" xml:space="preserve"><value>Zrušit</value></data>
+  <data name="RoofGeometryWindow_Preview" xml:space="preserve"><value>Náhled</value></data>
+  <data name="RoofGeometryWindow_Create" xml:space="preserve"><value>Vytvořit</value></data>
+  <data name="RoofGeometryWindow_EaveA" xml:space="preserve"><value>Okap A</value></data>
+  <data name="RoofGeometryWindow_EaveB" xml:space="preserve"><value>Okap B</value></data>
+  <data name="RoofGeometryWindow_ValidationNumber" xml:space="preserve"><value>Zadejte platné konečné číselné hodnoty.</value></data>
+  <data name="RoofGeometryWindow_ValidationCombination" xml:space="preserve"><value>Kombinace α, β a ΔH umisťuje hřeben mimo půdorys.</value></data>
+  <data name="RoofGeometryWindow_ValidationSlope" xml:space="preserve"><value>Sklony musí být větší než 0° a menší než 90°.</value></data>
+  <data name="RoofGeometryWindow_ValidationDirectionRequired" xml:space="preserve"><value>Před náhledem nebo vytvořením vyberte směr hřebene.</value></data>
+  <data name="RoofGeometryWindow_LengthValueFormat" xml:space="preserve"><value>{0:0} mm</value></data>
+  <data name="RoofGeometryWindow_DimensionA" xml:space="preserve"><value>Rozměr A</value></data>
+  <data name="RoofGeometryWindow_DimensionB" xml:space="preserve"><value>Rozměr B</value></data>
+  <data name="RoofGeometryWindow_RunA" xml:space="preserve"><value>Vzdálenost od okapu A k hřebeni</value></data>
+  <data name="RoofGeometryWindow_RunB" xml:space="preserve"><value>Vzdálenost od hřebene k okapu B</value></data>
+  <data name="RoofGeometryWindow_CalculationMode" xml:space="preserve"><value>Režim výpočtu</value></data>
+  <data name="RoofGeometryWindow_ModeDeltaHeight" xml:space="preserve"><value>Zadat rozdíl výšek okapů ΔH</value></data>
+  <data name="RoofGeometryWindow_ModeRidgeDistance" xml:space="preserve"><value>Zadat polohu hřebene od okapu A</value></data>
+  <data name="RoofGeometryWindow_RidgeDistanceInput" xml:space="preserve"><value>Vzdálenost hřebene od okapu A (mm)</value></data>
+  <data name="RoofGeometryWindow_CalculatedDeltaHeight" xml:space="preserve"><value>Vypočtený rozdíl výšek okapů ΔH (mm)</value></data>
+  <data name="RoofGeometryWindow_TransverseSpan" xml:space="preserve"><value>Rozpon příčného řezu</value></data>
+  <data name="RoofGeometryWindow_ValidationRidgeDistance" xml:space="preserve"><value>Vzdálenost hřebene musí být větší než 0 mm a menší než rozpon.</value></data>
+  <data name="RoofGeometryWindow_ValidationDirection" xml:space="preserve"><value>Vybraný směr hřebene musí být rovnoběžný s hranou obdélníku.</value></data>
+  <data name="RoofGeometryWindow_MirrorAsymmetry" xml:space="preserve"><value>Zrcadlit asymetrii (zaměnit levou/pravou stranu)</value></data>
+  <data name="RoofGeometryWindow_Ridge" xml:space="preserve"><value>Hřeben</value></data>
 </root>

@@ -223,7 +223,7 @@ public sealed class RoofGeneratedMemberTrimAnnotationRefreshSourceContractTests
     [Fact]
     public void Schema3_AndUndoRedoGuards_RemainUnchanged()
     {
-        Assert.Equal(3, RoofDefinitionDataSchema.CurrentVersion);
+        Assert.Equal(5, RoofDefinitionDataSchema.CurrentVersion);
         Assert.Contains("IsUndoRedoCommand(globalCommandName)", Resize);
         Assert.Contains("IsUndoRedoCommand(e.GlobalCommandName)", Live);
         Assert.Contains("public static bool IsUndoRedoCommand(", CommandRules);

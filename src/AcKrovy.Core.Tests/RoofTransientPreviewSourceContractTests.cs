@@ -11,12 +11,16 @@ public sealed class RoofTransientPreviewSourceContractTests
         "src", "AcKrovy.AutoCAD", "Infrastructure", "RoofPolylineExtractor.cs");
     private static readonly string Preview = Read(
         "src", "AcKrovy.AutoCAD", "Infrastructure", "RoofTransientPreviewSession.cs");
+    private static readonly string GeometryViewModel = Read(
+        "src", "AcKrovy.AutoCAD", "UI", "GableRoofGeometryViewModel.cs");
+    private static readonly string GeometryWindow = Read(
+        "src", "AcKrovy.AutoCAD", "UI", "GableRoofGeometryWindow.xaml");
 
     [Fact]
     public void AkRoof_UsesStageOneSolverBeforeOpeningTransientPreview()
     {
-        Assert.Contains("SimpleGableRoofGeometrySolver.Solve(definition)", Workflow);
-        Assert.Contains("geometryResult.Geometry", Workflow);
+        Assert.Contains("RoofGeometrySolver.Solve(new RoofDefinition(", GeometryViewModel);
+        Assert.Contains("viewModel.TryGetGeometry", Workflow);
         Assert.Contains("RoofTransientPreviewSession.Show", Workflow);
         Assert.DoesNotContain("SimpleGableRoofGeometrySolver", Preview);
         Assert.DoesNotContain("Math.Tan", Preview);
@@ -67,7 +71,10 @@ public sealed class RoofTransientPreviewSourceContractTests
     [Fact]
     public void RoofPreviewPath_RemainsReadOnlyAndNonPersistent()
     {
-        var previewPath = Segment(Workflow, "private static void ShowPreview", "private static bool ConfirmPersistence");
+        var previewPath = Segment(
+            Workflow,
+            "private static void ShowPreview",
+            "private static bool ConfirmDisplayPersistence");
         var source = previewPath + Extractor + Preview;
         Assert.DoesNotContain("OpenMode.ForWrite", source);
         Assert.DoesNotContain("UpgradeOpen", source);
@@ -82,9 +89,11 @@ public sealed class RoofTransientPreviewSourceContractTests
     [Fact]
     public void Parameters_AreExplicitLocalizedAndUseEditorWcsPointsDirectly()
     {
-        Assert.Contains("editor.GetDouble", Workflow);
+        Assert.DoesNotContain("editor.GetDouble", Workflow);
         Assert.Contains("editor.GetPoint", Workflow);
-        Assert.Contains("Command_Roof_SlopePrompt", Workflow);
+        Assert.Contains("RoofGeometryWindow_Alpha", GeometryWindow);
+        Assert.Contains("RoofGeometryWindow_Beta", GeometryWindow);
+        Assert.Contains("RoofGeometryWindow_DeltaHeight", GeometryWindow);
         Assert.Contains("Command_Roof_RidgeDirectionStartPrompt", Workflow);
         Assert.Contains("Command_Roof_RidgeDirectionEndPrompt", Workflow);
         Assert.Contains("RoofDirection2D.TryCreate", Workflow);
@@ -98,18 +107,12 @@ public sealed class RoofTransientPreviewSourceContractTests
     [Fact]
     public void CorrectableGeometryUsesSharedWpfWhileTechnicalNonFiniteStaysCli()
     {
-        var geometryMapping = Segment(
-            Workflow,
-            "private static bool TryGetGeometryNotification",
-            "private static string GetValidationMessage");
-        Assert.Contains("GetGeometryMessage(geometryResult.Error)", Workflow);
-        Assert.Contains("TryGetGeometryNotification(geometryResult.Error", Workflow);
-        Assert.Contains("UnsupportedFootprintNotification", geometryMapping);
-        Assert.Contains("InvalidFootprintNotification", geometryMapping);
-        Assert.Contains("InvalidDirectionNotification", geometryMapping);
-        Assert.Contains("InvalidSlopeNotification", geometryMapping);
-        Assert.DoesNotContain("NonFiniteGeometry", geometryMapping);
-        Assert.Contains("Command_Roof_GeometryErrorNonFinite", Workflow);
+        Assert.Contains("new GableRoofGeometryWindow(", Workflow);
+        Assert.Contains("RoofGeometrySolver.Solve", GeometryViewModel);
+        Assert.Contains("RoofGeometryWindow_ValidationNumber", GeometryViewModel);
+        Assert.Contains("RoofGeometryWindow_ValidationCombination", GeometryViewModel);
+        Assert.Contains("double.IsFinite(value)", GeometryViewModel);
+        Assert.Contains("GetStoredDefinitionMessage", Workflow);
         Assert.Contains("notification = OpenLoopNotification", Workflow);
         Assert.Contains("TransientNotificationService.Show", Workflow);
         Assert.Equal(1, CountOccurrences(Workflow, "TransientNotificationService.Show"));

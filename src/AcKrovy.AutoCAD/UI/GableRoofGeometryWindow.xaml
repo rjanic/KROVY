@@ -1,0 +1,380 @@
+<Window x:Class="AcKrovy.AutoCAD.UI.GableRoofGeometryWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:AcKrovy.AutoCAD.UI"
+        xmlns:localization="clr-namespace:AcKrovy.AutoCAD.UI.Localization"
+        Title="{localization:Loc RoofGeometryWindow_Title}"
+        Width="1080"
+        Height="780"
+        MinWidth="980"
+        MinHeight="720"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource SettingsWindowBackgroundBrush}"
+        Foreground="{DynamicResource SettingsTextPrimaryBrush}">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Design/SettingsColors.Light.xaml" />
+                <ResourceDictionary Source="Design/SettingsDesignSystem.xaml" />
+                <ResourceDictionary Source="Design/SettingsControls.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+            <Style x:Key="RoofModeCardStyle" TargetType="RadioButton">
+                <Setter Property="Foreground" Value="{DynamicResource SettingsTextPrimaryBrush}" />
+                <Setter Property="Background" Value="{DynamicResource SettingsCardBackgroundBrush}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource SettingsBorderBrush}" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="RadioButton">
+                            <Border x:Name="Chrome"
+                                    Margin="4,0"
+                                    Padding="13,11"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="7">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="18" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Ellipse Width="16" Height="16"
+                                             Stroke="{DynamicResource SettingsTextSecondaryBrush}"
+                                             StrokeThickness="1.5" />
+                                    <Ellipse x:Name="SelectionDot"
+                                             Width="8" Height="8"
+                                             Fill="{DynamicResource SettingsAccentBrush}"
+                                             Visibility="Collapsed" />
+                                    <ContentPresenter Grid.Column="1"
+                                                      Margin="9,0,0,0"
+                                                      VerticalAlignment="Center" />
+                                </Grid>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Chrome" Property="Background"
+                                            Value="{DynamicResource SettingsHoverBrush}" />
+                                </Trigger>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter TargetName="Chrome" Property="Background"
+                                            Value="{DynamicResource SettingsSelectedBrush}" />
+                                    <Setter TargetName="Chrome" Property="BorderBrush"
+                                            Value="{DynamicResource SettingsAccentBrush}" />
+                                    <Setter TargetName="Chrome" Property="BorderThickness" Value="2" />
+                                    <Setter TargetName="SelectionDot" Property="Visibility" Value="Visible" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <StackPanel>
+            <TextBlock Style="{DynamicResource SettingsSectionTitleStyle}"
+                       Text="{localization:Loc RoofGeometryWindow_Heading}" />
+            <TextBlock Margin="0,4,0,14"
+                       Style="{DynamicResource SettingsDescriptionStyle}"
+                       Text="{localization:Loc RoofGeometryWindow_Description}" />
+        </StackPanel>
+
+        <Border Grid.Row="1" Padding="12" Margin="0,0,0,14"
+                Style="{DynamicResource SettingsCardStyle}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="22" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="460" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock FontWeight="SemiBold" Text="{localization:Loc RoofGeometryWindow_DimensionA}" />
+                    <TextBlock FontWeight="SemiBold" Text=" = " />
+                    <TextBlock x:Name="DimensionATextBlock" Text="{Binding DimensionAText}" />
+                </StackPanel>
+                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                    <TextBlock FontWeight="SemiBold" Text="{localization:Loc RoofGeometryWindow_DimensionB}" />
+                    <TextBlock FontWeight="SemiBold" Text=" = " />
+                    <TextBlock x:Name="DimensionBTextBlock" Text="{Binding DimensionBText}" />
+                </StackPanel>
+                <UniformGrid Grid.Column="4" Columns="2">
+                    <RadioButton x:Name="SymmetricRadioButton"
+                                 GroupName="RoofType"
+                                 Style="{StaticResource RoofModeCardStyle}"
+                                 IsChecked="{Binding IsSymmetricMode, Mode=TwoWay}">
+                        <StackPanel Orientation="Horizontal">
+                            <Viewbox x:Name="SymmetricRoofTypeIcon"
+                                     Width="28" Height="18" Margin="0,0,8,0">
+                                <Path Stroke="{DynamicResource SettingsTextPrimaryBrush}"
+                                      StrokeThickness="2"
+                                      StrokeStartLineCap="Round"
+                                      StrokeEndLineCap="Round"
+                                      Data="M 1,15 L 14,3 L 27,15 M 14,3 L 14,17 M 1,17 L 27,17" />
+                            </Viewbox>
+                            <TextBlock VerticalAlignment="Center"
+                                       Text="{localization:Loc RoofGeometryWindow_SymmetricGable}" />
+                        </StackPanel>
+                    </RadioButton>
+                    <RadioButton x:Name="AsymmetricRadioButton"
+                                 GroupName="RoofType"
+                                 Style="{StaticResource RoofModeCardStyle}"
+                                 IsChecked="{Binding IsAsymmetricMode, Mode=TwoWay}">
+                        <StackPanel Orientation="Horizontal">
+                            <Viewbox x:Name="AsymmetricRoofTypeIcon"
+                                     Width="28" Height="18" Margin="0,0,8,0">
+                                <Path Stroke="{DynamicResource SettingsTextPrimaryBrush}"
+                                      StrokeThickness="2"
+                                      StrokeStartLineCap="Round"
+                                      StrokeEndLineCap="Round"
+                                      Data="M 1,15 L 9,3 L 27,15 M 9,3 L 9,17 M 1,17 L 27,17" />
+                            </Viewbox>
+                            <TextBlock VerticalAlignment="Center"
+                                       Text="{localization:Loc RoofGeometryWindow_AsymmetricGable}" />
+                        </StackPanel>
+                    </RadioButton>
+                </UniformGrid>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="370" />
+                <ColumnDefinition Width="14" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <Border x:Name="LeftInputCard"
+                    Padding="14,10"
+                    Style="{DynamicResource SettingsCardStyle}">
+                    <StackPanel x:Name="LeftContentPanel">
+                        <TextBlock Margin="0,0,0,10"
+                                   Style="{DynamicResource SettingsSectionTitleStyle}"
+                                   Text="{localization:Loc RoofGeometryWindow_EnteredValues}" />
+
+                        <StackPanel x:Name="SymmetricFieldsPanel"
+                                    Visibility="{Binding IsSymmetricMode, Converter={StaticResource BoolToVisibility}}">
+                            <TextBlock Margin="0,0,0,5"
+                                       Text="{localization:Loc RoofGeometryWindow_SymmetricPitch}" />
+                            <TextBox Text="{Binding AlphaText, UpdateSourceTrigger=PropertyChanged}" />
+                        </StackPanel>
+
+                        <StackPanel x:Name="AsymmetricFieldsPanel"
+                                    Visibility="{Binding IsAsymmetricMode, Converter={StaticResource BoolToVisibility}}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="12" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Margin="0,0,0,5"
+                                               Text="{localization:Loc RoofGeometryWindow_AlphaPitch}" />
+                                    <TextBox Text="{Binding AlphaText, UpdateSourceTrigger=PropertyChanged}" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Margin="0,0,0,5"
+                                               Text="{localization:Loc RoofGeometryWindow_BetaPitch}" />
+                                    <TextBox Text="{Binding BetaText, UpdateSourceTrigger=PropertyChanged}" />
+                                </StackPanel>
+                            </Grid>
+                            <StackPanel x:Name="AsymmetricInputModePanel" Margin="0,8,0,0">
+                                <TextBlock Margin="0,0,0,6"
+                                           FontWeight="SemiBold"
+                                           Text="{localization:Loc RoofGeometryWindow_CalculationMode}" />
+                                <RadioButton x:Name="DeltaHeightModeRadioButton"
+                                             GroupName="AsymmetricCalculationMode"
+                                             IsChecked="{Binding IsDeltaHeightMode, Mode=TwoWay}">
+                                    <TextBlock MaxWidth="240"
+                                               TextWrapping="Wrap"
+                                               Text="{localization:Loc RoofGeometryWindow_ModeDeltaHeight}" />
+                                </RadioButton>
+                                <RadioButton x:Name="RidgeDistanceModeRadioButton"
+                                             Margin="0,6,0,0"
+                                             GroupName="AsymmetricCalculationMode"
+                                             IsChecked="{Binding IsRidgeDistanceMode, Mode=TwoWay}">
+                                    <TextBlock MaxWidth="240"
+                                               TextWrapping="Wrap"
+                                               Text="{localization:Loc RoofGeometryWindow_ModeRidgeDistance}" />
+                                </RadioButton>
+                            </StackPanel>
+
+                            <StackPanel x:Name="DeltaHeightInputPanel"
+                                        Margin="0,8,0,0"
+                                        Visibility="{Binding IsDeltaHeightMode, Converter={StaticResource BoolToVisibility}}">
+                                <TextBlock Margin="0,0,0,5" Text="{localization:Loc RoofGeometryWindow_DeltaHeight}" />
+                                <TextBox TextAlignment="Right"
+                                         Text="{Binding EaveHeightDifferenceText, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBlock Margin="0,4,0,0"
+                                           Style="{DynamicResource SettingsHintStyle}"
+                                           Text="{localization:Loc RoofGeometryWindow_DeltaHeightHint}" />
+                            </StackPanel>
+
+                            <Grid x:Name="RidgeDistanceInputPanel"
+                                  Margin="0,8,0,0"
+                                  Visibility="{Binding IsRidgeDistanceMode, Converter={StaticResource BoolToVisibility}}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="12" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Margin="0,0,0,5"
+                                               TextWrapping="Wrap"
+                                               Text="{localization:Loc RoofGeometryWindow_RidgeDistanceInput}" />
+                                    <TextBox TextAlignment="Right"
+                                             Text="{Binding RidgeDistanceFromEaveAText, UpdateSourceTrigger=PropertyChanged}" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Margin="0,0,0,5"
+                                               TextWrapping="Wrap"
+                                               Text="{localization:Loc RoofGeometryWindow_CalculatedDeltaHeight}" />
+                                    <TextBox x:Name="CalculatedDeltaHeightTextBox"
+                                             IsReadOnly="True"
+                                             TextAlignment="Right"
+                                             Text="{Binding EaveHeightDifferenceText, Mode=OneWay}" />
+                                </StackPanel>
+                            </Grid>
+
+                            <Border x:Name="MirrorAsymmetryPanel"
+                                    Margin="0,8,0,0"
+                                    Padding="9,5"
+                                    Background="{DynamicResource SettingsPanelBackgroundBrush}"
+                                    BorderBrush="{DynamicResource SettingsBorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="6">
+                                <CheckBox x:Name="MirrorAsymmetryCheckBox"
+                                          IsChecked="{Binding IsAsymmetryMirrored, Mode=TwoWay}"
+                                          Content="{localization:Loc RoofGeometryWindow_MirrorAsymmetry}" />
+                            </Border>
+                        </StackPanel>
+
+                        <Separator Margin="0,5" />
+                        <DockPanel Margin="0,0,0,7" LastChildFill="True">
+                            <TextBlock DockPanel.Dock="Left"
+                                       Margin="0,0,8,0"
+                                       FontWeight="SemiBold"
+                                       Text="{localization:Loc RoofGeometryWindow_RidgeDirection}" />
+                            <TextBlock x:Name="RidgeDirectionTextBlock"
+                                       HorizontalAlignment="Right"
+                                       Foreground="{DynamicResource SettingsTextSecondaryBrush}"
+                                       Text="{Binding RidgeDirectionText}" />
+                        </DockPanel>
+                        <Button x:Name="PickRidgeDirectionButton"
+                                HorizontalAlignment="Stretch"
+                                Click="PickRidgeDirectionButton_Click"
+                                Style="{DynamicResource SettingsSecondaryButtonStyle}">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <Viewbox x:Name="PickRidgeDirectionIcon"
+                                         Width="24" Height="18" Margin="0,0,8,0">
+                                    <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                          StrokeThickness="1.8"
+                                          StrokeStartLineCap="Round"
+                                          StrokeEndLineCap="Round"
+                                          StrokeLineJoin="Round"
+                                          Data="M 1,10 L 7,4 L 13,10 M 7,4 L 7,13 M 11,15 L 22,15 M 18,11 L 22,15 L 18,19" />
+                                </Viewbox>
+                                <TextBlock VerticalAlignment="Center"
+                                           Text="{localization:Loc RoofGeometryWindow_PickRidgeDirection}" />
+                            </StackPanel>
+                        </Button>
+
+                    </StackPanel>
+            </Border>
+
+            <Border Grid.Column="2" Padding="14" Style="{DynamicResource SettingsCardStyle}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <TextBlock Style="{DynamicResource SettingsSectionTitleStyle}"
+                               Text="{localization:Loc RoofGeometryWindow_Schematic}" />
+                    <Border Grid.Row="1"
+                            Margin="0,9,0,6"
+                            Padding="9,7"
+                            Background="{DynamicResource SettingsPanelBackgroundBrush}"
+                            BorderBrush="{DynamicResource SettingsBorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="6">
+                        <UniformGrid Columns="4">
+                            <StackPanel Margin="5,0">
+                                <TextBlock Foreground="{DynamicResource SettingsTextSecondaryBrush}"
+                                           TextWrapping="Wrap"
+                                           Text="{localization:Loc RoofGeometryWindow_TransverseSpan}" />
+                                <TextBlock Margin="0,3,0,0" FontWeight="SemiBold"
+                                           Text="{Binding TransverseSpanText}" />
+                            </StackPanel>
+                            <StackPanel Margin="5,0">
+                                <TextBlock Foreground="{DynamicResource SettingsTextSecondaryBrush}"
+                                           TextWrapping="Wrap"
+                                           Text="{localization:Loc RoofGeometryWindow_RunA}" />
+                                <TextBlock Margin="0,3,0,0" FontWeight="SemiBold"
+                                           Text="{Binding RunAText}" />
+                            </StackPanel>
+                            <StackPanel Margin="5,0">
+                                <TextBlock Foreground="{DynamicResource SettingsTextSecondaryBrush}"
+                                           TextWrapping="Wrap"
+                                           Text="{localization:Loc RoofGeometryWindow_RunB}" />
+                                <TextBlock Margin="0,3,0,0" FontWeight="SemiBold"
+                                           Text="{Binding RunBText}" />
+                            </StackPanel>
+                            <StackPanel Margin="5,0">
+                                <TextBlock Foreground="{DynamicResource SettingsTextSecondaryBrush}"
+                                           TextWrapping="Wrap"
+                                           Text="{localization:Loc RoofGeometryWindow_RidgeElevation}" />
+                                <TextBlock Margin="0,3,0,0" FontWeight="SemiBold"
+                                           Text="{Binding RidgeElevationText}" />
+                            </StackPanel>
+                        </UniformGrid>
+                    </Border>
+                    <local:GableRoofSectionControl x:Name="SchematicControl"
+                                                   Grid.Row="2"
+                                                   MinHeight="330"
+                                                   State="{Binding SectionState}" />
+                </Grid>
+            </Border>
+        </Grid>
+
+        <TextBlock x:Name="ValidationTextBlock"
+                   Grid.Row="3"
+                   Margin="0,12,0,0"
+                   MinHeight="20"
+                   Foreground="{DynamicResource SettingsValidationBrush}"
+                   Text="{Binding ValidationMessage}"
+                   TextWrapping="Wrap" />
+
+        <StackPanel Grid.Row="4" Margin="0,14,0,0"
+                    Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button x:Name="CancelButton"
+                    Margin="0,0,10,0"
+                    Click="CancelButton_Click"
+                    Style="{DynamicResource SettingsSecondaryButtonStyle}"
+                    Content="{localization:Loc RoofGeometryWindow_Cancel}" />
+            <Button x:Name="PreviewButton"
+                    Margin="0,0,10,0"
+                    Click="PreviewButton_Click"
+                    IsEnabled="{Binding CanPreview}"
+                    Style="{DynamicResource SettingsSecondaryButtonStyle}"
+                    Content="{localization:Loc RoofGeometryWindow_Preview}" />
+            <Button x:Name="ApplyButton"
+                    Click="ApplyButton_Click"
+                    IsDefault="True"
+                    IsEnabled="{Binding CanApply}"
+                    Style="{DynamicResource SettingsPrimaryButtonStyle}"
+                    Content="{localization:Loc RoofGeometryWindow_Create}" />
+        </StackPanel>
+    </Grid>
+</Window>

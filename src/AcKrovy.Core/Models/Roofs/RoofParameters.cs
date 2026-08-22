@@ -10,7 +10,9 @@ public sealed record RoofParameters(
     double? OverhangMm = null,
     double? RafterSpacingMm = null,
     double? RafterWidthMm = null,
-    double? RafterHeightMm = null)
+    double? RafterHeightMm = null,
+    double? Face1SlopeDegrees = null,
+    double? EaveHeightDifferenceMm = null)
 {
     public static RoofParameters Unspecified { get; } = new();
 }

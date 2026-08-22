@@ -38,7 +38,8 @@ internal static class RoofSourceResizeChildPolicyService
         Transaction transaction,
         Polyline owner,
         RoofGeneratedRafterSetService.ReplacementOutcome rafterOutcome,
-        int generatedMemberCount)
+        int generatedMemberCount,
+        RoofGeneratedAnchorResolutionContext? anchorResolutionContext)
     {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(transaction);
@@ -88,7 +89,8 @@ internal static class RoofSourceResizeChildPolicyService
                 ownerReference,
                 oldAnchorHandleByKey: null,
                 originFilter: RoofAttachedManualOrigin.Copy,
-                sourceFootprintVertices: sourceFootprintVertices);
+                sourceFootprintVertices: sourceFootprintVertices,
+                anchorResolutionContext: anchorResolutionContext);
             copyReplayed = copyReplay.Replayed;
             copyDormant = copyReplay.Dormant;
             copyReactivated = copyReplay.Reactivated;
@@ -100,7 +102,8 @@ internal static class RoofSourceResizeChildPolicyService
                 ownerReference,
                 oldAnchorHandleByKey: null,
                 originFilter: RoofAttachedManualOrigin.Split,
-                sourceFootprintVertices: sourceFootprintVertices);
+                sourceFootprintVertices: sourceFootprintVertices,
+                anchorResolutionContext: anchorResolutionContext);
             splitReplayed = splitReplay.Replayed;
             splitDormant = splitReplay.Dormant;
             splitReactivated = splitReplay.Reactivated;

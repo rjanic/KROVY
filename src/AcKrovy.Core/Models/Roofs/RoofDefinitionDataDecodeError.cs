@@ -13,4 +13,5 @@ public enum RoofDefinitionDataDecodeError
     InvalidRigidFootprintDescriptor,
     InvalidEditState,
     InvalidManualOverride,
+    InvalidEaveHeightDifference,
 }

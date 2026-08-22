@@ -537,6 +537,10 @@
   <data name="Command_Roof_InvalidSlopeNotificationTitle" xml:space="preserve"><value>Pente de toiture inadaptée</value></data>
   <data name="Command_Roof_InvalidSlopeNotificationBody" xml:space="preserve"><value>Indiquez une pente supérieure à 0° et inférieure à 90°.</value></data>
   <data name="Command_Roof_SlopePrompt" xml:space="preserve"><value>&#xA;Saisissez la pente du toit en degrés : </value></data>
+  <data name="Command_RoofAsym_Face0SlopePrompt" xml:space="preserve"><value>&#xA;Saisissez la pente du premier pan en degrés (côté bleu de l’aperçu) : </value></data>
+  <data name="Command_RoofAsym_Face1SlopePrompt" xml:space="preserve"><value>&#xA;Saisissez la pente du second pan en degrés (côté vert de l’aperçu) : </value></data>
+  <data name="Command_RoofAsym_FacePreviewFormat" xml:space="preserve"><value>&#xA;Aperçu : premier pan bleu = {0:0.###}°, second pan vert = {1:0.###}°.</value></data>
+  <data name="RoofRafterWindow_RoofSlopesValueFormat" xml:space="preserve"><value>Premier {0:0.###}° / second {1:0.###}°</value></data>
   <data name="Command_Roof_RidgeDirectionStartPrompt" xml:space="preserve"><value>&#xA;Indiquez le premier point de la direction du faîtage : </value></data>
   <data name="Command_Roof_RidgeDirectionEndPrompt" xml:space="preserve"><value>&#xA;Indiquez le second point de la direction du faîtage : </value></data>
   <data name="Command_Roof_PreviewClosePrompt" xml:space="preserve"><value>&#xA;L’aperçu temporaire du toit est affiché. Appuyez sur Entrée ou Échap pour le fermer : </value></data>
@@ -634,6 +638,8 @@
   <data name="Command_RoofLock_AlreadyLocked" xml:space="preserve"><value>&#xA;Le toit est déjà verrouillé.</value></data>
   <data name="Command_RoofResetEdits_Reset" xml:space="preserve"><value>&#xA;Les modifications manuelles du bois généré ont été réinitialisées.</value></data>
   <data name="Command_RoofResetEdits_NoEdits" xml:space="preserve"><value>&#xA;Le toit sélectionné n&#39;a aucune modification manuelle.</value></data>
+  <data name="Command_RoofEdit_SelectPrompt" xml:space="preserve"><value>&#xA;Sélectionnez un toit à modifier : </value></data>
+  <data name="Command_RoofEdit_UpdatedFormat" xml:space="preserve"><value>&#xA;Toit mis à jour.</value></data>
   <data name="Command_Roof_LockedNotificationTitle" xml:space="preserve"><value>Le toit est verrouillé</value></data>
   <data name="Command_Roof_LockedNotificationBody" xml:space="preserve"><value>Déverrouillez-le avant les modifications manuelles.</value></data>
   <data name="Command_Roof_UnsupportedMemberEditNotificationTitle" xml:space="preserve"><value>La modification de l&#39;élément n&#39;était pas prise en charge.</value></data>
@@ -650,4 +656,47 @@
   <data name="Dialog_Inspect_OverrideRotation" xml:space="preserve"><value>Rotation</value></data>
   <data name="Dialog_Inspect_OverrideStart" xml:space="preserve"><value>Décalage de début</value></data>
   <data name="Dialog_Inspect_OverrideEnd" xml:space="preserve"><value>Décalage de fin</value></data>
+  <data name="RoofGeometryWindow_Title" xml:space="preserve"><value>Géométrie du toit à deux pans</value></data>
+  <data name="RoofGeometryWindow_Heading" xml:space="preserve"><value>Toit à deux pans</value></data>
+  <data name="RoofGeometryWindow_Description" xml:space="preserve"><value>Définissez la géométrie du toit, choisissez la direction du faîtage dans le dessin et vérifiez le résultat avec l’aperçu.</value></data>
+  <data name="RoofGeometryWindow_SymmetricGable" xml:space="preserve"><value>Toit symétrique à deux pans</value></data>
+  <data name="RoofGeometryWindow_AsymmetricGable" xml:space="preserve"><value>Toit asymétrique à deux pans</value></data>
+  <data name="RoofGeometryWindow_EnteredValues" xml:space="preserve"><value>Valeurs saisies</value></data>
+  <data name="RoofGeometryWindow_SymmetricPitch" xml:space="preserve"><value>Pente du toit α = β (°)</value></data>
+  <data name="RoofGeometryWindow_AlphaPitch" xml:space="preserve"><value>Pente du pan α (°)</value></data>
+  <data name="RoofGeometryWindow_BetaPitch" xml:space="preserve"><value>Pente du pan β (°)</value></data>
+  <data name="RoofGeometryWindow_DeltaHeight" xml:space="preserve"><value>Différence de hauteur des égouts ΔH (mm)</value></data>
+  <data name="RoofGeometryWindow_DeltaHeightHint" xml:space="preserve"><value>ΔH = zB − zA ; une valeur positive signifie que l’égout B est plus haut.</value></data>
+  <data name="RoofGeometryWindow_RidgeDirection" xml:space="preserve"><value>Direction du faîtage</value></data>
+  <data name="RoofGeometryWindow_RidgeDirectionValueFormat" xml:space="preserve"><value>X {0:0.###}; Y {1:0.###}</value></data>
+  <data name="RoofGeometryWindow_RidgeDirectionNotSelected" xml:space="preserve"><value>La direction n’a pas encore été choisie.</value></data>
+  <data name="RoofGeometryWindow_PickRidgeDirection" xml:space="preserve"><value>Choisir la direction du faîtage dans le dessin</value></data>
+  <data name="RoofGeometryWindow_CalculatedValues" xml:space="preserve"><value>Valeurs calculées</value></data>
+  <data name="RoofGeometryWindow_RidgePlanPosition" xml:space="preserve"><value>Position du faîtage depuis A</value></data>
+  <data name="RoofGeometryWindow_RidgeElevation" xml:space="preserve"><value>Hauteur du faîtage depuis l’égout A</value></data>
+  <data name="RoofGeometryWindow_Schematic" xml:space="preserve"><value>Schéma dynamique de la coupe</value></data>
+  <data name="RoofGeometryWindow_Cancel" xml:space="preserve"><value>Annuler</value></data>
+  <data name="RoofGeometryWindow_Preview" xml:space="preserve"><value>Aperçu</value></data>
+  <data name="RoofGeometryWindow_Create" xml:space="preserve"><value>Créer</value></data>
+  <data name="RoofGeometryWindow_EaveA" xml:space="preserve"><value>Égout A</value></data>
+  <data name="RoofGeometryWindow_EaveB" xml:space="preserve"><value>Égout B</value></data>
+  <data name="RoofGeometryWindow_ValidationNumber" xml:space="preserve"><value>Saisissez des valeurs numériques finies valides.</value></data>
+  <data name="RoofGeometryWindow_ValidationCombination" xml:space="preserve"><value>La combinaison α, β et ΔH place le faîtage hors de l’emprise.</value></data>
+  <data name="RoofGeometryWindow_ValidationSlope" xml:space="preserve"><value>Les pentes doivent être supérieures à 0° et inférieures à 90°.</value></data>
+  <data name="RoofGeometryWindow_ValidationDirectionRequired" xml:space="preserve"><value>Choisissez la direction du faîtage avant l’aperçu ou la création.</value></data>
+  <data name="RoofGeometryWindow_LengthValueFormat" xml:space="preserve"><value>{0:0} mm</value></data>
+  <data name="RoofGeometryWindow_DimensionA" xml:space="preserve"><value>Dimension A</value></data>
+  <data name="RoofGeometryWindow_DimensionB" xml:space="preserve"><value>Dimension B</value></data>
+  <data name="RoofGeometryWindow_RunA" xml:space="preserve"><value>Distance de l’égout A au faîtage</value></data>
+  <data name="RoofGeometryWindow_RunB" xml:space="preserve"><value>Distance du faîtage à l’égout B</value></data>
+  <data name="RoofGeometryWindow_CalculationMode" xml:space="preserve"><value>Mode de calcul</value></data>
+  <data name="RoofGeometryWindow_ModeDeltaHeight" xml:space="preserve"><value>Saisir la différence de hauteur des égouts ΔH</value></data>
+  <data name="RoofGeometryWindow_ModeRidgeDistance" xml:space="preserve"><value>Saisir la position du faîtage depuis l’égout A</value></data>
+  <data name="RoofGeometryWindow_RidgeDistanceInput" xml:space="preserve"><value>Distance du faîtage depuis l’égout A (mm)</value></data>
+  <data name="RoofGeometryWindow_CalculatedDeltaHeight" xml:space="preserve"><value>Différence calculée de hauteur des égouts ΔH (mm)</value></data>
+  <data name="RoofGeometryWindow_TransverseSpan" xml:space="preserve"><value>Portée de la coupe</value></data>
+  <data name="RoofGeometryWindow_ValidationRidgeDistance" xml:space="preserve"><value>La distance du faîtage doit être supérieure à 0 mm et inférieure à la portée.</value></data>
+  <data name="RoofGeometryWindow_ValidationDirection" xml:space="preserve"><value>La direction choisie du faîtage doit être parallèle à un côté du rectangle.</value></data>
+  <data name="RoofGeometryWindow_MirrorAsymmetry" xml:space="preserve"><value>Refléter l’asymétrie (permuter gauche/droite)</value></data>
+  <data name="RoofGeometryWindow_Ridge" xml:space="preserve"><value>Faîtage</value></data>
 </root>

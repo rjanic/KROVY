@@ -259,7 +259,7 @@ public sealed class RoofGeneratedMemberTrimTargetedRecalcSourceContractTests
             null, key, "K3", startDelta, endDelta);
         Assert.Equal(key, composed!.Key);
         Assert.Equal("K3", composed.ReservedElementId);
-        Assert.Equal(3, RoofDefinitionDataSchema.CurrentVersion);
+        Assert.Equal(5, RoofDefinitionDataSchema.CurrentVersion);
     }
 
     [Fact]

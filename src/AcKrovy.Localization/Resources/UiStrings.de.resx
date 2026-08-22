@@ -537,6 +537,10 @@
   <data name="Command_Roof_InvalidSlopeNotificationTitle" xml:space="preserve"><value>Ungeeignete Dachneigung</value></data>
   <data name="Command_Roof_InvalidSlopeNotificationBody" xml:space="preserve"><value>Geben Sie eine Neigung größer als 0° und kleiner als 90° ein.</value></data>
   <data name="Command_Roof_SlopePrompt" xml:space="preserve"><value>&#xA;Geben Sie die Dachneigung in Grad ein: </value></data>
+  <data name="Command_RoofAsym_Face0SlopePrompt" xml:space="preserve"><value>&#xA;Geben Sie die Neigung der ersten Dachfläche in Grad ein (blaue Vorschauseite): </value></data>
+  <data name="Command_RoofAsym_Face1SlopePrompt" xml:space="preserve"><value>&#xA;Geben Sie die Neigung der zweiten Dachfläche in Grad ein (grüne Vorschauseite): </value></data>
+  <data name="Command_RoofAsym_FacePreviewFormat" xml:space="preserve"><value>&#xA;Vorschau: blaue erste Fläche = {0:0.###}°, grüne zweite Fläche = {1:0.###}°.</value></data>
+  <data name="RoofRafterWindow_RoofSlopesValueFormat" xml:space="preserve"><value>Erste {0:0.###}° / zweite {1:0.###}°</value></data>
   <data name="Command_Roof_RidgeDirectionStartPrompt" xml:space="preserve"><value>&#xA;Geben Sie den ersten Punkt der Firstrichtung an: </value></data>
   <data name="Command_Roof_RidgeDirectionEndPrompt" xml:space="preserve"><value>&#xA;Geben Sie den zweiten Punkt der Firstrichtung an: </value></data>
   <data name="Command_Roof_PreviewClosePrompt" xml:space="preserve"><value>&#xA;Die temporäre Dachvorschau wird angezeigt. Drücken Sie Enter oder Esc zum Schließen: </value></data>
@@ -634,6 +638,8 @@
   <data name="Command_RoofLock_AlreadyLocked" xml:space="preserve"><value>&#xA;Das Dach ist bereits gesperrt.</value></data>
   <data name="Command_RoofResetEdits_Reset" xml:space="preserve"><value>&#xA;Manuelle Änderungen am erzeugten Holz wurden zurückgesetzt.</value></data>
   <data name="Command_RoofResetEdits_NoEdits" xml:space="preserve"><value>&#xA;Das ausgewählte Dach hat keine manuellen Änderungen.</value></data>
+  <data name="Command_RoofEdit_SelectPrompt" xml:space="preserve"><value>&#xA;Dach zum Bearbeiten auswählen: </value></data>
+  <data name="Command_RoofEdit_UpdatedFormat" xml:space="preserve"><value>&#xA;Dach aktualisiert.</value></data>
   <data name="Command_Roof_LockedNotificationTitle" xml:space="preserve"><value>Das Dach ist gesperrt</value></data>
   <data name="Command_Roof_LockedNotificationBody" xml:space="preserve"><value>Entsperren Sie es, bevor Sie manuell bearbeiten.</value></data>
   <data name="Command_Roof_UnsupportedMemberEditNotificationTitle" xml:space="preserve"><value>Die Bauteiländerung wurde nicht unterstützt.</value></data>
@@ -650,4 +656,47 @@
   <data name="Dialog_Inspect_OverrideRotation" xml:space="preserve"><value>Drehung</value></data>
   <data name="Dialog_Inspect_OverrideStart" xml:space="preserve"><value>Startversatz</value></data>
   <data name="Dialog_Inspect_OverrideEnd" xml:space="preserve"><value>Endversatz</value></data>
+  <data name="RoofGeometryWindow_Title" xml:space="preserve"><value>Geometrie des Satteldachs</value></data>
+  <data name="RoofGeometryWindow_Heading" xml:space="preserve"><value>Satteldach</value></data>
+  <data name="RoofGeometryWindow_Description" xml:space="preserve"><value>Legen Sie die Dachgeometrie fest, wählen Sie die Firstrichtung in der Zeichnung und prüfen Sie das Ergebnis in der Vorschau.</value></data>
+  <data name="RoofGeometryWindow_SymmetricGable" xml:space="preserve"><value>Symmetrisches Satteldach</value></data>
+  <data name="RoofGeometryWindow_AsymmetricGable" xml:space="preserve"><value>Asymmetrisches Satteldach</value></data>
+  <data name="RoofGeometryWindow_EnteredValues" xml:space="preserve"><value>Eingabewerte</value></data>
+  <data name="RoofGeometryWindow_SymmetricPitch" xml:space="preserve"><value>Dachneigung α = β (°)</value></data>
+  <data name="RoofGeometryWindow_AlphaPitch" xml:space="preserve"><value>Dachflächenneigung α (°)</value></data>
+  <data name="RoofGeometryWindow_BetaPitch" xml:space="preserve"><value>Dachflächenneigung β (°)</value></data>
+  <data name="RoofGeometryWindow_DeltaHeight" xml:space="preserve"><value>Traufhöhendifferenz ΔH (mm)</value></data>
+  <data name="RoofGeometryWindow_DeltaHeightHint" xml:space="preserve"><value>ΔH = zB − zA; ein positiver Wert bedeutet, dass Traufe B höher liegt.</value></data>
+  <data name="RoofGeometryWindow_RidgeDirection" xml:space="preserve"><value>Firstrichtung</value></data>
+  <data name="RoofGeometryWindow_RidgeDirectionValueFormat" xml:space="preserve"><value>X {0:0.###}; Y {1:0.###}</value></data>
+  <data name="RoofGeometryWindow_RidgeDirectionNotSelected" xml:space="preserve"><value>Die Richtung wurde noch nicht gewählt.</value></data>
+  <data name="RoofGeometryWindow_PickRidgeDirection" xml:space="preserve"><value>Firstrichtung in der Zeichnung wählen</value></data>
+  <data name="RoofGeometryWindow_CalculatedValues" xml:space="preserve"><value>Berechnete Werte</value></data>
+  <data name="RoofGeometryWindow_RidgePlanPosition" xml:space="preserve"><value>Firstposition ab A</value></data>
+  <data name="RoofGeometryWindow_RidgeElevation" xml:space="preserve"><value>Firsthöhe ab Traufe A</value></data>
+  <data name="RoofGeometryWindow_Schematic" xml:space="preserve"><value>Dynamische Querschnittsskizze</value></data>
+  <data name="RoofGeometryWindow_Cancel" xml:space="preserve"><value>Abbrechen</value></data>
+  <data name="RoofGeometryWindow_Preview" xml:space="preserve"><value>Vorschau</value></data>
+  <data name="RoofGeometryWindow_Create" xml:space="preserve"><value>Erstellen</value></data>
+  <data name="RoofGeometryWindow_EaveA" xml:space="preserve"><value>Traufe A</value></data>
+  <data name="RoofGeometryWindow_EaveB" xml:space="preserve"><value>Traufe B</value></data>
+  <data name="RoofGeometryWindow_ValidationNumber" xml:space="preserve"><value>Geben Sie gültige endliche Zahlenwerte ein.</value></data>
+  <data name="RoofGeometryWindow_ValidationCombination" xml:space="preserve"><value>Die Kombination aus α, β und ΔH legt den First außerhalb des Grundrisses.</value></data>
+  <data name="RoofGeometryWindow_ValidationSlope" xml:space="preserve"><value>Die Neigungen müssen größer als 0° und kleiner als 90° sein.</value></data>
+  <data name="RoofGeometryWindow_ValidationDirectionRequired" xml:space="preserve"><value>Wählen Sie vor Vorschau oder Erstellung die Firstrichtung.</value></data>
+  <data name="RoofGeometryWindow_LengthValueFormat" xml:space="preserve"><value>{0:0} mm</value></data>
+  <data name="RoofGeometryWindow_DimensionA" xml:space="preserve"><value>Abmessung A</value></data>
+  <data name="RoofGeometryWindow_DimensionB" xml:space="preserve"><value>Abmessung B</value></data>
+  <data name="RoofGeometryWindow_RunA" xml:space="preserve"><value>Abstand von Traufe A zum First</value></data>
+  <data name="RoofGeometryWindow_RunB" xml:space="preserve"><value>Abstand vom First zur Traufe B</value></data>
+  <data name="RoofGeometryWindow_CalculationMode" xml:space="preserve"><value>Berechnungsmodus</value></data>
+  <data name="RoofGeometryWindow_ModeDeltaHeight" xml:space="preserve"><value>Traufhöhendifferenz ΔH eingeben</value></data>
+  <data name="RoofGeometryWindow_ModeRidgeDistance" xml:space="preserve"><value>Firstlage ab Traufe A eingeben</value></data>
+  <data name="RoofGeometryWindow_RidgeDistanceInput" xml:space="preserve"><value>Firstabstand von Traufe A (mm)</value></data>
+  <data name="RoofGeometryWindow_CalculatedDeltaHeight" xml:space="preserve"><value>Berechnete Traufhöhendifferenz ΔH (mm)</value></data>
+  <data name="RoofGeometryWindow_TransverseSpan" xml:space="preserve"><value>Spannweite des Querschnitts</value></data>
+  <data name="RoofGeometryWindow_ValidationRidgeDistance" xml:space="preserve"><value>Der Firstabstand muss größer als 0 mm und kleiner als die Spannweite sein.</value></data>
+  <data name="RoofGeometryWindow_ValidationDirection" xml:space="preserve"><value>Die gewählte Firstrichtung muss parallel zu einer Rechteckkante sein.</value></data>
+  <data name="RoofGeometryWindow_MirrorAsymmetry" xml:space="preserve"><value>Asymmetrie spiegeln (linke/rechte Seite tauschen)</value></data>
+  <data name="RoofGeometryWindow_Ridge" xml:space="preserve"><value>First</value></data>
 </root>

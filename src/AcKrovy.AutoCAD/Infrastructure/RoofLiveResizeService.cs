@@ -1073,6 +1073,7 @@ internal static class RoofLiveResizeService
             classification.Geometry,
             TimberElementDefaultProfileStore.Load(),
             ElementLayerProfileStore.Load(),
+            out var anchorResolutionContext,
             forceRegenerateOnSourceResize: true);
         if (rafterOutcome == RoofGeneratedRafterSetService.ReplacementOutcome.Failed)
         {
@@ -1084,7 +1085,8 @@ internal static class RoofLiveResizeService
             transaction,
             owner,
             rafterOutcome,
-            generatedMemberCount);
+            generatedMemberCount,
+            anchorResolutionContext);
 
         if (rafterOutcome == RoofGeneratedRafterSetService.ReplacementOutcome.SkippedAmbiguousRecipe)
         {

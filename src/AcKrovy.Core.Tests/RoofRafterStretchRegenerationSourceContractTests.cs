@@ -117,7 +117,7 @@ public sealed class RoofRafterStretchRegenerationSourceContractTests
     {
         Assert.Equal(1, AcKrovy.Core.Models.Roofs.RoofGeneratedTimberDataSchema.CurrentVersion);
         Assert.Equal(7, AcKrovy.Core.Models.TimberElementDataSchema.CurrentVersion);
-        Assert.Equal(3, AcKrovy.Core.Models.Roofs.RoofDefinitionDataSchema.CurrentVersion);
+        Assert.Equal(5, AcKrovy.Core.Models.Roofs.RoofDefinitionDataSchema.CurrentVersion);
         Assert.DoesNotContain("CurrentVersion = 2", Read(
             "src", "AcKrovy.Core", "Models", "Roofs", "RoofGeneratedTimberDataSchema.cs"));
     }

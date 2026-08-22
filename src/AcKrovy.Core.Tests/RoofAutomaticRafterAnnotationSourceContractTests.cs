@@ -197,7 +197,7 @@ public sealed class RoofAutomaticRafterAnnotationSourceContractTests
         Assert.DoesNotContain("CommandEnded", Workflow + Replacement + BatchAnnotations);
         Assert.DoesNotContain("RoofDisplayGroupService", BatchAnnotations);
         Assert.Equal(7, TimberElementDataSchema.CurrentVersion);
-        Assert.Equal(3, RoofDefinitionDataSchema.CurrentVersion);
+        Assert.Equal(5, RoofDefinitionDataSchema.CurrentVersion);
         Assert.Equal(1, RoofDisplayDataSchema.CurrentVersion);
         Assert.Equal(1, RoofGeneratedTimberDataSchema.CurrentVersion);
     }

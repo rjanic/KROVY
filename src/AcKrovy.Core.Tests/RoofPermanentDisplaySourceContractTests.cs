@@ -63,16 +63,16 @@ public sealed class RoofPermanentDisplaySourceContractTests
     [Fact]
     public void NewRoof_SaveIsOneAtomicDefinitionAndSevenLineTransaction()
     {
-        var confirm = Workflow.IndexOf("ConfirmPersistence(editor)", StringComparison.Ordinal);
+        var apply = Workflow.IndexOf("case GableRoofGeometryDialogAction.Apply:", StringComparison.Ordinal);
         var persist = Segment(
             Workflow,
             "private static bool TryPersist",
             "private static RoofDisplayInspection InspectDisplay");
-        Assert.True(confirm >= 0);
+        Assert.True(apply >= 0);
         Assert.Contains("RoofDefinitionStore.Write(owner, transaction, data)", persist);
         Assert.Contains("RoofDisplayService.Rebuild(", persist);
         Assert.Equal(1, CountOccurrences(persist, "transaction.Commit();"));
-        Assert.True(Workflow.IndexOf("TryPersist(", confirm, StringComparison.Ordinal) > confirm);
+        Assert.True(Workflow.IndexOf("TryPersist(", apply, StringComparison.Ordinal) > apply);
     }
 
     [Fact]
@@ -158,7 +158,7 @@ public sealed class RoofPermanentDisplaySourceContractTests
     public void DisplaySchemaIsOneWhileEstablishedSchemasRemainUnchanged()
     {
         Assert.Equal(1, RoofDisplayDataSchema.CurrentVersion);
-        Assert.Contains("public const int CurrentVersion = 3", Read(
+        Assert.Contains("public const int CurrentVersion = 5", Read(
             "src", "AcKrovy.Core", "Models", "Roofs", "RoofDefinitionDataSchema.cs"));
         Assert.Contains("public const int CurrentVersion = 7", Read(
             "src", "AcKrovy.Core", "Models", "TimberElementDataSchema.cs"));

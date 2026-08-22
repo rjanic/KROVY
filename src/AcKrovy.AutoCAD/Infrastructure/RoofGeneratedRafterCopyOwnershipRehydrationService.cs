@@ -162,6 +162,8 @@ internal static class RoofGeneratedRafterCopyOwnershipRehydrationService
 
                     .Distinct(StringComparer.OrdinalIgnoreCase)
 
+                    .Where(memberKey => !IsConsumedWholeRoofKey(memberKey, observations))
+
                     .ToArray();
 
 #if DEBUG
@@ -746,6 +748,22 @@ internal static class RoofGeneratedRafterCopyOwnershipRehydrationService
 
             }
 
+            if (RoofGeneratedCopyPreCommandSnapshotService.IsConsumedWholeRoofClone(
+
+                    line.Handle.ToString()))
+
+            {
+
+                // Clone already consumed by the whole-roof COPY branch (erased on
+
+                // success, or excluded on failure). It must never enter the ordinary
+
+                // per-rafter detach path under the inherited old owner.
+
+                continue;
+
+            }
+
             lines.Add(new RoofGeneratedRafterCopyDetachRules.AppendedGeneratedLine(
 
                 line.Handle.ToString(),
@@ -759,6 +777,36 @@ internal static class RoofGeneratedRafterCopyOwnershipRehydrationService
         }
 
         return lines;
+
+    }
+
+    private static bool IsConsumedWholeRoofKey(
+
+        string memberKey,
+
+        IReadOnlyList<RoofGeneratedRafterGeometryObservation> observations)
+
+    {
+
+        foreach (var observation in observations)
+
+        {
+
+            if (string.Equals(observation.MemberKey, memberKey, StringComparison.Ordinal) &&
+
+                RoofGeneratedCopyPreCommandSnapshotService.IsConsumedWholeRoofClone(
+
+                    observation.MemberKey))
+
+            {
+
+                return true;
+
+            }
+
+        }
+
+        return false;
 
     }
 

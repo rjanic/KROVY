@@ -162,7 +162,7 @@ public sealed class RoofGeneratedRafterCopyOrphanRulesTests
     [Fact]
     public void SchemasStayUnchangedForStandaloneCopySemantics()
     {
-        Assert.Equal(3, RoofDefinitionDataSchema.CurrentVersion);
+        Assert.Equal(5, RoofDefinitionDataSchema.CurrentVersion);
         Assert.Equal(1, RoofGeneratedTimberDataSchema.CurrentVersion);
         Assert.Equal(7, AcKrovy.Core.Models.TimberElementDataSchema.CurrentVersion);
     }

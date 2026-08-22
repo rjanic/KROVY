@@ -112,7 +112,9 @@ public sealed class RoofRigidTransformSourceContractTests
     [Fact]
     public void WritePath_RemainsOnlyAfterExplicitConfirmation()
     {
-        var confirmation = Workflow.IndexOf("ConfirmPersistence(editor)", StringComparison.Ordinal);
+        var confirmation = Workflow.IndexOf(
+            "case GableRoofGeometryDialogAction.Apply:",
+            StringComparison.Ordinal);
         var create = Workflow.IndexOf("RoofDefinitionPersistence.Create(", confirmation, StringComparison.Ordinal);
         var persist = Workflow.IndexOf("TryPersist(", create, StringComparison.Ordinal);
         var write = Workflow.IndexOf("RoofDefinitionStore.Write", persist, StringComparison.Ordinal);

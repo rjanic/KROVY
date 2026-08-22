@@ -10,12 +10,16 @@ public sealed class SimpleGableRoofFace
         int index,
         SimpleGableRoofFaceSide side,
         RoofSegment3D eave,
-        IReadOnlyList<RoofPoint3D> boundaryPoints)
+        IReadOnlyList<RoofPoint3D> boundaryPoints,
+        double runMm,
+        double slopeDegrees)
     {
         Index = index;
         Side = side;
         Eave = eave;
         BoundaryPoints = boundaryPoints.ToArray();
+        RunMm = runMm;
+        SlopeDegrees = slopeDegrees;
     }
 
     public int Index { get; }
@@ -25,4 +29,8 @@ public sealed class SimpleGableRoofFace
     public RoofSegment3D Eave { get; }
 
     public IReadOnlyList<RoofPoint3D> BoundaryPoints { get; }
+
+    public double RunMm { get; }
+
+    public double SlopeDegrees { get; }
 }

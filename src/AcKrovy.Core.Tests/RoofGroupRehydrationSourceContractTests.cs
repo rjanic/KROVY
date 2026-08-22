@@ -40,7 +40,7 @@ public sealed class RoofGroupRehydrationSourceContractTests
         var rehydrate = RoofUxSourceContractText.Member(
             Workflow,
             "private static bool TryRehydrateGroup",
-            "private static bool TryPromptParameters");
+            "private static bool TryPromptRidgeDirection");
         Assert.Contains("inspection.ChildIds", rehydrate);
         Assert.Contains("owner.ObjectId", rehydrate);
         Assert.Contains("CreateGroupFromExistingValidatedDisplay", rehydrate);
@@ -63,7 +63,7 @@ public sealed class RoofGroupRehydrationSourceContractTests
         var rehydrate = RoofUxSourceContractText.Member(
             Workflow,
             "private static bool TryRehydrateGroup",
-            "private static bool TryPromptParameters");
+            "private static bool TryPromptRidgeDirection");
         Assert.Contains("CreateGroupFromExistingValidatedDisplay", rehydrate);
         Assert.Contains("transaction.Commit()", rehydrate);
         Assert.Equal(1, CountOccurrences(rehydrate, "transaction.Commit();"));
@@ -122,7 +122,7 @@ public sealed class RoofGroupRehydrationSourceContractTests
         var rehydrate = RoofUxSourceContractText.Member(
             Workflow,
             "private static bool TryRehydrateGroup",
-            "private static bool TryPromptParameters");
+            "private static bool TryPromptRidgeDirection");
         Assert.Contains("if (!inspection.Validation.IsCurrent)", rehydrate);
         Assert.Contains("return false;", rehydrate);
         Assert.Contains("UnsupportedFutureSchema", Association);
@@ -155,7 +155,7 @@ public sealed class RoofGroupRehydrationSourceContractTests
         Assert.Contains("Success(selectedId, selectedThroughDisplayChild: false)", Resolver);
         Assert.Contains("DxfCode.ExtendedDataHandle", Store);
         Assert.Equal(1, RoofDisplayDataSchema.CurrentVersion);
-        Assert.Equal(3, RoofDefinitionDataSchema.CurrentVersion);
+        Assert.Equal(5, RoofDefinitionDataSchema.CurrentVersion);
         Assert.Equal(7, TimberElementDataSchema.CurrentVersion);
         Assert.Equal(1, RoofGeneratedTimberDataSchema.CurrentVersion);
     }

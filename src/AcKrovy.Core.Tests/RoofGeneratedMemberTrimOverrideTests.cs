@@ -195,7 +195,7 @@ public sealed class RoofGeneratedMemberTrimOverrideTests
     public void Schema3_RoundTripsEndpointOffsets()
     {
         var original = new RoofDefinitionData(
-            RoofDefinitionDataSchema.CurrentVersion,
+            RoofDefinitionDataSchema.HybridLifecycleVersion,
             RoofKind.SimpleGable,
             35d,
             RidgeEdgeFamily: RoofRidgeEdgeFamily.SourceEdge01,

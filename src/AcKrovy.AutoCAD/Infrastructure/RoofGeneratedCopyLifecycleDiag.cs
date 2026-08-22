@@ -165,6 +165,56 @@ internal static class RoofGeneratedCopyLifecycleDiag
         WriteLine(editor, line);
     }
 
+    public static void WriteWholeCopyDetect(
+        Editor? editor,
+        string? oldOwner,
+        string? newOwner,
+        int generatedClones,
+        int attachedManualClones,
+        string result)
+    {
+        if (editor is null)
+        {
+            return;
+        }
+
+        var line =
+            "ROOF_WHOLE_COPY_DETECT" +
+            $" oldOwner={Token(oldOwner)}" +
+            $" newOwner={Token(newOwner)}" +
+            $" generatedClones={generatedClones.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
+            $" attachedManualClones={attachedManualClones.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
+            $" result={Token(result)}";
+        WriteLine(editor, line);
+    }
+
+    public static void WriteWholeCopyRebind(
+        Editor? editor,
+        string? oldOwner,
+        string? newOwner,
+        int generatedRebuilt,
+        int attachedManualRebound,
+        int annotationsRebuilt,
+        string? stage,
+        string result)
+    {
+        if (editor is null)
+        {
+            return;
+        }
+
+        var line =
+            "ROOF_WHOLE_COPY_REBIND" +
+            $" oldOwner={Token(oldOwner)}" +
+            $" newOwner={Token(newOwner)}" +
+            $" generatedRebuilt={generatedRebuilt.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
+            $" attachedManualRebound={attachedManualRebound.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
+            $" annotationsRebuilt={annotationsRebuilt.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
+            $" stage={Token(stage)}" +
+            $" result={Token(result)}";
+        WriteLine(editor, line);
+    }
+
     public static void WriteError(
         Editor? editor,
         string operation,

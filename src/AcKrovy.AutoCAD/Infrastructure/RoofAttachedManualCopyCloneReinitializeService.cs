@@ -60,6 +60,15 @@ internal static class RoofAttachedManualCopyCloneReinitializeService
                         continue;
                     }
 
+                    if (RoofGeneratedCopyPreCommandSnapshotService.IsConsumedWholeRoofClone(
+                            cloneLine.Handle.ToString()))
+                    {
+                        // Clone already consumed by the whole-roof COPY branch — its
+                        // logical anchor key is preserved by that branch. Never re-anchor
+                        // a whole-roof clone to a nearest station of any owner.
+                        continue;
+                    }
+
                     var ownerReference = attached.Data.RoofOwnerReference;
                     var oldAnchorKey = attached.Data.AnchorGeneratedMemberKey.Value;
                     var sourceIdentity = attached.Data.ChildIdentity;

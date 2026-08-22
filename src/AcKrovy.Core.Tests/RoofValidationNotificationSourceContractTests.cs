@@ -13,6 +13,8 @@ public sealed class RoofValidationNotificationSourceContractTests
         "src", "AcKrovy.AutoCAD", "UI", "TransientNotificationWindow.xaml.cs");
     private static readonly string NotificationXaml = RoofUxSourceContractText.Read(
         "src", "AcKrovy.AutoCAD", "UI", "TransientNotificationWindow.xaml");
+    private static readonly string GeometryViewModel = RoofUxSourceContractText.Read(
+        "src", "AcKrovy.AutoCAD", "UI", "GableRoofGeometryViewModel.cs");
 
     [Fact]
     public void OpenLoopRetainsExactSlovakTextAndDedicatedDescriptor()
@@ -84,13 +86,13 @@ public sealed class RoofValidationNotificationSourceContractTests
     [Fact]
     public void ExistingSlopeAndDirectionFailuresUseSpecificNotifications()
     {
-        var mapping = GeometryMapping();
-        Assert.Contains("RidgeDirectionCannotBeResolved", mapping);
-        Assert.Contains("notification = InvalidDirectionNotification", mapping);
-        Assert.Contains("InvalidSlope", mapping);
-        Assert.Contains("notification = InvalidSlopeNotification", mapping);
+        Assert.Contains("RoofGeometryWindow_ValidationDirectionRequired", GeometryViewModel);
+        Assert.Contains("RoofGeometryWindow_ValidationSlope", GeometryViewModel);
+        Assert.Contains("RoofGeometryWindow_ValidationCombination", GeometryViewModel);
 
-        var prompt = Member("private static bool TryPromptParameters", "private static void ShowNotification");
+        var prompt = Member(
+            "private static bool TryPromptRidgeDirection",
+            "private static IntPtr TryGetAutoCadMainWindowHandle");
         Assert.Contains("editor.WriteMessage(UiStrings.GetString(\"Command_Roof_GeometryErrorDirection\"))", prompt);
         Assert.DoesNotContain("ShowNotification", prompt);
     }
@@ -109,7 +111,7 @@ public sealed class RoofValidationNotificationSourceContractTests
     [Fact]
     public void StaleSemanticAndDisplayWorkflowRemainCli()
     {
-        var stored = Member("if (storedDefinition.Exists)", "if (!TryPromptParameters");
+        var stored = Member("if (storedDefinition.Exists)", "RunCreationDialog(");
         Assert.Contains("Command_Roof_PersistedStale", stored);
         Assert.Contains("Command_Roof_DisplayStale", stored);
         Assert.Contains("ConfirmDisplayPersistence", stored);
@@ -128,8 +130,8 @@ public sealed class RoofValidationNotificationSourceContractTests
         Assert.DoesNotContain("InvalidOwnerReference", selectionMapping);
         Assert.DoesNotContain("MissingOwner", selectionMapping);
         Assert.DoesNotContain("OwnerIsNotPolyline", selectionMapping);
-        Assert.DoesNotContain("NonFiniteGeometry", GeometryMapping());
-        Assert.Contains("GetGeometryMessage(geometryResult.Error)", Workflow);
+        Assert.Contains("double.IsFinite(value)", GeometryViewModel);
+        Assert.Contains("RoofGeometryWindow_ValidationNumber", GeometryViewModel);
     }
 
     [Fact]

@@ -177,8 +177,8 @@ public sealed class RoofMirrorYesAttachedManualSourceContractTests
     [Fact]
     public void SplitLifecycle_Unchanged()
     {
-        Assert.Contains("Origin: RoofAttachedManualOrigin.Split", ManualEdit);
-        Assert.Contains("sourceRole = \"AttachedManual\"", ManualEdit);
+        Assert.Contains("sourceRole = attachedSource.Origin", ManualEdit);
+        Assert.Contains(": \"AttachedManual\"", ManualEdit);
     }
 
     // 25: T2 creation order unchanged (MIRROR service never appends T2 entities).

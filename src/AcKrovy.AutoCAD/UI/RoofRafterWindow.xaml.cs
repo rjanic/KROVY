@@ -37,9 +37,14 @@ public partial class RoofRafterWindow : Window
         WidthTextBox.Text = FormatInput(preferences.WidthMm);
         HeightTextBox.Text = FormatInput(preferences.HeightMm);
         MaximumSpacingTextBox.Text = FormatInput(preferences.MaximumSpacingMm);
-        RoofSlopeTextBox.Text = UiStrings.Format(
-            UiStrings.GetString("RoofRafterWindow_RoofSlopeValueFormat", _culture),
-            geometry.SlopeDegrees);
+        RoofSlopeTextBox.Text = geometry.Kind == RoofKind.AsymmetricGable
+            ? UiStrings.Format(
+                UiStrings.GetString("RoofRafterWindow_RoofSlopesValueFormat", _culture),
+                geometry.Face0SlopeDegrees,
+                geometry.Face1SlopeDegrees)
+            : UiStrings.Format(
+                UiStrings.GetString("RoofRafterWindow_RoofSlopeValueFormat", _culture),
+                geometry.SlopeDegrees);
         _initialized = true;
         UpdateValidationAndSummary();
     }

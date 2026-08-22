@@ -2,9 +2,11 @@ using AcKrovy.Core.Models.Roofs;
 using AcKrovy.Core.Services.Roofs;
 using AcKrovy.Localization;
 using AcKrovy.AutoCAD.UI;
+using AcKrovy.AutoCAD.Settings;
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
+using AcApp = Autodesk.AutoCAD.ApplicationServices.Application;
 
 namespace AcKrovy.AutoCAD.Infrastructure;
 
@@ -30,7 +32,7 @@ internal static class RoofCommandWorkflow
         "Command_Roof_InvalidSlopeNotificationTitle",
         "Command_Roof_InvalidSlopeNotificationBody");
 
-    public static void Run(Document document)
+    public static void Run(Document document, RoofKind requestedKind = RoofKind.SimpleGable)
     {
         ArgumentNullException.ThrowIfNull(document);
         var editor = document.Editor;
@@ -185,59 +187,91 @@ internal static class RoofCommandWorkflow
                 return;
             }
 
-            if (!TryPromptParameters(editor, out var parameters))
-            {
-                return;
-            }
-
-            var definition = new RoofDefinition(validation.Footprint, parameters);
-            var geometryResult = SimpleGableRoofGeometrySolver.Solve(definition);
-            if (!geometryResult.IsValid || geometryResult.Geometry is null)
-            {
-                if (TryGetGeometryNotification(geometryResult.Error, out var notification))
-                {
-                    ShowNotification(notification);
-                }
-                else
-                {
-                    editor.WriteMessage(GetGeometryMessage(geometryResult.Error));
-                }
-                continue;
-            }
-
-            editor.SetImpliedSelection([ownerId]);
-            editor.UpdateScreen();
-            editor.WriteMessage(UiStrings.Format(
-                UiStrings.GetString("Command_Roof_AcceptedFormat"),
-                definition.Footprint.Vertices.Count,
-                definition.Footprint.AreaMm2 / 1_000_000d,
-                GetOrientationText(validation.SourceOrientation)));
-            ShowPreview(document, geometryResult.Geometry, sourceElevation);
-
-            if (!ConfirmPersistence(editor))
-            {
-                return;
-            }
-
-            var definitionData = RoofDefinitionPersistence.Create(
+            RunCreationDialog(
+                document,
+                ownerId,
                 sourceInput,
-                validation.Footprint,
-                geometryResult.Geometry);
-            if (TryPersist(
-                    document,
-                    ownerId,
-                    definitionData,
-                    out var failureMessageKey))
-            {
-                editor.WriteMessage(UiStrings.GetString("Command_Roof_PersistedAndDisplaySaved"));
-                ClearCompletedWorkflowSelection(editor);
-            }
-            else
-            {
-                editor.WriteMessage(UiStrings.GetString(failureMessageKey));
-            }
-
+                validation,
+                sourceElevation,
+                requestedKind);
             return;
+        }
+    }
+
+    private static void RunCreationDialog(
+        Document document,
+        ObjectId ownerId,
+        RoofFootprintInput sourceInput,
+        RoofValidationResult validation,
+        double sourceElevation,
+        RoofKind initialKind)
+    {
+        var footprint = validation.Footprint!;
+        var viewModel = new GableRoofGeometryViewModel(footprint, initialKind);
+        var dialog = new GableRoofGeometryWindow(
+            viewModel,
+            SettingsUiPreferencesStore.Load().Theme);
+        SettingsWindowOwner.TryAssign(dialog, TryGetAutoCadMainWindowHandle());
+        try
+        {
+            while (!dialog.IsClosed)
+            {
+                dialog.PrepareForInteraction();
+                _ = AcApp.ShowModalWindow(dialog);
+                switch (dialog.RequestedAction)
+                {
+                    case GableRoofGeometryDialogAction.PickRidgeDirection:
+                        if (TryPromptRidgeDirection(document.Editor, out var direction))
+                        {
+                            viewModel.SetRidgeDirection(direction);
+                        }
+                        continue;
+
+                    case GableRoofGeometryDialogAction.Preview:
+                        if (viewModel.TryGetGeometry(out var previewGeometry) &&
+                            previewGeometry is not null)
+                        {
+                            document.Editor.SetImpliedSelection([ownerId]);
+                            document.Editor.UpdateScreen();
+                            ShowPreview(document, previewGeometry, sourceElevation);
+                        }
+                        continue;
+
+                    case GableRoofGeometryDialogAction.Apply:
+                        if (!viewModel.TryGetGeometry(out var geometry) || geometry is null)
+                        {
+                            continue;
+                        }
+
+                        document.Editor.WriteMessage(UiStrings.Format(
+                            UiStrings.GetString("Command_Roof_AcceptedFormat"),
+                            footprint.Vertices.Count,
+                            footprint.AreaMm2 / 1_000_000d,
+                            GetOrientationText(validation.SourceOrientation)));
+                        var data = RoofDefinitionPersistence.Create(sourceInput, footprint, geometry);
+                        if (TryPersist(document, ownerId, data, out var failureMessageKey))
+                        {
+                            document.Editor.WriteMessage(UiStrings.GetString(
+                                "Command_Roof_PersistedAndDisplaySaved"));
+                            ClearCompletedWorkflowSelection(document.Editor);
+                        }
+                        else
+                        {
+                            document.Editor.WriteMessage(UiStrings.GetString(failureMessageKey));
+                        }
+                        return;
+
+                    default:
+                        return;
+                }
+            }
+        }
+        finally
+        {
+            if (!dialog.IsClosed)
+            {
+                dialog.Close();
+            }
         }
     }
 
@@ -258,9 +292,6 @@ internal static class RoofCommandWorkflow
             });
         }
     }
-
-    private static bool ConfirmPersistence(Editor editor)
-        => ConfirmYesNo(editor, "Command_Roof_PersistConfirmPrompt");
 
     private static bool ConfirmDisplayPersistence(Editor editor, bool isMissing)
         => ConfirmYesNo(
@@ -511,20 +542,11 @@ internal static class RoofCommandWorkflow
         }
     }
 
-    private static bool TryPromptParameters(Editor editor, out RoofParameters parameters)
+    private static bool TryPromptRidgeDirection(
+        Editor editor,
+        out RoofDirection2D direction)
     {
-        parameters = RoofParameters.Unspecified;
-        var slopeResult = editor.GetDouble(new PromptDoubleOptions(
-            UiStrings.GetString("Command_Roof_SlopePrompt"))
-        {
-            AllowNegative = false,
-            AllowZero = false,
-            AllowNone = false,
-        });
-        if (slopeResult.Status != PromptStatus.OK)
-        {
-            return false;
-        }
+        direction = default;
 
         var directionStartResult = editor.GetPoint(new PromptPointOptions(
             UiStrings.GetString("Command_Roof_RidgeDirectionStartPrompt")));
@@ -550,14 +572,25 @@ internal static class RoofCommandWorkflow
         // WCS contract is used by Polyline.GetPoint3dAt in the S1 extractor.
         var start = directionStartResult.Value;
         var end = directionEndResult.Value;
-        if (!RoofDirection2D.TryCreate(end.X - start.X, end.Y - start.Y, out var direction))
+        if (!RoofDirection2D.TryCreate(end.X - start.X, end.Y - start.Y, out direction))
         {
             editor.WriteMessage(UiStrings.GetString("Command_Roof_GeometryErrorDirection"));
             return false;
         }
 
-        parameters = new RoofParameters(slopeResult.Value, direction);
         return true;
+    }
+
+    private static IntPtr TryGetAutoCadMainWindowHandle()
+    {
+        try
+        {
+            return AcApp.MainWindow?.Handle ?? IntPtr.Zero;
+        }
+        catch (System.Exception)
+        {
+            return IntPtr.Zero;
+        }
     }
 
     private static void ShowNotification(RoofNotificationDescriptor notification) =>

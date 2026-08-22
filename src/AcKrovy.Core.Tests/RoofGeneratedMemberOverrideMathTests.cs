@@ -47,7 +47,7 @@ public sealed class RoofGeneratedMemberOverrideMathTests
     {
         var original = Topology() with
         {
-            SchemaVersion = RoofDefinitionDataSchema.CurrentVersion,
+            SchemaVersion = RoofDefinitionDataSchema.HybridLifecycleVersion,
             EditState = RoofEditState.Unlocked,
             ManualOverrides =
             [

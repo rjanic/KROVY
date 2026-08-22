@@ -537,6 +537,10 @@
   <data name="Command_Roof_InvalidSlopeNotificationTitle" xml:space="preserve"><value>Nieprawidłowe nachylenie dachu</value></data>
   <data name="Command_Roof_InvalidSlopeNotificationBody" xml:space="preserve"><value>Wprowadź nachylenie większe niż 0° i mniejsze niż 90°.</value></data>
   <data name="Command_Roof_SlopePrompt" xml:space="preserve"><value>&#xA;Podaj kąt nachylenia dachu w stopniach: </value></data>
+  <data name="Command_RoofAsym_Face0SlopePrompt" xml:space="preserve"><value>&#xA;Podaj nachylenie pierwszej połaci w stopniach (niebieska strona podglądu): </value></data>
+  <data name="Command_RoofAsym_Face1SlopePrompt" xml:space="preserve"><value>&#xA;Podaj nachylenie drugiej połaci w stopniach (zielona strona podglądu): </value></data>
+  <data name="Command_RoofAsym_FacePreviewFormat" xml:space="preserve"><value>&#xA;Podgląd: niebieska pierwsza połać = {0:0.###}°, zielona druga połać = {1:0.###}°.</value></data>
+  <data name="RoofRafterWindow_RoofSlopesValueFormat" xml:space="preserve"><value>Pierwsza {0:0.###}° / druga {1:0.###}°</value></data>
   <data name="Command_Roof_RidgeDirectionStartPrompt" xml:space="preserve"><value>&#xA;Wskaż pierwszy punkt kierunku kalenicy: </value></data>
   <data name="Command_Roof_RidgeDirectionEndPrompt" xml:space="preserve"><value>&#xA;Wskaż drugi punkt kierunku kalenicy: </value></data>
   <data name="Command_Roof_PreviewClosePrompt" xml:space="preserve"><value>&#xA;Wyświetlono tymczasowy podgląd dachu. Naciśnij Enter lub Esc, aby go zamknąć: </value></data>
@@ -634,6 +638,8 @@
   <data name="Command_RoofLock_AlreadyLocked" xml:space="preserve"><value>&#xA;Dach jest już zablokowany.</value></data>
   <data name="Command_RoofResetEdits_Reset" xml:space="preserve"><value>&#xA;Ręczne zmiany wygenerowanego drewna zostały przywrócone.</value></data>
   <data name="Command_RoofResetEdits_NoEdits" xml:space="preserve"><value>&#xA;Wybrany dach nie ma ręcznych zmian.</value></data>
+  <data name="Command_RoofEdit_SelectPrompt" xml:space="preserve"><value>&#xA;Wybierz dach do edycji: </value></data>
+  <data name="Command_RoofEdit_UpdatedFormat" xml:space="preserve"><value>&#xA;Dach zaktualizowano.</value></data>
   <data name="Command_Roof_LockedNotificationTitle" xml:space="preserve"><value>Dach jest zablokowany</value></data>
   <data name="Command_Roof_LockedNotificationBody" xml:space="preserve"><value>Przed ręczną edycją najpierw go odblokuj.</value></data>
   <data name="Command_Roof_UnsupportedMemberEditNotificationTitle" xml:space="preserve"><value>Edycja elementu nie była obsługiwana.</value></data>
@@ -650,4 +656,47 @@
   <data name="Dialog_Inspect_OverrideRotation" xml:space="preserve"><value>Obrót</value></data>
   <data name="Dialog_Inspect_OverrideStart" xml:space="preserve"><value>Offset początku</value></data>
   <data name="Dialog_Inspect_OverrideEnd" xml:space="preserve"><value>Offset końca</value></data>
+  <data name="RoofGeometryWindow_Title" xml:space="preserve"><value>Geometria dachu dwuspadowego</value></data>
+  <data name="RoofGeometryWindow_Heading" xml:space="preserve"><value>Dach dwuspadowy</value></data>
+  <data name="RoofGeometryWindow_Description" xml:space="preserve"><value>Ustaw geometrię dachu, wybierz kierunek kalenicy na rysunku i sprawdź wynik w podglądzie.</value></data>
+  <data name="RoofGeometryWindow_SymmetricGable" xml:space="preserve"><value>Dach dwuspadowy symetryczny</value></data>
+  <data name="RoofGeometryWindow_AsymmetricGable" xml:space="preserve"><value>Dach dwuspadowy asymetryczny</value></data>
+  <data name="RoofGeometryWindow_EnteredValues" xml:space="preserve"><value>Wartości wejściowe</value></data>
+  <data name="RoofGeometryWindow_SymmetricPitch" xml:space="preserve"><value>Nachylenie dachu α = β (°)</value></data>
+  <data name="RoofGeometryWindow_AlphaPitch" xml:space="preserve"><value>Nachylenie połaci α (°)</value></data>
+  <data name="RoofGeometryWindow_BetaPitch" xml:space="preserve"><value>Nachylenie połaci β (°)</value></data>
+  <data name="RoofGeometryWindow_DeltaHeight" xml:space="preserve"><value>Różnica wysokości okapów ΔH (mm)</value></data>
+  <data name="RoofGeometryWindow_DeltaHeightHint" xml:space="preserve"><value>ΔH = zB − zA; wartość dodatnia oznacza, że okap B jest wyżej.</value></data>
+  <data name="RoofGeometryWindow_RidgeDirection" xml:space="preserve"><value>Kierunek kalenicy</value></data>
+  <data name="RoofGeometryWindow_RidgeDirectionValueFormat" xml:space="preserve"><value>X {0:0.###}; Y {1:0.###}</value></data>
+  <data name="RoofGeometryWindow_RidgeDirectionNotSelected" xml:space="preserve"><value>Kierunek nie został jeszcze wybrany.</value></data>
+  <data name="RoofGeometryWindow_PickRidgeDirection" xml:space="preserve"><value>Wybierz kierunek kalenicy na rysunku</value></data>
+  <data name="RoofGeometryWindow_CalculatedValues" xml:space="preserve"><value>Wartości obliczone</value></data>
+  <data name="RoofGeometryWindow_RidgePlanPosition" xml:space="preserve"><value>Położenie kalenicy od A</value></data>
+  <data name="RoofGeometryWindow_RidgeElevation" xml:space="preserve"><value>Wysokość kalenicy od okapu A</value></data>
+  <data name="RoofGeometryWindow_Schematic" xml:space="preserve"><value>Dynamiczny schemat przekroju</value></data>
+  <data name="RoofGeometryWindow_Cancel" xml:space="preserve"><value>Anuluj</value></data>
+  <data name="RoofGeometryWindow_Preview" xml:space="preserve"><value>Podgląd</value></data>
+  <data name="RoofGeometryWindow_Create" xml:space="preserve"><value>Utwórz</value></data>
+  <data name="RoofGeometryWindow_EaveA" xml:space="preserve"><value>Okap A</value></data>
+  <data name="RoofGeometryWindow_EaveB" xml:space="preserve"><value>Okap B</value></data>
+  <data name="RoofGeometryWindow_ValidationNumber" xml:space="preserve"><value>Wprowadź prawidłowe skończone wartości liczbowe.</value></data>
+  <data name="RoofGeometryWindow_ValidationCombination" xml:space="preserve"><value>Kombinacja α, β i ΔH umieszcza kalenicę poza obrysem.</value></data>
+  <data name="RoofGeometryWindow_ValidationSlope" xml:space="preserve"><value>Nachylenia muszą być większe niż 0° i mniejsze niż 90°.</value></data>
+  <data name="RoofGeometryWindow_ValidationDirectionRequired" xml:space="preserve"><value>Przed podglądem lub utworzeniem wybierz kierunek kalenicy.</value></data>
+  <data name="RoofGeometryWindow_LengthValueFormat" xml:space="preserve"><value>{0:0} mm</value></data>
+  <data name="RoofGeometryWindow_DimensionA" xml:space="preserve"><value>Wymiar A</value></data>
+  <data name="RoofGeometryWindow_DimensionB" xml:space="preserve"><value>Wymiar B</value></data>
+  <data name="RoofGeometryWindow_RunA" xml:space="preserve"><value>Odległość od okapu A do kalenicy</value></data>
+  <data name="RoofGeometryWindow_RunB" xml:space="preserve"><value>Odległość od kalenicy do okapu B</value></data>
+  <data name="RoofGeometryWindow_CalculationMode" xml:space="preserve"><value>Tryb obliczeń</value></data>
+  <data name="RoofGeometryWindow_ModeDeltaHeight" xml:space="preserve"><value>Wprowadź różnicę wysokości okapów ΔH</value></data>
+  <data name="RoofGeometryWindow_ModeRidgeDistance" xml:space="preserve"><value>Wprowadź położenie kalenicy od okapu A</value></data>
+  <data name="RoofGeometryWindow_RidgeDistanceInput" xml:space="preserve"><value>Odległość kalenicy od okapu A (mm)</value></data>
+  <data name="RoofGeometryWindow_CalculatedDeltaHeight" xml:space="preserve"><value>Obliczona różnica wysokości okapów ΔH (mm)</value></data>
+  <data name="RoofGeometryWindow_TransverseSpan" xml:space="preserve"><value>Rozpiętość przekroju</value></data>
+  <data name="RoofGeometryWindow_ValidationRidgeDistance" xml:space="preserve"><value>Odległość kalenicy musi być większa niż 0 mm i mniejsza niż rozpiętość.</value></data>
+  <data name="RoofGeometryWindow_ValidationDirection" xml:space="preserve"><value>Wybrany kierunek kalenicy musi być równoległy do krawędzi prostokąta.</value></data>
+  <data name="RoofGeometryWindow_MirrorAsymmetry" xml:space="preserve"><value>Odbij asymetrię (zamień lewą/prawą stronę)</value></data>
+  <data name="RoofGeometryWindow_Ridge" xml:space="preserve"><value>Kalenica</value></data>
 </root>

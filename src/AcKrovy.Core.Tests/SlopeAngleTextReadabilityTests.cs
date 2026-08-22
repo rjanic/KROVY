@@ -134,7 +134,7 @@ public sealed class SlopeAngleTextReadabilityTests
     public void FixDoesNotChangeSchemasOrAddReactors()
     {
         Assert.Equal(7, TimberElementDataSchema.CurrentVersion);
-        Assert.Equal(3, RoofDefinitionDataSchema.CurrentVersion);
+        Assert.Equal(5, RoofDefinitionDataSchema.CurrentVersion);
         Assert.Equal(1, RoofDisplayDataSchema.CurrentVersion);
         Assert.Equal(1, RoofGeneratedTimberDataSchema.CurrentVersion);
         Assert.DoesNotContain("ObjectModified", SlopeTextService);

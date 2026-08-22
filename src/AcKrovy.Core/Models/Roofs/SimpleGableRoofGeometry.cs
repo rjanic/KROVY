@@ -11,7 +11,11 @@ public sealed class SimpleGableRoofGeometry
         RoofDirection2D ridgeDirection,
         double runMm,
         double riseMm,
-        double slopeDegrees)
+        double slopeDegrees,
+        RoofKind kind = RoofKind.SimpleGable,
+        double? face1RunMm = null,
+        double? face1SlopeDegrees = null,
+        double eaveHeightDifferenceMm = 0d)
     {
         Ridge = ridge;
         Faces = faces.ToArray();
@@ -19,6 +23,12 @@ public sealed class SimpleGableRoofGeometry
         RunMm = runMm;
         RiseMm = riseMm;
         SlopeDegrees = slopeDegrees;
+        Kind = kind;
+        Face0RunMm = runMm;
+        Face1RunMm = face1RunMm ?? runMm;
+        Face0SlopeDegrees = slopeDegrees;
+        Face1SlopeDegrees = face1SlopeDegrees ?? slopeDegrees;
+        EaveHeightDifferenceMm = eaveHeightDifferenceMm;
         Signature = BuildSignature();
     }
 
@@ -35,6 +45,19 @@ public sealed class SimpleGableRoofGeometry
     public double RiseMm { get; }
 
     public double SlopeDegrees { get; }
+
+    public RoofKind Kind { get; }
+
+    public double Face0RunMm { get; }
+
+    public double Face1RunMm { get; }
+
+    public double Face0SlopeDegrees { get; }
+
+    public double Face1SlopeDegrees { get; }
+
+    /// <summary>Signed eave elevation difference zB - zA in millimetres.</summary>
+    public double EaveHeightDifferenceMm { get; }
 
     public string Signature { get; }
 
@@ -54,6 +77,20 @@ public sealed class SimpleGableRoofGeometry
             RiseMm,
             SlopeDegrees,
         };
+        if (Kind == RoofKind.AsymmetricGable)
+        {
+            values.AddRange([
+                (double)Kind,
+                Face0RunMm,
+                Face1RunMm,
+                Face0SlopeDegrees,
+                Face1SlopeDegrees,
+            ]);
+            if (EaveHeightDifferenceMm != 0d)
+            {
+                values.Add(EaveHeightDifferenceMm);
+            }
+        }
         values.AddRange(Faces.SelectMany(face =>
             face.BoundaryPoints.SelectMany(point => new[] { point.X, point.Y, point.Z })));
         return string.Join(

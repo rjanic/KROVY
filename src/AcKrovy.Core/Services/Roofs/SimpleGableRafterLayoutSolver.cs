@@ -38,7 +38,7 @@ public static class SimpleGableRafterLayoutSolver
                 out var ridge,
                 out var firstEave,
                 out var secondEave) ||
-            !IsFinite(geometry.SlopeDegrees) ||
+            !geometry.Faces.All(face => IsFinite(face.SlopeDegrees)) ||
             !IsFinite(geometry.RidgeLengthMm) ||
             geometry.RidgeLengthMm <= CoordinateToleranceMm)
         {
@@ -76,7 +76,7 @@ public static class SimpleGableRafterLayoutSolver
                 fraction,
                 firstEavePoint,
                 ridgePoint,
-                geometry.SlopeDegrees));
+                geometry.Faces[0].SlopeDegrees));
             rafters.Add(CreateRafter(
                 RafterRoofFace.Face1,
                 stationIndex,
@@ -84,7 +84,7 @@ public static class SimpleGableRafterLayoutSolver
                 fraction,
                 secondEavePoint,
                 ridgePoint,
-                geometry.SlopeDegrees));
+                geometry.Faces[1].SlopeDegrees));
         }
 
         var signature = string.Join(

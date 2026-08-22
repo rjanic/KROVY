@@ -57,7 +57,7 @@ public sealed class RoofSplitFootprintContainmentSourceContractTests
     [Fact]
     public void SplitReplay_MissingAnchor_GoesDormant()
     {
-        Assert.Contains("anchorLine is null", Replay);
+        Assert.Contains("if (!anchorResolution.IsResolved)", Replay);
         Assert.Contains("MakeCopyChildDormant(document, transaction, childLine)", Replay);
         Assert.Contains("\"anchor-missing\"", Replay);
     }
@@ -131,8 +131,8 @@ public sealed class RoofSplitFootprintContainmentSourceContractTests
     public void SplitBreakTrim_RoleAwareUnchanged()
     {
         var manual = Read(Infra + "RoofGeneratedMemberManualEditService.cs");
-        Assert.Contains("Origin: RoofAttachedManualOrigin.Split", manual);
-        Assert.Contains("sourceRole = \"AttachedManual\"", manual);
+        Assert.Contains("sourceRole = attachedSource.Origin", manual);
+        Assert.Contains(": \"AttachedManual\"", manual);
     }
 
     // 20: Origin.Copy containment unchanged (Copy still reports outside-footprint dormancy).

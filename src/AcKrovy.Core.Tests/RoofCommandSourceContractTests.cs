@@ -59,15 +59,22 @@ public sealed class RoofCommandSourceContractTests
             Workflow,
             "private static void ClearCompletedWorkflowSelection",
             "private static void ShowPreview");
+        var creationPath = Segment(
+            Workflow,
+            "private static void RunCreationDialog",
+            "private static void ClearCompletedWorkflowSelection");
 
-        Assert.Equal(4, CountOccurrences(
+        Assert.Equal(3, CountOccurrences(
             commandPath,
             "ClearCompletedWorkflowSelection(editor);"));
+        Assert.Equal(1, CountOccurrences(
+            creationPath,
+            "ClearCompletedWorkflowSelection(document.Editor);"));
         Assert.Contains("Command_Roof_DisplayCurrent", commandPath);
         Assert.Contains("Command_Roof_GroupRepaired", commandPath);
         Assert.Contains("Command_Roof_DisplayCreated", commandPath);
         Assert.Contains("Command_Roof_DisplayUpdated", commandPath);
-        Assert.Contains("Command_Roof_PersistedAndDisplaySaved", commandPath);
+        Assert.Contains("Command_Roof_PersistedAndDisplaySaved", creationPath);
         Assert.Contains(
             "editor.SetImpliedSelection(Array.Empty<ObjectId>())",
             clearHelper);
@@ -83,7 +90,7 @@ public sealed class RoofCommandSourceContractTests
         var failurePath = Segment(
             Workflow,
             "if (!validation.IsValid || validation.Footprint is null)",
-            "var definition = new RoofDefinition");
+            "if (storedDefinition.Exists)");
         var notificationMapping = Segment(
             Workflow,
             "private static bool TryGetValidationNotification",

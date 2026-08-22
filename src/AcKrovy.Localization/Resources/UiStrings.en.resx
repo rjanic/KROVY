@@ -537,6 +537,10 @@
   <data name="Command_Roof_InvalidSlopeNotificationTitle" xml:space="preserve"><value>Invalid roof slope</value></data>
   <data name="Command_Roof_InvalidSlopeNotificationBody" xml:space="preserve"><value>Enter a slope greater than 0° and less than 90°.</value></data>
   <data name="Command_Roof_SlopePrompt" xml:space="preserve"><value>&#xA;Enter the roof slope in degrees: </value></data>
+  <data name="Command_RoofAsym_Face0SlopePrompt" xml:space="preserve"><value>&#xA;Enter the first roof-plane slope in degrees (blue preview side): </value></data>
+  <data name="Command_RoofAsym_Face1SlopePrompt" xml:space="preserve"><value>&#xA;Enter the second roof-plane slope in degrees (green preview side): </value></data>
+  <data name="Command_RoofAsym_FacePreviewFormat" xml:space="preserve"><value>&#xA;Preview: blue first plane = {0:0.###}°, green second plane = {1:0.###}°.</value></data>
+  <data name="RoofRafterWindow_RoofSlopesValueFormat" xml:space="preserve"><value>First {0:0.###}° / second {1:0.###}°</value></data>
   <data name="Command_Roof_RidgeDirectionStartPrompt" xml:space="preserve"><value>&#xA;Specify the first point of the ridge direction: </value></data>
   <data name="Command_Roof_RidgeDirectionEndPrompt" xml:space="preserve"><value>&#xA;Specify the second point of the ridge direction: </value></data>
   <data name="Command_Roof_PreviewClosePrompt" xml:space="preserve"><value>&#xA;The transient roof preview is displayed. Press Enter or Esc to close it: </value></data>
@@ -634,6 +638,8 @@
   <data name="Command_RoofLock_AlreadyLocked" xml:space="preserve"><value>&#xA;The roof is already locked.</value></data>
   <data name="Command_RoofResetEdits_Reset" xml:space="preserve"><value>&#xA;Manual generated-timber edits were reset.</value></data>
   <data name="Command_RoofResetEdits_NoEdits" xml:space="preserve"><value>&#xA;The selected roof has no manual edits.</value></data>
+  <data name="Command_RoofEdit_SelectPrompt" xml:space="preserve"><value>&#xA;Select a roof to edit: </value></data>
+  <data name="Command_RoofEdit_UpdatedFormat" xml:space="preserve"><value>&#xA;Roof updated.</value></data>
   <data name="Command_Roof_LockedNotificationTitle" xml:space="preserve"><value>The roof is locked</value></data>
   <data name="Command_Roof_LockedNotificationBody" xml:space="preserve"><value>Unlock it before making manual edits.</value></data>
   <data name="Command_Roof_UnsupportedMemberEditNotificationTitle" xml:space="preserve"><value>The member edit was not supported.</value></data>
@@ -650,4 +656,47 @@
   <data name="Dialog_Inspect_OverrideRotation" xml:space="preserve"><value>Rotation</value></data>
   <data name="Dialog_Inspect_OverrideStart" xml:space="preserve"><value>Start offset</value></data>
   <data name="Dialog_Inspect_OverrideEnd" xml:space="preserve"><value>End offset</value></data>
+  <data name="RoofGeometryWindow_Title" xml:space="preserve"><value>Gable roof geometry</value></data>
+  <data name="RoofGeometryWindow_Heading" xml:space="preserve"><value>Gable roof</value></data>
+  <data name="RoofGeometryWindow_Description" xml:space="preserve"><value>Set the roof geometry, pick the ridge direction in the drawing, and verify the result with Preview.</value></data>
+  <data name="RoofGeometryWindow_SymmetricGable" xml:space="preserve"><value>Symmetric gable</value></data>
+  <data name="RoofGeometryWindow_AsymmetricGable" xml:space="preserve"><value>Asymmetric gable</value></data>
+  <data name="RoofGeometryWindow_EnteredValues" xml:space="preserve"><value>Input values</value></data>
+  <data name="RoofGeometryWindow_SymmetricPitch" xml:space="preserve"><value>Roof pitch α = β (°)</value></data>
+  <data name="RoofGeometryWindow_AlphaPitch" xml:space="preserve"><value>Plane pitch α (°)</value></data>
+  <data name="RoofGeometryWindow_BetaPitch" xml:space="preserve"><value>Plane pitch β (°)</value></data>
+  <data name="RoofGeometryWindow_DeltaHeight" xml:space="preserve"><value>Eave height difference ΔH (mm)</value></data>
+  <data name="RoofGeometryWindow_DeltaHeightHint" xml:space="preserve"><value>ΔH = zB − zA; a positive value means eave B is higher.</value></data>
+  <data name="RoofGeometryWindow_RidgeDirection" xml:space="preserve"><value>Ridge direction</value></data>
+  <data name="RoofGeometryWindow_RidgeDirectionValueFormat" xml:space="preserve"><value>X {0:0.###}; Y {1:0.###}</value></data>
+  <data name="RoofGeometryWindow_RidgeDirectionNotSelected" xml:space="preserve"><value>Direction has not been selected.</value></data>
+  <data name="RoofGeometryWindow_PickRidgeDirection" xml:space="preserve"><value>Pick ridge direction in drawing</value></data>
+  <data name="RoofGeometryWindow_CalculatedValues" xml:space="preserve"><value>Calculated values</value></data>
+  <data name="RoofGeometryWindow_RidgePlanPosition" xml:space="preserve"><value>Ridge position from A</value></data>
+  <data name="RoofGeometryWindow_RidgeElevation" xml:space="preserve"><value>Ridge height from eave A</value></data>
+  <data name="RoofGeometryWindow_Schematic" xml:space="preserve"><value>Live cross-section schematic</value></data>
+  <data name="RoofGeometryWindow_Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="RoofGeometryWindow_Preview" xml:space="preserve"><value>Preview</value></data>
+  <data name="RoofGeometryWindow_Create" xml:space="preserve"><value>Create</value></data>
+  <data name="RoofGeometryWindow_EaveA" xml:space="preserve"><value>Eave A</value></data>
+  <data name="RoofGeometryWindow_EaveB" xml:space="preserve"><value>Eave B</value></data>
+  <data name="RoofGeometryWindow_ValidationNumber" xml:space="preserve"><value>Enter valid finite numeric values.</value></data>
+  <data name="RoofGeometryWindow_ValidationCombination" xml:space="preserve"><value>The α, β, and ΔH combination places the ridge outside the footprint.</value></data>
+  <data name="RoofGeometryWindow_ValidationSlope" xml:space="preserve"><value>Pitches must be greater than 0° and less than 90°.</value></data>
+  <data name="RoofGeometryWindow_ValidationDirectionRequired" xml:space="preserve"><value>Pick the ridge direction before previewing or creating the roof.</value></data>
+  <data name="RoofGeometryWindow_LengthValueFormat" xml:space="preserve"><value>{0:0} mm</value></data>
+  <data name="RoofGeometryWindow_DimensionA" xml:space="preserve"><value>Dimension A</value></data>
+  <data name="RoofGeometryWindow_DimensionB" xml:space="preserve"><value>Dimension B</value></data>
+  <data name="RoofGeometryWindow_RunA" xml:space="preserve"><value>Distance from eave A to ridge</value></data>
+  <data name="RoofGeometryWindow_RunB" xml:space="preserve"><value>Distance from ridge to eave B</value></data>
+  <data name="RoofGeometryWindow_CalculationMode" xml:space="preserve"><value>Calculation mode</value></data>
+  <data name="RoofGeometryWindow_ModeDeltaHeight" xml:space="preserve"><value>Enter eave height difference ΔH</value></data>
+  <data name="RoofGeometryWindow_ModeRidgeDistance" xml:space="preserve"><value>Enter ridge position from eave A</value></data>
+  <data name="RoofGeometryWindow_RidgeDistanceInput" xml:space="preserve"><value>Ridge distance from eave A (mm)</value></data>
+  <data name="RoofGeometryWindow_CalculatedDeltaHeight" xml:space="preserve"><value>Calculated eave height difference ΔH (mm)</value></data>
+  <data name="RoofGeometryWindow_TransverseSpan" xml:space="preserve"><value>Cross-section span</value></data>
+  <data name="RoofGeometryWindow_ValidationRidgeDistance" xml:space="preserve"><value>Ridge distance must be greater than 0 mm and less than the span.</value></data>
+  <data name="RoofGeometryWindow_ValidationDirection" xml:space="preserve"><value>The selected ridge direction must be parallel to a rectangle edge.</value></data>
+  <data name="RoofGeometryWindow_MirrorAsymmetry" xml:space="preserve"><value>Mirror asymmetry (swap left/right side)</value></data>
+  <data name="RoofGeometryWindow_Ridge" xml:space="preserve"><value>Ridge</value></data>
 </root>

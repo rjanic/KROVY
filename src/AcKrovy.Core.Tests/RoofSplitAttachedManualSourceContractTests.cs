@@ -123,17 +123,21 @@ public sealed class RoofSplitAttachedManualSourceContractTests
         // TryAttachManualSplitFragment must detect that the source is an AttachedManual
         // Origin.Split child (not Generated) and NOT relabel it as a Generated fragment.
         Assert.Contains("RoofAttachedManualTimberStore.Read(anchorLine).Data is", ManualEdit);
-        Assert.Contains("Origin: RoofAttachedManualOrigin.Split", ManualEdit);
-        Assert.Contains("sourceRole = \"AttachedManual\"", ManualEdit);
+        Assert.Contains("sourceRole = attachedSource.Origin", ManualEdit);
+        Assert.Contains(": \"AttachedManual\"", ManualEdit);
     }
 
     [Fact]
     public void BreakOfSplitSource_ReusesExactSourceAnchor_NotNearestReanchor()
     {
         // BREAK is not MOVE: both fragments keep the source Split's EXACT persisted anchor
-        // key; no nearest-station remap.
-        Assert.Contains("splitSource.AnchorGeneratedMemberKey is { } splitAnchorKey", ManualEdit);
-        Assert.Contains("RoofAttachedManualLifecycleService.TryFindGeneratedAnchorLine(", ManualEdit);
+        // key through physical-first/logical-suppressed resolution; no nearest remap.
+        Assert.Contains("attachedSource.AnchorGeneratedMemberKey is { } attachedAnchorKey", ManualEdit);
+        Assert.Contains("anchorResolutionContext?.Resolve(attachedAnchorKey)", ManualEdit);
+        Assert.DoesNotContain("TryFindGeneratedAnchorLine", Member(
+            ManualEdit,
+            "private static bool TryAttachManualSplitFragment",
+            "private static bool TryOpenSnapshotLine"));
         Assert.DoesNotContain("SelectNearestAnchor", ManualEdit);
     }
 
@@ -162,8 +166,9 @@ public sealed class RoofSplitAttachedManualSourceContractTests
         Assert.Contains("WriteAttachedManualSplit", ManualEdit);
         Assert.Contains("ROOF_ATTACHED_MANUAL_SPLIT", Diag);
         Assert.Contains("sourceRole=AttachedManual", Diag);
-        Assert.Contains("origin=Split", Diag);
+        Assert.Contains("origin={Token(origin)}", Diag);
         Assert.Contains("anchor=", Diag);
+        Assert.Contains("resolution={Token(resolution)}", Diag);
     }
 
     [Fact]

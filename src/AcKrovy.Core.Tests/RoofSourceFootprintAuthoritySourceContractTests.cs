@@ -76,7 +76,7 @@ public sealed class RoofSourceFootprintAuthoritySourceContractTests
             "public static RoofCopyReplayResult ReplayAnchoredChildrenForOwner",
             "private static void MakeCopyChildDormant");
         Assert.Contains("TryFindGeneratedAnchorLine", replay);
-        Assert.Contains("anchorLine is null", replay);
+        Assert.Contains("if (!anchorResolution.IsResolved)", replay);
         Assert.Contains("MakeCopyChildDormant(document, transaction, childLine)", replay);
         // Source footprint containment for Origin.Copy replay (the only spatial authority).
         Assert.Contains("RoofFootprintContainmentRules.IsSegmentInsideOrOnBoundary", replay);
