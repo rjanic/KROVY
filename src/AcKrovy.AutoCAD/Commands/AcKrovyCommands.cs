@@ -387,6 +387,12 @@ public sealed class AcKrovyCommands
             AcKrovyCommandNames.RoofLock,
             () => RoofEditStateCommandWorkflow.Lock(ActiveDocument()));
 
+    [CommandMethod(AcKrovyCommandNames.RoofToggleLock, CommandFlags.Modal | CommandFlags.Redraw)]
+    public void RoofToggleLock() =>
+        CommandExecutionBoundary.Execute(
+            AcKrovyCommandNames.RoofToggleLock,
+            () => RoofEditStateCommandWorkflow.Toggle(ActiveDocument()));
+
     [CommandMethod(AcKrovyCommandNames.RoofResetEdits, CommandFlags.Modal | CommandFlags.Redraw)]
     public void RoofResetEdits() =>
         CommandExecutionBoundary.Execute(

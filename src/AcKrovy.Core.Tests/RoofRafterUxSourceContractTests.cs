@@ -79,7 +79,7 @@ public sealed class RoofRafterUxSourceContractTests
     [Fact]
     public void IconsUseExistingPersistentPngPipelineAtBothRibbonSizes()
     {
-        var keys = new[] { "roof", "roof_gable", "roof_hip", "roof_halfhip", "roof_monopitch", "roof_rafters" };
+        var keys = new[] { "roof", "roof_gable", "roof_hip", "roof_halfhip", "roof_monopitch", "roof_rafters", "roof_edit", "roof_locktoggle" };
         foreach (var key in keys)
         {
             AssertPngDimensions(IconPath(key, 16), 16, 16);

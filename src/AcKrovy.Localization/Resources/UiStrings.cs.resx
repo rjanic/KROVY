@@ -609,6 +609,10 @@
   <data name="CommandUi_RoofMonoPitch_Tooltip" xml:space="preserve"><value>Zatím není dostupná.</value></data>
   <data name="CommandUi_RoofRafters_Label" xml:space="preserve"><value>Krokve</value></data>
   <data name="CommandUi_RoofRafters_Tooltip" xml:space="preserve"><value>Vytvoří automatické krokve pro uloženou sedlovou střechu.</value></data>
+  <data name="CommandUi_RoofEdit_Label" xml:space="preserve"><value>Upravit</value></data>
+  <data name="CommandUi_RoofEdit_Tooltip" xml:space="preserve"><value>Upraví geometrii a parametry vybrané střechy.</value></data>
+  <data name="CommandUi_RoofToggleLock_Label" xml:space="preserve"><value>Zámek</value></data>
+  <data name="CommandUi_RoofToggleLock_Tooltip" xml:space="preserve"><value>Přepne vybranou střechu mezi zamknutým a odemknutým režimem.</value></data>
   <data name="RoofRafterWindow_Title" xml:space="preserve"><value>Krokve</value></data>
   <data name="RoofRafterWindow_Heading" xml:space="preserve"><value>Automatické krokve</value></data>
   <data name="RoofRafterWindow_Description" xml:space="preserve"><value>Nastavte průřez, maximální rozteč a materiál krokví.</value></data>
@@ -630,6 +634,7 @@
   <data name="RoofRafterWindow_InvalidMaterial" xml:space="preserve"><value>Vyberte platný materiál.</value></data>
   <data name="RoofRafterWindow_InvalidRoof" xml:space="preserve"><value>Rozložení krokví nelze pro tuto střechu vypočítat.</value></data>
   <data name="Command_RoofUnlock_SelectPrompt" xml:space="preserve"><value>&#xA;Vyberte střechu, kterou chcete odemknout: </value></data>
+  <data name="Command_RoofToggleLock_SelectPrompt" xml:space="preserve"><value>&#xA;Vyberte střechu pro zamknutí nebo odemknutí: </value></data>
   <data name="Command_RoofUnlock_Unlocked" xml:space="preserve"><value>&#xA;Střecha je odemčená. Generované řezivo lze upravovat podporovanými příkazy.</value></data>
   <data name="Command_RoofUnlock_AlreadyUnlocked" xml:space="preserve"><value>&#xA;Střecha je již odemčená.</value></data>
   <data name="Command_RoofUnlock_UnlockedNotificationTitle" xml:space="preserve"><value>Střecha je odemčená</value></data>

@@ -1282,10 +1282,16 @@ internal static class RoofLiveResizeService
                 RoofDefinitionRestoreError.StaleFootprint);
         }
 
-        return RoofDefinitionPersistence.Classify(
+        var geometric = RoofDefinitionPersistence.Classify(
             input,
             validation.Footprint,
             stored.Data);
+        return geometric with
+        {
+            Kind = RoofSourceChangeEditStatePolicy.EffectiveKind(
+                stored.Data.EditState,
+                geometric.Kind),
+        };
     }
 
     private static bool TryInvokeUndoMark(Document document, string methodName)

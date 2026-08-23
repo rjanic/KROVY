@@ -17,6 +17,59 @@ internal static class RoofEditStateCommandWorkflow
     public static void Lock(Document document) =>
         SetEditState(document, RoofEditState.Locked);
 
+    /// <summary>
+    /// Cyclic Lock/Unlock toggle. Selects one intelligent roof, reads its actual
+    /// persisted EditState, and dispatches deterministically to the existing
+    /// Lock/Unlock workflow: Locked → Unlock, Unlocked → Lock. Never infers the
+    /// state from command messages. Reuses the exact persisted-state application
+    /// path (<see cref="ApplyEditState"/>); the user is prompted exactly once.
+    /// </summary>
+    public static void Toggle(Document document)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        var editor = document.Editor;
+        if (!TrySelectOwner(
+                document,
+                out var ownerId,
+                out _,
+                "Command_RoofToggleLock_SelectPrompt"))
+        {
+            return;
+        }
+
+        RoofEditState current;
+        using (var readTransaction = document.Database.TransactionManager.StartTransaction())
+        {
+            if (!AutoCadObjectIdAccess.TryGetObject<Polyline>(
+                    readTransaction,
+                    ownerId,
+                    OpenMode.ForRead,
+                    out var owner,
+                    document.Database) ||
+                owner is null)
+            {
+                editor.WriteMessage(UiStrings.GetString("Command_RoofRafters_InvalidRoof"));
+                return;
+            }
+
+            var stored = RoofDefinitionStore.Read(owner);
+            if (stored.Data is null)
+            {
+                editor.WriteMessage(UiStrings.GetString("Command_RoofRafters_InvalidRoof"));
+                return;
+            }
+
+            current = stored.Data.EditState;
+        }
+
+        ApplyEditState(
+            document,
+            ownerId,
+            current == RoofEditState.Locked
+                ? RoofEditState.Unlocked
+                : RoofEditState.Locked);
+    }
+
     public static void ResetEdits(Document document)
     {
         ArgumentNullException.ThrowIfNull(document);
@@ -97,6 +150,22 @@ internal static class RoofEditStateCommandWorkflow
             return;
         }
 
+        ApplyEditState(document, ownerId, desired);
+    }
+
+    /// <summary>
+    /// Applies a desired roof EditState to an already-resolved owner, reusing the
+    /// shared persistence + unlock-indicator + group-selectability path. Shared by
+    /// <see cref="Lock"/>, <see cref="Unlock"/> and <see cref="Toggle"/>. Only the
+    /// intended EditState and its group selectability change; Generated geometry,
+    /// AttachedManual geometry/metadata, overrides, suppression and annotations are
+    /// untouched.
+    /// </summary>
+    private static void ApplyEditState(Document document, ObjectId ownerId, RoofEditState desired)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        var editor = document.Editor;
+
         using (document.LockDocument())
         using (var transaction = document.Database.TransactionManager.StartTransaction())
         {
@@ -156,12 +225,13 @@ internal static class RoofEditStateCommandWorkflow
     private static bool TrySelectOwner(
         Document document,
         out ObjectId ownerId,
-        out RoofGeneratedMemberKey? generatedKey)
+        out RoofGeneratedMemberKey? generatedKey,
+        string promptResourceKey = "Command_RoofUnlock_SelectPrompt")
     {
         ownerId = ObjectId.Null;
         generatedKey = null;
         var selected = document.Editor.GetEntity(new PromptEntityOptions(
-            UiStrings.GetString("Command_RoofUnlock_SelectPrompt")));
+            UiStrings.GetString(promptResourceKey)));
         if (selected.Status != PromptStatus.OK)
         {
             return false;

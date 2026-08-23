@@ -1538,10 +1538,16 @@ internal static class RoofUnsupportedStretchRecoveryService
                 RoofDefinitionRestoreError.StaleFootprint);
         }
 
-        return RoofDefinitionPersistence.Classify(
+        var geometric = RoofDefinitionPersistence.Classify(
             input,
             validation.Footprint,
             stored.Data);
+        return geometric with
+        {
+            Kind = RoofSourceChangeEditStatePolicy.EffectiveKind(
+                stored.Data.EditState,
+                geometric.Kind),
+        };
     }
 
     private static Point3d ToAcad(RoofPoint3D point) => new(point.X, point.Y, point.Z);

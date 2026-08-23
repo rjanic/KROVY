@@ -609,6 +609,10 @@
   <data name="CommandUi_RoofMonoPitch_Tooltip" xml:space="preserve"><value>Not available yet.</value></data>
   <data name="CommandUi_RoofRafters_Label" xml:space="preserve"><value>Rafters</value></data>
   <data name="CommandUi_RoofRafters_Tooltip" xml:space="preserve"><value>Creates automatic rafters for a stored gable roof.</value></data>
+  <data name="CommandUi_RoofEdit_Label" xml:space="preserve"><value>Edit</value></data>
+  <data name="CommandUi_RoofEdit_Tooltip" xml:space="preserve"><value>Edits the geometry and parameters of the selected roof.</value></data>
+  <data name="CommandUi_RoofToggleLock_Label" xml:space="preserve"><value>Lock</value></data>
+  <data name="CommandUi_RoofToggleLock_Tooltip" xml:space="preserve"><value>Switches the selected roof between locked and unlocked mode.</value></data>
   <data name="RoofRafterWindow_Title" xml:space="preserve"><value>Rafters</value></data>
   <data name="RoofRafterWindow_Heading" xml:space="preserve"><value>Automatic rafters</value></data>
   <data name="RoofRafterWindow_Description" xml:space="preserve"><value>Set the rafter section, maximum spacing and material.</value></data>
@@ -630,6 +634,7 @@
   <data name="RoofRafterWindow_InvalidMaterial" xml:space="preserve"><value>Select a valid material.</value></data>
   <data name="RoofRafterWindow_InvalidRoof" xml:space="preserve"><value>The rafter layout cannot be calculated for this roof.</value></data>
   <data name="Command_RoofUnlock_SelectPrompt" xml:space="preserve"><value>&#xA;Select a roof to unlock: </value></data>
+  <data name="Command_RoofToggleLock_SelectPrompt" xml:space="preserve"><value>&#xA;Select a roof to lock or unlock: </value></data>
   <data name="Command_RoofUnlock_Unlocked" xml:space="preserve"><value>&#xA;The roof is unlocked. Generated timber can be edited with supported commands.</value></data>
   <data name="Command_RoofUnlock_AlreadyUnlocked" xml:space="preserve"><value>&#xA;The roof is already unlocked.</value></data>
   <data name="Command_RoofUnlock_UnlockedNotificationTitle" xml:space="preserve"><value>Roof unlocked</value></data>

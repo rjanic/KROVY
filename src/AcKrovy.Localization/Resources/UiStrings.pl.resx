@@ -609,6 +609,10 @@
   <data name="CommandUi_RoofMonoPitch_Tooltip" xml:space="preserve"><value>Jeszcze niedostępny.</value></data>
   <data name="CommandUi_RoofRafters_Label" xml:space="preserve"><value>Krokwie</value></data>
   <data name="CommandUi_RoofRafters_Tooltip" xml:space="preserve"><value>Tworzy automatyczne krokwie dla zapisanego dachu dwuspadowego.</value></data>
+  <data name="CommandUi_RoofEdit_Label" xml:space="preserve"><value>Edytuj</value></data>
+  <data name="CommandUi_RoofEdit_Tooltip" xml:space="preserve"><value>Edytuje geometrię i parametry wybranego dachu.</value></data>
+  <data name="CommandUi_RoofToggleLock_Label" xml:space="preserve"><value>Blokada</value></data>
+  <data name="CommandUi_RoofToggleLock_Tooltip" xml:space="preserve"><value>Przełącza wybrany dach między trybem zablokowanym i odblokowanym.</value></data>
   <data name="RoofRafterWindow_Title" xml:space="preserve"><value>Krokwie</value></data>
   <data name="RoofRafterWindow_Heading" xml:space="preserve"><value>Automatyczne krokwie</value></data>
   <data name="RoofRafterWindow_Description" xml:space="preserve"><value>Ustaw przekrój, maksymalny rozstaw i materiał krokwi.</value></data>
@@ -630,6 +634,7 @@
   <data name="RoofRafterWindow_InvalidMaterial" xml:space="preserve"><value>Wybierz prawidłowy materiał.</value></data>
   <data name="RoofRafterWindow_InvalidRoof" xml:space="preserve"><value>Nie można obliczyć układu krokwi dla tego dachu.</value></data>
   <data name="Command_RoofUnlock_SelectPrompt" xml:space="preserve"><value>&#xA;Wybierz dach do odblokowania: </value></data>
+  <data name="Command_RoofToggleLock_SelectPrompt" xml:space="preserve"><value>&#xA;Wybierz dach do zablokowania lub odblokowania: </value></data>
   <data name="Command_RoofUnlock_Unlocked" xml:space="preserve"><value>&#xA;Dach jest odblokowany. Wygenerowane drewno można edytować obsługiwanymi poleceniami.</value></data>
   <data name="Command_RoofUnlock_AlreadyUnlocked" xml:space="preserve"><value>&#xA;Dach jest już odblokowany.</value></data>
   <data name="Command_RoofUnlock_UnlockedNotificationTitle" xml:space="preserve"><value>Dach odblokowany</value></data>

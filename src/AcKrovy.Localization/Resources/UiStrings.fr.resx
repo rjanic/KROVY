@@ -609,6 +609,10 @@
   <data name="CommandUi_RoofMonoPitch_Tooltip" xml:space="preserve"><value>Pas encore disponible.</value></data>
   <data name="CommandUi_RoofRafters_Label" xml:space="preserve"><value>Chevrons</value></data>
   <data name="CommandUi_RoofRafters_Tooltip" xml:space="preserve"><value>Crée des chevrons automatiques pour une toiture à deux pans enregistrée.</value></data>
+  <data name="CommandUi_RoofEdit_Label" xml:space="preserve"><value>Modifier</value></data>
+  <data name="CommandUi_RoofEdit_Tooltip" xml:space="preserve"><value>Modifie la géométrie et les paramètres du toit sélectionné.</value></data>
+  <data name="CommandUi_RoofToggleLock_Label" xml:space="preserve"><value>Verrou</value></data>
+  <data name="CommandUi_RoofToggleLock_Tooltip" xml:space="preserve"><value>Bascule le toit sélectionné entre les modes verrouillé et déverrouillé.</value></data>
   <data name="RoofRafterWindow_Title" xml:space="preserve"><value>Chevrons</value></data>
   <data name="RoofRafterWindow_Heading" xml:space="preserve"><value>Chevrons automatiques</value></data>
   <data name="RoofRafterWindow_Description" xml:space="preserve"><value>Définissez la section, l’espacement maximal et le matériau des chevrons.</value></data>
@@ -630,6 +634,7 @@
   <data name="RoofRafterWindow_InvalidMaterial" xml:space="preserve"><value>Sélectionnez un matériau valide.</value></data>
   <data name="RoofRafterWindow_InvalidRoof" xml:space="preserve"><value>La disposition des chevrons ne peut pas être calculée pour cette toiture.</value></data>
   <data name="Command_RoofUnlock_SelectPrompt" xml:space="preserve"><value>&#xA;Sélectionnez un toit à déverrouiller : </value></data>
+  <data name="Command_RoofToggleLock_SelectPrompt" xml:space="preserve"><value>&#xA;Sélectionnez un toit à verrouiller ou déverrouiller : </value></data>
   <data name="Command_RoofUnlock_Unlocked" xml:space="preserve"><value>&#xA;Le toit est déverrouillé. Le bois généré peut être modifié avec les commandes prises en charge.</value></data>
   <data name="Command_RoofUnlock_AlreadyUnlocked" xml:space="preserve"><value>&#xA;Le toit est déjà déverrouillé.</value></data>
   <data name="Command_RoofUnlock_UnlockedNotificationTitle" xml:space="preserve"><value>Toit déverrouillé</value></data>

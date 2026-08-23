@@ -609,6 +609,10 @@
   <data name="CommandUi_RoofMonoPitch_Tooltip" xml:space="preserve"><value>Noch nicht verfügbar.</value></data>
   <data name="CommandUi_RoofRafters_Label" xml:space="preserve"><value>Sparren</value></data>
   <data name="CommandUi_RoofRafters_Tooltip" xml:space="preserve"><value>Erzeugt automatische Sparren für ein gespeichertes Satteldach.</value></data>
+  <data name="CommandUi_RoofEdit_Label" xml:space="preserve"><value>Bearbeiten</value></data>
+  <data name="CommandUi_RoofEdit_Tooltip" xml:space="preserve"><value>Bearbeitet Geometrie und Parameter des ausgewählten Dachs.</value></data>
+  <data name="CommandUi_RoofToggleLock_Label" xml:space="preserve"><value>Sperre</value></data>
+  <data name="CommandUi_RoofToggleLock_Tooltip" xml:space="preserve"><value>Wechselt das ausgewählte Dach zwischen gesperrtem und entsperrtem Modus.</value></data>
   <data name="RoofRafterWindow_Title" xml:space="preserve"><value>Sparren</value></data>
   <data name="RoofRafterWindow_Heading" xml:space="preserve"><value>Automatische Sparren</value></data>
   <data name="RoofRafterWindow_Description" xml:space="preserve"><value>Querschnitt, maximalen Abstand und Material der Sparren festlegen.</value></data>
@@ -630,6 +634,7 @@
   <data name="RoofRafterWindow_InvalidMaterial" xml:space="preserve"><value>Ein gültiges Material auswählen.</value></data>
   <data name="RoofRafterWindow_InvalidRoof" xml:space="preserve"><value>Die Sparrenaufteilung kann für dieses Dach nicht berechnet werden.</value></data>
   <data name="Command_RoofUnlock_SelectPrompt" xml:space="preserve"><value>&#xA;Dach zum Entsperren auswählen: </value></data>
+  <data name="Command_RoofToggleLock_SelectPrompt" xml:space="preserve"><value>&#xA;Wählen Sie ein Dach zum Sperren oder Entsperren: </value></data>
   <data name="Command_RoofUnlock_Unlocked" xml:space="preserve"><value>&#xA;Das Dach ist entsperrt. Erzeugtes Holz kann mit unterstützten Befehlen bearbeitet werden.</value></data>
   <data name="Command_RoofUnlock_AlreadyUnlocked" xml:space="preserve"><value>&#xA;Das Dach ist bereits entsperrt.</value></data>
   <data name="Command_RoofUnlock_UnlockedNotificationTitle" xml:space="preserve"><value>Dach entsperrt</value></data>

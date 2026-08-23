@@ -423,11 +423,11 @@ public sealed class LocalizationFoundationTests
             "AK_ASSIGN", "AK_KROKVA", "AK_POMURNICA", "AK_VAZNICA", "AK_STLPIK", "AK_KLIESTINA",
             "AK_VZPERA", "AK_VAZNYTRAM", "AK_CUSTOM", "AK_EDIT", "AK_FLIPSLOPE", "AK_INSPECT", "AK_REPORT",
             "AK_REPORTALL", "AK_RECALC", "AK_RENUMBER", "AK_DIAGNOSTICS", "AK_SELECTSIMILAR", "AK_EXPORTCSV",
-            "AK_ROOF", "AK_ROOF_ASYM", "AK_ROOF_RAFTERS", "AK_ROOF_UNLOCK", "AK_ROOF_LOCK", "AK_ROOF_RESET_EDITS",
+            "AK_ROOF", "AK_ROOF_ASYM", "AK_ROOF_RAFTERS", "AK_ROOF_UNLOCK", "AK_ROOF_LOCK", "AK_ROOF_TOGGLELOCK", "AK_ROOF_RESET_EDITS",
             "AK_ROOF_EDIT",
         };
 
-        Assert.Equal(40, AcKrovyCommandNames.All.Count);
+        Assert.Equal(41, AcKrovyCommandNames.All.Count);
         Assert.Equal(expected, AcKrovyCommandNames.All);
         Assert.All(AcKrovyCommandNames.All, command => Assert.StartsWith("AK_", command, StringComparison.Ordinal));
     }
@@ -439,6 +439,8 @@ public sealed class LocalizationFoundationTests
         {
             ("AK_ROOF", "DECORAIR_AK_ROOF_GABLE", "roof_gable", "Sedlová strecha"),
             ("AK_ROOF_RAFTERS", "DECORAIR_AK_ROOF_RAFTERS", "roof_rafters", "Krokvy"),
+            ("AK_ROOF_EDIT", "DECORAIR_AK_ROOF_EDIT", "roof_edit", "Upraviť"),
+            ("AK_ROOF_TOGGLELOCK", "DECORAIR_AK_ROOF_TOGGLELOCK", "roof_locktoggle", "Zámok"),
             ("AK_KROKVA", "DECORAIR_AK_RAFTER", "rafter", "Krokva"),
             ("AK_POMURNICA", "DECORAIR_AK_WALLPLATE", "wallplate", "Pomúrnica"),
             ("AK_VAZNICA", "DECORAIR_AK_PURLIN", "purlin", "Väznica"),
@@ -446,12 +448,12 @@ public sealed class LocalizationFoundationTests
             ("AK_KLIESTINA", "DECORAIR_AK_COLLARTIE", "collartie", "Klieština"),
             ("AK_VZPERA", "DECORAIR_AK_BRACE", "brace", "Vzpera"),
             ("AK_VAZNYTRAM", "DECORAIR_AK_TIEBEAM", "tiebeam", "Väzný trám"),
-            ("AK_CUSTOM", "DECORAIR_AK_CUSTOM", "assign", "Vlastný prvok"),
+            ("AK_CUSTOM", "DECORAIR_AK_CUSTOM", "custom", "Vlastný prvok"),
             ("AK_ASSIGN", "DECORAIR_AK_ASSIGN", "assign", "Priradiť údaje"),
             ("AK_EDIT", "DECORAIR_AK_EDIT", "edit", "Upraviť"),
             ("AK_INSPECT", "DECORAIR_AK_INSPECT", "inspect", "Skontrolovať"),
             ("AK_RECALC", "DECORAIR_AK_RECALC", "recalc", "Prepočítať"),
-            ("AK_RENUMBER", "DECORAIR_AK_RENUMBER", "recalc", "Prečíslovať"),
+            ("AK_RENUMBER", "DECORAIR_AK_RENUMBER", "renumber", "Prečíslovať"),
             ("AK_REPORT", "DECORAIR_AK_REPORT", "report_selection", "Výkaz z výberu"),
             ("AK_REPORTALL", "DECORAIR_AK_REPORTALL", "report_all", "Výkaz všetkého"),
             ("AK_SETTINGS", "DECORAIR_AK_SETTINGS", "settings", "Nastavenia"),

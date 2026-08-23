@@ -141,6 +141,8 @@ internal static class AcKrovyRibbon
         {
             RoofTypeDropDown(),
             Button(CommandUiCatalog.RoofRafters),
+            Button(CommandUiCatalog.RoofEdit),
+            Button(CommandUiCatalog.RoofToggleLock),
         }));
 
         tab.Panels.Add(BuildPanel(UiStrings.RibbonPanelElements, new[]

@@ -42,6 +42,7 @@ public static class AcKrovyCommandNames
     public const string RoofRafters = "AK_ROOF_RAFTERS";
     public const string RoofUnlock = "AK_ROOF_UNLOCK";
     public const string RoofLock = "AK_ROOF_LOCK";
+    public const string RoofToggleLock = "AK_ROOF_TOGGLELOCK";
     public const string RoofResetEdits = "AK_ROOF_RESET_EDITS";
     public const string RoofEdit = "AK_ROOF_EDIT";
 
@@ -51,7 +52,7 @@ public static class AcKrovyCommandNames
         LabelMissing, LabelSelected, LabelAll, LabelShow, LabelHide, Assign, Rafter, WallPlate, Purlin,
         Post, CollarTie, Brace, TieBeam, Custom, Edit, FlipSlope, Inspect, Report, ReportAll, Recalc,
         Renumber, Diagnostics, SelectSimilar, ExportCsv, Roof, RoofAsymmetric, RoofRafters, RoofUnlock, RoofLock,
-        RoofResetEdits, RoofEdit,
+        RoofToggleLock, RoofResetEdits, RoofEdit,
     ];
 }
 
@@ -146,18 +147,30 @@ public static class CommandUiCatalog
         "roof_rafters",
         "CommandUi_RoofRafters_Label",
         "CommandUi_RoofRafters_Tooltip");
+    public static CommandUiDescriptor RoofEdit { get; } = CreateDirect(
+        AcKrovyCommandNames.RoofEdit,
+        "DECORAIR_AK_ROOF_EDIT",
+        "roof_edit",
+        "CommandUi_RoofEdit_Label",
+        "CommandUi_RoofEdit_Tooltip");
+    public static CommandUiDescriptor RoofToggleLock { get; } = CreateDirect(
+        AcKrovyCommandNames.RoofToggleLock,
+        "DECORAIR_AK_ROOF_TOGGLELOCK",
+        "roof_locktoggle",
+        "CommandUi_RoofToggleLock_Label",
+        "CommandUi_RoofToggleLock_Tooltip");
     public static CommandUiDescriptor WallPlate { get; } = Create("WALLPLATE", "wallplate", AcKrovyCommandNames.WallPlate, "WallPlate");
     public static CommandUiDescriptor Purlin { get; } = Create("PURLIN", "purlin", AcKrovyCommandNames.Purlin, "Purlin");
     public static CommandUiDescriptor Post { get; } = Create("POST", "post", AcKrovyCommandNames.Post, "Post");
     public static CommandUiDescriptor CollarTie { get; } = Create("COLLARTIE", "collartie", AcKrovyCommandNames.CollarTie, "CollarTie");
     public static CommandUiDescriptor Brace { get; } = Create("BRACE", "brace", AcKrovyCommandNames.Brace, "Brace");
     public static CommandUiDescriptor TieBeam { get; } = Create("TIEBEAM", "tiebeam", AcKrovyCommandNames.TieBeam, "TieBeam");
-    public static CommandUiDescriptor Custom { get; } = Create("CUSTOM", "assign", AcKrovyCommandNames.Custom, "Custom");
+    public static CommandUiDescriptor Custom { get; } = Create("CUSTOM", "custom", AcKrovyCommandNames.Custom, "Custom");
     public static CommandUiDescriptor Assign { get; } = Create("ASSIGN", "assign", AcKrovyCommandNames.Assign, "Assign");
     public static CommandUiDescriptor Edit { get; } = Create("EDIT", "edit", AcKrovyCommandNames.Edit, "Edit");
     public static CommandUiDescriptor Inspect { get; } = Create("INSPECT", "inspect", AcKrovyCommandNames.Inspect, "Inspect");
     public static CommandUiDescriptor Recalc { get; } = Create("RECALC", "recalc", AcKrovyCommandNames.Recalc, "Recalc");
-    public static CommandUiDescriptor Renumber { get; } = Create("RENUMBER", "recalc", AcKrovyCommandNames.Renumber, "Renumber");
+    public static CommandUiDescriptor Renumber { get; } = Create("RENUMBER", "renumber", AcKrovyCommandNames.Renumber, "Renumber");
     public static CommandUiDescriptor Report { get; } = Create("REPORT", "report_selection", AcKrovyCommandNames.Report, "Report");
     public static CommandUiDescriptor ReportAll { get; } = Create("REPORTALL", "report_all", AcKrovyCommandNames.ReportAll, "ReportAll");
     public static CommandUiDescriptor Settings { get; } = Create("SETTINGS", "settings", AcKrovyCommandNames.Settings, "Settings");
@@ -195,7 +208,7 @@ public static class CommandUiCatalog
 
     public static IReadOnlyList<CommandUiDescriptor> RibbonCommands { get; } =
     [
-        Roof, RoofRafters, Rafter, WallPlate, Purlin, Post, CollarTie, Brace, TieBeam, Custom, Assign, Edit, Inspect, Recalc, Renumber,
+        Roof, RoofRafters, RoofEdit, RoofToggleLock, Rafter, WallPlate, Purlin, Post, CollarTie, Brace, TieBeam, Custom, Assign, Edit, Inspect, Recalc, Renumber,
         Report, ReportAll, Settings, Labels, Toolbar,
     ];
 
