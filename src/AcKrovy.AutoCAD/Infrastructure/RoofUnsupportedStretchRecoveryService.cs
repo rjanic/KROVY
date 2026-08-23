@@ -370,6 +370,135 @@ internal static class RoofUnsupportedStretchRecoveryService
         return RoofUnsupportedStretchRecoveryOutcome.Recovered;
     }
 
+    /// <summary>
+    /// Scenario 3: LOCKED whole-roof GRIP_STRETCH pure translation. The source is
+    /// already at its post-command translated position; normalize every snapshot
+    /// assembly member (Generated timber, AttachedManual timber, timber-bound
+    /// annotations) to its pre-command geometry + the proven translation delta.
+    /// Idempotent with respect to native AutoCAD displacement: entities the grip
+    /// already moved land on the same target, entities left behind are corrected,
+    /// partially displaced entities are normalized. Never restores old coordinates,
+    /// never regenerates timber, never rewrites metadata, never writes the source.
+    /// </summary>
+    public static bool TryNormalizeRigidTranslation(
+        Database database,
+        Transaction transaction,
+        ObjectId ownerId,
+        double deltaX,
+        double deltaY,
+        Autodesk.AutoCAD.EditorInput.Editor? editor = null)
+    {
+        if (ownerId.IsNull ||
+            !RoofUnsupportedStretchRecoverySnapshotService.TryGet(ownerId, out var entry))
+        {
+            return false;
+        }
+
+        if (!AutoCadObjectIdAccess.TryGetObject<Polyline>(
+                transaction,
+                ownerId,
+                OpenMode.ForRead,
+                out var owner,
+                database) ||
+            owner is null)
+        {
+            return false;
+        }
+
+        var liveHandle = owner.Handle.ToString();
+        if (!string.Equals(
+                liveHandle,
+                entry.Assembly.RoofSource.OwnerHandle,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        if (!TryTranslateAssembly(
+                entry.Assembly,
+                deltaX,
+                deltaY,
+                out var translatedTimberLines,
+                out var translatedAnnotations))
+        {
+            return false;
+        }
+
+        try
+        {
+            if (!TryRestoreTimberLines(
+                    database,
+                    transaction,
+                    translatedTimberLines,
+                    editor,
+                    liveHandle) ||
+                !TryRestoreAnnotations(
+                    database,
+                    transaction,
+                    translatedAnnotations,
+                    editor,
+                    liveHandle) ||
+                !TryEraseUnsnapshotGeneratedDuplicates(
+                    database,
+                    transaction,
+                    ownerId,
+                    translatedTimberLines))
+            {
+                return false;
+            }
+        }
+        catch (Autodesk.AutoCAD.Runtime.Exception)
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private static bool TryTranslateAssembly(
+        RoofUnsupportedStretchAssemblySnapshotData assembly,
+        double deltaX,
+        double deltaY,
+        out IReadOnlyList<RoofUnsupportedStretchTimberLineSnapshotData> translatedTimberLines,
+        out IReadOnlyList<RoofUnsupportedStretchAnnotationSnapshotData> translatedAnnotations)
+    {
+        translatedTimberLines = assembly.TimberLines
+            .Select(timber => timber with
+            {
+                Start = Translate(timber.Start, deltaX, deltaY),
+                End = Translate(timber.End, deltaX, deltaY),
+            })
+            .ToArray();
+
+        translatedAnnotations = assembly.Annotations
+            .Select(annotation => annotation with
+            {
+                Position = Translate(annotation.Position, deltaX, deltaY),
+                SecondaryPoint = Translate(annotation.SecondaryPoint, deltaX, deltaY),
+                TertiaryPoint = Translate(annotation.TertiaryPoint, deltaX, deltaY),
+                QuaternaryPoint = Translate(annotation.QuaternaryPoint, deltaX, deltaY),
+                PolylineVertices = annotation.PolylineVertices is null
+                    ? null
+                    : annotation.PolylineVertices
+                        .Select(vertex => Translate(vertex, deltaX, deltaY))
+                        .ToArray(),
+            })
+            .ToArray();
+
+        return true;
+    }
+
+    private static RoofPoint3D Translate(RoofPoint3D point, double deltaX, double deltaY) =>
+        new(point.X + deltaX, point.Y + deltaY, point.Z);
+
+    private static RoofPoint3D? Translate(RoofPoint3D? point, double deltaX, double deltaY) =>
+        point is null
+            ? null
+            : Translate(point.Value, deltaX, deltaY);
+
+    private static RoofPoint2D Translate(RoofPoint2D point, double deltaX, double deltaY) =>
+        new(point.X + deltaX, point.Y + deltaY);
+
     public static bool TryUnEraseAndRestore(
         Database database,
         Transaction transaction,

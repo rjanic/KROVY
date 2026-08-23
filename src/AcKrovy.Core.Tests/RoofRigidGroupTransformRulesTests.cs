@@ -221,6 +221,111 @@ public sealed class RoofRigidGroupTransformRulesTests
         Assert.Equal(RoofGroupGripSideResizeKind.GableEnd, result.Kind);
     }
 
+    [Fact]
+    public void SourceOnly_UniformTranslation_IsAccepted()
+    {
+        var original = Rectangle();
+        var moved = Translate(original, Dx, Dy);
+
+        var accepted = RoofRigidGroupTransformRules.TryClassifySourceOnlyTranslation(
+            original.Vertices!,
+            moved.Vertices!,
+            out var deltaX,
+            out var deltaY);
+
+        Assert.True(accepted);
+        Assert.Equal(Dx, deltaX, 3);
+        Assert.Equal(Dy, deltaY, 3);
+    }
+
+    [Fact]
+    public void SourceOnly_RotatedRoofUniformTranslation_IsAccepted()
+    {
+        var original = Transform(Rectangle(), 30d, 400d, -250d);
+        var moved = Translate(original, Dx, Dy);
+
+        var accepted = RoofRigidGroupTransformRules.TryClassifySourceOnlyTranslation(
+            original.Vertices!,
+            moved.Vertices!,
+            out var deltaX,
+            out var deltaY);
+
+        Assert.True(accepted);
+        Assert.Equal(Dx, deltaX, 3);
+        Assert.Equal(Dy, deltaY, 3);
+    }
+
+    [Fact]
+    public void SourceOnly_UnchangedSource_IsRejected()
+    {
+        var original = Rectangle();
+
+        var accepted = RoofRigidGroupTransformRules.TryClassifySourceOnlyTranslation(
+            original.Vertices!,
+            original.Vertices!,
+            out _,
+            out _);
+
+        Assert.False(accepted);
+    }
+
+    [Fact]
+    public void SourceOnly_SingleVertexMove_IsRejected()
+    {
+        var original = Rectangle();
+        var v = original.Vertices!.ToArray();
+        var oneVertexMoved = new[]
+        {
+            v[0],
+            new RoofPoint2D(v[1].X + Dx, v[1].Y),
+            v[2],
+            v[3],
+        };
+
+        var accepted = RoofRigidGroupTransformRules.TryClassifySourceOnlyTranslation(
+            original.Vertices!,
+            oneVertexMoved,
+            out _,
+            out _);
+
+        Assert.False(accepted);
+    }
+
+    [Fact]
+    public void SourceOnly_ShapeChange_IsRejected()
+    {
+        var original = Rectangle();
+        var resized = StretchGableEnd(original, 2000d);
+
+        var accepted = RoofRigidGroupTransformRules.TryClassifySourceOnlyTranslation(
+            original.Vertices!,
+            resized.Vertices!,
+            out _,
+            out _);
+
+        Assert.False(accepted);
+    }
+
+    [Fact]
+    public void SourceOnly_VertexCountMismatch_IsRejected()
+    {
+        var original = Rectangle();
+        var threeVertices = new[]
+        {
+            new RoofPoint2D(0d, 0d),
+            new RoofPoint2D(10000d, 0d),
+            new RoofPoint2D(10000d, 6000d),
+        };
+
+        var accepted = RoofRigidGroupTransformRules.TryClassifySourceOnlyTranslation(
+            original.Vertices!,
+            threeVertices,
+            out _,
+            out _);
+
+        Assert.False(accepted);
+    }
+
     private static Dictionary<RoofDisplayEdgeRole, RoofSegment3D> ToMap(
         IReadOnlyList<RoofDisplayEdge> edges) =>
         edges.ToDictionary(edge => edge.Role, edge => edge.Segment);

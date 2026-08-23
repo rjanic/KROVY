@@ -79,6 +79,38 @@ internal static class RoofUnsupportedStretchRecoveryDiag
         }
     }
 
+    public static void WriteRigidGripTranslation(
+        Editor? editor,
+        string? owner,
+        double deltaX,
+        double deltaY,
+        int timber,
+        int annotations,
+        string result)
+    {
+        if (editor is null)
+        {
+            return;
+        }
+
+        var line =
+            "ROOF_RIGID_GRIP_TRANSLATION" +
+            $" owner={Token(owner)}" +
+            $" dx={FormatDelta(deltaX)} dy={FormatDelta(deltaY)}" +
+            $" timber={timber} annotations={annotations} result={Sanitize(result)}";
+
+        try
+        {
+            editor.WriteMessage("\n" + line);
+        }
+        catch
+        {
+        }
+    }
+
+    private static string FormatDelta(double value) =>
+        value.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
+
     public static void WriteMLeaderWriteFail(
         Editor? editor,
         string? handle,

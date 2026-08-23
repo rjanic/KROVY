@@ -136,6 +136,20 @@ internal static class RoofGeneratedMemberManualEditService
 
             if (!supportedUnlocked)
             {
+                if (TryAcceptLockedGripRigidTranslation(
+                        document,
+                        transaction,
+                        owner,
+                        ownerId,
+                        sourceModified,
+                        globalCommandName))
+                {
+                    // LOCKED whole-roof GRIP_STRETCH pure translation: assembly was
+                    // normalized to snapshot + delta inside this transaction. Never run
+                    // the old-position generated-only recovery for this owner.
+                    return OwnerEditOutcome.Skipped;
+                }
+
                 owner.UpgradeOpen();
                 var recovered = RoofUnsupportedStretchRecoveryService.TryRecoverGeneratedMembersOnly(
                     document.Database,
@@ -232,6 +246,87 @@ internal static class RoofGeneratedMemberManualEditService
             transaction.Commit();
             return OwnerEditOutcome.Accepted;
         }
+    }
+
+    /// <summary>
+    /// LOCKED whole-roof GRIP_STRETCH pure translation acceptance. Proves with the
+    /// pre-command source snapshot that the source was displaced by one identical
+    /// planar vector (same topology, same edge lengths, non-zero delta) and, when
+    /// proven, normalizes the whole snapshot assembly (Generated timber, AttachedManual
+    /// timber, annotations) to snapshot + delta inside the caller's transaction.
+    /// Returns true when the grip was a proven rigid translation — the caller must then
+    /// NOT run the old-position generated-only recovery. Returns false (no writes) for
+    /// any shape-changing / non-translation grip, leaving the existing recovery intact.
+    /// </summary>
+    private static bool TryAcceptLockedGripRigidTranslation(
+        Document document,
+        Transaction transaction,
+        Polyline owner,
+        ObjectId ownerId,
+        bool sourceModified,
+        string? globalCommandName)
+    {
+        if (!sourceModified ||
+            !LiveGeometryCommandRules.IsGripStretchCommand(globalCommandName) ||
+            !RoofUnsupportedStretchRecoverySnapshotService.TryGet(ownerId, out var entry))
+        {
+            return false;
+        }
+
+        var input = RoofPolylineExtractor.Extract(owner);
+        if (input.Vertices is null ||
+            !RoofRigidGroupTransformRules.TryClassifySourceOnlyTranslation(
+                entry.Assembly.RoofSource.Vertices,
+                input.Vertices,
+                out var deltaX,
+                out var deltaY))
+        {
+#if DEBUG
+            RoofUnsupportedStretchRecoveryDiag.WriteRigidGripTranslation(
+                document.Editor,
+                ownerId.Handle.ToString(),
+                0d,
+                0d,
+                entry.Assembly.TimberLines.Count,
+                entry.Assembly.Annotations.Count,
+                "rejected-not-pure-translation");
+#endif
+            return false;
+        }
+
+        if (!RoofUnsupportedStretchRecoveryService.TryNormalizeRigidTranslation(
+                document.Database,
+                transaction,
+                ownerId,
+                deltaX,
+                deltaY,
+                document.Editor))
+        {
+#if DEBUG
+            RoofUnsupportedStretchRecoveryDiag.WriteRigidGripTranslation(
+                document.Editor,
+                ownerId.Handle.ToString(),
+                deltaX,
+                deltaY,
+                entry.Assembly.TimberLines.Count,
+                entry.Assembly.Annotations.Count,
+                "normalize-failed");
+#endif
+            // Classification accepted — never fall back to the old-position restore.
+            return true;
+        }
+
+#if DEBUG
+        RoofUnsupportedStretchRecoveryDiag.WriteRigidGripTranslation(
+            document.Editor,
+            ownerId.Handle.ToString(),
+            deltaX,
+            deltaY,
+            entry.Assembly.TimberLines.Count,
+            entry.Assembly.Annotations.Count,
+            "ok");
+#endif
+        return true;
     }
 
     private static void RefreshModifiedAttachedManualNumberingAndAnnotations(

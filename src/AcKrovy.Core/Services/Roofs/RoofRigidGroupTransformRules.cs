@@ -96,6 +96,50 @@ public static class RoofRigidGroupTransformRules
         return RoofRigidGroupTransformResult.AcceptTranslation(dx, dy, displayDz);
     }
 
+    /// <summary>
+    /// Source-only pure planar translation classification: same vertex count, one
+    /// identical planar displacement for all source vertices, rigid shape, non-zero
+    /// delta. Reuses the exact same tolerance and geometry rules as the full-group
+    /// classifier (never a second translation definition). Used to recognize a
+    /// LOCKED whole-roof GRIP_STRETCH rigid translation as an assembly displacement
+    /// equivalent to native MOVE before any old-position snapshot recovery could run.
+    /// </summary>
+    public static bool TryClassifySourceOnlyTranslation(
+        IReadOnlyList<RoofPoint2D> preCommandSourceVertices,
+        IReadOnlyList<RoofPoint2D> currentSourceVertices,
+        out double deltaX,
+        out double deltaY,
+        double toleranceMm = ToleranceMm)
+    {
+        deltaX = 0d;
+        deltaY = 0d;
+        if (preCommandSourceVertices is null || preCommandSourceVertices.Count != 4 ||
+            currentSourceVertices is null || currentSourceVertices.Count != 4)
+        {
+            return false;
+        }
+
+        if (!TryUniquePlanarTranslation(
+                preCommandSourceVertices,
+                currentSourceVertices,
+                toleranceMm,
+                out deltaX,
+                out deltaY))
+        {
+            return false;
+        }
+
+        if (Math.Abs(deltaX) <= toleranceMm && Math.Abs(deltaY) <= toleranceMm)
+        {
+            return false;
+        }
+
+        return SourceShapeRigidEquivalent(
+            preCommandSourceVertices,
+            currentSourceVertices,
+            toleranceMm);
+    }
+
     private static bool TryUniquePlanarTranslation(
         IReadOnlyList<RoofPoint2D> before,
         IReadOnlyList<RoofPoint2D> after,
