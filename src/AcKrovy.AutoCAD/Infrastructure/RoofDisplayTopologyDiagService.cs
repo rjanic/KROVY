@@ -242,10 +242,10 @@ internal static class RoofDisplayTopologyDiagService
             return false;
         }
 
-        edges = SimpleGableRoofWireframe.Create(
+        edges = RoofWireframe.Create(
             restored.Geometry,
             RoofPolylineExtractor.GetSourceElevation(owner));
-        signature = SimpleGableRoofWireframe.BuildGenerationSignature(edges);
+        signature = RoofWireframe.BuildGenerationSignature(edges);
         return true;
     }
 
@@ -451,5 +451,4 @@ internal static class RoofDisplayTopologyDiagService
         bool ContainsSource,
         IReadOnlyList<string> MemberSummaries);
 }
-#endif
-
+#endif

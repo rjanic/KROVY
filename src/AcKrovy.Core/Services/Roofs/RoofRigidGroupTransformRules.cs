@@ -27,7 +27,10 @@ public static class RoofRigidGroupTransformRules
 
         if (!RoofGroupGripNativeObservationRules.IsCompleteSevenRoles(preCommandDisplay) ||
             !RoofGroupGripNativeObservationRules.IsCompleteSevenRoles(currentDisplay) ||
-            !RoofGroupGripNativeObservationRules.IsCompleteSevenRoles(canonicalDisplayFromCurrentSource))
+            !RoofGroupGripNativeObservationRules.IsCompleteSevenRoles(canonicalDisplayFromCurrentSource) ||
+            !new HashSet<RoofDisplayEdgeRole>(preCommandDisplay.Keys).SetEquals(currentDisplay.Keys) ||
+            !new HashSet<RoofDisplayEdgeRole>(preCommandDisplay.Keys).SetEquals(
+                canonicalDisplayFromCurrentSource.Keys))
         {
             return RoofRigidGroupTransformResult.Reject("incomplete-display-roles");
         }
@@ -191,7 +194,7 @@ public static class RoofRigidGroupTransformRules
     {
         dx = dy = dz = 0d;
         var seeded = false;
-        foreach (RoofDisplayEdgeRole role in Enum.GetValues(typeof(RoofDisplayEdgeRole)))
+        foreach (var role in before.Keys)
         {
             var b = before[role];
             var a = after[role];

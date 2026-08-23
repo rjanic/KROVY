@@ -667,7 +667,7 @@ internal static class RoofDisplayGroupService
             }
         }
 
-        return roles.Count == ExpectedStructuralDisplayChildCount;
+        return RoofWireframe.IsCompleteRoleSet(roles);
     }
 
     /// <summary>

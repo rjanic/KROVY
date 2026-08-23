@@ -8,7 +8,7 @@ public static class RoofDefinitionPersistence
     public static RoofDefinitionData Create(
         RoofFootprintInput source,
         RoofFootprint footprint,
-        SimpleGableRoofGeometry geometry)
+        IRoofGeometry geometry)
     {
         if (source is null)
         {
@@ -24,24 +24,35 @@ public static class RoofDefinitionPersistence
         }
 
         if (!TryReadSourceTopology(source, out var topology) ||
-            !TryResolveRidgeEdgeFamily(
+            !TryResolveOrientationEdgeFamily(
                 topology,
-                geometry.RidgeDirection,
-                out var edgeFamily))
+                geometry.OrientationDirection,
+                out var edgeFamily,
+                out var orientationSign))
         {
             throw new ArgumentException(
                 "Source topology cannot represent the solved ridge axis.",
                 nameof(source));
         }
 
+        var face1Slope = geometry is SimpleGableRoofGeometry gableGeometry
+            ? gableGeometry.Face1SlopeDegrees
+            : geometry.PrimarySlopeDegrees;
+        var heightDifference = geometry switch
+        {
+            SimpleGableRoofGeometry solvedGable => solvedGable.EaveHeightDifferenceMm,
+            MonopitchRoofGeometry monopitch =>
+                orientationSign * monopitch.EaveHeightDifferenceMm,
+            _ => throw new ArgumentException("Unsupported roof geometry.", nameof(geometry)),
+        };
         var data = new RoofDefinitionData(
             RoofDefinitionDataSchema.CurrentVersion,
             geometry.Kind,
-            geometry.Face0SlopeDegrees,
+            geometry.PrimarySlopeDegrees,
             RidgeEdgeFamily: edgeFamily,
             RigidFootprint: topology.Descriptor,
-            Face1SlopeDegrees: geometry.Face1SlopeDegrees,
-            EaveHeightDifferenceMm: geometry.EaveHeightDifferenceMm);
+            Face1SlopeDegrees: face1Slope,
+            EaveHeightDifferenceMm: heightDifference);
         _ = RoofDefinitionDataCodec.Encode(data);
         return data;
     }
@@ -56,7 +67,7 @@ public static class RoofDefinitionPersistence
     public static RoofDefinitionData UpdateGeometry(
         RoofDefinitionData existing,
         RoofFootprintInput source,
-        SimpleGableRoofGeometry geometry)
+        IRoofGeometry geometry)
     {
         if (existing is null)
         {
@@ -75,23 +86,34 @@ public static class RoofDefinitionPersistence
             throw new ArgumentException("The existing roof definition is invalid.", nameof(existing));
         }
         if (!TryReadSourceTopology(source, out var topology) ||
-            !TryResolveRidgeEdgeFamily(
+            !TryResolveOrientationEdgeFamily(
                 topology,
-                geometry.RidgeDirection,
-                out var edgeFamily))
+                geometry.OrientationDirection,
+                out var edgeFamily,
+                out var orientationSign))
         {
             throw new ArgumentException(
                 "Source topology cannot represent the solved ridge axis.",
                 nameof(source));
         }
 
+        var face1Slope = geometry is SimpleGableRoofGeometry gableGeometry
+            ? gableGeometry.Face1SlopeDegrees
+            : geometry.PrimarySlopeDegrees;
+        var heightDifference = geometry switch
+        {
+            SimpleGableRoofGeometry solvedGable => solvedGable.EaveHeightDifferenceMm,
+            MonopitchRoofGeometry monopitch =>
+                orientationSign * monopitch.EaveHeightDifferenceMm,
+            _ => throw new ArgumentException("Unsupported roof geometry.", nameof(geometry)),
+        };
         var data = existing with
         {
             SchemaVersion = RoofDefinitionDataSchema.CurrentVersion,
             Kind = geometry.Kind,
-            SlopeDegrees = geometry.Face0SlopeDegrees,
-            Face1SlopeDegrees = geometry.Face1SlopeDegrees,
-            EaveHeightDifferenceMm = geometry.EaveHeightDifferenceMm,
+            SlopeDegrees = geometry.PrimarySlopeDegrees,
+            Face1SlopeDegrees = face1Slope,
+            EaveHeightDifferenceMm = heightDifference,
             RidgeEdgeFamily = edgeFamily,
             RigidFootprint = topology.Descriptor,
             RidgeDirectionX = null,
@@ -283,13 +305,21 @@ public static class RoofDefinitionPersistence
             return Invalid(RoofDefinitionRestoreError.InvalidDefinition);
         }
 
-        var solved = RoofGeometrySolver.Solve(new RoofDefinition(
-            footprint,
-            new RoofParameters(
+        var parameters = data.Kind == RoofKind.Monopitch
+            ? new RoofParameters(
+                data.Face0SlopeDegrees,
+                Face1SlopeDegrees: data.EffectiveFace1SlopeDegrees,
+                SlopeDirection: data.EaveHeightDifferenceMm >= 0d
+                    ? direction
+                    : Reverse(direction))
+            : new RoofParameters(
                 data.Face0SlopeDegrees,
                 direction,
                 Face1SlopeDegrees: data.EffectiveFace1SlopeDegrees,
-                EaveHeightDifferenceMm: data.EaveHeightDifferenceMm),
+                EaveHeightDifferenceMm: data.EaveHeightDifferenceMm);
+        var solved = RoofGeometrySolver.Solve(new RoofDefinition(
+            footprint,
+            parameters,
             data.Kind));
         return solved.IsValid && solved.Geometry is not null
             ? new RoofDefinitionRestoreResult(
@@ -527,26 +557,30 @@ public static class RoofDefinitionPersistence
         return true;
     }
 
-    private static bool TryResolveRidgeEdgeFamily(
+    private static bool TryResolveOrientationEdgeFamily(
         SourceTopology topology,
-        RoofDirection2D ridgeDirection,
-        out RoofRidgeEdgeFamily edgeFamily)
+        RoofDirection2D orientationDirection,
+        out RoofRidgeEdgeFamily edgeFamily,
+        out int orientationSign)
     {
         edgeFamily = RoofRidgeEdgeFamily.Undefined;
-        var ridge = new Vector2(ridgeDirection.X, ridgeDirection.Y);
-        var firstCross = Math.Abs(Cross(ridge, topology.Edge01) /
+        orientationSign = 0;
+        var axis = new Vector2(orientationDirection.X, orientationDirection.Y);
+        var firstCross = Math.Abs(Cross(axis, topology.Edge01) /
                                   topology.Descriptor.Edge01LengthMm);
-        var secondCross = Math.Abs(Cross(ridge, topology.Edge12) /
+        var secondCross = Math.Abs(Cross(axis, topology.Edge12) /
                                    topology.Descriptor.Edge12LengthMm);
         if (firstCross <= SimpleGableRoofGeometryTolerance.AngularTolerance)
         {
             edgeFamily = RoofRidgeEdgeFamily.SourceEdge01;
+            orientationSign = Dot(axis, topology.Edge01) >= 0d ? 1 : -1;
             return true;
         }
 
         if (secondCross <= SimpleGableRoofGeometryTolerance.AngularTolerance)
         {
             edgeFamily = RoofRidgeEdgeFamily.SourceEdge12;
+            orientationSign = Dot(axis, topology.Edge12) >= 0d ? 1 : -1;
             return true;
         }
 
@@ -580,6 +614,15 @@ public static class RoofDefinitionPersistence
 
     private static double Cross(Vector2 first, Vector2 second) =>
         first.X * second.Y - first.Y * second.X;
+
+    private static double Dot(Vector2 first, Vector2 second) =>
+        first.X * second.X + first.Y * second.Y;
+
+    private static RoofDirection2D Reverse(RoofDirection2D direction)
+    {
+        _ = RoofDirection2D.TryCreate(-direction.X, -direction.Y, out var reversed);
+        return reversed;
+    }
 
     private static bool IsFinite(double value) =>
         !double.IsNaN(value) && !double.IsInfinity(value);

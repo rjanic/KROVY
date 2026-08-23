@@ -40,14 +40,16 @@ public static class RoofGroupGripResizeAdoptionRules
             return RoofGroupGripResizeAdoptionResult.Reject("definition");
         }
 
-        if (!HasAllRoles(expectedDisplay) || !HasAllRoles(observedDisplay))
+        if (!RoofWireframe.TryGetTopology(definition.Kind, out var topology) ||
+            !HasAllRoles(expectedDisplay, topology) ||
+            !HasAllRoles(observedDisplay, topology))
         {
             return RoofGroupGripResizeAdoptionResult.Reject("missing-display-roles");
         }
 
         if (!TryBuildRectangleFromEaves(
-                observedDisplay[RoofDisplayEdgeRole.Eave0],
-                observedDisplay[RoofDisplayEdgeRole.Eave1],
+                observedDisplay[topology.FirstOppositeEaveRole],
+                observedDisplay[topology.SecondOppositeEaveRole],
                 out var observedCorners))
         {
             return RoofGroupGripResizeAdoptionResult.Reject("observed-eaves-not-rectangle");
@@ -87,13 +89,13 @@ public static class RoofGroupGripResizeAdoptionRules
             return RoofGroupGripResizeAdoptionResult.Reject("not-supported-resize");
         }
 
-        if (Math.Abs(classification.Geometry.SlopeDegrees - definition.SlopeDegrees) >
+        if (Math.Abs(classification.Geometry.PrimarySlopeDegrees - definition.SlopeDegrees) >
             GripAdoptionToleranceMm)
         {
             return RoofGroupGripResizeAdoptionResult.Reject("slope-changed");
         }
 
-        var expectedAdopted = SimpleGableRoofWireframe.Create(
+        var expectedAdopted = RoofWireframe.Create(
             classification.Geometry,
             ResolveCommonElevation(expectedDisplay));
         if (!WireframesMatch(expectedAdopted, observedDisplay))
@@ -115,14 +117,15 @@ public static class RoofGroupGripResizeAdoptionRules
     }
 
     private static bool HasAllRoles(
-        IReadOnlyDictionary<RoofDisplayEdgeRole, RoofSegment3D>? display)
+        IReadOnlyDictionary<RoofDisplayEdgeRole, RoofSegment3D>? display,
+        RoofWireframeRoleTopology topology)
     {
-        if (display is null || display.Count != SimpleGableRoofWireframe.EdgeCount)
+        if (display is null || display.Count != topology.Roles.Count)
         {
             return false;
         }
 
-        foreach (RoofDisplayEdgeRole role in Enum.GetValues(typeof(RoofDisplayEdgeRole)))
+        foreach (var role in topology.Roles)
         {
             if (!display.ContainsKey(role))
             {

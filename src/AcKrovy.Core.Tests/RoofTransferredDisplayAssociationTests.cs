@@ -47,7 +47,8 @@ public sealed class RoofTransferredDisplayAssociationTests
             out _));
         Assert.Equal(7, observations.Length);
         Assert.Equal(7, observations.Select(observation => observation.Data!.Role).Distinct().Count());
-        Assert.All(Enum.GetValues<RoofDisplayEdgeRole>(), role =>
+        Assert.True(RoofWireframe.TryGetTopology(RoofKind.SimpleGable, out var topology));
+        Assert.All(topology.Roles, role =>
             Assert.Contains(observations, observation => observation.Data!.Role == role));
     }
 

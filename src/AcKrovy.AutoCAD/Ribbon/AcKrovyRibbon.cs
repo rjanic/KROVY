@@ -244,8 +244,8 @@ internal static class AcKrovyRibbon
     }
 
     /// <summary>
-    /// Native dropdown-only roof-type control. Only the existing simple-gable
-    /// command is executable; future types remain visible and disabled.
+    /// Native dropdown-only roof-type control. Supported roof types are executable;
+    /// future types remain visible and disabled.
     /// </summary>
     private static RibbonSplitButton RoofTypeDropDown()
     {
@@ -269,7 +269,7 @@ internal static class AcKrovyRibbon
         split.Items.Add(Button(CommandUiCatalog.Roof, RibbonItemSize.Standard));
         split.Items.Add(DisabledButton(CommandUiCatalog.RoofHip));
         split.Items.Add(DisabledButton(CommandUiCatalog.RoofHalfHip));
-        split.Items.Add(DisabledButton(CommandUiCatalog.RoofMonoPitch));
+        split.Items.Add(Button(CommandUiCatalog.RoofMonoPitch, RibbonItemSize.Standard));
         return split;
     }
 

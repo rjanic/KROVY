@@ -42,7 +42,8 @@ public sealed class RoofDisplayRebuildIdempotencySourceContractTests
             Display,
             "public static bool Rebuild",
             "private static RoofPoint3D MapPoint");
-        Assert.Contains("SimpleGableRoofWireframe.EdgeCount", rebuild);
+        Assert.Contains("new List<ObjectId>(expectedEdges.Count)", rebuild);
+        Assert.Contains("foreach (var edge in expectedEdges.OrderBy", rebuild);
         Assert.Contains("newChildIds", rebuild);
         Assert.Contains("RoofDisplayGroupService.EnsureGroup", rebuild);
         Assert.Contains("DissociateOwnerFromForeignGroups", Group);

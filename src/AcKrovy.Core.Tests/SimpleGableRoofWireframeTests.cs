@@ -14,7 +14,8 @@ public sealed class SimpleGableRoofWireframeTests
         var edges = SimpleGableRoofWireframe.Create(geometry, 125d);
 
         Assert.Equal(SimpleGableRoofWireframe.EdgeCount, edges.Count);
-        Assert.Equal(Enum.GetValues<RoofDisplayEdgeRole>(), edges.Select(edge => edge.Role));
+        Assert.True(RoofWireframe.TryGetTopology(RoofKind.SimpleGable, out var topology));
+        Assert.Equal(topology.Roles, edges.Select(edge => edge.Role));
         Assert.All(edges.SelectMany(edge => new[] { edge.Segment.Start, edge.Segment.End }),
             point => Assert.True(double.IsFinite(point.X) && double.IsFinite(point.Y) && double.IsFinite(point.Z)));
         Assert.Equal(125d + geometry.RiseMm, edges[0].Segment.Start.Z, 9);

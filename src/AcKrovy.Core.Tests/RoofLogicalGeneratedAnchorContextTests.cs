@@ -183,6 +183,6 @@ public sealed class RoofLogicalGeneratedAnchorContextTests
                 Face1SlopeDegrees: face1Slope),
             kind));
         Assert.True(solved.IsValid, solved.Error.ToString());
-        return solved.Geometry!;
+        return Assert.IsType<SimpleGableRoofGeometry>(solved.Geometry);
     }
 }

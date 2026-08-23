@@ -136,6 +136,17 @@ internal static class RoofRafterCommandWorkflow
                         : "Command_RoofRafters_InvalidRoof"));
                 return false;
             }
+            if (restored.Geometry.Kind == RoofKind.Monopitch)
+            {
+                editor.WriteMessage(UiStrings.GetString(
+                    "Command_RoofRafters_MonopitchUnsupported"));
+                return false;
+            }
+            if (restored.Geometry is not SimpleGableRoofGeometry gableGeometry)
+            {
+                editor.WriteMessage(UiStrings.GetString("Command_RoofRafters_InvalidRoof"));
+                return false;
+            }
 
             var ownerReference = owner.Handle.ToString();
             var generatedIds = RoofGeneratedTimberStore.FindByOwner(
@@ -146,13 +157,13 @@ internal static class RoofRafterCommandWorkflow
                 resolution.OwnerId,
                 ownerReference,
                 RoofPolylineExtractor.GetSourceElevation(owner),
-                restored.Geometry,
+                gableGeometry,
                 generatedIds.Count,
                 IsGeneratedSetStale(
                     document.Database,
                     transaction,
                     generatedIds,
-                    restored.Geometry.Signature));
+                    gableGeometry.Signature));
             return true;
         }
     }
@@ -197,6 +208,15 @@ internal static class RoofRafterCommandWorkflow
                         ? "Command_Roof_PersistedStale"
                         : "Command_RoofRafters_SourceChanged");
             }
+            if (restored.Geometry.Kind == RoofKind.Monopitch)
+            {
+                return RoofRafterCreationResult.Failure(
+                    "Command_RoofRafters_MonopitchUnsupported");
+            }
+            if (restored.Geometry is not SimpleGableRoofGeometry gableGeometry)
+            {
+                return RoofRafterCreationResult.Failure("Command_RoofRafters_SourceChanged");
+            }
             if (RoofGeneratedTimberStore.FindByOwner(
                     document.Database,
                     transaction,
@@ -207,7 +227,7 @@ internal static class RoofRafterCommandWorkflow
             }
 
             var layoutResult = SimpleGableRafterLayoutSolver.Solve(
-                restored.Geometry,
+                gableGeometry,
                 new RafterLayoutParameters(
                     request.MaximumSpacingMm,
                     request.WidthMm));
@@ -222,7 +242,7 @@ internal static class RoofRafterCommandWorkflow
                 document.Editor,
                 owner,
                 expectedOwnerReference,
-                restored.Geometry,
+                gableGeometry,
                 layoutResult.Layout,
                 new RoofRafterGenerationRecipe(
                     request.WidthMm,

@@ -12,6 +12,8 @@ internal sealed class GableRoofGeometryViewModel : INotifyPropertyChanged
     private readonly RoofFootprint _footprint;
     private readonly CultureInfo _culture;
     private readonly RoofDirection2D _fallbackDirection;
+    private readonly bool _isMonopitchEditor;
+    private readonly bool _isEditMode;
     private RoofKind _selectedKind;
     private string _alphaText = "30";
     private string _betaText = "35";
@@ -19,15 +21,20 @@ internal sealed class GableRoofGeometryViewModel : INotifyPropertyChanged
     private string _ridgeDistanceFromEaveAText = string.Empty;
     private AsymmetricGableInputMode _asymmetricInputMode = AsymmetricGableInputMode.EaveHeightDifference;
     private bool _isAsymmetryMirrored;
+    private MonopitchInputMode _monopitchInputMode = MonopitchInputMode.Slope;
+    private bool _isMonopitchMirrored;
     private RoofDirection2D? _ridgeDirection;
     private SimpleGableRoofGeometry? _geometry;
+    private MonopitchRoofGeometry? _monopitchGeometry;
     private GableRoofSectionState? _sectionState;
+    private MonopitchRoofSectionState? _monopitchSectionState;
     private string _validationMessage = string.Empty;
 
     public GableRoofGeometryViewModel(
         RoofFootprint footprint,
         RoofKind initialKind = RoofKind.SimpleGable,
-        CultureInfo? culture = null)
+        CultureInfo? culture = null,
+        bool isEditMode = false)
     {
         _footprint = footprint ?? throw new ArgumentNullException(nameof(footprint));
         if (footprint.Vertices.Count != 4)
@@ -36,9 +43,13 @@ internal sealed class GableRoofGeometryViewModel : INotifyPropertyChanged
         }
 
         _culture = culture ?? AppLanguageService.CurrentUiCulture;
-        _selectedKind = initialKind == RoofKind.AsymmetricGable
-            ? RoofKind.AsymmetricGable
-            : RoofKind.SimpleGable;
+        _isMonopitchEditor = initialKind == RoofKind.Monopitch;
+        _isEditMode = isEditMode;
+        _selectedKind = _isMonopitchEditor
+            ? RoofKind.Monopitch
+            : initialKind == RoofKind.AsymmetricGable
+                ? RoofKind.AsymmetricGable
+                : RoofKind.SimpleGable;
         DimensionAMm = footprint.Vertices[0].DistanceTo(footprint.Vertices[1]);
         DimensionBMm = footprint.Vertices[1].DistanceTo(footprint.Vertices[2]);
         var edge = footprint.Vertices[1];
@@ -65,9 +76,11 @@ internal sealed class GableRoofGeometryViewModel : INotifyPropertyChanged
         get => _selectedKind;
         set
         {
-            var normalized = value == RoofKind.AsymmetricGable
-                ? RoofKind.AsymmetricGable
-                : RoofKind.SimpleGable;
+            var normalized = _isMonopitchEditor
+                ? RoofKind.Monopitch
+                : value == RoofKind.AsymmetricGable
+                    ? RoofKind.AsymmetricGable
+                    : RoofKind.SimpleGable;
             if (_selectedKind == normalized)
             {
                 return;
@@ -76,6 +89,7 @@ internal sealed class GableRoofGeometryViewModel : INotifyPropertyChanged
             OnPropertyChanged();
             OnPropertyChanged(nameof(IsSymmetricMode));
             OnPropertyChanged(nameof(IsAsymmetricMode));
+            OnPropertyChanged(nameof(IsMonopitchMode));
             Recalculate();
         }
     }
@@ -103,6 +117,28 @@ internal sealed class GableRoofGeometryViewModel : INotifyPropertyChanged
             }
         }
     }
+
+    public bool IsMonopitchMode => SelectedKind == RoofKind.Monopitch;
+
+    public bool IsGableEditor => !_isMonopitchEditor;
+
+    public bool IsMonopitchEditor => _isMonopitchEditor;
+
+    public string WindowTitle => UiStrings.GetString(
+        IsMonopitchMode ? "RoofGeometryWindow_MonopitchTitle" : "RoofGeometryWindow_Title",
+        _culture);
+
+    public string WindowHeading => UiStrings.GetString(
+        IsMonopitchMode ? "RoofGeometryWindow_MonopitchHeading" : "RoofGeometryWindow_Heading",
+        _culture);
+
+    public string WindowDescription => UiStrings.GetString(
+        IsMonopitchMode ? "RoofGeometryWindow_MonopitchDescription" : "RoofGeometryWindow_Description",
+        _culture);
+
+    public string PrimaryActionText => UiStrings.GetString(
+        _isEditMode ? "EditWindow_Apply" : "RoofGeometryWindow_Create",
+        _culture);
 
     public string AlphaText
     {
@@ -207,6 +243,82 @@ internal sealed class GableRoofGeometryViewModel : INotifyPropertyChanged
         }
     }
 
+    public MonopitchInputMode MonopitchInputMode
+    {
+        get => _monopitchInputMode;
+        set
+        {
+            var normalized = value == MonopitchInputMode.HeightDifference
+                ? MonopitchInputMode.HeightDifference
+                : MonopitchInputMode.Slope;
+            if (_monopitchInputMode == normalized)
+            {
+                return;
+            }
+
+            if (_monopitchGeometry is { } geometry)
+            {
+                if (normalized == MonopitchInputMode.HeightDifference)
+                {
+                    SetCalculatedInput(
+                        ref _eaveHeightDifferenceText,
+                        geometry.EaveHeightDifferenceMm,
+                        nameof(EaveHeightDifferenceText));
+                }
+                else
+                {
+                    SetCalculatedSlope(geometry.SlopeDegrees);
+                }
+            }
+
+            _monopitchInputMode = normalized;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(IsMonopitchSlopeMode));
+            OnPropertyChanged(nameof(IsMonopitchHeightMode));
+            Recalculate();
+        }
+    }
+
+    public bool IsMonopitchSlopeMode
+    {
+        get => MonopitchInputMode == MonopitchInputMode.Slope;
+        set
+        {
+            if (value)
+            {
+                MonopitchInputMode = MonopitchInputMode.Slope;
+            }
+        }
+    }
+
+    public bool IsMonopitchHeightMode
+    {
+        get => MonopitchInputMode == MonopitchInputMode.HeightDifference;
+        set
+        {
+            if (value)
+            {
+                MonopitchInputMode = MonopitchInputMode.HeightDifference;
+            }
+        }
+    }
+
+    public bool IsMonopitchMirrored
+    {
+        get => _isMonopitchMirrored;
+        set
+        {
+            if (_isMonopitchMirrored == value)
+            {
+                return;
+            }
+
+            _isMonopitchMirrored = value;
+            OnPropertyChanged();
+            Recalculate();
+        }
+    }
+
     public bool HasRidgeDirection => _ridgeDirection is not null;
 
     public string RidgeDirectionText => _ridgeDirection is { } direction
@@ -216,33 +328,66 @@ internal sealed class GableRoofGeometryViewModel : INotifyPropertyChanged
             direction.Y)
         : UiStrings.GetString("RoofGeometryWindow_RidgeDirectionNotSelected", _culture);
 
+    public string OrientationDirectionText => _ridgeDirection is { } direction
+        ? UiStrings.Format(
+            UiStrings.GetString("RoofGeometryWindow_RidgeDirectionValueFormat", _culture),
+            direction.X,
+            direction.Y)
+        : UiStrings.GetString(
+            IsMonopitchMode
+                ? "RoofGeometryWindow_SlopeDirectionNotSelected"
+                : "RoofGeometryWindow_RidgeDirectionNotSelected",
+            _culture);
+
+    public string OrientationDirectionLabel => UiStrings.GetString(
+        IsMonopitchMode
+            ? "RoofGeometryWindow_SlopeDirection"
+            : "RoofGeometryWindow_RidgeDirection",
+        _culture);
+
+    public string PickOrientationDirectionLabel => UiStrings.GetString(
+        IsMonopitchMode
+            ? "RoofGeometryWindow_PickSlopeDirection"
+            : "RoofGeometryWindow_PickRidgeDirection",
+        _culture);
+
     public string ValidationMessage => _validationMessage;
 
-    public bool CanPreview => _geometry is not null && HasRidgeDirection;
+    public bool CanPreview => (_geometry is not null || _monopitchGeometry is not null) &&
+        HasRidgeDirection;
 
     public bool CanApply => CanPreview;
 
-    public string RunAText => _geometry is null ? "—" : FormatLength(GetUiRunA(_geometry));
+    public string RunAText => IsMonopitchMode
+        ? _monopitchGeometry is null ? "—" : FormatLength(_monopitchGeometry.SpanMm)
+        : _geometry is null ? "—" : FormatLength(GetUiRunA(_geometry));
 
-    public string RunBText => _geometry is null ? "—" : FormatLength(GetUiRunB(_geometry));
-
-    public string RidgePositionText => _geometry is null ? "—" : FormatLength(GetUiRunA(_geometry));
-
-    public string RidgeElevationText => _geometry is null
+    public string RunBText => IsMonopitchMode
         ? "—"
-        : FormatLength(GetUiRidgeHeightFromEaveA(_geometry));
+        : _geometry is null ? "—" : FormatLength(GetUiRunB(_geometry));
 
-    public string TransverseSpanText => _geometry is null
-        ? "—"
-        : FormatLength(_geometry.Face0RunMm + _geometry.Face1RunMm);
+    public string RidgePositionText => IsMonopitchMode
+        ? _monopitchGeometry is null ? "—" : FormatLength(_monopitchGeometry.EaveHeightDifferenceMm)
+        : _geometry is null ? "—" : FormatLength(GetUiRunA(_geometry));
+
+    public string RidgeElevationText => IsMonopitchMode
+        ? _monopitchGeometry is null ? "—" : FormatLength(_monopitchGeometry.SlopeDegrees)
+        : _geometry is null ? "—" : FormatLength(GetUiRidgeHeightFromEaveA(_geometry));
+
+    public string TransverseSpanText => IsMonopitchMode
+        ? _monopitchGeometry is null ? "—" : FormatLength(_monopitchGeometry.SpanMm)
+        : _geometry is null ? "—" : FormatLength(_geometry.Face0RunMm + _geometry.Face1RunMm);
 
     public GableRoofSectionState? SectionState => _sectionState;
+
+    public MonopitchRoofSectionState? MonopitchSectionState => _monopitchSectionState;
 
     public void SetRidgeDirection(RoofDirection2D direction)
     {
         _ridgeDirection = direction;
         OnPropertyChanged(nameof(HasRidgeDirection));
         OnPropertyChanged(nameof(RidgeDirectionText));
+        OnPropertyChanged(nameof(OrientationDirectionText));
         Recalculate();
     }
 
@@ -254,9 +399,51 @@ internal sealed class GableRoofGeometryViewModel : INotifyPropertyChanged
     /// and not persisted: seeding always picks the deterministic non-mirrored
     /// representation (UI α / Eave A = physical face 0).
     /// </summary>
+    public void SeedFromExistingGeometry(IRoofGeometry geometry)
+    {
+        if (geometry is null)
+        {
+            throw new ArgumentNullException(nameof(geometry));
+        }
+
+        if (geometry is SimpleGableRoofGeometry gable)
+        {
+            SeedFromExistingGeometry(gable);
+            return;
+        }
+
+        if (geometry is not MonopitchRoofGeometry monopitch || !_isMonopitchEditor)
+        {
+            throw new ArgumentException("The geometry does not match this editor.", nameof(geometry));
+        }
+
+        _selectedKind = RoofKind.Monopitch;
+        _alphaText = FormatSeedSlope(monopitch.SlopeDegrees);
+        _eaveHeightDifferenceText = Math.Round(monopitch.EaveHeightDifferenceMm)
+            .ToString("0", _culture);
+        _monopitchInputMode = MonopitchInputMode.Slope;
+        _isMonopitchMirrored = false;
+        _ridgeDirection = monopitch.LowToHighDirection;
+        OnPropertyChanged(nameof(SelectedKind));
+        OnPropertyChanged(nameof(IsMonopitchMode));
+        OnPropertyChanged(nameof(AlphaText));
+        OnPropertyChanged(nameof(EaveHeightDifferenceText));
+        OnPropertyChanged(nameof(MonopitchInputMode));
+        OnPropertyChanged(nameof(IsMonopitchSlopeMode));
+        OnPropertyChanged(nameof(IsMonopitchHeightMode));
+        OnPropertyChanged(nameof(IsMonopitchMirrored));
+        OnPropertyChanged(nameof(HasRidgeDirection));
+        OnPropertyChanged(nameof(RidgeDirectionText));
+        OnPropertyChanged(nameof(OrientationDirectionText));
+        Recalculate();
+    }
+
     public void SeedFromExistingGeometry(SimpleGableRoofGeometry geometry)
     {
-        ArgumentNullException.ThrowIfNull(geometry);
+        if (geometry is null)
+        {
+            throw new ArgumentNullException(nameof(geometry));
+        }
         _selectedKind = geometry.Kind == RoofKind.AsymmetricGable
             ? RoofKind.AsymmetricGable
             : RoofKind.SimpleGable;
@@ -279,6 +466,7 @@ internal sealed class GableRoofGeometryViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(IsAsymmetryMirrored));
         OnPropertyChanged(nameof(HasRidgeDirection));
         OnPropertyChanged(nameof(RidgeDirectionText));
+        OnPropertyChanged(nameof(OrientationDirectionText));
         Recalculate();
     }
 
@@ -290,9 +478,19 @@ internal sealed class GableRoofGeometryViewModel : INotifyPropertyChanged
     private static string FormatSeedSlope(double degrees) =>
         degrees.ToString("R", CultureInfo.InvariantCulture);
 
+    public bool TryGetRoofGeometry(out IRoofGeometry? geometry)
+    {
+        geometry = HasRidgeDirection
+            ? IsMonopitchMode ? _monopitchGeometry : _geometry
+            : null;
+        return geometry is not null;
+    }
+
     public bool TryGetGeometry(out SimpleGableRoofGeometry? geometry)
     {
-        geometry = HasRidgeDirection ? _geometry : null;
+        geometry = HasRidgeDirection && !IsMonopitchMode
+            ? _geometry
+            : null;
         return geometry is not null;
     }
 
@@ -311,7 +509,15 @@ internal sealed class GableRoofGeometryViewModel : INotifyPropertyChanged
     private void Recalculate()
     {
         _geometry = null;
+        _monopitchGeometry = null;
         _sectionState = null;
+        _monopitchSectionState = null;
+        if (IsMonopitchMode)
+        {
+            RecalculateMonopitch();
+            return;
+        }
+
         if (!TryParse(AlphaText, out var alpha) ||
             (IsAsymmetricMode && !TryParse(BetaText, out _)) ||
             (IsAsymmetricMode && IsDeltaHeightMode &&
@@ -346,14 +552,14 @@ internal sealed class GableRoofGeometryViewModel : INotifyPropertyChanged
                     Face1SlopeDegrees: neutralFace1Slope,
                     EaveHeightDifferenceMm: 0d),
                 RoofKind.AsymmetricGable));
-            if (!neutral.IsValid || neutral.Geometry is null)
+            if (!neutral.IsValid || neutral.Geometry is not SimpleGableRoofGeometry neutralGeometry)
             {
                 SetGeometryValidation(neutral.Error);
                 NotifyCalculated();
                 return;
             }
 
-            var span = neutral.Geometry.Face0RunMm + neutral.Geometry.Face1RunMm;
+            var span = neutralGeometry.Face0RunMm + neutralGeometry.Face1RunMm;
             if (enteredRunA <= SimpleGableRoofGeometryTolerance.CoordinateToleranceMm ||
                 enteredRunA >= span - SimpleGableRoofGeometryTolerance.CoordinateToleranceMm)
             {
@@ -386,43 +592,43 @@ internal sealed class GableRoofGeometryViewModel : INotifyPropertyChanged
                 Face1SlopeDegrees: physicalFace1Slope,
                 EaveHeightDifferenceMm: physicalDeltaHeight),
             SelectedKind));
-        if (!result.IsValid || result.Geometry is null)
+        if (!result.IsValid || result.Geometry is not SimpleGableRoofGeometry gableGeometry)
         {
             SetGeometryValidation(result.Error);
             NotifyCalculated();
             return;
         }
 
-        _geometry = result.Geometry;
+        _geometry = gableGeometry;
         if (IsAsymmetricMode && IsDeltaHeightMode)
         {
             SetCalculatedInput(
                 ref _ridgeDistanceFromEaveAText,
-                GetUiRunA(result.Geometry),
+                GetUiRunA(gableGeometry),
                 nameof(RidgeDistanceFromEaveAText));
         }
         else if (IsAsymmetricMode)
         {
             SetCalculatedInput(
                 ref _eaveHeightDifferenceText,
-                GetUiDeltaHeight(result.Geometry),
+                GetUiDeltaHeight(gableGeometry),
                 nameof(EaveHeightDifferenceText));
         }
-        var uiRunA = GetUiRunA(result.Geometry);
-        var uiRunB = GetUiRunB(result.Geometry);
+        var uiRunA = GetUiRunA(gableGeometry);
+        var uiRunB = GetUiRunB(gableGeometry);
         var eaveAElevation = IsAsymmetricMode && IsAsymmetryMirrored
-            ? result.Geometry.EaveHeightDifferenceMm
+            ? gableGeometry.EaveHeightDifferenceMm
             : 0d;
         var eaveBElevation = IsAsymmetricMode && IsAsymmetryMirrored
             ? 0d
-            : result.Geometry.EaveHeightDifferenceMm;
+            : gableGeometry.EaveHeightDifferenceMm;
         _sectionState = new GableRoofSectionState(
-            result.Geometry.Face0RunMm + result.Geometry.Face1RunMm,
+            gableGeometry.Face0RunMm + gableGeometry.Face1RunMm,
             uiRunA,
             uiRunB,
             eaveAElevation,
             eaveBElevation,
-            result.Geometry.RiseMm,
+            gableGeometry.RiseMm,
             alpha,
             beta,
             IsAsymmetricMode,
@@ -433,6 +639,99 @@ internal sealed class GableRoofGeometryViewModel : INotifyPropertyChanged
             UiStrings.GetString("RoofGeometryWindow_TransverseSpan", _culture),
             _culture);
         SetValidation(HasRidgeDirection ? null : "RoofGeometryWindow_ValidationDirectionRequired");
+        NotifyCalculated();
+    }
+
+    private void RecalculateMonopitch()
+    {
+        var requestedDirection = _ridgeDirection ?? _fallbackDirection;
+        if (IsMonopitchMirrored &&
+            !RoofDirection2D.TryCreate(
+                -requestedDirection.X,
+                -requestedDirection.Y,
+                out requestedDirection))
+        {
+            SetValidation("RoofGeometryWindow_ValidationDirection");
+            NotifyCalculated();
+            return;
+        }
+
+        var probe = RoofGeometrySolver.Solve(new RoofDefinition(
+            _footprint,
+            new RoofParameters(30d, SlopeDirection: requestedDirection),
+            RoofKind.Monopitch));
+        if (!probe.IsValid || probe.Geometry is not MonopitchRoofGeometry probeGeometry)
+        {
+            SetGeometryValidation(probe.Error);
+            NotifyCalculated();
+            return;
+        }
+
+        double slope;
+        double heightDifference;
+        if (IsMonopitchSlopeMode)
+        {
+            if (!TryParse(AlphaText, out slope) ||
+                !MonopitchRoofMath.TryCalculateHeightDifferenceMm(
+                    probeGeometry.SpanMm,
+                    slope,
+                    out heightDifference))
+            {
+                SetValidation("RoofGeometryWindow_ValidationSlope");
+                NotifyCalculated();
+                return;
+            }
+        }
+        else if (!TryParseWholeMillimeter(EaveHeightDifferenceText, out heightDifference) ||
+                 !MonopitchRoofMath.TryCalculateSlopeDegrees(
+                     probeGeometry.SpanMm,
+                     heightDifference,
+                     out slope))
+        {
+            SetValidation("RoofGeometryWindow_ValidationMonopitchHeight");
+            NotifyCalculated();
+            return;
+        }
+
+        var result = RoofGeometrySolver.Solve(new RoofDefinition(
+            _footprint,
+            new RoofParameters(
+                slope,
+                EaveHeightDifferenceMm: heightDifference,
+                SlopeDirection: requestedDirection),
+            RoofKind.Monopitch));
+        if (!result.IsValid || result.Geometry is not MonopitchRoofGeometry geometry)
+        {
+            SetGeometryValidation(result.Error);
+            NotifyCalculated();
+            return;
+        }
+
+        _monopitchGeometry = geometry;
+        if (IsMonopitchSlopeMode)
+        {
+            SetCalculatedInput(
+                ref _eaveHeightDifferenceText,
+                geometry.EaveHeightDifferenceMm,
+                nameof(EaveHeightDifferenceText));
+        }
+        else
+        {
+            SetCalculatedSlope(geometry.SlopeDegrees);
+        }
+
+        _monopitchSectionState = new MonopitchRoofSectionState(
+            geometry.SpanMm,
+            geometry.EaveHeightDifferenceMm,
+            geometry.SlopeDegrees,
+            IsMonopitchMirrored,
+            UiStrings.GetString("RoofGeometryWindow_LowEave", _culture),
+            UiStrings.GetString("RoofGeometryWindow_HighEave", _culture),
+            UiStrings.GetString("RoofGeometryWindow_TransverseSpan", _culture),
+            _culture);
+        SetValidation(HasRidgeDirection
+            ? null
+            : "RoofGeometryWindow_ValidationSlopeDirectionRequired");
         NotifyCalculated();
     }
 
@@ -468,6 +767,18 @@ internal sealed class GableRoofGeometryViewModel : INotifyPropertyChanged
         OnPropertyChanged(propertyName);
     }
 
+    private void SetCalculatedSlope(double value)
+    {
+        var text = value.ToString("0.###############", _culture);
+        if (string.Equals(_alphaText, text, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        _alphaText = text;
+        OnPropertyChanged(nameof(AlphaText));
+    }
+
     private void NotifyCalculated()
     {
         OnPropertyChanged(nameof(CanPreview));
@@ -478,6 +789,7 @@ internal sealed class GableRoofGeometryViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(RidgeElevationText));
         OnPropertyChanged(nameof(TransverseSpanText));
         OnPropertyChanged(nameof(SectionState));
+        OnPropertyChanged(nameof(MonopitchSectionState));
     }
 
     private bool TryParse(string text, out double value) =>
@@ -547,3 +859,19 @@ internal enum AsymmetricGableInputMode
     EaveHeightDifference = 0,
     RidgeDistanceFromEaveA = 1,
 }
+
+internal enum MonopitchInputMode
+{
+    Slope = 0,
+    HeightDifference = 1,
+}
+
+public sealed record MonopitchRoofSectionState(
+    double SpanMm,
+    double HeightDifferenceMm,
+    double SlopeDegrees,
+    bool IsMirrored,
+    string LowEaveLabel,
+    string HighEaveLabel,
+    string SpanLabel,
+    CultureInfo Culture);

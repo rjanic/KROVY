@@ -11,9 +11,9 @@ using AcApp = Autodesk.AutoCAD.ApplicationServices.Application;
 namespace AcKrovy.AutoCAD.Infrastructure;
 
 /// <summary>
-/// AK_ROOF_EDIT: edits an already-created SimpleGable / AsymmetricGable roof through
+/// AK_ROOF_EDIT: edits an already-created gable or Monopitch roof through
 /// the shared GableRoofGeometryWindow. The dialog is seeded from the persisted
-/// definition (kind, α, β, ΔH and the PERSISTED ridge direction — never the
+/// definition (kind, slopes, ΔH and the persisted semantic direction — never the
 /// footprint fallback). Everything before Apply is read-only: transient preview
 /// only, no definition write, no display/rafter/annotation/group mutation.
 /// Apply rebases the existing definition to the edited physical geometry and
@@ -44,7 +44,7 @@ internal static class RoofEditCommandWorkflow
             string ownerReference;
             ObjectId ownerId;
             RoofDefinitionData storedDefinition;
-            SimpleGableRoofGeometry restoredGeometry;
+            IRoofGeometry restoredGeometry;
             using (var transaction = document.Database.TransactionManager.StartTransaction())
             {
                 var resolution = RoofOwnerSelectionResolver.Resolve(
@@ -133,10 +133,13 @@ internal static class RoofEditCommandWorkflow
         RoofValidationResult validation,
         double sourceElevation,
         RoofDefinitionData storedDefinition,
-        SimpleGableRoofGeometry restoredGeometry)
+        IRoofGeometry restoredGeometry)
     {
         var footprint = validation.Footprint!;
-        var viewModel = new GableRoofGeometryViewModel(footprint, storedDefinition.Kind);
+        var viewModel = new GableRoofGeometryViewModel(
+            footprint,
+            storedDefinition.Kind,
+            isEditMode: true);
         viewModel.SeedFromExistingGeometry(restoredGeometry);
         var dialog = new GableRoofGeometryWindow(
             viewModel,
@@ -151,14 +154,17 @@ internal static class RoofEditCommandWorkflow
                 switch (dialog.RequestedAction)
                 {
                     case GableRoofGeometryDialogAction.PickRidgeDirection:
-                        if (TryPromptRidgeDirection(document.Editor, out var direction))
+                        if (TryPromptOrientationDirection(
+                                document.Editor,
+                                viewModel.SelectedKind,
+                                out var direction))
                         {
                             viewModel.SetRidgeDirection(direction);
                         }
                         continue;
 
                     case GableRoofGeometryDialogAction.Preview:
-                        if (viewModel.TryGetGeometry(out var previewGeometry) &&
+                        if (viewModel.TryGetRoofGeometry(out var previewGeometry) &&
                             previewGeometry is not null)
                         {
                             document.Editor.SetImpliedSelection([ownerId]);
@@ -168,7 +174,7 @@ internal static class RoofEditCommandWorkflow
                         continue;
 
                     case GableRoofGeometryDialogAction.Apply:
-                        if (!viewModel.TryGetGeometry(out var geometry) || geometry is null)
+                        if (!viewModel.TryGetRoofGeometry(out var geometry) || geometry is null)
                         {
                             continue;
                         }
@@ -221,8 +227,8 @@ internal static class RoofEditCommandWorkflow
         Document document,
         ObjectId ownerId,
         string ownerReference,
-        SimpleGableRoofGeometry selectionGeometry,
-        SimpleGableRoofGeometry newGeometry,
+        IRoofGeometry selectionGeometry,
+        IRoofGeometry newGeometry,
         out string failureMessageKey)
     {
         failureMessageKey = "Command_Roof_PersistFailed";
@@ -265,8 +271,8 @@ internal static class RoofEditCommandWorkflow
             RoofDefinitionStore.Write(owner, transaction, data);
 
             var sourceElevation = RoofPolylineExtractor.GetSourceElevation(owner);
-            var edges = SimpleGableRoofWireframe.Create(restored.Geometry, sourceElevation);
-            var signature = SimpleGableRoofWireframe.BuildGenerationSignature(edges);
+            var edges = RoofWireframe.Create(restored.Geometry, sourceElevation);
+            var signature = RoofWireframe.BuildGenerationSignature(edges);
             if (!RoofDisplayService.Rebuild(
                     document.Database,
                     transaction,
@@ -285,16 +291,21 @@ internal static class RoofEditCommandWorkflow
                 newGeometry.Signature,
                 selectionGeometry.Signature,
                 StringComparison.Ordinal);
-            var outcome = RoofGeneratedRafterSetService.TryReplaceForSupportedResize(
-                document.Database,
-                transaction,
-                document.Editor,
-                owner,
-                restored.Geometry,
-                TimberElementDefaultProfileStore.Load(),
-                ElementLayerProfileStore.Load(),
-                out var anchorResolutionContext,
-                forceRegenerateOnSourceResize: geometryChanged);
+            var outcome = RoofGeneratedRafterSetService.ReplacementOutcome.NotApplicable;
+            RoofGeneratedAnchorResolutionContext? anchorResolutionContext = null;
+            if (restored.Geometry is SimpleGableRoofGeometry gableGeometry)
+            {
+                outcome = RoofGeneratedRafterSetService.TryReplaceForSupportedResize(
+                    document.Database,
+                    transaction,
+                    document.Editor,
+                    owner,
+                    gableGeometry,
+                    TimberElementDefaultProfileStore.Load(),
+                    ElementLayerProfileStore.Load(),
+                    out anchorResolutionContext,
+                    forceRegenerateOnSourceResize: geometryChanged);
+            }
             if (outcome == RoofGeneratedRafterSetService.ReplacementOutcome.Replaced)
             {
                 var footprintVertices = current.Footprint.Vertices;
@@ -305,7 +316,7 @@ internal static class RoofEditCommandWorkflow
                     oldAnchorHandleByKey: null,
                     originFilter: RoofAttachedManualOrigin.Copy,
                     sourceFootprintVertices: footprintVertices,
-                    anchorResolutionContext: anchorResolutionContext);
+                    anchorResolutionContext: anchorResolutionContext!);
                 _ = RoofAttachedManualLifecycleService.ReplayAnchoredChildrenForOwner(
                     document,
                     transaction,
@@ -313,7 +324,7 @@ internal static class RoofEditCommandWorkflow
                     oldAnchorHandleByKey: null,
                     originFilter: RoofAttachedManualOrigin.Split,
                     sourceFootprintVertices: footprintVertices,
-                    anchorResolutionContext: anchorResolutionContext);
+                    anchorResolutionContext: anchorResolutionContext!);
             }
 
             RoofUnlockIndicatorService.Sync(document.Database, transaction, owner);
@@ -353,7 +364,7 @@ internal static class RoofEditCommandWorkflow
 
     private static void ShowPreview(
         Document document,
-        SimpleGableRoofGeometry geometry,
+        IRoofGeometry geometry,
         double sourceElevation)
     {
         using (RoofTransientPreviewSession.Show(document, geometry, sourceElevation))
@@ -366,21 +377,27 @@ internal static class RoofEditCommandWorkflow
         }
     }
 
-    private static bool TryPromptRidgeDirection(
+    private static bool TryPromptOrientationDirection(
         Editor editor,
+        RoofKind kind,
         out RoofDirection2D direction)
     {
         direction = default;
 
+        var isMonopitch = kind == RoofKind.Monopitch;
         var directionStartResult = editor.GetPoint(new PromptPointOptions(
-            UiStrings.GetString("Command_Roof_RidgeDirectionStartPrompt")));
+            UiStrings.GetString(isMonopitch
+                ? "Command_Roof_LowSidePointPrompt"
+                : "Command_Roof_RidgeDirectionStartPrompt")));
         if (directionStartResult.Status != PromptStatus.OK)
         {
             return false;
         }
 
         var directionEndOptions = new PromptPointOptions(
-            UiStrings.GetString("Command_Roof_RidgeDirectionEndPrompt"))
+            UiStrings.GetString(isMonopitch
+                ? "Command_Roof_HighSidePointPrompt"
+                : "Command_Roof_RidgeDirectionEndPrompt"))
         {
             BasePoint = directionStartResult.Value,
             UseBasePoint = true,

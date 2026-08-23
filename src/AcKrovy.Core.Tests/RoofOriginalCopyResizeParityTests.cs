@@ -72,7 +72,10 @@ public sealed class RoofOriginalCopyResizeParityTests
         var classification = Classify(flippedResized, data);
         Assert.Equal(RoofSourceChangeKind.SupportedResize, classification.Kind);
         Assert.True(Restore(flippedResized, data).IsValid);
-        Assert.Equal(35d, Restore(flippedResized, data).Geometry!.SlopeDegrees);
+        Assert.Equal(
+            35d,
+            Assert.IsType<SimpleGableRoofGeometry>(Restore(flippedResized, data).Geometry)
+                .SlopeDegrees);
     }
 
     [Fact]
@@ -108,9 +111,9 @@ public sealed class RoofOriginalCopyResizeParityTests
     {
         var original = Rect();
         var data = Create(original, 35d, RoofRidgeEdgeFamily.SourceEdge01);
-        var before = Restore(original, data).Geometry!;
+        var before = Assert.IsType<SimpleGableRoofGeometry>(Restore(original, data).Geometry);
         var flippedResized = StretchEave(Reverse(original), 2000d);
-        var after = Restore(flippedResized, data).Geometry!;
+        var after = Assert.IsType<SimpleGableRoofGeometry>(Restore(flippedResized, data).Geometry);
         AssertParallel(before.RidgeDirection, after.RidgeDirection);
     }
 

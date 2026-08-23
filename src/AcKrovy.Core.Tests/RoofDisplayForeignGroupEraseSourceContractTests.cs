@@ -55,13 +55,7 @@ public sealed class RoofDisplayForeignGroupEraseSourceContractTests
     {
         Assert.Contains("members.Contains(ownerId)", Group);
         Assert.Contains("SimpleGableRoofWireframe.EdgeCount", CoreRules);
-        Assert.Contains("RoofDisplayEdgeRole.Ridge", CoreRules);
-        Assert.Contains("RoofDisplayEdgeRole.Eave0", CoreRules);
-        Assert.Contains("RoofDisplayEdgeRole.Eave1", CoreRules);
-        Assert.Contains("RoofDisplayEdgeRole.GableSlope00", CoreRules);
-        Assert.Contains("RoofDisplayEdgeRole.GableSlope01", CoreRules);
-        Assert.Contains("RoofDisplayEdgeRole.GableSlope10", CoreRules);
-        Assert.Contains("RoofDisplayEdgeRole.GableSlope11", CoreRules);
+        Assert.Contains("RoofWireframe.IsCompleteRoleSet(roles)", CoreRules);
         Assert.Contains("RoofDisplayForeignGroupMemberKind.Other", CoreRules);
     }
 

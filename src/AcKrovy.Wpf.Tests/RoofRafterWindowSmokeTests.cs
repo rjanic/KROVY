@@ -214,9 +214,9 @@ public sealed class RoofRafterWindowSmokeTests
         var validation = RoofFootprintValidator.Validate(new RoofFootprintInput(
             [new(0, 0), new(length, 0), new(length, width), new(0, width)], true));
         Assert.True(RoofDirection2D.TryCreate(1, 0, out var direction));
-        return RoofGeometrySolver.Solve(new RoofDefinition(
+        return Assert.IsType<SimpleGableRoofGeometry>(RoofGeometrySolver.Solve(new RoofDefinition(
             validation.Footprint!,
             new RoofParameters(face0Slope, direction, Face1SlopeDegrees: face1Slope),
-            RoofKind.AsymmetricGable)).Geometry!;
+            RoofKind.AsymmetricGable)).Geometry);
     }
 }

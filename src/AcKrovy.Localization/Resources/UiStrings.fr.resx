@@ -606,7 +606,7 @@
   <data name="CommandUi_RoofHalfHip_Label" xml:space="preserve"><value>Toiture à demi-croupes</value></data>
   <data name="CommandUi_RoofHalfHip_Tooltip" xml:space="preserve"><value>Pas encore disponible.</value></data>
   <data name="CommandUi_RoofMonoPitch_Label" xml:space="preserve"><value>Toiture monopente</value></data>
-  <data name="CommandUi_RoofMonoPitch_Tooltip" xml:space="preserve"><value>Pas encore disponible.</value></data>
+  <data name="CommandUi_RoofMonoPitch_Tooltip" xml:space="preserve"><value>Lance le flux de toiture monopente.</value></data>
   <data name="CommandUi_RoofRafters_Label" xml:space="preserve"><value>Chevrons</value></data>
   <data name="CommandUi_RoofRafters_Tooltip" xml:space="preserve"><value>Crée des chevrons automatiques pour une toiture à deux pans enregistrée.</value></data>
   <data name="CommandUi_RoofEdit_Label" xml:space="preserve"><value>Modifier</value></data>
@@ -704,4 +704,23 @@
   <data name="RoofGeometryWindow_ValidationDirection" xml:space="preserve"><value>La direction choisie du faîtage doit être parallèle à un côté du rectangle.</value></data>
   <data name="RoofGeometryWindow_MirrorAsymmetry" xml:space="preserve"><value>Refléter l’asymétrie (permuter gauche/droite)</value></data>
   <data name="RoofGeometryWindow_Ridge" xml:space="preserve"><value>Faîtage</value></data>
+  <data name="Command_Roof_LowSidePointPrompt" xml:space="preserve"><value>\nChoisissez le premier point du côté bas (ÉGOUT BAS) : </value></data>
+  <data name="Command_Roof_HighSidePointPrompt" xml:space="preserve"><value>\nChoisissez le second point du côté haut (ÉGOUT HAUT) : </value></data>
+  <data name="Command_RoofRafters_MonopitchUnsupported" xml:space="preserve"><value>\nStage 1 ne prend pas en charge la création automatique de chevrons pour les toitures monopentes.</value></data>
+  <data name="RoofGeometryWindow_MonopitchTitle" xml:space="preserve"><value>Géométrie de la toiture monopente</value></data>
+  <data name="RoofGeometryWindow_MonopitchHeading" xml:space="preserve"><value>Toiture monopente</value></data>
+  <data name="RoofGeometryWindow_MonopitchDescription" xml:space="preserve"><value>Définissez le pan unique, choisissez la direction BAS → HAUT et vérifiez le résultat avec l’aperçu.</value></data>
+  <data name="RoofGeometryWindow_Monopitch" xml:space="preserve"><value>Toiture monopente</value></data>
+  <data name="RoofGeometryWindow_ModeMonopitchSlope" xml:space="preserve"><value>Saisir la pente α</value></data>
+  <data name="RoofGeometryWindow_ModeMonopitchHeight" xml:space="preserve"><value>Saisir la différence de hauteur des égouts ΔH</value></data>
+  <data name="RoofGeometryWindow_MonopitchSlope" xml:space="preserve"><value>Pente α (°)</value></data>
+  <data name="RoofGeometryWindow_MonopitchHeightDifference" xml:space="preserve"><value>Différence de hauteur des égouts ΔH (mm)</value></data>
+  <data name="RoofGeometryWindow_MirrorMonopitch" xml:space="preserve"><value>Inverser la toiture monopente (BAS ↔ HAUT)</value></data>
+  <data name="RoofGeometryWindow_SlopeDirection" xml:space="preserve"><value>Direction de montée BAS → HAUT</value></data>
+  <data name="RoofGeometryWindow_SlopeDirectionNotSelected" xml:space="preserve"><value>La direction BAS → HAUT n’a pas été choisie.</value></data>
+  <data name="RoofGeometryWindow_PickSlopeDirection" xml:space="preserve"><value>Choisir la direction BAS → HAUT dans le dessin</value></data>
+  <data name="RoofGeometryWindow_ValidationMonopitchHeight" xml:space="preserve"><value>La différence de hauteur des égouts doit être positive et produire une pente supérieure à 0° et inférieure à 90°.</value></data>
+  <data name="RoofGeometryWindow_ValidationSlopeDirectionRequired" xml:space="preserve"><value>Choisissez la direction BAS → HAUT avant l’aperçu ou la création.</value></data>
+  <data name="RoofGeometryWindow_LowEave" xml:space="preserve"><value>Égout bas</value></data>
+  <data name="RoofGeometryWindow_HighEave" xml:space="preserve"><value>Égout haut</value></data>
 </root>

@@ -8,6 +8,25 @@ namespace AcKrovy.Core.Services.Roofs;
 /// </summary>
 public static class RoofGeneratedTimberOwnershipRules
 {
+    /// <summary>
+    /// Validates the integrity of an optional generated set for read-only state
+    /// diagnostics. An empty set is consistent; a non-empty set is consistent only
+    /// when every physical candidate has readable metadata and a unique logical key.
+    /// </summary>
+    public static bool IsConsistentOptionalSet(
+        int generatedEntityCount,
+        IReadOnlyList<RoofGeneratedMemberKey> readableMemberKeys)
+    {
+        if (generatedEntityCount < 0 ||
+            readableMemberKeys is null ||
+            generatedEntityCount != readableMemberKeys.Count)
+        {
+            return false;
+        }
+
+        return readableMemberKeys.Distinct().Count() == readableMemberKeys.Count;
+    }
+
     public static bool HasUniqueMemberStations(IReadOnlyList<RoofGeneratedTimberData> members)
     {
         if (members is null || members.Count == 0)

@@ -91,7 +91,7 @@ public sealed class RoofValidationNotificationSourceContractTests
         Assert.Contains("RoofGeometryWindow_ValidationCombination", GeometryViewModel);
 
         var prompt = Member(
-            "private static bool TryPromptRidgeDirection",
+            "private static bool TryPromptOrientationDirection",
             "private static IntPtr TryGetAutoCadMainWindowHandle");
         Assert.Contains("editor.WriteMessage(UiStrings.GetString(\"Command_Roof_GeometryErrorDirection\"))", prompt);
         Assert.DoesNotContain("ShowNotification", prompt);

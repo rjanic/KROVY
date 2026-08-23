@@ -1050,10 +1050,10 @@ internal static class RoofLiveResizeService
                 classification.Geometry),
             RoofDefinitionStore.Read(owner).Data);
         RoofDefinitionStore.Write(owner, transaction, updated);
-        var edges = SimpleGableRoofWireframe.Create(
+        var edges = RoofWireframe.Create(
             classification.Geometry,
             RoofPolylineExtractor.GetSourceElevation(owner));
-        var signature = SimpleGableRoofWireframe.BuildGenerationSignature(edges);
+        var signature = RoofWireframe.BuildGenerationSignature(edges);
         if (!RoofDisplayService.Rebuild(
                 database,
                 transaction,
@@ -1065,16 +1065,21 @@ internal static class RoofLiveResizeService
             return ResizeApplyResult.HardFailure;
         }
 
-        var rafterOutcome = RoofGeneratedRafterSetService.TryReplaceForSupportedResize(
-            database,
-            transaction,
-            document.Editor,
-            owner,
-            classification.Geometry,
-            TimberElementDefaultProfileStore.Load(),
-            ElementLayerProfileStore.Load(),
-            out var anchorResolutionContext,
-            forceRegenerateOnSourceResize: true);
+        var rafterOutcome = RoofGeneratedRafterSetService.ReplacementOutcome.NotApplicable;
+        RoofGeneratedAnchorResolutionContext? anchorResolutionContext = null;
+        if (classification.Geometry is SimpleGableRoofGeometry gableGeometry)
+        {
+            rafterOutcome = RoofGeneratedRafterSetService.TryReplaceForSupportedResize(
+                database,
+                transaction,
+                document.Editor,
+                owner,
+                gableGeometry,
+                TimberElementDefaultProfileStore.Load(),
+                ElementLayerProfileStore.Load(),
+                out anchorResolutionContext,
+                forceRegenerateOnSourceResize: true);
+        }
         if (rafterOutcome == RoofGeneratedRafterSetService.ReplacementOutcome.Failed)
         {
             return ResizeApplyResult.HardFailure;
@@ -1248,10 +1253,10 @@ internal static class RoofLiveResizeService
             return false;
         }
 
-        var edges = SimpleGableRoofWireframe.Create(
+        var edges = RoofWireframe.Create(
             classification.Geometry,
             RoofPolylineExtractor.GetSourceElevation(owner));
-        var signature = SimpleGableRoofWireframe.BuildGenerationSignature(edges);
+        var signature = RoofWireframe.BuildGenerationSignature(edges);
         return RoofDisplayService.Rebuild(
             database,
             transaction,

@@ -33,7 +33,7 @@ public sealed class RoofDefinitionPersistenceSourceContractTests
         Assert.True(applyIndex >= 0);
         Assert.True(persistIndex > applyIndex);
         Assert.True(writeIndex > persistIndex);
-        Assert.Contains("viewModel.TryGetGeometry", Workflow);
+        Assert.Contains("viewModel.TryGetRoofGeometry", Workflow);
         Assert.Contains("OpenMode.ForWrite", Workflow);
         var persistPath = Segment(
             Workflow,
@@ -43,7 +43,7 @@ public sealed class RoofDefinitionPersistenceSourceContractTests
         Assert.DoesNotContain("GetKeywords", Segment(
             Workflow,
             "private static bool TryPersist",
-            "private static bool TryPromptRidgeDirection"));
+            "private static bool TryPromptOrientationDirection"));
     }
 
     [Fact]

@@ -62,13 +62,13 @@ public sealed class RoofDisplayTamperStretchSourceContractTests
             "private static bool TryApplyDisplayTamper",
             "private static RoofSourceChangeClassification ClassifyOwner");
         Assert.Contains("RoofSourceChangeKind.RigidEquivalent", repair);
-        Assert.Contains("SimpleGableRoofWireframe.Create(", repair);
+        Assert.Contains("RoofWireframe.Create(", repair);
         Assert.Contains("RoofDisplayService.Rebuild(", repair);
         Assert.DoesNotContain("RoofDefinitionStore.Write(", repair);
         Assert.DoesNotContain("RoofDefinitionPersistence.Create(", repair);
         Assert.Contains("EnsureGroup(", DisplayService);
         Assert.Contains("ExpectedMemberCount = 8", DisplayGroup);
-        Assert.Contains("SimpleGableRoofWireframe.EdgeCount", DisplayService);
+        Assert.Contains("expectedEdges.Count", DisplayService);
     }
 
     [Fact]

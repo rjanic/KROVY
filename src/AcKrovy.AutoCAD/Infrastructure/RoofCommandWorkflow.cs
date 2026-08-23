@@ -124,8 +124,8 @@ internal static class RoofCommandWorkflow
                 editor.WriteMessage(UiStrings.GetString("Command_Roof_PersistedLoaded"));
                 ShowPreview(document, restored.Geometry, sourceElevation);
 
-                var edges = SimpleGableRoofWireframe.Create(restored.Geometry, sourceElevation);
-                var signature = SimpleGableRoofWireframe.BuildGenerationSignature(edges);
+                var edges = RoofWireframe.Create(restored.Geometry, sourceElevation);
+                var signature = RoofWireframe.BuildGenerationSignature(edges);
                 var display = InspectDisplay(
                     document.Database,
                     ownerId,
@@ -221,14 +221,17 @@ internal static class RoofCommandWorkflow
                 switch (dialog.RequestedAction)
                 {
                     case GableRoofGeometryDialogAction.PickRidgeDirection:
-                        if (TryPromptRidgeDirection(document.Editor, out var direction))
+                        if (TryPromptOrientationDirection(
+                                document.Editor,
+                                viewModel.SelectedKind,
+                                out var direction))
                         {
                             viewModel.SetRidgeDirection(direction);
                         }
                         continue;
 
                     case GableRoofGeometryDialogAction.Preview:
-                        if (viewModel.TryGetGeometry(out var previewGeometry) &&
+                        if (viewModel.TryGetRoofGeometry(out var previewGeometry) &&
                             previewGeometry is not null)
                         {
                             document.Editor.SetImpliedSelection([ownerId]);
@@ -238,7 +241,7 @@ internal static class RoofCommandWorkflow
                         continue;
 
                     case GableRoofGeometryDialogAction.Apply:
-                        if (!viewModel.TryGetGeometry(out var geometry) || geometry is null)
+                        if (!viewModel.TryGetRoofGeometry(out var geometry) || geometry is null)
                         {
                             continue;
                         }
@@ -280,7 +283,7 @@ internal static class RoofCommandWorkflow
 
     private static void ShowPreview(
         Document document,
-        SimpleGableRoofGeometry geometry,
+        IRoofGeometry geometry,
         double sourceElevation)
     {
         using (RoofTransientPreviewSession.Show(document, geometry, sourceElevation))
@@ -377,8 +380,8 @@ internal static class RoofCommandWorkflow
             }
 
             var sourceElevation = RoofPolylineExtractor.GetSourceElevation(owner);
-            var edges = SimpleGableRoofWireframe.Create(restored.Geometry, sourceElevation);
-            var signature = SimpleGableRoofWireframe.BuildGenerationSignature(edges);
+            var edges = RoofWireframe.Create(restored.Geometry, sourceElevation);
+            var signature = RoofWireframe.BuildGenerationSignature(edges);
             RoofDefinitionStore.Write(owner, transaction, data);
             if (!RoofDisplayService.Rebuild(
                     document.Database,
@@ -450,10 +453,10 @@ internal static class RoofCommandWorkflow
                 return false;
             }
 
-            var edges = SimpleGableRoofWireframe.Create(
+            var edges = RoofWireframe.Create(
                 restored.Geometry,
                 RoofPolylineExtractor.GetSourceElevation(owner));
-            var signature = SimpleGableRoofWireframe.BuildGenerationSignature(edges);
+            var signature = RoofWireframe.BuildGenerationSignature(edges);
             if (!RoofDisplayService.Rebuild(
                     document.Database,
                     transaction,
@@ -508,10 +511,10 @@ internal static class RoofCommandWorkflow
                 return false;
             }
 
-            var edges = SimpleGableRoofWireframe.Create(
+            var edges = RoofWireframe.Create(
                 restored.Geometry,
                 RoofPolylineExtractor.GetSourceElevation(owner));
-            var signature = SimpleGableRoofWireframe.BuildGenerationSignature(edges);
+            var signature = RoofWireframe.BuildGenerationSignature(edges);
             var inspection = RoofDisplayService.Inspect(
                 document.Database,
                 transaction,
@@ -542,21 +545,27 @@ internal static class RoofCommandWorkflow
         }
     }
 
-    private static bool TryPromptRidgeDirection(
+    private static bool TryPromptOrientationDirection(
         Editor editor,
+        RoofKind kind,
         out RoofDirection2D direction)
     {
         direction = default;
 
+        var isMonopitch = kind == RoofKind.Monopitch;
         var directionStartResult = editor.GetPoint(new PromptPointOptions(
-            UiStrings.GetString("Command_Roof_RidgeDirectionStartPrompt")));
+            UiStrings.GetString(isMonopitch
+                ? "Command_Roof_LowSidePointPrompt"
+                : "Command_Roof_RidgeDirectionStartPrompt")));
         if (directionStartResult.Status != PromptStatus.OK)
         {
             return false;
         }
 
         var directionEndOptions = new PromptPointOptions(
-            UiStrings.GetString("Command_Roof_RidgeDirectionEndPrompt"))
+            UiStrings.GetString(isMonopitch
+                ? "Command_Roof_HighSidePointPrompt"
+                : "Command_Roof_RidgeDirectionEndPrompt"))
         {
             BasePoint = directionStartResult.Value,
             UseBasePoint = true,

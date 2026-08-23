@@ -357,7 +357,7 @@ public sealed class RoofRigidGroupTransformRulesTests
     {
         var result = RoofDefinitionPersistence.Restore(source, Validate(source), data);
         Assert.True(result.IsValid, result.Error.ToString());
-        return result.Geometry!;
+        return Assert.IsType<SimpleGableRoofGeometry>(result.Geometry);
     }
 
     private static RoofFootprint Validate(RoofFootprintInput source)

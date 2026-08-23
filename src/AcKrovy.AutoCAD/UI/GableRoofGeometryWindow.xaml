@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:AcKrovy.AutoCAD.UI"
         xmlns:localization="clr-namespace:AcKrovy.AutoCAD.UI.Localization"
-        Title="{localization:Loc RoofGeometryWindow_Title}"
+        Title="{Binding WindowTitle}"
         Width="1080"
         Height="780"
         MinWidth="980"
@@ -83,10 +83,10 @@
 
         <StackPanel>
             <TextBlock Style="{DynamicResource SettingsSectionTitleStyle}"
-                       Text="{localization:Loc RoofGeometryWindow_Heading}" />
+                       Text="{Binding WindowHeading}" />
             <TextBlock Margin="0,4,0,14"
                        Style="{DynamicResource SettingsDescriptionStyle}"
-                       Text="{localization:Loc RoofGeometryWindow_Description}" />
+                       Text="{Binding WindowDescription}" />
         </StackPanel>
 
         <Border Grid.Row="1" Padding="12" Margin="0,0,0,14"
@@ -109,7 +109,8 @@
                     <TextBlock FontWeight="SemiBold" Text=" = " />
                     <TextBlock x:Name="DimensionBTextBlock" Text="{Binding DimensionBText}" />
                 </StackPanel>
-                <UniformGrid Grid.Column="4" Columns="2">
+                <UniformGrid Grid.Column="4" Columns="2"
+                             Visibility="{Binding IsGableEditor, Converter={StaticResource BoolToVisibility}}">
                     <RadioButton x:Name="SymmetricRadioButton"
                                  GroupName="RoofType"
                                  Style="{StaticResource RoofModeCardStyle}"
@@ -145,6 +146,25 @@
                         </StackPanel>
                     </RadioButton>
                 </UniformGrid>
+                <Border Grid.Column="4"
+                        Padding="13,11"
+                        Background="{DynamicResource SettingsSelectedBrush}"
+                        BorderBrush="{DynamicResource SettingsAccentBrush}"
+                        BorderThickness="2"
+                        CornerRadius="7"
+                        Visibility="{Binding IsMonopitchEditor, Converter={StaticResource BoolToVisibility}}">
+                    <StackPanel Orientation="Horizontal">
+                        <Viewbox Width="28" Height="18" Margin="0,0,8,0">
+                            <Path Stroke="{DynamicResource SettingsTextPrimaryBrush}"
+                                  StrokeThickness="2"
+                                  StrokeStartLineCap="Round"
+                                  StrokeEndLineCap="Round"
+                                  Data="M 1,15 L 27,3 M 1,17 L 27,17" />
+                        </Viewbox>
+                        <TextBlock VerticalAlignment="Center"
+                                   Text="{localization:Loc RoofGeometryWindow_Monopitch}" />
+                    </StackPanel>
+                </Border>
             </Grid>
         </Border>
 
@@ -260,16 +280,64 @@
                             </Border>
                         </StackPanel>
 
+                        <StackPanel x:Name="MonopitchFieldsPanel"
+                                    Visibility="{Binding IsMonopitchMode, Converter={StaticResource BoolToVisibility}}">
+                            <TextBlock Margin="0,0,0,6"
+                                       FontWeight="SemiBold"
+                                       Text="{localization:Loc RoofGeometryWindow_CalculationMode}" />
+                            <RadioButton x:Name="MonopitchSlopeModeRadioButton"
+                                         GroupName="MonopitchCalculationMode"
+                                         IsChecked="{Binding IsMonopitchSlopeMode, Mode=TwoWay}"
+                                         Content="{localization:Loc RoofGeometryWindow_ModeMonopitchSlope}" />
+                            <RadioButton x:Name="MonopitchHeightModeRadioButton"
+                                         Margin="0,6,0,0"
+                                         GroupName="MonopitchCalculationMode"
+                                         IsChecked="{Binding IsMonopitchHeightMode, Mode=TwoWay}"
+                                         Content="{localization:Loc RoofGeometryWindow_ModeMonopitchHeight}" />
+                            <Grid Margin="0,10,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="12" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Margin="0,0,0,5"
+                                               Text="{localization:Loc RoofGeometryWindow_MonopitchSlope}" />
+                                    <TextBox TextAlignment="Right"
+                                             IsReadOnly="{Binding IsMonopitchHeightMode}"
+                                             Text="{Binding AlphaText, UpdateSourceTrigger=PropertyChanged}" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Margin="0,0,0,5" TextWrapping="Wrap"
+                                               Text="{localization:Loc RoofGeometryWindow_MonopitchHeightDifference}" />
+                                    <TextBox TextAlignment="Right"
+                                             IsReadOnly="{Binding IsMonopitchSlopeMode}"
+                                             Text="{Binding EaveHeightDifferenceText, UpdateSourceTrigger=PropertyChanged}" />
+                                </StackPanel>
+                            </Grid>
+                            <Border x:Name="MirrorMonopitchPanel"
+                                    Margin="0,10,0,0"
+                                    Padding="9,5"
+                                    Background="{DynamicResource SettingsPanelBackgroundBrush}"
+                                    BorderBrush="{DynamicResource SettingsBorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="6">
+                                <CheckBox x:Name="MirrorMonopitchCheckBox"
+                                          IsChecked="{Binding IsMonopitchMirrored, Mode=TwoWay}"
+                                          Content="{localization:Loc RoofGeometryWindow_MirrorMonopitch}" />
+                            </Border>
+                        </StackPanel>
+
                         <Separator Margin="0,5" />
                         <DockPanel Margin="0,0,0,7" LastChildFill="True">
                             <TextBlock DockPanel.Dock="Left"
                                        Margin="0,0,8,0"
                                        FontWeight="SemiBold"
-                                       Text="{localization:Loc RoofGeometryWindow_RidgeDirection}" />
+                                       Text="{Binding OrientationDirectionLabel}" />
                             <TextBlock x:Name="RidgeDirectionTextBlock"
                                        HorizontalAlignment="Right"
                                        Foreground="{DynamicResource SettingsTextSecondaryBrush}"
-                                       Text="{Binding RidgeDirectionText}" />
+                                       Text="{Binding OrientationDirectionText}" />
                         </DockPanel>
                         <Button x:Name="PickRidgeDirectionButton"
                                 HorizontalAlignment="Stretch"
@@ -286,7 +354,7 @@
                                           Data="M 1,10 L 7,4 L 13,10 M 7,4 L 7,13 M 11,15 L 22,15 M 18,11 L 22,15 L 18,19" />
                                 </Viewbox>
                                 <TextBlock VerticalAlignment="Center"
-                                           Text="{localization:Loc RoofGeometryWindow_PickRidgeDirection}" />
+                                           Text="{Binding PickOrientationDirectionLabel}" />
                             </StackPanel>
                         </Button>
 
@@ -308,7 +376,8 @@
                             Background="{DynamicResource SettingsPanelBackgroundBrush}"
                             BorderBrush="{DynamicResource SettingsBorderBrush}"
                             BorderThickness="1"
-                            CornerRadius="6">
+                            CornerRadius="6"
+                            Visibility="{Binding IsGableEditor, Converter={StaticResource BoolToVisibility}}">
                         <UniformGrid Columns="4">
                             <StackPanel Margin="5,0">
                                 <TextBlock Foreground="{DynamicResource SettingsTextSecondaryBrush}"
@@ -340,10 +409,39 @@
                             </StackPanel>
                         </UniformGrid>
                     </Border>
+                    <Border Grid.Row="1"
+                            Margin="0,9,0,6"
+                            Padding="9,7"
+                            Background="{DynamicResource SettingsPanelBackgroundBrush}"
+                            BorderBrush="{DynamicResource SettingsBorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="6"
+                            Visibility="{Binding IsMonopitchEditor, Converter={StaticResource BoolToVisibility}}">
+                        <UniformGrid Columns="2">
+                            <StackPanel Margin="5,0">
+                                <TextBlock Foreground="{DynamicResource SettingsTextSecondaryBrush}"
+                                           Text="{localization:Loc RoofGeometryWindow_TransverseSpan}" />
+                                <TextBlock Margin="0,3,0,0" FontWeight="SemiBold"
+                                           Text="{Binding TransverseSpanText}" />
+                            </StackPanel>
+                            <StackPanel Margin="5,0">
+                                <TextBlock Foreground="{DynamicResource SettingsTextSecondaryBrush}"
+                                           Text="{localization:Loc RoofGeometryWindow_MonopitchHeightDifference}" />
+                                <TextBlock Margin="0,3,0,0" FontWeight="SemiBold"
+                                           Text="{Binding EaveHeightDifferenceText}" />
+                            </StackPanel>
+                        </UniformGrid>
+                    </Border>
                     <local:GableRoofSectionControl x:Name="SchematicControl"
                                                    Grid.Row="2"
                                                    MinHeight="330"
+                                                   Visibility="{Binding IsGableEditor, Converter={StaticResource BoolToVisibility}}"
                                                    State="{Binding SectionState}" />
+                    <local:MonopitchRoofSectionControl x:Name="MonopitchSchematicControl"
+                                                       Grid.Row="2"
+                                                       MinHeight="330"
+                                                       Visibility="{Binding IsMonopitchEditor, Converter={StaticResource BoolToVisibility}}"
+                                                       State="{Binding MonopitchSectionState}" />
                 </Grid>
             </Border>
         </Grid>
@@ -374,7 +472,7 @@
                     IsDefault="True"
                     IsEnabled="{Binding CanApply}"
                     Style="{DynamicResource SettingsPrimaryButtonStyle}"
-                    Content="{localization:Loc RoofGeometryWindow_Create}" />
+                    Content="{Binding PrimaryActionText}" />
         </StackPanel>
     </Grid>
 </Window>

@@ -46,6 +46,11 @@ public sealed class RoofResizeRedoLifecycleSourceContractTests
     {
         Assert.Contains("ROOF_REDO_STATE", RedoDiag);
         Assert.Contains("ROOF_RESIZE_TXN", RedoDiag);
+        Assert.Contains(
+            "RoofGeneratedTimberOwnershipRules.IsConsistentOptionalSet(",
+            RedoDiag);
+        Assert.Contains("completeStationMetadata=", RedoDiag);
+        Assert.DoesNotContain("generated.Count > 0 && uniqueStations", RedoDiag);
         // Uses only the caller's transaction; never opens its own, never writes.
         Assert.DoesNotContain("StartTransaction", RedoDiag);
         Assert.DoesNotContain("StartOpenCloseTransaction", RedoDiag);

@@ -240,7 +240,7 @@ internal static class RoofDisplayService
         var blockTable = (BlockTable)transaction.GetObject(database.BlockTableId, OpenMode.ForRead);
         var modelSpace = (BlockTableRecord)transaction.GetObject(
             blockTable[BlockTableRecord.ModelSpace], OpenMode.ForWrite);
-        var newChildIds = new List<ObjectId>(SimpleGableRoofWireframe.EdgeCount);
+        var newChildIds = new List<ObjectId>(expectedEdges.Count);
         foreach (var edge in expectedEdges.OrderBy(edge => edge.Role))
         {
             var line = new Line(MapPoint(edge.Segment.Start), MapPoint(edge.Segment.End));
@@ -495,10 +495,10 @@ internal static class RoofDisplayService
             return false;
         }
 
-        edges = SimpleGableRoofWireframe.Create(
+        edges = RoofWireframe.Create(
             restored.Geometry,
             RoofPolylineExtractor.GetSourceElevation(owner));
-        signature = SimpleGableRoofWireframe.BuildGenerationSignature(edges);
+        signature = RoofWireframe.BuildGenerationSignature(edges);
         return true;
     }
 

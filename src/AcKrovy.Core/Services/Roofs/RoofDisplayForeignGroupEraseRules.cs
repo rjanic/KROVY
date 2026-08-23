@@ -9,17 +9,6 @@ namespace AcKrovy.Core.Services.Roofs;
 /// </summary>
 public static class RoofDisplayForeignGroupEraseRules
 {
-    private static readonly RoofDisplayEdgeRole[] RequiredRoles =
-    [
-        RoofDisplayEdgeRole.Ridge,
-        RoofDisplayEdgeRole.Eave0,
-        RoofDisplayEdgeRole.Eave1,
-        RoofDisplayEdgeRole.GableSlope00,
-        RoofDisplayEdgeRole.GableSlope01,
-        RoofDisplayEdgeRole.GableSlope10,
-        RoofDisplayEdgeRole.GableSlope11,
-    ];
-
     /// <summary>
     /// Selects the seven display Line member keys from one GROUP when the strict
     /// source + 7-role roof topology contract is fully satisfied.
@@ -80,12 +69,9 @@ public static class RoofDisplayForeignGroupEraseRules
             return false;
         }
 
-        foreach (var required in RequiredRoles)
+        if (!RoofWireframe.IsCompleteRoleSet(roles))
         {
-            if (!roles.Contains(required))
-            {
-                return false;
-            }
+            return false;
         }
 
         if (displayKeys.Distinct(StringComparer.Ordinal).Count() != displayKeys.Count)

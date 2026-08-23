@@ -1,6 +1,7 @@
 #if DEBUG
 using System.Text;
 using AcKrovy.Core.Models.Roofs;
+using AcKrovy.Core.Services.Roofs;
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
 
@@ -38,7 +39,7 @@ internal static class RoofRedoStateDiag
                 transaction,
                 ownerReference);
 
-            var stations = new List<string>();
+            var stationKeys = new List<RoofGeneratedMemberKey>();
             foreach (var id in generated)
             {
                 if (transaction.GetObject(id, OpenMode.ForRead, false) is not Entity entity)
@@ -52,12 +53,16 @@ internal static class RoofRedoStateDiag
                     continue;
                 }
 
-                stations.Add(RoofGeneratedMemberKey.From(stored.Data).ToString());
+                stationKeys.Add(RoofGeneratedMemberKey.From(stored.Data));
             }
 
-            var distinctStations = stations.Distinct(System.StringComparer.Ordinal).Count();
-            var uniqueStations = stations.Count > 0 && distinctStations == stations.Count;
-            var duplicateKeyCount = stations.Count - distinctStations;
+            var distinctStations = stationKeys.Distinct().Count();
+            var uniqueStations = distinctStations == stationKeys.Count;
+            var duplicateKeyCount = stationKeys.Count - distinctStations;
+            var completeStationMetadata = generated.Count == stationKeys.Count;
+            var generatedSetConsistent = RoofGeneratedTimberOwnershipRules.IsConsistentOptionalSet(
+                generated.Count,
+                stationKeys);
 
             var groupMemberCount = 0;
             var generatedInGroup = 0;
@@ -95,13 +100,15 @@ internal static class RoofRedoStateDiag
             line.Append(" owner=").Append(ownerReference);
             line.Append(" checkpoint=").Append(checkpoint);
             line.Append(" generatedCount=").Append(generated.Count);
+            line.Append(" readableStationCount=").Append(stationKeys.Count);
+            line.Append(" completeStationMetadata=").Append(completeStationMetadata ? "true" : "false");
             line.Append(" uniqueStations=").Append(uniqueStations ? "true" : "false");
             line.Append(" duplicateKeyCount=").Append(duplicateKeyCount);
             line.Append(" attachedManualCount=").Append(attached.Count);
             line.Append(" groupMemberCount=").Append(groupMemberCount);
             line.Append(" generatedInGroup=").Append(generatedInGroup);
             line.Append(" annotationsInGroup=").Append(annotationsInGroup);
-            line.Append(" result=").Append(generated.Count > 0 && uniqueStations ? "ok" : "inconsistent");
+            line.Append(" result=").Append(generatedSetConsistent ? "ok" : "inconsistent");
             editor.WriteMessage("\n" + line);
         }
         catch

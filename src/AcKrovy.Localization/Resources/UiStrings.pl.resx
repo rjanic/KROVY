@@ -606,7 +606,7 @@
   <data name="CommandUi_RoofHalfHip_Label" xml:space="preserve"><value>Dach naczółkowy</value></data>
   <data name="CommandUi_RoofHalfHip_Tooltip" xml:space="preserve"><value>Jeszcze niedostępny.</value></data>
   <data name="CommandUi_RoofMonoPitch_Label" xml:space="preserve"><value>Dach jednospadowy</value></data>
-  <data name="CommandUi_RoofMonoPitch_Tooltip" xml:space="preserve"><value>Jeszcze niedostępny.</value></data>
+  <data name="CommandUi_RoofMonoPitch_Tooltip" xml:space="preserve"><value>Uruchamia proces dachu jednospadowego.</value></data>
   <data name="CommandUi_RoofRafters_Label" xml:space="preserve"><value>Krokwie</value></data>
   <data name="CommandUi_RoofRafters_Tooltip" xml:space="preserve"><value>Tworzy automatyczne krokwie dla zapisanego dachu dwuspadowego.</value></data>
   <data name="CommandUi_RoofEdit_Label" xml:space="preserve"><value>Edytuj</value></data>
@@ -704,4 +704,23 @@
   <data name="RoofGeometryWindow_ValidationDirection" xml:space="preserve"><value>Wybrany kierunek kalenicy musi być równoległy do krawędzi prostokąta.</value></data>
   <data name="RoofGeometryWindow_MirrorAsymmetry" xml:space="preserve"><value>Odbij asymetrię (zamień lewą/prawą stronę)</value></data>
   <data name="RoofGeometryWindow_Ridge" xml:space="preserve"><value>Kalenica</value></data>
+  <data name="Command_Roof_LowSidePointPrompt" xml:space="preserve"><value>\nWskaż pierwszy punkt po niskiej stronie (NISKI OKAP): </value></data>
+  <data name="Command_Roof_HighSidePointPrompt" xml:space="preserve"><value>\nWskaż drugi punkt po wysokiej stronie (WYSOKI OKAP): </value></data>
+  <data name="Command_RoofRafters_MonopitchUnsupported" xml:space="preserve"><value>\nStage 1 nie obsługuje automatycznego tworzenia krokwi dla dachu jednospadowego.</value></data>
+  <data name="RoofGeometryWindow_MonopitchTitle" xml:space="preserve"><value>Geometria dachu jednospadowego</value></data>
+  <data name="RoofGeometryWindow_MonopitchHeading" xml:space="preserve"><value>Dach jednospadowy</value></data>
+  <data name="RoofGeometryWindow_MonopitchDescription" xml:space="preserve"><value>Ustaw jedną połać, wybierz kierunek NISKI → WYSOKI i sprawdź wynik w podglądzie.</value></data>
+  <data name="RoofGeometryWindow_Monopitch" xml:space="preserve"><value>Dach jednospadowy</value></data>
+  <data name="RoofGeometryWindow_ModeMonopitchSlope" xml:space="preserve"><value>Wprowadź nachylenie α</value></data>
+  <data name="RoofGeometryWindow_ModeMonopitchHeight" xml:space="preserve"><value>Wprowadź różnicę wysokości okapów ΔH</value></data>
+  <data name="RoofGeometryWindow_MonopitchSlope" xml:space="preserve"><value>Nachylenie α (°)</value></data>
+  <data name="RoofGeometryWindow_MonopitchHeightDifference" xml:space="preserve"><value>Różnica wysokości okapów ΔH (mm)</value></data>
+  <data name="RoofGeometryWindow_MirrorMonopitch" xml:space="preserve"><value>Odbij dach jednospadowy (NISKI ↔ WYSOKI)</value></data>
+  <data name="RoofGeometryWindow_SlopeDirection" xml:space="preserve"><value>Kierunek wznoszenia NISKI → WYSOKI</value></data>
+  <data name="RoofGeometryWindow_SlopeDirectionNotSelected" xml:space="preserve"><value>Kierunek NISKI → WYSOKI nie został wybrany.</value></data>
+  <data name="RoofGeometryWindow_PickSlopeDirection" xml:space="preserve"><value>Wybierz kierunek NISKI → WYSOKI na rysunku</value></data>
+  <data name="RoofGeometryWindow_ValidationMonopitchHeight" xml:space="preserve"><value>Różnica wysokości okapów musi być dodatnia i dawać nachylenie większe niż 0° i mniejsze niż 90°.</value></data>
+  <data name="RoofGeometryWindow_ValidationSlopeDirectionRequired" xml:space="preserve"><value>Przed podglądem lub utworzeniem wybierz kierunek NISKI → WYSOKI.</value></data>
+  <data name="RoofGeometryWindow_LowEave" xml:space="preserve"><value>Niski okap</value></data>
+  <data name="RoofGeometryWindow_HighEave" xml:space="preserve"><value>Wysoki okap</value></data>
 </root>

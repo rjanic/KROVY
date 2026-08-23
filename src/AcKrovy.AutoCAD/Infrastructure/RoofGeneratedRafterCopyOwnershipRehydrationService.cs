@@ -520,7 +520,8 @@ internal static class RoofGeneratedRafterCopyOwnershipRehydrationService
 
                 stored.Data);
 
-            if (!restored.IsValid || restored.Geometry is null)
+            if (!restored.IsValid ||
+                restored.Geometry is not SimpleGableRoofGeometry gableGeometry)
 
             {
 
@@ -534,7 +535,7 @@ internal static class RoofGeneratedRafterCopyOwnershipRehydrationService
 
                 polyline.Handle.ToString(),
 
-                restored.Geometry));
+                gableGeometry));
 
         }
 

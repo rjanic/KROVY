@@ -161,8 +161,10 @@ public sealed class AsymmetricGableRoofFoundationTests
 
         Assert.True(restored4.IsValid, restored4.Error.ToString());
         Assert.True(restored5.IsValid, restored5.Error.ToString());
-        Assert.Equal(restored4.Geometry!.Signature, restored5.Geometry!.Signature);
-        Assert.Equal(restored4.Geometry.Ridge, restored5.Geometry.Ridge);
+        var geometry4 = Assert.IsType<SimpleGableRoofGeometry>(restored4.Geometry);
+        var geometry5 = Assert.IsType<SimpleGableRoofGeometry>(restored5.Geometry);
+        Assert.Equal(geometry4.Signature, geometry5.Signature);
+        Assert.Equal(geometry4.Ridge, geometry5.Ridge);
     }
 
     [Theory]
@@ -255,9 +257,10 @@ public sealed class AsymmetricGableRoofFoundationTests
         var reopened = RoofDefinitionPersistence.Restore(source, footprint, reopenedData!);
 
         Assert.True(reopened.IsValid, reopened.Error.ToString());
-        Assert.Equal(-325d, reopened.Geometry!.EaveHeightDifferenceMm);
-        Assert.Equal(original.Signature, reopened.Geometry.Signature);
-        Assert.Equal(original.Ridge, reopened.Geometry.Ridge);
+        var reopenedGeometry = Assert.IsType<SimpleGableRoofGeometry>(reopened.Geometry);
+        Assert.Equal(-325d, reopenedGeometry.EaveHeightDifferenceMm);
+        Assert.Equal(original.Signature, reopenedGeometry.Signature);
+        Assert.Equal(original.Ridge, reopenedGeometry.Ridge);
     }
 
     [Fact]
@@ -298,11 +301,12 @@ public sealed class AsymmetricGableRoofFoundationTests
         var restored = RoofDefinitionPersistence.Restore(resizedSource, Validate(resizedSource), data);
 
         Assert.True(restored.IsValid, restored.Error.ToString());
-        Assert.Equal(20d, restored.Geometry!.Face0SlopeDegrees);
-        Assert.Equal(35d, restored.Geometry.Face1SlopeDegrees);
-        Assert.Equal(300d, restored.Geometry.EaveHeightDifferenceMm);
-        Assert.Equal(9000d, restored.Geometry.Face0RunMm + restored.Geometry.Face1RunMm, 8);
-        Assert.NotEqual(geometry.Face0RunMm, restored.Geometry.Face0RunMm);
+        var restoredGeometry = Assert.IsType<SimpleGableRoofGeometry>(restored.Geometry);
+        Assert.Equal(20d, restoredGeometry.Face0SlopeDegrees);
+        Assert.Equal(35d, restoredGeometry.Face1SlopeDegrees);
+        Assert.Equal(300d, restoredGeometry.EaveHeightDifferenceMm);
+        Assert.Equal(9000d, restoredGeometry.Face0RunMm + restoredGeometry.Face1RunMm, 8);
+        Assert.NotEqual(geometry.Face0RunMm, restoredGeometry.Face0RunMm);
     }
 
     [Fact]
@@ -398,7 +402,7 @@ public sealed class AsymmetricGableRoofFoundationTests
                 EaveHeightDifferenceMm: eaveHeightDifferenceMm),
             RoofKind.AsymmetricGable));
         Assert.True(result.IsValid, result.Error.ToString());
-        return result.Geometry!;
+        return Assert.IsType<SimpleGableRoofGeometry>(result.Geometry);
     }
 
     private static SimpleGableRoofGeometry SolveSimple(

@@ -20,7 +20,7 @@ public sealed class RoofTransientPreviewSourceContractTests
     public void AkRoof_UsesStageOneSolverBeforeOpeningTransientPreview()
     {
         Assert.Contains("RoofGeometrySolver.Solve(new RoofDefinition(", GeometryViewModel);
-        Assert.Contains("viewModel.TryGetGeometry", Workflow);
+        Assert.Contains("viewModel.TryGetRoofGeometry", Workflow);
         Assert.Contains("RoofTransientPreviewSession.Show", Workflow);
         Assert.DoesNotContain("SimpleGableRoofGeometrySolver", Preview);
         Assert.DoesNotContain("Math.Tan", Preview);
@@ -32,7 +32,7 @@ public sealed class RoofTransientPreviewSourceContractTests
     public void PreviewMapping_AddsOnlySourceElevationToNeutralLocalZ()
     {
         Assert.Contains("MapSegments(geometry, sourceElevation)", Preview);
-        Assert.Contains("SimpleGableRoofWireframe.Create(geometry, sourceElevation)", Preview);
+        Assert.Contains("RoofWireframe.Create(geometry, sourceElevation)", Preview);
         Assert.Contains("edge.Role == RoofDisplayEdgeRole.Ridge", Preview);
         Assert.DoesNotContain("face.BoundaryPoints", Preview);
         Assert.DoesNotContain("RoofPreviewSegmentKey", Preview);

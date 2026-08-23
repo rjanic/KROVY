@@ -7,6 +7,40 @@ namespace AcKrovy.Core.Tests;
 public sealed class RoofGeneratedTimberOwnershipRulesTests
 {
     [Fact]
+    public void OptionalSet_LegitimateZeroGeneratedMembers_IsConsistent()
+    {
+        Assert.True(RoofGeneratedTimberOwnershipRules.IsConsistentOptionalSet(0, []));
+    }
+
+    [Fact]
+    public void OptionalSet_HealthyGeneratedMembers_IsConsistent()
+    {
+        var keys = new[]
+        {
+            new RoofGeneratedMemberKey(RoofGeneratedTimberKind.Rafter, RafterRoofFace.Face0, 0),
+            new RoofGeneratedMemberKey(RoofGeneratedTimberKind.Rafter, RafterRoofFace.Face1, 0),
+        };
+
+        Assert.True(RoofGeneratedTimberOwnershipRules.IsConsistentOptionalSet(2, keys));
+    }
+
+    [Fact]
+    public void OptionalSet_DuplicateOrUnreadableGeneratedMember_IsInconsistent()
+    {
+        var duplicate = new RoofGeneratedMemberKey(
+            RoofGeneratedTimberKind.Rafter,
+            RafterRoofFace.Face0,
+            0);
+
+        Assert.False(RoofGeneratedTimberOwnershipRules.IsConsistentOptionalSet(
+            2,
+            [duplicate, duplicate]));
+        Assert.False(RoofGeneratedTimberOwnershipRules.IsConsistentOptionalSet(
+            2,
+            [duplicate]));
+    }
+
+    [Fact]
     public void UniqueStations_AreReplaceable()
     {
         var members = new[]

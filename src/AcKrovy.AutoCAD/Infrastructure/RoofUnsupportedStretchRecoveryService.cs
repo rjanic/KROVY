@@ -208,10 +208,10 @@ internal static class RoofUnsupportedStretchRecoveryService
             return RoofUnsupportedStretchRecoveryOutcome.HardFailure;
         }
 
-        var edges = SimpleGableRoofWireframe.Create(
+        var edges = RoofWireframe.Create(
             restoredClassification.Geometry,
             RoofPolylineExtractor.GetSourceElevation(owner));
-        var signature = SimpleGableRoofWireframe.BuildGenerationSignature(edges);
+        var signature = RoofWireframe.BuildGenerationSignature(edges);
         if (!RoofDisplayService.Rebuild(
                 database,
                 transaction,

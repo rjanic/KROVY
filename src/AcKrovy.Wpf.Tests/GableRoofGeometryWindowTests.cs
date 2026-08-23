@@ -358,6 +358,52 @@ public sealed class GableRoofGeometryWindowTests
     }
 
     [Fact]
+    public void PrimaryActionText_DistinguishesCreateAndEditForEveryRoofKindAndLanguage()
+    {
+        RunSta(() =>
+        {
+            var roofKinds = new[]
+            {
+                RoofKind.SimpleGable,
+                RoofKind.AsymmetricGable,
+                RoofKind.Monopitch,
+            };
+
+            foreach (var language in new[] { "sk", "cs", "en", "de", "pl", "fr" })
+            {
+                AppLanguageService.Apply(language);
+                foreach (var roofKind in roofKinds)
+                {
+                    var createWindow = CreateOffscreenWindow(
+                        new GableRoofGeometryViewModel(Rectangle(10000d, 6000d), roofKind),
+                        SettingsTheme.Light);
+                    var editWindow = CreateOffscreenWindow(
+                        new GableRoofGeometryViewModel(
+                            Rectangle(10000d, 6000d),
+                            roofKind,
+                            isEditMode: true),
+                        SettingsTheme.Light);
+
+                    createWindow.Show();
+                    editWindow.Show();
+                    createWindow.UpdateLayout();
+                    editWindow.UpdateLayout();
+
+                    Assert.Equal(
+                        UiStrings.GetString("RoofGeometryWindow_Create"),
+                        createWindow.ApplyButton.Content);
+                    Assert.Equal(
+                        UiStrings.GetString("EditWindow_Apply"),
+                        editWindow.ApplyButton.Content);
+
+                    createWindow.Close();
+                    editWindow.Close();
+                }
+            }
+        });
+    }
+
+    [Fact]
     public void PreviewAndDirectionActions_HideAndReuseSameWindowWithoutLosingState()
     {
         RunSta(() =>

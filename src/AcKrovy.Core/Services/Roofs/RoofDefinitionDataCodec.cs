@@ -9,6 +9,7 @@ public static class RoofDefinitionDataCodec
     private const char Separator = '|';
     private const string SimpleGableToken = "SimpleGable";
     private const string AsymmetricGableToken = "AsymmetricGable";
+    private const string MonopitchToken = "Monopitch";
     private const string Edge01Token = "Edge01";
     private const string Edge12Token = "Edge12";
     private const string ClockwiseToken = "CW";
@@ -106,9 +107,12 @@ public static class RoofDefinitionDataCodec
             return false;
         }
 
-        if (data.Kind is not (RoofKind.SimpleGable or RoofKind.AsymmetricGable) ||
+        if (data.Kind is not (
+                RoofKind.SimpleGable or RoofKind.AsymmetricGable or RoofKind.Monopitch) ||
             data.SchemaVersion < RoofDefinitionDataSchema.DualSlopeVersion &&
-            data.Kind != RoofKind.SimpleGable)
+            data.Kind != RoofKind.SimpleGable ||
+            data.Kind == RoofKind.Monopitch &&
+            data.SchemaVersion != RoofDefinitionDataSchema.CurrentVersion)
         {
             error = RoofDefinitionDataDecodeError.UnsupportedRoofKind;
             return false;
@@ -116,7 +120,7 @@ public static class RoofDefinitionDataCodec
 
         if (!IsValidSlope(data.SlopeDegrees) ||
             !IsValidSlope(data.EffectiveFace1SlopeDegrees) ||
-            data.Kind == RoofKind.SimpleGable &&
+            data.Kind is RoofKind.SimpleGable or RoofKind.Monopitch &&
             Math.Abs(data.SlopeDegrees - data.EffectiveFace1SlopeDegrees) >
                 SimpleGableRoofGeometryTolerance.AngularTolerance ||
             data.SchemaVersion < RoofDefinitionDataSchema.DualSlopeVersion &&
@@ -132,6 +136,9 @@ public static class RoofDefinitionDataCodec
                 SimpleGableRoofGeometryTolerance.CoordinateToleranceMm ||
             data.Kind == RoofKind.SimpleGable &&
             Math.Abs(data.EaveHeightDifferenceMm) >
+                SimpleGableRoofGeometryTolerance.CoordinateToleranceMm ||
+            data.Kind == RoofKind.Monopitch &&
+            Math.Abs(data.EaveHeightDifferenceMm) <=
                 SimpleGableRoofGeometryTolerance.CoordinateToleranceMm)
         {
             error = RoofDefinitionDataDecodeError.InvalidEaveHeightDifference;
@@ -193,7 +200,7 @@ public static class RoofDefinitionDataCodec
         return string.Join(
             Separator.ToString(),
             RoofDefinitionDataSchema.DualSlopeVersion.ToString(CultureInfo.InvariantCulture),
-            data.Kind == RoofKind.AsymmetricGable ? AsymmetricGableToken : SimpleGableToken,
+            KindToken(data.Kind),
             data.Face0SlopeDegrees.ToString("R", CultureInfo.InvariantCulture),
             data.EffectiveFace1SlopeDegrees.ToString("R", CultureInfo.InvariantCulture),
             data.RidgeEdgeFamily == RoofRidgeEdgeFamily.SourceEdge01 ? Edge01Token : Edge12Token,
@@ -212,7 +219,7 @@ public static class RoofDefinitionDataCodec
         return string.Join(
             Separator.ToString(),
             RoofDefinitionDataSchema.CurrentVersion.ToString(CultureInfo.InvariantCulture),
-            data.Kind == RoofKind.AsymmetricGable ? AsymmetricGableToken : SimpleGableToken,
+            KindToken(data.Kind),
             data.Face0SlopeDegrees.ToString("R", CultureInfo.InvariantCulture),
             data.EffectiveFace1SlopeDegrees.ToString("R", CultureInfo.InvariantCulture),
             data.EaveHeightDifferenceMm.ToString("R", CultureInfo.InvariantCulture),
@@ -648,6 +655,13 @@ public static class RoofDefinitionDataCodec
             return true;
         }
 
+        if (string.Equals(token, MonopitchToken, StringComparison.Ordinal))
+        {
+            kind = RoofKind.Monopitch;
+            error = RoofDefinitionDataDecodeError.None;
+            return true;
+        }
+
         kind = default;
         error = RoofDefinitionDataDecodeError.UnsupportedRoofKind;
         return false;
@@ -702,4 +716,11 @@ public static class RoofDefinitionDataCodec
         IsFinite(value) &&
         value > SimpleGableRoofGeometryTolerance.MinimumSlopeDegrees &&
         value < SimpleGableRoofGeometryTolerance.MaximumSlopeDegrees;
+
+    private static string KindToken(RoofKind kind) => kind switch
+    {
+        RoofKind.AsymmetricGable => AsymmetricGableToken,
+        RoofKind.Monopitch => MonopitchToken,
+        _ => SimpleGableToken,
+    };
 }

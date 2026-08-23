@@ -369,6 +369,12 @@ public sealed class AcKrovyCommands
             AcKrovyCommandNames.RoofAsymmetric,
             () => RoofCommandWorkflow.Run(ActiveDocument(), RoofKind.AsymmetricGable));
 
+    [CommandMethod(AcKrovyCommandNames.RoofMonopitch, CommandFlags.Modal | CommandFlags.Redraw)]
+    public void RoofMonopitch() =>
+        CommandExecutionBoundary.Execute(
+            AcKrovyCommandNames.RoofMonopitch,
+            () => RoofCommandWorkflow.Run(ActiveDocument(), RoofKind.Monopitch));
+
     [CommandMethod(AcKrovyCommandNames.RoofRafters, CommandFlags.Modal | CommandFlags.Redraw)]
     public void RoofRafters() =>
         CommandExecutionBoundary.Execute(

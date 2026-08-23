@@ -27,9 +27,10 @@ public static class RoofDisplayValidator
         {
             throw new ArgumentNullException(nameof(observations));
         }
-        if (expectedEdges.Count != SimpleGableRoofWireframe.EdgeCount)
+        if (expectedEdges.Count == 0 ||
+            expectedEdges.Select(edge => edge.Role).Distinct().Count() != expectedEdges.Count)
         {
-            throw new ArgumentException("Expected wireframe must contain seven edges.", nameof(expectedEdges));
+            throw new ArgumentException("Expected wireframe must contain unique roles.", nameof(expectedEdges));
         }
         if (observations.Count == 0)
         {
@@ -39,11 +40,11 @@ public static class RoofDisplayValidator
         }
 
         var issues = RoofDisplayValidationIssue.None;
-        if (observations.Count < SimpleGableRoofWireframe.EdgeCount)
+        if (observations.Count < expectedEdges.Count)
         {
             issues |= RoofDisplayValidationIssue.MissingChild;
         }
-        else if (observations.Count > SimpleGableRoofWireframe.EdgeCount)
+        else if (observations.Count > expectedEdges.Count)
         {
             issues |= RoofDisplayValidationIssue.ExtraChild;
         }

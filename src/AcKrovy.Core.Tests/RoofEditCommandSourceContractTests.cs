@@ -19,6 +19,7 @@ public sealed class RoofEditCommandSourceContractTests
     private static readonly string EditWorkflow = Read("src/AcKrovy.AutoCAD/Infrastructure/RoofEditCommandWorkflow.cs");
     private static readonly string CreateWorkflow = Read("src/AcKrovy.AutoCAD/Infrastructure/RoofCommandWorkflow.cs");
     private static readonly string ViewModel = Read("src/AcKrovy.AutoCAD/UI/GableRoofGeometryViewModel.cs");
+    private static readonly string Window = Read("src/AcKrovy.AutoCAD/UI/GableRoofGeometryWindow.xaml");
 
     [Fact]
     public void DedicatedCommand_RoutesToTheEditWorkflow()
@@ -42,6 +43,15 @@ public sealed class RoofEditCommandSourceContractTests
         Assert.Contains("new GableRoofGeometryWindow(", EditWorkflow);
         Assert.Contains("viewModel.SeedFromExistingGeometry(restoredGeometry)", EditWorkflow);
         Assert.Contains("public void SeedFromExistingGeometry(SimpleGableRoofGeometry geometry)", ViewModel);
+    }
+
+    [Fact]
+    public void SharedWindow_UsesCreateOrEditActionTextFromExplicitWorkflowContext()
+    {
+        Assert.DoesNotContain("isEditMode: true", CreateWorkflow);
+        Assert.Contains("isEditMode: true", EditWorkflow);
+        Assert.Contains("_isEditMode ? \"EditWindow_Apply\" : \"RoofGeometryWindow_Create\"", ViewModel);
+        Assert.Contains("Content=\"{Binding PrimaryActionText}\"", Window);
     }
 
     [Fact]
@@ -113,7 +123,7 @@ public sealed class RoofEditCommandSourceContractTests
     {
         var applyPath = Segment(
             EditWorkflow,
-            "var outcome = RoofGeneratedRafterSetService.TryReplaceForSupportedResize(",
+            "var outcome = RoofGeneratedRafterSetService.ReplacementOutcome.NotApplicable;",
             "RoofUnlockIndicatorService.Sync(");
         var replacedIndex = applyPath.IndexOf(
             "outcome == RoofGeneratedRafterSetService.ReplacementOutcome.Replaced",

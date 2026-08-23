@@ -606,7 +606,7 @@
   <data name="CommandUi_RoofHalfHip_Label" xml:space="preserve"><value>Krüppelwalmdach</value></data>
   <data name="CommandUi_RoofHalfHip_Tooltip" xml:space="preserve"><value>Noch nicht verfügbar.</value></data>
   <data name="CommandUi_RoofMonoPitch_Label" xml:space="preserve"><value>Pultdach</value></data>
-  <data name="CommandUi_RoofMonoPitch_Tooltip" xml:space="preserve"><value>Noch nicht verfügbar.</value></data>
+  <data name="CommandUi_RoofMonoPitch_Tooltip" xml:space="preserve"><value>Startet den Pultdach-Arbeitsablauf.</value></data>
   <data name="CommandUi_RoofRafters_Label" xml:space="preserve"><value>Sparren</value></data>
   <data name="CommandUi_RoofRafters_Tooltip" xml:space="preserve"><value>Erzeugt automatische Sparren für ein gespeichertes Satteldach.</value></data>
   <data name="CommandUi_RoofEdit_Label" xml:space="preserve"><value>Bearbeiten</value></data>
@@ -704,4 +704,23 @@
   <data name="RoofGeometryWindow_ValidationDirection" xml:space="preserve"><value>Die gewählte Firstrichtung muss parallel zu einer Rechteckkante sein.</value></data>
   <data name="RoofGeometryWindow_MirrorAsymmetry" xml:space="preserve"><value>Asymmetrie spiegeln (linke/rechte Seite tauschen)</value></data>
   <data name="RoofGeometryWindow_Ridge" xml:space="preserve"><value>First</value></data>
+  <data name="Command_Roof_LowSidePointPrompt" xml:space="preserve"><value>\nErsten Punkt auf der niedrigen Seite wählen (NIEDRIGE TRAUFE): </value></data>
+  <data name="Command_Roof_HighSidePointPrompt" xml:space="preserve"><value>\nZweiten Punkt auf der hohen Seite wählen (HOHE TRAUFE): </value></data>
+  <data name="Command_RoofRafters_MonopitchUnsupported" xml:space="preserve"><value>\nStage 1 unterstützt keine automatische Sparrenerzeugung für Pultdächer.</value></data>
+  <data name="RoofGeometryWindow_MonopitchTitle" xml:space="preserve"><value>Pultdachgeometrie</value></data>
+  <data name="RoofGeometryWindow_MonopitchHeading" xml:space="preserve"><value>Pultdach</value></data>
+  <data name="RoofGeometryWindow_MonopitchDescription" xml:space="preserve"><value>Legen Sie die einzelne Dachfläche fest, wählen Sie die Richtung NIEDRIG → HOCH und prüfen Sie das Ergebnis in der Vorschau.</value></data>
+  <data name="RoofGeometryWindow_Monopitch" xml:space="preserve"><value>Pultdach</value></data>
+  <data name="RoofGeometryWindow_ModeMonopitchSlope" xml:space="preserve"><value>Neigung α eingeben</value></data>
+  <data name="RoofGeometryWindow_ModeMonopitchHeight" xml:space="preserve"><value>Traufhöhendifferenz ΔH eingeben</value></data>
+  <data name="RoofGeometryWindow_MonopitchSlope" xml:space="preserve"><value>Neigung α (°)</value></data>
+  <data name="RoofGeometryWindow_MonopitchHeightDifference" xml:space="preserve"><value>Traufhöhendifferenz ΔH (mm)</value></data>
+  <data name="RoofGeometryWindow_MirrorMonopitch" xml:space="preserve"><value>Pultdach spiegeln (NIEDRIG ↔ HOCH)</value></data>
+  <data name="RoofGeometryWindow_SlopeDirection" xml:space="preserve"><value>Steigungsrichtung NIEDRIG → HOCH</value></data>
+  <data name="RoofGeometryWindow_SlopeDirectionNotSelected" xml:space="preserve"><value>Die Richtung NIEDRIG → HOCH wurde noch nicht gewählt.</value></data>
+  <data name="RoofGeometryWindow_PickSlopeDirection" xml:space="preserve"><value>Richtung NIEDRIG → HOCH in der Zeichnung wählen</value></data>
+  <data name="RoofGeometryWindow_ValidationMonopitchHeight" xml:space="preserve"><value>Die Traufhöhendifferenz muss positiv sein und eine Neigung größer als 0° und kleiner als 90° ergeben.</value></data>
+  <data name="RoofGeometryWindow_ValidationSlopeDirectionRequired" xml:space="preserve"><value>Wählen Sie vor Vorschau oder Erstellung die Richtung NIEDRIG → HOCH.</value></data>
+  <data name="RoofGeometryWindow_LowEave" xml:space="preserve"><value>Niedrige Traufe</value></data>
+  <data name="RoofGeometryWindow_HighEave" xml:space="preserve"><value>Hohe Traufe</value></data>
 </root>

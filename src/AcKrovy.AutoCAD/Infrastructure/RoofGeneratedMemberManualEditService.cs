@@ -400,7 +400,7 @@ internal static class RoofGeneratedMemberManualEditService
         }
 
         var restored = RoofDefinitionPersistence.Restore(input, validation.Footprint, definition);
-        if (!restored.IsValid || restored.Geometry is null)
+        if (!restored.IsValid || restored.Geometry is not SimpleGableRoofGeometry gableGeometry)
         {
             reject = new ManualEditReject("restore", "source-roof-not-rigid-equivalent");
             return false;
@@ -562,7 +562,7 @@ internal static class RoofGeneratedMemberManualEditService
                 globalCommandName,
                 generatedIds,
                 appendedTimberIds,
-                restored.Geometry,
+                gableGeometry,
                 elevation,
                 definition.Overrides);
             if (!TryPromoteSplitFragments(
@@ -648,7 +648,7 @@ internal static class RoofGeneratedMemberManualEditService
 
                 var key = RoofGeneratedMemberKey.From(generated.Data);
                 if (!TryCanonicalGeometry(
-                        restored.Geometry,
+                        gableGeometry,
                         generated.Data,
                         timberData.WidthMm,
                         elevation,

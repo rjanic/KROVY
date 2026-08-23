@@ -12,7 +12,8 @@ public sealed record RoofParameters(
     double? RafterWidthMm = null,
     double? RafterHeightMm = null,
     double? Face1SlopeDegrees = null,
-    double? EaveHeightDifferenceMm = null)
+    double? EaveHeightDifferenceMm = null,
+    RoofDirection2D? SlopeDirection = null)
 {
     public static RoofParameters Unspecified { get; } = new();
 }

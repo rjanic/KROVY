@@ -4,4 +4,5 @@ public enum RoofKind
 {
     SimpleGable = 1,
     AsymmetricGable = 2,
+    Monopitch = 3,
 }

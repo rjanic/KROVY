@@ -11,19 +11,11 @@ public static class RoofGroupGripNativeObservationRules
     public static bool IsCompleteSevenRoles(
         IReadOnlyDictionary<RoofDisplayEdgeRole, RoofSegment3D>? observed)
     {
-        if (observed is null || observed.Count != SimpleGableRoofWireframe.EdgeCount)
+        if (observed is null ||
+            !RoofWireframe.IsCompleteRoleSet(observed.Keys))
         {
             return false;
         }
-
-        foreach (RoofDisplayEdgeRole role in Enum.GetValues(typeof(RoofDisplayEdgeRole)))
-        {
-            if (!observed.ContainsKey(role))
-            {
-                return false;
-            }
-        }
-
         return true;
     }
 
@@ -32,7 +24,9 @@ public static class RoofGroupGripNativeObservationRules
         IReadOnlyDictionary<RoofDisplayEdgeRole, RoofSegment3D> observed,
         double toleranceMm)
     {
-        if (!IsCompleteSevenRoles(expected) || !IsCompleteSevenRoles(observed))
+        if (!IsCompleteSevenRoles(expected) ||
+            !IsCompleteSevenRoles(observed) ||
+            !new HashSet<RoofDisplayEdgeRole>(expected.Keys).SetEquals(observed.Keys))
         {
             return false;
         }

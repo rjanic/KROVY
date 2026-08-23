@@ -297,11 +297,12 @@ public sealed class RoofRigidTransformPersistenceTests
         var changed = Rectangle(10000d + widthChange, 6000d + heightChange);
         var result = RestoreResult(changed, data);
         Assert.True(result.IsValid, result.Error.ToString());
+        var geometry = Assert.IsType<SimpleGableRoofGeometry>(result.Geometry);
         Assert.Equal(
             RoofSourceChangeKind.SupportedResize,
             RoofDefinitionPersistence.Classify(changed, Validate(changed), data).Kind);
-        AssertParallel(result.Geometry!.RidgeDirection, EdgeDirection(changed, 0));
-        Assert.Equal(35d, result.Geometry.SlopeDegrees);
+        AssertParallel(geometry.RidgeDirection, EdgeDirection(changed, 0));
+        Assert.Equal(35d, geometry.SlopeDegrees);
     }
 
     [Fact]
@@ -313,9 +314,10 @@ public sealed class RoofRigidTransformPersistenceTests
             new(0d, 0d), new(10250d, 0d), new(10250d, 6000d), new(0d, 6000d)]);
         var result = RestoreResult(stretched, data);
         Assert.True(result.IsValid, result.Error.ToString());
+        var geometry = Assert.IsType<SimpleGableRoofGeometry>(result.Geometry);
         Assert.Equal(RoofSourceChangeKind.SupportedResize,
             RoofDefinitionPersistence.Classify(stretched, Validate(stretched), data).Kind);
-        AssertParallel(result.Geometry!.RidgeDirection, EdgeDirection(stretched, 0));
+        AssertParallel(geometry.RidgeDirection, EdgeDirection(stretched, 0));
     }
 
     [Fact]

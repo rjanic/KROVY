@@ -1,4 +1,3 @@
-using System.Globalization;
 using AcKrovy.Core.Models.Roofs;
 
 namespace AcKrovy.Core.Services.Roofs;
@@ -80,22 +79,8 @@ public static class SimpleGableRoofWireframe
             throw new ArgumentException("A simple-gable wireframe must contain seven unique finite roles.", nameof(edges));
         }
 
-        return string.Join(";", edges
-            .OrderBy(edge => edge.Role)
-            .SelectMany(edge => new[]
-            {
-                ((int)edge.Role).ToString(CultureInfo.InvariantCulture),
-                Format(edge.Segment.Start.X),
-                Format(edge.Segment.Start.Y),
-                Format(edge.Segment.Start.Z),
-                Format(edge.Segment.End.X),
-                Format(edge.Segment.End.Y),
-                Format(edge.Segment.End.Z),
-            }));
+        return RoofWireframe.BuildGenerationSignature(edges);
     }
-
-    private static string Format(double value) =>
-        value.ToString("R", CultureInfo.InvariantCulture);
 
     private static bool IsFinite(double value) =>
         !double.IsNaN(value) && !double.IsInfinity(value);

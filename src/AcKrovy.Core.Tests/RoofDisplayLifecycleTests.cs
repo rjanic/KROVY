@@ -253,7 +253,9 @@ public sealed class RoofDisplayLifecycleTests
             new(11250d, 4000d), new(1000d, 4000d)]);
 
         var result = RestoreResult(stretched, definition);
-        var edges = SimpleGableRoofWireframe.Create(result.Geometry!, 0d);
+        var edges = SimpleGableRoofWireframe.Create(
+            Assert.IsType<SimpleGableRoofGeometry>(result.Geometry),
+            0d);
 
         Assert.True(result.IsValid, result.Error.ToString());
         Assert.Equal(7, edges.Count);
@@ -311,7 +313,7 @@ public sealed class RoofDisplayLifecycleTests
     {
         var result = RestoreResult(source, definition);
         Assert.True(result.IsValid, result.Error.ToString());
-        return result.Geometry!;
+        return Assert.IsType<SimpleGableRoofGeometry>(result.Geometry);
     }
 
     private static RoofDefinitionRestoreResult RestoreResult(

@@ -3,7 +3,7 @@ using System.Globalization;
 namespace AcKrovy.Core.Models.Roofs;
 
 /// <summary>Deterministic neutral geometry for one centered rectangular gable roof.</summary>
-public sealed class SimpleGableRoofGeometry
+public sealed class SimpleGableRoofGeometry : IRoofGeometry
 {
     internal SimpleGableRoofGeometry(
         RoofSegment3D ridge,
@@ -38,6 +38,8 @@ public sealed class SimpleGableRoofGeometry
 
     public RoofDirection2D RidgeDirection { get; }
 
+    public RoofDirection2D OrientationDirection => RidgeDirection;
+
     public double RidgeLengthMm => Ridge.LengthMm;
 
     public double RunMm { get; }
@@ -45,6 +47,8 @@ public sealed class SimpleGableRoofGeometry
     public double RiseMm { get; }
 
     public double SlopeDegrees { get; }
+
+    public double PrimarySlopeDegrees => SlopeDegrees;
 
     public RoofKind Kind { get; }
 

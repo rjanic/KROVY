@@ -28,7 +28,7 @@ internal static class RoofWholeRoofCopyRebindService
     private sealed record OwnerCandidate(
         string Handle,
         ObjectId PolylineId,
-        SimpleGableRoofGeometry Geometry,
+        IRoofGeometry Geometry,
         RoofDefinitionData? Definition);
 
     private sealed record AppendedGeneratedClone(string Handle, ObjectId Id, string OwnerReference);
@@ -344,6 +344,11 @@ internal static class RoofWholeRoofCopyRebindService
 
         if (cloneIds.Length > 0)
         {
+            if (newOwner.Geometry is not SimpleGableRoofGeometry gableGeometry)
+            {
+                stage = "unsupported-generated-roof-kind";
+                return false;
+            }
             var reservedElementIds = RoofGeneratedRafterSetService.CollectReservedElementIds(
                 database,
                 transaction,
@@ -351,7 +356,7 @@ internal static class RoofWholeRoofCopyRebindService
                 newOwner.Definition);
 
             var layoutResult = SimpleGableRafterLayoutSolver.Solve(
-                newOwner.Geometry,
+                gableGeometry,
                 new RafterLayoutParameters(recipe.MaximumSpacingMm, recipe.WidthMm));
             if (!layoutResult.IsValid || layoutResult.Layout is null)
             {
@@ -407,7 +412,7 @@ internal static class RoofWholeRoofCopyRebindService
                 document.Editor,
                 ownerPolyline,
                 newOwner.Handle,
-                newOwner.Geometry,
+                gableGeometry,
                 layoutResult.Layout,
                 recipe,
                 TimberElementDefaultProfileStore.Load(),
@@ -415,8 +420,8 @@ internal static class RoofWholeRoofCopyRebindService
                 reservedElementIds);
             generatedRebuilt = created.Count;
 
-            var edges = SimpleGableRoofWireframe.Create(newOwner.Geometry, sourceElevation);
-            var signature = SimpleGableRoofWireframe.BuildGenerationSignature(edges);
+            var edges = RoofWireframe.Create(newOwner.Geometry, sourceElevation);
+            var signature = RoofWireframe.BuildGenerationSignature(edges);
             if (!RoofDisplayService.Rebuild(
                     database,
                     transaction,

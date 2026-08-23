@@ -33,7 +33,7 @@ internal sealed class RoofTransientPreviewSession : IDisposable
 
     public static RoofTransientPreviewSession Show(
         Document document,
-        SimpleGableRoofGeometry geometry,
+        IRoofGeometry geometry,
         double sourceElevation)
     {
         ArgumentNullException.ThrowIfNull(document);
@@ -84,7 +84,7 @@ internal sealed class RoofTransientPreviewSession : IDisposable
     }
 
     internal static IReadOnlyList<RoofPreviewSegment> MapSegments(
-        SimpleGableRoofGeometry geometry,
+        IRoofGeometry geometry,
         double sourceElevation)
     {
         ArgumentNullException.ThrowIfNull(geometry);
@@ -93,11 +93,15 @@ internal sealed class RoofTransientPreviewSession : IDisposable
             throw new ArgumentOutOfRangeException(nameof(sourceElevation));
         }
 
-        return SimpleGableRoofWireframe.Create(geometry, sourceElevation)
+        return RoofWireframe.Create(geometry, sourceElevation)
             .Select(edge => new RoofPreviewSegment(
                 MapPoint(edge.Segment.Start),
                 MapPoint(edge.Segment.End),
                 edge.Role == RoofDisplayEdgeRole.Ridge,
+                edge.Role is RoofDisplayEdgeRole.MonopitchDirection or
+                    RoofDisplayEdgeRole.MonopitchDirectionWing0 or
+                    RoofDisplayEdgeRole.MonopitchDirectionWing1 ? 2 :
+                edge.Role is RoofDisplayEdgeRole.MonopitchHighEave ? 1 :
                 edge.Role is RoofDisplayEdgeRole.Eave1 or
                     RoofDisplayEdgeRole.GableSlope10 or
                     RoofDisplayEdgeRole.GableSlope11 ? 1 : 0))
@@ -161,7 +165,7 @@ internal sealed class RoofTransientPreviewSession : IDisposable
         }
     }
 
-    private void AddGeometry(SimpleGableRoofGeometry geometry, double sourceElevation)
+    private void AddGeometry(IRoofGeometry geometry, double sourceElevation)
     {
         var transientManager = TransientManager.CurrentTransientManager;
         foreach (var segment in MapSegments(geometry, sourceElevation))
@@ -170,6 +174,7 @@ internal sealed class RoofTransientPreviewSession : IDisposable
             {
                 ColorIndex = segment.IsRidge
                     ? RidgeColorIndex
+                    : segment.FaceIndex == 2 ? RidgeColorIndex
                     : segment.FaceIndex == 1 ? Face1BoundaryColorIndex : FaceBoundaryColorIndex,
                 LineWeight = segment.IsRidge
                     ? LineWeight.LineWeight050

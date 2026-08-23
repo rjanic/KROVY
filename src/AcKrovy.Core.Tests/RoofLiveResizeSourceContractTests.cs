@@ -45,7 +45,7 @@ public sealed class RoofLiveResizeSourceContractTests
         Assert.Contains("RoofDefinitionPersistence.Create(", ResizeService);
         Assert.Contains("RoofDefinitionStore.Write(", ResizeService);
         Assert.Contains("RoofDisplayService.Rebuild(", ResizeService);
-        Assert.Contains("SimpleGableRoofWireframe.Create(", ResizeService);
+        Assert.Contains("RoofWireframe.Create(", ResizeService);
         Assert.Contains("RoofSourceChangeKind.SupportedResize", ResizeService);
         Assert.Contains("Command_Roof_PersistedStale", ResizeService);
         Assert.Contains("TransientNotificationService.Show(", ResizeService);
