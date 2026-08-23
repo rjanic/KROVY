@@ -103,10 +103,10 @@ public sealed class RoofDisplayTamperStretchSourceContractTests
         Assert.Contains("Command_Roof_DisplayTamperNotificationBody", displayBranch);
         Assert.Equal(1, Count(displayBranch, "TransientNotificationService.Show("));
         Assert.Equal(
-            "Zobrazenie strechy nemožno upravovať samostatne.",
+            "Vyberte základný obrys strechy",
             Resource("Command_Roof_DisplayTamperNotificationTitle"));
         Assert.Equal(
-            "Upravte základný obrys strechy.",
+            "Tvar strechy upravte pomocou jej obrysu. Ostatné prvky sa aktualizujú automaticky.",
             Resource("Command_Roof_DisplayTamperNotificationBody"));
         Assert.DoesNotContain(
             "Command_Roof_UnsupportedStretchNotificationTitle",

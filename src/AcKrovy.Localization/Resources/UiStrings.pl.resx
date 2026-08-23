@@ -561,8 +561,8 @@
   <data name="Command_Roof_UnsupportedStretchNotificationBody" xml:space="preserve"><value>Cofnij ostatnią zmianę poleceniem Cofnij (U).</value></data>
   <data name="Command_Roof_UnsupportedStretchRecoveredNotificationTitle" xml:space="preserve"><value>Nieobsługiwana zmiana dachu została przywrócona.</value></data>
   <data name="Command_Roof_UnsupportedStretchRecoveredNotificationBody" xml:space="preserve"><value>Obrys dachu musi pozostać prostokątny.</value></data>
-  <data name="Command_Roof_DisplayTamperNotificationTitle" xml:space="preserve"><value>Wyświetlenia dachu nie można edytować osobno.</value></data>
-  <data name="Command_Roof_DisplayTamperNotificationBody" xml:space="preserve"><value>Edytuj podstawowy obrys dachu.</value></data>
+  <data name="Command_Roof_DisplayTamperNotificationTitle" xml:space="preserve"><value>Wybierz podstawowy obrys dachu</value></data>
+  <data name="Command_Roof_DisplayTamperNotificationBody" xml:space="preserve"><value>Kształt dachu edytuj za pomocą jego obrysu. Pozostałe elementy aktualizują się automatycznie.</value></data>
   <data name="Command_Roof_PersistFailed" xml:space="preserve"><value>&#xA;Nie udało się zapisać definicji dachu.</value></data>
   <data name="Command_Roof_PersistSourceChanged" xml:space="preserve"><value>&#xA;Obrys dachu zmienił się podczas polecenia. Definicja nie została zapisana.</value></data>
   <data name="Command_Roof_PersistConflict" xml:space="preserve"><value>&#xA;Obrys zawiera już definicję dachu. Istniejące dane pozostały bez zmian.</value></data>

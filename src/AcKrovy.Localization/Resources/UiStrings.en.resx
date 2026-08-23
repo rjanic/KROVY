@@ -561,8 +561,8 @@
   <data name="Command_Roof_UnsupportedStretchNotificationBody" xml:space="preserve"><value>Undo the last change with Undo (U).</value></data>
   <data name="Command_Roof_UnsupportedStretchRecoveredNotificationTitle" xml:space="preserve"><value>Unsupported roof change was restored.</value></data>
   <data name="Command_Roof_UnsupportedStretchRecoveredNotificationBody" xml:space="preserve"><value>The roof outline must remain rectangular.</value></data>
-  <data name="Command_Roof_DisplayTamperNotificationTitle" xml:space="preserve"><value>Roof display cannot be edited on its own.</value></data>
-  <data name="Command_Roof_DisplayTamperNotificationBody" xml:space="preserve"><value>Edit the source roof footprint.</value></data>
+  <data name="Command_Roof_DisplayTamperNotificationTitle" xml:space="preserve"><value>Select the roof outline</value></data>
+  <data name="Command_Roof_DisplayTamperNotificationBody" xml:space="preserve"><value>Edit the roof shape using its outline. The other elements update automatically.</value></data>
   <data name="Command_Roof_PersistFailed" xml:space="preserve"><value>&#xA;The roof definition could not be saved.</value></data>
   <data name="Command_Roof_PersistSourceChanged" xml:space="preserve"><value>&#xA;The roof footprint changed during the command. The definition was not saved.</value></data>
   <data name="Command_Roof_PersistConflict" xml:space="preserve"><value>&#xA;The footprint already contains a roof definition. Existing data was left unchanged.</value></data>

@@ -136,7 +136,7 @@ internal static class RoofGeneratedMemberManualEditService
 
             if (!supportedUnlocked)
             {
-                if (TryAcceptLockedGripRigidTranslation(
+                if (TryAcceptLockedRigidTranslation(
                         document,
                         transaction,
                         owner,
@@ -144,9 +144,10 @@ internal static class RoofGeneratedMemberManualEditService
                         sourceModified,
                         globalCommandName))
                 {
-                    // LOCKED whole-roof GRIP_STRETCH pure translation: assembly was
-                    // normalized to snapshot + delta inside this transaction. Never run
-                    // the old-position generated-only recovery for this owner.
+                    // LOCKED whole-roof rigid pure translation (GRIP_STRETCH or classic
+                    // STRETCH): assembly was normalized to snapshot + delta inside this
+                    // transaction. Never run the old-position generated-only recovery
+                    // for this owner.
                     return OwnerEditOutcome.Skipped;
                 }
 
@@ -249,16 +250,19 @@ internal static class RoofGeneratedMemberManualEditService
     }
 
     /// <summary>
-    /// LOCKED whole-roof GRIP_STRETCH pure translation acceptance. Proves with the
-    /// pre-command source snapshot that the source was displaced by one identical
-    /// planar vector (same topology, same edge lengths, non-zero delta) and, when
-    /// proven, normalizes the whole snapshot assembly (Generated timber, AttachedManual
-    /// timber, annotations) to snapshot + delta inside the caller's transaction.
-    /// Returns true when the grip was a proven rigid translation — the caller must then
-    /// NOT run the old-position generated-only recovery. Returns false (no writes) for
-    /// any shape-changing / non-translation grip, leaving the existing recovery intact.
+    /// LOCKED whole-roof rigid pure translation acceptance (GRIP_STRETCH or classic
+    /// STRETCH). Proves with the pre-command source snapshot that the source was
+    /// displaced by one identical planar vector (same topology, same edge lengths,
+    /// non-zero delta) and, when proven, normalizes the whole snapshot assembly
+    /// (Generated timber, AttachedManual timber, annotations) to snapshot + delta
+    /// inside the caller's transaction. Returns true when the edit was a proven rigid
+    /// translation — the caller must then NOT run the old-position generated-only
+    /// recovery. Returns false (no writes) for any shape-changing / non-translation
+    /// edit, leaving the existing recovery intact. A pure whole-roof translation is
+    /// accepted ONLY when source geometry proves it; the command name alone is never
+    /// sufficient.
     /// </summary>
-    private static bool TryAcceptLockedGripRigidTranslation(
+    private static bool TryAcceptLockedRigidTranslation(
         Document document,
         Transaction transaction,
         Polyline owner,
@@ -267,7 +271,7 @@ internal static class RoofGeneratedMemberManualEditService
         string? globalCommandName)
     {
         if (!sourceModified ||
-            !LiveGeometryCommandRules.IsGripStretchCommand(globalCommandName) ||
+            !IsRigidTranslationCandidateCommand(globalCommandName) ||
             !RoofUnsupportedStretchRecoverySnapshotService.TryGet(ownerId, out var entry))
         {
             return false;
@@ -328,6 +332,18 @@ internal static class RoofGeneratedMemberManualEditService
 #endif
         return true;
     }
+
+    /// <summary>
+    /// Commands that MAY represent a whole-roof rigid pure translation that the locked
+    /// path accepts when source geometry proves it. Both the native grip edit
+    /// (GRIP_STRETCH) and the classic STRETCH command are candidates; the geometric
+    /// classifier in <see cref="TryAcceptLockedRigidTranslation"/> decides whether the
+    /// edit was actually a rigid translation. MOVE/ROTATE are handled by the earlier
+    /// rigid-transform branch and are intentionally not routed here.
+    /// </summary>
+    private static bool IsRigidTranslationCandidateCommand(string? globalCommandName) =>
+        LiveGeometryCommandRules.IsGripStretchCommand(globalCommandName) ||
+        RoofGeneratedMemberEditCommandRules.IsClassicStretch(globalCommandName);
 
     private static void RefreshModifiedAttachedManualNumberingAndAnnotations(
         Document document,

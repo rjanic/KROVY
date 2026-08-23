@@ -24,11 +24,11 @@ public sealed class RoofGripRigidTranslationSourceContractTests
     private static readonly string ProcessOwnerBody = RoofUxSourceContractText.Member(
         ManualEdit,
         "private static OwnerEditOutcome ProcessOwner(",
-        "private static bool TryAcceptLockedGripRigidTranslation(");
+        "private static bool TryAcceptLockedRigidTranslation(");
 
     private static readonly string RigidTranslationHelper = RoofUxSourceContractText.Member(
         ManualEdit,
-        "private static bool TryAcceptLockedGripRigidTranslation(",
+        "private static bool TryAcceptLockedRigidTranslation(",
         "private static void RefreshModifiedAttachedManualNumberingAndAnnotations(");
 
     private static readonly string NormalizeMethod = RoofUxSourceContractText.Member(
@@ -52,10 +52,10 @@ public sealed class RoofGripRigidTranslationSourceContractTests
         // The rigid-translation branch lives in the locked/unsupported (!supportedUnlocked)
         // path and is evaluated BEFORE the old-position generated-only recovery.
         Assert.Contains("if (!supportedUnlocked)", ProcessOwnerBody);
-        Assert.Contains("TryAcceptLockedGripRigidTranslation", ProcessOwnerBody);
+        Assert.Contains("TryAcceptLockedRigidTranslation", ProcessOwnerBody);
         Assert.Contains("TryRecoverGeneratedMembersOnly", ProcessOwnerBody);
         Assert.True(
-            ProcessOwnerBody.IndexOf("TryAcceptLockedGripRigidTranslation", StringComparison.Ordinal) <
+            ProcessOwnerBody.IndexOf("TryAcceptLockedRigidTranslation", StringComparison.Ordinal) <
             ProcessOwnerBody.IndexOf("TryRecoverGeneratedMembersOnly", StringComparison.Ordinal));
     }
 
@@ -70,13 +70,23 @@ public sealed class RoofGripRigidTranslationSourceContractTests
     }
 
     [Fact]
-    public void GripTranslation_IsGatedOnGripStretchCommandAndModifiedSource()
+    public void GripTranslation_IsGatedOnRigidTranslationCandidateAndModifiedSource()
     {
-        Assert.Contains("LiveGeometryCommandRules.IsGripStretchCommand(globalCommandName)", RigidTranslationHelper);
+        Assert.Contains("IsRigidTranslationCandidateCommand(globalCommandName)", RigidTranslationHelper);
         Assert.Contains("sourceModified", RigidTranslationHelper);
         Assert.Contains(
             "RoofUnsupportedStretchRecoverySnapshotService.TryGet(ownerId, out var entry)",
             RigidTranslationHelper);
+    }
+
+    [Fact]
+    public void RigidTranslationCandidateCoversGripStretchAndClassicStretch()
+    {
+        // The shared candidate command gate accepts BOTH the native grip edit and the
+        // classic STRETCH command; MOVE/ROTATE are not routed through it.
+        Assert.Contains("LiveGeometryCommandRules.IsGripStretchCommand(globalCommandName)", RigidTranslationHelper);
+        Assert.Contains("RoofGeneratedMemberEditCommandRules.IsClassicStretch(globalCommandName)", RigidTranslationHelper);
+        Assert.DoesNotContain("\"MOVE\"", RigidTranslationHelper);
     }
 
     [Fact]
@@ -148,7 +158,7 @@ public sealed class RoofGripRigidTranslationSourceContractTests
         Assert.Contains("Equals(\"ROTATE\", StringComparison.OrdinalIgnoreCase)", ProcessOwnerBody);
         Assert.True(
             ProcessOwnerBody.IndexOf("isRigidRoofTransform", StringComparison.Ordinal) <
-            ProcessOwnerBody.IndexOf("TryAcceptLockedGripRigidTranslation", StringComparison.Ordinal));
+            ProcessOwnerBody.IndexOf("TryAcceptLockedRigidTranslation", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -158,7 +168,7 @@ public sealed class RoofGripRigidTranslationSourceContractTests
         // path (TryAcceptUnlockedEdits) is not modified.
         Assert.True(
             ProcessOwnerBody.IndexOf("if (!supportedUnlocked)", StringComparison.Ordinal) <
-            ProcessOwnerBody.IndexOf("TryAcceptLockedGripRigidTranslation", StringComparison.Ordinal));
+            ProcessOwnerBody.IndexOf("TryAcceptLockedRigidTranslation", StringComparison.Ordinal));
         Assert.Contains("TryAcceptUnlockedEdits", ManualEdit);
     }
 

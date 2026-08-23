@@ -561,8 +561,8 @@
   <data name="Command_Roof_UnsupportedStretchNotificationBody" xml:space="preserve"><value>Vráťte poslednú zmenu príkazom Späť (U).</value></data>
   <data name="Command_Roof_UnsupportedStretchRecoveredNotificationTitle" xml:space="preserve"><value>Nepodporovaná zmena strechy bola vrátená.</value></data>
   <data name="Command_Roof_UnsupportedStretchRecoveredNotificationBody" xml:space="preserve"><value>Obrys strechy musí zostať obdĺžnikový.</value></data>
-  <data name="Command_Roof_DisplayTamperNotificationTitle" xml:space="preserve"><value>Zobrazenie strechy nemožno upravovať samostatne.</value></data>
-  <data name="Command_Roof_DisplayTamperNotificationBody" xml:space="preserve"><value>Upravte základný obrys strechy.</value></data>
+  <data name="Command_Roof_DisplayTamperNotificationTitle" xml:space="preserve"><value>Vyberte základný obrys strechy</value></data>
+  <data name="Command_Roof_DisplayTamperNotificationBody" xml:space="preserve"><value>Tvar strechy upravte pomocou jej obrysu. Ostatné prvky sa aktualizujú automaticky.</value></data>
   <data name="Command_Roof_PersistFailed" xml:space="preserve"><value>&#xA;Definíciu strechy sa nepodarilo uložiť.</value></data>
   <data name="Command_Roof_PersistSourceChanged" xml:space="preserve"><value>&#xA;Obrys strechy sa počas príkazu zmenil. Definícia sa neuložila.</value></data>
   <data name="Command_Roof_PersistConflict" xml:space="preserve"><value>&#xA;Obrys už obsahuje definíciu strechy. Existujúce údaje zostali nezmenené.</value></data>

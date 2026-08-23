@@ -323,6 +323,43 @@ Reusable rule:
   entered. An accepted permanent AttachedManual erase is "handled" by the accept path and
   must never be fed into generated-erasure recovery.
 
+## Locked whole-roof rigid translation (GRIP_STRETCH and classic STRETCH)
+
+Reusable rule:
+
+> A LOCKED whole-roof pure translation — whether exposed by AutoCAD as a grip edit
+> (GRIP_STRETCH) or the classic STRETCH command selecting the whole roof — must be
+> accepted as a rigid whole-roof translation when source GEOMETRY proves it, and
+> normalized to `snapshot + delta`. It must never be routed into the old-position
+> generated-only recovery, which tears the assembly apart.
+
+- Classification is geometric, never command-name-only. `RoofGeneratedMemberManualEditService`
+  routes any LOCKED `!supportedUnlocked` owner through the shared
+  `TryAcceptLockedRigidTranslation` (the shared candidate command gate accepts
+  GRIP_STRETCH OR classic STRETCH). Acceptance requires
+  `RoofRigidGroupTransformRules.TryClassifySourceOnlyTranslation` on the pre-command
+  source snapshot vs the live source: same vertex count (4), identical planar
+  displacement for all vertices, rigid shape preserved, non-zero delta, existing
+  tolerance, no bbox/extents, no nearest-anchor heuristic.
+- A pure whole-roof translation is accepted ONLY when source geometry proves it; the
+  command name alone is never sufficient. A shape-changing / partial STRETCH is
+  rejected by the classifier and keeps the existing locked recovery path
+  (`TryRecoverGeneratedMembersOnly` → `LockedRecovered`), so STRETCH is not blindly
+  turned into MOVE.
+- On acceptance, `RoofUnsupportedStretchRecoveryService.TryNormalizeRigidTranslation`
+  writes the whole snapshot assembly (Generated timber, AttachedManual timber,
+  annotations) to `snapshot + delta` — idempotent with respect to whatever AutoCAD
+  moved natively. It does NOT use TransformBy(delta) on live geometry, does NOT
+  regenerate, does NOT rewrite metadata, does NOT write the source (opened ForRead),
+  and does NOT reanchor/replay/recapture.
+- AttachedManual Origin/AnchorGeneratedMemberKey/RelativeSegment/ChildIdentity/Roof
+  owner/Suppress(K)/geometry overrides/GeneratedMemberKey all remain unchanged.
+- MOVE/ROTATE are handled by the earlier `isRigidRoofTransform` branch and are never
+  routed through the rigid-translation helper. GRIP_STRETCH acceptance from the prior
+  fix is unchanged — both commands share the one translation engine.
+- Runs only inside the genuine command's CommandEnded transaction; zero DB access at
+  U/UNDO/REDO/MREDO boundaries is preserved; T2 Generated creation order is untouched.
+
 ## Human approval
 
 Do not commit or push unless explicitly approved.
