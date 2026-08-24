@@ -46,13 +46,13 @@ public sealed class RoofSuppressedLogicalAnchorSourceContractTests
     {
         var replace = Member(
             Replacement,
-            "public static ReplacementOutcome TryReplaceForSupportedResize(\n        Database database,\n        Transaction transaction,\n        Editor editor,\n        Polyline owner,\n        SimpleGableRoofGeometry geometry,\n        TimberElementDefaultProfile defaultProfile,\n        ElementLayerProfile layerProfile,\n        out RoofGeneratedAnchorResolutionContext? anchorResolutionContext",
+            "public static ReplacementOutcome TryReplaceForSupportedResize(\n        Database database,\n        Transaction transaction,\n        Editor editor,\n        Polyline owner,\n        IRoofGeometry geometry,\n        TimberElementDefaultProfile defaultProfile,\n        ElementLayerProfile layerProfile,\n        out RoofGeneratedAnchorResolutionContext? anchorResolutionContext",
             "public static IReadOnlyDictionary<ObjectId, TimberElementData> Materialize");
-        Assert.Contains("var layoutResult = SimpleGableRafterLayoutSolver.Solve(", replace);
+        Assert.Contains("var layoutResult = RoofRafterLayoutSolver.Solve(", replace);
         Assert.Contains("var created = Materialize(", replace);
         Assert.Contains("RoofGeneratedAnchorResolutionContext.TryCreate(", replace);
         Assert.Contains("layoutResult.Layout", replace);
-        Assert.Equal(1, Count(replace, "SimpleGableRafterLayoutSolver.Solve("));
+        Assert.Equal(1, Count(replace, "RoofRafterLayoutSolver.Solve("));
         Assert.DoesNotContain("RoofDefinitionPersistence.Restore", Lifecycle);
         Assert.DoesNotContain("SimpleGableRafterLayoutSolver", Lifecycle);
     }

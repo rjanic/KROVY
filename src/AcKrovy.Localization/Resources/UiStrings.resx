@@ -643,7 +643,7 @@
   <data name="Command_RoofLock_AlreadyLocked" xml:space="preserve"><value>&#xA;Strecha je už zamknutá.</value></data>
   <data name="Command_RoofResetEdits_Reset" xml:space="preserve"><value>&#xA;Ručné úpravy generovaného reziva boli vrátené.</value></data>
   <data name="Command_RoofResetEdits_NoEdits" xml:space="preserve"><value>&#xA;Vybraná strecha nemá ručné úpravy.</value></data>
-  <data name="Command_RoofEdit_SelectPrompt" xml:space="preserve"><value>&#xA;Vyber strechu pre úpravu: </value></data>
+  <data name="Command_RoofEdit_SelectPrompt" xml:space="preserve"><value>Vyber strechu: </value></data>
   <data name="Command_RoofEdit_UpdatedFormat" xml:space="preserve"><value>&#xA;Strecha bola upravená.</value></data>
   <data name="Command_Roof_LockedNotificationTitle" xml:space="preserve"><value>Strecha je zamknutá</value></data>
   <data name="Command_Roof_LockedNotificationBody" xml:space="preserve"><value>Pre ručné úpravy ju najskôr odomknite.</value></data>
@@ -704,23 +704,22 @@
   <data name="RoofGeometryWindow_ValidationDirection" xml:space="preserve"><value>Vybraný smer hrebeňa musí byť rovnobežný s hranou obdĺžnika.</value></data>
   <data name="RoofGeometryWindow_MirrorAsymmetry" xml:space="preserve"><value>Zrkadliť asymetriu (vymeniť ľavú/pravú stranu)</value></data>
   <data name="RoofGeometryWindow_Ridge" xml:space="preserve"><value>Hrebeň</value></data>
-  <data name="Command_Roof_LowSidePointPrompt" xml:space="preserve"><value>\nVyberte prvý bod na nízkej strane strechy (NÍZKY OKAP): </value></data>
-  <data name="Command_Roof_HighSidePointPrompt" xml:space="preserve"><value>\nVyberte druhý bod na vysokej strane strechy (VYSOKÝ OKAP): </value></data>
-  <data name="Command_RoofRafters_MonopitchUnsupported" xml:space="preserve"><value>\nPultová strecha v Stage 1 nepodporuje automatické vytvorenie krokiev.</value></data>
+  <data name="Command_Roof_LowSidePointPrompt" xml:space="preserve"><value>Urči NÍZKY okap: </value></data>
+  <data name="Command_Roof_HighSidePointPrompt" xml:space="preserve"><value>Urči VYSOKÝ okap: </value></data>
   <data name="RoofGeometryWindow_MonopitchTitle" xml:space="preserve"><value>Geometria pultovej strechy</value></data>
   <data name="RoofGeometryWindow_MonopitchHeading" xml:space="preserve"><value>Pultová strecha</value></data>
-  <data name="RoofGeometryWindow_MonopitchDescription" xml:space="preserve"><value>Nastavte jednu strešnú rovinu, vyberte smer NÍZKY → VYSOKÝ a výsledok skontrolujte náhľadom.</value></data>
+  <data name="RoofGeometryWindow_MonopitchDescription" xml:space="preserve"><value>Nastavte jednu strešnú rovinu, vyberte smer spádu VYSOKÝ → NÍZKY a výsledok skontrolujte náhľadom.</value></data>
   <data name="RoofGeometryWindow_Monopitch" xml:space="preserve"><value>Pultová strecha</value></data>
   <data name="RoofGeometryWindow_ModeMonopitchSlope" xml:space="preserve"><value>Zadať sklon α</value></data>
   <data name="RoofGeometryWindow_ModeMonopitchHeight" xml:space="preserve"><value>Zadať prevýšenie okapov ΔH</value></data>
   <data name="RoofGeometryWindow_MonopitchSlope" xml:space="preserve"><value>Sklon α (°)</value></data>
   <data name="RoofGeometryWindow_MonopitchHeightDifference" xml:space="preserve"><value>Prevýšenie okapov ΔH (mm)</value></data>
   <data name="RoofGeometryWindow_MirrorMonopitch" xml:space="preserve"><value>Zrkadliť pultovú strechu (NÍZKY ↔ VYSOKÝ)</value></data>
-  <data name="RoofGeometryWindow_SlopeDirection" xml:space="preserve"><value>Smer stúpania NÍZKY → VYSOKÝ</value></data>
-  <data name="RoofGeometryWindow_SlopeDirectionNotSelected" xml:space="preserve"><value>Smer NÍZKY → VYSOKÝ ešte nebol vybraný.</value></data>
-  <data name="RoofGeometryWindow_PickSlopeDirection" xml:space="preserve"><value>Vybrať smer NÍZKY → VYSOKÝ vo výkrese</value></data>
+  <data name="RoofGeometryWindow_SlopeDirection" xml:space="preserve"><value>Smer spádu VYSOKÝ → NÍZKY</value></data>
+  <data name="RoofGeometryWindow_SlopeDirectionNotSelected" xml:space="preserve"><value>Smer spádu VYSOKÝ → NÍZKY ešte nebol vybraný.</value></data>
+  <data name="RoofGeometryWindow_PickSlopeDirection" xml:space="preserve"><value>Vybrať smer spádu VYSOKÝ → NÍZKY vo výkrese</value></data>
   <data name="RoofGeometryWindow_ValidationMonopitchHeight" xml:space="preserve"><value>Prevýšenie okapov musí byť kladné a musí určovať sklon väčší ako 0° a menší ako 90°.</value></data>
-  <data name="RoofGeometryWindow_ValidationSlopeDirectionRequired" xml:space="preserve"><value>Pred náhľadom alebo vytvorením vyberte smer NÍZKY → VYSOKÝ.</value></data>
+  <data name="RoofGeometryWindow_ValidationSlopeDirectionRequired" xml:space="preserve"><value>Pred náhľadom alebo vytvorením vyberte smer spádu VYSOKÝ → NÍZKY.</value></data>
   <data name="RoofGeometryWindow_LowEave" xml:space="preserve"><value>Nízky okap</value></data>
   <data name="RoofGeometryWindow_HighEave" xml:space="preserve"><value>Vysoký okap</value></data>
 </root>

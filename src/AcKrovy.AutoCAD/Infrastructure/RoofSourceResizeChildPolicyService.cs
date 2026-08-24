@@ -39,7 +39,8 @@ internal static class RoofSourceResizeChildPolicyService
         Polyline owner,
         RoofGeneratedRafterSetService.ReplacementOutcome rafterOutcome,
         int generatedMemberCount,
-        RoofGeneratedAnchorResolutionContext? anchorResolutionContext)
+        RoofGeneratedAnchorResolutionContext? anchorResolutionContext,
+        bool replayAttachedManualChildren = true)
     {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(transaction);
@@ -81,7 +82,7 @@ internal static class RoofSourceResizeChildPolicyService
         var splitDormant = 0;
         var splitReactivated = 0;
         var splitDormantOutsideFootprint = 0;
-        if (generatedRebuilt > 0)
+        if (generatedRebuilt > 0 && replayAttachedManualChildren)
         {
             var copyReplay = RoofAttachedManualLifecycleService.ReplayAnchoredChildrenForOwner(
                 document,

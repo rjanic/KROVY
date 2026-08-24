@@ -118,11 +118,12 @@ public sealed class RoofRafterGenerationSourceContractTests
     }
 
     [Fact]
-    public void DialogIsTheOnlyConfirmationAndCreationUsesOneCommit()
+    public void DialogOwnsConfirmationTransientPreviewAndCreationUsesOneCommit()
     {
         Assert.Contains("AcApp.ShowModalWindow(dialog)", Workflow);
         Assert.DoesNotContain("ConfirmYesNo", Workflow);
-        Assert.DoesNotContain("ShowRafters", Workflow);
+        Assert.Contains("RoofRafterTransientPreviewController", Workflow);
+        Assert.Contains("preview.Refresh(dialog.PreviewLayout)", Workflow);
         Assert.Equal(1, Count(Workflow, "transaction.Commit();"));
     }
 

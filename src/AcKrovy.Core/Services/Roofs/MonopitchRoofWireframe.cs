@@ -2,7 +2,7 @@ using AcKrovy.Core.Models.Roofs;
 
 namespace AcKrovy.Core.Services.Roofs;
 
-/// <summary>One plane boundary plus an intentional LOW-to-HIGH direction arrow.</summary>
+/// <summary>One plane boundary plus a physical HIGH-to-LOW fall-direction arrow.</summary>
 public static class MonopitchRoofWireframe
 {
     public const int EdgeCount = 7;
@@ -27,8 +27,8 @@ public static class MonopitchRoofWireframe
         var high = geometry.HighEave;
         var lowCenter = Midpoint(low.Start, low.End);
         var highCenter = Midpoint(high.Start, high.End);
-        var arrowStart = Lerp(lowCenter, highCenter, 0.28d);
-        var arrowTip = Lerp(lowCenter, highCenter, 0.72d);
+        var arrowStart = Lerp(highCenter, lowCenter, 0.28d);
+        var arrowTip = Lerp(highCenter, lowCenter, 0.72d);
         var backward = Normalize(Subtract(arrowStart, arrowTip));
         var transverse = Normalize(Subtract(low.End, low.Start));
         var wingBase = Add(arrowTip, Scale(backward, Math.Min(geometry.SpanMm * 0.12d, 450d)));

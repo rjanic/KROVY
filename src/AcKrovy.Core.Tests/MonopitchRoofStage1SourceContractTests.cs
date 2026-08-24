@@ -1,3 +1,4 @@
+using System.Xml.Linq;
 using Xunit;
 
 namespace AcKrovy.Core.Tests;
@@ -20,19 +21,135 @@ public sealed class MonopitchRoofStage1SourceContractTests
     }
 
     [Fact]
-    public void CreationAndEdit_UseLowHighPromptsAndCommonEditorShell()
+    public void CreationAndEdit_PickHighThenLowAndConvertToCanonicalDirection()
     {
         var creation = Read("src/AcKrovy.AutoCAD/Infrastructure/RoofCommandWorkflow.cs");
         var edit = Read("src/AcKrovy.AutoCAD/Infrastructure/RoofEditCommandWorkflow.cs");
         var window = Read("src/AcKrovy.AutoCAD/UI/GableRoofGeometryWindow.xaml");
+        var creationPrompt = Member(creation, "private static bool TryPromptOrientationDirection(");
+        var editPrompt = Member(edit, "private static bool TryPromptOrientationDirection(");
 
-        Assert.Contains("Command_Roof_LowSidePointPrompt", creation);
-        Assert.Contains("Command_Roof_HighSidePointPrompt", creation);
+        Assert.True(
+            creationPrompt.IndexOf("Command_Roof_HighSidePointPrompt", StringComparison.Ordinal) <
+            creationPrompt.IndexOf("Command_Roof_LowSidePointPrompt", StringComparison.Ordinal));
+        Assert.True(
+            editPrompt.IndexOf("Command_Roof_HighSidePointPrompt", StringComparison.Ordinal) <
+            editPrompt.IndexOf("Command_Roof_LowSidePointPrompt", StringComparison.Ordinal));
+        Assert.Contains(
+            "MonopitchRoofDirectionPresentationRules.ToCanonicalLowToHigh(",
+            creationPrompt);
+        Assert.Contains(
+            "MonopitchRoofDirectionPresentationRules.ToCanonicalLowToHigh(",
+            editPrompt);
         Assert.Contains("new GableRoofGeometryWindow(", creation);
         Assert.Contains("new GableRoofGeometryWindow(", edit);
         Assert.Contains("IRoofGeometry restoredGeometry", edit);
         Assert.Contains("MonopitchRoofSectionControl", window);
         Assert.Contains("MirrorMonopitchCheckBox", window);
+
+        Assert.Contains("\"\\n\" + directionStartPrompt", creationPrompt);
+        Assert.Contains("\"\\n\" + directionEndPrompt", creationPrompt);
+        Assert.Contains("\"\\n\" + directionStartPrompt", editPrompt);
+        Assert.Contains("\"\\n\" + directionEndPrompt", editPrompt);
+    }
+
+    [Fact]
+    public void MonopitchCreation_DefersDirectionToOneExplicitEditorAction()
+    {
+        var creation = Read("src/AcKrovy.AutoCAD/Infrastructure/RoofCommandWorkflow.cs");
+        var creationDialog = Between(
+            creation,
+            "private static void RunCreationDialog(",
+            "private static void ClearCompletedWorkflowSelection(");
+        var editorConstruction = creationDialog.IndexOf(
+            "new GableRoofGeometryWindow(",
+            StringComparison.Ordinal);
+        var dialogLoop = creationDialog.IndexOf("while (!dialog.IsClosed)", StringComparison.Ordinal);
+        var repickAction = creationDialog.IndexOf(
+            "case GableRoofGeometryDialogAction.PickRidgeDirection:",
+            StringComparison.Ordinal);
+        var directionPicker = creationDialog.IndexOf(
+            "TryPromptOrientationDirection(",
+            StringComparison.Ordinal);
+
+        Assert.True(editorConstruction >= 0);
+        Assert.True(dialogLoop >= 0);
+        Assert.True(repickAction >= 0);
+        Assert.True(directionPicker >= 0);
+        Assert.True(editorConstruction < dialogLoop);
+        Assert.True(dialogLoop < repickAction);
+        Assert.True(repickAction < directionPicker);
+        Assert.Equal(1, Count(creationDialog, "TryPromptOrientationDirection("));
+        Assert.DoesNotContain("if (initialKind == RoofKind.Monopitch)", creationDialog);
+        Assert.Contains("viewModel.SetRidgeDirection(direction);", creationDialog);
+    }
+
+    [Fact]
+    public void DirectionPick_CancelReturnsToTheSharedEditorWithoutCommittingOrRetrying()
+    {
+        var creation = Read("src/AcKrovy.AutoCAD/Infrastructure/RoofCommandWorkflow.cs");
+        var edit = Read("src/AcKrovy.AutoCAD/Infrastructure/RoofEditCommandWorkflow.cs");
+        var creationPrompt = Between(
+            creation,
+            "private static bool TryPromptOrientationDirection(",
+            "private static IntPtr TryGetAutoCadMainWindowHandle()");
+        var editPrompt = Between(
+            edit,
+            "private static bool TryPromptOrientationDirection(",
+            "private static IntPtr TryGetAutoCadMainWindowHandle()");
+
+        Assert.Contains("directionStartResult.Status != PromptStatus.OK", creationPrompt);
+        Assert.Contains("directionEndResult.Status != PromptStatus.OK", creationPrompt);
+        Assert.Contains("directionStartResult.Status != PromptStatus.OK", editPrompt);
+        Assert.Contains("directionEndResult.Status != PromptStatus.OK", editPrompt);
+        Assert.Contains("if (TryPromptOrientationDirection(", creation);
+        Assert.Contains("if (TryPromptOrientationDirection(", edit);
+        Assert.Contains("viewModel.SetRidgeDirection(direction);", creation);
+        Assert.Contains("viewModel.SetRidgeDirection(direction);", edit);
+    }
+
+    [Fact]
+    public void CommandLinePrompts_AreConciseAndNeverContainLiteralBackslashN()
+    {
+        var expectedSlovak = new Dictionary<string, string>
+        {
+            ["Command_RoofEdit_SelectPrompt"] = "Vyber strechu: ",
+            ["Command_Roof_HighSidePointPrompt"] = "Urči VYSOKÝ okap: ",
+            ["Command_Roof_LowSidePointPrompt"] = "Urči NÍZKY okap: ",
+        };
+
+        foreach (var path in Directory.GetFiles(
+                     Path.Combine(Root, "src/AcKrovy.Localization/Resources"),
+                     "UiStrings*.resx"))
+        {
+            var document = XDocument.Load(path);
+            var values = document.Root!
+                .Elements("data")
+                .ToDictionary(
+                    item => (string)item.Attribute("name")!,
+                    item => (string)item.Element("value")!);
+
+            foreach (var key in expectedSlovak.Keys)
+            {
+                Assert.True(values.ContainsKey(key), $"Missing {key} in {path}");
+                Assert.DoesNotContain("\\n", values[key], StringComparison.Ordinal);
+                Assert.DoesNotContain("\r", values[key], StringComparison.Ordinal);
+                Assert.DoesNotContain("\n", values[key], StringComparison.Ordinal);
+            }
+        }
+
+        var slovak = XDocument.Load(Path.Combine(
+            Root,
+            "src/AcKrovy.Localization/Resources/UiStrings.resx"));
+        var slovakValues = slovak.Root!
+            .Elements("data")
+            .ToDictionary(
+                item => (string)item.Attribute("name")!,
+                item => (string)item.Element("value")!);
+        foreach (var pair in expectedSlovak)
+        {
+            Assert.Equal(pair.Value, slovakValues[pair.Key]);
+        }
     }
 
     [Fact]
@@ -49,16 +166,32 @@ public sealed class MonopitchRoofStage1SourceContractTests
     }
 
     [Fact]
-    public void RafterWorkflow_RejectsMonopitchBeforeDialogOrMaterialization()
+    public void RafterWorkflow_RoutesMonopitchThroughSharedValidatedMaterialization()
     {
         var source = Read("src/AcKrovy.AutoCAD/Infrastructure/RoofRafterCommandWorkflow.cs");
-        var guard = source.IndexOf("restored.Geometry.Kind == RoofKind.Monopitch", StringComparison.Ordinal);
+        var selectionCall = source.IndexOf("TrySelectCurrentRoof(document", StringComparison.Ordinal);
         var dialog = source.IndexOf("new RoofRafterWindow(", StringComparison.Ordinal);
+        var createMethod = source.IndexOf("private static RoofRafterCreationResult TryCreateRafters(", StringComparison.Ordinal);
+        var lockDocument = source.IndexOf("document.LockDocument()", createMethod, StringComparison.Ordinal);
+        var validation = source.IndexOf(
+            "RoofRafterRequestValidator.Validate(",
+            createMethod,
+            StringComparison.Ordinal);
+        var materialize = source.IndexOf("RoofGeneratedRafterSetService.Materialize(", StringComparison.Ordinal);
 
-        Assert.True(guard >= 0);
+        Assert.True(selectionCall >= 0);
         Assert.True(dialog >= 0);
-        Assert.Contains("Command_RoofRafters_MonopitchUnsupported", source);
-        Assert.Contains("RoofRafterCreationResult.Failure(\n                    \"Command_RoofRafters_MonopitchUnsupported\")", source);
+        Assert.True(createMethod >= 0);
+        Assert.True(lockDocument >= 0);
+        Assert.True(validation >= 0);
+        Assert.True(materialize >= 0);
+        Assert.True(selectionCall < dialog);
+        Assert.True(dialog < lockDocument);
+        Assert.True(lockDocument < validation);
+        Assert.True(validation < materialize);
+        Assert.Contains("restored.Geometry is not SimpleGableRoofGeometry and", source);
+        Assert.Contains("not MonopitchRoofGeometry", source);
+        Assert.Contains("RoofRafterMaterializationRules.IsConsistent(", source);
     }
 
     [Fact]
@@ -69,6 +202,10 @@ public sealed class MonopitchRoofStage1SourceContractTests
             "src/AcKrovy.Core/Models/Roofs/MonopitchRoofGeometry.cs",
             "src/AcKrovy.Core/Services/Roofs/MonopitchRoofGeometrySolver.cs",
             "src/AcKrovy.Core/Services/Roofs/MonopitchRoofMath.cs",
+            "src/AcKrovy.Core/Models/Roofs/RoofRafterPlane.cs",
+            "src/AcKrovy.Core/Models/Roofs/RoofRafterGeometry.cs",
+            "src/AcKrovy.Core/Models/Roofs/RoofRafterLayout.cs",
+            "src/AcKrovy.Core/Services/Roofs/RoofRafterLayoutSolver.cs",
             "src/AcKrovy.Core/Services/Roofs/RoofDefinitionPersistence.cs",
         };
         var source = string.Join("\n", files.Select(Read));
@@ -94,6 +231,35 @@ public sealed class MonopitchRoofStage1SourceContractTests
     }
 
     private static string Read(string relative) => File.ReadAllText(Path.Combine(Root, relative));
+
+    private static string Member(string source, string start)
+    {
+        var startIndex = source.IndexOf(start, StringComparison.Ordinal);
+        Assert.True(startIndex >= 0, $"Missing member: {start}");
+        return source.Substring(startIndex);
+    }
+
+    private static string Between(string source, string start, string end)
+    {
+        var startIndex = source.IndexOf(start, StringComparison.Ordinal);
+        var endIndex = source.IndexOf(end, startIndex, StringComparison.Ordinal);
+        Assert.True(startIndex >= 0, $"Missing start: {start}");
+        Assert.True(endIndex > startIndex, $"Missing end: {end}");
+        return source.Substring(startIndex, endIndex - startIndex);
+    }
+
+    private static int Count(string source, string value)
+    {
+        var count = 0;
+        var index = 0;
+        while ((index = source.IndexOf(value, index, StringComparison.Ordinal)) >= 0)
+        {
+            count++;
+            index += value.Length;
+        }
+
+        return count;
+    }
 
     private static string RepositoryRoot()
     {

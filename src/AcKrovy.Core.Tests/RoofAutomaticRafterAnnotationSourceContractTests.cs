@@ -168,7 +168,8 @@ public sealed class RoofAutomaticRafterAnnotationSourceContractTests
         var prefix = Workflow[..firstMaterializeCall];
         Assert.Contains("selectedRoof.ExistingGeneratedRafterCount > 0", prefix);
         Assert.Contains("RoofGeneratedTimberStore.FindByOwner(", prefix);
-        Assert.Contains("AcApp.ShowModalWindow(dialog) != true", prefix);
+        Assert.Contains("AcApp.ShowModalWindow(dialog) == true", prefix);
+        Assert.Contains("if (!accepted || dialog.Request is null)", prefix);
         Assert.Contains("return;", prefix);
         Assert.Contains("return RoofRafterCreationResult.Failure(", prefix);
     }

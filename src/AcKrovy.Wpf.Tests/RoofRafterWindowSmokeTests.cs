@@ -110,6 +110,95 @@ public sealed class RoofRafterWindowSmokeTests
     }
 
     [Fact]
+    public void MonopitchGeometry_ShowsOnePlanePreviewAndReturnsCreationRequestInAllLanguages()
+    {
+        Exception? failure = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                var geometry = MonopitchGeometry(10000, 6000, 27);
+                foreach (var language in new[] { "sk", "cs", "en", "de", "pl", "fr" })
+                {
+                    AppLanguageService.Apply(language);
+                    var window = new RoofRafterWindow(
+                        geometry,
+                        RoofRafterPreferences.CreateFirstUse("Smrek C24"),
+                        SettingsTheme.Light);
+
+                    Assert.Single(window.PreviewLayout!.Planes);
+                    Assert.Equal(
+                        window.PreviewLayout.StationCount,
+                        window.PreviewLayout.Rafters.Count);
+                    Assert.True(window.CreateButton.IsEnabled);
+                    Assert.Contains("27", window.RoofSlopeTextBox.Text);
+                    Assert.Empty(window.ValidationTextBlock.Text);
+
+                    _ = window.Dispatcher.BeginInvoke(
+                        DispatcherPriority.ApplicationIdle,
+                        new Action(() => window.CreateButton.RaiseEvent(
+                            new RoutedEventArgs(Button.ClickEvent))));
+                    Assert.True(window.ShowDialog());
+                    var request = Assert.IsType<RoofRafterCreationRequest>(window.Request);
+                    Assert.Equal(27d, request.RoofSlopeDegrees);
+                }
+            }
+            catch (Exception exception)
+            {
+                failure = exception;
+            }
+        });
+
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        Assert.True(thread.Join(TimeSpan.FromSeconds(45)), "Monopitch rafter dialog smoke timed out.");
+        Assert.Null(failure);
+    }
+
+    [Fact]
+    public void MonopitchInputChangesPublishFreshLayoutAndInvalidInputClearsPreview()
+    {
+        Exception? failure = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                AppLanguageService.Apply("en");
+                var window = new RoofRafterWindow(
+                    MonopitchGeometry(10000, 6000, 30),
+                    new RoofRafterPreferences(80, 160, 1000, "Smrek C24"),
+                    SettingsTheme.Light);
+                var published = new List<RoofRafterLayout?>();
+                window.PreviewLayoutChanged += published.Add;
+                var initial = window.PreviewLayout!;
+
+                window.MaximumSpacingTextBox.Text = "700";
+
+                var refreshed = Assert.IsType<RoofRafterLayout>(window.PreviewLayout);
+                Assert.NotEqual(initial.Signature, refreshed.Signature);
+                Assert.True(refreshed.StationCount > initial.StationCount);
+                Assert.Same(refreshed, published[^1]);
+
+                window.MaximumSpacingTextBox.Text = "invalid";
+
+                Assert.Null(window.PreviewLayout);
+                Assert.Null(published[^1]);
+                Assert.False(window.CreateButton.IsEnabled);
+                window.Close();
+            }
+            catch (Exception exception)
+            {
+                failure = exception;
+            }
+        });
+
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        Assert.True(thread.Join(TimeSpan.FromSeconds(30)));
+        Assert.Null(failure);
+    }
+
+    [Fact]
     public void WidthRecalculatesSummaryAndCancelReturnsNoRequest()
     {
         Exception? failure = null;
@@ -218,5 +307,19 @@ public sealed class RoofRafterWindowSmokeTests
             validation.Footprint!,
             new RoofParameters(face0Slope, direction, Face1SlopeDegrees: face1Slope),
             RoofKind.AsymmetricGable)).Geometry);
+    }
+
+    private static MonopitchRoofGeometry MonopitchGeometry(
+        double length,
+        double width,
+        double slope)
+    {
+        var validation = RoofFootprintValidator.Validate(new RoofFootprintInput(
+            [new(0, 0), new(length, 0), new(length, width), new(0, width)], true));
+        Assert.True(RoofDirection2D.TryCreate(0, 1, out var direction));
+        return Assert.IsType<MonopitchRoofGeometry>(RoofGeometrySolver.Solve(new RoofDefinition(
+            validation.Footprint!,
+            new RoofParameters(slope, SlopeDirection: direction),
+            RoofKind.Monopitch)).Geometry);
     }
 }

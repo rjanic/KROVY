@@ -331,8 +331,8 @@ internal sealed class GableRoofGeometryViewModel : INotifyPropertyChanged
     public string OrientationDirectionText => _ridgeDirection is { } direction
         ? UiStrings.Format(
             UiStrings.GetString("RoofGeometryWindow_RidgeDirectionValueFormat", _culture),
-            direction.X,
-            direction.Y)
+            GetDisplayedOrientationDirection(direction).X,
+            GetDisplayedOrientationDirection(direction).Y)
         : UiStrings.GetString(
             IsMonopitchMode
                 ? "RoofGeometryWindow_SlopeDirectionNotSelected"
@@ -390,6 +390,11 @@ internal sealed class GableRoofGeometryViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(OrientationDirectionText));
         Recalculate();
     }
+
+    private RoofDirection2D GetDisplayedOrientationDirection(RoofDirection2D direction) =>
+        IsMonopitchMode
+            ? MonopitchRoofDirectionPresentationRules.ToPhysicalHighToLow(direction)
+            : direction;
 
     /// <summary>
     /// Edit-mode seeding: reconstructs the dialog from an existing physical roof so

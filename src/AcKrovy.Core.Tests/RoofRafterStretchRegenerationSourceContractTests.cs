@@ -48,14 +48,14 @@ public sealed class RoofRafterStretchRegenerationSourceContractTests
     [Fact]
     public void Replacement_UsesExistingLayoutCreationAndAnnotationServices()
     {
-        Assert.Contains("SimpleGableRafterLayoutSolver.Solve(", ReplacementService);
+        Assert.Contains("RoofRafterLayoutSolver.Solve(", ReplacementService);
         Assert.Contains("TimberSourceLineCreationService.Create(", ReplacementService);
         Assert.Contains("TimberCreatedElementAnnotationService.EnsureForCreatedElements(", ReplacementService);
         Assert.Contains("IsSlopeDirectionReversed = true", ReplacementService);
         Assert.Contains("ElementLabelService.DeleteForSourceHandle(", ReplacementService);
         Assert.Contains("SlopeAnnotationService.DeleteForSourceHandle(", ReplacementService);
         Assert.Contains("entity.Erase()", ReplacementService);
-        Assert.DoesNotContain("SimpleGableRafterLayoutSolver.Solve(", Segment(
+        Assert.DoesNotContain("RoofRafterLayoutSolver.Solve(", Segment(
             RafterWorkflow,
             "RoofGeneratedRafterSetService.Materialize(",
             "transaction.Commit();"));

@@ -48,6 +48,46 @@ public sealed class RoofRafterRequestValidatorTests
         Assert.Equal(31d, request.RoofSlopeDegrees);
     }
 
+    [Fact]
+    public void MonopitchRequestUsesOneNeutralPlaneAndPrimarySlope()
+    {
+        var geometry = MonopitchGeometry(10000, 6000, 27);
+
+        var result = RoofRafterRequestValidator.Validate(
+            geometry,
+            100,
+            180,
+            1000,
+            "KVH C24 NSi");
+
+        Assert.True(result.IsValid);
+        Assert.Equal(27d, result.Request!.RoofSlopeDegrees);
+        Assert.Single(result.Layout!.Planes);
+        Assert.Equal(result.Layout.StationCount, result.Layout.Rafters.Count);
+        Assert.All(result.Layout.Rafters, rafter =>
+        {
+            Assert.Equal(RafterRoofFace.Face0, rafter.Face);
+            Assert.Equal(geometry.LowToHighDirection, rafter.RunDirection);
+        });
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void GableRequestsStillUseTwoNeutralPlanes(bool asymmetric)
+    {
+        var geometry = asymmetric
+            ? AsymmetricGeometry(10000, 8000, 20, 35)
+            : Geometry(10000, 8000, 30);
+
+        var result = RoofRafterRequestValidator.Validate(
+            geometry, 80, 160, 900, "Smrek C24");
+
+        Assert.True(result.IsValid);
+        Assert.Equal(2, result.Layout!.Planes.Count);
+        Assert.Equal(result.Layout.StationCount * 2, result.Layout.Rafters.Count);
+    }
+
     [Theory]
     [InlineData(0d, RoofRafterRequestValidationError.InvalidWidth)]
     [InlineData(-1d, RoofRafterRequestValidationError.InvalidWidth)]
@@ -112,5 +152,40 @@ public sealed class RoofRafterRequestValidatorTests
             new RoofParameters(slope, direction)));
         Assert.True(result.IsValid);
         return result.Geometry!;
+    }
+
+    private static SimpleGableRoofGeometry AsymmetricGeometry(
+        double length,
+        double width,
+        double face0Slope,
+        double face1Slope)
+    {
+        var validation = RoofFootprintValidator.Validate(new RoofFootprintInput(
+            [new(0, 0), new(length, 0), new(length, width), new(0, width)],
+            true));
+        Assert.True(RoofDirection2D.TryCreate(1, 0, out var direction));
+        var result = RoofGeometrySolver.Solve(new RoofDefinition(
+            validation.Footprint!,
+            new RoofParameters(face0Slope, direction, Face1SlopeDegrees: face1Slope),
+            RoofKind.AsymmetricGable));
+        Assert.True(result.IsValid);
+        return Assert.IsType<SimpleGableRoofGeometry>(result.Geometry);
+    }
+
+    private static MonopitchRoofGeometry MonopitchGeometry(
+        double length,
+        double width,
+        double slope)
+    {
+        var validation = RoofFootprintValidator.Validate(new RoofFootprintInput(
+            [new(0, 0), new(length, 0), new(length, width), new(0, width)],
+            true));
+        Assert.True(RoofDirection2D.TryCreate(0, 1, out var direction));
+        var result = RoofGeometrySolver.Solve(new RoofDefinition(
+            validation.Footprint!,
+            new RoofParameters(slope, SlopeDirection: direction),
+            RoofKind.Monopitch));
+        Assert.True(result.IsValid);
+        return Assert.IsType<MonopitchRoofGeometry>(result.Geometry);
     }
 }

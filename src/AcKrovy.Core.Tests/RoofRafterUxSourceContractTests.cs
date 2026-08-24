@@ -60,7 +60,8 @@ public sealed class RoofRafterUxSourceContractTests
         Assert.DoesNotContain("OpenMode.ForWrite", dialogPrefix);
         Assert.DoesNotContain("AppendEntity", dialogPrefix);
         Assert.DoesNotContain("ConfirmYesNo", Workflow);
-        Assert.DoesNotContain("ShowRafters", Workflow);
+        Assert.Contains("RoofRafterTransientPreviewController", Workflow);
+        Assert.Contains("PreviewLayoutChanged", WindowCode);
         Assert.DoesNotContain("Autodesk.", WindowCode);
     }
 

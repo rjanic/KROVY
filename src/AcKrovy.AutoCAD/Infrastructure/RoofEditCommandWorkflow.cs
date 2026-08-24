@@ -293,20 +293,25 @@ internal static class RoofEditCommandWorkflow
                 StringComparison.Ordinal);
             var outcome = RoofGeneratedRafterSetService.ReplacementOutcome.NotApplicable;
             RoofGeneratedAnchorResolutionContext? anchorResolutionContext = null;
-            if (restored.Geometry is SimpleGableRoofGeometry gableGeometry)
+            outcome = RoofGeneratedRafterSetService.TryReplaceForSupportedResize(
+                document.Database,
+                transaction,
+                document.Editor,
+                owner,
+                restored.Geometry,
+                TimberElementDefaultProfileStore.Load(),
+                ElementLayerProfileStore.Load(),
+                out anchorResolutionContext,
+                forceRegenerateOnSourceResize: geometryChanged,
+                rebuildReason: "roof-edit");
+            if (outcome == RoofGeneratedRafterSetService.ReplacementOutcome.Failed)
             {
-                outcome = RoofGeneratedRafterSetService.TryReplaceForSupportedResize(
-                    document.Database,
-                    transaction,
-                    document.Editor,
-                    owner,
-                    gableGeometry,
-                    TimberElementDefaultProfileStore.Load(),
-                    ElementLayerProfileStore.Load(),
-                    out anchorResolutionContext,
-                    forceRegenerateOnSourceResize: geometryChanged);
+                failureMessageKey = "Command_RoofRafters_GenerationFailed";
+                return null;
             }
-            if (outcome == RoofGeneratedRafterSetService.ReplacementOutcome.Replaced)
+
+            if (outcome == RoofGeneratedRafterSetService.ReplacementOutcome.Replaced &&
+                restored.Geometry.Kind != RoofKind.Monopitch)
             {
                 var footprintVertices = current.Footprint.Vertices;
                 _ = RoofAttachedManualLifecycleService.ReplayAnchoredChildrenForOwner(
@@ -385,19 +390,29 @@ internal static class RoofEditCommandWorkflow
         direction = default;
 
         var isMonopitch = kind == RoofKind.Monopitch;
+        var directionStartPrompt = UiStrings.GetString(isMonopitch
+            ? "Command_Roof_HighSidePointPrompt"
+            : "Command_Roof_RidgeDirectionStartPrompt");
+        if (isMonopitch)
+        {
+            directionStartPrompt = "\n" + directionStartPrompt;
+        }
         var directionStartResult = editor.GetPoint(new PromptPointOptions(
-            UiStrings.GetString(isMonopitch
-                ? "Command_Roof_LowSidePointPrompt"
-                : "Command_Roof_RidgeDirectionStartPrompt")));
+            directionStartPrompt));
         if (directionStartResult.Status != PromptStatus.OK)
         {
             return false;
         }
 
+        var directionEndPrompt = UiStrings.GetString(isMonopitch
+            ? "Command_Roof_LowSidePointPrompt"
+            : "Command_Roof_RidgeDirectionEndPrompt");
+        if (isMonopitch)
+        {
+            directionEndPrompt = "\n" + directionEndPrompt;
+        }
         var directionEndOptions = new PromptPointOptions(
-            UiStrings.GetString(isMonopitch
-                ? "Command_Roof_HighSidePointPrompt"
-                : "Command_Roof_RidgeDirectionEndPrompt"))
+            directionEndPrompt)
         {
             BasePoint = directionStartResult.Value,
             UseBasePoint = true,
@@ -415,6 +430,11 @@ internal static class RoofEditCommandWorkflow
         {
             editor.WriteMessage(UiStrings.GetString("Command_Roof_GeometryErrorDirection"));
             return false;
+        }
+        if (isMonopitch)
+        {
+            direction = MonopitchRoofDirectionPresentationRules.ToCanonicalLowToHigh(
+                direction);
         }
 
         return true;

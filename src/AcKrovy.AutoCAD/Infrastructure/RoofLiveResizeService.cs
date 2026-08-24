@@ -1067,19 +1067,17 @@ internal static class RoofLiveResizeService
 
         var rafterOutcome = RoofGeneratedRafterSetService.ReplacementOutcome.NotApplicable;
         RoofGeneratedAnchorResolutionContext? anchorResolutionContext = null;
-        if (classification.Geometry is SimpleGableRoofGeometry gableGeometry)
-        {
-            rafterOutcome = RoofGeneratedRafterSetService.TryReplaceForSupportedResize(
-                database,
-                transaction,
-                document.Editor,
-                owner,
-                gableGeometry,
-                TimberElementDefaultProfileStore.Load(),
-                ElementLayerProfileStore.Load(),
-                out anchorResolutionContext,
-                forceRegenerateOnSourceResize: true);
-        }
+        rafterOutcome = RoofGeneratedRafterSetService.TryReplaceForSupportedResize(
+            database,
+            transaction,
+            document.Editor,
+            owner,
+            classification.Geometry,
+            TimberElementDefaultProfileStore.Load(),
+            ElementLayerProfileStore.Load(),
+            out anchorResolutionContext,
+            forceRegenerateOnSourceResize: true,
+            rebuildReason: "source-resize");
         if (rafterOutcome == RoofGeneratedRafterSetService.ReplacementOutcome.Failed)
         {
             return ResizeApplyResult.HardFailure;
@@ -1091,7 +1089,8 @@ internal static class RoofLiveResizeService
             owner,
             rafterOutcome,
             generatedMemberCount,
-            anchorResolutionContext);
+            anchorResolutionContext,
+            replayAttachedManualChildren: classification.Geometry.Kind != RoofKind.Monopitch);
 
         if (rafterOutcome == RoofGeneratedRafterSetService.ReplacementOutcome.SkippedAmbiguousRecipe)
         {

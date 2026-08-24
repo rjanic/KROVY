@@ -49,7 +49,23 @@ internal static class RoofRafterCommandWorkflow
             remembered,
             uiPreferences.Theme);
         SettingsWindowOwner.TryAssign(dialog, TryGetAutoCadMainWindowHandle());
-        if (AcApp.ShowModalWindow(dialog) != true || dialog.Request is null)
+        using var preview = new RoofRafterTransientPreviewController(
+            document,
+            selectedRoof.SourceElevation);
+        Action<RoofRafterLayout?> previewChanged = preview.Refresh;
+        dialog.PreviewLayoutChanged += previewChanged;
+        var accepted = false;
+        try
+        {
+            preview.Refresh(dialog.PreviewLayout);
+            accepted = AcApp.ShowModalWindow(dialog) == true && dialog.Request is not null;
+        }
+        finally
+        {
+            dialog.PreviewLayoutChanged -= previewChanged;
+            preview.Refresh(null);
+        }
+        if (!accepted || dialog.Request is null)
         {
             return;
         }
@@ -58,6 +74,7 @@ internal static class RoofRafterCommandWorkflow
             document,
             selectedRoof.OwnerId,
             selectedRoof.OwnerReference,
+            selectedRoof.Geometry.Kind,
             dialog.Request,
             defaultProfile);
         if (result.IsSuccess)
@@ -136,13 +153,8 @@ internal static class RoofRafterCommandWorkflow
                         : "Command_RoofRafters_InvalidRoof"));
                 return false;
             }
-            if (restored.Geometry.Kind == RoofKind.Monopitch)
-            {
-                editor.WriteMessage(UiStrings.GetString(
-                    "Command_RoofRafters_MonopitchUnsupported"));
-                return false;
-            }
-            if (restored.Geometry is not SimpleGableRoofGeometry gableGeometry)
+            if (restored.Geometry is not SimpleGableRoofGeometry and
+                not MonopitchRoofGeometry)
             {
                 editor.WriteMessage(UiStrings.GetString("Command_RoofRafters_InvalidRoof"));
                 return false;
@@ -157,13 +169,13 @@ internal static class RoofRafterCommandWorkflow
                 resolution.OwnerId,
                 ownerReference,
                 RoofPolylineExtractor.GetSourceElevation(owner),
-                gableGeometry,
+                restored.Geometry,
                 generatedIds.Count,
                 IsGeneratedSetStale(
                     document.Database,
                     transaction,
                     generatedIds,
-                    gableGeometry.Signature));
+                    restored.Geometry.Signature));
             return true;
         }
     }
@@ -172,6 +184,7 @@ internal static class RoofRafterCommandWorkflow
         Document document,
         ObjectId ownerId,
         string expectedOwnerReference,
+        RoofKind expectedRoofKind,
         RoofRafterCreationRequest request,
         TimberElementDefaultProfile defaultProfile)
     {
@@ -208,12 +221,12 @@ internal static class RoofRafterCommandWorkflow
                         ? "Command_Roof_PersistedStale"
                         : "Command_RoofRafters_SourceChanged");
             }
-            if (restored.Geometry.Kind == RoofKind.Monopitch)
+            if (restored.Geometry.Kind != expectedRoofKind)
             {
-                return RoofRafterCreationResult.Failure(
-                    "Command_RoofRafters_MonopitchUnsupported");
+                return RoofRafterCreationResult.Failure("Command_RoofRafters_SourceChanged");
             }
-            if (restored.Geometry is not SimpleGableRoofGeometry gableGeometry)
+            if (restored.Geometry is not SimpleGableRoofGeometry and
+                not MonopitchRoofGeometry)
             {
                 return RoofRafterCreationResult.Failure("Command_RoofRafters_SourceChanged");
             }
@@ -226,12 +239,18 @@ internal static class RoofRafterCommandWorkflow
                     "Command_RoofRafters_ReplacementDeferred");
             }
 
-            var layoutResult = SimpleGableRafterLayoutSolver.Solve(
-                gableGeometry,
-                new RafterLayoutParameters(
-                    request.MaximumSpacingMm,
-                    request.WidthMm));
-            if (!layoutResult.IsValid || layoutResult.Layout is null)
+            var currentValidation = RoofRafterRequestValidator.Validate(
+                restored.Geometry,
+                request.WidthMm,
+                request.HeightMm,
+                request.MaximumSpacingMm,
+                request.Material);
+            if (!currentValidation.IsValid ||
+                currentValidation.Layout is null ||
+                !TimberMaterialCatalog.TryGetItem(request.Material, out _) ||
+                !RoofRafterMaterializationRules.IsConsistent(
+                    restored.Geometry,
+                    currentValidation.Layout))
             {
                 return RoofRafterCreationResult.Failure("Command_RoofRafters_InvalidSpacing");
             }
@@ -242,8 +261,8 @@ internal static class RoofRafterCommandWorkflow
                 document.Editor,
                 owner,
                 expectedOwnerReference,
-                gableGeometry,
-                layoutResult.Layout,
+                restored.Geometry,
+                currentValidation.Layout,
                 new RoofRafterGenerationRecipe(
                     request.WidthMm,
                     request.HeightMm,
@@ -252,7 +271,7 @@ internal static class RoofRafterCommandWorkflow
                 defaultProfile,
                 layerProfile);
             transaction.Commit();
-            return RoofRafterCreationResult.Success(layoutResult.Layout.Rafters.Count);
+            return RoofRafterCreationResult.Success(currentValidation.Layout.Rafters.Count);
         }
         catch (System.Exception)
         {
@@ -287,7 +306,7 @@ internal static class RoofRafterCommandWorkflow
         ObjectId OwnerId,
         string OwnerReference,
         double SourceElevation,
-        SimpleGableRoofGeometry Geometry,
+        IRoofGeometry Geometry,
         int ExistingGeneratedRafterCount,
         bool GeneratedSetIsStale);
 

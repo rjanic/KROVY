@@ -1,6 +1,7 @@
 using AcKrovy.AutoCAD.UI;
 using AcKrovy.Core.Models.Roofs;
 using AcKrovy.Core.Services.Roofs;
+using System.Globalization;
 using Xunit;
 
 namespace AcKrovy.Wpf.Tests;
@@ -8,6 +9,18 @@ namespace AcKrovy.Wpf.Tests;
 [Collection(WpfUiSerialCollection.CollectionName)]
 public sealed class MonopitchRoofGeometryViewModelTests
 {
+    [Fact]
+    public void NewMonopitchEditor_RequiresAnExplicitDirectionBeforePreviewOrCreate()
+    {
+        var viewModel = new GableRoofGeometryViewModel(Rectangle(), RoofKind.Monopitch);
+
+        Assert.False(viewModel.HasRidgeDirection);
+        Assert.False(viewModel.CanPreview);
+        Assert.False(viewModel.CanApply);
+        Assert.False(viewModel.TryGetRoofGeometry(out _));
+        Assert.NotEmpty(viewModel.ValidationMessage);
+    }
+
     [Fact]
     public void SlopeMode_DerivesHeightFromDirectedSpanWithoutUsingDisplayValue()
     {
@@ -68,6 +81,31 @@ public sealed class MonopitchRoofGeometryViewModelTests
         Assert.Equal(RoofKind.Monopitch, viewModel.SelectedKind);
         Assert.True(viewModel.TryGetRoofGeometry(out var result));
         Assert.Equal(original.Signature, Assert.IsType<MonopitchRoofGeometry>(result).Signature);
+    }
+
+    [Theory]
+    [InlineData("sk", "VYSOKÝ", "NÍZKY")]
+    [InlineData("cs", "VYSOKÝ", "NÍZKÝ")]
+    [InlineData("en", "HIGH", "LOW")]
+    [InlineData("de", "HOCH", "NIEDRIG")]
+    [InlineData("pl", "WYSOKI", "NISKI")]
+    [InlineData("fr", "HAUT", "BAS")]
+    public void Editor_ShowsPhysicalHighToLowFallDirectionInEveryLanguage(
+        string cultureName,
+        string high,
+        string low)
+    {
+        var viewModel = new GableRoofGeometryViewModel(
+            Rectangle(),
+            RoofKind.Monopitch,
+            CultureInfo.GetCultureInfo(cultureName));
+        viewModel.SetRidgeDirection(Direction(0d, 1d));
+
+        Assert.Contains(high, viewModel.OrientationDirectionLabel, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(low, viewModel.OrientationDirectionLabel, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(high, viewModel.PickOrientationDirectionLabel, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(low, viewModel.PickOrientationDirectionLabel, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("-1", viewModel.OrientationDirectionText, StringComparison.Ordinal);
     }
 
     private static GableRoofGeometryViewModel CreateViewModel()

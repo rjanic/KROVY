@@ -107,10 +107,13 @@ public sealed class RoofGeometryDialogSourceContractTests
         Assert.DoesNotContain("<ScrollViewer", Window);
         Assert.Contains("state.IsMirrored ? 0d : state.SpanMm", Layout);
         Assert.Contains("state.IsMirrored ? state.RunAMm : state.RunBMm", Layout);
-        Assert.Contains("new Pen(leftBrush, 12d)", Control);
-        Assert.Contains("new Pen(rightBrush, 12d)", Control);
+        Assert.Contains("RoofSectionDiagramStyle.CreateRoofFacePen(leftBrush)", Control);
+        Assert.Contains("RoofSectionDiagramStyle.CreateRoofFacePen(rightBrush)", Control);
         Assert.Contains("state.RidgeLabel", Control);
         Assert.Contains("CreateAngleAnnotation", Control);
+        Assert.Contains("CreateAngleArcVertex", Control);
+        Assert.Contains("DrawInteriorAngleArcTowardLowEave", Control);
+        Assert.Contains("RoofSectionDiagramStyle.AngleArcRadius", Control);
         Assert.Contains("DrawArcArrow", Control);
         Assert.Contains("outwardY", Control);
         Assert.Contains("y - 22d", Control);

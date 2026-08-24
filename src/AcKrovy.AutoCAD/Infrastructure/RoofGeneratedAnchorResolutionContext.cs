@@ -61,11 +61,69 @@ internal sealed class RoofGeneratedAnchorResolutionContext
         IEnumerable<RoofGeneratedMemberOverride>? overrides,
         out RoofGeneratedAnchorResolutionContext? context)
     {
+        ArgumentNullException.ThrowIfNull(layout);
+
+        try
+        {
+            return TryCreateCore(
+                database,
+                transaction,
+                physicalGeneratedIds,
+                RoofLogicalGeneratedAnchorContext.FromSimpleGableLayout(
+                    layout,
+                    sourceElevationMm,
+                    overrides),
+                out context);
+        }
+        catch (System.Exception)
+        {
+            context = null;
+            return false;
+        }
+    }
+
+    public static bool TryCreate(
+        Database database,
+        Transaction transaction,
+        IReadOnlyCollection<ObjectId> physicalGeneratedIds,
+        RoofRafterLayout layout,
+        double sourceElevationMm,
+        IEnumerable<RoofGeneratedMemberOverride>? overrides,
+        out RoofGeneratedAnchorResolutionContext? context)
+    {
+        ArgumentNullException.ThrowIfNull(layout);
+
+        try
+        {
+            return TryCreateCore(
+                database,
+                transaction,
+                physicalGeneratedIds,
+                RoofLogicalGeneratedAnchorContext.FromLayout(
+                    layout,
+                    sourceElevationMm,
+                    overrides),
+                out context);
+        }
+        catch (System.Exception)
+        {
+            context = null;
+            return false;
+        }
+    }
+
+    private static bool TryCreateCore(
+        Database database,
+        Transaction transaction,
+        IReadOnlyCollection<ObjectId> physicalGeneratedIds,
+        RoofLogicalGeneratedAnchorContext logical,
+        out RoofGeneratedAnchorResolutionContext? context)
+    {
         context = null;
         ArgumentNullException.ThrowIfNull(database);
         ArgumentNullException.ThrowIfNull(transaction);
         ArgumentNullException.ThrowIfNull(physicalGeneratedIds);
-        ArgumentNullException.ThrowIfNull(layout);
+        ArgumentNullException.ThrowIfNull(logical);
 
         var physicalByKey = new Dictionary<RoofGeneratedMemberKey, PhysicalAnchor>();
         foreach (var id in physicalGeneratedIds)
@@ -97,20 +155,8 @@ internal sealed class RoofGeneratedAnchorResolutionContext
             }
         }
 
-        try
-        {
-            context = new RoofGeneratedAnchorResolutionContext(
-                physicalByKey,
-                RoofLogicalGeneratedAnchorContext.FromSimpleGableLayout(
-                    layout,
-                    sourceElevationMm,
-                    overrides));
-            return true;
-        }
-        catch (System.Exception)
-        {
-            return false;
-        }
+        context = new RoofGeneratedAnchorResolutionContext(physicalByKey, logical);
+        return true;
     }
 
     public RoofGeneratedAnchorResolution Resolve(RoofGeneratedMemberKey key)

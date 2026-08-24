@@ -22,11 +22,54 @@ public static class RoofGeneratedMemberOverrideRules
         {
             throw new ArgumentNullException(nameof(overrides));
         }
+        return TryApply(
+            RoofGeneratedMemberKey.From(rafter),
+            rafter.StationCount,
+            CanonicalGeometry(rafter, sourceElevationMm),
+            planeNormal,
+            overrides,
+            out geometry,
+            out suppressed);
+    }
+
+    public static bool TryApplyToLayout(
+        RoofRafterGeometry rafter,
+        double sourceElevationMm,
+        RoofPoint3D planeNormal,
+        RoofManualOverrideSet overrides,
+        out RoofGeneratedMemberGeometry? geometry,
+        out bool suppressed)
+    {
+        if (rafter is null)
+        {
+            throw new ArgumentNullException(nameof(rafter));
+        }
+        if (overrides is null)
+        {
+            throw new ArgumentNullException(nameof(overrides));
+        }
+        return TryApply(
+            rafter.LogicalKey,
+            rafter.StationCount,
+            CanonicalGeometry(rafter, sourceElevationMm),
+            planeNormal,
+            overrides,
+            out geometry,
+            out suppressed);
+    }
+
+    private static bool TryApply(
+        RoofGeneratedMemberKey key,
+        int stationCount,
+        RoofGeneratedMemberGeometry canonical,
+        RoofPoint3D planeNormal,
+        RoofManualOverrideSet overrides,
+        out RoofGeneratedMemberGeometry? geometry,
+        out bool suppressed)
+    {
         geometry = null;
         suppressed = false;
-        var canonical = CanonicalGeometry(rafter, sourceElevationMm);
-        var key = RoofGeneratedMemberKey.From(rafter);
-        var mapped = overrides.FindMapped(key, rafter.StationCount);
+        var mapped = overrides.FindMapped(key, stationCount);
         if (mapped is null)
         {
             geometry = canonical;
@@ -54,6 +97,19 @@ public static class RoofGeneratedMemberOverrideRules
 
     public static RoofGeneratedMemberGeometry CanonicalGeometry(
         SimpleGableRafter rafter,
+        double sourceElevationMm)
+    {
+        if (rafter is null)
+        {
+            throw new ArgumentNullException(nameof(rafter));
+        }
+        return new RoofGeneratedMemberGeometry(
+            new RoofPoint3D(rafter.PlanStart.X, rafter.PlanStart.Y, sourceElevationMm),
+            new RoofPoint3D(rafter.PlanEnd.X, rafter.PlanEnd.Y, sourceElevationMm));
+    }
+
+    public static RoofGeneratedMemberGeometry CanonicalGeometry(
+        RoofRafterGeometry rafter,
         double sourceElevationMm)
     {
         if (rafter is null)

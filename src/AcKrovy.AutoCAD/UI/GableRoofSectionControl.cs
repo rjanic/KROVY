@@ -3,7 +3,6 @@ using System.Windows;
 using System.Windows.Media;
 using Brush = System.Windows.Media.Brush;
 using Brushes = System.Windows.Media.Brushes;
-using Color = System.Windows.Media.Color;
 using FlowDirection = System.Windows.FlowDirection;
 using Pen = System.Windows.Media.Pen;
 using Point = System.Windows.Point;
@@ -38,12 +37,12 @@ public sealed class GableRoofSectionControl : FrameworkElement
         var foreground = FindBrush("SettingsTextPrimaryBrush", Brushes.Black);
         var secondary = FindBrush("SettingsTextSecondaryBrush", Brushes.DimGray);
         var border = FindBrush("SettingsBorderBrush", Brushes.Gray);
-        var blue = FrozenBrush(Color.FromRgb(39, 116, 196));
-        var green = FrozenBrush(Color.FromRgb(43, 151, 96));
-        var technical = FrozenBrush(Color.FromRgb(210, 145, 24));
-        var datumPen = new Pen(border, 1.5d) { DashStyle = DashStyles.Dash };
-        var referencePen = new Pen(secondary, 1.25d) { DashStyle = DashStyles.Dash };
-        var dimensionPen = new Pen(secondary, 1.25d);
+        var blue = RoofSectionDiagramStyle.BlueRoofFaceBrush;
+        var green = RoofSectionDiagramStyle.GreenRoofFaceBrush;
+        var technical = RoofSectionDiagramStyle.TechnicalBrush;
+        var datumPen = RoofSectionDiagramStyle.CreateDatumPen(border);
+        var referencePen = RoofSectionDiagramStyle.CreateReferencePen(secondary);
+        var dimensionPen = RoofSectionDiagramStyle.CreateDimensionPen(secondary);
 
         var eaveA = PointOf(layout.EaveA);
         var ridge = PointOf(layout.Ridge);
@@ -56,6 +55,8 @@ public sealed class GableRoofSectionControl : FrameworkElement
         var rightBrush = state.IsMirrored ? green : blue;
         var alphaAnnotation = CreateAngleAnnotation(eaveA, ridge);
         var betaAnnotation = CreateAngleAnnotation(eaveB, ridge);
+        var alphaArcVertex = CreateAngleArcVertex(alphaAnnotation, eaveA, ridge);
+        var betaArcVertex = CreateAngleArcVertex(betaAnnotation, eaveB, ridge);
         var dimensionY = Math.Min(
             ActualHeight - 42d,
             Math.Max(layout.Bottom, Math.Max(eaveA.Y, eaveB.Y)) + 58d);
@@ -74,21 +75,29 @@ public sealed class GableRoofSectionControl : FrameworkElement
         DrawHorizontalAngleReference(drawingContext, alphaAnnotation, dimensionPen);
         DrawHorizontalAngleReference(drawingContext, betaAnnotation, dimensionPen);
 
-        drawingContext.DrawLine(new Pen(leftBrush, 12d), leftEave, ridge);
-        drawingContext.DrawLine(new Pen(rightBrush, 12d), ridge, rightEave);
+        drawingContext.DrawLine(
+            RoofSectionDiagramStyle.CreateRoofFacePen(leftBrush),
+            leftEave,
+            ridge);
+        drawingContext.DrawLine(
+            RoofSectionDiagramStyle.CreateRoofFacePen(rightBrush),
+            ridge,
+            rightEave);
         drawingContext.DrawEllipse(technical, null, ridge, 6d, 6d);
-        DrawSemanticAngleArc(
+        DrawInteriorAngleArcTowardLowEave(
             drawingContext,
-            alphaAnnotation.Anchor,
-            ridge,
+            alphaArcVertex,
+            eaveA,
             state.AlphaDegrees,
-            technical);
-        DrawSemanticAngleArc(
+            technical,
+            RoofSectionDiagramStyle.AngleArcRadius);
+        DrawInteriorAngleArcTowardLowEave(
             drawingContext,
-            betaAnnotation.Anchor,
-            ridge,
+            betaArcVertex,
+            eaveB,
             state.BetaDegrees,
-            technical);
+            technical,
+            RoofSectionDiagramStyle.AngleArcRadius);
 
         DrawHorizontalDimension(
             drawingContext,
@@ -163,7 +172,13 @@ public sealed class GableRoofSectionControl : FrameworkElement
         }
     }
 
-    internal static GableRoofAngleAnnotation CreateAngleAnnotation(Point eave, Point ridge)
+    internal static GableRoofAngleAnnotation CreateAngleAnnotation(Point eave, Point ridge) =>
+        CreateAngleAnnotation(eave, ridge, 7d);
+
+    internal static GableRoofAngleAnnotation CreateAngleAnnotation(
+        Point eave,
+        Point ridge,
+        double outwardOffset)
     {
         const double positionAlongSlope = 0.32d;
         var anchor = new Point(
@@ -176,17 +191,21 @@ public sealed class GableRoofSectionControl : FrameworkElement
         var outwardX = (isLeftPlane ? deltaY : -deltaY) / length;
         var outwardY = (isLeftPlane ? -deltaX : deltaX) / length;
         var outsideAnchor = new Point(
-            anchor.X + outwardX * 7d,
-            anchor.Y + outwardY * 7d);
+            anchor.X + outwardX * outwardOffset,
+            anchor.Y + outwardY * outwardOffset);
         return new GableRoofAngleAnnotation(
             outsideAnchor,
             anchor,
             new Point(outsideAnchor.X + (isLeftPlane ? -76d : 76d), outsideAnchor.Y),
-            new Point(outsideAnchor.X + (isLeftPlane ? 34d : -34d), outsideAnchor.Y),
+            new Point(
+                outsideAnchor.X + (isLeftPlane
+                    ? RoofSectionDiagramStyle.AngleMaximumRoofwardReach
+                    : -RoofSectionDiagramStyle.AngleMaximumRoofwardReach),
+                outsideAnchor.Y),
             new Point(outsideAnchor.X + (isLeftPlane ? -60d : 18d), outsideAnchor.Y - 34d));
     }
 
-    private static void DrawHorizontalAngleReference(
+    internal static void DrawHorizontalAngleReference(
         DrawingContext drawingContext,
         GableRoofAngleAnnotation annotation,
         Pen pen)
@@ -195,7 +214,18 @@ public sealed class GableRoofSectionControl : FrameworkElement
             annotation.ReferenceStart,
             annotation.ReferenceEnd);
 
-    private static void DrawSemanticAngleArc(
+    internal static Point CreateAngleArcVertex(
+        GableRoofAngleAnnotation annotation,
+        Point eave,
+        Point ridge)
+    {
+        var ratio = (annotation.Anchor.Y - eave.Y) / (ridge.Y - eave.Y);
+        return new Point(
+            eave.X + (ridge.X - eave.X) * ratio,
+            annotation.Anchor.Y);
+    }
+
+    internal static void DrawSemanticAngleArc(
         DrawingContext drawingContext,
         Point eave,
         Point ridge,
@@ -217,14 +247,38 @@ public sealed class GableRoofSectionControl : FrameworkElement
         }
     }
 
+    internal static void DrawInteriorAngleArcTowardLowEave(
+        DrawingContext drawingContext,
+        Point vertex,
+        Point lowEave,
+        double degrees,
+        Brush brush,
+        double radius)
+    {
+        if (lowEave.X < vertex.X)
+        {
+            DrawAngleArc(
+                drawingContext,
+                vertex,
+                Math.PI,
+                Math.PI - Radians(degrees),
+                brush,
+                radius);
+        }
+        else
+        {
+            DrawAngleArc(drawingContext, vertex, 0d, Radians(degrees), brush, radius);
+        }
+    }
+
     private static void DrawAngleArc(
         DrawingContext drawingContext,
         Point center,
         double startAngle,
         double endAngle,
-        Brush brush)
+        Brush brush,
+        double radius = RoofSectionDiagramStyle.AngleArcRadius)
     {
-        const double radius = 24d;
         const int segmentCount = 18;
         var previous = default(Point);
         var last = default(Point);
@@ -251,7 +305,7 @@ public sealed class GableRoofSectionControl : FrameworkElement
             }
         }
         geometry.Freeze();
-        var pen = new Pen(brush, 1.5d);
+        var pen = new Pen(brush, RoofSectionDiagramStyle.AngleStrokeThickness);
         drawingContext.DrawGeometry(null, pen, geometry);
         DrawArcArrow(drawingContext, previous, last, pen);
     }
@@ -272,9 +326,11 @@ public sealed class GableRoofSectionControl : FrameworkElement
 
         var tangentX = deltaX / length;
         var tangentY = deltaY / length;
-        var basePoint = new Point(tip.X - tangentX * 7d, tip.Y - tangentY * 7d);
-        var normalX = -tangentY * 3d;
-        var normalY = tangentX * 3d;
+        var basePoint = new Point(
+            tip.X - tangentX * RoofSectionDiagramStyle.AngleArrowLength,
+            tip.Y - tangentY * RoofSectionDiagramStyle.AngleArrowLength);
+        var normalX = -tangentY * RoofSectionDiagramStyle.AngleArrowNormalExtent;
+        var normalY = tangentX * RoofSectionDiagramStyle.AngleArrowNormalExtent;
         drawingContext.DrawLine(
             pen,
             tip,
@@ -430,13 +486,6 @@ public sealed class GableRoofSectionControl : FrameworkElement
 
     private static string FormatSignedLength(double value, CultureInfo culture) =>
         $"{value.ToString("+0;-0;0", culture)} mm";
-
-    private static Brush FrozenBrush(Color color)
-    {
-        var brush = new SolidColorBrush(color);
-        brush.Freeze();
-        return brush;
-    }
 
     private Brush FindBrush(string key, Brush fallback) =>
         TryFindResource(key) as Brush ?? fallback;

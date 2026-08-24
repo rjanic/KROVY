@@ -288,19 +288,15 @@ internal static class RoofEditStateCommandWorkflow
             return false;
         }
 
-        if (restored.Geometry is not SimpleGableRoofGeometry gableGeometry)
-        {
-            return restored.Geometry.Kind == RoofKind.Monopitch;
-        }
-
         var outcome = RoofGeneratedRafterSetService.TryReplaceForSupportedResize(
             document.Database,
             transaction,
             document.Editor,
             owner,
-            gableGeometry,
+            restored.Geometry,
             TimberElementDefaultProfileStore.Load(),
-            ElementLayerProfileStore.Load());
+            ElementLayerProfileStore.Load(),
+            rebuildReason: "edit-state");
         return outcome is
             RoofGeneratedRafterSetService.ReplacementOutcome.Replaced or
             RoofGeneratedRafterSetService.ReplacementOutcome.NotApplicable;

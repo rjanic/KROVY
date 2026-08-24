@@ -3,7 +3,6 @@ using System.Windows;
 using System.Windows.Media;
 using Brush = System.Windows.Media.Brush;
 using Brushes = System.Windows.Media.Brushes;
-using Color = System.Windows.Media.Color;
 using Pen = System.Windows.Media.Pen;
 using Point = System.Windows.Point;
 
@@ -28,8 +27,11 @@ public sealed class MonopitchRoofSectionControl : FrameworkElement
     {
         base.OnRender(drawingContext);
         var state = State;
-        if (state is null || ActualWidth < 260d || ActualHeight < 220d ||
-            state.SpanMm <= 0d || state.HeightDifferenceMm <= 0d)
+        if (state is null ||
+            MonopitchRoofSectionLayoutCalculator.Create(
+                state,
+                ActualWidth,
+                ActualHeight) is not { } layout)
         {
             return;
         }
@@ -37,50 +39,64 @@ public sealed class MonopitchRoofSectionControl : FrameworkElement
         var foreground = FindBrush("SettingsTextPrimaryBrush", Brushes.Black);
         var secondary = FindBrush("SettingsTextSecondaryBrush", Brushes.DimGray);
         var border = FindBrush("SettingsBorderBrush", Brushes.Gray);
-        var lowBrush = FrozenBrush(Color.FromRgb(39, 116, 196));
-        var highBrush = FrozenBrush(Color.FromRgb(43, 151, 96));
-        var technical = FrozenBrush(Color.FromRgb(210, 145, 24));
-        var marginX = 90d;
-        var top = 74d;
-        var bottom = ActualHeight - 105d;
-        var left = marginX;
-        var right = ActualWidth - marginX;
-        var availableHeight = Math.Max(60d, bottom - top);
-        var risePixels = Math.Min(availableHeight, (right - left) *
-            state.HeightDifferenceMm / state.SpanMm);
-        var low = state.IsMirrored
-            ? new Point(right, top + risePixels)
-            : new Point(left, top + risePixels);
-        var high = state.IsMirrored
-            ? new Point(left, top)
-            : new Point(right, top);
-        var datumY = Math.Min(ActualHeight - 70d, low.Y + 38d);
-        var dimensionY = Math.Min(ActualHeight - 32d, datumY + 30d);
-        var dimensionPen = new Pen(secondary, 1.25d);
-        var datumPen = new Pen(border, 1.5d) { DashStyle = DashStyles.Dash };
+        var lowBrush = RoofSectionDiagramStyle.BlueRoofFaceBrush;
+        var highBrush = RoofSectionDiagramStyle.GreenRoofFaceBrush;
+        var roofBrush = RoofSectionDiagramStyle.GreenRoofFaceBrush;
+        var technical = RoofSectionDiagramStyle.TechnicalBrush;
+        var dimensionPen = RoofSectionDiagramStyle.CreateDimensionPen(secondary);
+        var datumPen = RoofSectionDiagramStyle.CreateDatumPen(border);
+        var referencePen = RoofSectionDiagramStyle.CreateReferencePen(secondary);
+        var low = PointOf(layout.Low);
+        var high = PointOf(layout.High);
+        var highProjection = PointOf(layout.HighProjection);
+        var angleAnnotation = CreateAngleAnnotation(low, high);
+        var angleArcVertex = GableRoofSectionControl.CreateAngleArcVertex(
+            angleAnnotation,
+            low,
+            high);
 
-        drawingContext.DrawLine(datumPen, new Point(left - 24d, datumY), new Point(right + 24d, datumY));
-        drawingContext.DrawLine(new Pen(technical, 12d), low, high);
+        drawingContext.DrawLine(
+            datumPen,
+            new Point(layout.Left - 24d, layout.DatumY),
+            new Point(layout.Right + 24d, layout.DatumY));
+        drawingContext.DrawLine(referencePen, low, highProjection);
+        drawingContext.DrawLine(referencePen, high, highProjection);
+        GableRoofSectionControl.DrawHorizontalAngleReference(
+            drawingContext,
+            angleAnnotation,
+            dimensionPen);
+        drawingContext.DrawLine(
+            RoofSectionDiagramStyle.CreateRoofFacePen(roofBrush),
+            low,
+            high);
         drawingContext.DrawEllipse(lowBrush, null, low, 6d, 6d);
         drawingContext.DrawEllipse(highBrush, null, high, 6d, 6d);
-        DrawDirectionArrow(drawingContext, low, high, technical);
-        DrawAngle(drawingContext, low, high, technical);
+        GableRoofSectionControl.DrawInteriorAngleArcTowardLowEave(
+            drawingContext,
+            angleArcVertex,
+            low,
+            state.SlopeDegrees,
+            technical,
+            RoofSectionDiagramStyle.AngleArcRadius);
 
-        drawingContext.DrawLine(dimensionPen, new Point(left, dimensionY), new Point(right, dimensionY));
-        DrawArrowHead(drawingContext, new Point(left, dimensionY), 1d, secondary);
-        DrawArrowHead(drawingContext, new Point(right, dimensionY), -1d, secondary);
+        drawingContext.DrawLine(
+            dimensionPen,
+            new Point(layout.Left, layout.DimensionY),
+            new Point(layout.Right, layout.DimensionY));
+        DrawArrowHead(drawingContext, new Point(layout.Left, layout.DimensionY), 1d, secondary);
+        DrawArrowHead(drawingContext, new Point(layout.Right, layout.DimensionY), -1d, secondary);
         DrawCenteredText(
             drawingContext,
             $"L = {state.SpanMm.ToString("0", state.Culture)} mm",
-            new Point((left + right) / 2d, dimensionY - 23d),
+            new Point((layout.Left + layout.Right) / 2d, layout.DimensionY - 23d),
             technical,
             state.Culture,
             12d);
 
         var deltaX = state.IsMirrored
-            ? Math.Max(24d, left - 42d)
-            : Math.Min(ActualWidth - 24d, right + 42d);
-        var geometrySideX = state.IsMirrored ? left : right;
+            ? Math.Max(24d, layout.Left - 42d)
+            : Math.Min(ActualWidth - 24d, layout.Right + 42d);
+        var geometrySideX = high.X;
         drawingContext.DrawLine(
             dimensionPen,
             new Point(geometrySideX, high.Y),
@@ -109,31 +125,26 @@ public sealed class MonopitchRoofSectionControl : FrameworkElement
             foreground, state.Culture, 12d);
         DrawText(drawingContext,
             $"α {state.SlopeDegrees.ToString("0.###", state.Culture)}°",
-            new Point(low.X + (state.IsMirrored ? -88d : 32d), low.Y - 34d),
+            angleAnnotation.LabelOrigin,
             technical, state.Culture, 13d);
         DrawText(drawingContext, state.SpanLabel,
-            new Point(left, 10d), secondary, state.Culture, 12d);
+            new Point(layout.Left, 10d), secondary, state.Culture, 12d);
     }
 
-    private static void DrawDirectionArrow(DrawingContext context, Point low, Point high, Brush brush)
+    internal static GableRoofAngleAnnotation CreateAngleAnnotation(Point low, Point high)
     {
-        var start = Lerp(low, high, 0.36d);
-        var tip = Lerp(low, high, 0.66d);
-        var pen = new Pen(brush, 2.2d);
-        context.DrawLine(pen, start, tip);
-        var dx = tip.X - start.X;
-        var dy = tip.Y - start.Y;
-        var length = Math.Sqrt(dx * dx + dy * dy);
-        var ux = dx / length;
-        var uy = dy / length;
-        context.DrawLine(pen, tip, new Point(tip.X - ux * 13d - uy * 6d, tip.Y - uy * 13d + ux * 6d));
-        context.DrawLine(pen, tip, new Point(tip.X - ux * 13d + uy * 6d, tip.Y - uy * 13d - ux * 6d));
-    }
-
-    private static void DrawAngle(DrawingContext context, Point low, Point high, Brush brush)
-    {
-        var direction = high.X >= low.X ? 1d : -1d;
-        context.DrawLine(new Pen(brush, 1.25d), low, new Point(low.X + direction * 58d, low.Y));
+        var deltaX = high.X - low.X;
+        var deltaY = high.Y - low.Y;
+        var length = Math.Sqrt(deltaX * deltaX + deltaY * deltaY);
+        var horizontalRoofwardProjection =
+            RoofSectionDiagramStyle.AngleMaximumRoofwardReach * Math.Abs(deltaY) / length;
+        var arrowRoofwardProjection =
+            RoofSectionDiagramStyle.AngleArrowLength +
+            RoofSectionDiagramStyle.AngleArrowNormalExtent;
+        var outwardOffset =
+            RoofSectionDiagramStyle.MonopitchAngleBaseOutwardOffset +
+            Math.Max(horizontalRoofwardProjection, arrowRoofwardProjection);
+        return GableRoofSectionControl.CreateAngleAnnotation(low, high, outwardOffset);
     }
 
     private static void DrawArrowHead(DrawingContext context, Point tip, double inward, Brush brush)
@@ -173,13 +184,6 @@ public sealed class MonopitchRoofSectionControl : FrameworkElement
     private FormattedText CreateText(string text, Brush brush, CultureInfo culture, double size) =>
         new(text, culture, System.Windows.FlowDirection.LeftToRight, new Typeface("Segoe UI"), size, brush,
             VisualTreeHelper.GetDpi(this).PixelsPerDip);
-    private static Point Lerp(Point first, Point second, double ratio) =>
-        new(first.X + (second.X - first.X) * ratio, first.Y + (second.Y - first.Y) * ratio);
-    private static Brush FrozenBrush(Color color)
-    {
-        var brush = new SolidColorBrush(color);
-        brush.Freeze();
-        return brush;
-    }
+    private static Point PointOf(MonopitchRoofSectionPoint point) => new(point.X, point.Y);
     private Brush FindBrush(string key, Brush fallback) => TryFindResource(key) as Brush ?? fallback;
 }

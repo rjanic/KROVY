@@ -100,9 +100,16 @@ public sealed class GableRoofGeometryWindowTests
 
         var left = GableRoofSectionControl.CreateAngleAnnotation(leftEave, ridge);
         var right = GableRoofSectionControl.CreateAngleAnnotation(rightEave, ridge);
+        var leftVertex = GableRoofSectionControl.CreateAngleArcVertex(left, leftEave, ridge);
+        var rightVertex = GableRoofSectionControl.CreateAngleArcVertex(right, rightEave, ridge);
 
         Assert.Equal(left.ReferenceStart.Y, left.ReferenceEnd.Y, 8);
         Assert.Equal(right.ReferenceStart.Y, right.ReferenceEnd.Y, 8);
+        Assert.Equal(left.ReferenceStart.Y, leftVertex.Y, 8);
+        Assert.Equal(right.ReferenceStart.Y, rightVertex.Y, 8);
+        Assert.Equal(0d, Cross(leftEave, ridge, leftVertex), 8);
+        Assert.Equal(0d, Cross(rightEave, ridge, rightVertex), 8);
+        Assert.Equal(80d, RoofSectionDiagramStyle.AngleArcRadius);
         Assert.True(leftEave.X < left.Anchor.X && left.Anchor.X < ridge.X);
         Assert.True(ridge.X < right.Anchor.X && right.Anchor.X < rightEave.X);
         Assert.True(left.Anchor.Y < left.RoofCenterlinePoint.Y);
@@ -500,6 +507,10 @@ public sealed class GableRoofGeometryWindowTests
     }
 
     private static double Degrees(double radians) => radians * 180d / Math.PI;
+
+    private static double Cross(Point start, Point end, Point point) =>
+        (end.X - start.X) * (point.Y - start.Y) -
+        (end.Y - start.Y) * (point.X - start.X);
 
     private static void AssertElementFitsInside(FrameworkElement element, FrameworkElement container)
     {

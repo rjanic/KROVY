@@ -37,6 +37,28 @@ public sealed class MonopitchRoofStage1Tests
     }
 
     [Fact]
+    public void HighToLowUxDirection_ConvertsToStableCanonicalGeometryAndPersistence()
+    {
+        var highToLow = Direction(0d, -1d);
+        var canonical = MonopitchRoofDirectionPresentationRules.ToCanonicalLowToHigh(
+            highToLow);
+        var geometry = Solve(Source(), 30d, canonical);
+        var data = RoofDefinitionPersistence.Create(Source(), Validate(Source()), geometry);
+        var reopened = Restore(Source(), data);
+
+        Assert.Equal(0d, canonical.X, 12);
+        Assert.Equal(1d, canonical.Y, 12);
+        Assert.Equal(canonical, geometry.LowToHighDirection);
+        Assert.Equal(geometry.Signature, reopened.Signature);
+        Assert.Equal(30d, reopened.SlopeDegrees);
+        Assert.Equal(6000d * Math.Tan(Math.PI / 6d), reopened.EaveHeightDifferenceMm, 8);
+        Assert.Equal(
+            highToLow,
+            MonopitchRoofDirectionPresentationRules.ToPhysicalHighToLow(
+                reopened.LowToHighDirection));
+    }
+
+    [Fact]
     public void Span_IsProjectionInLowToHighDirection()
     {
         Assert.Equal(6000d, Solve(Source(), 30d, Direction(0d, 1d)).SpanMm, 9);
@@ -145,6 +167,45 @@ public sealed class MonopitchRoofStage1Tests
             out var displayError));
         Assert.Equal(RoofDisplayDataDecodeError.None, displayError);
         Assert.Equal(RoofDisplayEdgeRole.MonopitchDirection, displayData!.Role);
+    }
+
+    [Fact]
+    public void WireframeArrow_PointsFromHighToLowForAxisAlignedAndRotatedRoofs()
+    {
+        AssertFallArrow(Solve(Source(), 25d, Direction(0d, 1d)));
+
+        const double radians = Math.PI / 6d;
+        var rotated = RotatedSource(10000d, 6000d, radians);
+        AssertFallArrow(Solve(
+            rotated,
+            25d,
+            Direction(-Math.Sin(radians), Math.Cos(radians))));
+    }
+
+    [Fact]
+    public void WireframeArrow_MirrorReversesAndMirrorTwiceRestoresOriginal()
+    {
+        var definition = Definition(Validate(Source()), 35d, Direction(0d, 1d));
+        var original = Solve(definition);
+        var mirroredDefinition = MonopitchRoofDefinitionRules.Mirror(definition);
+        var mirrored = Solve(mirroredDefinition);
+        var twice = Solve(MonopitchRoofDefinitionRules.Mirror(mirroredDefinition));
+        var originalArrow = DirectionEdge(original);
+        var mirroredArrow = DirectionEdge(mirrored);
+
+        AssertFallArrow(original);
+        AssertFallArrow(mirrored);
+        Assert.Equal(
+            -(originalArrow.Segment.End.X - originalArrow.Segment.Start.X),
+            mirroredArrow.Segment.End.X - mirroredArrow.Segment.Start.X,
+            9);
+        Assert.Equal(
+            -(originalArrow.Segment.End.Y - originalArrow.Segment.Start.Y),
+            mirroredArrow.Segment.End.Y - mirroredArrow.Segment.Start.Y,
+            9);
+        Assert.Equal(
+            RoofWireframe.BuildGenerationSignature(RoofWireframe.Create(original, 0d)),
+            RoofWireframe.BuildGenerationSignature(RoofWireframe.Create(twice, 0d)));
     }
 
     [Fact]
@@ -273,6 +334,25 @@ public sealed class MonopitchRoofStage1Tests
         Math.Abs(left.X - right.X) <= 1e-9 &&
         Math.Abs(left.Y - right.Y) <= 1e-9;
 
+    private static void AssertFallArrow(MonopitchRoofGeometry geometry)
+    {
+        var arrow = DirectionEdge(geometry).Segment;
+        var dx = arrow.End.X - arrow.Start.X;
+        var dy = arrow.End.Y - arrow.Start.Y;
+        var length = Math.Sqrt(dx * dx + dy * dy);
+        var fall = MonopitchRoofDirectionPresentationRules.ToPhysicalHighToLow(
+            geometry.LowToHighDirection);
+
+        Assert.Equal(fall.X, dx / length, 10);
+        Assert.Equal(fall.Y, dy / length, 10);
+        Assert.True(arrow.Start.Z > arrow.End.Z);
+    }
+
+    private static RoofDisplayEdge DirectionEdge(MonopitchRoofGeometry geometry) =>
+        Assert.Single(
+            RoofWireframe.Create(geometry, 0d),
+            edge => edge.Role == RoofDisplayEdgeRole.MonopitchDirection);
+
     private static RoofSegment3D Translate(RoofSegment3D segment, double dx, double dy) =>
         new(
             new RoofPoint3D(segment.Start.X + dx, segment.Start.Y + dy, segment.Start.Z),
@@ -290,6 +370,23 @@ public sealed class MonopitchRoofStage1Tests
         true,
         false,
         true);
+
+    private static RoofFootprintInput RotatedSource(
+        double lengthMm,
+        double widthMm,
+        double radians)
+    {
+        var x = (X: Math.Cos(radians), Y: Math.Sin(radians));
+        var y = (X: -Math.Sin(radians), Y: Math.Cos(radians));
+        RoofPoint2D Point(double along, double across) => new(
+            450d + along * x.X + across * y.X,
+            -725d + along * x.Y + across * y.Y);
+        return new RoofFootprintInput(
+            [Point(0d, 0d), Point(lengthMm, 0d), Point(lengthMm, widthMm), Point(0d, widthMm)],
+            true,
+            false,
+            true);
+    }
 
     private static string RepositoryRoot()
     {

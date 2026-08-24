@@ -29,6 +29,16 @@ public readonly record struct RoofGeneratedMemberKey(
         return new(RoofGeneratedTimberKind.Rafter, rafter.Face, rafter.StationIndex);
     }
 
+    public static RoofGeneratedMemberKey From(RoofRafterGeometry rafter)
+    {
+        if (rafter is null)
+        {
+            throw new ArgumentNullException(nameof(rafter));
+        }
+
+        return rafter.LogicalKey;
+    }
+
     public bool MapsToCurrentLayout(int stationCount) =>
         StationIndex >= 0 && stationCount >= 2 && StationIndex < stationCount;
 }

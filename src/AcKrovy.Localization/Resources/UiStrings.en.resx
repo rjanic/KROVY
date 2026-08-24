@@ -643,7 +643,7 @@
   <data name="Command_RoofLock_AlreadyLocked" xml:space="preserve"><value>&#xA;The roof is already locked.</value></data>
   <data name="Command_RoofResetEdits_Reset" xml:space="preserve"><value>&#xA;Manual generated-timber edits were reset.</value></data>
   <data name="Command_RoofResetEdits_NoEdits" xml:space="preserve"><value>&#xA;The selected roof has no manual edits.</value></data>
-  <data name="Command_RoofEdit_SelectPrompt" xml:space="preserve"><value>&#xA;Select a roof to edit: </value></data>
+  <data name="Command_RoofEdit_SelectPrompt" xml:space="preserve"><value>Select roof: </value></data>
   <data name="Command_RoofEdit_UpdatedFormat" xml:space="preserve"><value>&#xA;Roof updated.</value></data>
   <data name="Command_Roof_LockedNotificationTitle" xml:space="preserve"><value>The roof is locked</value></data>
   <data name="Command_Roof_LockedNotificationBody" xml:space="preserve"><value>Unlock it before making manual edits.</value></data>
@@ -704,23 +704,22 @@
   <data name="RoofGeometryWindow_ValidationDirection" xml:space="preserve"><value>The selected ridge direction must be parallel to a rectangle edge.</value></data>
   <data name="RoofGeometryWindow_MirrorAsymmetry" xml:space="preserve"><value>Mirror asymmetry (swap left/right side)</value></data>
   <data name="RoofGeometryWindow_Ridge" xml:space="preserve"><value>Ridge</value></data>
-  <data name="Command_Roof_LowSidePointPrompt" xml:space="preserve"><value>\nPick the first point on the low side (LOW EAVE): </value></data>
-  <data name="Command_Roof_HighSidePointPrompt" xml:space="preserve"><value>\nPick the second point on the high side (HIGH EAVE): </value></data>
-  <data name="Command_RoofRafters_MonopitchUnsupported" xml:space="preserve"><value>\nStage 1 does not support automatic rafter creation for mono-pitch roofs.</value></data>
+  <data name="Command_Roof_LowSidePointPrompt" xml:space="preserve"><value>Specify LOW eave: </value></data>
+  <data name="Command_Roof_HighSidePointPrompt" xml:space="preserve"><value>Specify HIGH eave: </value></data>
   <data name="RoofGeometryWindow_MonopitchTitle" xml:space="preserve"><value>Mono-pitch roof geometry</value></data>
   <data name="RoofGeometryWindow_MonopitchHeading" xml:space="preserve"><value>Mono-pitch roof</value></data>
-  <data name="RoofGeometryWindow_MonopitchDescription" xml:space="preserve"><value>Set the single roof plane, pick the LOW → HIGH direction, and verify the result with Preview.</value></data>
+  <data name="RoofGeometryWindow_MonopitchDescription" xml:space="preserve"><value>Set the single roof plane, pick the HIGH → LOW fall direction, and verify the result with Preview.</value></data>
   <data name="RoofGeometryWindow_Monopitch" xml:space="preserve"><value>Mono-pitch roof</value></data>
   <data name="RoofGeometryWindow_ModeMonopitchSlope" xml:space="preserve"><value>Enter slope α</value></data>
   <data name="RoofGeometryWindow_ModeMonopitchHeight" xml:space="preserve"><value>Enter eave height difference ΔH</value></data>
   <data name="RoofGeometryWindow_MonopitchSlope" xml:space="preserve"><value>Slope α (°)</value></data>
   <data name="RoofGeometryWindow_MonopitchHeightDifference" xml:space="preserve"><value>Eave height difference ΔH (mm)</value></data>
   <data name="RoofGeometryWindow_MirrorMonopitch" xml:space="preserve"><value>Mirror mono-pitch roof (LOW ↔ HIGH)</value></data>
-  <data name="RoofGeometryWindow_SlopeDirection" xml:space="preserve"><value>Rise direction LOW → HIGH</value></data>
-  <data name="RoofGeometryWindow_SlopeDirectionNotSelected" xml:space="preserve"><value>LOW → HIGH direction has not been selected.</value></data>
-  <data name="RoofGeometryWindow_PickSlopeDirection" xml:space="preserve"><value>Pick LOW → HIGH direction in drawing</value></data>
+  <data name="RoofGeometryWindow_SlopeDirection" xml:space="preserve"><value>Fall direction HIGH → LOW</value></data>
+  <data name="RoofGeometryWindow_SlopeDirectionNotSelected" xml:space="preserve"><value>HIGH → LOW fall direction has not been selected.</value></data>
+  <data name="RoofGeometryWindow_PickSlopeDirection" xml:space="preserve"><value>Pick HIGH → LOW fall direction in drawing</value></data>
   <data name="RoofGeometryWindow_ValidationMonopitchHeight" xml:space="preserve"><value>The eave height difference must be positive and produce a slope greater than 0° and less than 90°.</value></data>
-  <data name="RoofGeometryWindow_ValidationSlopeDirectionRequired" xml:space="preserve"><value>Pick the LOW → HIGH direction before previewing or creating the roof.</value></data>
+  <data name="RoofGeometryWindow_ValidationSlopeDirectionRequired" xml:space="preserve"><value>Pick the HIGH → LOW fall direction before previewing or creating the roof.</value></data>
   <data name="RoofGeometryWindow_LowEave" xml:space="preserve"><value>Low eave</value></data>
   <data name="RoofGeometryWindow_HighEave" xml:space="preserve"><value>High eave</value></data>
 </root>

@@ -81,6 +81,25 @@ public sealed class RoofLogicalGeneratedAnchorContext
             overrides);
     }
 
+    public static RoofLogicalGeneratedAnchorContext FromLayout(
+        RoofRafterLayout layout,
+        double sourceElevationMm,
+        IEnumerable<RoofGeneratedMemberOverride>? overrides)
+    {
+        if (layout is null)
+        {
+            throw new ArgumentNullException(nameof(layout));
+        }
+
+        return Create(
+            layout.Rafters.Select(rafter => new RoofLogicalGeneratedAnchor(
+                rafter.LogicalKey,
+                RoofGeneratedMemberOverrideRules.CanonicalGeometry(
+                    rafter,
+                    sourceElevationMm))),
+            overrides);
+    }
+
     public RoofLogicalGeneratedAnchorResolution Resolve(RoofGeneratedMemberKey key)
     {
         if (!_canonicalByKey.TryGetValue(key, out var canonical))

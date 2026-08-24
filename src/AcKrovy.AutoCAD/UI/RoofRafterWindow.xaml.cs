@@ -10,13 +10,13 @@ namespace AcKrovy.AutoCAD.UI;
 /// <summary>Compact, drawing-neutral Stage 6 rafter parameter task dialog.</summary>
 public partial class RoofRafterWindow : Window
 {
-    private readonly SimpleGableRoofGeometry _geometry;
+    private readonly IRoofGeometry _geometry;
     private readonly CultureInfo _culture;
     private RoofRafterRequestValidationResult? _currentValidation;
     private bool _initialized;
 
     internal RoofRafterWindow(
-        SimpleGableRoofGeometry geometry,
+        IRoofGeometry geometry,
         RoofRafterPreferences preferences,
         SettingsTheme theme,
         CultureInfo? culture = null)
@@ -37,14 +37,15 @@ public partial class RoofRafterWindow : Window
         WidthTextBox.Text = FormatInput(preferences.WidthMm);
         HeightTextBox.Text = FormatInput(preferences.HeightMm);
         MaximumSpacingTextBox.Text = FormatInput(preferences.MaximumSpacingMm);
-        RoofSlopeTextBox.Text = geometry.Kind == RoofKind.AsymmetricGable
+        RoofSlopeTextBox.Text = geometry is SimpleGableRoofGeometry
+            { Kind: RoofKind.AsymmetricGable } gableGeometry
             ? UiStrings.Format(
                 UiStrings.GetString("RoofRafterWindow_RoofSlopesValueFormat", _culture),
-                geometry.Face0SlopeDegrees,
-                geometry.Face1SlopeDegrees)
+                gableGeometry.Face0SlopeDegrees,
+                gableGeometry.Face1SlopeDegrees)
             : UiStrings.Format(
                 UiStrings.GetString("RoofRafterWindow_RoofSlopeValueFormat", _culture),
-                geometry.SlopeDegrees);
+                geometry.PrimarySlopeDegrees);
         _initialized = true;
         UpdateValidationAndSummary();
     }
@@ -53,7 +54,9 @@ public partial class RoofRafterWindow : Window
 
     internal RoofRafterCreationRequest? Request { get; private set; }
 
-    internal SimpleGableRafterLayout? PreviewLayout => _currentValidation?.Layout;
+    internal RoofRafterLayout? PreviewLayout => _currentValidation?.Layout;
+
+    internal event Action<RoofRafterLayout?>? PreviewLayoutChanged;
 
     private string FormatInput(double value) => value.ToString("0.###", _culture);
 
@@ -92,8 +95,7 @@ public partial class RoofRafterWindow : Window
 
         _currentValidation = validation;
         CreateButton.IsEnabled = validation.IsValid;
-        ValidationTextBlock.Text = validation.IsValid
-            ? string.Empty
+        ValidationTextBlock.Text = validation.IsValid ? string.Empty
             : UiStrings.GetString(ValidationKey(validation.Error), _culture);
         SummaryTextBlock.Text = validation.Layout is { } layout
             ? UiStrings.Format(
@@ -102,6 +104,7 @@ public partial class RoofRafterWindow : Window
                 layout.StationCount,
                 layout.ActualSpacingMm)
             : UiStrings.GetString("RoofRafterWindow_SummaryUnavailable", _culture);
+        PreviewLayoutChanged?.Invoke(validation.Layout);
     }
 
     private double ParseNumber(string text)

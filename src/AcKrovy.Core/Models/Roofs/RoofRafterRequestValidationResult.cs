@@ -2,7 +2,7 @@ namespace AcKrovy.Core.Models.Roofs;
 
 public sealed record RoofRafterRequestValidationResult(
     RoofRafterCreationRequest? Request,
-    SimpleGableRafterLayout? Layout,
+    RoofRafterLayout? Layout,
     RoofRafterRequestValidationError Error)
 {
     public bool IsValid =>

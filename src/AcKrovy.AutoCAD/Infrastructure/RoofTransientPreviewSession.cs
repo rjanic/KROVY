@@ -59,7 +59,7 @@ internal sealed class RoofTransientPreviewSession : IDisposable
 
     public static RoofTransientPreviewSession ShowRafters(
         Document document,
-        SimpleGableRafterLayout layout,
+        RoofRafterLayout layout,
         double sourceElevation)
     {
         ArgumentNullException.ThrowIfNull(document);
@@ -109,7 +109,7 @@ internal sealed class RoofTransientPreviewSession : IDisposable
     }
 
     internal static IReadOnlyList<RoofPreviewSegment> MapRafterSegments(
-        SimpleGableRafterLayout layout,
+        RoofRafterLayout layout,
         double sourceElevation)
     {
         ArgumentNullException.ThrowIfNull(layout);
@@ -118,12 +118,24 @@ internal sealed class RoofTransientPreviewSession : IDisposable
             throw new ArgumentOutOfRangeException(nameof(sourceElevation));
         }
 
-        return layout.Rafters
-            .Select(rafter => new RoofPreviewSegment(
-                new Point3d(rafter.PlanStart.X, rafter.PlanStart.Y, sourceElevation),
-                new Point3d(rafter.PlanEnd.X, rafter.PlanEnd.Y, sourceElevation),
+        return MapRafterPlanSegments(layout)
+            .Select(segment => new RoofPreviewSegment(
+                new Point3d(segment.Start.X, segment.Start.Y, sourceElevation),
+                new Point3d(segment.End.X, segment.End.Y, sourceElevation),
                 IsRidge: false,
-                FaceIndex: (int)rafter.Face))
+                segment.FaceIndex))
+            .ToArray();
+    }
+
+    internal static IReadOnlyList<RoofRafterPlanPreviewSegment> MapRafterPlanSegments(
+        RoofRafterLayout layout)
+    {
+        ArgumentNullException.ThrowIfNull(layout);
+        return layout.Rafters
+            .Select(rafter => new RoofRafterPlanPreviewSegment(
+                rafter.PlanStart,
+                rafter.PlanEnd,
+                (int)rafter.Face))
             .ToArray();
     }
 
@@ -189,7 +201,7 @@ internal sealed class RoofTransientPreviewSession : IDisposable
         }
     }
 
-    private void AddRafters(SimpleGableRafterLayout layout, double sourceElevation)
+    private void AddRafters(RoofRafterLayout layout, double sourceElevation)
     {
         var transientManager = TransientManager.CurrentTransientManager;
         foreach (var segment in MapRafterSegments(layout, sourceElevation))
@@ -225,5 +237,10 @@ internal sealed class RoofTransientPreviewSession : IDisposable
         Point3d Start,
         Point3d End,
         bool IsRidge,
+        int FaceIndex);
+
+    internal sealed record RoofRafterPlanPreviewSegment(
+        RoofPoint2D Start,
+        RoofPoint2D End,
         int FaceIndex);
 }

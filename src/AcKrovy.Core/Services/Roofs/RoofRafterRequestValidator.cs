@@ -6,7 +6,7 @@ namespace AcKrovy.Core.Services.Roofs;
 public static class RoofRafterRequestValidator
 {
     public static RoofRafterRequestValidationResult Validate(
-        SimpleGableRoofGeometry geometry,
+        IRoofGeometry geometry,
         double widthMm,
         double heightMm,
         double maximumSpacingMm,
@@ -21,10 +21,6 @@ public static class RoofRafterRequestValidator
         {
             return Invalid(RoofRafterRequestValidationError.InvalidWidth);
         }
-        if (widthMm >= geometry.Ridge.LengthMm)
-        {
-            return Invalid(RoofRafterRequestValidationError.WidthDoesNotFitRoof);
-        }
         if (!IsFinite(heightMm) || heightMm <= 0d)
         {
             return Invalid(RoofRafterRequestValidationError.InvalidHeight);
@@ -38,11 +34,15 @@ public static class RoofRafterRequestValidator
             return Invalid(RoofRafterRequestValidationError.InvalidMaterial);
         }
 
-        var layoutResult = SimpleGableRafterLayoutSolver.Solve(
+        var layoutResult = RoofRafterLayoutSolver.Solve(
             geometry,
             new RafterLayoutParameters(maximumSpacingMm, widthMm));
         if (!layoutResult.IsValid || layoutResult.Layout is null)
         {
+            if (layoutResult.Error == RoofRafterLayoutError.InvalidRafterPlanWidth)
+            {
+                return Invalid(RoofRafterRequestValidationError.WidthDoesNotFitRoof);
+            }
             return Invalid(RoofRafterRequestValidationError.InvalidRoof);
         }
 
@@ -52,7 +52,7 @@ public static class RoofRafterRequestValidator
                 heightMm,
                 maximumSpacingMm,
                 material!.Trim(),
-                geometry.SlopeDegrees),
+                geometry.PrimarySlopeDegrees),
             layoutResult.Layout,
             RoofRafterRequestValidationError.None);
     }

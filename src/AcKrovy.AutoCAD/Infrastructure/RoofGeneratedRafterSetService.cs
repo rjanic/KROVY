@@ -80,10 +80,11 @@ internal static class RoofGeneratedRafterSetService
         Transaction transaction,
         Editor editor,
         Polyline owner,
-        SimpleGableRoofGeometry geometry,
+        IRoofGeometry geometry,
         TimberElementDefaultProfile defaultProfile,
         ElementLayerProfile layerProfile,
-        bool forceRegenerateOnSourceResize = false)
+        bool forceRegenerateOnSourceResize = false,
+        string rebuildReason = "source-change")
     {
         return TryReplaceForSupportedResize(
             database,
@@ -94,7 +95,8 @@ internal static class RoofGeneratedRafterSetService
             defaultProfile,
             layerProfile,
             out _,
-            forceRegenerateOnSourceResize);
+            forceRegenerateOnSourceResize,
+            rebuildReason);
     }
 
     public static ReplacementOutcome TryReplaceForSupportedResize(
@@ -102,11 +104,12 @@ internal static class RoofGeneratedRafterSetService
         Transaction transaction,
         Editor editor,
         Polyline owner,
-        SimpleGableRoofGeometry geometry,
+        IRoofGeometry geometry,
         TimberElementDefaultProfile defaultProfile,
         ElementLayerProfile layerProfile,
         out RoofGeneratedAnchorResolutionContext? anchorResolutionContext,
-        bool forceRegenerateOnSourceResize = false)
+        bool forceRegenerateOnSourceResize = false,
+        string rebuildReason = "source-change")
     {
         anchorResolutionContext = null;
         ArgumentNullException.ThrowIfNull(database);
@@ -121,7 +124,7 @@ internal static class RoofGeneratedRafterSetService
 #if DEBUG
         RoofGeneratedTimberCopyOwnershipDiagService.WriteReplaceDiag(
             editor,
-            $"TryReplace ownerHandle={ownerReference} geometrySig={geometry.Signature}");
+            $"TryReplace ownerHandle={ownerReference} reason={rebuildReason} geometrySig={geometry.Signature}");
 #endif
         var existingIds = RoofGeneratedTimberStore.FindByOwner(
             database,
@@ -188,7 +191,7 @@ internal static class RoofGeneratedRafterSetService
             return ReplacementOutcome.SkippedAmbiguousRecipe;
         }
 
-        var layoutResult = SimpleGableRafterLayoutSolver.Solve(
+        var layoutResult = RoofRafterLayoutSolver.Solve(
             geometry,
             new RafterLayoutParameters(recipe.MaximumSpacingMm, recipe.WidthMm));
         if (!layoutResult.IsValid || layoutResult.Layout is null)
@@ -222,18 +225,21 @@ internal static class RoofGeneratedRafterSetService
                 defaultProfile,
                 layerProfile,
                 reservedElementIds);
-            _ = RoofGeneratedAnchorResolutionContext.TryCreate(
-                database,
-                transaction,
-                created.Keys.ToArray(),
-                layoutResult.Layout,
-                RoofPolylineExtractor.GetSourceElevation(owner),
-                definition?.Overrides,
-                out anchorResolutionContext);
+            if (geometry.Kind != RoofKind.Monopitch)
+            {
+                _ = RoofGeneratedAnchorResolutionContext.TryCreate(
+                    database,
+                    transaction,
+                    created.Keys.ToArray(),
+                    layoutResult.Layout,
+                    RoofPolylineExtractor.GetSourceElevation(owner),
+                    definition?.Overrides,
+                    out anchorResolutionContext);
+            }
 #if DEBUG
             RoofGeneratedTimberCopyOwnershipDiagService.WriteReplaceDiag(
                 editor,
-                $"branch=Replaced newCount={layoutResult.Layout.Rafters.Count} recipeW={recipe.WidthMm} recipeH={recipe.HeightMm} spacing={recipe.MaximumSpacingMm} anchorContext={(anchorResolutionContext is null ? "unavailable" : "ready")}");
+                $"branch=Replaced reason={rebuildReason} oldCount={existingIds.Count} newCount={layoutResult.Layout.Rafters.Count} uniqueKeys={RoofGeneratedTimberOwnershipRules.HasUniqueMemberStations(members).ToString().ToLowerInvariant()} recipeW={recipe.WidthMm} recipeH={recipe.HeightMm} spacing={recipe.MaximumSpacingMm} anchorContext={(anchorResolutionContext is null ? "unavailable" : "ready")}");
 #endif
             return ReplacementOutcome.Replaced;
         }
@@ -263,8 +269,75 @@ internal static class RoofGeneratedRafterSetService
         ElementLayerProfile layerProfile,
         IReadOnlyDictionary<RoofGeneratedMemberKey, string>? reservedElementIds = null)
     {
+        ArgumentNullException.ThrowIfNull(geometry);
         ArgumentNullException.ThrowIfNull(layout);
         ArgumentNullException.ThrowIfNull(recipe);
+        return MaterializeCore(
+            database,
+            transaction,
+            editor,
+            owner,
+            ownerReference,
+            AdaptLegacyLayout(layout),
+            layout.RequestedMaximumSpacingMm,
+            layout.Signature,
+            recipe,
+            defaultProfile,
+            layerProfile,
+            reservedElementIds);
+    }
+
+    public static IReadOnlyDictionary<ObjectId, TimberElementData> Materialize(
+        Database database,
+        Transaction transaction,
+        Editor editor,
+        Polyline owner,
+        string ownerReference,
+        IRoofGeometry geometry,
+        RoofRafterLayout layout,
+        RoofRafterGenerationRecipe recipe,
+        TimberElementDefaultProfile defaultProfile,
+        ElementLayerProfile layerProfile,
+        IReadOnlyDictionary<RoofGeneratedMemberKey, string>? reservedElementIds = null)
+    {
+        ArgumentNullException.ThrowIfNull(geometry);
+        ArgumentNullException.ThrowIfNull(layout);
+        ArgumentNullException.ThrowIfNull(recipe);
+        if (!RoofRafterMaterializationRules.IsConsistent(geometry, layout))
+        {
+            throw new InvalidOperationException(
+                "The neutral rafter layout is not internally consistent for materialization.");
+        }
+
+        return MaterializeCore(
+            database,
+            transaction,
+            editor,
+            owner,
+            ownerReference,
+            layout.Rafters,
+            layout.RequestedMaximumSpacingMm,
+            layout.Signature,
+            recipe,
+            defaultProfile,
+            layerProfile,
+            reservedElementIds);
+    }
+
+    private static IReadOnlyDictionary<ObjectId, TimberElementData> MaterializeCore(
+        Database database,
+        Transaction transaction,
+        Editor editor,
+        Polyline owner,
+        string ownerReference,
+        IReadOnlyList<RoofRafterGeometry> rafters,
+        double requestedMaximumSpacingMm,
+        string layoutSignature,
+        RoofRafterGenerationRecipe recipe,
+        TimberElementDefaultProfile defaultProfile,
+        ElementLayerProfile layerProfile,
+        IReadOnlyDictionary<RoofGeneratedMemberKey, string>? reservedElementIds)
+    {
 
         var sourceElevation = RoofPolylineExtractor.GetSourceElevation(owner);
         var overrides = new RoofManualOverrideSet(RoofDefinitionStore.Read(owner).Data?.Overrides);
@@ -278,8 +351,8 @@ internal static class RoofGeneratedRafterSetService
             IsSlopeDirectionReversed = true,
             Material = recipe.Material,
         };
-        var accepted = new List<(SimpleGableRafter Rafter, Point3d Start, Point3d End, TimberElementData Data)>();
-        foreach (var rafter in layout.Rafters)
+        var accepted = new List<(RoofRafterGeometry Rafter, Point3d Start, Point3d End, TimberElementData Data)>();
+        foreach (var rafter in rafters)
         {
             if (!RoofGeneratedMemberOverrideRules.TryApplyToLayout(
                     rafter,
@@ -294,7 +367,7 @@ internal static class RoofGeneratedRafterSetService
                 continue;
             }
 
-            var key = RoofGeneratedMemberKey.From(rafter);
+            var key = rafter.LogicalKey;
             var memberData = canonicalRafterData with { SlopeDegrees = rafter.SlopeDegrees };
             if (overrides.TryGet(key, out var overrideData) &&
                 !string.IsNullOrWhiteSpace(overrideData.ReservedElementId))
@@ -341,8 +414,8 @@ internal static class RoofGeneratedRafterSetService
                         rafter.Face,
                         rafter.StationIndex,
                         rafter.StationCount,
-                        layout.RequestedMaximumSpacingMm,
-                        layout.Signature));
+                        requestedMaximumSpacingMm,
+                        layoutSignature));
             });
         TimberCreatedElementAnnotationService.EnsureForCreatedElements(
             database,
@@ -356,6 +429,40 @@ internal static class RoofGeneratedRafterSetService
         }
 
         return created;
+    }
+
+    private static IReadOnlyList<RoofRafterGeometry> AdaptLegacyLayout(
+        SimpleGableRafterLayout layout)
+    {
+        var adapted = new List<RoofRafterGeometry>(layout.Rafters.Count);
+        foreach (var rafter in layout.Rafters)
+        {
+            var planLength = rafter.PlanStart.DistanceTo(rafter.PlanEnd);
+            if (!RoofDirection2D.TryCreate(
+                    rafter.PlanEnd.X - rafter.PlanStart.X,
+                    rafter.PlanEnd.Y - rafter.PlanStart.Y,
+                    out var runDirection))
+            {
+                throw new InvalidOperationException(
+                    "The legacy Gable rafter layout contains an invalid run direction.");
+            }
+
+            adapted.Add(new RoofRafterGeometry(
+                rafter.Face,
+                rafter.StationIndex,
+                rafter.StationCount,
+                rafter.StationFraction,
+                layout.RafterPlanWidthMm / 2d +
+                    layout.UsableCenterSpanMm * rafter.StationFraction,
+                rafter.PlanStart,
+                rafter.PlanEnd,
+                runDirection,
+                planLength,
+                planLength / Math.Cos(rafter.SlopeDegrees * Math.PI / 180d),
+                rafter.SlopeDegrees));
+        }
+
+        return adapted;
     }
 
     private static bool TryCollectGeneratedMembers(
