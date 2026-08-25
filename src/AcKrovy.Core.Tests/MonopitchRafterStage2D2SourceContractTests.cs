@@ -42,32 +42,30 @@ public sealed class MonopitchRafterStage2D2SourceContractTests
     }
 
     [Fact]
-    public void MonopitchSplitOperations_AreRejectedBeforeFragmentPromotionOrPersistence()
+    public void MonopitchSplitOperations_ReachSharedStage2D3Promotion()
     {
         var accept = RoofUxSourceContractText.Member(
             Manual,
             "private static bool TryAcceptUnlockedEdits",
             "private static RoofGeneratedAnchorResolutionContext? CreateSplitAnchorResolutionContext");
-        var guard = accept.IndexOf("attached-manual-not-supported", StringComparison.Ordinal);
         var promote = accept.IndexOf("TryPromoteSplitFragments", StringComparison.Ordinal);
         var persist = accept.IndexOf("RoofDefinitionStore.Write", StringComparison.Ordinal);
 
-        Assert.True(guard >= 0);
-        Assert.True(promote > guard);
-        Assert.True(persist > guard);
-        Assert.Contains("roofGeometry.Kind == RoofKind.Monopitch", accept);
-        Assert.Contains("appendedTimberIds.Count > 0", accept);
-        Assert.False(RoofGeneratedMemberEditCommandRules.IsSupportedUnlockedGeneratedTimberCommand(
+        Assert.DoesNotContain("attached-manual-not-supported", accept);
+        Assert.True(promote >= 0);
+        Assert.True(persist >= 0);
+        Assert.DoesNotContain("roofGeometry.Kind == RoofKind.Monopitch", accept);
+        Assert.True(RoofGeneratedMemberEditCommandRules.IsSupportedUnlockedGeneratedTimberCommand(
             "BREAK",
             RoofKind.Monopitch));
     }
 
     [Fact]
-    public void ExistingGableSplitPath_RemainsTypeSpecificAndUnchanged()
+    public void ExistingGableSplitPath_UsesSharedNeutralGeometryBoundary()
     {
-        Assert.Contains(
-            "roofGeometry is SimpleGableRoofGeometry gableGeometry",
-            Manual);
+        Assert.Contains("IRoofGeometry geometry", Manual);
+        Assert.Contains("RoofRafterLayoutSolver.Solve", Manual);
+        Assert.DoesNotContain("roofGeometry is SimpleGableRoofGeometry", Manual);
         Assert.Contains("CreateSplitAnchorResolutionContext", Manual);
         Assert.Contains("TryPromoteSplitFragments", Manual);
         Assert.True(RoofGeneratedMemberEditCommandRules.IsSupportedUnlockedGeneratedTimberCommand(
@@ -104,7 +102,7 @@ public sealed class MonopitchRafterStage2D2SourceContractTests
         Assert.Contains("foreach (var replayItem in replayPlan.Items)", Replacement);
         Assert.Contains("storedOverrides", Replacement);
         Assert.DoesNotContain("Nearest", Replacement, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("replayAttachedManualChildren: classification.Geometry.Kind != RoofKind.Monopitch", Resize);
+        Assert.Contains("replayAttachedManualChildren: true", Resize);
     }
 
     [Fact]

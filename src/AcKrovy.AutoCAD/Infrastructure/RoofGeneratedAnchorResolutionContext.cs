@@ -18,7 +18,8 @@ internal sealed record RoofGeneratedAnchorResolution(
     RoofGeneratedAnchorResolutionKind Kind,
     Point3d Start,
     Point3d End,
-    string AnchorHandle)
+    string AnchorHandle,
+    double SlopeDegrees = double.NaN)
 {
     public bool IsResolved =>
         Kind is RoofGeneratedAnchorResolutionKind.Physical or
@@ -43,13 +44,16 @@ internal sealed class RoofGeneratedAnchorResolutionContext
 {
     private readonly IReadOnlyDictionary<RoofGeneratedMemberKey, PhysicalAnchor> _physicalByKey;
     private readonly RoofLogicalGeneratedAnchorContext _logical;
+    private readonly IReadOnlyDictionary<RoofGeneratedMemberKey, double> _slopeByKey;
 
     private RoofGeneratedAnchorResolutionContext(
         IReadOnlyDictionary<RoofGeneratedMemberKey, PhysicalAnchor> physicalByKey,
-        RoofLogicalGeneratedAnchorContext logical)
+        RoofLogicalGeneratedAnchorContext logical,
+        IReadOnlyDictionary<RoofGeneratedMemberKey, double> slopeByKey)
     {
         _physicalByKey = physicalByKey;
         _logical = logical;
+        _slopeByKey = slopeByKey;
     }
 
     public static bool TryCreate(
@@ -73,6 +77,9 @@ internal sealed class RoofGeneratedAnchorResolutionContext
                     layout,
                     sourceElevationMm,
                     overrides),
+                layout.Rafters.ToDictionary(
+                    RoofGeneratedMemberKey.From,
+                    rafter => rafter.SlopeDegrees),
                 out context);
         }
         catch (System.Exception)
@@ -103,6 +110,9 @@ internal sealed class RoofGeneratedAnchorResolutionContext
                     layout,
                     sourceElevationMm,
                     overrides),
+                layout.Rafters.ToDictionary(
+                    rafter => rafter.LogicalKey,
+                    rafter => rafter.SlopeDegrees),
                 out context);
         }
         catch (System.Exception)
@@ -117,6 +127,7 @@ internal sealed class RoofGeneratedAnchorResolutionContext
         Transaction transaction,
         IReadOnlyCollection<ObjectId> physicalGeneratedIds,
         RoofLogicalGeneratedAnchorContext logical,
+        IReadOnlyDictionary<RoofGeneratedMemberKey, double> slopeByKey,
         out RoofGeneratedAnchorResolutionContext? context)
     {
         context = null;
@@ -155,7 +166,7 @@ internal sealed class RoofGeneratedAnchorResolutionContext
             }
         }
 
-        context = new RoofGeneratedAnchorResolutionContext(physicalByKey, logical);
+        context = new RoofGeneratedAnchorResolutionContext(physicalByKey, logical, slopeByKey);
         return true;
     }
 
@@ -169,7 +180,8 @@ internal sealed class RoofGeneratedAnchorResolutionContext
                 RoofGeneratedAnchorResolutionKind.Physical,
                 physical.Start,
                 physical.End,
-                physical.Handle);
+                physical.Handle,
+                ResolveSlope(key));
         }
 
         var logical = _logical.Resolve(key);
@@ -181,7 +193,8 @@ internal sealed class RoofGeneratedAnchorResolutionContext
                 RoofGeneratedAnchorResolutionKind.VirtualSuppressed,
                 ToAcad(geometry.Start),
                 ToAcad(geometry.End),
-                "-");
+                "-",
+                ResolveSlope(key));
         }
 
         return new RoofGeneratedAnchorResolution(
@@ -192,6 +205,9 @@ internal sealed class RoofGeneratedAnchorResolutionContext
             Point3d.Origin,
             "-");
     }
+
+    private double ResolveSlope(RoofGeneratedMemberKey key) =>
+        _slopeByKey.TryGetValue(key, out var slope) ? slope : double.NaN;
 
     private static Point3d ToAcad(RoofPoint3D point) => new(point.X, point.Y, point.Z);
 

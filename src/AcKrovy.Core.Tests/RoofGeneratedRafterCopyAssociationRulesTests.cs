@@ -189,6 +189,34 @@ public sealed class RoofGeneratedRafterCopyAssociationRulesTests
         Assert.True(RoofGeneratedRafterCopyAssociationRules.GeometryMatches(expected, actual));
     }
 
+    [Fact]
+    public void MonopitchCompleteSet_IsAssociatedThroughSharedFaceZeroLayout()
+    {
+        var geometry = MonopitchGeometry(3200d, -1400d, 30d);
+        var layout = SharedLayout(geometry, RecipeA);
+        var observations = layout.Rafters.Select((rafter, index) =>
+            new RoofGeneratedRafterGeometryObservation(
+                $"mono-{index}",
+                "OLD",
+                RecipeA,
+                rafter.Face,
+                rafter.StationIndex,
+                rafter.StationCount,
+                rafter.PlanStart,
+                rafter.PlanEnd,
+                "stale-signature")).ToArray();
+
+        var plan = RoofGeneratedRafterCopyAssociationRules.BuildPlan(
+            [new RoofGeneratedRafterCopyOwnerTarget("MONO", geometry)],
+            observations);
+
+        var association = Assert.Single(plan.Associations);
+        Assert.Equal("MONO", association.OwnerReference);
+        Assert.True(association.RequiresMetadataRewrite);
+        Assert.All(association.Members, item => Assert.Equal(RafterRoofFace.Face0, item.Face));
+        Assert.Equal(layout.Signature, association.ExpectedLayout.Signature);
+    }
+
     private static IEnumerable<RoofGeneratedRafterGeometryObservation> Observations(
         string owner,
         SimpleGableRafterLayout layout,
@@ -233,5 +261,40 @@ public sealed class RoofGeneratedRafterCopyAssociationRulesTests
             new RoofParameters(30d, direction)));
         Assert.True(result.IsValid, result.Error.ToString());
         return result.Geometry!;
+    }
+
+    private static MonopitchRoofGeometry MonopitchGeometry(
+        double originX,
+        double originY,
+        double rotationDegrees)
+    {
+        var radians = rotationDegrees * Math.PI / 180d;
+        Assert.True(RoofDirection2D.TryCreate(Math.Cos(radians), Math.Sin(radians), out var run));
+        Assert.True(RoofDirection2D.TryCreate(-run.Y, run.X, out var station));
+        RoofPoint2D At(double alongRun, double alongStation) => new(
+            originX + run.X * alongRun + station.X * alongStation,
+            originY + run.Y * alongRun + station.Y * alongStation);
+        var input = new RoofFootprintInput(
+            [At(0d, 0d), At(6000d, 0d), At(6000d, 8000d), At(0d, 8000d)],
+            true);
+        var validation = RoofFootprintValidator.Validate(input);
+        Assert.True(validation.IsValid, validation.Error.ToString());
+        var solved = MonopitchRoofGeometrySolver.Solve(new RoofDefinition(
+            validation.Footprint!,
+            new RoofParameters(35d, SlopeDirection: run),
+            RoofKind.Monopitch));
+        Assert.True(solved.IsValid, solved.Error.ToString());
+        return Assert.IsType<MonopitchRoofGeometry>(solved.Geometry);
+    }
+
+    private static RoofRafterLayout SharedLayout(
+        IRoofGeometry geometry,
+        RoofRafterGenerationRecipe recipe)
+    {
+        var result = RoofRafterLayoutSolver.Solve(
+            geometry,
+            new RafterLayoutParameters(recipe.MaximumSpacingMm, recipe.WidthMm));
+        Assert.True(result.IsValid, result.Error.ToString());
+        return result.Layout!;
     }
 }

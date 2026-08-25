@@ -231,6 +231,17 @@ internal static class RoofAttachedManualLifecycleService
             childLine.EndPoint = ToAcad(childEnd);
             if (metadataStore.TryRead(childLine, out var timberData) && timberData is not null)
             {
+                if (double.IsFinite(anchorResolution.SlopeDegrees) &&
+                    anchorResolution.SlopeDegrees > 0d &&
+                    timberData.SlopeDegrees != anchorResolution.SlopeDegrees)
+                {
+                    timberData = timberData with
+                    {
+                        SlopeDegrees = anchorResolution.SlopeDegrees,
+                    };
+                    metadataStore.Write(childLine, timberData);
+                }
+
                 _ = TimberAnnotationService.EnsureForElement(
                     document.Database,
                     transaction,
@@ -457,6 +468,105 @@ internal static class RoofAttachedManualLifecycleService
             ToRoof(childLine.StartPoint),
             ToRoof(childLine.EndPoint));
         return selected is not null;
+    }
+
+    public static bool TryRebaseForMonopitchSemanticMirror(
+        Document document,
+        Transaction transaction,
+        Polyline owner,
+        IRoofGeometry before,
+        IRoofGeometry after,
+        IEnumerable<RoofGeneratedMemberOverride>? overrides)
+    {
+        if (!MonopitchRoofDefinitionRules.IsSemanticMirror(before, after))
+        {
+            return true;
+        }
+
+        var ownerReference = owner.Handle.ToString();
+        var attached = new List<(Line Line, RoofAttachedManualTimberData Data)>();
+        foreach (var attachedId in RoofAttachedManualTimberStore.FindByOwner(
+                     document.Database,
+                     transaction,
+                     ownerReference))
+        {
+            if (!AutoCadObjectIdAccess.TryGetObject<Line>(
+                    transaction,
+                    attachedId,
+                    OpenMode.ForWrite,
+                    out var childLine,
+                    document.Database) ||
+                childLine is null ||
+                childLine.IsErased)
+            {
+                continue;
+            }
+
+            var stored = RoofAttachedManualTimberStore.Read(childLine).Data;
+            if (stored?.AnchorGeneratedMemberKey is not null && stored.RelativeSegment is not null)
+            {
+                attached.Add((childLine, stored));
+            }
+        }
+
+        if (attached.Count == 0)
+        {
+            return true;
+        }
+
+        var generatedIds = RoofGeneratedTimberStore.FindByOwner(
+            document.Database,
+            transaction,
+            ownerReference);
+        if (!RoofGeneratedRafterSetService.TryRecoverRecipe(
+                document.Database,
+                transaction,
+                generatedIds,
+                out var recipe))
+        {
+            return false;
+        }
+
+        var layoutResult = RoofRafterLayoutSolver.Solve(
+            before,
+            new RafterLayoutParameters(recipe.MaximumSpacingMm, recipe.WidthMm));
+        if (!layoutResult.IsValid ||
+            layoutResult.Layout is null ||
+            !RoofGeneratedAnchorResolutionContext.TryCreate(
+                document.Database,
+                transaction,
+                generatedIds,
+                layoutResult.Layout,
+                RoofPolylineExtractor.GetSourceElevation(owner),
+                overrides,
+                out var context) ||
+            context is null)
+        {
+            return false;
+        }
+
+        var rebasedByLine = new List<(Line Line, RoofAttachedManualTimberData Data)>(attached.Count);
+        foreach (var item in attached)
+        {
+            var key = item.Data.AnchorGeneratedMemberKey!.Value;
+            var anchor = context.Resolve(key);
+            if (!anchor.IsResolved)
+            {
+                return false;
+            }
+
+            var length = anchor.Start.DistanceTo(anchor.End);
+            var rebased = RoofAttachedManualRelativeGeometryRules
+                .RebaseForReversedAnchorDirection(item.Data.RelativeSegment!, length);
+            rebasedByLine.Add((item.Line, item.Data with { RelativeSegment = rebased }));
+        }
+
+        foreach (var item in rebasedByLine)
+        {
+            RoofAttachedManualTimberStore.Write(item.Line, transaction, item.Data);
+        }
+
+        return true;
     }
 
     public static void CapturePreResizeAnchorHandles(

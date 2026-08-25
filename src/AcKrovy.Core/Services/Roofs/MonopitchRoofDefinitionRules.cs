@@ -70,6 +70,15 @@ public static class MonopitchRoofDefinitionRules
         return updated with { ManualOverrides = rebased };
     }
 
+    public static bool IsSemanticMirror(IRoofGeometry before, IRoofGeometry after) =>
+        before is MonopitchRoofGeometry beforeMonopitch &&
+        after is MonopitchRoofGeometry afterMonopitch &&
+        IsOppositeDirection(
+            beforeMonopitch.LowToHighDirection,
+            afterMonopitch.LowToHighDirection) &&
+        Math.Abs(beforeMonopitch.SpanMm - afterMonopitch.SpanMm) <=
+            SimpleGableRoofGeometryTolerance.CoordinateToleranceMm;
+
     private static RoofGeneratedMemberOverride? RebaseForReversedCanonicalDirection(
         RoofGeneratedMemberOverride item,
         double canonicalLengthMm)

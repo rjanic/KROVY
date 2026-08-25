@@ -26,7 +26,7 @@ public sealed class MonopitchRafterStage2D2OverrideTests
     }
 
     [Fact]
-    public void Break_RemainsGableOnlyUntilAttachedManualStage()
+    public void Break_IsEnabledForMonopitchByAttachedManualStage2D3()
     {
         Assert.True(RoofGeneratedMemberEditCommandRules.IsSupportedUnlockedGeneratedTimberCommand(
             "BREAK",
@@ -34,7 +34,7 @@ public sealed class MonopitchRafterStage2D2OverrideTests
         Assert.True(RoofGeneratedMemberEditCommandRules.IsSupportedUnlockedGeneratedTimberCommand(
             "BREAK",
             RoofKind.AsymmetricGable));
-        Assert.False(RoofGeneratedMemberEditCommandRules.IsSupportedUnlockedGeneratedTimberCommand(
+        Assert.True(RoofGeneratedMemberEditCommandRules.IsSupportedUnlockedGeneratedTimberCommand(
             "BREAK",
             RoofKind.Monopitch));
         Assert.False(RoofGeneratedMemberEditCommandRules.IsSupportedUnlockedGeneratedTimberCommand(

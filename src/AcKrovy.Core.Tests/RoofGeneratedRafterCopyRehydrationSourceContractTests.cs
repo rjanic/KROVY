@@ -50,7 +50,7 @@ public sealed class RoofGeneratedRafterCopyRehydrationSourceContractTests
     [Fact]
     public void AssociationUsesDeterministicLayoutGeometryNotHeuristics()
     {
-        Assert.Contains("SimpleGableRafterLayoutSolver.Solve(", Association);
+        Assert.Contains("RoofRafterLayoutSolver.Solve(", Association);
         Assert.Contains("TryMatchCompleteSet(", Association);
         Assert.Contains("GeometryMatches(", Association);
         Assert.DoesNotContain("GetClosestPointTo", Association);

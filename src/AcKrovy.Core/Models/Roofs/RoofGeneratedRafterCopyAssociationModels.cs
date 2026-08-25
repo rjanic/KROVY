@@ -15,16 +15,16 @@ public sealed record RoofGeneratedRafterGeometryObservation(
     RoofPoint2D PlanEnd,
     string LayoutSignature);
 
-/// <summary>One persisted SimpleGable roof that may need generated-set rebinding.</summary>
+/// <summary>One persisted supported roof that may need generated-set rebinding.</summary>
 public sealed record RoofGeneratedRafterCopyOwnerTarget(
     string OwnerReference,
-    SimpleGableRoofGeometry Geometry);
+    IRoofGeometry Geometry);
 
 /// <summary>One uniquely matched generated set that should belong to a roof owner.</summary>
 public sealed record RoofGeneratedRafterCopyAssociation(
     string OwnerReference,
     RoofRafterGenerationRecipe Recipe,
-    SimpleGableRafterLayout ExpectedLayout,
+    RoofRafterLayout ExpectedLayout,
     IReadOnlyList<RoofGeneratedRafterGeometryObservation> Members,
     bool RequiresMetadataRewrite);
 

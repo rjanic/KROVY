@@ -110,7 +110,7 @@ public sealed class RoofGeneratedMemberScaleRecoveryTests
         Assert.True(RoofGeneratedMemberEditCommandRules.IsAssemblySnapshotCommand("TRIM"));
         Assert.True(RoofGeneratedMemberEditCommandRules
             .IsSupportedUnlockedGeneratedTimberCommand("BREAK", RoofKind.SimpleGable));
-        Assert.False(RoofGeneratedMemberEditCommandRules
+        Assert.True(RoofGeneratedMemberEditCommandRules
             .IsSupportedUnlockedGeneratedTimberCommand("BREAK", RoofKind.Monopitch));
     }
 

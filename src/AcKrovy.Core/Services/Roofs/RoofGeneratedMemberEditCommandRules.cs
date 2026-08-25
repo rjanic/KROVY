@@ -47,9 +47,11 @@ public static class RoofGeneratedMemberEditCommandRules
     /// </summary>
     public static bool IsSupportedUnlockedGeneratedTimberCommand(
         string? globalCommandName,
-        RoofKind roofKind) =>
-        IsSupportedUnlockedGeneratedTimberCommand(globalCommandName) &&
-        (roofKind != RoofKind.Monopitch || !IsBreakCommand(globalCommandName));
+        RoofKind roofKind)
+    {
+        _ = roofKind;
+        return IsSupportedUnlockedGeneratedTimberCommand(globalCommandName);
+    }
 
     public static bool IsClassicStretch(string? globalCommandName)
     {

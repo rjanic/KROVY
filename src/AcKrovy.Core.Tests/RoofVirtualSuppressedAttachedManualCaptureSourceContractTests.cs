@@ -21,10 +21,10 @@ public sealed class RoofVirtualSuppressedAttachedManualCaptureSourceContractTest
             "private static bool TryClassifyAcceptedMemberEdit");
 
         Assert.Contains("RoofGeneratedRafterSetService.TryRecoverRecipe", factory);
-        Assert.Contains("SimpleGableRafterLayoutSolver.Solve", factory);
+        Assert.Contains("RoofRafterLayoutSolver.Solve", factory);
         Assert.Contains("RoofGeneratedAnchorResolutionContext.TryCreate", factory);
         Assert.Contains("physicalGeneratedIds", factory);
-        Assert.Equal(1, Count(factory, "SimpleGableRafterLayoutSolver.Solve("));
+        Assert.Equal(1, Count(factory, "RoofRafterLayoutSolver.Solve("));
 
         var accept = Member(Manual, "private static bool TryAcceptUnlockedEdits", factory.Split('\n')[0].Trim());
         Assert.Equal(1, Count(accept, "CreateSplitAnchorResolutionContext("));

@@ -426,19 +426,6 @@ internal static class RoofGeneratedMemberManualEditService
         var isTargetedRecalc = RoofGeneratedMemberEditCommandRules.IsTargetedRecalcCommand(
             globalCommandName);
 
-        // Monopitch Stage 2D2 covers Generated overrides only. BREAK and middle/split
-        // TRIM require AttachedManual children, which deliberately remain Stage 2D3.
-        // Reject before any fragment promotion or override persistence; the caller's
-        // command snapshot restores the canonical generated assembly.
-        if (roofGeometry.Kind == RoofKind.Monopitch &&
-            (isBreak ||
-             RoofGeneratedMemberEditCommandRules.IsTrimCommand(globalCommandName) &&
-             appendedTimberIds.Count > 0))
-        {
-            reject = new ManualEditReject("command", "attached-manual-not-supported");
-            return false;
-        }
-
         if (isErase)
         {
             var defaultProfile = TimberElementDefaultProfileStore.Load();
@@ -574,17 +561,15 @@ internal static class RoofGeneratedMemberManualEditService
             var roundingStepMm = defaultProfile.GetCuttingLengthRoundingStepMm();
             var standaloneIds = new List<ObjectId>();
             var keepStandalones = false;
-            var splitAnchorResolutionContext = roofGeometry is SimpleGableRoofGeometry gableGeometry
-                ? CreateSplitAnchorResolutionContext(
-                    document.Database,
-                    transaction,
-                    globalCommandName,
-                    generatedIds,
-                    appendedTimberIds,
-                    gableGeometry,
-                    elevation,
-                    definition.Overrides)
-                : null;
+            var splitAnchorResolutionContext = CreateSplitAnchorResolutionContext(
+                document.Database,
+                transaction,
+                globalCommandName,
+                generatedIds,
+                appendedTimberIds,
+                roofGeometry,
+                elevation,
+                definition.Overrides);
             if (!TryPromoteSplitFragments(
                     document,
                     transaction,
@@ -889,7 +874,7 @@ internal static class RoofGeneratedMemberManualEditService
         string? globalCommandName,
         IReadOnlyList<ObjectId> generatedIds,
         IReadOnlyCollection<ObjectId> appendedTimberIds,
-        SimpleGableRoofGeometry geometry,
+        IRoofGeometry geometry,
         double elevation,
         IEnumerable<RoofGeneratedMemberOverride>? overrides)
     {
@@ -914,7 +899,7 @@ internal static class RoofGeneratedMemberManualEditService
             return null;
         }
 
-        var layoutResult = SimpleGableRafterLayoutSolver.Solve(
+        var layoutResult = RoofRafterLayoutSolver.Solve(
             geometry,
             new RafterLayoutParameters(recipe.MaximumSpacingMm, recipe.WidthMm));
         if (!layoutResult.IsValid || layoutResult.Layout is null)

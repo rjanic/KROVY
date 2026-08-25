@@ -67,4 +67,58 @@ public sealed class RoofAttachedManualRelativeGeometryTests
         Assert.True(RoofAttachedManualTimberDataCodec.TryDecode(encoded, out var decoded));
         Assert.Equal(data, decoded);
     }
+
+    [Fact]
+    public void ReversedAnchorRebase_PreservesExactPhysicalSegment()
+    {
+        var anchorStart = new RoofPoint3D(1700d, -230d, 40d);
+        var anchorEnd = new RoofPoint3D(5300d, 2770d, 40d);
+        var childStart = new RoofPoint3D(2600d, 900d, 65d);
+        var childEnd = new RoofPoint3D(4600d, 2100d, 65d);
+        Assert.True(RoofAttachedManualRelativeGeometryRules.TryCapture(
+            anchorStart,
+            anchorEnd,
+            childStart,
+            childEnd,
+            out var relative));
+
+        var anchorLength = anchorStart.DistanceTo(anchorEnd);
+        var rebased = RoofAttachedManualRelativeGeometryRules
+            .RebaseForReversedAnchorDirection(relative, anchorLength);
+        Assert.True(RoofAttachedManualRelativeGeometryRules.TryReplay(
+            anchorEnd,
+            anchorStart,
+            rebased,
+            out var replayStart,
+            out var replayEnd));
+
+        AssertPoint(childStart, replayStart);
+        AssertPoint(childEnd, replayEnd);
+    }
+
+    [Fact]
+    public void ReversedAnchorRebase_TwiceRestoresPersistedNumbersWithoutDrift()
+    {
+        var original = new RoofAttachedManualRelativeSegment(
+            -125.5d,
+            240.25d,
+            18d,
+            4820.75d,
+            -95.5d,
+            18d);
+
+        var once = RoofAttachedManualRelativeGeometryRules
+            .RebaseForReversedAnchorDirection(original, 5100d);
+        var twice = RoofAttachedManualRelativeGeometryRules
+            .RebaseForReversedAnchorDirection(once, 5100d);
+
+        Assert.Equal(original, twice);
+    }
+
+    private static void AssertPoint(RoofPoint3D expected, RoofPoint3D actual)
+    {
+        Assert.Equal(expected.X, actual.X, 8);
+        Assert.Equal(expected.Y, actual.Y, 8);
+        Assert.Equal(expected.Z, actual.Z, 8);
+    }
 }

@@ -4,6 +4,35 @@ namespace AcKrovy.Core.Services.Roofs;
 
 public static class RoofAttachedManualRelativeGeometryRules
 {
+    /// <summary>
+    /// Re-expresses the same physical points after an anchor reverses direction.
+    /// For U'=-U, V'=-V, W'=W and the new origin at the old anchor end:
+    /// u'=L-u, v'=-v, w'=w.
+    /// </summary>
+    public static RoofAttachedManualRelativeSegment RebaseForReversedAnchorDirection(
+        RoofAttachedManualRelativeSegment relative,
+        double anchorLengthMm)
+    {
+        if (relative is null)
+        {
+            throw new ArgumentNullException(nameof(relative));
+        }
+        if (double.IsNaN(anchorLengthMm) ||
+            double.IsInfinity(anchorLengthMm) ||
+            anchorLengthMm <= RoofGeneratedMemberOverrideMath.LengthToleranceMm)
+        {
+            throw new ArgumentOutOfRangeException(nameof(anchorLengthMm));
+        }
+
+        return new RoofAttachedManualRelativeSegment(
+            anchorLengthMm - relative.U0Mm,
+            -relative.V0Mm,
+            relative.W0Mm,
+            anchorLengthMm - relative.U1Mm,
+            -relative.V1Mm,
+            relative.W1Mm);
+    }
+
     public static bool TryCapture(
         RoofPoint3D anchorStart,
         RoofPoint3D anchorEnd,

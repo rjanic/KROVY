@@ -82,17 +82,15 @@ public sealed class MonopitchRafterStage2D1SourceContractTests
     }
 
     [Fact]
-    public void AttachedManualReplay_RemainsOutsideMonopitchStage2D1()
+    public void AttachedManualReplay_IsEnabledOnlyByLaterSharedStage2D3Path()
     {
-        Assert.Contains("geometry.Kind != RoofKind.Monopitch", Replacement);
-        Assert.Contains(
-            "replayAttachedManualChildren: classification.Geometry.Kind != RoofKind.Monopitch",
-            Resize);
-        Assert.Contains("restored.Geometry.Kind != RoofKind.Monopitch", Edit);
+        Assert.DoesNotContain("geometry.Kind != RoofKind.Monopitch", Replacement);
+        Assert.Contains("replayAttachedManualChildren: true", Resize);
+        Assert.DoesNotContain("restored.Geometry.Kind != RoofKind.Monopitch", Edit);
     }
 
     [Fact]
-    public void ChildPolicyDiagnostic_CountsSuccessfulReplacementWithoutEnablingMonopitchReplay()
+    public void ChildPolicyDiagnostic_CountsSuccessfulReplacementAndUsesSharedReplaySwitch()
     {
         Assert.Contains("rafterOutcome,", Resize);
         Assert.DoesNotContain("childPolicyOutcome", Resize);

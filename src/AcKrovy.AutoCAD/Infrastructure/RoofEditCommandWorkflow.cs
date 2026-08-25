@@ -273,6 +273,18 @@ internal static class RoofEditCommandWorkflow
                 return null;
             }
 
+            if (!RoofAttachedManualLifecycleService.TryRebaseForMonopitchSemanticMirror(
+                    document,
+                    transaction,
+                    owner,
+                    selectionGeometry,
+                    newGeometry,
+                    currentStored.Data.Overrides))
+            {
+                failureMessageKey = "Command_RoofRafters_GenerationFailed";
+                return null;
+            }
+
             RoofDefinitionStore.Write(owner, transaction, data);
 
             var sourceElevation = RoofPolylineExtractor.GetSourceElevation(owner);
@@ -315,8 +327,7 @@ internal static class RoofEditCommandWorkflow
                 return null;
             }
 
-            if (outcome == RoofGeneratedRafterSetService.ReplacementOutcome.Replaced &&
-                restored.Geometry.Kind != RoofKind.Monopitch)
+            if (outcome == RoofGeneratedRafterSetService.ReplacementOutcome.Replaced)
             {
                 var footprintVertices = current.Footprint.Vertices;
                 _ = RoofAttachedManualLifecycleService.ReplayAnchoredChildrenForOwner(

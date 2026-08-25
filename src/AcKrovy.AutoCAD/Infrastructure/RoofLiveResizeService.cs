@@ -1092,7 +1092,7 @@ internal static class RoofLiveResizeService
             generatedMemberCount,
             generatedReplayPlan?.GeometryReplayCount ?? 0,
             anchorResolutionContext,
-            replayAttachedManualChildren: classification.Geometry.Kind != RoofKind.Monopitch);
+            replayAttachedManualChildren: true);
 
         if (rafterOutcome == RoofGeneratedRafterSetService.ReplacementOutcome.SkippedAmbiguousRecipe)
         {

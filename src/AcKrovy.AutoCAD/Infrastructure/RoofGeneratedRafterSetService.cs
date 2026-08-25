@@ -282,17 +282,14 @@ internal static class RoofGeneratedRafterSetService
                 created.Count,
                 "materialized");
 #endif
-            if (geometry.Kind != RoofKind.Monopitch)
-            {
-                _ = RoofGeneratedAnchorResolutionContext.TryCreate(
-                    database,
-                    transaction,
-                    created.Keys.ToArray(),
-                    layoutResult.Layout,
-                    RoofPolylineExtractor.GetSourceElevation(owner),
-                    definition?.Overrides,
-                    out anchorResolutionContext);
-            }
+            _ = RoofGeneratedAnchorResolutionContext.TryCreate(
+                database,
+                transaction,
+                created.Keys.ToArray(),
+                layoutResult.Layout,
+                RoofPolylineExtractor.GetSourceElevation(owner),
+                definition?.Overrides,
+                out anchorResolutionContext);
 #if DEBUG
             RoofGeneratedTimberCopyOwnershipDiagService.WriteReplaceDiag(
                 editor,
