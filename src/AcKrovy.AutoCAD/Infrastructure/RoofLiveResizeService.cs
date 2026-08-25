@@ -1076,6 +1076,7 @@ internal static class RoofLiveResizeService
             TimberElementDefaultProfileStore.Load(),
             ElementLayerProfileStore.Load(),
             out anchorResolutionContext,
+            out var generatedReplayPlan,
             forceRegenerateOnSourceResize: true,
             rebuildReason: "source-resize");
         if (rafterOutcome == RoofGeneratedRafterSetService.ReplacementOutcome.Failed)
@@ -1089,6 +1090,7 @@ internal static class RoofLiveResizeService
             owner,
             rafterOutcome,
             generatedMemberCount,
+            generatedReplayPlan?.GeometryReplayCount ?? 0,
             anchorResolutionContext,
             replayAttachedManualChildren: classification.Geometry.Kind != RoofKind.Monopitch);
 

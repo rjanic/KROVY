@@ -105,7 +105,7 @@ public sealed class RoofHybridEditSourceContractTests
         Assert.Contains("TryRefreshAcceptedMemberAnnotations", Manual);
         Assert.DoesNotContain("if (!TimberAnnotationService.EnsureForElement", Manual);
         Assert.Contains("PreserveEditState", Resize);
-        Assert.Contains("TryApplyToLayout", Replacement);
+        Assert.Contains("RoofGeneratedMemberReplayPlanner.Create", Replacement);
     }
 
     [Fact]

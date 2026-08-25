@@ -95,6 +95,7 @@ internal static class RoofGeneratedRafterSetService
             defaultProfile,
             layerProfile,
             out _,
+            out _,
             forceRegenerateOnSourceResize,
             rebuildReason);
     }
@@ -111,7 +112,35 @@ internal static class RoofGeneratedRafterSetService
         bool forceRegenerateOnSourceResize = false,
         string rebuildReason = "source-change")
     {
+        return TryReplaceForSupportedResize(
+            database,
+            transaction,
+            editor,
+            owner,
+            geometry,
+            defaultProfile,
+            layerProfile,
+            out anchorResolutionContext,
+            out _,
+            forceRegenerateOnSourceResize,
+            rebuildReason);
+    }
+
+    public static ReplacementOutcome TryReplaceForSupportedResize(
+        Database database,
+        Transaction transaction,
+        Editor editor,
+        Polyline owner,
+        IRoofGeometry geometry,
+        TimberElementDefaultProfile defaultProfile,
+        ElementLayerProfile layerProfile,
+        out RoofGeneratedAnchorResolutionContext? anchorResolutionContext,
+        out RoofGeneratedMemberReplayPlan? replayPlan,
+        bool forceRegenerateOnSourceResize = false,
+        string rebuildReason = "source-change")
+    {
         anchorResolutionContext = null;
+        replayPlan = null;
         ArgumentNullException.ThrowIfNull(database);
         ArgumentNullException.ThrowIfNull(transaction);
         ArgumentNullException.ThrowIfNull(editor);
@@ -212,19 +241,47 @@ internal static class RoofGeneratedRafterSetService
                 transaction,
                 existingIds,
                 definition);
+            replayPlan = RoofGeneratedMemberReplayPlanner.Create(
+                layoutResult.Layout,
+                RoofPolylineExtractor.GetSourceElevation(owner),
+                RoofGeneratedMemberOverrideRules.SourceWorkingPlaneNormal,
+                definition?.Overrides);
+            if (!replayPlan.IsValid)
+            {
+                throw new InvalidOperationException(
+                    $"Generated override replay planning failed: {replayPlan.FailureReason ?? "unknown"}.");
+            }
             EraseGeneratedSet(database, transaction, owner.ObjectId, existingIds);
-            var created = Materialize(
+            var materialized = MaterializeCore(
                 database,
                 transaction,
                 editor,
                 owner,
                 ownerReference,
-                geometry,
                 layoutResult.Layout,
                 recipe,
                 defaultProfile,
                 layerProfile,
-                reservedElementIds);
+                reservedElementIds,
+                replayPlan);
+            var created = materialized.Created;
+#if DEBUG
+            RoofGeneratedMemberManualEditDiag.WriteReplay(
+                editor,
+                ownerReference,
+                geometry.Kind.ToString(),
+                replayPlan.StoredOverrideCount,
+                replayPlan.ResolvedOverrideCount,
+                replayPlan.GeometryReplayCount,
+                replayPlan.SuppressedCount,
+                replayPlan.DormantCount,
+                replayPlan.DormantMissingKeyCount,
+                replayPlan.DormantInvalidDomainCount,
+                replayPlan.DuplicateKeyCount,
+                existingIds.Count,
+                created.Count,
+                "materialized");
+#endif
             if (geometry.Kind != RoofKind.Monopitch)
             {
                 _ = RoofGeneratedAnchorResolutionContext.TryCreate(
@@ -272,19 +329,28 @@ internal static class RoofGeneratedRafterSetService
         ArgumentNullException.ThrowIfNull(geometry);
         ArgumentNullException.ThrowIfNull(layout);
         ArgumentNullException.ThrowIfNull(recipe);
+        var sharedLayout = RoofRafterLayoutSolver.Solve(
+            geometry,
+            new RafterLayoutParameters(
+                layout.RequestedMaximumSpacingMm,
+                layout.RafterPlanWidthMm));
+        if (!sharedLayout.IsValid || sharedLayout.Layout is null)
+        {
+            throw new InvalidOperationException(
+                "The legacy Gable layout cannot be adapted for neutral materialization.");
+        }
+
         return MaterializeCore(
             database,
             transaction,
             editor,
             owner,
             ownerReference,
-            AdaptLegacyLayout(layout),
-            layout.RequestedMaximumSpacingMm,
-            layout.Signature,
+            sharedLayout.Layout,
             recipe,
             defaultProfile,
             layerProfile,
-            reservedElementIds);
+            reservedElementIds).Created;
     }
 
     public static IReadOnlyDictionary<ObjectId, TimberElementData> Materialize(
@@ -315,33 +381,40 @@ internal static class RoofGeneratedRafterSetService
             editor,
             owner,
             ownerReference,
-            layout.Rafters,
-            layout.RequestedMaximumSpacingMm,
-            layout.Signature,
+            layout,
             recipe,
             defaultProfile,
             layerProfile,
-            reservedElementIds);
+            reservedElementIds).Created;
     }
 
-    private static IReadOnlyDictionary<ObjectId, TimberElementData> MaterializeCore(
+    private static MaterializationResult MaterializeCore(
         Database database,
         Transaction transaction,
         Editor editor,
         Polyline owner,
         string ownerReference,
-        IReadOnlyList<RoofRafterGeometry> rafters,
-        double requestedMaximumSpacingMm,
-        string layoutSignature,
+        RoofRafterLayout layout,
         RoofRafterGenerationRecipe recipe,
         TimberElementDefaultProfile defaultProfile,
         ElementLayerProfile layerProfile,
-        IReadOnlyDictionary<RoofGeneratedMemberKey, string>? reservedElementIds)
+        IReadOnlyDictionary<RoofGeneratedMemberKey, string>? reservedElementIds,
+        RoofGeneratedMemberReplayPlan? preparedReplayPlan = null)
     {
 
         var sourceElevation = RoofPolylineExtractor.GetSourceElevation(owner);
-        var overrides = new RoofManualOverrideSet(RoofDefinitionStore.Read(owner).Data?.Overrides);
+        var storedOverrides = RoofDefinitionStore.Read(owner).Data?.Overrides;
         var planeNormal = RoofGeneratedMemberOverrideRules.SourceWorkingPlaneNormal;
+        var replayPlan = preparedReplayPlan ?? RoofGeneratedMemberReplayPlanner.Create(
+            layout,
+            sourceElevation,
+            planeNormal,
+            storedOverrides);
+        if (!replayPlan.IsValid)
+        {
+            throw new InvalidOperationException(
+                $"Generated override replay planning failed: {replayPlan.FailureReason ?? "unknown"}.");
+        }
         var canonicalRafterData = TimberElementDefaults.For(
             TimberElementType.Rafter,
             defaultProfile) with
@@ -352,24 +425,17 @@ internal static class RoofGeneratedRafterSetService
             Material = recipe.Material,
         };
         var accepted = new List<(RoofRafterGeometry Rafter, Point3d Start, Point3d End, TimberElementData Data)>();
-        foreach (var rafter in rafters)
+        foreach (var replayItem in replayPlan.Items)
         {
-            if (!RoofGeneratedMemberOverrideRules.TryApplyToLayout(
-                    rafter,
-                    sourceElevation,
-                    planeNormal,
-                    overrides,
-                    out var appliedGeometry,
-                    out var suppressed) ||
-                suppressed ||
-                appliedGeometry is null)
+            if (replayItem.Geometry is not { } appliedGeometry)
             {
                 continue;
             }
 
+            var rafter = replayItem.Rafter;
             var key = rafter.LogicalKey;
             var memberData = canonicalRafterData with { SlopeDegrees = rafter.SlopeDegrees };
-            if (overrides.TryGet(key, out var overrideData) &&
+            if (replayItem.Override is { } overrideData &&
                 !string.IsNullOrWhiteSpace(overrideData.ReservedElementId))
             {
                 memberData = memberData with { ElementId = overrideData.ReservedElementId };
@@ -383,8 +449,8 @@ internal static class RoofGeneratedRafterSetService
 
             accepted.Add((
                 rafter,
-                new Point3d(appliedGeometry.Value.Start.X, appliedGeometry.Value.Start.Y, appliedGeometry.Value.Start.Z),
-                new Point3d(appliedGeometry.Value.End.X, appliedGeometry.Value.End.Y, appliedGeometry.Value.End.Z),
+                new Point3d(appliedGeometry.Start.X, appliedGeometry.Start.Y, appliedGeometry.Start.Z),
+                new Point3d(appliedGeometry.End.X, appliedGeometry.End.Y, appliedGeometry.End.Z),
                 memberData));
         }
 
@@ -414,8 +480,8 @@ internal static class RoofGeneratedRafterSetService
                         rafter.Face,
                         rafter.StationIndex,
                         rafter.StationCount,
-                        requestedMaximumSpacingMm,
-                        layoutSignature));
+                        layout.RequestedMaximumSpacingMm,
+                        layout.Signature));
             });
         TimberCreatedElementAnnotationService.EnsureForCreatedElements(
             database,
@@ -428,42 +494,12 @@ internal static class RoofGeneratedRafterSetService
             _ = RoofAssemblyGroupSyncService.TrySyncForOwner(document, transaction, owner.ObjectId);
         }
 
-        return created;
+        return new MaterializationResult(created, replayPlan);
     }
 
-    private static IReadOnlyList<RoofRafterGeometry> AdaptLegacyLayout(
-        SimpleGableRafterLayout layout)
-    {
-        var adapted = new List<RoofRafterGeometry>(layout.Rafters.Count);
-        foreach (var rafter in layout.Rafters)
-        {
-            var planLength = rafter.PlanStart.DistanceTo(rafter.PlanEnd);
-            if (!RoofDirection2D.TryCreate(
-                    rafter.PlanEnd.X - rafter.PlanStart.X,
-                    rafter.PlanEnd.Y - rafter.PlanStart.Y,
-                    out var runDirection))
-            {
-                throw new InvalidOperationException(
-                    "The legacy Gable rafter layout contains an invalid run direction.");
-            }
-
-            adapted.Add(new RoofRafterGeometry(
-                rafter.Face,
-                rafter.StationIndex,
-                rafter.StationCount,
-                rafter.StationFraction,
-                layout.RafterPlanWidthMm / 2d +
-                    layout.UsableCenterSpanMm * rafter.StationFraction,
-                rafter.PlanStart,
-                rafter.PlanEnd,
-                runDirection,
-                planLength,
-                planLength / Math.Cos(rafter.SlopeDegrees * Math.PI / 180d),
-                rafter.SlopeDegrees));
-        }
-
-        return adapted;
-    }
+    private sealed record MaterializationResult(
+        IReadOnlyDictionary<ObjectId, TimberElementData> Created,
+        RoofGeneratedMemberReplayPlan ReplayPlan);
 
     private static bool TryCollectGeneratedMembers(
         Database database,

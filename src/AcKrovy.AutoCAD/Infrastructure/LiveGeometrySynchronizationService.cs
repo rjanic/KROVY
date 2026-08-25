@@ -320,8 +320,8 @@ internal static class LiveGeometrySynchronizationService
                 RoofGroupGripPreCommandBaselineService.Clear("non-grip-command");
             }
 
-            // Unsupported STRETCH Auto-Recovery: capture exact source WCS vertices for
-            // every currently valid SimpleGable roof before native mutation.
+            // Generated-member lifecycle recovery: capture the exact roof assembly
+            // before any supported or known-unsupported native edit can mutate it.
             if (!isUndoRedo &&
                 !_ignoreCurrentCommand &&
                 RoofGeneratedMemberEditCommandRules.IsAssemblySnapshotCommand(e.GlobalCommandName))

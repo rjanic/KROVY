@@ -96,9 +96,9 @@ public sealed class AutomaticRafterSlopeDirectionTests
     {
         Assert.Contains("RoofGeneratedRafterSetService.Materialize(", Workflow);
         Assert.Contains("IsSlopeDirectionReversed = true", Replacement);
-        Assert.Contains("TryApplyToLayout", Replacement);
-        Assert.Contains("appliedGeometry.Value.Start.X", Replacement);
-        Assert.Contains("appliedGeometry.Value.End.X", Replacement);
+        Assert.Contains("RoofGeneratedMemberReplayPlanner.Create", Replacement);
+        Assert.Contains("appliedGeometry.Start.X", Replacement);
+        Assert.Contains("appliedGeometry.End.X", Replacement);
         Assert.DoesNotContain("RoofGeneratedTimber", ArrowRenderer);
         Assert.Equal(7, TimberElementDataSchema.CurrentVersion);
         Assert.Equal(1, RoofGeneratedTimberDataSchema.CurrentVersion);

@@ -8,9 +8,9 @@ using Autodesk.AutoCAD.Geometry;
 namespace AcKrovy.AutoCAD.Infrastructure;
 
 /// <summary>
-/// Command-scoped in-memory snapshot of a valid SimpleGable roof assembly for
-/// Unsupported STRETCH / GRIP_STRETCH Auto-Recovery: roof source + owned generated
-/// timber Lines + annotations bound to those timber SourceHandles.
+/// Command-scoped in-memory snapshot of a valid roof assembly for supported-edit
+/// fallback and known-unsupported generated-member recovery: roof source + owned
+/// generated timber Lines + annotations bound to those timber SourceHandles.
 /// Captures ALL owned generated members (not a predicted STRETCH subset) so any
 /// crossing-window victim can be restored identity-preservingly.
 /// Not persisted. Cleared on command end/cancel/fail/dispose/next capture.

@@ -258,6 +258,11 @@ internal static class RoofEditCommandWorkflow
                 currentStored.Data,
                 currentInput,
                 newGeometry);
+            data = MonopitchRoofDefinitionRules
+                .PreserveGeneratedMemberOverridesAcrossSemanticMirror(
+                    data,
+                    selectionGeometry,
+                    newGeometry);
             var restored = RoofDefinitionPersistence.Restore(
                 currentInput,
                 current.Footprint,

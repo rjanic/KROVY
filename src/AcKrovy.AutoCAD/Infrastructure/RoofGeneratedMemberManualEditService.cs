@@ -123,7 +123,8 @@ internal static class RoofGeneratedMemberManualEditService
             var supportedUnlocked =
                 unlocked &&
                 RoofGeneratedMemberEditCommandRules.IsSupportedUnlockedGeneratedTimberCommand(
-                    globalCommandName);
+                    globalCommandName,
+                    stored.Data.Kind);
             if (RoofLiveResizeService.ShouldSuppressIncidentalChildManualStretch(
                     ownerId,
                     globalCommandName))
@@ -167,9 +168,11 @@ internal static class RoofGeneratedMemberManualEditService
                             owner,
                             new ManualEditReject(
                                 "command",
-                                RoofGeneratedMemberEditCommandRules.IsClassicStretch(globalCommandName)
-                                    ? "classic-stretch-locked"
-                                    : "command-misclassified"));
+                                RoofGeneratedMemberEditCommandRules.IsScaleCommand(globalCommandName)
+                                    ? "unsupported-scale"
+                                    : RoofGeneratedMemberEditCommandRules.IsClassicStretch(globalCommandName)
+                                        ? "classic-stretch-locked"
+                                        : "command-misclassified"));
                     }
 
                     transaction.Commit();
@@ -400,11 +403,13 @@ internal static class RoofGeneratedMemberManualEditService
         }
 
         var restored = RoofDefinitionPersistence.Restore(input, validation.Footprint, definition);
-        if (!restored.IsValid || restored.Geometry is not SimpleGableRoofGeometry gableGeometry)
+        if (!restored.IsValid || restored.Geometry is null)
         {
             reject = new ManualEditReject("restore", "source-roof-not-rigid-equivalent");
             return false;
         }
+
+        var roofGeometry = restored.Geometry;
 
         var elevation = RoofPolylineExtractor.GetSourceElevation(owner);
         var planeNormal = RoofGeneratedMemberOverrideRules.SourceWorkingPlaneNormal;
@@ -420,6 +425,19 @@ internal static class RoofGeneratedMemberManualEditService
         var isBreak = RoofGeneratedMemberEditCommandRules.IsBreakCommand(globalCommandName);
         var isTargetedRecalc = RoofGeneratedMemberEditCommandRules.IsTargetedRecalcCommand(
             globalCommandName);
+
+        // Monopitch Stage 2D2 covers Generated overrides only. BREAK and middle/split
+        // TRIM require AttachedManual children, which deliberately remain Stage 2D3.
+        // Reject before any fragment promotion or override persistence; the caller's
+        // command snapshot restores the canonical generated assembly.
+        if (roofGeometry.Kind == RoofKind.Monopitch &&
+            (isBreak ||
+             RoofGeneratedMemberEditCommandRules.IsTrimCommand(globalCommandName) &&
+             appendedTimberIds.Count > 0))
+        {
+            reject = new ManualEditReject("command", "attached-manual-not-supported");
+            return false;
+        }
 
         if (isErase)
         {
@@ -556,15 +574,17 @@ internal static class RoofGeneratedMemberManualEditService
             var roundingStepMm = defaultProfile.GetCuttingLengthRoundingStepMm();
             var standaloneIds = new List<ObjectId>();
             var keepStandalones = false;
-            var splitAnchorResolutionContext = CreateSplitAnchorResolutionContext(
-                document.Database,
-                transaction,
-                globalCommandName,
-                generatedIds,
-                appendedTimberIds,
-                gableGeometry,
-                elevation,
-                definition.Overrides);
+            var splitAnchorResolutionContext = roofGeometry is SimpleGableRoofGeometry gableGeometry
+                ? CreateSplitAnchorResolutionContext(
+                    document.Database,
+                    transaction,
+                    globalCommandName,
+                    generatedIds,
+                    appendedTimberIds,
+                    gableGeometry,
+                    elevation,
+                    definition.Overrides)
+                : null;
             if (!TryPromoteSplitFragments(
                     document,
                     transaction,
@@ -648,7 +668,7 @@ internal static class RoofGeneratedMemberManualEditService
 
                 var key = RoofGeneratedMemberKey.From(generated.Data);
                 if (!TryCanonicalGeometry(
-                        gableGeometry,
+                        roofGeometry,
                         generated.Data,
                         timberData.WidthMm,
                         elevation,
@@ -2360,14 +2380,14 @@ internal static class RoofGeneratedMemberManualEditService
     }
 
     private static bool TryCanonicalGeometry(
-        SimpleGableRoofGeometry geometry,
+        IRoofGeometry geometry,
         RoofGeneratedTimberData generated,
         double rafterWidthMm,
         double elevation,
         out RoofGeneratedMemberGeometry canonical)
     {
         canonical = default;
-        var layout = SimpleGableRafterLayoutSolver.Solve(
+        var layout = RoofRafterLayoutSolver.Solve(
             geometry,
             new RafterLayoutParameters(generated.RequestedMaximumSpacingMm, rafterWidthMm));
         if (!layout.IsValid || layout.Layout is null)
@@ -2375,8 +2395,8 @@ internal static class RoofGeneratedMemberManualEditService
             return false;
         }
 
-        var rafter = layout.Layout.Rafters.FirstOrDefault(item =>
-            item.Face == generated.RoofFace && item.StationIndex == generated.StationIndex);
+        var key = RoofGeneratedMemberKey.From(generated);
+        var rafter = layout.Layout.Rafters.FirstOrDefault(item => item.LogicalKey == key);
         if (rafter is null)
         {
             return false;

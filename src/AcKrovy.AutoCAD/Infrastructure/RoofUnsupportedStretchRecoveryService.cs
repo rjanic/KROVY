@@ -7,11 +7,11 @@ using Autodesk.AutoCAD.Geometry;
 namespace AcKrovy.AutoCAD.Infrastructure;
 
 /// <summary>
-/// Restores the exact pre-command roof assembly on the same ObjectIds after an
-/// Unsupported STRETCH / source GRIP_STRETCH: roof source, owned generated timber
-/// Lines, and annotations bound to those timber SourceHandles. Then rebuilds
-/// canonical roof display/GROUP. Does not write RoofDefinition. Does not regenerate
-/// timber through the supported-resize replacement path.
+/// Restores the exact pre-command roof assembly on the same ObjectIds after a
+/// rejected generated-member edit or unsupported source STRETCH: roof source,
+/// owned generated timber Lines, and annotations bound to those timber SourceHandles.
+/// Then rebuilds canonical roof display/GROUP when source recovery requires it.
+/// Does not write RoofDefinition or regenerate timber through supported resize.
 /// </summary>
 internal static class RoofUnsupportedStretchRecoveryService
 {

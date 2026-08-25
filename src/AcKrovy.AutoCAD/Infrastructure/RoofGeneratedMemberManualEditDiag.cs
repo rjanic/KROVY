@@ -145,6 +145,44 @@ internal static class RoofGeneratedMemberManualEditDiag
         WriteLine(editor, line);
     }
 
+    public static void WriteReplay(
+        Editor? editor,
+        string? owner,
+        string? roofKind,
+        int storedOverrideCount,
+        int resolvedOverrideCount,
+        int geometryReplayCount,
+        int suppressedCount,
+        int dormantCount,
+        int dormantMissingKeyCount,
+        int dormantInvalidDomainCount,
+        int duplicateKeyCount,
+        int oldGeneratedCount,
+        int newGeneratedCount,
+        string result)
+    {
+        if (editor is null)
+        {
+            return;
+        }
+
+        var invariant = System.Globalization.CultureInfo.InvariantCulture;
+        var line =
+            $"ROOF_GENERATED_OVERRIDE_REPLAY owner={Token(owner)} roofKind={Token(roofKind)}" +
+            $" stored={storedOverrideCount.ToString(invariant)}" +
+            $" resolved={resolvedOverrideCount.ToString(invariant)}" +
+            $" geometryReplayed={geometryReplayCount.ToString(invariant)}" +
+            $" suppressed={suppressedCount.ToString(invariant)}" +
+            $" dormant={dormantCount.ToString(invariant)}" +
+            $" dormantMissingKey={dormantMissingKeyCount.ToString(invariant)}" +
+            $" dormantInvalidDomain={dormantInvalidDomainCount.ToString(invariant)}" +
+            $" duplicateKeyCount={duplicateKeyCount.ToString(invariant)}" +
+            $" oldGenerated={oldGeneratedCount.ToString(invariant)}" +
+            $" newGenerated={newGeneratedCount.ToString(invariant)}" +
+            $" transaction=caller-owned-pending result={Token(result)}";
+        WriteLine(editor, line);
+    }
+
     public static void WriteAttachedManualErase(
         Editor? editor,
         string? command,

@@ -39,6 +39,7 @@ internal static class RoofSourceResizeChildPolicyService
         Polyline owner,
         RoofGeneratedRafterSetService.ReplacementOutcome rafterOutcome,
         int generatedMemberCount,
+        int generatedOverridesGeometryReplayed,
         RoofGeneratedAnchorResolutionContext? anchorResolutionContext,
         bool replayAttachedManualChildren = true)
     {
@@ -64,8 +65,11 @@ internal static class RoofSourceResizeChildPolicyService
         var generatedRebuilt = rafterOutcome == RoofGeneratedRafterSetService.ReplacementOutcome.Replaced
             ? generatedMemberCount
             : 0;
+        // This counter means actual generated override geometries materialized from the
+        // current replay plan. It excludes stored missing-key/domain-invalid dormant
+        // overrides and suppressions; stored/processed counts live in the replay trace.
         var overridesReplayed = generatedRebuilt > 0
-            ? CountPersistedOverrides(owner)
+            ? generatedOverridesGeometryReplayed
             : 0;
 
         // COPY- and Split-origin AttachedManual children follow their rebuilt generated
@@ -151,12 +155,6 @@ internal static class RoofSourceResizeChildPolicyService
             splitReactivated,
             copyDormantOutsideFootprint,
             splitDormantOutsideFootprint);
-    }
-
-    private static int CountPersistedOverrides(Polyline owner)
-    {
-        var definition = RoofDefinitionStore.Read(owner).Data;
-        return definition?.Overrides?.Count ?? 0;
     }
 
     /// <summary>

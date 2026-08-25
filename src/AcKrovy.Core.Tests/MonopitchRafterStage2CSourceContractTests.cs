@@ -40,7 +40,8 @@ public sealed class MonopitchRafterStage2CSourceContractTests
         Assert.Contains("IRoofGeometry geometry", Materializer);
         Assert.Contains("RoofRafterLayout layout", Materializer);
         Assert.Contains("RoofRafterMaterializationRules.IsConsistent(geometry, layout)", Materializer);
-        Assert.Contains("layout.Rafters,", Materializer);
+        Assert.Contains("RoofGeneratedMemberReplayPlanner.Create", Materializer);
+        Assert.Contains("foreach (var replayItem in replayPlan.Items)", Materializer);
         Assert.Contains("rafter.LogicalKey", Materializer);
         Assert.Contains("rafter.Face,", Materializer);
         Assert.Contains("rafter.StationIndex,", Materializer);
@@ -52,8 +53,8 @@ public sealed class MonopitchRafterStage2CSourceContractTests
 
         var core = Segment(
             Materializer,
-            "private static IReadOnlyDictionary<ObjectId, TimberElementData> MaterializeCore(",
-            "private static IReadOnlyList<RoofRafterGeometry> AdaptLegacyLayout(");
+            "private static MaterializationResult MaterializeCore(",
+            "private sealed record MaterializationResult(");
         Assert.Equal(1, Count(core, "TimberSourceLineCreationService.Create("));
         Assert.Equal(1, Count(core, "TimberCreatedElementAnnotationService.EnsureForCreatedElements("));
         Assert.Equal(1, Count(core, "RoofAssemblyGroupSyncService.TrySyncForOwner"));

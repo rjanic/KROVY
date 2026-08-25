@@ -130,9 +130,9 @@ public sealed class RoofRafterGenerationSourceContractTests
     [Fact]
     public void GeneratedSourceKeepsEaveToRidgeGeometryAndUsesCanonicalDownhillMetadata()
     {
-        Assert.Contains("TryApplyToLayout", Replacement);
-        Assert.Contains("appliedGeometry.Value.Start.X", Replacement);
-        Assert.Contains("appliedGeometry.Value.End.X", Replacement);
+        Assert.Contains("RoofGeneratedMemberReplayPlanner.Create", Replacement);
+        Assert.Contains("appliedGeometry.Start.X", Replacement);
+        Assert.Contains("appliedGeometry.End.X", Replacement);
         Assert.Contains("IsSlopeDirectionReversed = true", Replacement);
         Assert.DoesNotContain("SlopeArrowService", Workflow + Replacement);
         Assert.DoesNotContain("LiveGeometrySynchronizationService", Workflow + Replacement);

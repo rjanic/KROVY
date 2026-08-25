@@ -190,9 +190,9 @@ public sealed class RoofAutomaticRafterAnnotationSourceContractTests
     public void SlopeContractsAndStableArchitectureRemainUnchanged()
     {
         Assert.Contains("IsSlopeDirectionReversed = true", Replacement);
-        Assert.Contains("TryApplyToLayout", Replacement);
-        Assert.Contains("appliedGeometry.Value.Start.X", Replacement);
-        Assert.Contains("appliedGeometry.Value.End.X", Replacement);
+        Assert.Contains("RoofGeneratedMemberReplayPlanner.Create", Replacement);
+        Assert.Contains("appliedGeometry.Start.X", Replacement);
+        Assert.Contains("appliedGeometry.End.X", Replacement);
         Assert.DoesNotContain("RoofGeneratedTimber", ArrowRenderer);
         Assert.DoesNotContain("ObjectModified", Workflow + Replacement + BatchAnnotations);
         Assert.DoesNotContain("CommandEnded", Workflow + Replacement + BatchAnnotations);

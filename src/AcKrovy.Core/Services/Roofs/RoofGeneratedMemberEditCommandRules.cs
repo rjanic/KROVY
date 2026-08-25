@@ -1,3 +1,4 @@
+using AcKrovy.Core.Models.Roofs;
 using AcKrovy.Core.Services;
 
 namespace AcKrovy.Core.Services.Roofs;
@@ -8,18 +9,8 @@ namespace AcKrovy.Core.Services.Roofs;
 /// </summary>
 public static class RoofGeneratedMemberEditCommandRules
 {
-    public static bool IsAssemblySnapshotCommand(string? globalCommandName)
-    {
-        var normalized = LiveGeometryCommandRules.NormalizeCommandName(globalCommandName);
-        return normalized.Equals("STRETCH", StringComparison.OrdinalIgnoreCase) ||
-               normalized.Equals("GRIP_STRETCH", StringComparison.OrdinalIgnoreCase) ||
-               normalized.Equals("MOVE", StringComparison.OrdinalIgnoreCase) ||
-               normalized.Equals("ROTATE", StringComparison.OrdinalIgnoreCase) ||
-               normalized.Equals("TRIM", StringComparison.OrdinalIgnoreCase) ||
-               normalized.Equals("EXTEND", StringComparison.OrdinalIgnoreCase) ||
-               normalized.Equals("BREAK", StringComparison.OrdinalIgnoreCase) ||
-               normalized.Equals("ERASE", StringComparison.OrdinalIgnoreCase);
-    }
+    public static bool IsAssemblySnapshotCommand(string? globalCommandName) =>
+        IsGeneratedTimberEditCommand(globalCommandName);
 
     public static bool IsGeneratedTimberEditCommand(string? globalCommandName)
     {
@@ -31,7 +22,8 @@ public static class RoofGeneratedMemberEditCommandRules
                normalized.Equals("BREAK", StringComparison.OrdinalIgnoreCase) ||
                normalized.Equals("STRETCH", StringComparison.OrdinalIgnoreCase) ||
                normalized.Equals("ERASE", StringComparison.OrdinalIgnoreCase) ||
-               normalized.Equals("GRIP_STRETCH", StringComparison.OrdinalIgnoreCase);
+               normalized.Equals("GRIP_STRETCH", StringComparison.OrdinalIgnoreCase) ||
+               normalized.Equals("SCALE", StringComparison.OrdinalIgnoreCase);
     }
 
     public static bool IsSupportedUnlockedGeneratedTimberCommand(string? globalCommandName)
@@ -46,6 +38,18 @@ public static class RoofGeneratedMemberEditCommandRules
                normalized.Equals("ERASE", StringComparison.OrdinalIgnoreCase) ||
                normalized.Equals("GRIP_STRETCH", StringComparison.OrdinalIgnoreCase);
     }
+
+    /// <summary>
+    /// Narrows the shared generated-member edit vocabulary for roof kinds that do not
+    /// yet support AttachedManual split children. All geometry-override operations stay
+    /// shared; Monopitch BREAK remains out of scope until its AttachedManual lifecycle is
+    /// implemented.
+    /// </summary>
+    public static bool IsSupportedUnlockedGeneratedTimberCommand(
+        string? globalCommandName,
+        RoofKind roofKind) =>
+        IsSupportedUnlockedGeneratedTimberCommand(globalCommandName) &&
+        (roofKind != RoofKind.Monopitch || !IsBreakCommand(globalCommandName));
 
     public static bool IsClassicStretch(string? globalCommandName)
     {
@@ -100,6 +104,12 @@ public static class RoofGeneratedMemberEditCommandRules
     {
         var normalized = LiveGeometryCommandRules.NormalizeCommandName(globalCommandName);
         return normalized.Equals("BREAK", StringComparison.OrdinalIgnoreCase);
+    }
+
+    public static bool IsScaleCommand(string? globalCommandName)
+    {
+        var normalized = LiveGeometryCommandRules.NormalizeCommandName(globalCommandName);
+        return normalized.Equals("SCALE", StringComparison.OrdinalIgnoreCase);
     }
 
     public static bool IsSplitCommand(string? globalCommandName) =>

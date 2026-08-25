@@ -129,9 +129,9 @@ public sealed class RoofGeneratedMemberUnlockedEditSourceContractTests
     [Fact]
     public void SuppressionSurvivesSupportedResizeMaterialize()
     {
-        Assert.Contains("out var suppressed", Replacement);
-        Assert.Contains("suppressed ||", Replacement);
-        Assert.Contains("TryApplyToLayout", Replacement);
+        Assert.Contains("RoofGeneratedMemberReplayPlanner.Create", Replacement);
+        Assert.Contains("replayItem.Geometry is not { } appliedGeometry", Replacement);
+        Assert.Contains("foreach (var replayItem in replayPlan.Items)", Replacement);
         Assert.Contains("PreserveEditState", Resize);
         Assert.Contains("ReservedElementId", Replacement);
         Assert.DoesNotContain("Nearest", Replacement);

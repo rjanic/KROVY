@@ -49,7 +49,8 @@ public sealed class RoofSuppressedLogicalAnchorSourceContractTests
             "public static ReplacementOutcome TryReplaceForSupportedResize(\n        Database database,\n        Transaction transaction,\n        Editor editor,\n        Polyline owner,\n        IRoofGeometry geometry,\n        TimberElementDefaultProfile defaultProfile,\n        ElementLayerProfile layerProfile,\n        out RoofGeneratedAnchorResolutionContext? anchorResolutionContext",
             "public static IReadOnlyDictionary<ObjectId, TimberElementData> Materialize");
         Assert.Contains("var layoutResult = RoofRafterLayoutSolver.Solve(", replace);
-        Assert.Contains("var created = Materialize(", replace);
+        Assert.Contains("var materialized = MaterializeCore(", replace);
+        Assert.Contains("var created = materialized.Created", replace);
         Assert.Contains("RoofGeneratedAnchorResolutionContext.TryCreate(", replace);
         Assert.Contains("layoutResult.Layout", replace);
         Assert.Equal(1, Count(replace, "RoofRafterLayoutSolver.Solve("));
