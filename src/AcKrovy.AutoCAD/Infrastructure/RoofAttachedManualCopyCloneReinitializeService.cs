@@ -8,7 +8,8 @@ using Autodesk.AutoCAD.Geometry;
 namespace AcKrovy.AutoCAD.Infrastructure;
 
 /// <summary>
-/// Re-initializes same-DWG native COPY clones of COPY-origin AttachedManual children.
+/// Re-initializes same-DWG native COPY clones of COPY-origin AttachedManual children
+/// and proven same-DWG individual clipboard clones of Copy/Split children.
 /// AutoCAD clones the source's AttachedManual XData verbatim, so a copy would otherwise
 /// keep the source's ChildIdentity and stale RelativeSegment and later replay on top of
 /// its source. Each clone is re-captured from its FINAL WCS geometry with a fresh
@@ -20,10 +21,15 @@ internal static class RoofAttachedManualCopyCloneReinitializeService
     public static void Process(
         Document document,
         string? globalCommandName,
-        IReadOnlyCollection<ObjectId> appendedTimberIds)
+        IReadOnlyCollection<ObjectId> appendedTimberIds,
+        bool sameDwgClipboardPaste = false)
     {
+        var nativeCopy = LiveGeometryCommandRules.IsSameDwgCopyOwnershipCommand(
+            globalCommandName);
+        var clipboardPaste = sameDwgClipboardPaste &&
+            LiveGeometryCommandRules.IsClipboardPasteCommand(globalCommandName);
         if (LiveGeometryCommandRules.IsUndoRedoCommand(globalCommandName) ||
-            !LiveGeometryCommandRules.IsSameDwgCopyOwnershipCommand(globalCommandName) ||
+            (!nativeCopy && !clipboardPaste) ||
             appendedTimberIds.Count == 0)
         {
             return;
@@ -52,11 +58,14 @@ internal static class RoofAttachedManualCopyCloneReinitializeService
 
                     var attached = RoofAttachedManualTimberStore.Read(cloneLine);
                     if (attached.Data is null ||
-                        attached.Data.Origin != RoofAttachedManualOrigin.Copy ||
+                        (attached.Data.Origin != RoofAttachedManualOrigin.Copy &&
+                         !(clipboardPaste &&
+                           attached.Data.Origin == RoofAttachedManualOrigin.Split)) ||
                         attached.Data.AnchorGeneratedMemberKey is null)
                     {
-                        // Not a COPY-origin AttachedManual clone (generic timber, Generated
-                        // clone, or Split-origin child): out of scope for this path.
+                        // Native COPY preserves its established Copy-origin-only policy.
+                        // Proven individual clipboard paste also promotes a Split clone
+                        // to a fresh independent Origin.Copy child.
                         continue;
                     }
 

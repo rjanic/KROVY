@@ -52,8 +52,17 @@ public sealed class AutomaticRafterSlopeDirectionTests
         var movedEnd = new RoofPoint2D(rafter.PlanEnd.X + 123, rafter.PlanEnd.Y - 456);
 
         AssertPointsToward(Arrow(movedStart, movedEnd, true), movedEnd, movedStart);
-        Assert.Contains("TimberAnnotationService.EnsureForElement", LiveRefresh);
-        Assert.DoesNotContain("RoofGeneratedTimber", LiveRefresh);
+        var refreshStart = LiveRefresh.IndexOf(
+            "private static void RefreshTimberElements(",
+            StringComparison.Ordinal);
+        var refreshEnd = LiveRefresh.IndexOf(
+            "private static void TraceClipboardClassification(",
+            refreshStart,
+            StringComparison.Ordinal);
+        Assert.True(refreshStart >= 0 && refreshEnd > refreshStart);
+        var timberRefresh = LiveRefresh.Substring(refreshStart, refreshEnd - refreshStart);
+        Assert.Contains("TimberAnnotationService.EnsureForElement", timberRefresh);
+        Assert.DoesNotContain("RoofGeneratedTimber", timberRefresh);
     }
 
     [Fact]

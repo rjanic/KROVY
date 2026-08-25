@@ -25,7 +25,8 @@ public sealed class RoofGeneratedRafterCopyRehydrationSourceContractTests
         Assert.Contains(
             "RoofGeneratedRafterCopyOwnershipRehydrationService.Process(",
             LiveGeometry);
-        Assert.Contains("IsSameDwgCopyOwnershipCommand(globalCommandName)", Rehydration);
+        Assert.Contains("IsSameDwgCopyOwnershipCommand(", Rehydration);
+        Assert.Contains("sameDwgClipboardPaste", Rehydration);
         Assert.Contains("IsUndoRedoCommand(globalCommandName)", Rehydration);
     }
 
@@ -83,15 +84,18 @@ public sealed class RoofGeneratedRafterCopyRehydrationSourceContractTests
     }
 
     [Fact]
-    public void ClipboardPasteRemainsOutOfScopeForThisCheckpoint()
+    public void ClipboardPasteUsesSeparateProvenanceGate_NotNativeCopyNameGate()
     {
         Assert.Contains("Equals(\"COPY\"", CommandRules);
         Assert.DoesNotContain(
             "PASTECLIP",
-            Member(CommandRules, "public static bool IsSameDwgCopyOwnershipCommand", "public static bool RequiresGroupedUndoMark"));
+            Member(CommandRules, "public static bool IsSameDwgCopyOwnershipCommand", "public static bool IsClipboardCopySourceCommand"));
         Assert.DoesNotContain(
             "COPYCLIP",
-            Member(CommandRules, "public static bool IsSameDwgCopyOwnershipCommand", "public static bool RequiresGroupedUndoMark"));
+            Member(CommandRules, "public static bool IsSameDwgCopyOwnershipCommand", "public static bool IsClipboardCopySourceCommand"));
+        Assert.Contains("IsClipboardCopySourceCommand", CommandRules);
+        Assert.Contains("IsClipboardPasteCommand", CommandRules);
+        Assert.Contains("TryActivateForClipboardPaste", LiveGeometry);
     }
 
     private static string Read(string fileName) => RoofUxSourceContractText.Read(

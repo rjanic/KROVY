@@ -1,49 +1,258 @@
 using AcKrovy.Core.Models;
 using AcKrovy.Core.Models.Roofs;
+using AcKrovy.Core.Services;
 using AcKrovy.Core.Services.Roofs;
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
+using System.Globalization;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace AcKrovy.AutoCAD.Infrastructure;
 
 /// <summary>
-/// Pre-command generated-timber handles for native COPY (individual-member detach)
-/// plus the command-scoped whole-roof assembly snapshot: existing roof owner handles,
-/// per-owner generated/AttachedManual/display member handles, and the transient set
-/// of appended clone handles consumed by the whole-roof COPY branch.
+/// Pre-command roof ownership snapshot reused by native COPY and by repeated proven
+/// same-DWG individual clipboard pastes. Clipboard provenance is bound to the
+/// exact tracked live source Document. Database wrapper identity is diagnostic only;
+/// owner handles are payload data, never provenance. Native COPY also uses the
+/// command-scoped whole-roof assembly fields.
 /// </summary>
 internal static class RoofGeneratedCopyPreCommandSnapshotService
 {
     private static readonly object Gate = new();
-    private static HashSet<string> _generatedHandles = new(StringComparer.OrdinalIgnoreCase);
-    private static Dictionary<string, HashSet<string>> _logicalKeysByOwner = new(StringComparer.OrdinalIgnoreCase);
-    private static HashSet<string> _ownerHandles = new(StringComparer.OrdinalIgnoreCase);
-    private static Dictionary<string, HashSet<string>> _generatedHandlesByOwner = new(StringComparer.OrdinalIgnoreCase);
-    private static Dictionary<string, HashSet<string>> _attachedManualHandlesByOwner = new(StringComparer.OrdinalIgnoreCase);
-    private static Dictionary<string, HashSet<string>> _displayHandlesByOwner = new(StringComparer.OrdinalIgnoreCase);
-    private static HashSet<string> _consumedWholeRoofCloneHandles = new(StringComparer.OrdinalIgnoreCase);
+    private static SnapshotState? _activeSnapshot;
+    private static readonly RoofClipboardProvenanceLifecycle<Document, Database, SnapshotState>
+        ClipboardLifecycle = new();
+
+    private sealed record SnapshotState(
+        Document SourceDocument,
+        Database SourceDatabase,
+        HashSet<string> GeneratedHandles,
+        Dictionary<string, HashSet<string>> LogicalKeysByOwner,
+        HashSet<string> OwnerHandles,
+        Dictionary<string, HashSet<string>> GeneratedHandlesByOwner,
+        Dictionary<string, HashSet<string>> AttachedManualHandlesByOwner,
+        Dictionary<string, HashSet<string>> DisplayHandlesByOwner,
+        HashSet<string> ConsumedWholeRoofCloneHandles);
 
     public static void Clear()
     {
         lock (Gate)
         {
-            _generatedHandles.Clear();
-            _logicalKeysByOwner.Clear();
-            _ownerHandles.Clear();
-            _generatedHandlesByOwner.Clear();
-            _attachedManualHandlesByOwner.Clear();
-            _displayHandlesByOwner.Clear();
-            _consumedWholeRoofCloneHandles.Clear();
+            _activeSnapshot = null;
         }
     }
 
     public static void CaptureForCopy(Document document)
     {
-        Clear();
         ArgumentNullException.ThrowIfNull(document);
-        using var transaction = document.Database.TransactionManager.StartTransaction();
+        var snapshot = Capture(document);
+        lock (Gate)
+        {
+            _activeSnapshot = snapshot;
+        }
+    }
+
+    public static void CaptureForClipboardCopy(Document document, string? globalCommandName)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        if (!LiveGeometryCommandRules.IsClipboardCopySourceCommand(globalCommandName))
+        {
+            return;
+        }
+
+        var snapshot = Capture(document);
+        lock (Gate)
+        {
+            _activeSnapshot = null;
+            ClipboardLifecycle.BeginCopy(
+                document,
+                snapshot.SourceDatabase,
+                LiveGeometryCommandRules.NormalizeCommandName(globalCommandName),
+                snapshot);
+        }
+    }
+
+    /// <summary>
+    /// Publishes the pending source snapshot only after COPYCLIP/COPYBASE succeeds.
+    /// The OS clipboard revision binds the durable token to the actual current
+    /// clipboard payload, so unrelated clipboard replacement cannot reuse it.
+    /// </summary>
+    public static void CompleteClipboardCopy(
+        Document document,
+        string? globalCommandName)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        if (!LiveGeometryCommandRules.IsClipboardCopySourceCommand(globalCommandName))
+        {
+            return;
+        }
+
+        var clipboardRevision = ReadClipboardRevision();
+        bool stored;
+        SnapshotState? durableSnapshot;
+        lock (Gate)
+        {
+            stored = ClipboardLifecycle.CompleteCopy(clipboardRevision);
+            durableSnapshot = ClipboardLifecycle.DurablePayload;
+        }
+
+#if DEBUG
+        TraceClipboardProvenance(
+            document,
+            "phase=capture " +
+            $"command={LiveGeometryCommandRules.NormalizeCommandName(globalCommandName)} " +
+            $"clipboardRevision={clipboardRevision} " +
+            $"sourceDocument={DebugIdentity(document)} " +
+            $"sourceDatabase={DebugIdentity(durableSnapshot?.SourceDatabase)} " +
+            $"result={(stored ? "stored" : "not-stored")}",
+            globalCommandName);
+#endif
+    }
+
+    /// <summary>
+    /// Activates the captured clipboard ownership snapshot only when the paste
+    /// target is the exact same tracked live Document. Database wrapper identity and
+    /// inherited owner handles are deliberately not provenance proof.
+    /// </summary>
+    public static bool TryActivateForClipboardPaste(
+        Document targetDocument,
+        string? globalCommandName)
+    {
+        ArgumentNullException.ThrowIfNull(targetDocument);
+        if (!LiveGeometryCommandRules.IsClipboardPasteCommand(globalCommandName))
+        {
+            return false;
+        }
+
+        var targetDatabase = targetDocument.Database;
+        var clipboardRevision = ReadClipboardRevision();
+        RoofClipboardPasteProvenanceDecision decision;
+        lock (Gate)
+        {
+            decision = ClipboardLifecycle.BeginPaste(
+                targetDocument,
+                targetDatabase,
+                clipboardRevision);
+            _activeSnapshot = decision.IsValid ? ClipboardLifecycle.ActivePayload : null;
+        }
+
+#if DEBUG
+        TraceClipboardProvenance(
+            targetDocument,
+            "phase=paste-start " +
+            $"command={LiveGeometryCommandRules.NormalizeCommandName(globalCommandName)} " +
+            $"clipboardRevision={clipboardRevision} " +
+            $"targetDocument={DebugIdentity(targetDocument)} " +
+            $"targetDatabase={DebugIdentity(targetDatabase)} " +
+            $"sameDocument={Lower(decision.SameDocument)} " +
+            $"databaseReferenceEqual={Lower(decision.DatabaseReferenceEqual)} " +
+            $"sameDrawing={Lower(decision.SameDrawing)} " +
+            $"valid={Lower(decision.IsValid)} " +
+            $"result={decision.DiagnosticResult}",
+            globalCommandName);
+#endif
+        return decision.IsValid;
+    }
+
+    /// <summary>
+    /// Ends the current paste activation while retaining provenance for repeated paste
+    /// commands because the clipboard payload itself did not change.
+    /// </summary>
+    public static void CompleteClipboardPaste()
+    {
+        lock (Gate)
+        {
+            _activeSnapshot = null;
+            ClipboardLifecycle.CompletePaste();
+        }
+    }
+
+    public static void CancelOrFailClipboardPaste()
+    {
+        lock (Gate)
+        {
+            _activeSnapshot = null;
+            ClipboardLifecycle.CancelOrFailPaste();
+        }
+    }
+
+    public static void CancelOrFailClipboardSource(
+        Document document,
+        string? globalCommandName)
+    {
+        if (!LiveGeometryCommandRules.IsClipboardCopySourceCommand(globalCommandName))
+        {
+            return;
+        }
+
+        lock (Gate)
+        {
+            ClipboardLifecycle.CancelOrFailCopy(document);
+            _activeSnapshot = null;
+        }
+    }
+
+    public static void ClearForDocument(Document document)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        lock (Gate)
+        {
+            if (_activeSnapshot is { } active &&
+                ReferenceEquals(active.SourceDocument, document))
+            {
+                _activeSnapshot = null;
+            }
+
+            ClipboardLifecycle.ClearForDocument(document);
+        }
+    }
+
+    private static uint ReadClipboardRevision()
+    {
+        try
+        {
+            return NativeMethods.GetClipboardSequenceNumber();
+        }
+        catch (Exception)
+        {
+            return 0;
+        }
+    }
+
+#if DEBUG
+    private static void TraceClipboardProvenance(
+        Document document,
+        string detail,
+        string? globalCommandName)
+    {
+        var message = $"ROOF_CLIPBOARD_PROVENANCE {detail}";
+        document.Editor.WriteMessage("\n" + message);
+        Diagnostics.AcKrovyDiagnostics.Info(
+            "RoofClipboardProvenance",
+            message,
+            LiveGeometryCommandRules.NormalizeCommandName(globalCommandName));
+    }
+
+    private static string DebugIdentity(object? value) => value is null
+        ? "none"
+        : RuntimeHelpers.GetHashCode(value).ToString("X8", CultureInfo.InvariantCulture);
+
+    private static string Lower(bool value) => value ? "true" : "false";
+#endif
+
+    private static class NativeMethods
+    {
+        [DllImport("user32.dll")]
+        internal static extern uint GetClipboardSequenceNumber();
+    }
+
+    private static SnapshotState Capture(Document document)
+    {
+        var database = document.Database;
+        using var transaction = database.TransactionManager.StartTransaction();
         var metadataStore = new AutoCadTimberElementMetadataStore(transaction);
-        var blockTable = (BlockTable)transaction.GetObject(document.Database.BlockTableId, OpenMode.ForRead);
+        var blockTable = (BlockTable)transaction.GetObject(database.BlockTableId, OpenMode.ForRead);
         var modelSpace = (BlockTableRecord)transaction.GetObject(
             blockTable[BlockTableRecord.ModelSpace],
             OpenMode.ForRead);
@@ -97,7 +306,7 @@ internal static class RoofGeneratedCopyPreCommandSnapshotService
             var generatedSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var attachedSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var timberId in RoofGeneratedTimberStore.FindByOwner(
-                         document.Database,
+                         database,
                          transaction,
                          ownerHandle))
             {
@@ -106,7 +315,7 @@ internal static class RoofGeneratedCopyPreCommandSnapshotService
                         timberId,
                         OpenMode.ForRead,
                         out var line,
-                        document.Database) ||
+                        database) ||
                     line is null)
                 {
                     continue;
@@ -137,7 +346,7 @@ internal static class RoofGeneratedCopyPreCommandSnapshotService
             }
 
             foreach (var attachedId in RoofAttachedManualTimberStore.FindByOwner(
-                         document.Database,
+                         database,
                          transaction,
                          ownerHandle))
             {
@@ -146,7 +355,7 @@ internal static class RoofGeneratedCopyPreCommandSnapshotService
                         attachedId,
                         OpenMode.ForRead,
                         out var line,
-                        document.Database) &&
+                        database) &&
                     line is not null)
                 {
                     attachedSet.Add(line.Handle.ToString());
@@ -158,22 +367,23 @@ internal static class RoofGeneratedCopyPreCommandSnapshotService
         }
 
         transaction.Commit();
-        lock (Gate)
-        {
-            _generatedHandles = handles;
-            _logicalKeysByOwner = keysByOwner;
-            _ownerHandles = ownerHandles;
-            _generatedHandlesByOwner = generatedByOwner;
-            _attachedManualHandlesByOwner = attachedByOwner;
-            _displayHandlesByOwner = displayByOwner;
-        }
+        return new SnapshotState(
+            document,
+            database,
+            handles,
+            keysByOwner,
+            ownerHandles,
+            generatedByOwner,
+            attachedByOwner,
+            displayByOwner,
+            new HashSet<string>(StringComparer.OrdinalIgnoreCase));
     }
 
     public static IReadOnlyCollection<string> GetPreCommandGeneratedHandles()
     {
         lock (Gate)
         {
-            return _generatedHandles.ToArray();
+            return _activeSnapshot?.GeneratedHandles.ToArray() ?? Array.Empty<string>();
         }
     }
 
@@ -181,7 +391,9 @@ internal static class RoofGeneratedCopyPreCommandSnapshotService
     {
         lock (Gate)
         {
-            return _logicalKeysByOwner.ToDictionary(
+            return (_activeSnapshot?.LogicalKeysByOwner ??
+                    new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase))
+                .ToDictionary(
                 pair => pair.Key,
                 pair => (IReadOnlyCollection<string>)pair.Value.ToArray(),
                 StringComparer.OrdinalIgnoreCase);
@@ -192,7 +404,7 @@ internal static class RoofGeneratedCopyPreCommandSnapshotService
     {
         lock (Gate)
         {
-            return _ownerHandles.ToArray();
+            return _activeSnapshot?.OwnerHandles.ToArray() ?? Array.Empty<string>();
         }
     }
 
@@ -200,7 +412,8 @@ internal static class RoofGeneratedCopyPreCommandSnapshotService
     {
         lock (Gate)
         {
-            return _generatedHandlesByOwner.TryGetValue(ownerHandle, out var set)
+            return _activeSnapshot is { } snapshot &&
+                   snapshot.GeneratedHandlesByOwner.TryGetValue(ownerHandle, out var set)
                 ? set.ToArray()
                 : Array.Empty<string>();
         }
@@ -210,7 +423,8 @@ internal static class RoofGeneratedCopyPreCommandSnapshotService
     {
         lock (Gate)
         {
-            return _attachedManualHandlesByOwner.TryGetValue(ownerHandle, out var set)
+            return _activeSnapshot is { } snapshot &&
+                   snapshot.AttachedManualHandlesByOwner.TryGetValue(ownerHandle, out var set)
                 ? set.ToArray()
                 : Array.Empty<string>();
         }
@@ -220,7 +434,8 @@ internal static class RoofGeneratedCopyPreCommandSnapshotService
     {
         lock (Gate)
         {
-            return _displayHandlesByOwner.TryGetValue(ownerHandle, out var set)
+            return _activeSnapshot is { } snapshot &&
+                   snapshot.DisplayHandlesByOwner.TryGetValue(ownerHandle, out var set)
                 ? set.ToArray()
                 : Array.Empty<string>();
         }
@@ -240,11 +455,16 @@ internal static class RoofGeneratedCopyPreCommandSnapshotService
 
         lock (Gate)
         {
+            if (_activeSnapshot is not { } snapshot)
+            {
+                return;
+            }
+
             foreach (var handle in cloneHandles)
             {
                 if (!string.IsNullOrWhiteSpace(handle))
                 {
-                    _consumedWholeRoofCloneHandles.Add(handle);
+                    snapshot.ConsumedWholeRoofCloneHandles.Add(handle);
                 }
             }
         }
@@ -259,7 +479,7 @@ internal static class RoofGeneratedCopyPreCommandSnapshotService
 
         lock (Gate)
         {
-            return _consumedWholeRoofCloneHandles.Contains(handle);
+            return _activeSnapshot?.ConsumedWholeRoofCloneHandles.Contains(handle) == true;
         }
     }
 }

@@ -79,6 +79,29 @@ public static class LiveGeometryCommandRules
     }
 
     /// <summary>
+    /// Commands that place an intelligent payload on AutoCAD's clipboard. These
+    /// commands only capture provenance; they never perform ownership writes.
+    /// </summary>
+    public static bool IsClipboardCopySourceCommand(string? globalCommandName)
+    {
+        var normalized = NormalizeCommandName(globalCommandName);
+        return normalized.Equals("COPYCLIP", StringComparison.OrdinalIgnoreCase) ||
+               normalized.Equals("COPYBASE", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Clipboard commands that may append entities to a target database. Whether
+    /// roof ownership processing is allowed is decided separately from exact tracked
+    /// Document identity and the current Windows clipboard revision.
+    /// </summary>
+    public static bool IsClipboardPasteCommand(string? globalCommandName)
+    {
+        var normalized = NormalizeCommandName(globalCommandName);
+        return normalized.Equals("PASTECLIP", StringComparison.OrdinalIgnoreCase) ||
+               normalized.Equals("PASTEORIG", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// Commands whose CommandEnded plugin writes join the native command undo group
     /// through Document StartUndoMark / EndUndoMark.
     /// </summary>
@@ -93,7 +116,9 @@ public static class LiveGeometryCommandRules
         var normalized = NormalizeCommandName(globalCommandName);
         return normalized.Equals("COPY", StringComparison.OrdinalIgnoreCase) ||
                normalized.Equals("COPYCLIP", StringComparison.OrdinalIgnoreCase) ||
-               normalized.Equals("PASTECLIP", StringComparison.OrdinalIgnoreCase);
+               normalized.Equals("COPYBASE", StringComparison.OrdinalIgnoreCase) ||
+               normalized.Equals("PASTECLIP", StringComparison.OrdinalIgnoreCase) ||
+               normalized.Equals("PASTEORIG", StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

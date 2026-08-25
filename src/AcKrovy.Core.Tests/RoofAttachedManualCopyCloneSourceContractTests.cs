@@ -10,16 +10,20 @@ public sealed class RoofAttachedManualCopyCloneSourceContractTests
         "src/AcKrovy.AutoCAD/Infrastructure/LiveGeometrySynchronizationService.cs");
 
     [Fact]
-    public void Service_GatedOnSameDwgCopy_NotUndoRedo()
+    public void Service_GatedOnNativeCopyOrProvenSameDwgClipboard_NotUndoRedo()
     {
-        Assert.Contains("IsSameDwgCopyOwnershipCommand(globalCommandName)", Service);
+        Assert.Contains("IsSameDwgCopyOwnershipCommand(", Service);
+        Assert.Contains("sameDwgClipboardPaste", Service);
+        Assert.Contains("IsClipboardPasteCommand", Service);
         Assert.Contains("IsUndoRedoCommand(globalCommandName)", Service);
     }
 
     [Fact]
-    public void Clone_RequiresCopyOrigin_NotSplit()
+    public void NativeClone_RequiresCopyOrigin_ClipboardMayPromoteSplitToCopy()
     {
-        Assert.Contains("Origin != RoofAttachedManualOrigin.Copy", Service);
+        Assert.Contains("attached.Data.Origin != RoofAttachedManualOrigin.Copy", Service);
+        Assert.Contains("attached.Data.Origin == RoofAttachedManualOrigin.Split", Service);
+        Assert.Contains("clipboardPaste", Service);
     }
 
     [Fact]

@@ -40,15 +40,21 @@ internal static class RoofGeneratedRafterCopyOwnershipRehydrationService
 
         string? globalCommandName,
 
-        IReadOnlyCollection<ObjectId>? appendedTimberIds = null)
+        IReadOnlyCollection<ObjectId>? appendedTimberIds = null,
+
+        bool sameDwgClipboardPaste = false)
 
     {
 
         ArgumentNullException.ThrowIfNull(document);
 
+        var nativeCopy = LiveGeometryCommandRules.IsSameDwgCopyOwnershipCommand(
+            globalCommandName);
+        var clipboardPaste = sameDwgClipboardPaste &&
+            LiveGeometryCommandRules.IsClipboardPasteCommand(globalCommandName);
         if (LiveGeometryCommandRules.IsUndoRedoCommand(globalCommandName) ||
 
-            !LiveGeometryCommandRules.IsSameDwgCopyOwnershipCommand(globalCommandName))
+            (!nativeCopy && !clipboardPaste))
 
         {
 

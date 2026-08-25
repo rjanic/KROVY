@@ -84,6 +84,7 @@ internal static class LiveGeometrySynchronizationService
         private readonly Document _document;
         private readonly LiveGeometryRefreshCoordinator<ObjectId> _modifiedIds = new();
         private readonly LiveGeometryRefreshCoordinator<ObjectId> _appendedTimberIds = new();
+        private readonly LiveGeometryRefreshCoordinator<ObjectId> _appendedRoofOwnerIds = new();
         private readonly LiveGeometryRefreshCoordinator<ObjectId> _modifiedFramedLabelIds = new();
         private readonly LiveGeometryRefreshCoordinator<ObjectId> _appendedLabelIds = new();
         private readonly LiveGeometryRefreshCoordinator<ObjectId> _appendedSlopeArrowIds = new();
@@ -92,6 +93,7 @@ internal static class LiveGeometrySynchronizationService
         private bool _ignoreCurrentCommand;
         private bool _refreshAllTimberAnnotationsAfterCommand;
         private bool _preserveCopySourcesForCurrentCommand;
+        private bool _sameDwgClipboardPasteForCurrentCommand;
         private bool _stretchUndoMarkOpen;
         private bool _groupSelectabilityReconciled;
         private bool _isDisposed;
@@ -153,6 +155,7 @@ internal static class LiveGeometrySynchronizationService
             _document.CommandFailed -= CommandFailed;
             _modifiedIds.Clear();
             _appendedTimberIds.Clear();
+            _appendedRoofOwnerIds.Clear();
             _modifiedFramedLabelIds.Clear();
             _appendedLabelIds.Clear();
             _appendedSlopeArrowIds.Clear();
@@ -160,7 +163,9 @@ internal static class LiveGeometrySynchronizationService
             _erasedSourceHandles.Clear();
             _refreshAllTimberAnnotationsAfterCommand = false;
             _preserveCopySourcesForCurrentCommand = false;
+            _sameDwgClipboardPasteForCurrentCommand = false;
             _currentGlobalCommandName = null;
+            RoofGeneratedCopyPreCommandSnapshotService.ClearForDocument(_document);
             EndStretchUndoMark();
             RoofLiveResizeService.EndStretchCommandScope();
             RoofGroupGripGeometrySnapshotService.EndCommandScope("dispose");
@@ -206,6 +211,14 @@ internal static class LiveGeometrySynchronizationService
                 ElementLabelStore.TryRead(entity, out _))
             {
                 _appendedLabelIds.TryAdd(entity.ObjectId);
+                return;
+            }
+
+            if (!_appendedRoofOwnerIds.IsSuppressed &&
+                entity is Polyline &&
+                RoofDefinitionStore.Read(entity).Data is not null)
+            {
+                _appendedRoofOwnerIds.TryAdd(entity.ObjectId);
                 return;
             }
 
@@ -294,6 +307,27 @@ internal static class LiveGeometrySynchronizationService
             _preserveCopySourcesForCurrentCommand =
                 !isUndoRedo &&
                 LiveGeometryCommandRules.IsCopySourcePreservingCommand(e.GlobalCommandName);
+            _sameDwgClipboardPasteForCurrentCommand = false;
+            if (!isUndoRedo &&
+                !_ignoreCurrentCommand &&
+                LiveGeometryCommandRules.IsClipboardCopySourceCommand(e.GlobalCommandName))
+            {
+                RoofGeneratedCopyPreCommandSnapshotService.CaptureForClipboardCopy(
+                    _document,
+                    e.GlobalCommandName);
+            }
+            else if (!isUndoRedo &&
+                     !_ignoreCurrentCommand &&
+                     LiveGeometryCommandRules.IsClipboardPasteCommand(e.GlobalCommandName))
+            {
+                _sameDwgClipboardPasteForCurrentCommand =
+                    RoofGeneratedCopyPreCommandSnapshotService.TryActivateForClipboardPaste(
+                        _document,
+                        e.GlobalCommandName);
+            }
+            // Clipboard provenance represents the current clipboard payload, not the
+            // immediately preceding command. PAN/ZOOM/view/internal commands therefore
+            // do not invalidate it; the OS clipboard revision does that authoritatively.
             // Always clear SOURCE-handled owner suppression at the boundary of a new
             // native command so a later genuine display-only GRIP_STRETCH is not masked.
             RoofLiveResizeService.BeginStretchCommandScope();
@@ -337,7 +371,8 @@ internal static class LiveGeometrySynchronizationService
 
             if (!isUndoRedo &&
                 !_ignoreCurrentCommand &&
-                LiveGeometryCommandRules.RequiresGroupedUndoMark(e.GlobalCommandName))
+                (LiveGeometryCommandRules.RequiresGroupedUndoMark(e.GlobalCommandName) ||
+                 _sameDwgClipboardPasteForCurrentCommand))
             {
                 _stretchUndoMarkOpen = RoofLiveResizeService.TryBeginGroupedUndo(_document);
             }
@@ -362,11 +397,19 @@ internal static class LiveGeometrySynchronizationService
                 IsAcKrovyCommand(e.GlobalCommandName);
             var refreshAllTimberAnnotations = _refreshAllTimberAnnotationsAfterCommand;
             var preserveCopySources = _preserveCopySourcesForCurrentCommand;
+            var sameDwgClipboardPaste = _sameDwgClipboardPasteForCurrentCommand;
             _refreshAllTimberAnnotationsAfterCommand = false;
             _preserveCopySourcesForCurrentCommand = false;
+            _sameDwgClipboardPasteForCurrentCommand = false;
 #if DEBUG
             AutoCadRedoDiagService.OnCommandEnded(e.GlobalCommandName);
 #endif
+            if (LiveGeometryCommandRules.IsClipboardCopySourceCommand(e.GlobalCommandName))
+            {
+                RoofGeneratedCopyPreCommandSnapshotService.CompleteClipboardCopy(
+                    _document,
+                    e.GlobalCommandName);
+            }
             try
             {
                 if (shouldIgnore)
@@ -399,10 +442,16 @@ internal static class LiveGeometrySynchronizationService
                 RefreshCandidates(
                     e.GlobalCommandName,
                     refreshAllTimberAnnotations,
-                    preserveCopySources);
+                    preserveCopySources,
+                    sameDwgClipboardPaste);
             }
             finally
             {
+                if (LiveGeometryCommandRules.IsClipboardPasteCommand(e.GlobalCommandName))
+                {
+                    RoofGeneratedCopyPreCommandSnapshotService.CompleteClipboardPaste();
+                }
+
                 EndStretchUndoMark();
                 RoofLiveResizeService.EndStretchCommandScope();
                 RoofGroupGripGeometrySnapshotService.EndCommandScope("CommandEnded");
@@ -418,6 +467,21 @@ internal static class LiveGeometrySynchronizationService
             ClearPendingLiveGeometryState();
             _refreshAllTimberAnnotationsAfterCommand = false;
             _preserveCopySourcesForCurrentCommand = false;
+            _sameDwgClipboardPasteForCurrentCommand = false;
+            if (LiveGeometryCommandRules.IsClipboardPasteCommand(e.GlobalCommandName))
+            {
+                RoofGeneratedCopyPreCommandSnapshotService.CancelOrFailClipboardPaste();
+            }
+            else
+            {
+                RoofGeneratedCopyPreCommandSnapshotService.CancelOrFailClipboardSource(
+                    _document,
+                    e.GlobalCommandName);
+            }
+            if (LiveGeometryCommandRules.IsSameDwgCopyOwnershipCommand(e.GlobalCommandName))
+            {
+                RoofGeneratedCopyPreCommandSnapshotService.Clear();
+            }
             _ignoreCurrentCommand = isUndoRedo;
             EndStretchUndoMark();
             RoofLiveResizeService.EndStretchCommandScope();
@@ -442,6 +506,21 @@ internal static class LiveGeometrySynchronizationService
             ClearPendingLiveGeometryState();
             _refreshAllTimberAnnotationsAfterCommand = false;
             _preserveCopySourcesForCurrentCommand = false;
+            _sameDwgClipboardPasteForCurrentCommand = false;
+            if (LiveGeometryCommandRules.IsClipboardPasteCommand(e.GlobalCommandName))
+            {
+                RoofGeneratedCopyPreCommandSnapshotService.CancelOrFailClipboardPaste();
+            }
+            else
+            {
+                RoofGeneratedCopyPreCommandSnapshotService.CancelOrFailClipboardSource(
+                    _document,
+                    e.GlobalCommandName);
+            }
+            if (LiveGeometryCommandRules.IsSameDwgCopyOwnershipCommand(e.GlobalCommandName))
+            {
+                RoofGeneratedCopyPreCommandSnapshotService.Clear();
+            }
             _ignoreCurrentCommand = isUndoRedo;
             EndStretchUndoMark();
             RoofLiveResizeService.EndStretchCommandScope();
@@ -464,6 +543,7 @@ internal static class LiveGeometrySynchronizationService
         {
             _modifiedIds.Clear();
             _appendedTimberIds.Clear();
+            _appendedRoofOwnerIds.Clear();
             _modifiedFramedLabelIds.Clear();
             _appendedLabelIds.Clear();
             _appendedSlopeArrowIds.Clear();
@@ -485,7 +565,8 @@ internal static class LiveGeometrySynchronizationService
         private void RefreshCandidates(
             string? globalCommandName,
             bool refreshAllTimberAnnotations,
-            bool preserveCopySources)
+            bool preserveCopySources,
+            bool sameDwgClipboardPaste)
         {
             // Belt-and-suspenders: never open a write transaction after Undo/Redo.
             if (LiveGeometryCommandRules.IsUndoRedoCommand(globalCommandName))
@@ -502,6 +583,11 @@ internal static class LiveGeometrySynchronizationService
 #endif
             var ids = _modifiedIds.Drain();
             var appendedTimberIds = _appendedTimberIds.Drain();
+            var appendedRoofOwnerIds = _appendedRoofOwnerIds.Drain();
+            var appendedIntelligentTimberCount =
+                LiveGeometryCommandRules.IsClipboardPasteCommand(globalCommandName)
+                    ? CountAppendedIntelligentRoofTimbers(_document, appendedTimberIds)
+                    : 0;
             // MIRROR Yes: AutoCAD modifies the selected Generated member IN PLACE (no
             // ObjectAppended clone, no ObjectErased source). Preserve the raw modified
             // timber ids BEFORE RoofLiveResizeService/roof-related filtering drops them,
@@ -522,6 +608,7 @@ internal static class LiveGeometrySynchronizationService
             IReadOnlyCollection<ObjectId> roofRelatedIds;
             using (_modifiedIds.Suppress())
             using (_appendedTimberIds.Suppress())
+            using (_appendedRoofOwnerIds.Suppress())
             using (_erasedSourceHandles.Suppress())
             {
                 roofRelatedIds = RoofLiveResizeService.Process(
@@ -547,11 +634,13 @@ internal static class LiveGeometrySynchronizationService
                 appendedLabelIds.Count > 0 ||
                 appendedSlopeArrowIds.Count > 0 ||
                 appendedSlopeAngleTextIds.Count > 0 ||
+                appendedRoofOwnerIds.Count > 0 ||
                 erasedSourceHandles.Count > 0 ||
                 refreshAllTimberAnnotations;
 
             using (_modifiedIds.Suppress())
             using (_appendedTimberIds.Suppress())
+            using (_appendedRoofOwnerIds.Suppress())
             using (_modifiedFramedLabelIds.Suppress())
             using (_appendedLabelIds.Suppress())
             using (_appendedSlopeArrowIds.Suppress())
@@ -580,9 +669,10 @@ internal static class LiveGeometrySynchronizationService
                 }
 #endif
 
-                // Same-DWG COPY: AutoCAD does not remap generated-rafter 1005.
-                // Geometry association rebinds copied members after timber copy init.
-                // Runs only for native COPY; never during U/UNDO/REDO/MREDO.
+                // Same-DWG COPY or proven same-DWG individual clipboard paste:
+                // AutoCAD clones roof ownership metadata verbatim. Existing geometry
+                // association rehydrates the appended member after timber copy init.
+                // Never runs during U/UNDO/REDO/MREDO.
                 // Union of annotation entities APPENDED by this command (main labels +
                 // slope arrows + slope angle text). Passed to the MIRROR service so it can
                 // erase ONLY the annotation clones native MIRROR appended for the mirrored
@@ -593,28 +683,50 @@ internal static class LiveGeometrySynchronizationService
                     .Concat(appendedSlopeAngleTextIds)
                     .Distinct()
                     .ToArray();
-                // Whole-roof assembly COPY: deterministic payload-based detection +
-                // rebind of the entire copied roof under its new owner. MUST run BEFORE
-                // AttachedManual clone re-initialization so whole-roof clones keep their
-                // logical anchor keys (nearest-anchor re-anchoring is single-member
-                // semantics and would corrupt a whole-roof set). Detected sets are
-                // registered as consumed so the per-rafter services below skip them.
-                RoofWholeRoofCopyRebindService.Process(
+                // Whole-roof assembly rebind remains native-COPY-only. Clipboard paste
+                // records appended roof owners solely to exclude those payloads from the
+                // Stage 2D4-A individual-member services.
+                var clipboardDecision = RoofClipboardPasteOwnershipRules.Classify(
+                    globalCommandName,
+                    sameDwgClipboardPaste,
+                    appendedIntelligentTimberCount,
+                    appendedRoofOwnerIds.Count > 0);
+#if DEBUG
+                TraceClipboardClassification(
                     _document,
                     globalCommandName,
-                    appendedTimberIds,
-                    appendedAnnotationIds);
+                    sameDwgClipboardPaste,
+                    appendedTimberIds.Count,
+                    appendedIntelligentTimberCount,
+                    appendedRoofOwnerIds.Count,
+                    clipboardDecision);
+#endif
+                var nativeCopy =
+                    LiveGeometryCommandRules.IsSameDwgCopyOwnershipCommand(globalCommandName);
+                if (nativeCopy)
+                {
+                    RoofWholeRoofCopyRebindService.Process(
+                        _document,
+                        globalCommandName,
+                        appendedTimberIds,
+                        appendedAnnotationIds);
+                }
                 // NOTE: AttachedManual COPY-of-COPY clones are re-initialized BEFORE the
                 // per-rafter rehydration service so a Generated→AttachedManual promotion
                 // there is not re-classified as an already-manual clone.
-                RoofAttachedManualCopyCloneReinitializeService.Process(
-                    _document,
-                    globalCommandName,
-                    appendedTimberIds);
-                RoofGeneratedRafterCopyOwnershipRehydrationService.Process(
-                    _document,
-                    globalCommandName,
-                    appendedTimberIds);
+                if (nativeCopy || clipboardDecision.ShouldProcessIndividualTimber)
+                {
+                    RoofAttachedManualCopyCloneReinitializeService.Process(
+                        _document,
+                        globalCommandName,
+                        appendedTimberIds,
+                        sameDwgClipboardPaste);
+                    RoofGeneratedRafterCopyOwnershipRehydrationService.Process(
+                        _document,
+                        globalCommandName,
+                        appendedTimberIds,
+                        sameDwgClipboardPaste);
+                }
                 // MIRROR: a mirrored Generated rafter must not become a second live
                 // Generated member. Detach the clone and promote it to AttachedManual
                 // so the (owner, GeneratedMemberKey) invariant stays unique. MIRROR Yes
@@ -953,6 +1065,37 @@ internal static class LiveGeometrySynchronizationService
         }
 
 #if DEBUG
+        private static void TraceClipboardClassification(
+            Document document,
+            string? globalCommandName,
+            bool sameDwgProvenance,
+            int pastedCount,
+            int intelligentTimberCount,
+            int appendedRoofOwnerCount,
+            RoofClipboardPasteOwnershipDecision decision)
+        {
+            if (!LiveGeometryCommandRules.IsClipboardPasteCommand(globalCommandName))
+            {
+                return;
+            }
+
+            var message =
+                "ROOF_CLIPBOARD_CLASSIFY " +
+                $"command={LiveGeometryCommandRules.NormalizeCommandName(globalCommandName)} " +
+                $"provenance={(sameDwgProvenance ? "same-dwg" : "foreign-or-unknown")} " +
+                $"pastedCount={pastedCount} " +
+                $"intelligentTimberCount={intelligentTimberCount} " +
+                $"roofSourceCount={appendedRoofOwnerCount} " +
+                $"wholeRoofDetected={(appendedRoofOwnerCount > 0 ? "true" : "false")} " +
+                $"eligibleIndividualTimber={(decision.ShouldProcessIndividualTimber ? "true" : "false")} " +
+                $"result={decision.DiagnosticResult}";
+            document.Editor.WriteMessage("\n" + message);
+            Diagnostics.AcKrovyDiagnostics.Info(
+                "RoofClipboardClassification",
+                message,
+                LiveGeometryCommandRules.NormalizeCommandName(globalCommandName));
+        }
+
         private static void TraceLiveGeometryTiming(
             string? globalCommandName,
             string stage,
@@ -965,6 +1108,41 @@ internal static class LiveGeometrySynchronizationService
                 LiveGeometryCommandRules.NormalizeCommandName(globalCommandName));
         }
 #endif
+
+        private static int CountAppendedIntelligentRoofTimbers(
+            Document document,
+            IReadOnlyList<ObjectId> appendedTimberIds)
+        {
+            if (appendedTimberIds.Count == 0)
+            {
+                return 0;
+            }
+
+            using var transaction = document.Database.TransactionManager.StartTransaction();
+            var count = 0;
+            foreach (var id in appendedTimberIds.Distinct())
+            {
+                if (!AutoCadObjectIdAccess.TryGetObject<Entity>(
+                        transaction,
+                        id,
+                        OpenMode.ForRead,
+                        out var entity,
+                        document.Database) ||
+                    entity is null)
+                {
+                    continue;
+                }
+
+                if (RoofGeneratedTimberStore.Read(entity).Data is not null ||
+                    RoofAttachedManualTimberStore.Read(entity).Data is not null)
+                {
+                    count++;
+                }
+            }
+
+            transaction.Commit();
+            return count;
+        }
 
         private static int CountOwnedAnnotationPresentationIds(
             Database database,
