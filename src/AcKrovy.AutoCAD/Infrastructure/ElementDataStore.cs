@@ -67,6 +67,59 @@ internal static class ElementDataStore
     }
 
     /// <summary>
+    /// Removes only KROVY generic timber identity (portable and legacy). Foreign
+    /// application XData and unrelated extension-dictionary records are preserved.
+    /// </summary>
+    public static bool TryClear(
+        Entity entity,
+        Transaction transaction,
+        out string failureReason)
+    {
+        ArgumentNullException.ThrowIfNull(entity);
+        ArgumentNullException.ThrowIfNull(transaction);
+        failureReason = string.Empty;
+        if (!entity.IsWriteEnabled)
+        {
+            failureReason = "entity-not-write-enabled";
+            return false;
+        }
+
+        try
+        {
+            if (HasApplicationSection(entity, RegAppName))
+            {
+                using var erase = new ResultBuffer(
+                    new TypedValue(DxfRegAppNameCode, RegAppName));
+                entity.XData = erase;
+            }
+
+            if (!TryClearLegacyExtensionDictionary(entity, transaction, out failureReason))
+            {
+                return false;
+            }
+        }
+        catch (Autodesk.AutoCAD.Runtime.Exception ex)
+        {
+            failureReason = "generic-xdata-assign-failed:" + ex.ErrorStatus;
+            return false;
+        }
+
+        if (HasApplicationSection(entity, RegAppName))
+        {
+            failureReason = "generic-xdata-remains";
+            return false;
+        }
+
+        if (TryReadLegacyExtensionDictionary(entity, transaction, out _))
+        {
+            failureReason = "legacy-element-data-remains";
+            return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
     /// Builds the generic Timber XData section (RegApp + ASCII JSON chunks) WITHOUT
     /// assigning Entity.XData, so callers can merge it with other sections and perform a
     /// single atomic Entity.XData assignment.
@@ -169,6 +222,66 @@ internal static class ElementDataStore
         }
 
         return retained;
+    }
+
+    private static bool HasApplicationSection(Entity entity, string applicationName)
+    {
+        using var xdata = entity.XData;
+        if (xdata is null)
+        {
+            return false;
+        }
+
+        return xdata.AsArray().Any(value =>
+            value.TypeCode == DxfRegAppNameCode &&
+            string.Equals(
+                Convert.ToString(value.Value, CultureInfo.InvariantCulture),
+                applicationName,
+                StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static bool TryClearLegacyExtensionDictionary(
+        Entity entity,
+        Transaction transaction,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (entity.ExtensionDictionary.IsNull)
+        {
+            return true;
+        }
+
+        if (transaction.GetObject(entity.ExtensionDictionary, OpenMode.ForRead) is not
+            DBDictionary root ||
+            !root.Contains(LegacyApplicationDictionaryName))
+        {
+            return true;
+        }
+
+        if (transaction.GetObject(
+                root.GetAt(LegacyApplicationDictionaryName),
+                OpenMode.ForRead) is not DBDictionary appDictionary ||
+            !appDictionary.Contains(LegacyElementDataRecordName))
+        {
+            return true;
+        }
+
+        appDictionary.UpgradeOpen();
+        var recordId = appDictionary.Remove(LegacyElementDataRecordName);
+        if (!recordId.IsNull &&
+            transaction.GetObject(recordId, OpenMode.ForWrite, false) is DBObject record &&
+            !record.IsErased)
+        {
+            record.Erase();
+        }
+
+        if (appDictionary.Contains(LegacyElementDataRecordName))
+        {
+            failureReason = "legacy-element-data-remove-failed";
+            return false;
+        }
+
+        return true;
     }
 
     private static void EnsureRegAppRegistered(Database database, Transaction transaction)

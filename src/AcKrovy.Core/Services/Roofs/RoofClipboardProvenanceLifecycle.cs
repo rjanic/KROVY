@@ -1,5 +1,12 @@
 namespace AcKrovy.Core.Services.Roofs;
 
+public enum RoofClipboardPasteProvenanceKind
+{
+    Unknown = 0,
+    KnownForeignDocument = 1,
+    KnownSameDocument = 2,
+}
+
 public sealed record RoofClipboardPasteProvenanceDecision(
     bool HasProvenance,
     bool ClipboardRevisionMatches,
@@ -7,7 +14,8 @@ public sealed record RoofClipboardPasteProvenanceDecision(
     bool DatabaseReferenceEqual,
     bool SameDrawing,
     bool IsValid,
-    string DiagnosticResult);
+    string DiagnosticResult,
+    RoofClipboardPasteProvenanceKind ProvenanceKind);
 
 /// <summary>
 /// CAD-neutral lifecycle for one current clipboard payload. A source snapshot is
@@ -26,7 +34,7 @@ public sealed class RoofClipboardProvenanceLifecycle<TDocument, TDatabase, TPayl
 {
     private PendingCopy? _pendingCopy;
     private DurableProvenance? _durableProvenance;
-    private DurableProvenance? _activePaste;
+    private ActivePaste? _activePaste;
 
     private sealed record PendingCopy(
         TDocument SourceDocument,
@@ -41,11 +49,32 @@ public sealed class RoofClipboardProvenanceLifecycle<TDocument, TDatabase, TPayl
         TPayload Payload,
         uint ClipboardRevision);
 
-    public TPayload? ActivePayload => _activePaste?.Payload;
+    private sealed record ActivePaste(
+        DurableProvenance? Provenance,
+        TDocument TargetDocument,
+        TDatabase TargetDatabase,
+        uint ClipboardRevision,
+        string TargetCommand,
+        RoofClipboardPasteProvenanceKind ProvenanceKind,
+        bool SameDrawing);
+
+    public TPayload? ActivePayload => _activePaste is { SameDrawing: true, Provenance: { } provenance }
+        ? provenance.Payload
+        : null;
 
     public TPayload? DurablePayload => _durableProvenance?.Payload;
 
     public bool HasDurableProvenance => _durableProvenance is not null;
+
+    public bool HasActivePaste => _activePaste is not null;
+
+    public TDocument? ActiveTargetDocument => _activePaste?.TargetDocument;
+
+    public TDocument? ActiveSourceDocument => _activePaste?.Provenance?.SourceDocument;
+
+    public uint ActiveClipboardRevision => _activePaste?.ClipboardRevision ?? 0;
+
+    public string ActiveCommand => _activePaste?.TargetCommand ?? string.Empty;
 
     public void BeginCopy(
         TDocument sourceDocument,
@@ -117,22 +146,63 @@ public sealed class RoofClipboardProvenanceLifecycle<TDocument, TDatabase, TPayl
     public RoofClipboardPasteProvenanceDecision BeginPaste(
         TDocument targetDocument,
         TDatabase targetDatabase,
-        uint clipboardRevision)
+        uint clipboardRevision,
+        string? targetCommand = null)
     {
+        if (targetDocument is null)
+        {
+            throw new ArgumentNullException(nameof(targetDocument));
+        }
+
+        if (targetDatabase is null)
+        {
+            throw new ArgumentNullException(nameof(targetDatabase));
+        }
+
         var provenance = _durableProvenance;
         if (provenance is null)
         {
-            _activePaste = null;
-            return Decision(false, false, false, false, false, false, "missing-provenance");
+            _activePaste = Active(
+                null,
+                targetDocument,
+                targetDatabase,
+                clipboardRevision,
+                targetCommand,
+                RoofClipboardPasteProvenanceKind.Unknown,
+                false);
+            return Decision(
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                "missing-provenance",
+                RoofClipboardPasteProvenanceKind.Unknown);
         }
 
         var clipboardRevisionMatches = clipboardRevision != 0 &&
             provenance.ClipboardRevision == clipboardRevision;
         if (!clipboardRevisionMatches)
         {
-            _activePaste = null;
             _durableProvenance = null;
-            return Decision(true, false, false, false, false, false, "clipboard-replaced");
+            _activePaste = Active(
+                null,
+                targetDocument,
+                targetDatabase,
+                clipboardRevision,
+                targetCommand,
+                RoofClipboardPasteProvenanceKind.Unknown,
+                false);
+            return Decision(
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+                "clipboard-replaced",
+                RoofClipboardPasteProvenanceKind.Unknown);
         }
 
         var sameDocument = ReferenceEquals(provenance.SourceDocument, targetDocument);
@@ -141,7 +211,17 @@ public sealed class RoofClipboardProvenanceLifecycle<TDocument, TDatabase, TPayl
             targetDatabase);
         var sameDrawing = sameDocument;
         var valid = sameDrawing;
-        _activePaste = valid ? provenance : null;
+        var provenanceKind = sameDrawing
+            ? RoofClipboardPasteProvenanceKind.KnownSameDocument
+            : RoofClipboardPasteProvenanceKind.KnownForeignDocument;
+        _activePaste = Active(
+            provenance,
+            targetDocument,
+            targetDatabase,
+            clipboardRevision,
+            targetCommand,
+            provenanceKind,
+            sameDrawing);
 
         var result = valid ? "same-dwg" : "different-document";
         return Decision(
@@ -151,7 +231,8 @@ public sealed class RoofClipboardProvenanceLifecycle<TDocument, TDatabase, TPayl
             databaseReferenceEqual,
             sameDrawing,
             valid,
-            result);
+            result,
+            provenanceKind);
     }
 
     /// <summary>
@@ -181,11 +262,29 @@ public sealed class RoofClipboardProvenanceLifecycle<TDocument, TDatabase, TPayl
         }
 
         if (_activePaste is { } active &&
-            ReferenceEquals(active.SourceDocument, document))
+            (ReferenceEquals(active.TargetDocument, document) ||
+             ReferenceEquals(active.Provenance?.SourceDocument, document)))
         {
             _activePaste = null;
         }
     }
+
+    private static ActivePaste Active(
+        DurableProvenance? provenance,
+        TDocument targetDocument,
+        TDatabase targetDatabase,
+        uint clipboardRevision,
+        string? targetCommand,
+        RoofClipboardPasteProvenanceKind provenanceKind,
+        bool sameDrawing) =>
+        new(
+            provenance,
+            targetDocument,
+            targetDatabase,
+            clipboardRevision,
+            targetCommand ?? string.Empty,
+            provenanceKind,
+            sameDrawing);
 
     private static RoofClipboardPasteProvenanceDecision Decision(
         bool hasProvenance,
@@ -194,7 +293,8 @@ public sealed class RoofClipboardProvenanceLifecycle<TDocument, TDatabase, TPayl
         bool databaseReferenceEqual,
         bool sameDrawing,
         bool isValid,
-        string result) =>
+        string result,
+        RoofClipboardPasteProvenanceKind provenanceKind) =>
         new(
             hasProvenance,
             clipboardRevisionMatches,
@@ -202,5 +302,6 @@ public sealed class RoofClipboardProvenanceLifecycle<TDocument, TDatabase, TPayl
             databaseReferenceEqual,
             sameDrawing,
             isValid,
-            result);
+            result,
+            provenanceKind);
 }

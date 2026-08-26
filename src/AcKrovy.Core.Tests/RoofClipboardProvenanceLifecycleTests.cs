@@ -77,6 +77,9 @@ public sealed class RoofClipboardProvenanceLifecycleTests
         Assert.True(state.CompleteCopy(101));
 
         var foreign = state.BeginPaste(documentB, databaseB, 101);
+        Assert.True(state.HasActivePaste);
+        Assert.Same(documentB, state.ActiveTargetDocument);
+        Assert.Same(documentA, state.ActiveSourceDocument);
         state.CompletePaste();
         var backInA = state.BeginPaste(documentA, databaseA, 101);
 
@@ -84,6 +87,9 @@ public sealed class RoofClipboardProvenanceLifecycleTests
         Assert.False(foreign.SameDocument);
         Assert.False(foreign.DatabaseReferenceEqual);
         Assert.False(foreign.SameDrawing);
+        Assert.Equal(
+            RoofClipboardPasteProvenanceKind.KnownForeignDocument,
+            foreign.ProvenanceKind);
         Assert.True(backInA.IsValid);
     }
 
@@ -202,6 +208,9 @@ public sealed class RoofClipboardProvenanceLifecycleTests
         Assert.True(decision.SameDocument);
         Assert.False(decision.DatabaseReferenceEqual);
         Assert.True(decision.SameDrawing);
+        Assert.Equal(
+            RoofClipboardPasteProvenanceKind.KnownSameDocument,
+            decision.ProvenanceKind);
         Assert.Equal("same-dwg", decision.DiagnosticResult);
     }
 
@@ -222,6 +231,9 @@ public sealed class RoofClipboardProvenanceLifecycleTests
         Assert.True(decision.DatabaseReferenceEqual);
         Assert.False(decision.SameDrawing);
         Assert.Equal("different-document", decision.DiagnosticResult);
+        Assert.Equal(
+            RoofClipboardPasteProvenanceKind.KnownForeignDocument,
+            decision.ProvenanceKind);
     }
 
     [Fact]
@@ -255,6 +267,49 @@ public sealed class RoofClipboardProvenanceLifecycleTests
         Assert.False(decision.IsValid);
         Assert.False(decision.HasProvenance);
         Assert.Equal("missing-provenance", decision.DiagnosticResult);
+        Assert.Equal(
+            RoofClipboardPasteProvenanceKind.Unknown,
+            decision.ProvenanceKind);
+    }
+
+    [Fact]
+    public void UnknownPaste_TracksTargetCommandAndRevisionWithoutPayload()
+    {
+        var state = State();
+        var targetDocument = new object();
+        var targetDatabase = new object();
+
+        var decision = state.BeginPaste(
+            targetDocument,
+            targetDatabase,
+            207,
+            "PASTECLIP");
+
+        Assert.Equal(RoofClipboardPasteProvenanceKind.Unknown, decision.ProvenanceKind);
+        Assert.True(state.HasActivePaste);
+        Assert.Null(state.ActivePayload);
+        Assert.Same(targetDocument, state.ActiveTargetDocument);
+        Assert.Null(state.ActiveSourceDocument);
+        Assert.Equal(207u, state.ActiveClipboardRevision);
+        Assert.Equal("PASTECLIP", state.ActiveCommand);
+    }
+
+    [Fact]
+    public void DestroyingForeignTarget_ClearsActivePasteButPreservesSourceToken()
+    {
+        var state = State();
+        var sourceDocument = new object();
+        var sourceDatabase = new object();
+        var targetDocument = new object();
+        state.BeginCopy(sourceDocument, sourceDatabase, "COPYCLIP", new object());
+        Assert.True(state.CompleteCopy(101));
+        Assert.False(state.BeginPaste(targetDocument, new object(), 101).IsValid);
+
+        state.ClearForDocument(targetDocument);
+
+        Assert.False(state.HasActivePaste);
+        Assert.True(state.HasDurableProvenance);
+        Assert.True(state.BeginPaste(sourceDocument, sourceDatabase, 101).IsValid);
     }
 
     private static RoofClipboardProvenanceLifecycle<object, object, object> State() => new();

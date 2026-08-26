@@ -118,11 +118,33 @@ internal static class RoofGeneratedCopyPreCommandSnapshotService
     public static bool TryActivateForClipboardPaste(
         Document targetDocument,
         string? globalCommandName)
+        => ActivateForClipboardPaste(targetDocument, globalCommandName).IsValid;
+
+    public static bool TryActivateForClipboardPaste(
+        Document targetDocument,
+        string? globalCommandName,
+        out RoofClipboardPasteProvenanceDecision decision)
+    {
+        decision = ActivateForClipboardPaste(targetDocument, globalCommandName);
+        return decision.IsValid;
+    }
+
+    public static RoofClipboardPasteProvenanceDecision ActivateForClipboardPaste(
+        Document targetDocument,
+        string? globalCommandName)
     {
         ArgumentNullException.ThrowIfNull(targetDocument);
         if (!LiveGeometryCommandRules.IsClipboardPasteCommand(globalCommandName))
         {
-            return false;
+            return new RoofClipboardPasteProvenanceDecision(
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                "not-clipboard-paste",
+                RoofClipboardPasteProvenanceKind.Unknown);
         }
 
         var targetDatabase = targetDocument.Database;
@@ -133,7 +155,8 @@ internal static class RoofGeneratedCopyPreCommandSnapshotService
             decision = ClipboardLifecycle.BeginPaste(
                 targetDocument,
                 targetDatabase,
-                clipboardRevision);
+                clipboardRevision,
+                LiveGeometryCommandRules.NormalizeCommandName(globalCommandName));
             _activeSnapshot = decision.IsValid ? ClipboardLifecycle.ActivePayload : null;
         }
 
@@ -148,11 +171,12 @@ internal static class RoofGeneratedCopyPreCommandSnapshotService
             $"sameDocument={Lower(decision.SameDocument)} " +
             $"databaseReferenceEqual={Lower(decision.DatabaseReferenceEqual)} " +
             $"sameDrawing={Lower(decision.SameDrawing)} " +
+            $"provenance={decision.ProvenanceKind} " +
             $"valid={Lower(decision.IsValid)} " +
             $"result={decision.DiagnosticResult}",
             globalCommandName);
 #endif
-        return decision.IsValid;
+        return decision;
     }
 
     /// <summary>
@@ -205,6 +229,7 @@ internal static class RoofGeneratedCopyPreCommandSnapshotService
             }
 
             ClipboardLifecycle.ClearForDocument(document);
+            _activeSnapshot = ClipboardLifecycle.ActivePayload;
         }
     }
 

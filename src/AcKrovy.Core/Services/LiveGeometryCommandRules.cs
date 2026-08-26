@@ -108,6 +108,7 @@ public static class LiveGeometryCommandRules
     public static bool RequiresGroupedUndoMark(string? globalCommandName) =>
         IsUndoGroupingSourceCommand(globalCommandName) ||
         IsSameDwgCopyOwnershipCommand(globalCommandName) ||
+        IsClipboardPasteCommand(globalCommandName) ||
         RoofGeneratedMemberEditCommandRules.IsMirrorCommand(globalCommandName) ||
         RoofGeneratedMemberEditCommandRules.IsGeneratedTimberEditCommand(globalCommandName);
 
