@@ -29,17 +29,17 @@ Before prompts that ask Codex to perform substantial work, give the user an expl
 
 ## KROVY AI Skills / Agent Workflows
 
-This repository contains reusable agent workflows under `.ai/skills/`.
+This repository contains reusable agent workflows under `.agents/skills/`.
 
 Before starting a repeated workflow, use the matching skill:
 
-- Portable Compatibility Gate: [.ai/skills/portable-compatibility-gate.md](.ai/skills/portable-compatibility-gate.md)
-- Release Validation: [.ai/skills/release-validation.md](.ai/skills/release-validation.md)
-- CAD-neutral Core Feature: [.ai/skills/cad-neutral-core-feature.md](.ai/skills/cad-neutral-core-feature.md)
-- Localization Check: [.ai/skills/localization-check.md](.ai/skills/localization-check.md)
-- Git Diff Summary: [.ai/skills/git-diff-summary.md](.ai/skills/git-diff-summary.md)
-- HOST Regression Test: [.ai/skills/host-regression-test.md](.ai/skills/host-regression-test.md)
-- Roof Timber Lifecycle: [.ai/skills/roof-timber-lifecycle.md](.ai/skills/roof-timber-lifecycle.md)
+- Portable Compatibility Gate: [.agents/skills/portable-compatibility-gate/SKILL.md](.agents/skills/portable-compatibility-gate/SKILL.md)
+- Release Validation: [.agents/skills/release-validation/SKILL.md](.agents/skills/release-validation/SKILL.md)
+- CAD-neutral Core Feature: [.agents/skills/cad-neutral-core-feature/SKILL.md](.agents/skills/cad-neutral-core-feature/SKILL.md)
+- Localization Check: [.agents/skills/localization-check/SKILL.md](.agents/skills/localization-check/SKILL.md)
+- Git Diff Summary: [.agents/skills/git-diff-summary/SKILL.md](.agents/skills/git-diff-summary/SKILL.md)
+- HOST Regression Test: [.agents/skills/host-regression-test/SKILL.md](.agents/skills/host-regression-test/SKILL.md)
+- Roof Timber Lifecycle: [.agents/skills/roof-timber-lifecycle/SKILL.md](.agents/skills/roof-timber-lifecycle/SKILL.md)
 
 Hard rules:
 
