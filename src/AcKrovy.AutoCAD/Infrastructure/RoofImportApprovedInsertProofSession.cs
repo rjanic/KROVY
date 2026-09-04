@@ -99,6 +99,26 @@ internal static class RoofImportApprovedInsertProofSession
         }
     }
 
+    /// <summary>
+    /// Read-only recognition used by the production entry brake to identify the single
+    /// explicitly approved one-shot native INSERT proof invocation. It never consumes or
+    /// mutates state; the veto probe remains the sole one-shot consumption authority.
+    /// Accepting both <see cref="SessionPhase.Approved"/> and
+    /// <see cref="SessionPhase.TokenConsumed"/> keeps recognition independent of the
+    /// handler subscription order on <c>DocumentLockModeChanged</c>.
+    /// </summary>
+    public static bool IsApprovedNativeInsert(Document document, string? globalCommandName)
+    {
+        var state = _active;
+        return state is not null &&
+            ReferenceEquals(document, state.Document) &&
+            string.Equals(
+                globalCommandName ?? string.Empty,
+                ExpectedGlobalCommandName,
+                StringComparison.Ordinal) &&
+            state.Phase is SessionPhase.Approved or SessionPhase.TokenConsumed;
+    }
+
     public static void ObserveCommandWillStart(Document document, string? command)
     {
         var state = _active;

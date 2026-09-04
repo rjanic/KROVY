@@ -52,6 +52,19 @@ internal static class RoofImportCommandEntryProtection
             }
 
 #if DEBUG
+            // Exactly one explicitly approved one-shot native INSERT proof session may
+            // pass. The DEBUG veto probe stays the sole one-shot consumption authority;
+            // here the production brake only refrains from adding a second,
+            // session-unaware veto for that exact approved -INSERT. Release contains no
+            // approval path, so the brake below remains unconditional.
+            if (RoofImportApprovedInsertProofSession.IsApprovedNativeInsert(e.Document, command))
+            {
+                Write(e.Document,
+                    $"ROOF_IMPORT_PRODUCTION_VETO command={Token(command)} " +
+                    "action=allow-approved-session");
+                return;
+            }
+
             Write(e.Document,
                 $"ROOF_IMPORT_PRODUCTION_VETO command={Token(command)} " +
                 $"currentMode={e.CurrentMode} myPreviousMode={e.MyPreviousMode} " +

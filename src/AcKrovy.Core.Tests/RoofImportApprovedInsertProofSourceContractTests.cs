@@ -17,6 +17,9 @@ public sealed class RoofImportApprovedInsertProofSourceContractTests
     private static readonly string Diagnostics = ReadAutoCad(
         "Infrastructure",
         "RoofImportRuntimeDiscoveryDiagnostics.cs");
+    private static readonly string ProductionVeto = ReadAutoCad(
+        "Infrastructure",
+        "RoofImportCommandEntryProtection.cs");
 
     [Fact]
     public void ProofCommandAndSession_AreStrictlyDebugOnly()
@@ -225,6 +228,133 @@ public sealed class RoofImportApprovedInsertProofSourceContractTests
         {
             Assert.DoesNotContain(forbidden, callback);
         }
+    }
+
+    [Fact]
+    public void ProductionVeto_RecognizesTheExactApprovedOneShotSessionBeforeVetoing()
+    {
+        var callback = ExtractMethod(
+            ProductionVeto,
+            "private static void DocumentLockModeChanged(");
+
+        var blockedGuard = callback.IndexOf(
+            "!BlockedCommands.Contains(command)",
+            StringComparison.Ordinal);
+        var recognize = callback.IndexOf(
+            "RoofImportApprovedInsertProofSession.IsApprovedNativeInsert(e.Document, command)",
+            StringComparison.Ordinal);
+        var allowLog = callback.IndexOf(
+            "action=allow-approved-session",
+            StringComparison.Ordinal);
+        var allowReturn = callback.IndexOf("return;", allowLog, StringComparison.Ordinal);
+        var veto = callback.IndexOf("e.Veto();", StringComparison.Ordinal);
+
+        // Recognition happens only for already-blocked commands, before the veto, and the
+        // approved session short-circuits with an explicit return ahead of e.Veto().
+        Assert.True(blockedGuard >= 0 && blockedGuard < recognize);
+        Assert.True(recognize >= 0 && recognize < allowLog);
+        Assert.True(allowLog < allowReturn && allowReturn < veto);
+    }
+
+    [Fact]
+    public void ProductionVeto_StillBlocksUnapprovedInsertAndPreservesExactBlockedCommands()
+    {
+        // The single unconditional brake remains; no command is added or removed and no
+        // command family (e.g. COPY) is collaterally blocked.
+        Assert.Equal(1, CountOccurrences(ProductionVeto, "e.Veto();"));
+        Assert.Contains("\"-INSERT\"", ProductionVeto);
+        Assert.Contains("\"INSERT\"", ProductionVeto);
+        Assert.Contains("\"CLASSICINSERT\"", ProductionVeto);
+        Assert.DoesNotContain("COPY", ProductionVeto);
+        Assert.DoesNotContain("Clear(", ProductionVeto);
+    }
+
+    [Fact]
+    public void ProductionVeto_HasNoGlobalOrAllDebugBypass()
+    {
+        // The allowance is bound to the exact approved-session recognition; there is no
+        // blanket DEBUG allow, no unconditional early return, and no command broadening.
+        Assert.DoesNotContain("return; // DEBUG", ProductionVeto);
+        Assert.DoesNotContain("#if DEBUG\n            return;", Normalize(ProductionVeto));
+        Assert.DoesNotContain("BlockedCommands.Clear", ProductionVeto);
+        Assert.DoesNotContain("BlockedCommands.Remove", ProductionVeto);
+        Assert.Equal(1, CountOccurrences(ProductionVeto, "IsApprovedNativeInsert"));
+    }
+
+    [Fact]
+    public void ProductionVeto_ApprovalRecognitionIsStrippedFromReleaseButVetoRemains()
+    {
+        var release = StripDebugBlocks(ProductionVeto);
+        Assert.DoesNotContain("IsApprovedNativeInsert", release);
+        Assert.DoesNotContain("action=allow-approved-session", release);
+        Assert.DoesNotContain("RoofImportApprovedInsertProofSession", release);
+        // Release keeps an unconditional brake for every blocked native INSERT entry.
+        Assert.Contains("e.Veto();", release);
+        Assert.Contains("BlockedCommands.Contains(command)", release);
+    }
+
+    [Fact]
+    public void ApprovedSessionRecognition_IsReadOnlyExactBoundAndOneShotScoped()
+    {
+        var recognitionStart = Session.IndexOf(
+            "public static bool IsApprovedNativeInsert(",
+            StringComparison.Ordinal);
+        Assert.True(recognitionStart >= 0);
+        var recognitionEnd = Session.IndexOf(
+            "public static void ObserveCommandWillStart(",
+            recognitionStart,
+            StringComparison.Ordinal);
+        Assert.True(recognitionEnd > recognitionStart);
+        var recognition = Session[recognitionStart..recognitionEnd];
+
+        // Exact document + command binding, ordinal comparison, and only the live approved
+        // or already-consumed phases are recognized (terminal phases fall through to veto).
+        Assert.Contains("ReferenceEquals(document, state.Document)", recognition);
+        Assert.Contains("ExpectedGlobalCommandName", recognition);
+        Assert.Contains("StringComparison.Ordinal", recognition);
+        Assert.Contains("SessionPhase.Approved or SessionPhase.TokenConsumed", recognition);
+        Assert.DoesNotContain("SessionPhase.Completed", recognition);
+        Assert.DoesNotContain("SessionPhase.Cancelled", recognition);
+        Assert.DoesNotContain("SessionPhase.Failed", recognition);
+
+        // The recognition never consumes the token or mutates any session state.
+        Assert.DoesNotContain("ApprovalAvailable = false", recognition);
+        Assert.DoesNotContain("ApprovalAvailable = true", recognition);
+        Assert.DoesNotContain("TokenConsumed = true", recognition);
+        Assert.DoesNotContain("state.Phase =", recognition);
+        Assert.DoesNotContain("_active =", recognition);
+        Assert.DoesNotContain("OpenMode", recognition);
+        Assert.DoesNotContain("StartTransaction", recognition);
+    }
+
+    private static string StripDebugBlocks(string source)
+    {
+        var lines = new List<string>();
+        var depth = 0;
+        foreach (var line in Normalize(source).Split('\n'))
+        {
+            var directive = line.Trim();
+            if (directive == "#if DEBUG")
+            {
+                depth++;
+                continue;
+            }
+
+            if (directive == "#endif")
+            {
+                Assert.True(depth > 0);
+                depth--;
+                continue;
+            }
+
+            if (depth == 0)
+            {
+                lines.Add(line);
+            }
+        }
+
+        Assert.Equal(0, depth);
+        return string.Join('\n', lines);
     }
 
     private static void AssertDebugOnly(string source)

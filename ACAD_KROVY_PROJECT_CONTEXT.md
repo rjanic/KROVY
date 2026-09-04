@@ -8,7 +8,7 @@
 
 **Verzia aplikácie:** autoritatívne v `Directory.Build.props`
 
-**Aktuálny míľnik:** STRECHY S2 Stage 2D4-C2 – successful external import (HOST PASS)
+**Aktuálny míľnik:** STRECHY S2 – approved native external import proof (HOST PASS)
 
 **Overovanie:** Debug/Release build, kompletné automatické testy a Portable/Full Compatibility Gate
 
@@ -601,7 +601,30 @@ Stabilný commit: `4a951041e2deef40a127ac9560cf6fb2ba4b6a5b`
   Úspešný HOST run (`C14_A3_NEUTRAL_SOURCE_2.dwg`) potvrdil `result=pass`
   so zachovanou viditeľnou referenciou v ModelSpace.
 
-## Povinné kompatibilitné pravidlá
+### Approved native external import proof
+
+Status:
+
+`HOST PASS`
+
+- AutoCAD Architecture 2027 HOST dokázal, že native `-INSERT` bol úspešne autorizovaný
+  práve pre jeden DEBUG proof session (`phase=completed`, `mappingSeen=true`,
+  `CommandEnded result=completed`, `targetBtrDelta=1`, `topLevelReferences=1`,
+  `logicalInsertions=1`, session `reason=completed outcome=completed`),
+- produkčná entry ochrana rozpoznáva iba presný schválený DEBUG session (read-only
+  `IsApprovedNativeInsert`, žiadne druhé veto pre ten istý session),
+- ordinary/unapproved native INSERT zostáva vetovaný; Release produkčná ochrana je
+  bezpodmienečná (DEBUG recognition je z Release build-u úplne odstránená),
+- schválenie zostáva exact-document, exact-command (`-INSERT`), one-shot a
+  terminal-state bounded; žiadny globálny DEBUG bypass; `INSERT` aj `CLASSICINSERT`
+  zostávajú chránené,
+- dokázaná je autorizácia/korelácia native command lifecycle, nie náhrada produkčnej
+  C2 managed `Database.Insert` cesty; managed API zostáva preferované kde je bezpečné,
+- explicitný kanonický `C3` identifikátor neexistuje (nepoužíva sa),
+- C1 zostáva closed/PASS; C2 zostáva closed/PASS; C14 redefine zostáva nepodporovaný,
+- `DBMOD` zostáva iba diagnostický.
+
+## Povinné kompatibilné pravidlá
 
 1. Výpočty a geometrické rozhodovanie preferovať v Core.
 2. AutoCAD API držať v adaptéri/UI vrstve.
