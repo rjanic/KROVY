@@ -722,4 +722,8 @@
   <data name="RoofGeometryWindow_ValidationSlopeDirectionRequired" xml:space="preserve"><value>Choisissez le sens de pente HAUT → BAS avant l’aperçu ou la création.</value></data>
   <data name="RoofGeometryWindow_LowEave" xml:space="preserve"><value>Égout bas</value></data>
   <data name="RoofGeometryWindow_HighEave" xml:space="preserve"><value>Égout haut</value></data>
+  <data name="Command_ImportDwg_Prompt" xml:space="preserve"><value>\nSélectionnez un DWG externe pour l’import KROVY sécurisé :</value></data>
+  <data name="Command_ImportDwg_Cancelled" xml:space="preserve"><value>\nImport annulé.</value></data>
+  <data name="Command_ImportDwg_CompletedFormat" xml:space="preserve"><value>\nDWG importé de manière sécurisée comme bloc {0}.</value></data>
+  <data name="Command_ImportDwg_FailedFormat" xml:space="preserve"><value>\nL’import DWG a été refusé ou a échoué : {0}</value></data>
 </root>

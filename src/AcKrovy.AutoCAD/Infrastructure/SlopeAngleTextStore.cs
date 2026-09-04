@@ -13,7 +13,7 @@ internal sealed record SlopeAngleTextData
 
 internal static class SlopeAngleTextStore
 {
-    private const string RegAppName = "DECORAIR_ACADKROVY_SLOPE_ANGLE";
+    internal const string RegAppName = "DECORAIR_ACADKROVY_SLOPE_ANGLE";
     private const int DxfRegAppNameCode = 1001;
     private const int DxfAsciiStringCode = 1000;
     private const int MaxTextChunkLength = 240;

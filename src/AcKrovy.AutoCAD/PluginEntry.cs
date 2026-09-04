@@ -25,6 +25,14 @@ public sealed class PluginEntry : IExtensionApplication
             // Ribbon môže byť pri NETLOAD ešte vo fáze inicializácie. AcKrovyRibbon
             // ho preto bezpečne vytvorí pri najbližšom idle AutoCADu.
             AcKrovyRibbon.ScheduleCreation();
+#if DEBUG
+            // Runtime discovery is deliberately subscribed before the production
+            // lifecycle tracker so CommandEnded captures the native INSERT/EXPLODE
+            // graph before any existing reconciliation runs. It is strictly read-only.
+            RoofImportRuntimeDiscoveryDiagnostics.Start();
+            RoofImportDocumentLockVetoProbe.Start();
+#endif
+            RoofImportCommandEntryProtection.Start();
             LiveGeometrySynchronizationService.Start();
             AutoCadFramedBlockContentProductionGripNormalizeService.RegisterOnce();
 #if DEBUG
@@ -45,6 +53,11 @@ public sealed class PluginEntry : IExtensionApplication
 
     public void Terminate()
     {
+        RoofImportCommandEntryProtection.Stop();
+#if DEBUG
+        RoofImportDocumentLockVetoProbe.Stop();
+        RoofImportRuntimeDiscoveryDiagnostics.Stop();
+#endif
         LiveGeometrySynchronizationService.Stop();
         AutoCadFramedBlockContentProductionGripNormalizeService.Unregister();
 #if DEBUG

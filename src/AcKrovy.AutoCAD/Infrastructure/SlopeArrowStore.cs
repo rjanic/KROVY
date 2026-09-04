@@ -13,7 +13,7 @@ internal sealed record SlopeArrowData
 
 internal static class SlopeArrowStore
 {
-    private const string RegAppName = "DECORAIR_ACADKROVY_SLOPE_ARROW";
+    internal const string RegAppName = "DECORAIR_ACADKROVY_SLOPE_ARROW";
     private const int DxfRegAppNameCode = 1001;
     private const int DxfAsciiStringCode = 1000;
     private const int MaxTextChunkLength = 240;

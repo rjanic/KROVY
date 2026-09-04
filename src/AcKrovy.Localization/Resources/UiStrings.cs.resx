@@ -722,4 +722,8 @@
   <data name="RoofGeometryWindow_ValidationSlopeDirectionRequired" xml:space="preserve"><value>Před náhledem nebo vytvořením vyberte směr spádu VYSOKÝ → NÍZKÝ.</value></data>
   <data name="RoofGeometryWindow_LowEave" xml:space="preserve"><value>Nízký okap</value></data>
   <data name="RoofGeometryWindow_HighEave" xml:space="preserve"><value>Vysoký okap</value></data>
+  <data name="Command_ImportDwg_Prompt" xml:space="preserve"><value>\nVyberte externí DWG pro bezpečný import KROVY:</value></data>
+  <data name="Command_ImportDwg_Cancelled" xml:space="preserve"><value>\nImport byl zrušen.</value></data>
+  <data name="Command_ImportDwg_CompletedFormat" xml:space="preserve"><value>\nDWG byl bezpečně importován jako blok {0}.</value></data>
+  <data name="Command_ImportDwg_FailedFormat" xml:space="preserve"><value>\nImport DWG byl zamítnut nebo selhal: {0}</value></data>
 </root>

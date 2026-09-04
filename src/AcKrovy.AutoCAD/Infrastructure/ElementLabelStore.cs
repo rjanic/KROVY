@@ -54,7 +54,7 @@ internal sealed record ElementLabelData
 
 internal static class ElementLabelStore
 {
-    private const string RegAppName = "DECORAIR_ACADKROVY_LABEL";
+    internal const string RegAppName = "DECORAIR_ACADKROVY_LABEL";
     private const int DxfRegAppNameCode = 1001;
     private const int DxfAsciiStringCode = 1000;
     private const int MaxTextChunkLength = 240;

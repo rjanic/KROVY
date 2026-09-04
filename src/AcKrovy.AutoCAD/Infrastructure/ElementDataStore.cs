@@ -20,15 +20,15 @@ internal static class ElementDataStore
 {
     // Stabilný názov registrovanej aplikácie. Nezačína na "ACAD_", aby sa nemiešal
     // so systémovými názvami AutoCADu.
-    private const string RegAppName = "DECORAIR_ACADKROVY";
+    internal const string RegAppName = "DECORAIR_ACADKROVY";
     private const int DxfRegAppNameCode = 1001;
     private const int DxfAsciiStringCode = 1000;
     private const int MaxXDataTextChunkLength = 240;
     private const int MaxPortableJsonBytes = 15 * 1024;
 
     // Legacy názvy z ACAD KROVY 0.1.0. Slúžia len na spätné načítanie starých DWG.
-    private const string LegacyApplicationDictionaryName = "ACAD_KROVY";
-    private const string LegacyElementDataRecordName = "TIMBER_ELEMENT_DATA";
+    internal const string LegacyApplicationDictionaryName = "ACAD_KROVY";
+    internal const string LegacyElementDataRecordName = "TIMBER_ELEMENT_DATA";
     private const int LegacyDxfTextCode = 1;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -149,7 +149,7 @@ internal static class ElementDataStore
         return values;
     }
 
-    private static bool TryReadPortableXData(Entity entity, out TimberElementData? data)
+    internal static bool TryReadPortableXData(Entity entity, out TimberElementData? data)
     {
         data = null;
 
@@ -224,7 +224,7 @@ internal static class ElementDataStore
         return retained;
     }
 
-    private static bool HasApplicationSection(Entity entity, string applicationName)
+    internal static bool HasApplicationSection(Entity entity, string applicationName)
     {
         using var xdata = entity.XData;
         if (xdata is null)
@@ -298,7 +298,7 @@ internal static class ElementDataStore
         transaction.AddNewlyCreatedDBObject(record, true);
     }
 
-    private static bool TryReadLegacyExtensionDictionary(Entity entity, Transaction transaction, out TimberElementData? data)
+    internal static bool TryReadLegacyExtensionDictionary(Entity entity, Transaction transaction, out TimberElementData? data)
     {
         data = null;
 

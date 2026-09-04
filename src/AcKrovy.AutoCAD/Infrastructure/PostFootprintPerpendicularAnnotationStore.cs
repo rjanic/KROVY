@@ -13,7 +13,7 @@ internal sealed record PostFootprintPerpendicularAnnotationData
 
 internal static class PostFootprintPerpendicularAnnotationStore
 {
-    private const string RegAppName = "DECORAIR_ACADKROVY_POST_FOOTPRINT_90";
+    internal const string RegAppName = "DECORAIR_ACADKROVY_POST_FOOTPRINT_90";
     private const int DxfRegAppNameCode = 1001;
     private const int DxfAsciiStringCode = 1000;
     private const int MaxTextChunkLength = 240;

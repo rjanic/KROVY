@@ -232,6 +232,10 @@ public static class UiStrings
     public static string ErrorInvalidAnnotationLayerFormat => GetString("Error_InvalidAnnotationLayerFormat");
     public static string ErrorInvalidSlopeDegrees => GetString("Error_InvalidSlopeDegrees");
     public static string ErrorRenumberEntityUnavailable => GetString("Error_Renumber_EntityUnavailable");
+    public static string CommandImportDwgPrompt => GetString("Command_ImportDwg_Prompt");
+    public static string CommandImportDwgCancelled => GetString("Command_ImportDwg_Cancelled");
+    public static string CommandImportDwgCompletedFormat => GetString("Command_ImportDwg_CompletedFormat");
+    public static string CommandImportDwgFailedFormat => GetString("Command_ImportDwg_FailedFormat");
 
     public static string Format(string format, params object?[] arguments) =>
         string.Format(CultureInfo.CurrentCulture, format, arguments);

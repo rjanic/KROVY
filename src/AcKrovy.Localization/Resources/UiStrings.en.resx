@@ -722,4 +722,8 @@
   <data name="RoofGeometryWindow_ValidationSlopeDirectionRequired" xml:space="preserve"><value>Pick the HIGH → LOW fall direction before previewing or creating the roof.</value></data>
   <data name="RoofGeometryWindow_LowEave" xml:space="preserve"><value>Low eave</value></data>
   <data name="RoofGeometryWindow_HighEave" xml:space="preserve"><value>High eave</value></data>
+  <data name="Command_ImportDwg_Prompt" xml:space="preserve"><value>\nSelect an external DWG for safe KROVY import:</value></data>
+  <data name="Command_ImportDwg_Cancelled" xml:space="preserve"><value>\nImport cancelled.</value></data>
+  <data name="Command_ImportDwg_CompletedFormat" xml:space="preserve"><value>\nDWG safely imported as block {0}.</value></data>
+  <data name="Command_ImportDwg_FailedFormat" xml:space="preserve"><value>\nDWG import was rejected or failed: {0}</value></data>
 </root>

@@ -63,6 +63,8 @@ public sealed class LocalizationFoundationTests
         "Dialog_Layers_ConflictFormat", "Dialog_Layers_LinetypeScaleFormat",
         "Dialog_Settings_RoundingStepFormat", "Dialog_Settings_CuttingAllowanceFormat", "Error_LayerName_Empty",
         "Error_LayerName_TooLong", "Error_LayerName_InvalidCharacter",
+        "Command_ImportDwg_Prompt", "Command_ImportDwg_Cancelled", "Command_ImportDwg_CompletedFormat",
+        "Command_ImportDwg_FailedFormat",
     ];
     private static readonly string[] WpfUiResourceKeys =
     [
@@ -317,7 +319,7 @@ public sealed class LocalizationFoundationTests
     [Fact]
     public void CommandAndMessageResourceKeys_AllExist()
     {
-        Assert.Equal(109, CommandAndMessageResourceKeys.Length);
+        Assert.Equal(113, CommandAndMessageResourceKeys.Length);
         Assert.All(CommandAndMessageResourceKeys, key =>
         {
             var value = UiStrings.GetString(key, CultureInfo.GetCultureInfo("sk-SK"));
@@ -424,10 +426,10 @@ public sealed class LocalizationFoundationTests
             "AK_VZPERA", "AK_VAZNYTRAM", "AK_CUSTOM", "AK_EDIT", "AK_FLIPSLOPE", "AK_INSPECT", "AK_REPORT",
             "AK_REPORTALL", "AK_RECALC", "AK_RENUMBER", "AK_DIAGNOSTICS", "AK_SELECTSIMILAR", "AK_EXPORTCSV",
             "AK_ROOF", "AK_ROOF_ASYM", "AK_ROOF_MONOPITCH", "AK_ROOF_RAFTERS", "AK_ROOF_UNLOCK", "AK_ROOF_LOCK", "AK_ROOF_TOGGLELOCK", "AK_ROOF_RESET_EDITS",
-            "AK_ROOF_EDIT",
+            "AK_ROOF_EDIT", "AK_IMPORT_DWG",
         };
 
-        Assert.Equal(42, AcKrovyCommandNames.All.Count);
+        Assert.Equal(43, AcKrovyCommandNames.All.Count);
         Assert.Equal(expected, AcKrovyCommandNames.All);
         Assert.All(AcKrovyCommandNames.All, command => Assert.StartsWith("AK_", command, StringComparison.Ordinal));
     }
@@ -572,6 +574,8 @@ public sealed class LocalizationFoundationTests
             (UiStrings.DialogLayersDuplicateFormat, ["KROKVA"]),
             (UiStrings.DialogSettingsRoundingStepFormat, [1000d]),
             (UiStrings.DialogSettingsCuttingAllowanceFormat, ["Krokva", 1000d]),
+            (UiStrings.CommandImportDwgCompletedFormat, ["MYBLOCK"]),
+            (UiStrings.CommandImportDwgFailedFormat, ["chyba"]),
         };
 
         Assert.All(formats, item =>

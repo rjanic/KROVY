@@ -722,4 +722,8 @@
   <data name="RoofGeometryWindow_ValidationSlopeDirectionRequired" xml:space="preserve"><value>Przed podglądem lub utworzeniem wybierz kierunek spadku WYSOKI → NISKI.</value></data>
   <data name="RoofGeometryWindow_LowEave" xml:space="preserve"><value>Niski okap</value></data>
   <data name="RoofGeometryWindow_HighEave" xml:space="preserve"><value>Wysoki okap</value></data>
+  <data name="Command_ImportDwg_Prompt" xml:space="preserve"><value>\nWybierz zewnętrzny plik DWG do bezpiecznego importu KROVY:</value></data>
+  <data name="Command_ImportDwg_Cancelled" xml:space="preserve"><value>\nImport anulowano.</value></data>
+  <data name="Command_ImportDwg_CompletedFormat" xml:space="preserve"><value>\nDWG bezpiecznie zaimportowano jako blok {0}.</value></data>
+  <data name="Command_ImportDwg_FailedFormat" xml:space="preserve"><value>\nImport DWG został odrzucony lub nie powiódł się: {0}</value></data>
 </root>

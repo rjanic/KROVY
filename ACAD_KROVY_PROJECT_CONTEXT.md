@@ -1,6 +1,6 @@
 # ACAD KROVY – PROJECT CONTEXT
 
-**Aktualizované:** 16. 8. 2026
+**Aktualizované:** 4. 9. 2026
 
 **Predchádzajúci stabilný commit v0.21.0:** `f98900c1bd257a8e5357f6e77eb6f118bd4930d3`
 
@@ -8,7 +8,7 @@
 
 **Verzia aplikácie:** autoritatívne v `Directory.Build.props`
 
-**Aktuálny míľnik:** Roof COPY / STRETCH / GROUP GRIP stabilization (HOST-proven dirty checkpoint; cleanup done)
+**Aktuálny míľnik:** STRECHY S2 Stage 2D4-C1 – external DWG import failure contract (HOST PASS)
 
 **Overovanie:** Debug/Release build, kompletné automatické testy a Portable/Full Compatibility Gate
 
@@ -549,6 +549,26 @@ Stabilný commit: `4a951041e2deef40a127ac9560cf6fb2ba4b6a5b`
 - RoofDefinition sa neprepisuje; úspech → recovered WPF; chýbajúci/ambiguous snapshot
   → fallback „použi U“,
 - `SupportedResize`, `RigidGroupTransform` a display-only tamper ostávajú oddelené.
+
+### STRECHY S2 Stage 2D4-C1 – external DWG import failure contract (HOST PASS)
+
+- pri zlyhaní priameho managed `Database.Insert` musí necommitnutá cieľová transakcia
+  zanechať bez importovaného root BTR, geometrie, KROVY anotácií a inteligentných
+  metadata; existujúce roof/timber/support BTR/anotácie, GROUP a U/REDO lifecycle sa
+  nesmú meniť a nevykonáva sa žiadna odložená ani kompenzačná oprava,
+- AutoCAD Architecture 2027 HOST dokázal objektový rollback, ale obyčajný abort
+  transakcie neobnovuje pôvodný `DBMOD`. Neúspešný externý DWG import preto môže
+  označiť výkres ako zmenený a neskôr zobraziť výzvu na uloženie, hoci po zlyhaní
+  nezostali žiadne importované objekty ani KROVY sémantické zmeny. Nejde o poškodenie
+  dát; `DBMOD=1` bol akceptovaný ako diagnostický artefakt HOST prostredia, KROVY `DBMOD` neresetuje,
+- `Database.Insert` vytvára pre nový BTR aj AutoCAD `BlockBegin`/`BlockEnd` sentinel
+  objekty (nie sú v `BlockTableRecord` enumerácii ani v `ExpectedCloneObjectIds`). Po
+  abort transakcie môžu ostať `IsErased=false` pri `ownerIsErased=true`; C1
+  `importedObjectsAbsent` ich považuje za absenciu pod touto úzkou štrukturálnou
+  podmienkou. Bežné entity (napr. `Line`) stále vyžadujú `!IsValid || IsErased`,
+- native identity fix vyriešil problém s nestabilitou managed wrapperov `Database`
+  objektov pri validácii vráteného rootu; porovnanie teraz používa natívnu identitu,
+- Stage 2D4-C1 je `HOST PASS`. C14 redefine zostáva nepodporovaný.
 
 ## Povinné kompatibilitné pravidlá
 

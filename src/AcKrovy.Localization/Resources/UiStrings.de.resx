@@ -722,4 +722,8 @@
   <data name="RoofGeometryWindow_ValidationSlopeDirectionRequired" xml:space="preserve"><value>Wählen Sie vor Vorschau oder Erstellung die Gefällerichtung HOCH → NIEDRIG.</value></data>
   <data name="RoofGeometryWindow_LowEave" xml:space="preserve"><value>Niedrige Traufe</value></data>
   <data name="RoofGeometryWindow_HighEave" xml:space="preserve"><value>Hohe Traufe</value></data>
+  <data name="Command_ImportDwg_Prompt" xml:space="preserve"><value>\nExterne DWG für sicheren KROVY-Import auswählen:</value></data>
+  <data name="Command_ImportDwg_Cancelled" xml:space="preserve"><value>\nImport abgebrochen.</value></data>
+  <data name="Command_ImportDwg_CompletedFormat" xml:space="preserve"><value>\nDWG wurde sicher als Block {0} importiert.</value></data>
+  <data name="Command_ImportDwg_FailedFormat" xml:space="preserve"><value>\nDWG-Import wurde abgelehnt oder ist fehlgeschlagen: {0}</value></data>
 </root>
