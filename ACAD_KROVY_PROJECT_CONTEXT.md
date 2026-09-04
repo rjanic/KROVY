@@ -8,7 +8,7 @@
 
 **Verzia aplikácie:** autoritatívne v `Directory.Build.props`
 
-**Aktuálny míľnik:** STRECHY S2 Stage 2D4-C1 – external DWG import failure contract (HOST PASS)
+**Aktuálny míľnik:** STRECHY S2 Stage 2D4-C2 – successful external import (HOST PASS)
 
 **Overovanie:** Debug/Release build, kompletné automatické testy a Portable/Full Compatibility Gate
 
@@ -569,6 +569,37 @@ Stabilný commit: `4a951041e2deef40a127ac9560cf6fb2ba4b6a5b`
 - native identity fix vyriešil problém s nestabilitou managed wrapperov `Database`
   objektov pri validácii vráteného rootu; porovnanie teraz používa natívnu identitu,
 - Stage 2D4-C1 je `HOST PASS`. C14 redefine zostáva nepodporovaný.
+
+### STRECHY S2 Stage 2D4-C2 – successful external import (IMPLEMENTED, HOST ACCEPTANCE PENDING)
+
+- C2 je úspešný náprotivok C1 nad rovnakou A3 architektúrou: priamy managed
+  `Database.Insert`, striktná mapping/returned-root validácia, sanitizácia,
+  potom práve jedna top-level `BlockReference` v cieľovom ModelSpace na
+  WCS `Point3d.Origin` (scale 1, rotation 0) viazaná na exact returned root BTR,
+- po `Commit` musia prežiť returned root, reálne importované entity (napr. Line)
+  a operation-bound referencia; štrukturálne `BlockBegin`/`BlockEnd` sentinely
+  ani reused support BTR (`_Open90`/`_Oblique`) nepostačujú ako semantic content,
+- C14 redefine ostáva nepodporovaný; collision `root-btr-collision` sa odmieta
+  pred mutáciou. `DBMOD` ostáva iba diagnostický, nie success/failure ekvivalencia,
+- DEBUG dôkaz: `AK_DEBUG_C2_SUCCESSFUL_IMPORT` spúšťa produkčný success path
+  (`FaultMode.None`) a na `CommandEnded` vypíše `ROOF_IMPORT_C2_SUCCESS_PROOF`,
+- dôkazné triedy sú oddelené: `AppendedIds` je výhradne native `Database.Insert`
+  append evidence (dokazuje returned root, C1 kontrakt), zatiaľ čo top-level
+  referencia vytvorená po návrate `Database.Insert` sa dokazuje cez
+  `RoofExternalImportExplicitReference` (workflow skonštruoval inštanciu, pred
+  `AppendEntity` nemala resident ObjectId, po `AddNewlyCreatedDBObject` má),
+- `ValidateFinalState` nesmie použiť `operation.AppendedIds`; overuje explicitnú
+  creation evidence plus re-open tej istej ObjectId/Handle v rovnakej transakcii
+  (owner = cieľový ModelSpace, `BlockTableRecord` = returned root, nie erased),
+- session povoľuje zaznamenať práve jednu explicitnú top-level referenciu,
+- žiadny table-wide ani space-wide search nesmie nahradiť creation evidence,
+- LiveGeometry `ObjectAppended` je izolovaný try/catch (hardening, nie root cause),
+- Stage 2D4-C2 je `HOST PASS`.
+  Dva HOST FAIL-y (`object-appended-cross-check-failed`) dokázali, že native insert
+  append evidence nemôže dokazovať post-Insert aplikačný append. Finálny model
+  rozdeľuje native Insert evidence a explicitnú KROVY reference evidence.
+  Úspešný HOST run (`C14_A3_NEUTRAL_SOURCE_2.dwg`) potvrdil `result=pass`
+  so zachovanou viditeľnou referenciou v ModelSpace.
 
 ## Povinné kompatibilitné pravidlá
 

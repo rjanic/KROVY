@@ -1673,9 +1673,16 @@ internal static class RoofImportRuntimeDiscoveryDiagnostics
 
     private static BtrDescription DescribeBtr(ObjectId id, Transaction? transaction)
     {
+        if (id.IsNull)
+        {
+            return BtrDescription.Empty;
+        }
+
+        // Preserve the raw ObjectId even when the BTR cannot be opened in the
+        // current callback (ObjectAppended often has no ambient transaction).
         return TryOpen(id, transaction) is BlockTableRecord btr
             ? new BtrDescription(id, SafeBtrName(btr))
-            : BtrDescription.Empty;
+            : new BtrDescription(id, null);
     }
 
     private static string SafeBtrName(BlockTableRecord btr)

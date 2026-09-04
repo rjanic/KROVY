@@ -44,6 +44,18 @@ public sealed class AutoCadRoofExternalImportAbortProofCommands
         RoofExternalImportWorkflow.Execute(RoofExternalImportFaultMode.AfterMappedNewSanitation);
     }
 }
+
+public sealed class AutoCadRoofExternalImportSuccessProofCommand
+{
+    internal const string CommandName = "AK_DEBUG_C2_SUCCESSFUL_IMPORT";
+
+    [CommandMethod(CommandName, CommandFlags.Modal)]
+    public void Execute()
+    {
+        RoofExternalImportC2SuccessProof.Arm(AcApplication.DocumentManager.MdiActiveDocument);
+        RoofExternalImportWorkflow.Execute(RoofExternalImportFaultMode.None);
+    }
+}
 #endif
 
 internal enum RoofExternalImportFaultMode
@@ -88,6 +100,12 @@ internal static class RoofExternalImportWorkflow
         IReadOnlyDictionary<ObjectId, RoofExternalImportRollbackObjectDiagnostics.CapturedObject> rollbackDiagnostics =
             new Dictionary<ObjectId, RoofExternalImportRollbackObjectDiagnostics.CapturedObject>();
         var transactionCommitted = false;
+        var c2Armed = RoofExternalImportC2SuccessProof.IsArmedFor(document);
+        RoofExternalImportOperationFacts? committedOperation = null;
+        RoofExternalImportSanitizationResult? committedSanitation = null;
+        var mappingValidationPassed = false;
+        var returnedRootValidationPassed = false;
+        var sanitizationValidationPassed = false;
 #endif
         try
         {
@@ -170,8 +188,12 @@ internal static class RoofExternalImportWorkflow
                     appendedDuringOperation = operation.AppendedIds;
 #endif
                     ValidateMapping(operation);
+#if DEBUG
+                    mappingValidationPassed = true;
+#endif
                     ValidateReturnedRoot(transaction, operation);
 #if DEBUG
+                    returnedRootValidationPassed = true;
                     WriteMappingValidationSucceeded(editor, faultMode, operation);
                     InjectFault(editor, faultMode, RoofExternalImportFaultMode.AfterMappingValidation);
 #endif
@@ -179,24 +201,38 @@ internal static class RoofExternalImportWorkflow
                     var sanitation = RoofExternalImportSanitizationService.Apply(transaction, operation);
                     RoofExternalImportSanitizationService.Verify(transaction, sanitation);
 #if DEBUG
+                    sanitizationValidationPassed = true;
                     InjectFault(editor, faultMode, RoofExternalImportFaultMode.AfterMappedNewSanitation);
 #endif
 
-                    var currentSpace = (BlockTableRecord)transaction.GetObject(
-                        document.Database.CurrentSpaceId,
+                    var modelSpace = (BlockTableRecord)transaction.GetObject(
+                        SymbolUtilityServices.GetBlockModelSpaceId(document.Database),
                         OpenMode.ForWrite);
                     using var reference = new BlockReference(Point3d.Origin, rootId)
                     {
                         ScaleFactors = new Scale3d(1d, 1d, 1d),
                         Rotation = 0d,
                     };
-                    referenceId = currentSpace.AppendEntity(reference);
+                    // A freshly constructed entity has no resident id yet. Capturing that
+                    // before/after pair proves this workflow created the appended object,
+                    // without depending on native insert append notifications that stop
+                    // describing the operation once Database.Insert has returned.
+                    var wasUnresidentBeforeAppend = reference.ObjectId.IsNull;
+                    modelSpace.AppendEntity(reference);
                     transaction.AddNewlyCreatedDBObject(reference, true);
-                    operation = session.Freeze(rootId) with { ExplicitReferenceId = referenceId };
+                    referenceId = session
+                        .RecordExplicitReference(reference, wasUnresidentBeforeAppend)
+                        .Id;
+                    operation = session.Freeze(rootId);
                     ValidateFinalState(transaction, operation);
                     transaction.Commit();
 #if DEBUG
                     transactionCommitted = true;
+                    if (c2Armed)
+                    {
+                        committedOperation = operation;
+                        committedSanitation = sanitation;
+                    }
 #endif
                 }
 #if DEBUG
@@ -207,6 +243,25 @@ internal static class RoofExternalImportWorkflow
                     document,
                     faultMode,
                     "after-target-transaction-dispose");
+            }
+#endif
+
+#if DEBUG
+            if (c2Armed &&
+                transactionCommitted &&
+                committedOperation is not null &&
+                committedSanitation is not null &&
+                targetBefore is not null)
+            {
+                RoofExternalImportC2SuccessProof.Record(
+                    document,
+                    committedOperation,
+                    committedSanitation,
+                    transactionCommitted: true,
+                    mappingValidation: mappingValidationPassed,
+                    returnedRootValid: returnedRootValidationPassed,
+                    sanitizationValid: sanitizationValidationPassed,
+                    dbmodBefore: targetBefore.DbmodBefore);
             }
 #endif
 
@@ -311,18 +366,32 @@ internal static class RoofExternalImportWorkflow
         Transaction transaction,
         RoofExternalImportOperationFacts operation)
     {
-        if (operation.ExplicitReferenceId.IsNull ||
-            transaction.GetObject(operation.ExplicitReferenceId, OpenMode.ForRead) is not BlockReference reference ||
-            reference.BlockTableRecord != operation.ReturnedRootId || reference.Position != Point3d.Origin ||
+        var modelSpaceId = SymbolUtilityServices.GetBlockModelSpaceId(operation.TargetDatabase);
+
+        // Explicit KROVY reference evidence. Native insert AppendedIds is a different
+        // evidence class and is deliberately not consulted here: it describes what
+        // Database.Insert appended, not what this workflow appended afterwards.
+        var explicitReference = operation.ExplicitReference;
+        if (!explicitReference.ConstructedByCurrentOperation ||
+            explicitReference.Id.IsNull ||
+            explicitReference.Id.Database != operation.TargetDatabase ||
+            explicitReference.OwnerId != modelSpaceId ||
+            explicitReference.ReferencedRootId != operation.ReturnedRootId)
+        {
+            throw new InvalidOperationException("explicit-reference-creation-evidence-failed");
+        }
+
+        if (transaction.GetObject(explicitReference.Id, OpenMode.ForRead) is not BlockReference reference ||
+            reference.IsErased ||
+            reference.ObjectId != explicitReference.Id ||
+            reference.Handle != explicitReference.Handle ||
+            reference.BlockTableRecord != operation.ReturnedRootId ||
+            reference.OwnerId != modelSpaceId ||
+            reference.Database != operation.TargetDatabase ||
+            reference.Position != Point3d.Origin ||
             reference.Rotation != 0d || reference.ScaleFactors != new Scale3d(1d, 1d, 1d))
         {
             throw new InvalidOperationException("top-level-reference-invariant-failed");
-        }
-
-        var appended = operation.AppendedIds.ToHashSet();
-        if (!appended.Contains(operation.ExplicitReferenceId))
-        {
-            throw new InvalidOperationException("object-appended-cross-check-failed");
         }
     }
 

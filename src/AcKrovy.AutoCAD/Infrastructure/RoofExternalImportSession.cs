@@ -24,6 +24,8 @@ internal sealed class RoofExternalImportSession : IDisposable
     private string? _captureFailure;
     private DeepCloneType? _cloneContext;
     private string _mappingCallback = string.Empty;
+    private RoofExternalImportExplicitReference _explicitReference;
+    private bool _explicitReferenceRecorded;
 
     public RoofExternalImportSession(
         Document document,
@@ -38,6 +40,32 @@ internal sealed class RoofExternalImportSession : IDisposable
         _targetDatabase.InsertMappingAvailable += InsertMappingAvailable;
         _targetDatabase.BeginDeepCloneTranslation += BeginDeepCloneTranslation;
         _targetDatabase.ObjectAppended += ObjectAppended;
+    }
+
+    /// <summary>
+    /// Records the single top-level reference this workflow constructed after
+    /// <c>Database.Insert</c> returned. Creation ownership is a local fact of the
+    /// current operation: the instance was constructed here, was not resident before
+    /// the append, and is resident afterwards. It is never derived from the native
+    /// insert <see cref="RoofExternalImportOperationFacts.AppendedIds"/> stream.
+    /// </summary>
+    public RoofExternalImportExplicitReference RecordExplicitReference(
+        BlockReference reference,
+        bool wasUnresidentBeforeAppend)
+    {
+        if (_explicitReferenceRecorded)
+        {
+            throw new InvalidOperationException("explicit-top-level-reference-already-recorded");
+        }
+
+        _explicitReferenceRecorded = true;
+        _explicitReference = new(
+            reference.ObjectId,
+            reference.Handle,
+            reference.OwnerId,
+            reference.BlockTableRecord,
+            wasUnresidentBeforeAppend && !reference.ObjectId.IsNull);
+        return _explicitReference;
     }
 
     public RoofExternalImportOperationFacts Freeze(ObjectId returnedRootId)
@@ -67,7 +95,7 @@ internal sealed class RoofExternalImportSession : IDisposable
             _pairs.ToArray(),
             _appendedIds.ToArray(),
             returnedRootId,
-            ObjectId.Null);
+            _explicitReference);
     }
 
     public void Dispose()
@@ -146,6 +174,23 @@ internal readonly record struct RoofExternalImportIdPair(
     bool IsCloned,
     bool IsPrimary);
 
+/// <summary>
+/// Explicit KROVY reference evidence: the exact top-level reference constructed and
+/// appended by the current workflow after native <c>Database.Insert</c> finished.
+/// This is a separate evidence class from native insert appends.
+/// </summary>
+internal readonly record struct RoofExternalImportExplicitReference(
+    ObjectId Id,
+    Handle Handle,
+    ObjectId OwnerId,
+    ObjectId ReferencedRootId,
+    bool ConstructedByCurrentOperation);
+
+/// <summary>
+/// <paramref name="AppendedIds"/> is native <c>Database.Insert</c> append evidence only.
+/// It proves the returned root came from the current insert and cannot describe objects
+/// the workflow appends after that insert returned; those use <paramref name="ExplicitReference"/>.
+/// </summary>
 internal sealed record RoofExternalImportOperationFacts(
     Document Document,
     Database TargetDatabase,
@@ -156,4 +201,4 @@ internal sealed record RoofExternalImportOperationFacts(
     RoofExternalImportIdPair[] Mapping,
     ObjectId[] AppendedIds,
     ObjectId ReturnedRootId,
-    ObjectId ExplicitReferenceId);
+    RoofExternalImportExplicitReference ExplicitReference);

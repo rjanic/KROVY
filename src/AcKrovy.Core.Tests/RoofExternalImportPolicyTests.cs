@@ -116,6 +116,48 @@ public sealed class RoofExternalImportPolicyTests
             ownerIsErased: true));
     }
 
+    [Fact]
+    public void RealImportedObject_PresentOnlyWhenValidAndNotErased()
+    {
+        Assert.True(RoofExternalImportSuccessRules.IsRealImportedObjectPresent(
+            objectIsValid: true, objectIsErased: false, isStructuralBlockTableRecordSentinel: false));
+        Assert.False(RoofExternalImportSuccessRules.IsRealImportedObjectPresent(
+            objectIsValid: false, objectIsErased: false, isStructuralBlockTableRecordSentinel: false));
+        Assert.False(RoofExternalImportSuccessRules.IsRealImportedObjectPresent(
+            objectIsValid: true, objectIsErased: true, isStructuralBlockTableRecordSentinel: false));
+    }
+
+    [Fact]
+    public void StructuralSentinel_NeverCountsAsRealImportedContent()
+    {
+        Assert.False(RoofExternalImportSuccessRules.IsRealImportedObjectPresent(
+            objectIsValid: true, objectIsErased: false, isStructuralBlockTableRecordSentinel: true));
+        Assert.False(RoofExternalImportSuccessRules.IsRealImportedObjectPresent(
+            objectIsValid: true, objectIsErased: true, isStructuralBlockTableRecordSentinel: true));
+    }
+
+    [Fact]
+    public void ReusedSupport_IsExcludedFromNewImportedContentCandidates()
+    {
+        Assert.False(RoofExternalImportSuccessRules.IsNewImportedContentCandidate(
+            sourceIsExpectedClone: true, isCloned: false, isSupportBlockTableRecord: true));
+        Assert.True(RoofExternalImportSuccessRules.IsNewImportedContentCandidate(
+            sourceIsExpectedClone: true, isCloned: true, isSupportBlockTableRecord: true));
+        Assert.True(RoofExternalImportSuccessRules.IsNewImportedContentCandidate(
+            sourceIsExpectedClone: true, isCloned: true, isSupportBlockTableRecord: false));
+    }
+
+    [Fact]
+    public void ImportedObjectsPresent_RequiresExactRealContentCoverage()
+    {
+        Assert.True(RoofExternalImportSuccessRules.AreImportedObjectsPresent(
+            requiredNewContentCount: 1, presentRealContentCount: 1, structuralSentinelCount: 2));
+        Assert.False(RoofExternalImportSuccessRules.AreImportedObjectsPresent(
+            requiredNewContentCount: 1, presentRealContentCount: 0, structuralSentinelCount: 2));
+        Assert.False(RoofExternalImportSuccessRules.AreImportedObjectsPresent(
+            requiredNewContentCount: 0, presentRealContentCount: 0, structuralSentinelCount: 0));
+    }
+
     private static bool Absent(
         bool objectIsValid,
         bool objectIsErased,

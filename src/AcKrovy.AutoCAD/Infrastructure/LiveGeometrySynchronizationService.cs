@@ -188,64 +188,72 @@ internal static class LiveGeometrySynchronizationService
 
         private void ObjectAppended(object? sender, ObjectEventArgs e)
         {
-            if (_ignoreCurrentCommand ||
-                _modifiedIds.IsSuppressed ||
-                e.DBObject is not Entity entity ||
-                entity.ObjectId.IsNull ||
-                entity.IsErased)
+            try
             {
-                return;
-            }
+                if (_ignoreCurrentCommand ||
+                    _modifiedIds.IsSuppressed ||
+                    e.DBObject is not Entity entity ||
+                    entity.ObjectId.IsNull ||
+                    entity.IsErased)
+                {
+                    return;
+                }
 
-            // Per-Document command-scope evidence only. Capture every pasted Entity
-            // before any observation branch can return. Deep-cloned metadata may not
-            // be final until CommandEnded, where these exact ids are reopened.
-            if (!_appendedPasteEntityIds.IsSuppressed &&
-                LiveGeometryCommandRules.IsClipboardPasteCommand(_currentGlobalCommandName))
-            {
-                _appendedPasteEntityIds.TryAdd(entity.ObjectId);
-            }
+                // Per-Document command-scope evidence only. Capture every pasted Entity
+                // before any observation branch can return. Deep-cloned metadata may not
+                // be final until CommandEnded, where these exact ids are reopened.
+                if (!_appendedPasteEntityIds.IsSuppressed &&
+                    LiveGeometryCommandRules.IsClipboardPasteCommand(_currentGlobalCommandName))
+                {
+                    _appendedPasteEntityIds.TryAdd(entity.ObjectId);
+                }
 
-            if (!_appendedSlopeArrowIds.IsSuppressed &&
-                (SlopeArrowStore.TryRead(entity, out _) ||
-                 PostFootprintPerpendicularAnnotationStore.TryRead(entity, out _)))
-            {
-                _appendedSlopeArrowIds.TryAdd(entity.ObjectId);
-                return;
-            }
+                if (!_appendedSlopeArrowIds.IsSuppressed &&
+                    (SlopeArrowStore.TryRead(entity, out _) ||
+                     PostFootprintPerpendicularAnnotationStore.TryRead(entity, out _)))
+                {
+                    _appendedSlopeArrowIds.TryAdd(entity.ObjectId);
+                    return;
+                }
 
-            if (!_appendedSlopeAngleTextIds.IsSuppressed && SlopeAngleTextStore.TryRead(entity, out _))
-            {
-                _appendedSlopeAngleTextIds.TryAdd(entity.ObjectId);
-                return;
-            }
+                if (!_appendedSlopeAngleTextIds.IsSuppressed && SlopeAngleTextStore.TryRead(entity, out _))
+                {
+                    _appendedSlopeAngleTextIds.TryAdd(entity.ObjectId);
+                    return;
+                }
 
-            if (!_appendedLabelIds.IsSuppressed &&
-                ElementLabelStore.TryRead(entity, out _))
-            {
-                _appendedLabelIds.TryAdd(entity.ObjectId);
-                return;
-            }
+                if (!_appendedLabelIds.IsSuppressed &&
+                    ElementLabelStore.TryRead(entity, out _))
+                {
+                    _appendedLabelIds.TryAdd(entity.ObjectId);
+                    return;
+                }
 
-            if (!_appendedRoofOwnerIds.IsSuppressed &&
-                entity is Polyline &&
-                RoofDefinitionStore.Read(entity).Data is not null)
-            {
-                _appendedRoofOwnerIds.TryAdd(entity.ObjectId);
-                return;
-            }
+                if (!_appendedRoofOwnerIds.IsSuppressed &&
+                    entity is Polyline &&
+                    RoofDefinitionStore.Read(entity).Data is not null)
+                {
+                    _appendedRoofOwnerIds.TryAdd(entity.ObjectId);
+                    return;
+                }
 
-            if (AutoCadEntityHelpers.IsSupportedTimberGeometry(entity))
-            {
-                _appendedTimberIds.TryAdd(entity.ObjectId);
-                _modifiedIds.TryAdd(entity.ObjectId);
-                return;
-            }
+                if (AutoCadEntityHelpers.IsSupportedTimberGeometry(entity))
+                {
+                    _appendedTimberIds.TryAdd(entity.ObjectId);
+                    _modifiedIds.TryAdd(entity.ObjectId);
+                    return;
+                }
 
-            if (!_appendedLabelIds.IsSuppressed &&
-                entity is MText or MLeader or BlockReference or DBText)
+                if (!_appendedLabelIds.IsSuppressed &&
+                    entity is MText or MLeader or BlockReference or DBText)
+                {
+                    _appendedLabelIds.TryAdd(entity.ObjectId);
+                }
+            }
+            catch
             {
-                _appendedLabelIds.TryAdd(entity.ObjectId);
+                // Observation must never abort other Database.ObjectAppended subscribers
+                // (import session append evidence depends on the remaining multicast).
             }
         }
 
