@@ -11,4 +11,7 @@ public enum SimpleGableRoofGeometryError
     NonFiniteGeometry = 6,
     InvalidRoofKind = 7,
     InvalidEaveHeightDifference = 8,
+    ConcaveWavefrontNotImplemented = 9,
+    InvalidFootprint = 10,
+    NumericallyUnresolvedTopology = 11,
 }

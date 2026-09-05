@@ -15,6 +15,10 @@ public static class RoofGeometrySolver
         {
             return MonopitchRoofGeometrySolver.Solve(definition);
         }
+        if (definition.Kind == RoofKind.Hip)
+        {
+            return HipRoofGeometrySolver.Solve(definition);
+        }
 
         var gable = definition.Kind switch
         {

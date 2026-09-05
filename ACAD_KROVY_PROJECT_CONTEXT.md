@@ -513,6 +513,31 @@ Stabilný commit: `4a951041e2deef40a127ac9560cf6fb2ba4b6a5b`
   ktorý vytvoril dve kópie, nie chyba ownership implementácie. AK_ROOF po úspechu
   čistí iba implied selection a HOST potvrdil, že GROUP už nezostáva zvýraznený.
 
+### Spoločná polygonálna topológia striech – návrhový smer
+
+- Budúci CAD-neutral základ pre Sedlovú/Valbovú má spracovať jeden jednoduchý
+  uzavretý vonkajší polygon s priamymi hranami, bez dier, oblúkov, samopriesekov
+  a oddelených ostrovov. Obdĺžnik a štvorcový pyramídový kolaps sú regresné prípady,
+  nie architektonické obmedzenie. L/U/T sú explicitné cieľové acceptance pôdorysy.
+- Zdieľaná topológia nesie plochy viazané na zdrojové hrany, spoločné uzly,
+  hrebeňové, nárožné a úžľabné hrany aj vetvenie. Pre all-hip a uniformný sklon
+  vychádza zo straight-skeleton/wavefront geometrie; globálny smer jedného hrebeňa
+  nie je základným vstupom všeobecného polygonálneho jadra.
+- RoofKind ostáva používateľským presetom. Budúce Hip/Gable a neskôr HalfHip
+  ukončenia sa majú vyjadriť ako hraničné podmienky a pravidlá nad spoločnou
+  topológiou, nie ďalším samostatným polygonálnym solverom. Prepnutie ukončenia
+  vyžaduje prepočet incidentných plôch; nie iba posun koncového bodu hrebeňa.
+  Existujúce production SimpleGable/Monopitch workflow sa týmto návrhom nemenia.
+- Budúce automatické generovanie dreva preberá rozstupy z centrálnych Settings;
+  potvrdený požadovaný default `RafterSpacingMm` je **500 mm**. Dnešná prvá hodnota
+  `RoofRafterPreferences.MaximumSpacingMm` je 900 mm; jej migrácia a priorita voči
+  zapamätaným voľbám patria do samostatnej Settings/generation úlohy.
+- Potlačenie veľmi krátkych koncových hip krokiev je budúce konfigurovateľné
+  timber-generation pravidlo. Príklad 200 mm nie je geometrická konštanta a nesmie
+  meniť matematickú topológiu. Geometrické jadro nečíta Settings ani rozstupy.
+- Návrh neznamená HOST/production podporu všeobecných polygonov, nové UI ani Hip
+  persistenciu. Algoritmické hranice a plán konkávnej fázy: [ROOF_TOPOLOGY_DESIGN.md](docs/ROOF_TOPOLOGY_DESIGN.md).
+
 ### STRECHY S2 – Roof COPY / STRETCH / GROUP GRIP (stabilný HOST checkpoint)
 - **Supported source STRETCH:** gable-end aj eave-side, enlarge/shrink, rotated,
   square/aspect crossover; rovnaký source ObjectId; RoofDefinition + 7-Line display +
