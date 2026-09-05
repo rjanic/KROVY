@@ -267,7 +267,7 @@ internal static class AcKrovyRibbon
         };
 
         split.Items.Add(Button(CommandUiCatalog.Roof, RibbonItemSize.Standard));
-        split.Items.Add(DisabledButton(CommandUiCatalog.RoofHip));
+        split.Items.Add(Button(CommandUiCatalog.RoofHip, RibbonItemSize.Standard));
         split.Items.Add(DisabledButton(CommandUiCatalog.RoofHalfHip));
         split.Items.Add(Button(CommandUiCatalog.RoofMonoPitch, RibbonItemSize.Standard));
         return split;

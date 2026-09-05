@@ -24,17 +24,17 @@ public sealed class RoofRafterUxSourceContractTests
     }
 
     [Fact]
-    public void GableAndMonopitchAreEnabledAndRemainingFutureTypesHaveNoProductionCommand()
+    public void GableHipAndMonopitchAreEnabledWhileHalfHipRemainsFuture()
     {
         Assert.Contains("split.Items.Add(Button(CommandUiCatalog.Roof", Ribbon);
-        Assert.Contains("DisabledButton(CommandUiCatalog.RoofHip)", Ribbon);
+        Assert.Contains("Button(CommandUiCatalog.RoofHip", Ribbon);
         Assert.Contains("DisabledButton(CommandUiCatalog.RoofHalfHip)", Ribbon);
         Assert.Contains("split.Items.Add(Button(CommandUiCatalog.RoofMonoPitch", Ribbon);
         Assert.Contains("button.IsEnabled = false", Ribbon);
-        Assert.Equal(string.Empty, CommandUiCatalog.RoofHip.CommandName);
+        Assert.Equal(AcKrovyCommandNames.RoofHip, CommandUiCatalog.RoofHip.CommandName);
         Assert.Equal(string.Empty, CommandUiCatalog.RoofHalfHip.CommandName);
         Assert.Equal(AcKrovyCommandNames.RoofMonopitch, CommandUiCatalog.RoofMonoPitch.CommandName);
-        Assert.DoesNotContain("AK_ROOF_HIP", Catalog);
+        Assert.Contains("AK_ROOF_HIP", Catalog);
         Assert.DoesNotContain("AK_ROOF_HALFHIP", Catalog);
         Assert.Contains("AK_ROOF_MONOPITCH", Catalog);
     }

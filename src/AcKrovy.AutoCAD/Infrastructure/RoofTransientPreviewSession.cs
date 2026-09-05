@@ -93,6 +93,18 @@ internal sealed class RoofTransientPreviewSession : IDisposable
             throw new ArgumentOutOfRangeException(nameof(sourceElevation));
         }
 
+        if (geometry is HipRoofGeometry hip)
+        {
+            return MapTopologySegments(hip, sourceElevation)
+                .Select(segment => new RoofPreviewSegment(
+                    MapPoint(segment.Start),
+                    MapPoint(segment.End),
+                    segment.Kind == RoofTopologyEdgeKind.Ridge,
+                    FaceIndex: 0,
+                    TopologyKind: segment.Kind))
+                .ToArray();
+        }
+
         return RoofWireframe.Create(geometry, sourceElevation)
             .Select(edge => new RoofPreviewSegment(
                 MapPoint(edge.Segment.Start),
@@ -105,6 +117,27 @@ internal sealed class RoofTransientPreviewSession : IDisposable
                 edge.Role is RoofDisplayEdgeRole.Eave1 or
                     RoofDisplayEdgeRole.GableSlope10 or
                     RoofDisplayEdgeRole.GableSlope11 ? 1 : 0))
+            .ToArray();
+    }
+
+    internal static IReadOnlyList<RoofTopologyPreviewSegment> MapTopologySegments(
+        HipRoofGeometry geometry,
+        double sourceElevation)
+    {
+        ArgumentNullException.ThrowIfNull(geometry);
+        if (!double.IsFinite(sourceElevation))
+        {
+            throw new ArgumentOutOfRangeException(nameof(sourceElevation));
+        }
+
+        return geometry.Topology.Edges
+            .Where(edge => edge.Kind is RoofTopologyEdgeKind.Hip or
+                RoofTopologyEdgeKind.Ridge or
+                RoofTopologyEdgeKind.Valley)
+            .Select(edge => new RoofTopologyPreviewSegment(
+                AddElevation(geometry.Topology.Nodes[edge.StartNodeIndex], sourceElevation),
+                AddElevation(geometry.Topology.Nodes[edge.EndNodeIndex], sourceElevation),
+                edge.Kind))
             .ToArray();
     }
 
@@ -149,6 +182,7 @@ internal sealed class RoofTransientPreviewSession : IDisposable
         _disposed = true;
         AcApp.DocumentManager.DocumentToBeDestroyed -= DocumentManager_DocumentToBeDestroyed;
         var transientManager = TransientManager.CurrentTransientManager;
+        var drawableCount = _drawables.Count;
         foreach (var drawable in _drawables)
         {
             try
@@ -167,6 +201,13 @@ internal sealed class RoofTransientPreviewSession : IDisposable
         }
 
         _drawables.Clear();
+#if DEBUG
+        if (drawableCount > 0)
+        {
+            System.Diagnostics.Debug.WriteLine(
+                $"[AK_ROOF_PREVIEW] cleanup erased={drawableCount} remaining={_drawables.Count}");
+        }
+#endif
         try
         {
             _document.Editor.UpdateScreen();
@@ -180,15 +221,30 @@ internal sealed class RoofTransientPreviewSession : IDisposable
     private void AddGeometry(IRoofGeometry geometry, double sourceElevation)
     {
         var transientManager = TransientManager.CurrentTransientManager;
-        foreach (var segment in MapSegments(geometry, sourceElevation))
+        var segments = MapSegments(geometry, sourceElevation);
+#if DEBUG
+        if (geometry is HipRoofGeometry)
         {
+            System.Diagnostics.Debug.WriteLine(
+                $"[AK_ROOF_HIP] preview-primitives={segments.Count} persistent-created=0");
+        }
+#endif
+        foreach (var segment in segments)
+        {
+            var isRidge = segment.TopologyKind == RoofTopologyEdgeKind.Ridge || segment.IsRidge;
             var drawable = new Line(segment.Start, segment.End)
             {
-                ColorIndex = segment.IsRidge
-                    ? RidgeColorIndex
-                    : segment.FaceIndex == 2 ? RidgeColorIndex
-                    : segment.FaceIndex == 1 ? Face1BoundaryColorIndex : FaceBoundaryColorIndex,
-                LineWeight = segment.IsRidge
+                ColorIndex = segment.TopologyKind switch
+                {
+                    RoofTopologyEdgeKind.Ridge => RidgeColorIndex,
+                    RoofTopologyEdgeKind.Valley => Face1BoundaryColorIndex,
+                    RoofTopologyEdgeKind.Hip => FaceBoundaryColorIndex,
+                    _ => segment.IsRidge
+                        ? RidgeColorIndex
+                        : segment.FaceIndex == 2 ? RidgeColorIndex
+                        : segment.FaceIndex == 1 ? Face1BoundaryColorIndex : FaceBoundaryColorIndex,
+                },
+                LineWeight = isRidge
                     ? LineWeight.LineWeight050
                     : LineWeight.LineWeight025,
             };
@@ -233,11 +289,20 @@ internal sealed class RoofTransientPreviewSession : IDisposable
     private static Point3d MapPoint(RoofPoint3D point) =>
         new(point.X, point.Y, point.Z);
 
+    private static RoofPoint3D AddElevation(RoofPoint3D point, double sourceElevation) =>
+        new(point.X, point.Y, point.Z + sourceElevation);
+
     internal sealed record RoofPreviewSegment(
         Point3d Start,
         Point3d End,
         bool IsRidge,
-        int FaceIndex);
+        int FaceIndex,
+        RoofTopologyEdgeKind? TopologyKind = null);
+
+    internal sealed record RoofTopologyPreviewSegment(
+        RoofPoint3D Start,
+        RoofPoint3D End,
+        RoofTopologyEdgeKind Kind);
 
     internal sealed record RoofRafterPlanPreviewSegment(
         RoofPoint2D Start,

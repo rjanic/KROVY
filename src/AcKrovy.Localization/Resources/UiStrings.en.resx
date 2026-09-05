@@ -602,7 +602,7 @@
   <data name="CommandUi_RoofGable_Label" xml:space="preserve"><value>Gable roof</value></data>
   <data name="CommandUi_RoofGable_Tooltip" xml:space="preserve"><value>Starts the existing gable-roof workflow.</value></data>
   <data name="CommandUi_RoofHip_Label" xml:space="preserve"><value>Hip roof</value></data>
-  <data name="CommandUi_RoofHip_Tooltip" xml:space="preserve"><value>Not available yet.</value></data>
+  <data name="CommandUi_RoofHip_Tooltip" xml:space="preserve"><value>Shows a transient hip-roof preview without saving.</value></data>
   <data name="CommandUi_RoofHalfHip_Label" xml:space="preserve"><value>Half-hip roof</value></data>
   <data name="CommandUi_RoofHalfHip_Tooltip" xml:space="preserve"><value>Not available yet.</value></data>
   <data name="CommandUi_RoofMonoPitch_Label" xml:space="preserve"><value>Mono-pitch roof</value></data>
@@ -688,6 +688,7 @@
   <data name="RoofGeometryWindow_ValidationNumber" xml:space="preserve"><value>Enter valid finite numeric values.</value></data>
   <data name="RoofGeometryWindow_ValidationCombination" xml:space="preserve"><value>The α, β, and ΔH combination places the ridge outside the footprint.</value></data>
   <data name="RoofGeometryWindow_ValidationSlope" xml:space="preserve"><value>Pitches must be greater than 0° and less than 90°.</value></data>
+  <data name="RoofGeometryWindow_ValidationHipTopology" xml:space="preserve"><value>The hip-roof topology could not be resolved unambiguously for this footprint.</value></data>
   <data name="RoofGeometryWindow_ValidationDirectionRequired" xml:space="preserve"><value>Pick the ridge direction before previewing or creating the roof.</value></data>
   <data name="RoofGeometryWindow_LengthValueFormat" xml:space="preserve"><value>{0:0} mm</value></data>
   <data name="RoofGeometryWindow_DimensionA" xml:space="preserve"><value>Dimension A</value></data>

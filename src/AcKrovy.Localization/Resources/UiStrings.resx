@@ -602,7 +602,7 @@
   <data name="CommandUi_RoofGable_Label" xml:space="preserve"><value>Sedlová strecha</value></data>
   <data name="CommandUi_RoofGable_Tooltip" xml:space="preserve"><value>Spustí existujúci pracovný postup sedlovej strechy.</value></data>
   <data name="CommandUi_RoofHip_Label" xml:space="preserve"><value>Valbová strecha</value></data>
-  <data name="CommandUi_RoofHip_Tooltip" xml:space="preserve"><value>Zatiaľ nie je dostupná.</value></data>
+  <data name="CommandUi_RoofHip_Tooltip" xml:space="preserve"><value>Zobrazí dočasný náhľad valbovej strechy bez uloženia.</value></data>
   <data name="CommandUi_RoofHalfHip_Label" xml:space="preserve"><value>Polvalbová strecha</value></data>
   <data name="CommandUi_RoofHalfHip_Tooltip" xml:space="preserve"><value>Zatiaľ nie je dostupná.</value></data>
   <data name="CommandUi_RoofMonoPitch_Label" xml:space="preserve"><value>Pultová strecha</value></data>
@@ -688,6 +688,7 @@
   <data name="RoofGeometryWindow_ValidationNumber" xml:space="preserve"><value>Zadajte platné konečné číselné hodnoty.</value></data>
   <data name="RoofGeometryWindow_ValidationCombination" xml:space="preserve"><value>Kombinácia α, β a ΔH umiestňuje hrebeň mimo pôdorysu.</value></data>
   <data name="RoofGeometryWindow_ValidationSlope" xml:space="preserve"><value>Sklony musia byť väčšie ako 0° a menšie ako 90°.</value></data>
+  <data name="RoofGeometryWindow_ValidationHipTopology" xml:space="preserve"><value>Topológiu valbovej strechy sa pre tento obrys nepodarilo numericky jednoznačne určiť.</value></data>
   <data name="RoofGeometryWindow_ValidationDirectionRequired" xml:space="preserve"><value>Pred náhľadom alebo vytvorením vyberte smer hrebeňa.</value></data>
   <data name="RoofGeometryWindow_LengthValueFormat" xml:space="preserve"><value>{0:0} mm</value></data>
   <data name="RoofGeometryWindow_DimensionA" xml:space="preserve"><value>Rozmer A</value></data>

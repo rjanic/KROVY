@@ -363,6 +363,12 @@ public sealed class AcKrovyCommands
             AcKrovyCommandNames.Roof,
             () => RoofCommandWorkflow.Run(ActiveDocument()));
 
+    [CommandMethod(AcKrovyCommandNames.RoofHip, CommandFlags.Modal | CommandFlags.Redraw)]
+    public void RoofHip() =>
+        CommandExecutionBoundary.Execute(
+            AcKrovyCommandNames.RoofHip,
+            () => RoofCommandWorkflow.Run(ActiveDocument(), RoofKind.Hip));
+
     [CommandMethod(AcKrovyCommandNames.RoofAsymmetric, CommandFlags.Modal | CommandFlags.Redraw)]
     public void RoofAsymmetric() =>
         CommandExecutionBoundary.Execute(

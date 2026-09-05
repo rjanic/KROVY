@@ -99,6 +99,14 @@ internal static class RoofCommandWorkflow
                 continue;
             }
 
+            // The first Hip milestone is preview-only. A source with existing roof
+            // metadata stays on its established lifecycle and cannot enter this path.
+            if (requestedKind == RoofKind.Hip && storedDefinition.Exists)
+            {
+                editor.WriteMessage(UiStrings.GetString("Command_Roof_PersistConflict"));
+                continue;
+            }
+
             if (storedDefinition.Exists)
             {
                 if (storedDefinition.Data is null)
@@ -206,6 +214,16 @@ internal static class RoofCommandWorkflow
         double sourceElevation,
         RoofKind initialKind)
     {
+        if (initialKind == RoofKind.Hip)
+        {
+            RunHipPreviewDialog(
+                document,
+                ownerId,
+                validation,
+                sourceElevation);
+            return;
+        }
+
         var footprint = validation.Footprint!;
         var viewModel = new GableRoofGeometryViewModel(footprint, initialKind);
         var dialog = new GableRoofGeometryWindow(
@@ -267,6 +285,61 @@ internal static class RoofCommandWorkflow
                     default:
                         return;
                 }
+            }
+        }
+        finally
+        {
+            if (!dialog.IsClosed)
+            {
+                dialog.Close();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Preview-only firewall: this member receives neither source input nor a
+    /// persistence callback and exits immediately after the transient session.
+    /// </summary>
+    private static void RunHipPreviewDialog(
+        Document document,
+        ObjectId ownerId,
+        RoofValidationResult validation,
+        double sourceElevation)
+    {
+        var footprint = validation.Footprint!;
+        var viewModel = new HipRoofPreviewViewModel(footprint);
+        var dialog = new HipRoofPreviewWindow(
+            viewModel,
+            SettingsUiPreferencesStore.Load().Theme);
+        SettingsWindowOwner.TryAssign(dialog, TryGetAutoCadMainWindowHandle());
+        try
+        {
+            _ = AcApp.ShowModalWindow(dialog);
+            if (dialog.RequestedAction != HipRoofPreviewDialogAction.Preview ||
+                !viewModel.TryGetRoofGeometry(out var geometry) ||
+                geometry is null)
+            {
+                return;
+            }
+
+#if DEBUG
+            System.Diagnostics.Debug.WriteLine(
+                $"[AK_ROOF_HIP] kind={RoofKind.Hip} vertices={footprint.Vertices.Count} " +
+                $"nodes={geometry.Topology.Nodes.Count} " +
+                $"hip={geometry.Topology.Edges.Count(edge => edge.Kind == RoofTopologyEdgeKind.Hip)} " +
+                $"ridge={geometry.Topology.Edges.Count(edge => edge.Kind == RoofTopologyEdgeKind.Ridge)} " +
+                $"valley={geometry.Topology.Edges.Count(edge => edge.Kind == RoofTopologyEdgeKind.Valley)} " +
+                $"seam={geometry.Topology.Edges.Count(edge => edge.Kind == RoofTopologyEdgeKind.CoplanarSeam)}");
+#endif
+            document.Editor.SetImpliedSelection([ownerId]);
+            document.Editor.UpdateScreen();
+            try
+            {
+                ShowPreview(document, geometry, sourceElevation);
+            }
+            finally
+            {
+                ClearCompletedWorkflowSelection(document.Editor);
             }
         }
         finally

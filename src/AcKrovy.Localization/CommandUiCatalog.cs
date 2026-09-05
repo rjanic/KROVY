@@ -38,6 +38,7 @@ public static class AcKrovyCommandNames
     public const string SelectSimilar = "AK_SELECTSIMILAR";
     public const string ExportCsv = "AK_EXPORTCSV";
     public const string Roof = "AK_ROOF";
+    public const string RoofHip = "AK_ROOF_HIP";
     public const string RoofAsymmetric = "AK_ROOF_ASYM";
     public const string RoofMonopitch = "AK_ROOF_MONOPITCH";
     public const string RoofRafters = "AK_ROOF_RAFTERS";
@@ -53,7 +54,7 @@ public static class AcKrovyCommandNames
         Help, Ribbon, Toolbar, ToolbarShow, ToolbarHide, Settings, ApplyLayers, Label, Labels,
         LabelMissing, LabelSelected, LabelAll, LabelShow, LabelHide, Assign, Rafter, WallPlate, Purlin,
         Post, CollarTie, Brace, TieBeam, Custom, Edit, FlipSlope, Inspect, Report, ReportAll, Recalc,
-        Renumber, Diagnostics, SelectSimilar, ExportCsv, Roof, RoofAsymmetric, RoofMonopitch, RoofRafters, RoofUnlock, RoofLock,
+        Renumber, Diagnostics, SelectSimilar, ExportCsv, Roof, RoofHip, RoofAsymmetric, RoofMonopitch, RoofRafters, RoofUnlock, RoofLock,
         RoofToggleLock, RoofResetEdits, RoofEdit, ImportDwg,
     ];
 }
@@ -140,7 +141,12 @@ public static class CommandUiCatalog
         "roof_gable",
         "CommandUi_RoofGable_Label",
         "CommandUi_RoofGable_Tooltip");
-    public static CommandUiDescriptor RoofHip { get; } = FutureRoof("HIP", "roof_hip", "RoofHip");
+    public static CommandUiDescriptor RoofHip { get; } = CreateDirect(
+        AcKrovyCommandNames.RoofHip,
+        "DECORAIR_AK_ROOF_HIP",
+        "roof_hip",
+        "CommandUi_RoofHip_Label",
+        "CommandUi_RoofHip_Tooltip");
     public static CommandUiDescriptor RoofHalfHip { get; } = FutureRoof("HALFHIP", "roof_halfhip", "RoofHalfHip");
     public static CommandUiDescriptor RoofMonoPitch { get; } = CreateDirect(
         AcKrovyCommandNames.RoofMonopitch,

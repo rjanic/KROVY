@@ -602,7 +602,7 @@
   <data name="CommandUi_RoofGable_Label" xml:space="preserve"><value>Dach dwuspadowy</value></data>
   <data name="CommandUi_RoofGable_Tooltip" xml:space="preserve"><value>Uruchamia istniejący proces dachu dwuspadowego.</value></data>
   <data name="CommandUi_RoofHip_Label" xml:space="preserve"><value>Dach czterospadowy</value></data>
-  <data name="CommandUi_RoofHip_Tooltip" xml:space="preserve"><value>Jeszcze niedostępny.</value></data>
+  <data name="CommandUi_RoofHip_Tooltip" xml:space="preserve"><value>Wyświetla tymczasowy podgląd dachu czterospadowego bez zapisywania.</value></data>
   <data name="CommandUi_RoofHalfHip_Label" xml:space="preserve"><value>Dach naczółkowy</value></data>
   <data name="CommandUi_RoofHalfHip_Tooltip" xml:space="preserve"><value>Jeszcze niedostępny.</value></data>
   <data name="CommandUi_RoofMonoPitch_Label" xml:space="preserve"><value>Dach jednospadowy</value></data>
@@ -688,6 +688,7 @@
   <data name="RoofGeometryWindow_ValidationNumber" xml:space="preserve"><value>Wprowadź prawidłowe skończone wartości liczbowe.</value></data>
   <data name="RoofGeometryWindow_ValidationCombination" xml:space="preserve"><value>Kombinacja α, β i ΔH umieszcza kalenicę poza obrysem.</value></data>
   <data name="RoofGeometryWindow_ValidationSlope" xml:space="preserve"><value>Nachylenia muszą być większe niż 0° i mniejsze niż 90°.</value></data>
+  <data name="RoofGeometryWindow_ValidationHipTopology" xml:space="preserve"><value>Nie udało się jednoznacznie numerycznie wyznaczyć topologii dachu czterospadowego dla tego obrysu.</value></data>
   <data name="RoofGeometryWindow_ValidationDirectionRequired" xml:space="preserve"><value>Przed podglądem lub utworzeniem wybierz kierunek kalenicy.</value></data>
   <data name="RoofGeometryWindow_LengthValueFormat" xml:space="preserve"><value>{0:0} mm</value></data>
   <data name="RoofGeometryWindow_DimensionA" xml:space="preserve"><value>Wymiar A</value></data>

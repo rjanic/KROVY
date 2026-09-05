@@ -1,6 +1,6 @@
 # ACAD KROVY – PROJECT CONTEXT
 
-**Aktualizované:** 4. 9. 2026
+**Aktualizované:** 5. 9. 2026
 
 **Predchádzajúci stabilný commit v0.21.0:** `f98900c1bd257a8e5357f6e77eb6f118bd4930d3`
 
@@ -8,7 +8,7 @@
 
 **Verzia aplikácie:** autoritatívne v `Directory.Build.props`
 
-**Aktuálny míľnik:** STRECHY S2 – CAD-neutral concave roof-topology wavefront foundation (Core, published convex clipping backend retained)
+**Aktuálny míľnik:** AutoCAD Valbová transient preview – HOST PASS
 
 **Overovanie:** Debug/Release build, kompletné automatické testy a Portable/Full Compatibility Gate
 
@@ -544,9 +544,31 @@ Stabilný commit: `4a951041e2deef40a127ac9560cf6fb2ba4b6a5b`
 - Potlačenie veľmi krátkych koncových hip krokiev je budúce konfigurovateľné
   timber-generation pravidlo. Príklad 200 mm nie je geometrická konštanta a nesmie
   meniť matematickú topológiu. Geometrické jadro nečíta Settings ani rozstupy.
-- Core podpora neznamená HOST/production podporu všeobecných polygonov, nové UI ani
-  Hip persistenciu. Algoritmus, numerické hranice a budúce ukončenia:
+- Core podpora sama osebe neznamená úplnú HOST/production podporu všeobecných
+  polygonov ani Hip persistenciu. Algoritmus, numerické hranice a budúce ukončenia:
   [ROOF_TOPOLOGY_DESIGN.md](docs/ROOF_TOPOLOGY_DESIGN.md).
+
+### AutoCAD Valbová transient preview – HOST PASS
+
+- AutoCAD Architecture 2027 HOST potvrdil úspešný transient preview pre:
+  - **H1 obdĺžnik:** jeden Ridge, 4 Hip hrany, 0 Valley,
+  - **H2 pôdorys L:** správne Valley z reflexného rohu, Hip a Ridge vetvenie,
+  - **H3 pôdorys U:** dve Valley vetvy, centrálny Ridge, Hip hrany,
+  - **H4 pôdorys T:** dve Valley vetvy, T-hrebeň, Hip hrany,
+- existujúca Ribbon položka Valbová strecha spúšťa `AK_ROOF_HIP` a používa pôvodné 16/32 PNG ikony,
+- transient preview preberá presné uzly a roly publikovanej `RoofTopology` a kreslí
+  iba `Hip`, `Ridge` a `Valley`; `Eave` ani interný `CoplanarSeam` nekreslí,
+- hostiteľský adaptér nevykonáva žiadne tvarové heuristiky (obdĺžnik vs. L/U/T);
+  konzumuje priamo Core topológiu,
+- predbežný sklon sa nastavuje cez úzky Hip preview dialóg; nežiada sa smer hrebeňa,
+- táto etapa je **PREVIEW ONLY** a **READ-ONLY**:
+  - nemá Apply tlačidlo pre Hip,
+  - nezapisuje `RoofDefinitionData`, XData ani `DECORAIR_ACADKROVY_ROOF`,
+  - nevytvára permanentné entity, GROUP ani display cache,
+  - `DBMOD` zostáva po preview 0 (overené cez QSAVE pred a po),
+  - Hip persistence zostáva v Core aj AutoCAD adaptéri zámerne zakázaná,
+- zdrojové kontrakty, runtime WPF testy a HOST výsledky potvrdili stabilitu,
+  routing a persistence firewall.
 
 ### STRECHY S2 – Roof COPY / STRETCH / GROUP GRIP (stabilný HOST checkpoint)
 - **Supported source STRETCH:** gable-end aj eave-side, enlarge/shrink, rotated,
@@ -685,7 +707,7 @@ Multi-CAD kompatibilita sa má overiť ešte pred tým, než projekt prerastie d
 
 ## Najbližšia priorita
 1. DEFERRED – generated rafters following rigid MOVE / `RigidGroupTransform`,
-2. Stage 7 a nové roof typy (Hip/Shed/Pyramid) zostávajú mimo tohto checkpointu,
+2. AutoCAD Valbová transient preview míľnik je teraz **HOST PASS**,
 3. compatibility checkpoint a alternatívne CAD adaptéry bez vendor typov v Core.
 
 Presné poradie je v `ACAD_KROVY_ROADMAP.md`, úplný zásobník nápadov v `ACAD_KROVY_BACKLOG.md`.

@@ -1,0 +1,83 @@
+<Window x:Class="AcKrovy.AutoCAD.UI.HipRoofPreviewWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:localization="clr-namespace:AcKrovy.AutoCAD.UI.Localization"
+        Title="{Binding WindowTitle}"
+        Width="520"
+        Height="330"
+        MinWidth="460"
+        MinHeight="300"
+        SizeToContent="Manual"
+        ResizeMode="CanResize"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource SettingsWindowBackgroundBrush}"
+        Foreground="{DynamicResource SettingsTextPrimaryBrush}">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Design/SettingsColors.Light.xaml" />
+                <ResourceDictionary Source="Design/SettingsDesignSystem.xaml" />
+                <ResourceDictionary Source="Design/SettingsControls.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <StackPanel>
+            <TextBlock FontSize="21"
+                       FontWeight="SemiBold"
+                       Text="{Binding WindowTitle}" />
+            <TextBlock Margin="0,4,0,14"
+                       Style="{DynamicResource SettingsDescriptionStyle}"
+                       Text="{Binding WindowDescription}"
+                       TextWrapping="Wrap" />
+        </StackPanel>
+
+        <Border Grid.Row="1"
+                Padding="14"
+                Style="{DynamicResource SettingsCardStyle}">
+            <StackPanel>
+                <TextBlock Margin="0,0,0,10"
+                           Style="{DynamicResource SettingsSectionTitleStyle}"
+                           Text="{localization:Loc RoofGeometryWindow_EnteredValues}" />
+                <TextBlock Margin="0,0,0,5"
+                           Text="{localization:Loc RoofGeometryWindow_MonopitchSlope}" />
+                <TextBox x:Name="SlopeTextBox"
+                         TextAlignment="Right"
+                         Text="{Binding SlopeText, UpdateSourceTrigger=PropertyChanged}" />
+            </StackPanel>
+        </Border>
+
+        <TextBlock x:Name="ValidationTextBlock"
+                   Grid.Row="2"
+                   Margin="0,12,0,0"
+                   MinHeight="20"
+                   Foreground="{DynamicResource SettingsValidationBrush}"
+                   Text="{Binding ValidationMessage}"
+                   TextWrapping="Wrap" />
+
+        <StackPanel Grid.Row="3"
+                    Margin="0,14,0,0"
+                    HorizontalAlignment="Right"
+                    Orientation="Horizontal">
+            <Button x:Name="CancelButton"
+                    Margin="0,0,10,0"
+                    Click="CancelButton_Click"
+                    Style="{DynamicResource SettingsSecondaryButtonStyle}"
+                    Content="{localization:Loc RoofGeometryWindow_Cancel}" />
+            <Button x:Name="PreviewButton"
+                    Click="PreviewButton_Click"
+                    IsDefault="True"
+                    IsEnabled="{Binding CanPreview}"
+                    Style="{DynamicResource SettingsPrimaryButtonStyle}"
+                    Content="{localization:Loc RoofGeometryWindow_Preview}" />
+        </StackPanel>
+    </Grid>
+</Window>
