@@ -9,6 +9,8 @@ public enum RoofTopologyEdgeKind
     Hip,
     Ridge,
     Valley,
+    /// <summary>Ownership boundary between coplanar source faces; not a physical ridge.</summary>
+    CoplanarSeam,
 }
 
 /// <summary>One shared edge. Face indices identify its one or two incident faces.</summary>

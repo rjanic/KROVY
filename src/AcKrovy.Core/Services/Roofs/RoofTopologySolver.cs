@@ -4,8 +4,8 @@ namespace AcKrovy.Core.Services.Roofs;
 
 /// <summary>
 /// Shared all-eave, uniform-pitch topology entry point for one simple straight-edged
-/// outer polygon. No ridge-direction input. The current backend is convex only;
-/// reflex vertices require a future wavefront backend with split/vertex events.
+/// outer polygon. No ridge-direction input. Convex input retains the clipping
+/// backend; reflex input uses the kinetic wavefront backend.
 /// </summary>
 public static class RoofTopologySolver
 {
@@ -45,6 +45,7 @@ public static class RoofTopologySolver
             return Invalid(RoofTopologyError.InvalidSlope);
         }
         var points = footprint.Vertices;
+        var concave = false;
         for (var i = 0; i < points.Count; i++)
         {
             var previous = footprint.Edges[(i + points.Count - 1) % points.Count];
@@ -55,14 +56,15 @@ public static class RoofTopologySolver
                         (next.End.X - next.Start.X) / next.LengthMm);
             if (turn < -RoofFootprintValidator.CollinearityTolerance)
             {
-                return Invalid(RoofTopologyError.ConcaveWavefrontNotImplemented);
+                concave = true;
             }
             if (Math.Abs(turn) <= RoofFootprintValidator.CollinearityTolerance)
             {
                 return Invalid(RoofTopologyError.InvalidFootprint, RoofValidationError.RedundantCollinearVertex);
             }
         }
-        return ConvexRoofTopologySolver.Solve(footprint, origin, pitchDegrees);
+        return concave ? ConcaveRoofTopologySolver.Solve(footprint, origin, pitchDegrees) :
+            ConvexRoofTopologySolver.Solve(footprint, origin, pitchDegrees);
     }
 
     public static RoofTopologyResult Solve(RoofFootprint footprint, double pitchDegrees)

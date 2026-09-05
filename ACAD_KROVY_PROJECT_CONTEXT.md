@@ -8,7 +8,7 @@
 
 **Verzia aplikácie:** autoritatívne v `Directory.Build.props`
 
-**Aktuálny míľnik:** STRECHY S2 – approved native external import proof (HOST PASS)
+**Aktuálny míľnik:** STRECHY S2 – CAD-neutral concave roof-topology wavefront foundation (Core, published convex clipping backend retained)
 
 **Overovanie:** Debug/Release build, kompletné automatické testy a Portable/Full Compatibility Gate
 
@@ -513,16 +513,25 @@ Stabilný commit: `4a951041e2deef40a127ac9560cf6fb2ba4b6a5b`
   ktorý vytvoril dve kópie, nie chyba ownership implementácie. AK_ROOF po úspechu
   čistí iba implied selection a HOST potvrdil, že GROUP už nezostáva zvýraznený.
 
-### Spoločná polygonálna topológia striech – návrhový smer
+### Spoločná polygonálna topológia striech – CAD-neutral Core základ
 
-- Budúci CAD-neutral základ pre Sedlovú/Valbovú má spracovať jeden jednoduchý
+- CAD-neutral all-hip základ spracúva jeden jednoduchý
   uzavretý vonkajší polygon s priamymi hranami, bez dier, oblúkov, samopriesekov
   a oddelených ostrovov. Obdĺžnik a štvorcový pyramídový kolaps sú regresné prípady,
-  nie architektonické obmedzenie. L/U/T sú explicitné cieľové acceptance pôdorysy.
+  nie architektonické obmedzenie. Konvexné vstupy ostávajú na publikovanom clipping
+  backende. Konkávny kinetický wavefront má Core testy pre L, symetrické aj
+  asymetrické U/T, všeobecné reflexné polygony, schodovitý pôdorys, plytký reflex,
+  úzky zárez a rozdelenie na dve ďalej žijúce slučky. Podpora je ohraničená
+  numerickým kontraktom; nerozlíšiteľné udalosti vracajú explicitné zlyhanie.
 - Zdieľaná topológia nesie plochy viazané na zdrojové hrany, spoločné uzly,
   hrebeňové, nárožné a úžľabné hrany aj vetvenie. Pre all-hip a uniformný sklon
   vychádza zo straight-skeleton/wavefront geometrie; globálny smer jedného hrebeňa
   nie je základným vstupom všeobecného polygonálneho jadra.
+- Súčasné kontakty sa riešia spoločným grafom incidencií vrátane zániku celých
+  protiľahlých pásov. Plochy si zachovávajú pôvodné kanonické hrany. Koplanárna
+  hranica vlastníctva po split udalosti má rolu `CoplanarSeam`, nie fyzický hrebeň.
+  Výsledok prechádza kontrolou uzavretia plôch, vlastníctva, rovín, pokrytia,
+  konektivity a nekrižovania. Nepribudla externá geometrická knižnica.
 - RoofKind ostáva používateľským presetom. Budúce Hip/Gable a neskôr HalfHip
   ukončenia sa majú vyjadriť ako hraničné podmienky a pravidlá nad spoločnou
   topológiou, nie ďalším samostatným polygonálnym solverom. Prepnutie ukončenia
@@ -535,8 +544,9 @@ Stabilný commit: `4a951041e2deef40a127ac9560cf6fb2ba4b6a5b`
 - Potlačenie veľmi krátkych koncových hip krokiev je budúce konfigurovateľné
   timber-generation pravidlo. Príklad 200 mm nie je geometrická konštanta a nesmie
   meniť matematickú topológiu. Geometrické jadro nečíta Settings ani rozstupy.
-- Návrh neznamená HOST/production podporu všeobecných polygonov, nové UI ani Hip
-  persistenciu. Algoritmické hranice a plán konkávnej fázy: [ROOF_TOPOLOGY_DESIGN.md](docs/ROOF_TOPOLOGY_DESIGN.md).
+- Core podpora neznamená HOST/production podporu všeobecných polygonov, nové UI ani
+  Hip persistenciu. Algoritmus, numerické hranice a budúce ukončenia:
+  [ROOF_TOPOLOGY_DESIGN.md](docs/ROOF_TOPOLOGY_DESIGN.md).
 
 ### STRECHY S2 – Roof COPY / STRETCH / GROUP GRIP (stabilný HOST checkpoint)
 - **Supported source STRETCH:** gable-end aj eave-side, enlarge/shrink, rotated,

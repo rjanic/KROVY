@@ -112,7 +112,7 @@ public sealed class RoofTopologySolverTests
 
     [Theory]
     [MemberData(nameof(ConcaveFixtures))]
-    public void ConcaveSimplePolygons_AreValidInputsButExplicitlyRequireWavefrontBackend(string name, RoofPoint2D[] polygon)
+    public void ConcaveSimplePolygons_UseWavefrontBackendThroughSharedAndHipEntryPoints(string name, RoofPoint2D[] polygon)
     {
         foreach (var angle in new[] { 0d, 37d, 180d })
         {
@@ -123,13 +123,13 @@ public sealed class RoofTopologySolverTests
                 var validated = RoofFootprintValidator.Validate(new(ordered, true));
                 Assert.True(validated.IsValid, name);
                 var result = RoofTopologySolver.Solve(validated.Footprint!, 30);
-                Assert.False(result.IsValid);
-                Assert.Null(result.Topology);
-                Assert.Equal(RoofTopologyError.ConcaveWavefrontNotImplemented, result.Error);
+                Assert.True(result.IsValid, name + ": " + result.Error);
+                Assert.NotNull(result.Topology);
+                Assert.Equal(RoofTopologyError.None, result.Error);
                 var hip = HipRoofGeometrySolver.Solve(new(validated.Footprint!, new(30), RoofKind.Hip));
-                Assert.False(hip.IsValid);
-                Assert.Null(hip.Geometry);
-                Assert.Equal(SimpleGableRoofGeometryError.ConcaveWavefrontNotImplemented, hip.Error);
+                Assert.True(hip.IsValid, name + ": " + hip.Error);
+                Assert.Equal(result.Topology.Signature, Assert.IsType<HipRoofGeometry>(hip.Geometry).Topology.Signature);
+                Assert.Equal(SimpleGableRoofGeometryError.None, hip.Error);
             }
         }
     }
