@@ -20,7 +20,7 @@ public static class RoofUnsupportedStretchRecoveryRules
         if (snapshot is null ||
             string.IsNullOrWhiteSpace(snapshot.OwnerHandle) ||
             snapshot.Vertices is null ||
-            snapshot.Vertices.Count != 4 ||
+            snapshot.Vertices.Count < 3 ||
             !snapshot.IsClosed)
         {
             return false;

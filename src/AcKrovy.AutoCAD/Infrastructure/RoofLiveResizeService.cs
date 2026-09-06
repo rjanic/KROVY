@@ -12,8 +12,8 @@ using AcApp = Autodesk.AutoCAD.ApplicationServices.Application;
 namespace AcKrovy.AutoCAD.Infrastructure;
 
 /// <summary>
-/// Narrow live SimpleGable rectangular resize and display-cache repair on the existing
-/// live-geometry path. Does not add a roof reactor, overrule, or deep-clone hook.
+/// Live roof source resize and display-cache repair on the existing command-boundary
+/// geometry path. Does not add a roof reactor, overrule, or deep-clone hook.
 /// </summary>
 internal static class RoofLiveResizeService
 {
@@ -107,12 +107,14 @@ internal static class RoofLiveResizeService
                     SourceHandledOwnersThisCommand.Add(ownerId);
                 }
 
-                if (LiveGeometryCommandRules.IsUndoGroupingSourceCommand(globalCommandName))
+                var recoverableUnsupportedOwnerIds = plan.UnsupportedOwnerIds;
+                if (recoverableUnsupportedOwnerIds.Count > 0 &&
+                    LiveGeometryCommandRules.IsUndoGroupingSourceCommand(globalCommandName))
                 {
                     var recovery = TryRecoverUnsupportedOwners(
                         document,
                         globalCommandName,
-                        plan.UnsupportedOwnerIds);
+                        recoverableUnsupportedOwnerIds);
                     if (recovery == UnsupportedRecoveryBatchResult.RecoveredAll)
                     {
                         TransientNotificationService.Show(
@@ -129,7 +131,7 @@ internal static class RoofLiveResizeService
                             "Command_Roof_UnsupportedStretchNotificationBody");
                     }
                 }
-                else
+                else if (recoverableUnsupportedOwnerIds.Count > 0)
                 {
                     document.Editor.WriteMessage(
                         UiStrings.GetString("Command_Roof_PersistedStale"));
@@ -155,9 +157,9 @@ internal static class RoofLiveResizeService
                     appendedTimberIds);
             }
 
-            // Display-only STRETCH / GRIP_STRETCH: source path already handled this owner
-            // when ResizeOwnerIds / UnsupportedOwnerIds contain it (precedence), including
-            // deferred display-rebuild batches of the same command.
+            // Derived display edits are never geometry authority. Inspect applies the
+            // edit-state-aware command policy; source resize/unsupported outcomes retain
+            // precedence, including deferred rebuild events from the same command.
             IReadOnlyCollection<ObjectId> displayTamperOwners = plan.DisplayTamperOwnerIds;
             if (displayTamperOwners.Count > 0 &&
                 LiveGeometryCommandRules.IsGripStretchCommand(globalCommandName))
@@ -181,7 +183,6 @@ internal static class RoofLiveResizeService
             }
 
             if (displayTamperOwners.Count > 0 &&
-                LiveGeometryCommandRules.IsUndoGroupingSourceCommand(globalCommandName) &&
                 ApplyDisplayTampers(document, displayTamperOwners, modifiedIds))
             {
                 TransientNotificationService.Show(
@@ -319,14 +320,23 @@ internal static class RoofLiveResizeService
                 generatedMemberTamperCandidates.Add(generatedOwnerId);
             }
 
-            if (entity is not Polyline polyline ||
-                RoofDefinitionStore.Read(polyline).Data is null)
+            if (entity is not Polyline polyline)
+            {
+                continue;
+            }
+
+            var storedDefinition = RoofDefinitionStore.Read(polyline).Data;
+            if (storedDefinition is null)
             {
                 continue;
             }
 
             related.Add(id);
-            switch (ClassifyOwner(polyline).Kind)
+            switch (ClassifyOwner(
+                        database,
+                        transaction,
+                        polyline,
+                        treatHipDisplayDriftAsResize: true).Kind)
             {
                 case RoofSourceChangeKind.SupportedResize:
                     resizeOwners.Add(id);
@@ -345,6 +355,26 @@ internal static class RoofLiveResizeService
             if (resizeOwners.Contains(ownerId) ||
                 unsupportedOwners.Contains(ownerId) ||
                 SourceHandledOwnersThisCommand.Contains(ownerId))
+            {
+                continue;
+            }
+
+            if (!AutoCadObjectIdAccess.TryGetObject<Polyline>(
+                    transaction,
+                    ownerId,
+                    OpenMode.ForRead,
+                    out var displayOwner,
+                    database) ||
+                displayOwner is null)
+            {
+                continue;
+            }
+
+            var displayOwnerDefinition = RoofDefinitionStore.Read(displayOwner).Data;
+            if (displayOwnerDefinition is null ||
+                !RoofDisplayTamperRepairRules.ShouldRepair(
+                    displayOwnerDefinition.EditState,
+                    globalCommandName))
             {
                 continue;
             }
@@ -370,7 +400,8 @@ internal static class RoofLiveResizeService
                     out var owner,
                     database) ||
                 owner is null ||
-                ClassifyOwner(owner).Kind != RoofSourceChangeKind.RigidEquivalent)
+                ClassifyOwner(database, transaction, owner).Kind !=
+                    RoofSourceChangeKind.RigidEquivalent)
             {
                 continue;
             }
@@ -1010,7 +1041,11 @@ internal static class RoofLiveResizeService
             return ResizeApplyResult.Skipped;
         }
 
-        var classification = ClassifyOwner(owner);
+        var classification = ClassifyOwner(
+            database,
+            transaction,
+            owner,
+            treatHipDisplayDriftAsResize: true);
         if (classification.Kind != RoofSourceChangeKind.SupportedResize ||
             classification.Geometry is null)
         {
@@ -1031,11 +1066,6 @@ internal static class RoofLiveResizeService
             ownerId,
             owner.Handle.ToString());
 #endif
-        var generatedMemberCount = RoofGeneratedTimberStore.FindByOwner(
-            database,
-            transaction,
-            owner.Handle.ToString()).Count;
-
         var input = RoofPolylineExtractor.Extract(owner);
         var validation = RoofFootprintValidator.Validate(input);
         if (!validation.IsValid || validation.Footprint is null)
@@ -1043,12 +1073,24 @@ internal static class RoofLiveResizeService
             return ResizeApplyResult.Skipped;
         }
 
-        var updated = RoofGeneratedMemberOverrideRules.PreserveEditState(
-            RoofDefinitionPersistence.Create(
+        var storedDefinition = RoofDefinitionStore.Read(owner).Data;
+        if (storedDefinition is null)
+        {
+            return ResizeApplyResult.Skipped;
+        }
+
+        var isHip = classification.Geometry is HipRoofGeometry;
+        var updated = isHip
+            ? RoofDefinitionPersistence.UpdateGeometry(
+                storedDefinition,
                 input,
-                validation.Footprint,
-                classification.Geometry),
-            RoofDefinitionStore.Read(owner).Data);
+                classification.Geometry)
+            : RoofGeneratedMemberOverrideRules.PreserveEditState(
+                RoofDefinitionPersistence.Create(
+                    input,
+                    validation.Footprint,
+                    classification.Geometry),
+                storedDefinition);
         RoofDefinitionStore.Write(owner, transaction, updated);
         var edges = RoofWireframe.Create(
             classification.Geometry,
@@ -1065,48 +1107,62 @@ internal static class RoofLiveResizeService
             return ResizeApplyResult.HardFailure;
         }
 
-        var rafterOutcome = RoofGeneratedRafterSetService.ReplacementOutcome.NotApplicable;
-        RoofGeneratedAnchorResolutionContext? anchorResolutionContext = null;
-        rafterOutcome = RoofGeneratedRafterSetService.TryReplaceForSupportedResize(
-            database,
-            transaction,
-            document.Editor,
-            owner,
-            classification.Geometry,
-            TimberElementDefaultProfileStore.Load(),
-            ElementLayerProfileStore.Load(),
-            out anchorResolutionContext,
-            out var generatedReplayPlan,
-            forceRegenerateOnSourceResize: true,
-            rebuildReason: "source-resize");
-        if (rafterOutcome == RoofGeneratedRafterSetService.ReplacementOutcome.Failed)
+        if (!isHip)
         {
-            return ResizeApplyResult.HardFailure;
-        }
+            var generatedMemberCount = RoofGeneratedTimberStore.FindByOwner(
+                database,
+                transaction,
+                owner.Handle.ToString()).Count;
+            var rafterOutcome = RoofGeneratedRafterSetService.TryReplaceForSupportedResize(
+                database,
+                transaction,
+                document.Editor,
+                owner,
+                classification.Geometry,
+                TimberElementDefaultProfileStore.Load(),
+                ElementLayerProfileStore.Load(),
+                out var anchorResolutionContext,
+                out var generatedReplayPlan,
+                forceRegenerateOnSourceResize: true,
+                rebuildReason: "source-resize");
+            if (rafterOutcome == RoofGeneratedRafterSetService.ReplacementOutcome.Failed)
+            {
+                return ResizeApplyResult.HardFailure;
+            }
 
-        _ = RoofSourceResizeChildPolicyService.Apply(
-            document,
-            transaction,
-            owner,
-            rafterOutcome,
-            generatedMemberCount,
-            generatedReplayPlan?.GeometryReplayCount ?? 0,
-            anchorResolutionContext,
-            replayAttachedManualChildren: true);
+            _ = RoofSourceResizeChildPolicyService.Apply(
+                document,
+                transaction,
+                owner,
+                rafterOutcome,
+                generatedMemberCount,
+                generatedReplayPlan?.GeometryReplayCount ?? 0,
+                anchorResolutionContext,
+                replayAttachedManualChildren: true);
 
-        if (rafterOutcome == RoofGeneratedRafterSetService.ReplacementOutcome.SkippedAmbiguousRecipe)
-        {
-            document.Editor.WriteMessage(
-                UiStrings.GetString("Command_RoofRafters_RecipeAmbiguous"));
-        }
-        else         if (rafterOutcome == RoofGeneratedRafterSetService.ReplacementOutcome.SkippedInvalidLayout)
-        {
-            document.Editor.WriteMessage(
-                UiStrings.GetString("Command_RoofRafters_InvalidSpacing"));
+            if (rafterOutcome == RoofGeneratedRafterSetService.ReplacementOutcome.SkippedAmbiguousRecipe)
+            {
+                document.Editor.WriteMessage(
+                    UiStrings.GetString("Command_RoofRafters_RecipeAmbiguous"));
+            }
+            else if (rafterOutcome == RoofGeneratedRafterSetService.ReplacementOutcome.SkippedInvalidLayout)
+            {
+                document.Editor.WriteMessage(
+                    UiStrings.GetString("Command_RoofRafters_InvalidSpacing"));
+            }
         }
 
         RoofUnlockIndicatorService.Sync(database, transaction, owner);
 #if DEBUG
+        if (isHip)
+        {
+            RoofRedoStateDiag.TraceHipResize(
+                document.Editor,
+                owner.Handle.ToString(),
+                globalCommandName,
+                input.Vertices?.Count ?? 0,
+                edges);
+        }
         RoofRedoStateDiag.Capture(
             database,
             transaction,
@@ -1247,7 +1303,7 @@ internal static class RoofLiveResizeService
         }
 
         // Source unchanged and still restores: rebuild disposable display cache only.
-        var classification = ClassifyOwner(owner);
+        var classification = ClassifyOwner(database, transaction, owner);
         if (classification.Kind != RoofSourceChangeKind.RigidEquivalent ||
             classification.Geometry is null)
         {
@@ -1267,7 +1323,11 @@ internal static class RoofLiveResizeService
             signature);
     }
 
-    private static RoofSourceChangeClassification ClassifyOwner(Polyline polyline)
+    private static RoofSourceChangeClassification ClassifyOwner(
+        Database database,
+        Transaction transaction,
+        Polyline polyline,
+        bool treatHipDisplayDriftAsResize = false)
     {
         var stored = RoofDefinitionStore.Read(polyline);
         if (stored.Data is null)
@@ -1292,9 +1352,32 @@ internal static class RoofLiveResizeService
             input,
             validation.Footprint,
             stored.Data);
+        if (treatHipDisplayDriftAsResize &&
+            stored.Data.Kind == RoofKind.Hip &&
+            geometric.Kind == RoofSourceChangeKind.RigidEquivalent &&
+            geometric.Geometry is HipRoofGeometry hipGeometry)
+        {
+            var edges = RoofWireframe.Create(
+                hipGeometry,
+                RoofPolylineExtractor.GetSourceElevation(polyline));
+            var signature = RoofWireframe.BuildGenerationSignature(edges);
+            var display = RoofDisplayService.Inspect(
+                database,
+                transaction,
+                polyline.ObjectId,
+                polyline.Handle.ToString(),
+                edges,
+                signature);
+            if (!display.Validation.IsCurrent)
+            {
+                geometric = geometric with { Kind = RoofSourceChangeKind.SupportedResize };
+            }
+        }
+
         return geometric with
         {
             Kind = RoofSourceChangeEditStatePolicy.EffectiveKind(
+                stored.Data.Kind,
                 stored.Data.EditState,
                 geometric.Kind),
         };

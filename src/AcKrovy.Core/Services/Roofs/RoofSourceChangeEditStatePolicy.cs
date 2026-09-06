@@ -15,6 +15,19 @@ namespace AcKrovy.Core.Services.Roofs;
 public static class RoofSourceChangeEditStatePolicy
 {
     /// <summary>
+    /// Applies the edit-state policy for a specific roof kind. Hip currently has no
+    /// generated-timber edit lifecycle, so its persisted Locked state does not block a
+    /// valid source-footprint refresh. Other roof kinds retain the established lock rule.
+    /// </summary>
+    public static RoofSourceChangeKind EffectiveKind(
+        RoofKind roofKind,
+        RoofEditState editState,
+        RoofSourceChangeKind geometricKind) =>
+        roofKind == RoofKind.Hip
+            ? geometricKind
+            : EffectiveKind(editState, geometricKind);
+
+    /// <summary>
     /// Returns the effective source-change kind for the given persisted EditState,
     /// applying the Locked-roof shape-change rejection policy on top of the pure
     /// geometric classification.

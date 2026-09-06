@@ -1,6 +1,7 @@
 #if DEBUG
 using System.Text;
 using AcKrovy.Core.Models.Roofs;
+using AcKrovy.Core.Services;
 using AcKrovy.Core.Services.Roofs;
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
@@ -130,6 +131,31 @@ internal static class RoofRedoStateDiag
                 "\nROOF_RESIZE_TXN" +
                 " txn=" + transactionName +
                 " phase=" + phase);
+        }
+        catch
+        {
+        }
+    }
+
+    public static void TraceHipResize(
+        Autodesk.AutoCAD.EditorInput.Editor editor,
+        string ownerReference,
+        string? globalCommandName,
+        int vertexCount,
+        IReadOnlyList<RoofDisplayEdge> edges)
+    {
+        try
+        {
+            editor.WriteMessage(
+                "\nROOF_HIP_LIVE_RESIZE" +
+                " owner=" + ownerReference +
+                " command=" + LiveGeometryCommandRules.NormalizeCommandName(globalCommandName) +
+                " vertices=" + vertexCount +
+                " ridge=" + edges.Count(edge => HipRoofWireframe.IsRidgeRole(edge.Role)) +
+                " hip=" + edges.Count(edge =>
+                    edge.Role is >= RoofDisplayEdgeRole.Hip00 and <= RoofDisplayEdgeRole.Hip47) +
+                " valley=" + edges.Count(edge =>
+                    edge.Role is >= RoofDisplayEdgeRole.HipValley00 and <= RoofDisplayEdgeRole.HipValley31));
         }
         catch
         {

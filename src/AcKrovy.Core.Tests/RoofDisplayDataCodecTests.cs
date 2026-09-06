@@ -14,6 +14,12 @@ public sealed class RoofDisplayDataCodecTests
     [InlineData(RoofDisplayEdgeRole.GableSlope01)]
     [InlineData(RoofDisplayEdgeRole.GableSlope10)]
     [InlineData(RoofDisplayEdgeRole.GableSlope11)]
+    [InlineData(RoofDisplayEdgeRole.HipRidge00)]
+    [InlineData(RoofDisplayEdgeRole.HipRidge15)]
+    [InlineData(RoofDisplayEdgeRole.Hip00)]
+    [InlineData(RoofDisplayEdgeRole.Hip47)]
+    [InlineData(RoofDisplayEdgeRole.HipValley00)]
+    [InlineData(RoofDisplayEdgeRole.HipValley31)]
     public void CurrentSchema_RoundTripsEveryStableRole(RoofDisplayEdgeRole role)
     {
         var source = new RoofDisplayData(1, "2AF", role, "generation-signature");

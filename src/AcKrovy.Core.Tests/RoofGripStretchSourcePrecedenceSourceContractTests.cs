@@ -79,7 +79,11 @@ public sealed class RoofGripStretchSourcePrecedenceSourceContractTests
             ResizeService,
             "IReadOnlyCollection<ObjectId> displayTamperOwners = plan.DisplayTamperOwnerIds",
             "return plan.RelatedIds;");
-        Assert.Contains("IsUndoGroupingSourceCommand(globalCommandName)", displayBranch);
+        Assert.DoesNotContain("IsUndoGroupingSourceCommand(globalCommandName)", displayBranch);
+        Assert.True(AcKrovy.Core.Services.Roofs.RoofDisplayTamperRepairRules.ShouldRepair(
+            AcKrovy.Core.Models.Roofs.RoofEditState.Unlocked,
+            "GRIP_STRETCH"));
+        Assert.Contains("RoofDisplayTamperRepairRules.ShouldRepair(", ResizeService);
         Assert.Contains("Command_Roof_DisplayTamperNotificationTitle", displayBranch);
         Assert.Equal(1, Count(displayBranch, "TransientNotificationService.Show("));
     }

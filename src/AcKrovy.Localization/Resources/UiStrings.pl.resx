@@ -560,7 +560,7 @@
   <data name="Command_Roof_UnsupportedStretchNotificationTitle" xml:space="preserve"><value>Kształt dachu nie jest już obsługiwany.</value></data>
   <data name="Command_Roof_UnsupportedStretchNotificationBody" xml:space="preserve"><value>Cofnij ostatnią zmianę poleceniem Cofnij (U).</value></data>
   <data name="Command_Roof_UnsupportedStretchRecoveredNotificationTitle" xml:space="preserve"><value>Nieobsługiwana zmiana dachu została przywrócona.</value></data>
-  <data name="Command_Roof_UnsupportedStretchRecoveredNotificationBody" xml:space="preserve"><value>Obrys dachu musi pozostać prostokątny.</value></data>
+  <data name="Command_Roof_UnsupportedStretchRecoveredNotificationBody" xml:space="preserve"><value>Obrys dachu został przywrócony do ostatniego obsługiwanego kształtu.</value></data>
   <data name="Command_Roof_DisplayTamperNotificationTitle" xml:space="preserve"><value>Wybierz podstawowy obrys dachu</value></data>
   <data name="Command_Roof_DisplayTamperNotificationBody" xml:space="preserve"><value>Kształt dachu edytuj za pomocą jego obrysu. Pozostałe elementy aktualizują się automatycznie.</value></data>
   <data name="Command_Roof_PersistFailed" xml:space="preserve"><value>&#xA;Nie udało się zapisać definicji dachu.</value></data>

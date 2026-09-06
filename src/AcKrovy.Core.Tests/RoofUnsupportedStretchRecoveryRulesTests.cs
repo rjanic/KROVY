@@ -20,14 +20,22 @@ public sealed class RoofUnsupportedStretchRecoveryRulesTests
     }
 
     [Fact]
-    public void EligibleSnapshot_RequiresClosedFourFiniteVertices()
+    public void EligibleSnapshot_RequiresClosedValidFinitePolygon()
     {
         Assert.True(RoofUnsupportedStretchRecoveryRules.IsEligibleSnapshot(ValidSnapshot()));
+        Assert.True(RoofUnsupportedStretchRecoveryRules.IsEligibleSnapshot(
+            ValidSnapshot() with
+            {
+                Vertices = new[]
+                {
+                    P(0, 0), P(10, 0), P(10, 4), P(6, 4), P(6, 8), P(0, 8),
+                },
+            }));
         Assert.False(RoofUnsupportedStretchRecoveryRules.IsEligibleSnapshot(null));
         Assert.False(RoofUnsupportedStretchRecoveryRules.IsEligibleSnapshot(
             ValidSnapshot() with { IsClosed = false }));
         Assert.False(RoofUnsupportedStretchRecoveryRules.IsEligibleSnapshot(
-            ValidSnapshot() with { Vertices = new[] { P(0, 0), P(10, 0), P(10, 6) } }));
+            ValidSnapshot() with { Vertices = new[] { P(0, 0), P(10, 0) } }));
         Assert.False(RoofUnsupportedStretchRecoveryRules.IsEligibleSnapshot(
             ValidSnapshot() with { OwnerHandle = " " }));
         Assert.False(RoofUnsupportedStretchRecoveryRules.IsEligibleSnapshot(

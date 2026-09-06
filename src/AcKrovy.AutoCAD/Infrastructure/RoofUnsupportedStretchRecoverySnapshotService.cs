@@ -245,7 +245,7 @@ internal static class RoofUnsupportedStretchRecoverySnapshotService
         }
 
         var input = RoofPolylineExtractor.Extract(polyline);
-        if (input.Vertices is null || input.Vertices.Count != 4 || !input.IsClosed)
+        if (input.Vertices is null || input.Vertices.Count < 3 || !input.IsClosed)
         {
             return false;
         }

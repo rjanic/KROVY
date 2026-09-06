@@ -8,7 +8,7 @@
 
 **Verzia aplikácie:** autoritatívne v `Directory.Build.props`
 
-**Aktuálny míľnik:** General AutoCAD Hip / Valbová persistence + permanent display + EDIT – HOST PASS for Rectangle + L + U + T
+**Aktuálny míľnik:** General AutoCAD Hip / Valbová STRETCH + grip live lifecycle – HOST PASS for Rectangle + L + U + T
 
 **Overovanie:** Debug/Release build, kompletné automatické testy a Portable/Full Compatibility Gate
 
@@ -606,7 +606,23 @@ Stabilný commit: `4a951041e2deef40a127ac9560cf6fb2ba4b6a5b`
   - `AK_ROOF_EDIT` načíta uložený sklon, ponechá pole editovateľné a po `Použiť` atomicky aktualizuje definíciu a display bez duplikácie čiar,
   - `DBMOD` sa po Apply zmení a nový sklon prežije QSAVE/reopen,
   - Cancel/zavretie dialógu bez Apply nevstupuje do zápisu (`DBMOD` ostáva nezmenený);
-- ďalšie oblasti ako STRETCH, grip editing, live refresh, COPY/ERASE/UNDO-REDO lifecycle expanzia, krokvy/drevené prvky, 500 mm Settings hodnota či širšia polygonálna HOST certifikácia mimo Rectangle/L/U/T ostávajú future work.
+- Hip source STRETCH a priame grip/vertex úpravy sú overené na AutoCAD HOST:
+  - existujúci `ObjectModified` → deduplikovaný pending set → `CommandEnded` lifecycle
+    spracováva finálny platný source v Core z uloženého uniformného sklonu,
+  - schema-5 descriptor sa aktualizuje a jediný dynamický Ridge/Hip/Valley display + kanonická
+    GROUP sa obnovia v jednej transakcii,
+  - neplatný finálny source používa existujúcu atómovú assembly recovery zo snapshotu,
+  - Cancel a U/UNDO/REDO vetvy zostávajú bez refresh zápisu,
+  - manuálny HOST test potvrdil živý STRETCH aj grip refresh pre Rectangle, L, U aj T pôdorysy,
+- Locked derived-display ochrana je overená na AutoCAD HOST (test B1, `PICKSTYLE=0`):
+  - priamy MOVE/ROTATE/SCALE odvodeného permanentného display prvku sa automaticky opraví
+    a display sa obnoví zo zdrojovej Polyline a uloženej definície,
+  - zdrojová Polyline ostáva autoritatívna, kanonická GROUP sa zachová a nevznikajú duplikáty,
+  - globálny AutoCAD `PICKSTYLE` sa nemení,
+- priame mazanie odvodeného display prvku cez `ERASE` ostáva otvorené (Locked derived-display ERASE protection: PENDING)
+  a je plánované ako spoločný roof lifecycle fix pre Sedlovú, Pultovú aj Valbovú strechu,
+- ďalšie oblasti ako COPY lifecycle expanzia, krokvy/drevené prvky, 500 mm
+  Settings hodnota či širšia polygonálna HOST certifikácia ostávajú future work.
 
 ### STRECHY S2 – Roof COPY / STRETCH / GROUP GRIP (stabilný HOST checkpoint)
 - **Supported source STRETCH:** gable-end aj eave-side, enlarge/shrink, rotated,
@@ -745,7 +761,8 @@ Multi-CAD kompatibilita sa má overiť ešte pred tým, než projekt prerastie d
 
 ## Najbližšia priorita
 1. DEFERRED – generated rafters following rigid MOVE / `RigidGroupTransform`,
-2. Valbová timber / rafter generovanie a pravidlá (Rectangle, L, U, T majú persistence + permanent display + EDIT **HOST PASS**),
-3. compatibility checkpoint a alternatívne CAD adaptéry bez vendor typov v Core.
+2. Locked derived-display ERASE ochrana (Sedlová, Pultová, Valbová),
+3. Valbová timber / rafter generovanie a pravidlá (Rectangle, L, U, T majú STRETCH + grip live lifecycle **HOST PASS**),
+4. compatibility checkpoint a alternatívne CAD adaptéry bez vendor typov v Core.
 
 Presné poradie je v `ACAD_KROVY_ROADMAP.md`, úplný zásobník nápadov v `ACAD_KROVY_BACKLOG.md`.

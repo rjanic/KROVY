@@ -1,7 +1,7 @@
 namespace AcKrovy.Core.Models.Roofs;
 
 /// <summary>
-/// Classification of a live source footprint relative to a persisted SimpleGable definition.
+/// Classification of a live source footprint relative to a persisted roof definition.
 /// </summary>
 public enum RoofSourceChangeKind
 {

@@ -1370,14 +1370,14 @@ internal static class RoofUnsupportedStretchRecoveryService
         RoofUnsupportedStretchSourceSnapshotData snapshot)
     {
         var vertices = snapshot.Vertices;
-        if (vertices.Count != 4)
+        if (vertices.Count < 3)
         {
-            throw new InvalidOperationException("Recovery snapshot requires four vertices.");
+            throw new InvalidOperationException("Recovery snapshot requires at least three vertices.");
         }
 
-        if (owner.NumberOfVertices == 4)
+        if (owner.NumberOfVertices == vertices.Count)
         {
-            for (var i = 0; i < 4; i++)
+            for (var i = 0; i < vertices.Count; i++)
             {
                 owner.SetPointAt(i, new Point2d(vertices[i].X, vertices[i].Y));
                 owner.SetBulgeAt(i, 0d);
@@ -1390,7 +1390,7 @@ internal static class RoofUnsupportedStretchRecoveryService
                 owner.RemoveVertexAt(0);
             }
 
-            for (var i = 0; i < 4; i++)
+            for (var i = 0; i < vertices.Count; i++)
             {
                 owner.AddVertexAt(i, new Point2d(vertices[i].X, vertices[i].Y), 0d, 0d, 0d);
             }
@@ -1545,6 +1545,7 @@ internal static class RoofUnsupportedStretchRecoveryService
         return geometric with
         {
             Kind = RoofSourceChangeEditStatePolicy.EffectiveKind(
+                stored.Data.Kind,
                 stored.Data.EditState,
                 geometric.Kind),
         };

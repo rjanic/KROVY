@@ -560,7 +560,7 @@
   <data name="Command_Roof_UnsupportedStretchNotificationTitle" xml:space="preserve"><value>La forme du toit n'est plus prise en charge.</value></data>
   <data name="Command_Roof_UnsupportedStretchNotificationBody" xml:space="preserve"><value>Annulez la dernière modification avec Annuler (U).</value></data>
   <data name="Command_Roof_UnsupportedStretchRecoveredNotificationTitle" xml:space="preserve"><value>Modification de toit non prise en charge restaurée.</value></data>
-  <data name="Command_Roof_UnsupportedStretchRecoveredNotificationBody" xml:space="preserve"><value>Le contour du toit doit rester rectangulaire.</value></data>
+  <data name="Command_Roof_UnsupportedStretchRecoveredNotificationBody" xml:space="preserve"><value>Le contour du toit a été restauré à la dernière forme prise en charge.</value></data>
   <data name="Command_Roof_DisplayTamperNotificationTitle" xml:space="preserve"><value>Sélectionnez le contour du toit</value></data>
   <data name="Command_Roof_DisplayTamperNotificationBody" xml:space="preserve"><value>Modifiez la forme du toit à l'aide de son contour. Les autres éléments se mettent à jour automatiquement.</value></data>
   <data name="Command_Roof_PersistFailed" xml:space="preserve"><value>&#xA;La définition du toit n'a pas pu être enregistrée.</value></data>

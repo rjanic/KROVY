@@ -297,7 +297,7 @@ public sealed class RoofUnsupportedStretchRecoverySourceContractTests
             "Nepodporovaná zmena strechy bola vrátená.",
             Value("Command_Roof_UnsupportedStretchRecoveredNotificationTitle"));
         Assert.Equal(
-            "Obrys strechy musí zostať obdĺžnikový.",
+            "Obrys strechy bol obnovený na posledný podporovaný tvar.",
             Value("Command_Roof_UnsupportedStretchRecoveredNotificationBody"));
         Assert.Equal(
             "Vráťte poslednú zmenu príkazom Späť (U).",

@@ -1,4 +1,7 @@
 using System.Xml.Linq;
+using AcKrovy.Core.Models.Roofs;
+using AcKrovy.Core.Services;
+using AcKrovy.Core.Services.Roofs;
 using Xunit;
 
 namespace AcKrovy.Core.Tests;
@@ -22,8 +25,6 @@ public sealed class RoofDisplayTamperStretchSourceContractTests
         "src", "AcKrovy.AutoCAD", "UI", "TransientNotificationWindow.xaml.cs");
     private static readonly string NotificationXaml = Read(
         "src", "AcKrovy.AutoCAD", "UI", "TransientNotificationWindow.xaml");
-    private static readonly string CommandRules = Read(
-        "src", "AcKrovy.Core", "Services", "LiveGeometryCommandRules.cs");
 
     [Fact]
     public void DisplayChildMutation_WithUnchangedSource_ClassifiesAsDisplayTamper()
@@ -37,6 +38,8 @@ public sealed class RoofDisplayTamperStretchSourceContractTests
         Assert.Contains("displayTamperCandidates.Add(resolution.OwnerId)", inspect);
         Assert.Contains("resizeOwners.Contains(ownerId)", inspect);
         Assert.Contains("unsupportedOwners.Contains(ownerId)", inspect);
+        Assert.Contains("RoofDisplayTamperRepairRules.ShouldRepair(", inspect);
+        Assert.Contains("displayOwnerDefinition.EditState", inspect);
         Assert.Contains("displayTamperOwners.Add(ownerId)", inspect);
         Assert.Contains("generatedMemberTamperOwners", ResizeService);
         Assert.Contains("DisplayTamperOwnerIds", ResizeService);
@@ -64,6 +67,7 @@ public sealed class RoofDisplayTamperStretchSourceContractTests
         Assert.Contains("RoofSourceChangeKind.RigidEquivalent", repair);
         Assert.Contains("RoofWireframe.Create(", repair);
         Assert.Contains("RoofDisplayService.Rebuild(", repair);
+        Assert.DoesNotContain("RoofKind.Hip", repair);
         Assert.DoesNotContain("RoofDefinitionStore.Write(", repair);
         Assert.DoesNotContain("RoofDefinitionPersistence.Create(", repair);
         Assert.Contains("EnsureGroup(", DisplayService);
@@ -96,7 +100,7 @@ public sealed class RoofDisplayTamperStretchSourceContractTests
             ResizeService,
             "IReadOnlyCollection<ObjectId> displayTamperOwners = plan.DisplayTamperOwnerIds",
             "return plan.RelatedIds;");
-        Assert.Contains("IsUndoGroupingSourceCommand(globalCommandName)", displayBranch);
+        Assert.DoesNotContain("IsUndoGroupingSourceCommand(globalCommandName)", displayBranch);
         Assert.Contains("ApplyDisplayTampers(", displayBranch);
         Assert.Contains("TransientNotificationService.Show(", displayBranch);
         Assert.Contains("Command_Roof_DisplayTamperNotificationTitle", displayBranch);
@@ -162,23 +166,43 @@ public sealed class RoofDisplayTamperStretchSourceContractTests
     }
 
     [Fact]
-    public void MoveRotateRemainOutOfDisplayTamperScope()
+    public void LockedRoof_RepairsKnownDirectDisplayCommands_WithoutChangingUnlockedMovePolicy()
     {
-        Assert.False(AcKrovy.Core.Services.LiveGeometryCommandRules.IsUndoGroupingSourceCommand("MOVE"));
-        Assert.False(AcKrovy.Core.Services.LiveGeometryCommandRules.IsUndoGroupingSourceCommand("ROTATE"));
-        Assert.True(AcKrovy.Core.Services.LiveGeometryCommandRules.IsUndoGroupingSourceCommand("STRETCH"));
-        Assert.True(AcKrovy.Core.Services.LiveGeometryCommandRules.IsUndoGroupingSourceCommand("GRIP_STRETCH"));
+        Assert.True(RoofDisplayTamperRepairRules.ShouldRepair(RoofEditState.Locked, "MOVE"));
+        Assert.True(RoofDisplayTamperRepairRules.ShouldRepair(RoofEditState.Locked, "ROTATE"));
+        Assert.True(RoofDisplayTamperRepairRules.ShouldRepair(RoofEditState.Locked, "SCALE"));
+        Assert.True(RoofDisplayTamperRepairRules.ShouldRepair(RoofEditState.Locked, "STRETCH"));
+        Assert.True(RoofDisplayTamperRepairRules.ShouldRepair(RoofEditState.Locked, "GRIP_STRETCH"));
+        Assert.False(RoofDisplayTamperRepairRules.ShouldRepair(RoofEditState.Locked, "ERASE"));
+        Assert.False(RoofDisplayTamperRepairRules.ShouldRepair(RoofEditState.Unlocked, "MOVE"));
+        Assert.True(RoofDisplayTamperRepairRules.ShouldRepair(RoofEditState.Unlocked, "STRETCH"));
+        Assert.True(RoofDisplayTamperRepairRules.ShouldRepair(RoofEditState.Unlocked, "GRIP_STRETCH"));
         var displayBranch = Segment(
             ResizeService,
             "IReadOnlyCollection<ObjectId> displayTamperOwners = plan.DisplayTamperOwnerIds",
             "return plan.RelatedIds;");
-        Assert.Contains("IsUndoGroupingSourceCommand(globalCommandName)", displayBranch);
-        var stretchGrouping = Segment(
-            CommandRules,
-            "public static bool IsUndoGroupingSourceCommand",
-            "public static bool IsCopySourcePreservingCommand");
-        Assert.DoesNotContain("\"MOVE\"", stretchGrouping);
-        Assert.DoesNotContain("\"ROTATE\"", stretchGrouping);
+        Assert.DoesNotContain("IsUndoGroupingSourceCommand(globalCommandName)", displayBranch);
+        Assert.Contains("RoofDisplayTamperRepairRules.ShouldRepair(", ResizeService);
+        Assert.True(LiveGeometryCommandRules.RequiresGroupedUndoMark("MOVE"));
+    }
+
+    [Theory]
+    [InlineData("U")]
+    [InlineData("UNDO")]
+    [InlineData("REDO")]
+    [InlineData("MREDO")]
+    public void UndoRedo_NeverQualifiesForDisplayTamperRepair(string command)
+    {
+        Assert.False(RoofDisplayTamperRepairRules.ShouldRepair(RoofEditState.Locked, command));
+    }
+
+    [Fact]
+    public void Pickstyle_RemainsReadOnlyDiagnostics_NotAGlobalMutation()
+    {
+        var selectability = Read(
+            "src", "AcKrovy.AutoCAD", "Infrastructure", "RoofDisplayGroupSelectabilityService.cs");
+        Assert.Contains("GetSystemVariable(\"PICKSTYLE\")", selectability);
+        Assert.DoesNotContain("SetSystemVariable(\"PICKSTYLE\"", selectability + ResizeService);
     }
 
     [Fact]

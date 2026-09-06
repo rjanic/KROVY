@@ -49,6 +49,23 @@ public sealed class RoofLockedShapeChangeRejectionSourceContractTests
     }
 
     [Fact]
+    public void Policy_AllowsLockedHipSourceRefreshWithoutWeakeningOtherRoofKinds()
+    {
+        Assert.Equal(
+            RoofSourceChangeKind.SupportedResize,
+            RoofSourceChangeEditStatePolicy.EffectiveKind(
+                RoofKind.Hip,
+                RoofEditState.Locked,
+                RoofSourceChangeKind.SupportedResize));
+        Assert.Equal(
+            RoofSourceChangeKind.Unsupported,
+            RoofSourceChangeEditStatePolicy.EffectiveKind(
+                RoofKind.SimpleGable,
+                RoofEditState.Locked,
+                RoofSourceChangeKind.SupportedResize));
+    }
+
+    [Fact]
     public void LiveResizeClassifyOwner_AppliesEditStatePolicy()
     {
         var resize = Read(Infra + "RoofLiveResizeService.cs");
@@ -58,6 +75,7 @@ public sealed class RoofLockedShapeChangeRejectionSourceContractTests
             "private static bool TryInvokeUndoMark");
         Assert.Contains("RoofDefinitionPersistence.Classify", method);
         Assert.Contains("RoofSourceChangeEditStatePolicy.EffectiveKind", method);
+        Assert.Contains("stored.Data.Kind", method);
         Assert.Contains("stored.Data.EditState", method);
     }
 
@@ -84,7 +102,8 @@ public sealed class RoofLockedShapeChangeRejectionSourceContractTests
             resize,
             "private static InspectionPlan Inspect(",
             "return new InspectionPlan(");
-        Assert.Contains("switch (ClassifyOwner(polyline).Kind)", inspect);
+        Assert.Contains("switch (ClassifyOwner(", inspect);
+        Assert.Contains("treatHipDisplayDriftAsResize: true", inspect);
         Assert.Contains("case RoofSourceChangeKind.SupportedResize:", inspect);
         Assert.Contains("resizeOwners.Add(id);", inspect);
         Assert.Contains("case RoofSourceChangeKind.Unsupported:", inspect);

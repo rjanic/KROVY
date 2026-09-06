@@ -211,6 +211,16 @@ public static class RoofDefinitionPersistence
             throw new ArgumentNullException(nameof(data));
         }
 
+        // Normal reload keeps the persisted Hip source guard strict. Only the live
+        // command-boundary Classify path may solve a changed valid source so it can
+        // atomically refresh the descriptor and derived display.
+        if (data.Kind == RoofKind.Hip)
+        {
+            return RoofDefinitionDataCodec.TryValidate(data, out _)
+                ? RestoreHip(source, footprint, data)
+                : Invalid(RoofDefinitionRestoreError.InvalidDefinition);
+        }
+
         var classified = Classify(source, footprint, data);
         return classified.Geometry is not null
             ? new RoofDefinitionRestoreResult(
@@ -222,8 +232,9 @@ public static class RoofDefinitionPersistence
 
     /// <summary>
     /// Classifies the current source against persisted roof data without writing.
-    /// Rigid MOVE/ROTATE and supported rectangular legacy-roof STRETCH restore geometry;
-    /// Hip reload remains definition-only and requires its persisted source guard.
+    /// Rigid MOVE/ROTATE and supported legacy-roof rectangular resize preserve their
+    /// established semantics. Hip classification solves any valid current simple polygon
+    /// from the persisted slope; normal reload remains protected by its persisted guard.
     /// </summary>
     public static RoofSourceChangeClassification Classify(
         RoofFootprintInput source,
@@ -312,6 +323,11 @@ public static class RoofDefinitionPersistence
         RoofFootprint footprint,
         RoofDefinitionData data)
     {
+        if (data.Kind == RoofKind.Hip)
+        {
+            return ClassifyHip(source, footprint, data);
+        }
+
         var restored = RestoreV2(source, footprint, data);
         if (!restored.IsValid || restored.Geometry is null)
         {
@@ -340,6 +356,43 @@ public static class RoofDefinitionPersistence
         return new RoofSourceChangeClassification(
             kind,
             restored.Geometry,
+            RoofDefinitionRestoreError.None);
+    }
+
+    private static RoofSourceChangeClassification ClassifyHip(
+        RoofFootprintInput source,
+        RoofFootprint footprint,
+        RoofDefinitionData data)
+    {
+        if (data.RigidFootprint is null ||
+            data.RidgeEdgeFamily is not null ||
+            !TryReadSourceTopology(source, out var topology))
+        {
+            return new RoofSourceChangeClassification(
+                RoofSourceChangeKind.Unsupported,
+                null,
+                RoofDefinitionRestoreError.StaleFootprint);
+        }
+
+        var solved = RoofGeometrySolver.Solve(new RoofDefinition(
+            footprint,
+            new RoofParameters(data.Face0SlopeDegrees),
+            RoofKind.Hip));
+        if (!solved.IsValid || solved.Geometry is not HipRoofGeometry hipGeometry)
+        {
+            return new RoofSourceChangeClassification(
+                RoofSourceChangeKind.Unsupported,
+                null,
+                RoofDefinitionRestoreError.StaleFootprint);
+        }
+
+        var kind = Matches(topology.Descriptor, data.RigidFootprint) ||
+                   MatchesOrientationFlippedRigid(topology.Descriptor, data.RigidFootprint)
+            ? RoofSourceChangeKind.RigidEquivalent
+            : RoofSourceChangeKind.SupportedResize;
+        return new RoofSourceChangeClassification(
+            kind,
+            hipGeometry,
             RoofDefinitionRestoreError.None);
     }
 
