@@ -8,7 +8,7 @@
 
 **Verzia aplikácie:** autoritatívne v `Directory.Build.props`
 
-**Aktuálny míľnik:** AutoCAD Valbová persistence, permanent display and editable slope – HOST PASS for rectangular lifecycle
+**Aktuálny míľnik:** General AutoCAD Hip / Valbová persistence + permanent display + EDIT – HOST PASS for Rectangle + L + U + T
 
 **Overovanie:** Debug/Release build, kompletné automatické testy a Portable/Full Compatibility Gate
 
@@ -599,8 +599,14 @@ Stabilný commit: `4a951041e2deef40a127ac9560cf6fb2ba4b6a5b`
     WPF a source-contract testy chránia Create/Edit texty, editovateľnosť, transient
     Preview, spoločnú atomickú Apply cestu a reload nového sklonu,
 - ProductVersion ostáva `0.23.0`, roof schema `5`, timber schema `7` a drawing
-  settings schema `1`. Obdĺžnikový životný cyklus (CREATE, persistence, permanent display, reload a EDIT 30° → 45°) má **HOST PASS**;
-  L/U/T pôdorysy majú HOST preview PASS, pričom ich persistence a EDIT HOST testovanie je future work.
+  settings schema `1`. Obdĺžnikový aj konkávny životný cyklus (CREATE, persistence, permanent display, reload a EDIT so zmenou sklonu) má **HOST PASS** pre všetky 4 cieľové tvary: Rectangle, L, U a T;
+- manuálny HOST test potvrdil pre Rectangle, L, U aj T:
+  - `Vytvoriť` vytvorí a uloží definíciu aj permanentný display (Ridge, Hip, Valley; bez Eave a CoplanarSeam),
+  - QSAVE a reopen výkresu bezpečne zachovajú definíciu aj display,
+  - `AK_ROOF_EDIT` načíta uložený sklon, ponechá pole editovateľné a po `Použiť` atomicky aktualizuje definíciu a display bez duplikácie čiar,
+  - `DBMOD` sa po Apply zmení a nový sklon prežije QSAVE/reopen,
+  - Cancel/zavretie dialógu bez Apply nevstupuje do zápisu (`DBMOD` ostáva nezmenený);
+- ďalšie oblasti ako STRETCH, grip editing, live refresh, COPY/ERASE/UNDO-REDO lifecycle expanzia, krokvy/drevené prvky, 500 mm Settings hodnota či širšia polygonálna HOST certifikácia mimo Rectangle/L/U/T ostávajú future work.
 
 ### STRECHY S2 – Roof COPY / STRETCH / GROUP GRIP (stabilný HOST checkpoint)
 - **Supported source STRETCH:** gable-end aj eave-side, enlarge/shrink, rotated,
@@ -739,7 +745,7 @@ Multi-CAD kompatibilita sa má overiť ešte pred tým, než projekt prerastie d
 
 ## Najbližšia priorita
 1. DEFERRED – generated rafters following rigid MOVE / `RigidGroupTransform`,
-2. L/U/T Valbová persistence a EDIT HOST validácia (H1–H4 transient preview ostávajú **HOST PASS**, obdĺžnikový životný cyklus je **HOST PASS**),
+2. Valbová timber / rafter generovanie a pravidlá (Rectangle, L, U, T majú persistence + permanent display + EDIT **HOST PASS**),
 3. compatibility checkpoint a alternatívne CAD adaptéry bez vendor typov v Core.
 
 Presné poradie je v `ACAD_KROVY_ROADMAP.md`, úplný zásobník nápadov v `ACAD_KROVY_BACKLOG.md`.
