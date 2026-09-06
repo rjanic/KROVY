@@ -12,10 +12,12 @@ namespace AcKrovy.AutoCAD.Infrastructure;
 
 /// <summary>
 /// AK_ROOF_EDIT: edits an already-created gable or Monopitch roof through
-/// the shared GableRoofGeometryWindow. The dialog is seeded from the persisted
-/// definition (kind, slopes, ΔH and the persisted semantic direction — never the
-/// footprint fallback). Everything before Apply is read-only: transient preview
-/// only, no definition write, no display/rafter/annotation/group mutation.
+/// the shared GableRoofGeometryWindow. Persisted Hip roofs use their focused
+/// uniform-slope edit dialog. The Gable dialog is seeded from the persisted
+/// definition (kind, slopes, ΔH and the
+/// persisted semantic direction — never the footprint fallback). Everything
+/// before Apply is read-only: transient preview only, no definition write, no
+/// display/rafter/annotation/group mutation.
 /// Apply rebases the existing definition to the edited physical geometry and
 /// replays the canonical rebuild pipeline (display rebuild, generated-set
 /// replacement, anchored AttachedManual replay, group/indicator/selectability
@@ -136,6 +138,26 @@ internal static class RoofEditCommandWorkflow
         IRoofGeometry restoredGeometry)
     {
         var footprint = validation.Footprint!;
+        if (storedDefinition.Kind == RoofKind.Hip)
+        {
+            if (restoredGeometry is HipRoofGeometry hipGeometry)
+            {
+                RunHipEditDialog(
+                    document,
+                    ownerId,
+                    ownerReference,
+                    footprint,
+                    sourceElevation,
+                    hipGeometry);
+            }
+            else
+            {
+                document.Editor.WriteMessage(UiStrings.GetString(
+                    "Command_Roof_PersistedInvalid"));
+            }
+            return;
+        }
+
         var viewModel = new GableRoofGeometryViewModel(
             footprint,
             storedDefinition.Kind,
@@ -216,10 +238,97 @@ internal static class RoofEditCommandWorkflow
     }
 
     /// <summary>
+    /// Loads a persisted Hip definition into its focused edit UI. Preview and Cancel
+    /// stay read-only; Apply enters the shared atomic definition/display pipeline.
+    /// </summary>
+    private static void RunHipEditDialog(
+        Document document,
+        ObjectId ownerId,
+        string ownerReference,
+        RoofFootprint footprint,
+        double sourceElevation,
+        HipRoofGeometry restoredGeometry)
+    {
+        var viewModel = new HipRoofPreviewViewModel(
+            footprint,
+            restoredGeometry.PrimarySlopeDegrees,
+            HipRoofDialogMode.Edit);
+        var dialog = new HipRoofPreviewWindow(
+            viewModel,
+            SettingsUiPreferencesStore.Load().Theme);
+        SettingsWindowOwner.TryAssign(dialog, TryGetAutoCadMainWindowHandle());
+#if DEBUG
+        System.Diagnostics.Debug.WriteLine(
+            $"[AK_ROOF_HIP] edit loaded token=Hip " +
+            $"slope={restoredGeometry.PrimarySlopeDegrees:R} owner={ownerReference}");
+#endif
+        try
+        {
+            while (!dialog.IsClosed)
+            {
+                dialog.PrepareForInteraction();
+                _ = AcApp.ShowModalWindow(dialog);
+                switch (dialog.RequestedAction)
+                {
+                    case HipRoofPreviewDialogAction.Preview:
+                        if (!viewModel.TryGetRoofGeometry(out var previewGeometry) ||
+                            previewGeometry is null)
+                        {
+                            continue;
+                        }
+
+                        document.Editor.SetImpliedSelection([ownerId]);
+                        document.Editor.UpdateScreen();
+                        try
+                        {
+                            ShowPreview(document, previewGeometry, sourceElevation);
+                        }
+                        finally
+                        {
+                            document.Editor.SetImpliedSelection(Array.Empty<ObjectId>());
+                        }
+                        continue;
+
+                    case HipRoofPreviewDialogAction.Apply:
+                        if (!viewModel.TryGetRoofGeometry(out var geometry) || geometry is null)
+                        {
+                            continue;
+                        }
+
+                        var outcome = TryApply(
+                            document,
+                            ownerId,
+                            ownerReference,
+                            restoredGeometry,
+                            geometry,
+                            out var failureMessageKey);
+                        document.Editor.WriteMessage(UiStrings.GetString(
+                            outcome is not null
+                                ? GetSoftReplacementMessage(outcome.Value)
+                                : failureMessageKey));
+                        document.Editor.SetImpliedSelection(Array.Empty<ObjectId>());
+                        return;
+
+                    default:
+                        return;
+                }
+            }
+        }
+        finally
+        {
+            if (!dialog.IsClosed)
+            {
+                dialog.Close();
+            }
+        }
+    }
+
+    /// <summary>
     /// Applies the edited geometry to the EXISTING roof. Re-validates the source,
-    /// rebases the persisted definition (schema 5), rebuilds the permanent display,
-    /// regenerates the generated rafter set through the proven replacement path and
-    /// replays anchored AttachedManual children against their rebuilt anchors.
+    /// rebases the persisted definition (schema 5) and rebuilds the permanent display.
+    /// Supported Gable and Monopitch roofs also regenerate the generated rafter set
+    /// through the proven replacement path and replay anchored AttachedManual children
+    /// against their rebuilt anchors. Hip roofs finish with canonical group sync.
     /// A single write transaction; no lock/transaction is held while the dialog is
     /// open or while the transient preview is active.
     /// </summary>
@@ -258,11 +367,14 @@ internal static class RoofEditCommandWorkflow
                 currentStored.Data,
                 currentInput,
                 newGeometry);
-            data = MonopitchRoofDefinitionRules
-                .PreserveGeneratedMemberOverridesAcrossSemanticMirror(
-                    data,
-                    selectionGeometry,
-                    newGeometry);
+            if (newGeometry is not HipRoofGeometry)
+            {
+                data = MonopitchRoofDefinitionRules
+                    .PreserveGeneratedMemberOverridesAcrossSemanticMirror(
+                        data,
+                        selectionGeometry,
+                        newGeometry);
+            }
             var restored = RoofDefinitionPersistence.Restore(
                 currentInput,
                 current.Footprint,
@@ -273,13 +385,14 @@ internal static class RoofEditCommandWorkflow
                 return null;
             }
 
-            if (!RoofAttachedManualLifecycleService.TryRebaseForMonopitchSemanticMirror(
-                    document,
-                    transaction,
-                    owner,
-                    selectionGeometry,
-                    newGeometry,
-                    currentStored.Data.Overrides))
+            if (newGeometry is not HipRoofGeometry &&
+                !RoofAttachedManualLifecycleService.TryRebaseForMonopitchSemanticMirror(
+                        document,
+                        transaction,
+                        owner,
+                        selectionGeometry,
+                        newGeometry,
+                        currentStored.Data.Overrides))
             {
                 failureMessageKey = "Command_RoofRafters_GenerationFailed";
                 return null;
@@ -310,21 +423,24 @@ internal static class RoofEditCommandWorkflow
                 StringComparison.Ordinal);
             var outcome = RoofGeneratedRafterSetService.ReplacementOutcome.NotApplicable;
             RoofGeneratedAnchorResolutionContext? anchorResolutionContext = null;
-            outcome = RoofGeneratedRafterSetService.TryReplaceForSupportedResize(
-                document.Database,
-                transaction,
-                document.Editor,
-                owner,
-                restored.Geometry,
-                TimberElementDefaultProfileStore.Load(),
-                ElementLayerProfileStore.Load(),
-                out anchorResolutionContext,
-                forceRegenerateOnSourceResize: geometryChanged,
-                rebuildReason: "roof-edit");
-            if (outcome == RoofGeneratedRafterSetService.ReplacementOutcome.Failed)
+            if (restored.Geometry is not HipRoofGeometry)
             {
-                failureMessageKey = "Command_RoofRafters_GenerationFailed";
-                return null;
+                outcome = RoofGeneratedRafterSetService.TryReplaceForSupportedResize(
+                    document.Database,
+                    transaction,
+                    document.Editor,
+                    owner,
+                    restored.Geometry,
+                    TimberElementDefaultProfileStore.Load(),
+                    ElementLayerProfileStore.Load(),
+                    out anchorResolutionContext,
+                    forceRegenerateOnSourceResize: geometryChanged,
+                    rebuildReason: "roof-edit");
+                if (outcome == RoofGeneratedRafterSetService.ReplacementOutcome.Failed)
+                {
+                    failureMessageKey = "Command_RoofRafters_GenerationFailed";
+                    return null;
+                }
             }
 
             if (outcome == RoofGeneratedRafterSetService.ReplacementOutcome.Replaced)

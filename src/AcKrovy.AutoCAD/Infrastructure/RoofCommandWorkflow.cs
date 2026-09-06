@@ -99,14 +99,6 @@ internal static class RoofCommandWorkflow
                 continue;
             }
 
-            // The first Hip milestone is preview-only. A source with existing roof
-            // metadata stays on its established lifecycle and cannot enter this path.
-            if (requestedKind == RoofKind.Hip && storedDefinition.Exists)
-            {
-                editor.WriteMessage(UiStrings.GetString("Command_Roof_PersistConflict"));
-                continue;
-            }
-
             if (storedDefinition.Exists)
             {
                 if (storedDefinition.Data is null)
@@ -131,6 +123,19 @@ internal static class RoofCommandWorkflow
                 editor.SetImpliedSelection([ownerId]);
                 editor.WriteMessage(UiStrings.GetString("Command_Roof_PersistedLoaded"));
                 ShowPreview(document, restored.Geometry, sourceElevation);
+
+#if DEBUG
+                if (restored.Geometry is HipRoofGeometry hipGeometry)
+                {
+                    System.Diagnostics.Debug.WriteLine(
+                        $"[AK_ROOF_HIP] reload success token=Hip " +
+                        $"slope={hipGeometry.PrimarySlopeDegrees:R} " +
+                        $"vertices={validation.Footprint.Vertices.Count} " +
+                        $"hip={hipGeometry.Topology.Edges.Count(edge => edge.Kind == RoofTopologyEdgeKind.Hip)} " +
+                        $"ridge={hipGeometry.Topology.Edges.Count(edge => edge.Kind == RoofTopologyEdgeKind.Ridge)} " +
+                        $"valley={hipGeometry.Topology.Edges.Count(edge => edge.Kind == RoofTopologyEdgeKind.Valley)}");
+                }
+#endif
 
                 var edges = RoofWireframe.Create(restored.Geometry, sourceElevation);
                 var signature = RoofWireframe.BuildGenerationSignature(edges);
@@ -219,6 +224,7 @@ internal static class RoofCommandWorkflow
             RunHipPreviewDialog(
                 document,
                 ownerId,
+                sourceInput,
                 validation,
                 sourceElevation);
             return;
@@ -297,12 +303,13 @@ internal static class RoofCommandWorkflow
     }
 
     /// <summary>
-    /// Preview-only firewall: this member receives neither source input nor a
-    /// persistence callback and exits immediately after the transient session.
+    /// Hip create boundary: preview stays read-only and Apply enters the shared
+    /// transactional definition store without creating legacy permanent display.
     /// </summary>
     private static void RunHipPreviewDialog(
         Document document,
         ObjectId ownerId,
+        RoofFootprintInput sourceInput,
         RoofValidationResult validation,
         double sourceElevation)
     {
@@ -314,32 +321,78 @@ internal static class RoofCommandWorkflow
         SettingsWindowOwner.TryAssign(dialog, TryGetAutoCadMainWindowHandle());
         try
         {
-            _ = AcApp.ShowModalWindow(dialog);
-            if (dialog.RequestedAction != HipRoofPreviewDialogAction.Preview ||
-                !viewModel.TryGetRoofGeometry(out var geometry) ||
-                geometry is null)
+            while (!dialog.IsClosed)
             {
-                return;
-            }
+                dialog.PrepareForInteraction();
+                _ = AcApp.ShowModalWindow(dialog);
+                switch (dialog.RequestedAction)
+                {
+                    case HipRoofPreviewDialogAction.Preview:
+                        if (!viewModel.TryGetRoofGeometry(out var previewGeometry) ||
+                            previewGeometry is null)
+                        {
+                            continue;
+                        }
 
 #if DEBUG
-            System.Diagnostics.Debug.WriteLine(
-                $"[AK_ROOF_HIP] kind={RoofKind.Hip} vertices={footprint.Vertices.Count} " +
-                $"nodes={geometry.Topology.Nodes.Count} " +
-                $"hip={geometry.Topology.Edges.Count(edge => edge.Kind == RoofTopologyEdgeKind.Hip)} " +
-                $"ridge={geometry.Topology.Edges.Count(edge => edge.Kind == RoofTopologyEdgeKind.Ridge)} " +
-                $"valley={geometry.Topology.Edges.Count(edge => edge.Kind == RoofTopologyEdgeKind.Valley)} " +
-                $"seam={geometry.Topology.Edges.Count(edge => edge.Kind == RoofTopologyEdgeKind.CoplanarSeam)}");
+                        System.Diagnostics.Debug.WriteLine(
+                            $"[AK_ROOF_HIP] kind={RoofKind.Hip} vertices={footprint.Vertices.Count} " +
+                            $"nodes={previewGeometry.Topology.Nodes.Count} " +
+                            $"hip={previewGeometry.Topology.Edges.Count(edge => edge.Kind == RoofTopologyEdgeKind.Hip)} " +
+                            $"ridge={previewGeometry.Topology.Edges.Count(edge => edge.Kind == RoofTopologyEdgeKind.Ridge)} " +
+                            $"valley={previewGeometry.Topology.Edges.Count(edge => edge.Kind == RoofTopologyEdgeKind.Valley)} " +
+                            $"seam={previewGeometry.Topology.Edges.Count(edge => edge.Kind == RoofTopologyEdgeKind.CoplanarSeam)}");
 #endif
-            document.Editor.SetImpliedSelection([ownerId]);
-            document.Editor.UpdateScreen();
-            try
-            {
-                ShowPreview(document, geometry, sourceElevation);
-            }
-            finally
-            {
-                ClearCompletedWorkflowSelection(document.Editor);
+                        document.Editor.SetImpliedSelection([ownerId]);
+                        document.Editor.UpdateScreen();
+                        try
+                        {
+                            ShowPreview(document, previewGeometry, sourceElevation);
+                        }
+                        finally
+                        {
+                            ClearCompletedWorkflowSelection(document.Editor);
+                        }
+                        continue;
+
+                    case HipRoofPreviewDialogAction.Apply:
+                        if (!viewModel.TryGetRoofGeometry(out var geometry) || geometry is null)
+                        {
+                            continue;
+                        }
+
+                        var data = RoofDefinitionPersistence.Create(
+                            sourceInput,
+                            footprint,
+                            geometry);
+#if DEBUG
+                        System.Diagnostics.Debug.WriteLine(
+                            $"[AK_ROOF_HIP] persistence begin kind={data.Kind} token=Hip " +
+                            $"slope={data.SlopeDegrees:R} vertices={footprint.Vertices.Count}");
+#endif
+                        if (TryPersist(document, ownerId, data, out var failureMessageKey))
+                        {
+                            document.Editor.WriteMessage(UiStrings.GetString(
+                                "Command_Roof_PersistedAndDisplaySaved"));
+                            ClearCompletedWorkflowSelection(document.Editor);
+#if DEBUG
+                            System.Diagnostics.Debug.WriteLine(
+                                "[AK_ROOF_HIP] persistence success token=Hip");
+#endif
+                        }
+                        else
+                        {
+                            document.Editor.WriteMessage(UiStrings.GetString(failureMessageKey));
+#if DEBUG
+                            System.Diagnostics.Debug.WriteLine(
+                                $"[AK_ROOF_HIP] persistence failure key={failureMessageKey}");
+#endif
+                        }
+                        return;
+
+                    default:
+                        return;
+                }
             }
         }
         finally
@@ -452,10 +505,10 @@ internal static class RoofCommandWorkflow
                 return false;
             }
 
+            RoofDefinitionStore.Write(owner, transaction, data);
             var sourceElevation = RoofPolylineExtractor.GetSourceElevation(owner);
             var edges = RoofWireframe.Create(restored.Geometry, sourceElevation);
             var signature = RoofWireframe.BuildGenerationSignature(edges);
-            RoofDefinitionStore.Write(owner, transaction, data);
             if (!RoofDisplayService.Rebuild(
                     document.Database,
                     transaction,
@@ -467,6 +520,7 @@ internal static class RoofCommandWorkflow
                 failureMessageKey = "Command_Roof_DisplayFutureSchema";
                 return false;
             }
+
             transaction.Commit();
             return true;
         }

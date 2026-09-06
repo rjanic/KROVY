@@ -20,6 +20,8 @@ public partial class HipRoofPreviewWindow : Window
     internal HipRoofPreviewDialogAction RequestedAction { get; private set; }
     internal bool IsClosed => _closed;
 
+    internal void PrepareForInteraction() => RequestedAction = HipRoofPreviewDialogAction.None;
+
     protected override void OnClosing(CancelEventArgs e)
     {
         RequestedAction = HipRoofPreviewDialogAction.Cancel;
@@ -41,11 +43,21 @@ public partial class HipRoofPreviewWindow : Window
         RequestedAction = HipRoofPreviewDialogAction.Cancel;
         Hide();
     }
+
+    private void ApplyButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (ViewModel.CanApply)
+        {
+            RequestedAction = HipRoofPreviewDialogAction.Apply;
+            Hide();
+        }
+    }
 }
 
 internal enum HipRoofPreviewDialogAction
 {
     None = 0,
     Preview = 1,
-    Cancel = 2,
+    Apply = 2,
+    Cancel = 3,
 }

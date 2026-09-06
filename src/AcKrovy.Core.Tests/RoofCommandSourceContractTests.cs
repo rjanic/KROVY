@@ -67,7 +67,7 @@ public sealed class RoofCommandSourceContractTests
         Assert.Equal(3, CountOccurrences(
             commandPath,
             "ClearCompletedWorkflowSelection(editor);"));
-        Assert.Equal(2, CountOccurrences(
+        Assert.Equal(3, CountOccurrences(
             creationPath,
             "ClearCompletedWorkflowSelection(document.Editor);"));
         Assert.Contains("Command_Roof_DisplayCurrent", commandPath);

@@ -106,6 +106,54 @@ public sealed class RoofDefinitionUpdateGeometryTests
     }
 
     [Fact]
+    public void HipSlopeEdit_UpdatesAndRestoresTheNewUniformSlopeWithoutDirection()
+    {
+        var source = RectangleInput();
+        var footprint = Validate(source);
+        var existing = RoofDefinitionPersistence.Create(
+            source,
+            footprint,
+            SolveHip(footprint, 30d));
+
+        var updated = RoofDefinitionPersistence.UpdateGeometry(
+            existing,
+            source,
+            SolveHip(footprint, 45d));
+        var restored = RoofDefinitionPersistence.Restore(source, footprint, updated);
+
+        Assert.Equal(30d, existing.SlopeDegrees);
+        Assert.Equal(RoofKind.Hip, updated.Kind);
+        Assert.Equal(45d, updated.Face0SlopeDegrees);
+        Assert.Equal(45d, updated.EffectiveFace1SlopeDegrees);
+        Assert.Equal(0d, updated.EaveHeightDifferenceMm);
+        Assert.Null(updated.RidgeEdgeFamily);
+        Assert.Null(updated.RidgeDirectionX);
+        Assert.Null(updated.RidgeDirectionY);
+        Assert.True(restored.IsValid, restored.Error.ToString());
+        Assert.Equal(45d, Assert.IsType<HipRoofGeometry>(restored.Geometry).PrimarySlopeDegrees);
+        AssertRoundTrips(updated);
+    }
+
+    [Fact]
+    public void HipCancelWithoutUpdate_LeavesTheStoredSlopeUnchanged()
+    {
+        var source = RectangleInput();
+        var footprint = Validate(source);
+        var existing = RoofDefinitionPersistence.Create(
+            source,
+            footprint,
+            SolveHip(footprint, 30d));
+        var payloadBefore = RoofDefinitionDataCodec.Encode(existing);
+
+        _ = SolveHip(footprint, 45d);
+        var restored = RoofDefinitionPersistence.Restore(source, footprint, existing);
+
+        Assert.Equal(payloadBefore, RoofDefinitionDataCodec.Encode(existing));
+        Assert.True(restored.IsValid, restored.Error.ToString());
+        Assert.Equal(30d, Assert.IsType<HipRoofGeometry>(restored.Geometry).PrimarySlopeDegrees);
+    }
+
+    [Fact]
     public void LegacySchemaOne_RebasesToSchemaFiveWithRigidFootprint()
     {
         var source = RectangleInput();
@@ -220,6 +268,16 @@ public sealed class RoofDefinitionUpdateGeometryTests
             kind));
         Assert.True(result.IsValid, result.Error.ToString());
         return Assert.IsType<SimpleGableRoofGeometry>(result.Geometry);
+    }
+
+    private static HipRoofGeometry SolveHip(RoofFootprint footprint, double slopeDegrees)
+    {
+        var result = RoofGeometrySolver.Solve(new RoofDefinition(
+            footprint,
+            new RoofParameters(slopeDegrees),
+            RoofKind.Hip));
+        Assert.True(result.IsValid, result.Error.ToString());
+        return Assert.IsType<HipRoofGeometry>(result.Geometry);
     }
 
     private static RoofFootprintInput RectangleInput() => new(

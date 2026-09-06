@@ -19,7 +19,7 @@ internal static class RoofDisplayGroupService
     {
         ArgumentNullException.ThrowIfNull(database);
         ArgumentNullException.ThrowIfNull(transaction);
-        if (childIds.Count != ExpectedStructuralDisplayChildCount)
+        if (childIds.Count == 0)
         {
             return RoofDisplayGroupInspection.MissingOrDamaged;
         }
@@ -74,11 +74,13 @@ internal static class RoofDisplayGroupService
     {
         ArgumentNullException.ThrowIfNull(database);
         ArgumentNullException.ThrowIfNull(transaction);
-        if (childIds.Count != ExpectedStructuralDisplayChildCount ||
-            childIds.Distinct().Count() != ExpectedStructuralDisplayChildCount ||
+        if (childIds.Count == 0 ||
+            childIds.Distinct().Count() != childIds.Count ||
             childIds.Contains(ownerId))
         {
-            throw new ArgumentException("A roof group requires one owner and seven unique display children.", nameof(childIds));
+            throw new ArgumentException(
+                "A roof group requires one owner and a unique non-empty display child set.",
+                nameof(childIds));
         }
 
         if (!RoofAssemblyGroupMemberCollector.TryCollect(

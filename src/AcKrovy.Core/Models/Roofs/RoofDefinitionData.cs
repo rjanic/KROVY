@@ -5,7 +5,8 @@ namespace AcKrovy.Core.Models.Roofs;
 /// direction/signature fields; schema 2 uses source-topology fields instead.
 /// Schema 3 adds lock/edit state and relative generated-member overrides.
 /// Schema 4 adds the stable roof kind and second face slope.
-/// Schema 5 adds signed eave height difference, zB - zA.
+/// Schema 5 adds signed eave height difference, zB - zA. It also carries Hip
+/// definitions through the existing fields with no ridge-edge family.
 /// </summary>
 public sealed record RoofDefinitionData(
     int SchemaVersion,

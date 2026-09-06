@@ -23,6 +23,11 @@ public static class RoofDefinitionPersistence
             throw new ArgumentNullException(nameof(geometry));
         }
 
+        if (geometry is HipRoofGeometry hipGeometry)
+        {
+            return CreateHip(source, hipGeometry);
+        }
+
         if (!TryReadSourceTopology(source, out var topology) ||
             !TryResolveOrientationEdgeFamily(
                 topology,
@@ -57,6 +62,29 @@ public static class RoofDefinitionPersistence
         return data;
     }
 
+    private static RoofDefinitionData CreateHip(
+        RoofFootprintInput source,
+        HipRoofGeometry geometry)
+    {
+        if (!TryReadSourceTopology(source, out var topology))
+        {
+            throw new ArgumentException(
+                "Source topology cannot represent the solved Hip footprint.",
+                nameof(source));
+        }
+
+        var data = new RoofDefinitionData(
+            RoofDefinitionDataSchema.CurrentVersion,
+            RoofKind.Hip,
+            geometry.PrimarySlopeDegrees,
+            RidgeEdgeFamily: null,
+            RigidFootprint: topology.Descriptor,
+            Face1SlopeDegrees: geometry.PrimarySlopeDegrees,
+            EaveHeightDifferenceMm: 0d);
+        _ = RoofDefinitionDataCodec.Encode(data);
+        return data;
+    }
+
     /// <summary>
     /// Rebases an existing persisted definition onto edited physical geometry without
     /// touching unrelated metadata. Applies only the intentionally edited fields
@@ -85,6 +113,12 @@ public static class RoofDefinitionPersistence
         {
             throw new ArgumentException("The existing roof definition is invalid.", nameof(existing));
         }
+
+        if (geometry is HipRoofGeometry hipGeometry)
+        {
+            return UpdateHipGeometry(existing, source, hipGeometry);
+        }
+
         if (!TryReadSourceTopology(source, out var topology) ||
             !TryResolveOrientationEdgeFamily(
                 topology,
@@ -124,6 +158,41 @@ public static class RoofDefinitionPersistence
         return data;
     }
 
+    private static RoofDefinitionData UpdateHipGeometry(
+        RoofDefinitionData existing,
+        RoofFootprintInput source,
+        HipRoofGeometry geometry)
+    {
+        if (existing.Kind != RoofKind.Hip)
+        {
+            throw new ArgumentException(
+                "The existing definition is not a Hip roof.",
+                nameof(existing));
+        }
+        if (!TryReadSourceTopology(source, out var topology))
+        {
+            throw new ArgumentException(
+                "The source cannot represent an edited Hip roof.",
+                nameof(source));
+        }
+
+        var data = existing with
+        {
+            SchemaVersion = RoofDefinitionDataSchema.CurrentVersion,
+            Kind = RoofKind.Hip,
+            SlopeDegrees = geometry.PrimarySlopeDegrees,
+            Face1SlopeDegrees = geometry.PrimarySlopeDegrees,
+            EaveHeightDifferenceMm = 0d,
+            RidgeEdgeFamily = null,
+            RigidFootprint = topology.Descriptor,
+            RidgeDirectionX = null,
+            RidgeDirectionY = null,
+            FootprintSignature = null,
+        };
+        _ = RoofDefinitionDataCodec.Encode(data);
+        return data;
+    }
+
     public static RoofDefinitionRestoreResult Restore(
         RoofFootprintInput source,
         RoofFootprint footprint,
@@ -152,9 +221,9 @@ public static class RoofDefinitionPersistence
     }
 
     /// <summary>
-    /// Classifies the current source against persisted SimpleGable data without writing.
-    /// Rigid MOVE/ROTATE and supported rectangular STRETCH both restore geometry;
-    /// unsupported source shapes stay stale and produce no invented roof.
+    /// Classifies the current source against persisted roof data without writing.
+    /// Rigid MOVE/ROTATE and supported rectangular legacy-roof STRETCH restore geometry;
+    /// Hip reload remains definition-only and requires its persisted source guard.
     /// </summary>
     public static RoofSourceChangeClassification Classify(
         RoofFootprintInput source,
@@ -279,6 +348,11 @@ public static class RoofDefinitionPersistence
         RoofFootprint footprint,
         RoofDefinitionData data)
     {
+        if (data.Kind == RoofKind.Hip)
+        {
+            return RestoreHip(source, footprint, data);
+        }
+
         if (data.RigidFootprint is null ||
             data.RidgeEdgeFamily is not (
                 RoofRidgeEdgeFamily.SourceEdge01 or RoofRidgeEdgeFamily.SourceEdge12))
@@ -322,6 +396,31 @@ public static class RoofDefinitionPersistence
             parameters,
             data.Kind));
         return solved.IsValid && solved.Geometry is not null
+            ? new RoofDefinitionRestoreResult(
+                true,
+                solved.Geometry,
+                RoofDefinitionRestoreError.None)
+            : Invalid(RoofDefinitionRestoreError.StaleFootprint);
+    }
+
+    private static RoofDefinitionRestoreResult RestoreHip(
+        RoofFootprintInput source,
+        RoofFootprint footprint,
+        RoofDefinitionData data)
+    {
+        if (data.RigidFootprint is null ||
+            data.RidgeEdgeFamily is not null ||
+            !TryReadSourceTopology(source, out var topology) ||
+            !Matches(topology.Descriptor, data.RigidFootprint))
+        {
+            return Invalid(RoofDefinitionRestoreError.StaleFootprint);
+        }
+
+        var solved = RoofGeometrySolver.Solve(new RoofDefinition(
+            footprint,
+            new RoofParameters(data.Face0SlopeDegrees),
+            RoofKind.Hip));
+        return solved.IsValid && solved.Geometry is HipRoofGeometry
             ? new RoofDefinitionRestoreResult(
                 true,
                 solved.Geometry,
@@ -508,7 +607,7 @@ public static class RoofDefinitionPersistence
         out SourceTopology topology)
     {
         topology = default;
-        if (source.Vertices is null || source.Vertices.Count < 4 ||
+        if (source.Vertices is null || source.Vertices.Count < 3 ||
             source.Vertices.Any(point => !IsFinite(point.X) || !IsFinite(point.Y)))
         {
             return false;
@@ -522,7 +621,7 @@ public static class RoofDefinitionPersistence
             vertices.RemoveAt(vertices.Count - 1);
         }
 
-        if (vertices.Count != 4)
+        if (vertices.Count < 3)
         {
             return false;
         }

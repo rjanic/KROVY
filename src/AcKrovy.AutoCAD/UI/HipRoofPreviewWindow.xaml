@@ -4,10 +4,9 @@
         xmlns:localization="clr-namespace:AcKrovy.AutoCAD.UI.Localization"
         Title="{Binding WindowTitle}"
         Width="520"
-        Height="330"
         MinWidth="460"
         MinHeight="300"
-        SizeToContent="Manual"
+        SizeToContent="Height"
         ResizeMode="CanResize"
         ShowInTaskbar="False"
         WindowStartupLocation="CenterOwner"
@@ -20,12 +19,61 @@
                 <ResourceDictionary Source="Design/SettingsDesignSystem.xaml" />
                 <ResourceDictionary Source="Design/SettingsControls.xaml" />
             </ResourceDictionary.MergedDictionaries>
+            <!--
+              Explicit numeric-field template matching the proven Settings TextBox metrics.
+              The default TextBox ScrollViewer host clips glyphs when a Star-sized parent
+              compresses ActualHeight below MinHeight+padding; this template keeps a fixed
+              control height and centers the content host.
+            -->
+            <Style x:Key="HipSlopeTextBoxStyle" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+                <Setter Property="Height" Value="{DynamicResource SettingsControlHeight}" />
+                <Setter Property="MinHeight" Value="{DynamicResource SettingsControlHeight}" />
+                <Setter Property="MaxHeight" Value="{DynamicResource SettingsControlHeight}" />
+                <Setter Property="Padding" Value="10,0" />
+                <Setter Property="FontFamily" Value="{DynamicResource SettingsFontFamily}" />
+                <Setter Property="FontSize" Value="{DynamicResource SettingsFontSizeBody}" />
+                <Setter Property="TextAlignment" Value="Right" />
+                <Setter Property="VerticalContentAlignment" Value="Center" />
+                <Setter Property="HorizontalContentAlignment" Value="Right" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="TextBox">
+                            <Border x:Name="Chrome"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="{DynamicResource SettingsCornerRadiusSmall}"
+                                    SnapsToDevicePixels="True">
+                                <ScrollViewer x:Name="PART_ContentHost"
+                                              Margin="{TemplateBinding Padding}"
+                                              HorizontalAlignment="Stretch"
+                                              VerticalAlignment="Center"
+                                              Focusable="False"
+                                              HorizontalScrollBarVisibility="Hidden"
+                                              VerticalScrollBarVisibility="Hidden" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter TargetName="Chrome" Property="Opacity" Value="{DynamicResource SettingsDisabledOpacity}" />
+                                </Trigger>
+                                <Trigger Property="IsKeyboardFocused" Value="True">
+                                    <Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource SettingsFocusBrush}" />
+                                </Trigger>
+                                <Trigger Property="Validation.HasError" Value="True">
+                                    <Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource SettingsValidationBrush}" />
+                                    <Setter TargetName="Chrome" Property="BorderThickness" Value="2" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
         </ResourceDictionary>
     </Window.Resources>
     <Grid Margin="20">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
@@ -50,7 +98,7 @@
                 <TextBlock Margin="0,0,0,5"
                            Text="{localization:Loc RoofGeometryWindow_MonopitchSlope}" />
                 <TextBox x:Name="SlopeTextBox"
-                         TextAlignment="Right"
+                         Style="{StaticResource HipSlopeTextBoxStyle}"
                          Text="{Binding SlopeText, UpdateSourceTrigger=PropertyChanged}" />
             </StackPanel>
         </Border>
@@ -73,11 +121,17 @@
                     Style="{DynamicResource SettingsSecondaryButtonStyle}"
                     Content="{localization:Loc RoofGeometryWindow_Cancel}" />
             <Button x:Name="PreviewButton"
+                    Margin="0,0,10,0"
                     Click="PreviewButton_Click"
-                    IsDefault="True"
                     IsEnabled="{Binding CanPreview}"
-                    Style="{DynamicResource SettingsPrimaryButtonStyle}"
+                    Style="{DynamicResource SettingsSecondaryButtonStyle}"
                     Content="{localization:Loc RoofGeometryWindow_Preview}" />
+            <Button x:Name="ApplyButton"
+                    Click="ApplyButton_Click"
+                    IsDefault="True"
+                    IsEnabled="{Binding CanApply}"
+                    Style="{DynamicResource SettingsPrimaryButtonStyle}"
+                    Content="{Binding PrimaryActionText}" />
         </StackPanel>
     </Grid>
 </Window>

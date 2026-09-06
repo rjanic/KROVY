@@ -10,8 +10,10 @@ public static class RoofDefinitionDataCodec
     private const string SimpleGableToken = "SimpleGable";
     private const string AsymmetricGableToken = "AsymmetricGable";
     private const string MonopitchToken = "Monopitch";
+    private const string HipToken = "Hip";
     private const string Edge01Token = "Edge01";
     private const string Edge12Token = "Edge12";
+    private const string NoRidgeEdgeFamilyToken = "None";
     private const string ClockwiseToken = "CW";
     private const string CounterClockwiseToken = "CCW";
     private const double UnitDirectionTolerance = 0.000000001d;
@@ -108,10 +110,13 @@ public static class RoofDefinitionDataCodec
         }
 
         if (data.Kind is not (
-                RoofKind.SimpleGable or RoofKind.AsymmetricGable or RoofKind.Monopitch) ||
+                RoofKind.SimpleGable or RoofKind.AsymmetricGable or
+                RoofKind.Monopitch or RoofKind.Hip) ||
             data.SchemaVersion < RoofDefinitionDataSchema.DualSlopeVersion &&
             data.Kind != RoofKind.SimpleGable ||
             data.Kind == RoofKind.Monopitch &&
+            data.SchemaVersion != RoofDefinitionDataSchema.CurrentVersion ||
+            data.Kind == RoofKind.Hip &&
             data.SchemaVersion != RoofDefinitionDataSchema.CurrentVersion)
         {
             error = RoofDefinitionDataDecodeError.UnsupportedRoofKind;
@@ -120,7 +125,7 @@ public static class RoofDefinitionDataCodec
 
         if (!IsValidSlope(data.SlopeDegrees) ||
             !IsValidSlope(data.EffectiveFace1SlopeDegrees) ||
-            data.Kind is RoofKind.SimpleGable or RoofKind.Monopitch &&
+            data.Kind is RoofKind.SimpleGable or RoofKind.Monopitch or RoofKind.Hip &&
             Math.Abs(data.SlopeDegrees - data.EffectiveFace1SlopeDegrees) >
                 SimpleGableRoofGeometryTolerance.AngularTolerance ||
             data.SchemaVersion < RoofDefinitionDataSchema.DualSlopeVersion &&
@@ -134,7 +139,7 @@ public static class RoofDefinitionDataCodec
             data.SchemaVersion < RoofDefinitionDataSchema.CurrentVersion &&
             Math.Abs(data.EaveHeightDifferenceMm) >
                 SimpleGableRoofGeometryTolerance.CoordinateToleranceMm ||
-            data.Kind == RoofKind.SimpleGable &&
+            data.Kind is RoofKind.SimpleGable or RoofKind.Hip &&
             Math.Abs(data.EaveHeightDifferenceMm) >
                 SimpleGableRoofGeometryTolerance.CoordinateToleranceMm ||
             data.Kind == RoofKind.Monopitch &&
@@ -203,7 +208,7 @@ public static class RoofDefinitionDataCodec
             KindToken(data.Kind),
             data.Face0SlopeDegrees.ToString("R", CultureInfo.InvariantCulture),
             data.EffectiveFace1SlopeDegrees.ToString("R", CultureInfo.InvariantCulture),
-            data.RidgeEdgeFamily == RoofRidgeEdgeFamily.SourceEdge01 ? Edge01Token : Edge12Token,
+            RidgeEdgeFamilyToken(data),
             descriptor.VertexCount.ToString(CultureInfo.InvariantCulture),
             descriptor.SourceOrientation == RoofPolygonOrientation.Clockwise ? ClockwiseToken : CounterClockwiseToken,
             descriptor.Edge01LengthMm.ToString("R", CultureInfo.InvariantCulture),
@@ -223,7 +228,7 @@ public static class RoofDefinitionDataCodec
             data.Face0SlopeDegrees.ToString("R", CultureInfo.InvariantCulture),
             data.EffectiveFace1SlopeDegrees.ToString("R", CultureInfo.InvariantCulture),
             data.EaveHeightDifferenceMm.ToString("R", CultureInfo.InvariantCulture),
-            data.RidgeEdgeFamily == RoofRidgeEdgeFamily.SourceEdge01 ? Edge01Token : Edge12Token,
+            RidgeEdgeFamilyToken(data),
             descriptor.VertexCount.ToString(CultureInfo.InvariantCulture),
             descriptor.SourceOrientation == RoofPolygonOrientation.Clockwise ? ClockwiseToken : CounterClockwiseToken,
             descriptor.Edge01LengthMm.ToString("R", CultureInfo.InvariantCulture),
@@ -239,9 +244,13 @@ public static class RoofDefinitionDataCodec
     {
         data = null;
         error = RoofDefinitionDataDecodeError.MalformedPayload;
-        if (fields.Count != 6 || !TryReadKind(fields[1], out var kind, out error) ||
-            kind != RoofKind.SimpleGable)
+        if (fields.Count != 6 || !TryReadKind(fields[1], out var kind, out error))
         {
+            return false;
+        }
+        if (kind != RoofKind.SimpleGable)
+        {
+            error = RoofDefinitionDataDecodeError.UnsupportedRoofKind;
             return false;
         }
 
@@ -276,9 +285,13 @@ public static class RoofDefinitionDataCodec
     {
         data = null;
         error = RoofDefinitionDataDecodeError.MalformedPayload;
-        if (fields.Count != 8 || !TryReadKind(fields[1], out var kind, out error) ||
-            kind != RoofKind.SimpleGable)
+        if (fields.Count != 8 || !TryReadKind(fields[1], out var kind, out error))
         {
+            return false;
+        }
+        if (kind != RoofKind.SimpleGable)
+        {
+            error = RoofDefinitionDataDecodeError.UnsupportedRoofKind;
             return false;
         }
 
@@ -468,10 +481,11 @@ public static class RoofDefinitionDataCodec
             return false;
         }
 
-        var edgeFamily = fields[5] switch
+        RoofRidgeEdgeFamily? edgeFamily = fields[5] switch
         {
             Edge01Token => RoofRidgeEdgeFamily.SourceEdge01,
             Edge12Token => RoofRidgeEdgeFamily.SourceEdge12,
+            NoRidgeEdgeFamilyToken => null,
             _ => RoofRidgeEdgeFamily.Undefined,
         };
         if (edgeFamily == RoofRidgeEdgeFamily.Undefined ||
@@ -568,15 +582,20 @@ public static class RoofDefinitionDataCodec
             return false;
         }
 
-        if (data.RidgeEdgeFamily is not (
-                RoofRidgeEdgeFamily.SourceEdge01 or RoofRidgeEdgeFamily.SourceEdge12))
+        if (data.Kind == RoofKind.Hip
+                ? data.RidgeEdgeFamily is not null
+                : data.RidgeEdgeFamily is not (
+                    RoofRidgeEdgeFamily.SourceEdge01 or RoofRidgeEdgeFamily.SourceEdge12))
         {
             error = RoofDefinitionDataDecodeError.InvalidRidgeEdgeFamily;
             return false;
         }
 
         var descriptor = data.RigidFootprint;
-        if (descriptor is null || descriptor.VertexCount != 4 ||
+        if (descriptor is null ||
+            (data.Kind == RoofKind.Hip
+                ? descriptor.VertexCount < 3
+                : descriptor.VertexCount != 4) ||
             descriptor.SourceOrientation is not (
                 RoofPolygonOrientation.Clockwise or RoofPolygonOrientation.CounterClockwise) ||
             !IsFinite(descriptor.Edge01LengthMm) ||
@@ -601,6 +620,12 @@ public static class RoofDefinitionDataCodec
         }
 
         if (data.EditState is not (RoofEditState.Locked or RoofEditState.Unlocked))
+        {
+            error = RoofDefinitionDataDecodeError.InvalidEditState;
+            return false;
+        }
+
+        if (data.Kind == RoofKind.Hip && !HasDefaultEditState(data))
         {
             error = RoofDefinitionDataDecodeError.InvalidEditState;
             return false;
@@ -662,6 +687,13 @@ public static class RoofDefinitionDataCodec
             return true;
         }
 
+        if (string.Equals(token, HipToken, StringComparison.Ordinal))
+        {
+            kind = RoofKind.Hip;
+            error = RoofDefinitionDataDecodeError.None;
+            return true;
+        }
+
         kind = default;
         error = RoofDefinitionDataDecodeError.UnsupportedRoofKind;
         return false;
@@ -719,8 +751,19 @@ public static class RoofDefinitionDataCodec
 
     private static string KindToken(RoofKind kind) => kind switch
     {
+        RoofKind.SimpleGable => SimpleGableToken,
         RoofKind.AsymmetricGable => AsymmetricGableToken,
         RoofKind.Monopitch => MonopitchToken,
-        _ => SimpleGableToken,
+        RoofKind.Hip => HipToken,
+        _ => throw new ArgumentOutOfRangeException(nameof(kind)),
     };
+
+    private static string RidgeEdgeFamilyToken(RoofDefinitionData data) =>
+        data.RidgeEdgeFamily switch
+        {
+            RoofRidgeEdgeFamily.SourceEdge01 => Edge01Token,
+            RoofRidgeEdgeFamily.SourceEdge12 => Edge12Token,
+            null when data.Kind == RoofKind.Hip => NoRidgeEdgeFamilyToken,
+            _ => throw new ArgumentException("Invalid ridge edge family.", nameof(data)),
+        };
 }

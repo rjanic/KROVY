@@ -1,6 +1,6 @@
 # ACAD KROVY – PROJECT CONTEXT
 
-**Aktualizované:** 5. 9. 2026
+**Aktualizované:** 6. 9. 2026
 
 **Predchádzajúci stabilný commit v0.21.0:** `f98900c1bd257a8e5357f6e77eb6f118bd4930d3`
 
@@ -8,7 +8,7 @@
 
 **Verzia aplikácie:** autoritatívne v `Directory.Build.props`
 
-**Aktuálny míľnik:** AutoCAD Valbová transient preview – HOST PASS
+**Aktuálny míľnik:** AutoCAD Valbová persistence, permanent display and editable slope – HOST PASS for rectangular lifecycle
 
 **Overovanie:** Debug/Release build, kompletné automatické testy a Portable/Full Compatibility Gate
 
@@ -561,14 +561,46 @@ Stabilný commit: `4a951041e2deef40a127ac9560cf6fb2ba4b6a5b`
 - hostiteľský adaptér nevykonáva žiadne tvarové heuristiky (obdĺžnik vs. L/U/T);
   konzumuje priamo Core topológiu,
 - predbežný sklon sa nastavuje cez úzky Hip preview dialóg; nežiada sa smer hrebeňa,
-- táto etapa je **PREVIEW ONLY** a **READ-ONLY**:
-  - nemá Apply tlačidlo pre Hip,
-  - nezapisuje `RoofDefinitionData`, XData ani `DECORAIR_ACADKROVY_ROOF`,
-  - nevytvára permanentné entity, GROUP ani display cache,
-  - `DBMOD` zostáva po preview 0 (overené cez QSAVE pred a po),
-  - Hip persistence zostáva v Core aj AutoCAD adaptéri zámerne zakázaná,
-- zdrojové kontrakty, runtime WPF testy a HOST výsledky potvrdili stabilitu,
-  routing a persistence firewall.
+  - slope TextBox používa fixed `SettingsControlHeight` + vlastný `PART_ContentHost`
+    template (bez `*` row kompresie), aby hodnota `30` nebola orezaná,
+- preview/cancel ostáva **READ-ONLY**; `DBMOD` po preview zostáva 0, ako bolo
+  potvrdené v H1–H4,
+- Hip definition + permanent display create je implementovaný code-side:
+  - existujúce tlačidlo Preview dopĺňa explicitné `Vytvoriť`,
+  - schema 5 ukladá stabilný kind token `Hip`, uniformný sklon, `None` namiesto
+    neexistujúcej ridge-edge family a zdrojový polygonálny descriptor,
+  - úplný footprint zostáva autoritatívnou zdrojovou Polyline; odvodené uzly a
+    Hip/Ridge/Valley/CoplanarSeam hrany sa neukladajú,
+  - reload dekóduje definíciu a z validovaného zdroja znovu rieši rovnakú Core
+    `RoofTopology` bez globálneho smeru hrebeňa,
+  - `Vytvoriť` v jednej transakcii zapíše definíciu a cez existujúci
+    `RoofWireframe` → `RoofDisplayService.Rebuild` + GROUP vytvorí permanentné
+    Hip/Ridge/Valley čiary (`HipRoofWireframe`; bez Eave/CoplanarSeam),
+  - reload ide spoločným display lifecycle (Current / Missing / Stale), nie
+    Hip-only early return,
+- P1b HOST retest potvrdil obdĺžnikový Hip create/persistence/display a bezpečný reload:
+  - `Vytvoriť` uložilo definíciu aj permanentný 1 Ridge + 4 Hip display,
+  - GROUP mal po reopen `memberCount=6`, `canonical=true` a bez stale duplikátu,
+  - po QSAVE/reopen ostal display zachovaný a `DBMOD=0`,
+  - `AK_ROOF_EDIT` už nepadá, persisted `RoofKind.Hip` sa spracuje pred Gable
+    editorom a Hip dialóg načíta čitateľný uložený sklon `30°`,
+- persisted Hip má code-side reálny EDIT režim nad rovnakým úzkym dialógom:
+  - CREATE zachováva editovateľný sklon a primárnu akciu `Vytvoriť`; EDIT seeduje
+    uložený sklon, ponecháva pole editovateľné a používa existujúce lokalizované
+    `Použiť`, bez globálneho smeru hrebeňa alebo fake ridge family,
+  - Preview používa rozpracovaný sklon iba transientne; Cancel/close nevstupuje do
+    write scope a nemení persisted definíciu ani permanentný display,
+  - `Použiť` v jednom lock/write transaction scope aktualizuje existujúcu Hip
+    definíciu, obnoví geometriu, zostaví `HipRoofWireframe`, cez spoločný
+    `RoofDisplayService.Rebuild` nahradí jediný display set, synchronizuje existujúcu
+    kanonickú GROUP a vykoná jeden commit; Hip vetva nevstupuje do rafter ani
+    AttachedManual lifecycle,
+  - Core round-trip pokrýva zmenu sklonu `30° → 45°` aj Cancel bez transformácie;
+    WPF a source-contract testy chránia Create/Edit texty, editovateľnosť, transient
+    Preview, spoločnú atomickú Apply cestu a reload nového sklonu,
+- ProductVersion ostáva `0.23.0`, roof schema `5`, timber schema `7` a drawing
+  settings schema `1`. Obdĺžnikový životný cyklus (CREATE, persistence, permanent display, reload a EDIT 30° → 45°) má **HOST PASS**;
+  L/U/T pôdorysy majú HOST preview PASS, pričom ich persistence a EDIT HOST testovanie je future work.
 
 ### STRECHY S2 – Roof COPY / STRETCH / GROUP GRIP (stabilný HOST checkpoint)
 - **Supported source STRETCH:** gable-end aj eave-side, enlarge/shrink, rotated,
@@ -707,7 +739,7 @@ Multi-CAD kompatibilita sa má overiť ešte pred tým, než projekt prerastie d
 
 ## Najbližšia priorita
 1. DEFERRED – generated rafters following rigid MOVE / `RigidGroupTransform`,
-2. AutoCAD Valbová transient preview míľnik je teraz **HOST PASS**,
+2. L/U/T Valbová persistence a EDIT HOST validácia (H1–H4 transient preview ostávajú **HOST PASS**, obdĺžnikový životný cyklus je **HOST PASS**),
 3. compatibility checkpoint a alternatívne CAD adaptéry bez vendor typov v Core.
 
 Presné poradie je v `ACAD_KROVY_ROADMAP.md`, úplný zásobník nápadov v `ACAD_KROVY_BACKLOG.md`.

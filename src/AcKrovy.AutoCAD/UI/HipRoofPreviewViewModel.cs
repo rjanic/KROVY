@@ -7,19 +7,31 @@ using AcKrovy.Localization;
 
 namespace AcKrovy.AutoCAD.UI;
 
-/// <summary>Uniform-pitch, preview-only input for the general Hip topology.</summary>
+/// <summary>Uniform-pitch create or edit input for the general Hip topology.</summary>
 internal sealed class HipRoofPreviewViewModel : INotifyPropertyChanged
 {
     private readonly RoofFootprint _footprint;
     private readonly CultureInfo _culture;
-    private string _slopeText = "30";
+    private readonly HipRoofDialogMode _mode;
+    private string _slopeText;
     private string _validationMessage = string.Empty;
     private HipRoofGeometry? _geometry;
 
     internal HipRoofPreviewViewModel(RoofFootprint footprint, CultureInfo? culture = null)
+        : this(footprint, 30d, HipRoofDialogMode.Create, culture)
+    {
+    }
+
+    internal HipRoofPreviewViewModel(
+        RoofFootprint footprint,
+        double slopeDegrees,
+        HipRoofDialogMode mode,
+        CultureInfo? culture = null)
     {
         _footprint = footprint ?? throw new ArgumentNullException(nameof(footprint));
         _culture = culture ?? AppLanguageService.CurrentUiCulture;
+        _mode = mode;
+        _slopeText = slopeDegrees.ToString("R", _culture);
         Recalculate();
     }
 
@@ -27,6 +39,9 @@ internal sealed class HipRoofPreviewViewModel : INotifyPropertyChanged
 
     public string WindowTitle => UiStrings.GetString("CommandUi_RoofHip_Label", _culture);
     public string WindowDescription => UiStrings.GetString("CommandUi_RoofHip_Tooltip", _culture);
+    public string PrimaryActionText => UiStrings.GetString(
+        _mode == HipRoofDialogMode.Edit ? "EditWindow_Apply" : "RoofGeometryWindow_Create",
+        _culture);
 
     public string SlopeText
     {
@@ -47,6 +62,7 @@ internal sealed class HipRoofPreviewViewModel : INotifyPropertyChanged
 
     public string ValidationMessage => _validationMessage;
     public bool CanPreview => _geometry is not null;
+    public bool CanApply => _geometry is not null;
 
     internal bool TryGetRoofGeometry(out HipRoofGeometry? geometry)
     {
@@ -93,8 +109,15 @@ internal sealed class HipRoofPreviewViewModel : INotifyPropertyChanged
             : UiStrings.GetString(resourceKey, _culture);
         OnPropertyChanged(nameof(ValidationMessage));
         OnPropertyChanged(nameof(CanPreview));
+        OnPropertyChanged(nameof(CanApply));
     }
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+}
+
+internal enum HipRoofDialogMode
+{
+    Create = 0,
+    Edit = 1,
 }

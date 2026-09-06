@@ -20,7 +20,7 @@ public sealed class RoofDisplayStylingSourceContractTests
     {
         Assert.Contains("RidgeLayerName = \"KROV_STRECHA_HREBEN\"", Service);
         Assert.Contains("RidgeLayerColorIndex = 1", Service);
-        Assert.Contains("role == RoofDisplayEdgeRole.Ridge", Service);
+        Assert.Contains("HipRoofWireframe.IsRidgeRole(role)", Service);
         Assert.Contains("isRidge ? RidgeLayerColorIndex : LayerColorIndex", Service);
     }
 

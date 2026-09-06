@@ -37,7 +37,10 @@ public sealed class HipRoofPreviewSourceContractTests
         Assert.Contains("RoofFootprintValidator.Validate(sourceInput)", Workflow);
         Assert.Contains("new HipRoofPreviewWindow(", Workflow);
         Assert.Contains("{localization:Loc RoofGeometryWindow_MonopitchSlope}", Window);
-        Assert.DoesNotContain("ApplyButton", Window);
+        Assert.Contains("x:Name=\"ApplyButton\"", Window);
+        Assert.Contains("Content=\"{Binding PrimaryActionText}\"", Window);
+        Assert.Contains("HipRoofDialogMode.Edit ? \"EditWindow_Apply\"", ViewModel);
+        Assert.Contains(": \"RoofGeometryWindow_Create\"", ViewModel);
     }
 
     [Fact]
@@ -71,29 +74,37 @@ public sealed class HipRoofPreviewSourceContractTests
     }
 
     [Fact]
-    public void HipPreviewMethodHasStructuralPersistenceFirewall()
+    public void HipPreviewActionRetainsStructuralPersistenceFirewall()
     {
-        var hipPath = Segment(Workflow, "private static void RunHipPreviewDialog", "private static void ClearCompletedWorkflowSelection");
-        Assert.DoesNotContain("RoofFootprintInput", hipPath);
-        Assert.DoesNotContain("RoofDefinitionPersistence", hipPath);
-        Assert.DoesNotContain("RoofDefinitionStore", hipPath);
-        Assert.DoesNotContain("TryPersist", hipPath);
-        Assert.DoesNotContain("OpenMode.ForWrite", hipPath);
-        Assert.DoesNotContain("Transaction", hipPath);
-        Assert.DoesNotContain("DocumentLock", hipPath);
-        Assert.DoesNotContain("XData", hipPath);
-        Assert.Contains("ShowPreview(document, geometry, sourceElevation)", hipPath);
-        Assert.Contains("ClearCompletedWorkflowSelection(document.Editor)", hipPath);
+        var previewCase = Segment(
+            Workflow,
+            "case HipRoofPreviewDialogAction.Preview:",
+            "case HipRoofPreviewDialogAction.Apply:");
+        Assert.DoesNotContain("RoofDefinitionPersistence", previewCase);
+        Assert.DoesNotContain("RoofDefinitionStore", previewCase);
+        Assert.DoesNotContain("TryPersist", previewCase);
+        Assert.DoesNotContain("OpenMode.ForWrite", previewCase);
+        Assert.DoesNotContain("Transaction", previewCase);
+        Assert.DoesNotContain("DocumentLock", previewCase);
+        Assert.DoesNotContain("XData", previewCase);
+        Assert.Contains("ShowPreview(document, previewGeometry, sourceElevation)", previewCase);
+        Assert.Contains("ClearCompletedWorkflowSelection(document.Editor)", previewCase);
         Assert.Contains("persistent-created=0", Preview);
     }
 
     [Fact]
-    public void ExistingStoredRoofsCannotEnterHipPreviewLifecycle()
+    public void StoredHipReloadsThroughStoredDefinitionPathWithoutLegacyDisplay()
     {
-        var selection = Segment(Workflow, "if (!validation.IsValid || validation.Footprint is null)", "if (storedDefinition.Exists)");
-        Assert.Contains("requestedKind == RoofKind.Hip && storedDefinition.Exists", selection);
-        Assert.Contains("Command_Roof_PersistConflict", selection);
-        Assert.Contains("continue;", selection);
+        var storedPath = Segment(
+            Workflow,
+            "if (storedDefinition.Exists)",
+            "RunCreationDialog(");
+        Assert.Contains("RoofDefinitionPersistence.Restore", storedPath);
+        Assert.Contains("restored.Geometry is HipRoofGeometry", storedPath);
+        Assert.Contains("ShowPreview(document, restored.Geometry, sourceElevation)", storedPath);
+        Assert.Contains("ClearCompletedWorkflowSelection(editor);", storedPath);
+        Assert.DoesNotContain("TryPromptOrientationDirection", storedPath);
+        Assert.DoesNotContain("requestedKind == RoofKind.Hip", Workflow);
     }
 
     [Fact]
@@ -120,12 +131,24 @@ public sealed class HipRoofPreviewSourceContractTests
     }
 
     [Fact]
-    public void HipPersistenceContractsRemainDisabled()
+    public void HipDefinitionPersistenceUsesSharedWireframeDisplayPath()
     {
         var codec = Read("src", "AcKrovy.Core", "Services", "Roofs", "RoofDefinitionDataCodec.cs");
         var persistence = Read("src", "AcKrovy.Core", "Services", "Roofs", "RoofDefinitionPersistence.cs");
-        Assert.DoesNotContain("RoofKind.Hip =>", codec);
-        Assert.Contains("_ => throw new ArgumentException(\"Unsupported roof geometry.\"", persistence);
+        var wireframe = Read("src", "AcKrovy.Core", "Services", "Roofs", "RoofWireframe.cs");
+        var hipWireframe = Read("src", "AcKrovy.Core", "Services", "Roofs", "HipRoofWireframe.cs");
+        Assert.Contains("private const string HipToken = \"Hip\";", codec);
+        Assert.Contains("private const string NoRidgeEdgeFamilyToken = \"None\";", codec);
+        Assert.Contains("geometry is HipRoofGeometry", persistence);
+        Assert.Contains("new RoofParameters(data.Face0SlopeDegrees)", persistence);
+        Assert.DoesNotContain("RoofWireframe.Create", persistence);
+        Assert.Contains("HipRoofGeometry hip =>", wireframe);
+        Assert.Contains("HipRoofWireframe.Create(hip, sourceElevation)", wireframe);
+        Assert.Contains("RoofTopologyEdgeKind.Ridge", hipWireframe);
+        Assert.Contains("RoofTopologyEdgeKind.Hip", hipWireframe);
+        Assert.Contains("RoofTopologyEdgeKind.Valley", hipWireframe);
+        Assert.DoesNotContain("RoofTopologyEdgeKind.Eave", hipWireframe);
+        Assert.DoesNotContain("RoofTopologyEdgeKind.CoplanarSeam", hipWireframe);
         Assert.Equal(5, RoofDefinitionDataSchema.CurrentVersion);
     }
 

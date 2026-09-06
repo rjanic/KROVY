@@ -49,15 +49,81 @@ public sealed class HipRoofPreviewWindowTests
         };
 
         Assert.False(viewModel.CanPreview);
+        Assert.False(viewModel.CanApply);
         Assert.False(viewModel.TryGetRoofGeometry(out _));
         Assert.Equal(UiStrings.GetString("RoofGeometryWindow_ValidationNumber", culture), viewModel.ValidationMessage);
     }
 
     [Fact]
-    public void Window_UsesExistingStylesAndOffersPreviewAndCancelOnly()
+    public void PersistedEdit_SeedsEditableSlopeAndOffersLocalizedApply()
     {
         RunSta(() =>
         {
+            AppLanguageService.Apply("en");
+            var culture = CultureInfo.GetCultureInfo("en");
+            var viewModel = new HipRoofPreviewViewModel(
+                Rectangle(),
+                37.5d,
+                HipRoofDialogMode.Edit,
+                culture: culture);
+            var window = CreateOffscreenWindow(viewModel);
+            window.Show();
+            window.UpdateLayout();
+
+            Assert.Equal("37.5", viewModel.SlopeText);
+            Assert.True(viewModel.CanPreview);
+            Assert.True(viewModel.CanApply);
+            Assert.True(window.ApplyButton.IsVisible);
+            Assert.False(window.SlopeTextBox.IsReadOnly);
+            Assert.Equal(UiStrings.GetString("EditWindow_Apply", culture), window.ApplyButton.Content);
+            viewModel.SlopeText = "45";
+            Assert.True(viewModel.TryGetRoofGeometry(out var geometry));
+            Assert.Equal(45d, geometry!.PrimarySlopeDegrees);
+
+            window.CancelButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Assert.False(window.IsVisible);
+            Assert.Equal(HipRoofPreviewDialogAction.Cancel, window.RequestedAction);
+            window.Close();
+        });
+    }
+
+    [Fact]
+    public void SlopeTextBox_UsesFixedHeightNumericLayoutContract()
+    {
+        RunSta(() =>
+        {
+            AppLanguageService.Apply("en");
+            var culture = CultureInfo.GetCultureInfo("en");
+            var viewModel = new HipRoofPreviewViewModel(Rectangle(), culture)
+            {
+                SlopeText = "30",
+            };
+            var window = CreateOffscreenWindow(viewModel);
+            window.Show();
+            window.UpdateLayout();
+
+            var slope = window.SlopeTextBox;
+            Assert.Equal("30", slope.Text);
+            Assert.Equal(TextAlignment.Right, slope.TextAlignment);
+            Assert.Equal(VerticalAlignment.Center, slope.VerticalContentAlignment);
+            Assert.Equal(36d, slope.MinHeight, 0.1);
+            Assert.Equal(36d, slope.Height, 0.1);
+            Assert.Equal(36d, slope.MaxHeight, 0.1);
+            Assert.True(slope.ActualHeight >= 35.5, $"ActualHeight={slope.ActualHeight}");
+            Assert.True(slope.ActualHeight <= 36.5, $"ActualHeight={slope.ActualHeight}");
+            Assert.Equal(new Thickness(10, 0, 10, 0), slope.Padding);
+            Assert.Same(window.FindResource("HipSlopeTextBoxStyle"), slope.Style);
+
+            window.Close();
+        });
+    }
+
+    [Fact]
+    public void Window_UsesExistingStylesAndOffersPreviewCreateAndCancel()
+    {
+        RunSta(() =>
+        {
+            AppLanguageService.Apply("en");
             var culture = CultureInfo.GetCultureInfo("en");
             var viewModel = new HipRoofPreviewViewModel(Rectangle(), culture);
             var window = CreateOffscreenWindow(viewModel);
@@ -66,13 +132,22 @@ public sealed class HipRoofPreviewWindowTests
 
             Assert.Equal(UiStrings.GetString("CommandUi_RoofHip_Label", culture), window.Title);
             Assert.True(window.PreviewButton.IsEnabled);
-            Assert.Null(window.FindName("ApplyButton"));
-            Assert.Same(window.FindResource("SettingsPrimaryButtonStyle"), window.PreviewButton.Style);
+            Assert.True(window.ApplyButton.IsEnabled);
+            Assert.False(window.SlopeTextBox.IsReadOnly);
+            Assert.Equal(UiStrings.GetString("RoofGeometryWindow_Create", culture), window.ApplyButton.Content);
+            Assert.Same(window.FindResource("SettingsSecondaryButtonStyle"), window.PreviewButton.Style);
+            Assert.Same(window.FindResource("SettingsPrimaryButtonStyle"), window.ApplyButton.Style);
 
             window.PreviewButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             Assert.False(window.IsVisible);
             Assert.Equal(HipRoofPreviewDialogAction.Preview, window.RequestedAction);
             Assert.False(window.IsClosed);
+
+            window.PrepareForInteraction();
+            window.Show();
+            window.ApplyButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Assert.False(window.IsVisible);
+            Assert.Equal(HipRoofPreviewDialogAction.Apply, window.RequestedAction);
             window.Close();
 
             var cancelWindow = CreateOffscreenWindow(new HipRoofPreviewViewModel(Rectangle(), culture));

@@ -296,7 +296,7 @@ public sealed class HipRoofGeometrySolverTests
     }
 
     [Fact]
-    public void SharedDispatch_ExposesHipWithoutEnablingPersistenceOrDisplay()
+    public void SharedDispatch_ExposesHipDefinitionAndPermanentDisplayWireframe()
     {
         var vertices = Rectangle(10000, 6000);
         var definition = new RoofDefinition(Validate(vertices), new(30, Direction(0)), RoofKind.Hip);
@@ -305,20 +305,26 @@ public sealed class HipRoofGeometrySolverTests
         Assert.True(dispatched.IsValid);
         var geometry = Assert.IsType<HipRoofGeometry>(dispatched.Geometry);
         Assert.Equal(direct.Geometry!.Signature, geometry.Signature);
-        Assert.Throws<ArgumentException>(() => RoofDefinitionPersistence.Create(new(vertices, true), definition.Footprint, geometry));
+        var persisted = RoofDefinitionPersistence.Create(new(vertices, true), definition.Footprint, geometry);
+        Assert.Equal(RoofKind.Hip, persisted.Kind);
+        Assert.Null(persisted.RidgeEdgeFamily);
         Assert.False(RoofWireframe.TryGetTopology(RoofKind.Hip, out _));
-        Assert.Throws<ArgumentException>(() => RoofWireframe.Create(geometry, 0));
+        var edges = RoofWireframe.Create(geometry, 0);
+        Assert.Equal(5, edges.Count);
+        Assert.Equal(1, edges.Count(edge => HipRoofWireframe.IsRidgeRole(edge.Role)));
+        Assert.Equal(4, edges.Count(edge =>
+            edge.Role is >= RoofDisplayEdgeRole.Hip00 and <= RoofDisplayEdgeRole.Hip47));
     }
 
     [Fact]
-    public void ExistingEnumValuesAndSchema_RemainStableAndHipCannotBeEncoded()
+    public void ExistingEnumValuesAndSchemaRemainStableAndHipUsesCurrentSchemaOnly()
     {
         Assert.Equal(1, (int)RoofKind.SimpleGable);
         Assert.Equal(2, (int)RoofKind.AsymmetricGable);
         Assert.Equal(3, (int)RoofKind.Monopitch);
         Assert.Equal(4, (int)RoofKind.Hip);
         Assert.Equal(5, RoofDefinitionDataSchema.CurrentVersion);
-        for (var schema = 1; schema <= RoofDefinitionDataSchema.CurrentVersion; schema++)
+        for (var schema = 1; schema < RoofDefinitionDataSchema.CurrentVersion; schema++)
         {
             var data = new RoofDefinitionData(schema, RoofKind.Hip, 30);
             Assert.False(RoofDefinitionDataCodec.TryValidate(data, out var error));
@@ -328,8 +334,11 @@ public sealed class HipRoofGeometrySolverTests
         const string currentGable = "5|SimpleGable|30|30|0|Edge01|4|CCW|10000|6000|Locked|";
         Assert.True(RoofDefinitionDataCodec.TryDecode(currentGable, out var original, out _));
         Assert.Equal(currentGable, RoofDefinitionDataCodec.Encode(original!));
-        Assert.False(RoofDefinitionDataCodec.TryDecode(currentGable.Replace("SimpleGable", "Hip"), out _, out var decodeError));
-        Assert.Equal(RoofDefinitionDataDecodeError.UnsupportedRoofKind, decodeError);
+        const string currentHip = "5|Hip|30|30|0|None|4|CCW|10000|6000|Locked|";
+        Assert.True(RoofDefinitionDataCodec.TryDecode(currentHip, out var hip, out var decodeError));
+        Assert.Equal(RoofDefinitionDataDecodeError.None, decodeError);
+        Assert.Equal(RoofKind.Hip, hip!.Kind);
+        Assert.Equal(currentHip, RoofDefinitionDataCodec.Encode(hip));
     }
 
     [Fact]

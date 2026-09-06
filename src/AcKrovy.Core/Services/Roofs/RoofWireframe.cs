@@ -40,6 +40,8 @@ public static class RoofWireframe
             SimpleGableRoofWireframe.Create(gable, sourceElevation),
         MonopitchRoofGeometry monopitch =>
             MonopitchRoofWireframe.Create(monopitch, sourceElevation),
+        HipRoofGeometry hip =>
+            HipRoofWireframe.Create(hip, sourceElevation),
         _ => throw new ArgumentException("Unsupported roof geometry.", nameof(geometry)),
     };
 
@@ -62,8 +64,13 @@ public static class RoofWireframe
         }
 
         var set = new HashSet<RoofDisplayEdgeRole>(roles);
-        return set.Count == GableTopology.Roles.Count &&
-            (set.SetEquals(GableTopology.Roles) || set.SetEquals(MonopitchTopology.Roles));
+        if (set.Count == GableTopology.Roles.Count &&
+            (set.SetEquals(GableTopology.Roles) || set.SetEquals(MonopitchTopology.Roles)))
+        {
+            return true;
+        }
+
+        return set.Count > 0 && set.All(HipRoofWireframe.IsHipTopologyRole);
     }
 
     public static string BuildGenerationSignature(IReadOnlyList<RoofDisplayEdge> edges)

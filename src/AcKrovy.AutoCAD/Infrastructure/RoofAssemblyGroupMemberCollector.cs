@@ -27,7 +27,8 @@ internal static class RoofAssemblyGroupMemberCollector
         ArgumentNullException.ThrowIfNull(database);
         ArgumentNullException.ThrowIfNull(transaction);
         if (ownerId.IsNull ||
-            structuralDisplayChildIds.Count != RoofDisplayGroupService.ExpectedStructuralDisplayChildCount)
+            structuralDisplayChildIds.Count == 0 ||
+            structuralDisplayChildIds.Distinct().Count() != structuralDisplayChildIds.Count)
         {
             return false;
         }

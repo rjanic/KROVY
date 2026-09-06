@@ -19,6 +19,7 @@ public sealed class RoofEditCommandSourceContractTests
     private static readonly string EditWorkflow = Read("src/AcKrovy.AutoCAD/Infrastructure/RoofEditCommandWorkflow.cs");
     private static readonly string CreateWorkflow = Read("src/AcKrovy.AutoCAD/Infrastructure/RoofCommandWorkflow.cs");
     private static readonly string ViewModel = Read("src/AcKrovy.AutoCAD/UI/GableRoofGeometryViewModel.cs");
+    private static readonly string HipViewModel = Read("src/AcKrovy.AutoCAD/UI/HipRoofPreviewViewModel.cs");
     private static readonly string Window = Read("src/AcKrovy.AutoCAD/UI/GableRoofGeometryWindow.xaml");
 
     [Fact]
@@ -143,6 +144,108 @@ public sealed class RoofEditCommandSourceContractTests
         Assert.Contains("_ridgeDirection = geometry.RidgeDirection", ViewModel);
         Assert.Contains("_isAsymmetryMirrored = false", ViewModel);
         Assert.Contains("degrees.ToString(\"R\", CultureInfo.InvariantCulture)", ViewModel);
+    }
+
+    [Fact]
+    public void PersistedHipDispatchesToHipEditBeforeTheGableEditorSeed()
+    {
+        var dispatch = Segment(
+            EditWorkflow,
+            "private static void RunEditDialog(",
+            "private static void RunHipEditDialog(");
+        var hipIndex = dispatch.IndexOf(
+            "storedDefinition.Kind == RoofKind.Hip",
+            StringComparison.Ordinal);
+        var gableIndex = dispatch.IndexOf(
+            "new GableRoofGeometryViewModel(",
+            StringComparison.Ordinal);
+
+        Assert.True(hipIndex >= 0);
+        Assert.True(gableIndex > hipIndex);
+        Assert.Contains("restoredGeometry is HipRoofGeometry hipGeometry", dispatch);
+        Assert.Contains("RunHipEditDialog(", dispatch);
+        Assert.Contains("return;", dispatch[hipIndex..gableIndex]);
+    }
+
+    [Fact]
+    public void HipEditSeedsSavedSlopeAndAppliesWithoutDirectionControls()
+    {
+        var edit = Segment(
+            EditWorkflow,
+            "private static void RunHipEditDialog(",
+            "private static RoofGeneratedRafterSetService.ReplacementOutcome? TryApply(");
+
+        Assert.Contains("restoredGeometry.PrimarySlopeDegrees", edit);
+        Assert.Contains("HipRoofDialogMode.Edit", edit);
+        Assert.Contains("HipRoofPreviewDialogAction.Preview", edit);
+        Assert.Contains("HipRoofPreviewDialogAction.Apply", edit);
+        Assert.Contains("TryApply(", edit);
+        Assert.DoesNotContain("PickRidgeDirection", edit);
+        Assert.DoesNotContain("GableRoofGeometryViewModel", edit);
+        Assert.DoesNotContain("RoofDefinitionStore.Write", edit);
+        Assert.DoesNotContain("RoofDisplayService.Rebuild", edit);
+        Assert.DoesNotContain("transaction.Commit", edit);
+        Assert.Contains("HipRoofDialogMode.Edit ? \"EditWindow_Apply\"", HipViewModel);
+        Assert.Contains("CanApply => _geometry is not null", HipViewModel);
+    }
+
+    [Fact]
+    public void HipPreviewIsTransientOnlyAndNeverEntersTheApplyPipeline()
+    {
+        var edit = Segment(
+            EditWorkflow,
+            "private static void RunHipEditDialog(",
+            "private static RoofGeneratedRafterSetService.ReplacementOutcome? TryApply(");
+        var preview = Segment(
+            edit,
+            "case HipRoofPreviewDialogAction.Preview:",
+            "case HipRoofPreviewDialogAction.Apply:");
+
+        Assert.Contains("ShowPreview(document, previewGeometry, sourceElevation)", preview);
+        Assert.DoesNotContain("TryApply(", preview);
+        Assert.DoesNotContain("RoofDefinitionStore.Write", preview);
+        Assert.DoesNotContain("RoofDisplayService.Rebuild", preview);
+        Assert.DoesNotContain("OpenMode.ForWrite", preview);
+        Assert.DoesNotContain("transaction.Commit", preview);
+    }
+
+    [Fact]
+    public void HipApplyUsesTheSharedAtomicDefinitionDisplayAndGroupPipelineWithoutRafters()
+    {
+        var apply = Segment(
+            EditWorkflow,
+            "private static RoofGeneratedRafterSetService.ReplacementOutcome? TryApply(",
+            "private static string GetSoftReplacementMessage(");
+
+        Assert.Contains("RoofDefinitionPersistence.UpdateGeometry(", apply);
+        Assert.Contains("RoofDefinitionStore.Write(owner, transaction, data)", apply);
+        Assert.Contains("RoofDisplayService.Rebuild(", apply);
+        Assert.Contains("restored.Geometry is not HipRoofGeometry", apply);
+        Assert.Contains("RoofAssemblyGroupSyncService.TrySyncForOwner(", apply);
+        Assert.Equal(1, Count(apply, "RoofDisplayService.Rebuild("));
+        Assert.Equal(1, Count(apply, "RoofAssemblyGroupSyncService.TrySyncForOwner("));
+        Assert.Equal(1, Count(apply, "transaction.Commit();"));
+    }
+
+    [Fact]
+    public void StoredHipCurrentDisplayPathInspectsWithoutDuplicateRebuild()
+    {
+        var storedPath = Segment(
+            CreateWorkflow,
+            "if (storedDefinition.Exists)",
+            "var footprint = validation.Footprint!;");
+
+        Assert.Contains("InspectDisplay(", storedPath);
+        Assert.Contains("RoofDisplayLifecycleKind.Current", storedPath);
+        var currentIndex = storedPath.IndexOf(
+            "lifecycle == RoofDisplayLifecycleKind.Current",
+            StringComparison.Ordinal);
+        var rebuildIndex = storedPath.IndexOf(
+            "TryRebuildDisplay(",
+            StringComparison.Ordinal);
+        Assert.True(currentIndex >= 0);
+        Assert.True(rebuildIndex > currentIndex);
+        Assert.Contains("return;", storedPath[currentIndex..rebuildIndex]);
     }
 
     private static int Count(string source, string token) =>

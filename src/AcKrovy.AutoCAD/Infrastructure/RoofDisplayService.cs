@@ -324,7 +324,7 @@ internal static class RoofDisplayService
         Line line,
         RoofDisplayEdgeRole role)
     {
-        var isRidge = role == RoofDisplayEdgeRole.Ridge;
+        var isRidge = HipRoofWireframe.IsRidgeRole(role);
         TimberLayerService.ApplyToAnnotationEntity(
             database,
             transaction,
