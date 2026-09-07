@@ -83,6 +83,61 @@ internal sealed class RoofTransientPreviewSession : IDisposable
         }
     }
 
+    public static RoofTransientPreviewSession ShowRafters(
+        Document document,
+        RoofFaceRafterLayout layout,
+        double sourceElevation)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(layout);
+        if (!double.IsFinite(sourceElevation))
+        {
+            throw new ArgumentOutOfRangeException(nameof(sourceElevation));
+        }
+
+        var session = new RoofTransientPreviewSession(document);
+        try
+        {
+            session.AddRafters(layout, sourceElevation);
+            document.Editor.UpdateScreen();
+            return session;
+        }
+        catch
+        {
+            session.Dispose();
+            throw;
+        }
+    }
+
+    public static RoofTransientPreviewSession Show(
+        Document document,
+        IRoofGeometry geometry,
+        RoofFaceRafterLayout rafterLayout,
+        double sourceElevation)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(geometry);
+        ArgumentNullException.ThrowIfNull(rafterLayout);
+        if (!double.IsFinite(sourceElevation))
+        {
+            throw new ArgumentOutOfRangeException(nameof(sourceElevation));
+        }
+
+        var session = new RoofTransientPreviewSession(document);
+        try
+        {
+            session.AddGeometry(geometry, sourceElevation);
+            session.AddRafters(rafterLayout, sourceElevation);
+            document.Editor.UpdateScreen();
+            return session;
+        }
+        catch
+        {
+            session.Dispose();
+            throw;
+        }
+    }
+
     internal static IReadOnlyList<RoofPreviewSegment> MapSegments(
         IRoofGeometry geometry,
         double sourceElevation)
@@ -169,6 +224,18 @@ internal sealed class RoofTransientPreviewSession : IDisposable
                 rafter.PlanStart,
                 rafter.PlanEnd,
                 (int)rafter.Face))
+            .ToArray();
+    }
+
+    internal static IReadOnlyList<RoofRafterPlanPreviewSegment> MapRafterPlanSegments(
+        RoofFaceRafterLayout layout)
+    {
+        ArgumentNullException.ThrowIfNull(layout);
+        return layout.Segments
+            .Select(rafter => new RoofRafterPlanPreviewSegment(
+                rafter.PlanStart,
+                rafter.PlanEnd,
+                rafter.SourceFaceIndex))
             .ToArray();
     }
 
@@ -263,6 +330,29 @@ internal sealed class RoofTransientPreviewSession : IDisposable
         foreach (var segment in MapRafterSegments(layout, sourceElevation))
         {
             var drawable = new Line(segment.Start, segment.End)
+            {
+                ColorIndex = RafterColorIndex,
+                LineWeight = LineWeight.LineWeight025,
+            };
+            _drawables.Add(drawable);
+            transientManager.AddTransient(
+                drawable,
+                TransientDrawingMode.DirectShortTerm,
+                TransientSubDrawingMode,
+                _viewportNumbers);
+        }
+    }
+
+    private void AddRafters(
+        RoofFaceRafterLayout layout,
+        double sourceElevation)
+    {
+        var transientManager = TransientManager.CurrentTransientManager;
+        foreach (var segment in MapRafterPlanSegments(layout))
+        {
+            var drawable = new Line(
+                new Point3d(segment.Start.X, segment.Start.Y, sourceElevation),
+                new Point3d(segment.End.X, segment.End.Y, sourceElevation))
             {
                 ColorIndex = RafterColorIndex,
                 LineWeight = LineWeight.LineWeight025,

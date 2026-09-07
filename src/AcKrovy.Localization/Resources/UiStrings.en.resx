@@ -618,7 +618,7 @@
   <data name="RoofRafterWindow_Description" xml:space="preserve"><value>Set the rafter section, maximum spacing and material.</value></data>
   <data name="RoofRafterWindow_WidthMm" xml:space="preserve"><value>Width [mm]</value></data>
   <data name="RoofRafterWindow_HeightMm" xml:space="preserve"><value>Height [mm]</value></data>
-  <data name="RoofRafterWindow_MaximumSpacingMm" xml:space="preserve"><value>Max. spacing [mm]</value></data>
+  <data name="RoofRafterWindow_MaximumSpacingMm" xml:space="preserve"><value>Rafter spacing [mm]</value></data>
   <data name="RoofRafterWindow_Material" xml:space="preserve"><value>Material</value></data>
   <data name="RoofRafterWindow_RoofSlope" xml:space="preserve"><value>Roof slope</value></data>
   <data name="RoofRafterWindow_RoofSlopeHint" xml:space="preserve"><value>The slope is loaded from the selected roof.</value></data>
@@ -633,6 +633,9 @@
   <data name="RoofRafterWindow_InvalidSpacing" xml:space="preserve"><value>Maximum spacing must be a finite number greater than 0.</value></data>
   <data name="RoofRafterWindow_InvalidMaterial" xml:space="preserve"><value>Select a valid material.</value></data>
   <data name="RoofRafterWindow_InvalidRoof" xml:space="preserve"><value>The rafter layout cannot be calculated for this roof.</value></data>
+  <data name="RoofRafterWindow_InvalidAutomaticSpacingFormat" xml:space="preserve"><value>Automatic rafter spacing must not be less than {0:0.###} mm.</value></data>
+  <data name="RoofRafterWindow_HipSummaryFormat" xml:space="preserve"><value>{0} rafters • working spacing {1:0.###} mm</value></data>
+  <data name="RoofRafterWindow_HipPreviewOnly" xml:space="preserve"><value>Permanent Hip rafter creation is not part of R1 yet. This preview is transient.</value></data>
   <data name="Command_RoofUnlock_SelectPrompt" xml:space="preserve"><value>&#xA;Select a roof to unlock: </value></data>
   <data name="Command_RoofToggleLock_SelectPrompt" xml:space="preserve"><value>&#xA;Select a roof to lock or unlock: </value></data>
   <data name="Command_RoofUnlock_Unlocked" xml:space="preserve"><value>&#xA;The roof is unlocked. Generated timber can be edited with supported commands.</value></data>
@@ -727,4 +730,13 @@
   <data name="Command_ImportDwg_Cancelled" xml:space="preserve"><value>\nImport cancelled.</value></data>
   <data name="Command_ImportDwg_CompletedFormat" xml:space="preserve"><value>\nDWG safely imported as block {0}.</value></data>
   <data name="Command_ImportDwg_FailedFormat" xml:space="preserve"><value>\nDWG import was rejected or failed: {0}</value></data>
+  <data name="SettingsWindow_Manufacturing_DefaultAutomaticRafterSpacing" xml:space="preserve">
+    <value>Default automatic rafter spacing</value>
+  </data>
+  <data name="SettingsWindow_Manufacturing_MinimumAutomaticRafterSpacing" xml:space="preserve">
+    <value>Minimum automatic rafter spacing</value>
+  </data>
+  <data name="Dialog_SettingsRafterSpacing" xml:space="preserve">
+    <value>Both spacings must be positive finite numbers, and the default spacing must not be less than the minimum.</value>
+  </data>
 </root>

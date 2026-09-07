@@ -50,7 +50,9 @@ public sealed class HipRoofPersistenceSourceContractTests
             Workflow,
             "case HipRoofPreviewDialogAction.Preview:",
             "case HipRoofPreviewDialogAction.Apply:");
-        Assert.Contains("ShowPreview(document, previewGeometry, sourceElevation)", preview);
+        Assert.Contains("ShowPreview(", preview);
+        Assert.DoesNotContain("RoofFaceRafterLayoutService", preview);
+        Assert.DoesNotContain("AutoCadRoofRafterSpacingStore", preview);
         Assert.DoesNotContain("TryPersist", preview);
         Assert.DoesNotContain("RoofDefinitionStore.Write", preview);
         Assert.DoesNotContain("OpenMode.ForWrite", preview);

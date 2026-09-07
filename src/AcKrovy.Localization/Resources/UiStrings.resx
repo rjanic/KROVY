@@ -618,7 +618,7 @@
   <data name="RoofRafterWindow_Description" xml:space="preserve"><value>Nastavte prierez, maximálny rozstup a materiál krokiev.</value></data>
   <data name="RoofRafterWindow_WidthMm" xml:space="preserve"><value>Šírka [mm]</value></data>
   <data name="RoofRafterWindow_HeightMm" xml:space="preserve"><value>Výška [mm]</value></data>
-  <data name="RoofRafterWindow_MaximumSpacingMm" xml:space="preserve"><value>Max. rozstup [mm]</value></data>
+  <data name="RoofRafterWindow_MaximumSpacingMm" xml:space="preserve"><value>Rozostup krokiev [mm]</value></data>
   <data name="RoofRafterWindow_Material" xml:space="preserve"><value>Materiál</value></data>
   <data name="RoofRafterWindow_RoofSlope" xml:space="preserve"><value>Sklon strechy</value></data>
   <data name="RoofRafterWindow_RoofSlopeHint" xml:space="preserve"><value>Sklon je načítaný z vybranej strechy.</value></data>
@@ -633,6 +633,9 @@
   <data name="RoofRafterWindow_InvalidSpacing" xml:space="preserve"><value>Maximálny rozstup musí byť konečné číslo väčšie ako 0.</value></data>
   <data name="RoofRafterWindow_InvalidMaterial" xml:space="preserve"><value>Vyberte platný materiál.</value></data>
   <data name="RoofRafterWindow_InvalidRoof" xml:space="preserve"><value>Rozloženie krokiev sa pre túto strechu nedá vypočítať.</value></data>
+  <data name="RoofRafterWindow_InvalidAutomaticSpacingFormat" xml:space="preserve"><value>Rozostup automatických krokiev nesmie byť menší ako {0:0.###} mm.</value></data>
+  <data name="RoofRafterWindow_HipSummaryFormat" xml:space="preserve"><value>{0} krokiev • pracovný rozostup {1:0.###} mm</value></data>
+  <data name="RoofRafterWindow_HipPreviewOnly" xml:space="preserve"><value>Trvalé vytvorenie krokiev pre valbovú strechu zatiaľ nie je súčasťou R1. Náhľad je dočasný.</value></data>
   <data name="Command_RoofUnlock_SelectPrompt" xml:space="preserve"><value>&#xA;Vyber strechu, ktorú chceš odomknúť: </value></data>
   <data name="Command_RoofToggleLock_SelectPrompt" xml:space="preserve"><value>&#xA;Vyber strechu na zamknutie alebo odomknutie: </value></data>
   <data name="Command_RoofUnlock_Unlocked" xml:space="preserve"><value>&#xA;Strecha je odomknutá. Generované rezivo možno upravovať podporovanými príkazmi.</value></data>
@@ -727,4 +730,13 @@
   <data name="Command_ImportDwg_Cancelled" xml:space="preserve"><value>\nImport bol zrušený.</value></data>
   <data name="Command_ImportDwg_CompletedFormat" xml:space="preserve"><value>\nDWG bol bezpečne importovaný ako blok {0}.</value></data>
   <data name="Command_ImportDwg_FailedFormat" xml:space="preserve"><value>\nImport DWG bol zamietnutý alebo zlyhal: {0}</value></data>
+  <data name="SettingsWindow_Manufacturing_DefaultAutomaticRafterSpacing" xml:space="preserve">
+    <value>Predvolený rozostup automatických krokiev</value>
+  </data>
+  <data name="SettingsWindow_Manufacturing_MinimumAutomaticRafterSpacing" xml:space="preserve">
+    <value>Minimálny rozostup automatických krokiev</value>
+  </data>
+  <data name="Dialog_SettingsRafterSpacing" xml:space="preserve">
+    <value>Oba rozostupy musia byť kladné konečné čísla a predvolený rozostup nesmie byť menší ako minimálny.</value>
+  </data>
 </root>

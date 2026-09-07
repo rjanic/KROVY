@@ -59,7 +59,9 @@ public sealed class RoofTransientPreviewSourceContractTests
     public void PreviewLifecycle_IsScopedIdempotentAndDocumentAware()
     {
         Assert.Contains("IDisposable", Preview);
-        Assert.Contains("using (RoofTransientPreviewSession.Show", Workflow);
+        Assert.Contains(
+            "using (RoofTransientPreviewSession.Show(document, geometry, sourceElevation))",
+            Workflow);
         Assert.Contains("if (_disposed)", Preview);
         Assert.Contains("DocumentToBeDestroyed +=", Preview);
         Assert.Contains("DocumentToBeDestroyed -=", Preview);

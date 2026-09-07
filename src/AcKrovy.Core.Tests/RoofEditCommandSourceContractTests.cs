@@ -201,7 +201,9 @@ public sealed class RoofEditCommandSourceContractTests
             "case HipRoofPreviewDialogAction.Preview:",
             "case HipRoofPreviewDialogAction.Apply:");
 
-        Assert.Contains("ShowPreview(document, previewGeometry, sourceElevation)", preview);
+        Assert.Contains("ShowPreview(", preview);
+        Assert.DoesNotContain("RoofFaceRafterLayoutService", preview);
+        Assert.DoesNotContain("AutoCadRoofRafterSpacingStore", preview);
         Assert.DoesNotContain("TryApply(", preview);
         Assert.DoesNotContain("RoofDefinitionStore.Write", preview);
         Assert.DoesNotContain("RoofDisplayService.Rebuild", preview);

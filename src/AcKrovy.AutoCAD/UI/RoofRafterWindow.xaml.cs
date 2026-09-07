@@ -12,21 +12,29 @@ public partial class RoofRafterWindow : Window
 {
     private readonly IRoofGeometry _geometry;
     private readonly CultureInfo _culture;
+    private readonly double _minimumAutomaticSpacingMm;
     private RoofRafterRequestValidationResult? _currentValidation;
+    private RoofFaceRafterLayout? _currentHipPreviewLayout;
     private bool _initialized;
 
     internal RoofRafterWindow(
         IRoofGeometry geometry,
         RoofRafterPreferences preferences,
+        double minimumAutomaticSpacingMm,
         SettingsTheme theme,
         CultureInfo? culture = null)
     {
         ArgumentNullException.ThrowIfNull(geometry);
         ArgumentNullException.ThrowIfNull(preferences);
+        if (!RoofRafterSpacingRules.IsValidDimension(minimumAutomaticSpacingMm))
+        {
+            throw new ArgumentOutOfRangeException(nameof(minimumAutomaticSpacingMm));
+        }
 
         InitializeComponent();
         FashionWindowTheme.Apply(this, theme);
         _geometry = geometry;
+        _minimumAutomaticSpacingMm = minimumAutomaticSpacingMm;
         _culture = culture ?? AppLanguageService.CurrentUiCulture;
         MaterialOptions = TimberMaterialDisplayNameProvider.GetOptions(
             preferences.Material,
@@ -56,7 +64,10 @@ public partial class RoofRafterWindow : Window
 
     internal RoofRafterLayout? PreviewLayout => _currentValidation?.Layout;
 
+    internal RoofFaceRafterLayout? HipPreviewLayout => _currentHipPreviewLayout;
+
     internal event Action<RoofRafterLayout?>? PreviewLayoutChanged;
+    internal event Action<RoofFaceRafterLayout?>? HipPreviewLayoutChanged;
 
     private string FormatInput(double value) => value.ToString("0.###", _culture);
 
@@ -77,12 +88,45 @@ public partial class RoofRafterWindow : Window
         var height = ParseNumber(HeightTextBox.Text);
         var spacing = ParseNumber(MaximumSpacingTextBox.Text);
         var material = (MaterialComboBox.SelectedItem as TimberMaterialDisplayOption)?.StoredValue;
-        var validation = RoofRafterRequestValidator.Validate(
-            _geometry,
+        var inputError = RoofRafterRequestValidator.ValidateAutomaticInputs(
             width,
             height,
             spacing,
+            _minimumAutomaticSpacingMm,
             material);
+        if (inputError == RoofRafterRequestValidationError.None &&
+            !TimberMaterialCatalog.TryGetItem(material!, out _))
+        {
+            inputError = RoofRafterRequestValidationError.InvalidMaterial;
+        }
+        RoofRafterRequestValidationResult validation;
+        if (inputError != RoofRafterRequestValidationError.None)
+        {
+            validation = new RoofRafterRequestValidationResult(null, null, inputError);
+            _currentHipPreviewLayout = null;
+        }
+        else if (_geometry is HipRoofGeometry hip)
+        {
+            var hipResult = RoofFaceRafterLayoutService.Create(hip.Topology, spacing);
+            _currentHipPreviewLayout = hipResult.Layout;
+            validation = new RoofRafterRequestValidationResult(
+                null,
+                null,
+                hipResult.IsValid
+                    ? RoofRafterRequestValidationError.None
+                    : RoofRafterRequestValidationError.InvalidRoof);
+        }
+        else
+        {
+            _currentHipPreviewLayout = null;
+            validation = RoofRafterRequestValidator.Validate(
+                _geometry,
+                width,
+                height,
+                spacing,
+                _minimumAutomaticSpacingMm,
+                material);
+        }
 
         if (validation.IsValid &&
             !TimberMaterialCatalog.TryGetItem(validation.Request!.Material, out _))
@@ -94,10 +138,27 @@ public partial class RoofRafterWindow : Window
         }
 
         _currentValidation = validation;
-        CreateButton.IsEnabled = validation.IsValid;
-        ValidationTextBlock.Text = validation.IsValid ? string.Empty
-            : UiStrings.GetString(ValidationKey(validation.Error), _culture);
-        SummaryTextBlock.Text = validation.Layout is { } layout
+        var hipPreviewOnly = _geometry is HipRoofGeometry &&
+                             _currentHipPreviewLayout is not null;
+        CreateButton.IsEnabled = validation.IsValid && !hipPreviewOnly;
+        ValidationTextBlock.Text = validation.Error ==
+                                   RoofRafterRequestValidationError.InvalidMaximumSpacing
+            ? UiStrings.Format(
+                UiStrings.GetString(
+                    "RoofRafterWindow_InvalidAutomaticSpacingFormat",
+                    _culture),
+                _minimumAutomaticSpacingMm)
+            : hipPreviewOnly
+                ? UiStrings.GetString("RoofRafterWindow_HipPreviewOnly", _culture)
+                : validation.IsValid
+                    ? string.Empty
+                    : UiStrings.GetString(ValidationKey(validation.Error), _culture);
+        SummaryTextBlock.Text = _currentHipPreviewLayout is { } hipLayout
+            ? UiStrings.Format(
+                UiStrings.GetString("RoofRafterWindow_HipSummaryFormat", _culture),
+                hipLayout.Segments.Count,
+                hipLayout.RequestedSpacingMm)
+            : validation.Layout is { } layout
             ? UiStrings.Format(
                 UiStrings.GetString("RoofRafterWindow_SummaryFormat", _culture),
                 layout.Rafters.Count,
@@ -105,6 +166,7 @@ public partial class RoofRafterWindow : Window
                 layout.ActualSpacingMm)
             : UiStrings.GetString("RoofRafterWindow_SummaryUnavailable", _culture);
         PreviewLayoutChanged?.Invoke(validation.Layout);
+        HipPreviewLayoutChanged?.Invoke(_currentHipPreviewLayout);
     }
 
     private double ParseNumber(string text)

@@ -10,7 +10,9 @@ using WpfMessageBox = System.Windows.MessageBox;
 using AcKrovy.Cad.Abstractions.Layers;
 using AcKrovy.AutoCAD.Settings;
 using AcKrovy.Core.Models;
+using AcKrovy.Core.Models.Roofs;
 using AcKrovy.Core.Services;
+using AcKrovy.Core.Services.Roofs;
 using AcKrovy.Localization;
 using WpfBrush = System.Windows.Media.Brush;
 using WpfKey = System.Windows.Input.Key;
@@ -38,11 +40,16 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
     private ObservableCollection<string> _layerNameOptions = [];
     private IReadOnlyDictionary<string, CadLayerPreset> _layerPresets =
         new Dictionary<string, CadLayerPreset>(StringComparer.OrdinalIgnoreCase);
-        private string _roundingStepMmText = Format(TimberElementDefaultProfile.FactoryCuttingLengthRoundingStepMm);
+    private string _roundingStepMmText = Format(TimberElementDefaultProfile.FactoryCuttingLengthRoundingStepMm);
+    private string _defaultAutomaticRafterSpacingMmText =
+        Format(RoofRafterSpacingRules.DefaultAutomaticSpacingMm);
+    private string _minimumAutomaticRafterSpacingMmText =
+        Format(RoofRafterSpacingRules.DefaultMinimumAutomaticSpacingMm);
     private string _selectedLanguageCode = AppLanguageService.DefaultLanguageCode;
     private TimberAnnotationMode _selectedAnnotationMode = TimberAnnotationMode.FullLabel;
     private ItemNumberLeaderStyle _selectedItemNumberLeaderStyle = ItemNumberLeaderStyle.Plain;
     private int _loadedDrawingScaleDenominator = TimberAnnotationScaleRules.DefaultDenominator;
+    private RoofRafterSettings _loadedRafterSettings = RoofRafterSettings.CreateDefault();
     private TimberAnnotationScalePreset _selectedDrawingScalePreset =
         TimberAnnotationScalePreset.Scale50;
     private string _drawingCustomScaleText = "50";
@@ -335,6 +342,38 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
         }
     }
 
+    public string DefaultAutomaticRafterSpacingMmText
+    {
+        get => _defaultAutomaticRafterSpacingMmText;
+        set
+        {
+            if (_defaultAutomaticRafterSpacingMmText == value)
+            {
+                return;
+            }
+
+            _defaultAutomaticRafterSpacingMmText = value;
+            OnPropertyChanged();
+            UpdateFormState();
+        }
+    }
+
+    public string MinimumAutomaticRafterSpacingMmText
+    {
+        get => _minimumAutomaticRafterSpacingMmText;
+        set
+        {
+            if (_minimumAutomaticRafterSpacingMmText == value)
+            {
+                return;
+            }
+
+            _minimumAutomaticRafterSpacingMmText = value;
+            OnPropertyChanged();
+            UpdateFormState();
+        }
+    }
+
     public event PropertyChangedEventHandler? PropertyChanged;
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
@@ -348,7 +387,8 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
         IReadOnlyList<CadLayerPreset> availableLayerPresets,
         Func<SettingsApplyRequest, SettingsApplyResponse> applySettings,
         IApplicationLanguageWorkflow? languageWorkflow = null,
-        AnnotationScaleSettingsState? annotationScaleState = null)
+        AnnotationScaleSettingsState? annotationScaleState = null,
+        RafterSpacingSettingsState? rafterSpacingState = null)
     {
         _applySettings = applySettings ?? throw new ArgumentNullException(nameof(applySettings));
         _languageWorkflow = languageWorkflow ??
@@ -366,6 +406,14 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
                 TimberAnnotationScaleRules.DefaultDenominator,
                 TimberAnnotationScaleRules.DefaultDenominator);
         _loadedDrawingScaleDenominator = scaleState.EffectiveDenominator;
+        _loadedRafterSettings = (rafterSpacingState ??
+            new RafterSpacingSettingsState(
+                false,
+                RoofRafterSettings.CreateDefault())).EffectiveSettings;
+        _defaultAutomaticRafterSpacingMmText =
+            Format(_loadedRafterSettings.DefaultAutomaticSpacingMm);
+        _minimumAutomaticRafterSpacingMmText =
+            Format(_loadedRafterSettings.MinimumAutomaticSpacingMm);
         InitializeScaleSelections(normalizedDefaultProfile.AnnotationScaleDenominator);
         _selectedAnnotationPreset = SettingsAnnotationPresetRules.FromProduction(
             _selectedAnnotationMode,
@@ -426,6 +474,10 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
             ReplaceDefaultRows(
                 TimberElementDefaultProfile.CreateDefault(),
                 replaceAnnotation: false);
+            DefaultAutomaticRafterSpacingMmText =
+                Format(RoofRafterSpacingRules.DefaultAutomaticSpacingMm);
+            MinimumAutomaticRafterSpacingMmText =
+                Format(RoofRafterSpacingRules.DefaultMinimumAutomaticSpacingMm);
         }
 
         UpdateFormState();
@@ -498,6 +550,31 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
             return;
         }
 
+        var defaultAutomaticSpacingMm =
+            _loadedRafterSettings.DefaultAutomaticSpacingMm;
+        var minimumAutomaticSpacingMm =
+            _loadedRafterSettings.MinimumAutomaticSpacingMm;
+        if (scope.HasFlag(SettingsSectionScope.Allowances) &&
+            (!TryReadPositiveFiniteNumber(
+                 DefaultAutomaticRafterSpacingMmText,
+                 out defaultAutomaticSpacingMm) ||
+             !TryReadPositiveFiniteNumber(
+                 MinimumAutomaticRafterSpacingMmText,
+                 out minimumAutomaticSpacingMm) ||
+             !RoofRafterSpacingRules.IsValidSettings(
+                 defaultAutomaticSpacingMm,
+                 minimumAutomaticSpacingMm)))
+        {
+            WpfMessageBox.Show(
+                UiStrings.GetString(
+                    "Dialog_SettingsRafterSpacing",
+                    _uiCulture),
+                UiStrings.MessageDialogTitle,
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return;
+        }
+
         var hasValidSelectedScale = TryGetDrawingScaleDenominator(
             out var selectedScaleDenominator);
         if (scope.HasFlag(SettingsSectionScope.Annotation) &&
@@ -520,7 +597,14 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
              scope.HasFlag(SettingsSectionScope.Annotation)) &&
             _defaultProfileChangeTracker.HasProfileChanged(
                 CreateDefaultProfileFingerprint(defaultProfile));
-        var profileChanged = layerProfileChanged || defaultProfileChanged;
+        var rafterSpacingChanged =
+            scope.HasFlag(SettingsSectionScope.Allowances) &&
+            (defaultAutomaticSpacingMm !=
+                 _loadedRafterSettings.DefaultAutomaticSpacingMm ||
+             minimumAutomaticSpacingMm !=
+                 _loadedRafterSettings.MinimumAutomaticSpacingMm);
+        var profileChanged =
+            layerProfileChanged || defaultProfileChanged || rafterSpacingChanged;
         if (!SettingsApplyDispatchRules.ShouldDispatch(
                 saveMode,
                 profileChanged))
@@ -577,6 +661,10 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
             annotationSettings,
             layerProfileChanged,
             defaultProfileChanged,
+            new RoofRafterSettings(
+                defaultAutomaticSpacingMm,
+                minimumAutomaticSpacingMm),
+            rafterSpacingChanged,
             layerProfileChanged
                 ? Rows.Select(row => new CadLayerOverrideIntent(
                         row.ElementType,
@@ -628,6 +716,17 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
                 AcceptUiSectionBaselines(
                     scope & (SettingsSectionScope.Allowances |
                              SettingsSectionScope.Annotation));
+            }
+            if (rafterSpacingChanged)
+            {
+                _loadedRafterSettings = new RoofRafterSettings(
+                    defaultAutomaticSpacingMm,
+                    minimumAutomaticSpacingMm);
+                DefaultAutomaticRafterSpacingMmText =
+                    Format(defaultAutomaticSpacingMm);
+                MinimumAutomaticRafterSpacingMmText =
+                    Format(minimumAutomaticSpacingMm);
+                AcceptUiSectionBaselines(SettingsSectionScope.Allowances);
             }
             LanguageCode = languageCode;
             if (annotationApplyScope == TimberAnnotationSettingsApplyScope.AllElements &&
@@ -857,6 +956,18 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
             row.PropertyChanged += EditableRow_PropertyChanged;
             DefaultRows.Add(row);
         }
+    }
+
+    private static bool TryReadPositiveFiniteNumber(string raw, out double value)
+    {
+        if (double.TryParse(raw, NumberStyles.Float, SlovakCulture, out value) ||
+            double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out value))
+        {
+            return RoofRafterSpacingRules.IsValidDimension(value);
+        }
+
+        value = 0d;
+        return false;
     }
 
     private static bool TryReadNonNegativeNumber(string raw, out double value)
@@ -1431,6 +1542,8 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
                 row.CuttingAllowanceMmText,
             }),
             RoundingStepMmText,
+            DefaultAutomaticRafterSpacingMmText,
+            MinimumAutomaticRafterSpacingMmText,
         });
 
     private string CreateAnnotationUiFingerprint() =>
@@ -2002,12 +2115,18 @@ internal sealed record SettingsApplyRequest(
     TimberAnnotationSettingsRequest? AnnotationSettings,
     bool LayerProfileChanged,
     bool DefaultProfileChanged,
+    RoofRafterSettings RafterSettings,
+    bool RafterSpacingChanged,
     IReadOnlyList<CadLayerOverrideIntent> LayerOverrideIntents);
 
 internal sealed record AnnotationScaleSettingsState(
     bool HasDrawingOverride,
     int DrawingDenominator,
     int EffectiveDenominator);
+
+internal sealed record RafterSpacingSettingsState(
+    bool HasDrawingValue,
+    RoofRafterSettings EffectiveSettings);
 
 public sealed record AnnotationScaleOption(
     TimberAnnotationScalePreset Preset,

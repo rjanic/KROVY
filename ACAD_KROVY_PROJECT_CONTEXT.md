@@ -1,6 +1,6 @@
 # ACAD KROVY – PROJECT CONTEXT
 
-**Aktualizované:** 6. 9. 2026
+**Aktualizované:** 7. 9. 2026
 
 **Predchádzajúci stabilný commit v0.21.0:** `f98900c1bd257a8e5357f6e77eb6f118bd4930d3`
 
@@ -8,7 +8,7 @@
 
 **Verzia aplikácie:** autoritatívne v `Directory.Build.props`
 
-**Aktuálny míľnik:** General AutoCAD Hip / Valbová STRETCH + grip live lifecycle – HOST PASS for Rectangle + L + U + T
+**Aktuálny míľnik:** R1 Hip automatic ordinary-rafter geometry + transient preview – HOST PASS (Rectangle + L + U + T, connected-Ridge phase); permanent Hip rafters PENDING
 
 **Overovanie:** Debug/Release build, kompletné automatické testy a Portable/Full Compatibility Gate
 
@@ -537,10 +537,13 @@ Stabilný commit: `4a951041e2deef40a127ac9560cf6fb2ba4b6a5b`
   topológiou, nie ďalším samostatným polygonálnym solverom. Prepnutie ukončenia
   vyžaduje prepočet incidentných plôch; nie iba posun koncového bodu hrebeňa.
   Existujúce production SimpleGable/Monopitch workflow sa týmto návrhom nemenia.
-- Budúce automatické generovanie dreva preberá rozstupy z centrálnych Settings;
-  potvrdený požadovaný default `RafterSpacingMm` je **500 mm**. Dnešná prvá hodnota
-  `RoofRafterPreferences.MaximumSpacingMm` je 900 mm; jej migrácia a priorita voči
-  zapamätaným voľbám patria do samostatnej Settings/generation úlohy.
+- R1 automatické Hip ordinary-rafter rozloženie dostáva pracovný rozostup z
+  `AK_ROOF_RAFTERS`. `AK_SETTINGS` je iba zdrojom drawing-level predvolenej hodnoty
+  **900 mm** a konfigurovateľného minima, ktorého factory hodnota je **500 mm**.
+  Chýbajúci záznam sa na tieto dve hodnoty vyhodnotí iba v pamäti bez zápisu.
+  Existujúca user-scoped hodnota `RoofRafterPreferences.MaximumSpacingMm` 900 mm je
+  odlišná lokálna UI preferencia; drawing policy ju pri otvorení príkazu autoritatívne
+  nahradí a jej lokálny formát sa nemení.
 - Potlačenie veľmi krátkych koncových hip krokiev je budúce konfigurovateľné
   timber-generation pravidlo. Príklad 200 mm nie je geometrická konštanta a nesmie
   meniť matematickú topológiu. Geometrické jadro nečíta Settings ani rozstupy.
@@ -621,8 +624,65 @@ Stabilný commit: `4a951041e2deef40a127ac9560cf6fb2ba4b6a5b`
   - globálny AutoCAD `PICKSTYLE` sa nemení,
 - priame mazanie odvodeného display prvku cez `ERASE` ostáva otvorené (Locked derived-display ERASE protection: PENDING)
   a je plánované ako spoločný roof lifecycle fix pre Sedlovú, Pultovú aj Valbovú strechu,
-- ďalšie oblasti ako COPY lifecycle expanzia, krokvy/drevené prvky, 500 mm
-  Settings hodnota či širšia polygonálna HOST certifikácia ostávajú future work.
+- ďalšie oblasti ako COPY lifecycle expanzia, permanentné Hip krokvy/drevené prvky
+  či širšia polygonálna HOST certifikácia ostávajú future work.
+
+### Valbová R1 – CAD-neutral field-rafter layout a transient preview
+
+- Core `RoofFaceRafterLayoutService` spracuje všeobecnú `RoofTopology` bez Autodesk
+  typov. Pre každú kanonickú eave-owned face používa jednu kolmú parallel station
+  family a každou station line prereže úplnú boundary geometriu plochy. Z každého
+  samostatného inside intervalu vytvorí samostatnú ordinary-rafter centerline; cez
+  medzeru mimo plochy nikdy intervaly nespája.
+- Stanice používajú presný rozostup `S`: `count = max(1, floor(L/S))` a symetrický
+  okraj `(L - (count - 1)S) / 2`. Pre kompatibilné protiľahlé faces je intervalom
+  projected span celej **connected collinear Ridge component** (nie každý finite
+  Ridge edge samostatne ani nezávislá dĺžka Eave). Rovnaká fáza sa predĺži cez
+  complete-face projection každej owning face, vrátane Ridge↔Valley klinov.
+- Ridge component spája iba Ridge edges, ktoré zdieľajú topology endpoint, sú
+  kolineárne v Core tolerancii, majú ekvivalentnú station axis a kompatibilné
+  opposing rafter families. Perpendicular alebo disconnected Ridge edges ostávajú
+  samostatnými komponentmi – žiadny global ridge direction/phase.
+- Face s viacerými Ridge edges tej istej componenty dostane jednu component phase
+  (nie conflict/fallback). Fallback na Eave-local ostáva len pri skutočne
+  nekompatibilných component assignments.
+- HOST T preview odhalil, že per-edge centering + modulo-equivalence na split
+  Ridge (E16/E18) pri working spacing 900 mm spôsobil physical offset (až ~550 mm)
+  a fallback face 0 na Eave phase. Connected Ridge-component phase to opravuje;
+  `R1-H3b` HOST retest je PASS. L/U/T face coverage HOST ostáva PASS.
+- R1-H2 odhalil, že L-shape face 2 a 3 presahujú source-Eave projection o 1500 mm.
+  Starý eave-origin ray preto vôbec nevytvoril station lines v Ridge↔Valley klinovom
+  regióne. Complete-face station extension pri 500 mm doplní 6 ordinary
+  Ridge↔Valley segmentov; L regresia má spolu 70 segmentov. U/T code-side regresie
+  majú 112/88 segmentov a po 12 Ridge↔Valley segmentov. Nejde o Valley/Hip/Ridge
+  structural timber. Code-side referencie: Rectangle@500 = 64 (16 Eave↔Ridge,
+  48 Eave↔Hip); T@900 = 46 / RV 4; asym unequal-Eave trap@500 = 61.
+- Endpoint klasifikácia zlučuje zásahy v tolerancii a pri spoločnom vrchole používa
+  stabilnú prioritu `Eave → Ridge → Hip → Valley`; zásah `CoplanarSeam` interval
+  zamietne namiesto premostenia alebo premenovania na fyzickú hranu. Duplicate key
+  rozlišuje face identity, aby protiľahlé segmenty zdieľajúce iba Ridge endpoint
+  neboli omylom zlúčené.
+- `AK_SETTINGS` Manufacturing obsahuje dve lokalizované hodnoty:
+  `DefaultAutomaticSpacingMm` (factory 900 mm) a `MinimumAutomaticSpacingMm`
+  (factory 500 mm). Obe musia byť kladné konečné čísla a default nesmie byť menší
+  ako minimum. Po Apply sa schema-1 `ACAD_KROVY / ROOF_RAFTER_SETTINGS` zapisuje
+  ako `[schema, defaultAutomaticSpacingMm, minimumAutomaticSpacingMm]`. Pôvodný
+  dvojprvkový `DRAWING_SETTINGS` annotation payload sa nemení; chýbajúci rafter
+  záznam nič nezapisuje a staré DWG ostávajú kompatibilné.
+- `AK_ROOF_RAFTERS` pri každom otvorení prevezme drawing default ako pracovný
+  `Rozostup krokiev`, dovolí ho meniť a validuje ho voči drawing minimu. Hip vetva
+  po každej platnej zmene volá `RoofFaceRafterLayoutService` a zobrazí iba transient
+  ordinary-rafter centerlines; permanentné Hip krokvy R1 nevytvára. Hip CREATE/EDIT
+  ostáva výhradne editorom geometrie strechy a drawing spacing už nečíta.
+- Refresh/Cancel/close disponuje všetky transient drawables; nevzniká XData, GROUP,
+  layer ani permanentná entita. Minimum je policy iba pre automatické generovanie
+  a nijako sa nepripája k manuálnemu timber assignment alebo manuálne vloženým prvkom.
+- R1 nemení Hip slope, schema-5 definíciu, source lifecycle ani existujúce trvalé
+  Ridge/Hip/Valley zobrazenie. Finálny HOST míľnik:
+  `AutoCAD Hip / Valbová automatic ordinary-rafter transient preview: HOST PASS
+  for Rectangle + L + U + T` a `Connected-Ridge opposing-rafter phase alignment:
+  HOST PASS` (vrátane Cancel/`DBMOD=0`). Permanentné Hip / Valbová automatic
+  rafters: PENDING (R2). R1 nevytvára structural Hip/Valley/Ridge timber.
 
 ### STRECHY S2 – Roof COPY / STRETCH / GROUP GRIP (stabilný HOST checkpoint)
 - **Supported source STRETCH:** gable-end aj eave-side, enlarge/shrink, rotated,
@@ -760,9 +820,9 @@ Poradie:
 Multi-CAD kompatibilita sa má overiť ešte pred tým, než projekt prerastie do príliš veľkého AutoCAD-špecifického roof automation modulu.
 
 ## Najbližšia priorita
-1. DEFERRED – generated rafters following rigid MOVE / `RigidGroupTransform`,
+1. R2 permanentný Hip / Valbová automatic rafter lifecycle,
 2. Locked derived-display ERASE ochrana (Sedlová, Pultová, Valbová),
-3. Valbová timber / rafter generovanie a pravidlá (Rectangle, L, U, T majú STRETCH + grip live lifecycle **HOST PASS**),
+3. DEFERRED – generated rafters following rigid MOVE / `RigidGroupTransform`,
 4. compatibility checkpoint a alternatívne CAD adaptéry bez vendor typov v Core.
 
 Presné poradie je v `ACAD_KROVY_ROADMAP.md`, úplný zásobník nápadov v `ACAD_KROVY_BACKLOG.md`.

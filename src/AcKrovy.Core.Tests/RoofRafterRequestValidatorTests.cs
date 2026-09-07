@@ -26,6 +26,7 @@ public sealed class RoofRafterRequestValidatorTests
             100,
             180,
             1000,
+            500,
             "KVH C24 NSi");
 
         Assert.True(result.IsValid);
@@ -42,7 +43,7 @@ public sealed class RoofRafterRequestValidatorTests
     public void PreferencesRoundTripExcludesRoofSlope()
     {
         var request = RoofRafterRequestValidator.Validate(
-            Geometry(10000, 8000, 31), 120, 200, 850, "Smrek C16").Request!;
+            Geometry(10000, 8000, 31), 120, 200, 850, 500, "Smrek C16").Request!;
 
         Assert.Equal(new RoofRafterPreferences(120, 200, 850, "Smrek C16"), request.ToPreferences());
         Assert.Equal(31d, request.RoofSlopeDegrees);
@@ -58,6 +59,7 @@ public sealed class RoofRafterRequestValidatorTests
             100,
             180,
             1000,
+            500,
             "KVH C24 NSi");
 
         Assert.True(result.IsValid);
@@ -81,7 +83,7 @@ public sealed class RoofRafterRequestValidatorTests
             : Geometry(10000, 8000, 30);
 
         var result = RoofRafterRequestValidator.Validate(
-            geometry, 80, 160, 900, "Smrek C24");
+            geometry, 80, 160, 900, 500, "Smrek C24");
 
         Assert.True(result.IsValid);
         Assert.Equal(2, result.Layout!.Planes.Count);
@@ -97,7 +99,7 @@ public sealed class RoofRafterRequestValidatorTests
     public void InvalidWidthIsRejected(double width, RoofRafterRequestValidationError error)
     {
         var result = RoofRafterRequestValidator.Validate(
-            Geometry(10000, 8000, 30), width, 160, 900, "Smrek C24");
+            Geometry(10000, 8000, 30), width, 160, 900, 500, "Smrek C24");
 
         Assert.False(result.IsValid);
         Assert.Equal(error, result.Error);
@@ -111,7 +113,7 @@ public sealed class RoofRafterRequestValidatorTests
     public void InvalidHeightIsRejected(double height)
     {
         var result = RoofRafterRequestValidator.Validate(
-            Geometry(10000, 8000, 30), 80, height, 900, "Smrek C24");
+            Geometry(10000, 8000, 30), 80, height, 900, 500, "Smrek C24");
 
         Assert.Equal(RoofRafterRequestValidationError.InvalidHeight, result.Error);
     }
@@ -124,9 +126,32 @@ public sealed class RoofRafterRequestValidatorTests
     public void InvalidSpacingIsRejected(double spacing)
     {
         var result = RoofRafterRequestValidator.Validate(
-            Geometry(10000, 8000, 30), 80, 160, spacing, "Smrek C24");
+            Geometry(10000, 8000, 30), 80, 160, spacing, 500, "Smrek C24");
 
         Assert.Equal(RoofRafterRequestValidationError.InvalidMaximumSpacing, result.Error);
+    }
+
+    [Theory]
+    [InlineData(499d, 500d, false)]
+    [InlineData(500d, 500d, true)]
+    [InlineData(449d, 450d, false)]
+    [InlineData(450d, 450d, true)]
+    [InlineData(600d, 650d, false)]
+    [InlineData(650d, 650d, true)]
+    public void AutomaticRequestUsesConfiguredMinimum(
+        double workingSpacing,
+        double minimumSpacing,
+        bool expected)
+    {
+        var result = RoofRafterRequestValidator.Validate(
+            Geometry(10000, 8000, 30),
+            80,
+            160,
+            workingSpacing,
+            minimumSpacing,
+            "Smrek C24");
+
+        Assert.Equal(expected, result.IsValid);
     }
 
     [Theory]
@@ -136,7 +161,7 @@ public sealed class RoofRafterRequestValidatorTests
     public void EmptyMaterialIsRejected(string? material)
     {
         var result = RoofRafterRequestValidator.Validate(
-            Geometry(10000, 8000, 30), 80, 160, 900, material);
+            Geometry(10000, 8000, 30), 80, 160, 900, 500, material);
 
         Assert.Equal(RoofRafterRequestValidationError.InvalidMaterial, result.Error);
     }

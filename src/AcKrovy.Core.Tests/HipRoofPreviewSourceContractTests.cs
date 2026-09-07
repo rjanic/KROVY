@@ -87,9 +87,44 @@ public sealed class HipRoofPreviewSourceContractTests
         Assert.DoesNotContain("Transaction", previewCase);
         Assert.DoesNotContain("DocumentLock", previewCase);
         Assert.DoesNotContain("XData", previewCase);
-        Assert.Contains("ShowPreview(document, previewGeometry, sourceElevation)", previewCase);
+        Assert.Contains("ShowPreview(", previewCase);
+        Assert.DoesNotContain("RoofFaceRafterLayoutService", previewCase);
+        Assert.DoesNotContain("AutoCadRoofRafterSpacingStore", previewCase);
         Assert.Contains("ClearCompletedWorkflowSelection(document.Editor)", previewCase);
         Assert.Contains("persistent-created=0", Preview);
+    }
+
+    [Fact]
+    public void HipRafterPreviewIsOwnedByRoofRaftersWorkflow()
+    {
+        var rafterWorkflow = Read(
+            "src", "AcKrovy.AutoCAD", "Infrastructure",
+            "RoofRafterCommandWorkflow.cs");
+        var window = Read(
+            "src", "AcKrovy.AutoCAD", "UI",
+            "RoofRafterWindow.xaml.cs");
+
+        Assert.Contains("AutoCadRoofRafterSpacingStore.ReadEffective", rafterWorkflow);
+        Assert.Contains("RoofFaceRafterTransientPreviewController", rafterWorkflow);
+        Assert.Contains("RoofFaceRafterLayoutService.Create(hip.Topology, spacing)", window);
+        Assert.DoesNotContain("CreateHipRafterLayout", Workflow);
+    }
+
+    [Fact]
+    public void CombinedHipRafterPreviewRemainsTransientAndUsesOneCleanupOwner()
+    {
+        var combined = Segment(
+            Preview,
+            "public static RoofTransientPreviewSession Show(\n        Document document,\n        IRoofGeometry geometry,\n        RoofFaceRafterLayout rafterLayout",
+            "internal static IReadOnlyList<RoofPreviewSegment> MapSegments");
+
+        Assert.Contains("session.AddGeometry", combined);
+        Assert.Contains("session.AddRafters", combined);
+        Assert.Contains("session.Dispose()", combined);
+        Assert.DoesNotContain("AppendEntity", combined);
+        Assert.DoesNotContain("XData", combined);
+        Assert.DoesNotContain("Group", combined);
+        Assert.DoesNotContain("Transaction", combined);
     }
 
     [Fact]

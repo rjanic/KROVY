@@ -44,26 +44,42 @@ internal static class RoofRafterCommandWorkflow
         var uiPreferences = SettingsUiPreferencesStore.Load();
         var remembered = uiPreferences.AutomaticRafterPreferences ??
             RoofRafterPreferences.CreateFirstUse(canonicalRafterDefaults.Material);
+        var rafterSettings = AutoCadRoofRafterSpacingStore.ReadEffective(
+            document.Database,
+            out _);
+        var workingPreferences = remembered with
+        {
+            MaximumSpacingMm = rafterSettings.DefaultAutomaticSpacingMm,
+        };
         var dialog = new RoofRafterWindow(
             selectedRoof.Geometry,
-            remembered,
+            workingPreferences,
+            rafterSettings.MinimumAutomaticSpacingMm,
             uiPreferences.Theme);
         SettingsWindowOwner.TryAssign(dialog, TryGetAutoCadMainWindowHandle());
         using var preview = new RoofRafterTransientPreviewController(
             document,
             selectedRoof.SourceElevation);
+        using var hipPreview = new RoofFaceRafterTransientPreviewController(
+            document,
+            selectedRoof.SourceElevation);
         Action<RoofRafterLayout?> previewChanged = preview.Refresh;
+        Action<RoofFaceRafterLayout?> hipPreviewChanged = hipPreview.Refresh;
         dialog.PreviewLayoutChanged += previewChanged;
+        dialog.HipPreviewLayoutChanged += hipPreviewChanged;
         var accepted = false;
         try
         {
             preview.Refresh(dialog.PreviewLayout);
+            hipPreview.Refresh(dialog.HipPreviewLayout);
             accepted = AcApp.ShowModalWindow(dialog) == true && dialog.Request is not null;
         }
         finally
         {
             dialog.PreviewLayoutChanged -= previewChanged;
+            dialog.HipPreviewLayoutChanged -= hipPreviewChanged;
             preview.Refresh(null);
+            hipPreview.Refresh(null);
         }
         if (!accepted || dialog.Request is null)
         {
@@ -76,6 +92,7 @@ internal static class RoofRafterCommandWorkflow
             selectedRoof.OwnerReference,
             selectedRoof.Geometry.Kind,
             dialog.Request,
+            rafterSettings.MinimumAutomaticSpacingMm,
             defaultProfile);
         if (result.IsSuccess)
         {
@@ -154,7 +171,8 @@ internal static class RoofRafterCommandWorkflow
                 return false;
             }
             if (restored.Geometry is not SimpleGableRoofGeometry and
-                not MonopitchRoofGeometry)
+                not MonopitchRoofGeometry and
+                not HipRoofGeometry)
             {
                 editor.WriteMessage(UiStrings.GetString("Command_RoofRafters_InvalidRoof"));
                 return false;
@@ -186,6 +204,7 @@ internal static class RoofRafterCommandWorkflow
         string expectedOwnerReference,
         RoofKind expectedRoofKind,
         RoofRafterCreationRequest request,
+        double minimumAutomaticSpacingMm,
         TimberElementDefaultProfile defaultProfile)
     {
         try
@@ -244,6 +263,7 @@ internal static class RoofRafterCommandWorkflow
                 request.WidthMm,
                 request.HeightMm,
                 request.MaximumSpacingMm,
+                minimumAutomaticSpacingMm,
                 request.Material);
             if (!currentValidation.IsValid ||
                 currentValidation.Layout is null ||

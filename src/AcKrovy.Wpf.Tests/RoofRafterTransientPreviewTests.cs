@@ -8,6 +8,35 @@ namespace AcKrovy.Wpf.Tests;
 public sealed class RoofRafterTransientPreviewTests
 {
     [Fact]
+    public void HipTopologyAdapterMapsNeutralFaceSegmentsWithoutRecomputingGeometry()
+    {
+        var topologyResult = RoofTopologySolver.Solve(
+            new RoofFootprintInput(
+                [new(0, 0), new(10000, 0), new(10000, 6000), new(0, 6000)],
+                true),
+            30d);
+        Assert.True(topologyResult.IsValid);
+        var layoutResult = RoofFaceRafterLayoutService.Create(
+            topologyResult.Topology!,
+            500d);
+        Assert.True(layoutResult.IsValid);
+
+        var mapped = RoofTransientPreviewSession.MapRafterPlanSegments(
+            layoutResult.Layout!);
+
+        Assert.Equal(64, mapped.Count);
+        Assert.Equal(
+            layoutResult.Layout!.Segments.Select(segment => segment.PlanStart),
+            mapped.Select(segment => segment.Start));
+        Assert.Equal(
+            layoutResult.Layout.Segments.Select(segment => segment.PlanEnd),
+            mapped.Select(segment => segment.End));
+        Assert.Equal(
+            layoutResult.Layout.Segments.Select(segment => segment.SourceFaceIndex),
+            mapped.Select(segment => segment.FaceIndex));
+    }
+
+    [Fact]
     public void MonopitchAdapterMapsNeutralPlanSegmentsInDeterministicOrder()
     {
         var geometry = MonopitchGeometry(10000, 6000, 30, 30);
@@ -100,6 +129,42 @@ public sealed class RoofRafterTransientPreviewTests
         controller.Dispose();
         controller.Dispose();
 
+        Assert.True(created[2].IsDisposed);
+        Assert.Equal(1, created[2].DisposeCount);
+    }
+
+    [Fact]
+    public void HipPreviewControllerDisposesReplacementInvalidAndCloseWithoutPersistence()
+    {
+        var topologyResult = RoofTopologySolver.Solve(
+            new RoofFootprintInput(
+                [new(0, 0), new(10000, 0), new(10000, 6000), new(0, 6000)],
+                true),
+            30d);
+        var first = RoofFaceRafterLayoutService.Create(
+            topologyResult.Topology!,
+            900d).Layout!;
+        var second = RoofFaceRafterLayoutService.Create(
+            topologyResult.Topology!,
+            600d).Layout!;
+        var created = new List<TrackingDisposable>();
+        var controller = new RoofFaceRafterTransientPreviewController(layout =>
+        {
+            Assert.True(layout == first || layout == second);
+            var session = new TrackingDisposable();
+            created.Add(session);
+            return session;
+        });
+
+        controller.Refresh(first);
+        controller.Refresh(second);
+        Assert.True(created[0].IsDisposed);
+
+        controller.Refresh(null);
+        Assert.True(created[1].IsDisposed);
+
+        controller.Refresh(first);
+        controller.Dispose();
         Assert.True(created[2].IsDisposed);
         Assert.Equal(1, created[2].DisposeCount);
     }

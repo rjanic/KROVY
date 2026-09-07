@@ -80,6 +80,7 @@ public sealed class AcKrovyCommands
         var document = ActiveDocument();
         var defaultProfile = TimberElementDefaultProfileStore.Load();
         var annotationScaleState = ReadAnnotationScaleSettingsState(document);
+        var rafterSpacingState = ReadRafterSpacingSettingsState(document);
         LayerSettingsWindow? dialog = null;
         dialog = new LayerSettingsWindow(
             ElementLayerProfileStore.Load(),
@@ -91,7 +92,8 @@ public sealed class AcKrovyCommands
                 document,
                 request,
                 new WindowInteropHelper(dialog).Handle),
-            annotationScaleState: annotationScaleState);
+            annotationScaleState: annotationScaleState,
+            rafterSpacingState: rafterSpacingState);
         SettingsWindowOwner.TryAssign(dialog, TryGetAutoCadMainWindowHandle());
         AcApp.ShowModalWindow(dialog);
     }
@@ -182,6 +184,32 @@ public sealed class AcKrovyCommands
             }
         }
 
+        if (request.RafterSpacingChanged)
+        {
+            try
+            {
+                using var documentLock = document.LockDocument();
+                using var transaction = document.Database.TransactionManager.StartTransaction();
+                var store = new AutoCadRoofRafterSpacingStore(
+                    document.Database,
+                    transaction);
+                store.Write(request.RafterSettings);
+                transaction.Commit();
+            }
+            catch (System.Exception ex)
+            {
+                return new SettingsApplyResponse(
+                    false,
+                    false,
+                    StatusBannerSeverity.Warning,
+                    "Command_Settings_SaveFailedFormat",
+                    [ex.Message],
+                    ReadAvailableLinetypeNames(document.Database),
+                    ReadAvailableLayerPresets(document.Database),
+                    appliedProfile);
+            }
+        }
+
         try
         {
             if (applyLayerProfileChange)
@@ -218,6 +246,18 @@ public sealed class AcKrovyCommands
 
         if (request.SaveMode == SettingsSaveMode.NewElementsOnly)
         {
+            if (request.RafterSpacingChanged &&
+                !request.LayerProfileChanged &&
+                !request.DefaultProfileChanged)
+            {
+                editor.WriteMessage(UiStrings.CommandSettingsSaved);
+                return SettingsResponse(
+                    document.Database,
+                    "SettingsWindow_SettingsApplied",
+                    StatusBannerSeverity.Success,
+                    appliedProfile: appliedProfile);
+            }
+
             EnsureAnnotationTextStylesForSettings(
                 document,
                 request.DefaultProfile.DefaultAnnotationTextSettings);
@@ -1727,6 +1767,15 @@ public sealed class AcKrovyCommands
             hasDrawingOverride,
             hasDrawingOverride ? drawingDenominator : effectiveDenominator,
             effectiveDenominator);
+    }
+
+    private static RafterSpacingSettingsState ReadRafterSpacingSettingsState(
+        Document document)
+    {
+        var effective = AutoCadRoofRafterSpacingStore.ReadEffective(
+            document.Database,
+            out var hasStoredValue);
+        return new RafterSpacingSettingsState(hasStoredValue, effective);
     }
 
     private static IReadOnlyList<string> ReadAvailableLinetypeNames(Database database)

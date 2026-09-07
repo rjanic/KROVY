@@ -618,7 +618,7 @@
   <data name="RoofRafterWindow_Description" xml:space="preserve"><value>Nastavte průřez, maximální rozteč a materiál krokví.</value></data>
   <data name="RoofRafterWindow_WidthMm" xml:space="preserve"><value>Šířka [mm]</value></data>
   <data name="RoofRafterWindow_HeightMm" xml:space="preserve"><value>Výška [mm]</value></data>
-  <data name="RoofRafterWindow_MaximumSpacingMm" xml:space="preserve"><value>Max. rozteč [mm]</value></data>
+  <data name="RoofRafterWindow_MaximumSpacingMm" xml:space="preserve"><value>Rozteč krokví [mm]</value></data>
   <data name="RoofRafterWindow_Material" xml:space="preserve"><value>Materiál</value></data>
   <data name="RoofRafterWindow_RoofSlope" xml:space="preserve"><value>Sklon střechy</value></data>
   <data name="RoofRafterWindow_RoofSlopeHint" xml:space="preserve"><value>Sklon je načten z vybrané střechy.</value></data>
@@ -633,6 +633,9 @@
   <data name="RoofRafterWindow_InvalidSpacing" xml:space="preserve"><value>Maximální rozteč musí být konečné číslo větší než 0.</value></data>
   <data name="RoofRafterWindow_InvalidMaterial" xml:space="preserve"><value>Vyberte platný materiál.</value></data>
   <data name="RoofRafterWindow_InvalidRoof" xml:space="preserve"><value>Rozložení krokví nelze pro tuto střechu vypočítat.</value></data>
+  <data name="RoofRafterWindow_InvalidAutomaticSpacingFormat" xml:space="preserve"><value>Rozteč automatických krokví nesmí být menší než {0:0.###} mm.</value></data>
+  <data name="RoofRafterWindow_HipSummaryFormat" xml:space="preserve"><value>{0} krokví • pracovní rozteč {1:0.###} mm</value></data>
+  <data name="RoofRafterWindow_HipPreviewOnly" xml:space="preserve"><value>Trvalé vytvoření krokví pro valbovou střechu zatím není součástí R1. Náhled je dočasný.</value></data>
   <data name="Command_RoofUnlock_SelectPrompt" xml:space="preserve"><value>&#xA;Vyberte střechu, kterou chcete odemknout: </value></data>
   <data name="Command_RoofToggleLock_SelectPrompt" xml:space="preserve"><value>&#xA;Vyberte střechu pro zamknutí nebo odemknutí: </value></data>
   <data name="Command_RoofUnlock_Unlocked" xml:space="preserve"><value>&#xA;Střecha je odemčená. Generované řezivo lze upravovat podporovanými příkazy.</value></data>
@@ -727,4 +730,13 @@
   <data name="Command_ImportDwg_Cancelled" xml:space="preserve"><value>\nImport byl zrušen.</value></data>
   <data name="Command_ImportDwg_CompletedFormat" xml:space="preserve"><value>\nDWG byl bezpečně importován jako blok {0}.</value></data>
   <data name="Command_ImportDwg_FailedFormat" xml:space="preserve"><value>\nImport DWG byl zamítnut nebo selhal: {0}</value></data>
+  <data name="SettingsWindow_Manufacturing_DefaultAutomaticRafterSpacing" xml:space="preserve">
+    <value>Výchozí rozteč automatických krokví</value>
+  </data>
+  <data name="SettingsWindow_Manufacturing_MinimumAutomaticRafterSpacing" xml:space="preserve">
+    <value>Minimální rozteč automatických krokví</value>
+  </data>
+  <data name="Dialog_SettingsRafterSpacing" xml:space="preserve">
+    <value>Obě rozteče musí být kladná konečná čísla a výchozí rozteč nesmí být menší než minimální.</value>
+  </data>
 </root>

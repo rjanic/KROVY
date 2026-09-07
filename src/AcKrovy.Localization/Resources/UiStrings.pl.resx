@@ -618,7 +618,7 @@
   <data name="RoofRafterWindow_Description" xml:space="preserve"><value>Ustaw przekrój, maksymalny rozstaw i materiał krokwi.</value></data>
   <data name="RoofRafterWindow_WidthMm" xml:space="preserve"><value>Szerokość [mm]</value></data>
   <data name="RoofRafterWindow_HeightMm" xml:space="preserve"><value>Wysokość [mm]</value></data>
-  <data name="RoofRafterWindow_MaximumSpacingMm" xml:space="preserve"><value>Maks. rozstaw [mm]</value></data>
+  <data name="RoofRafterWindow_MaximumSpacingMm" xml:space="preserve"><value>Rozstaw krokwi [mm]</value></data>
   <data name="RoofRafterWindow_Material" xml:space="preserve"><value>Materiał</value></data>
   <data name="RoofRafterWindow_RoofSlope" xml:space="preserve"><value>Nachylenie dachu</value></data>
   <data name="RoofRafterWindow_RoofSlopeHint" xml:space="preserve"><value>Nachylenie jest wczytywane z wybranego dachu.</value></data>
@@ -633,6 +633,9 @@
   <data name="RoofRafterWindow_InvalidSpacing" xml:space="preserve"><value>Maksymalny rozstaw musi być skończoną liczbą większą od 0.</value></data>
   <data name="RoofRafterWindow_InvalidMaterial" xml:space="preserve"><value>Wybierz prawidłowy materiał.</value></data>
   <data name="RoofRafterWindow_InvalidRoof" xml:space="preserve"><value>Nie można obliczyć układu krokwi dla tego dachu.</value></data>
+  <data name="RoofRafterWindow_InvalidAutomaticSpacingFormat" xml:space="preserve"><value>Rozstaw automatycznych krokwi nie może być mniejszy niż {0:0.###} mm.</value></data>
+  <data name="RoofRafterWindow_HipSummaryFormat" xml:space="preserve"><value>{0} krokwi • rozstaw roboczy {1:0.###} mm</value></data>
+  <data name="RoofRafterWindow_HipPreviewOnly" xml:space="preserve"><value>Trwałe tworzenie krokwi dla dachu czterospadowego nie jest jeszcze częścią R1. Ten podgląd jest tymczasowy.</value></data>
   <data name="Command_RoofUnlock_SelectPrompt" xml:space="preserve"><value>&#xA;Wybierz dach do odblokowania: </value></data>
   <data name="Command_RoofToggleLock_SelectPrompt" xml:space="preserve"><value>&#xA;Wybierz dach do zablokowania lub odblokowania: </value></data>
   <data name="Command_RoofUnlock_Unlocked" xml:space="preserve"><value>&#xA;Dach jest odblokowany. Wygenerowane drewno można edytować obsługiwanymi poleceniami.</value></data>
@@ -727,4 +730,13 @@
   <data name="Command_ImportDwg_Cancelled" xml:space="preserve"><value>\nImport anulowano.</value></data>
   <data name="Command_ImportDwg_CompletedFormat" xml:space="preserve"><value>\nDWG bezpiecznie zaimportowano jako blok {0}.</value></data>
   <data name="Command_ImportDwg_FailedFormat" xml:space="preserve"><value>\nImport DWG został odrzucony lub nie powiódł się: {0}</value></data>
+  <data name="SettingsWindow_Manufacturing_DefaultAutomaticRafterSpacing" xml:space="preserve">
+    <value>Domyślny rozstaw automatycznych krokwi</value>
+  </data>
+  <data name="SettingsWindow_Manufacturing_MinimumAutomaticRafterSpacing" xml:space="preserve">
+    <value>Minimalny rozstaw automatycznych krokwi</value>
+  </data>
+  <data name="Dialog_SettingsRafterSpacing" xml:space="preserve">
+    <value>Oba rozstawy muszą być dodatnimi liczbami skończonymi, a rozstaw domyślny nie może być mniejszy niż minimalny.</value>
+  </data>
 </root>

@@ -347,7 +347,10 @@ internal static class RoofCommandWorkflow
                         document.Editor.UpdateScreen();
                         try
                         {
-                            ShowPreview(document, previewGeometry, sourceElevation);
+                            ShowPreview(
+                                document,
+                                previewGeometry,
+                                sourceElevation);
                         }
                         finally
                         {

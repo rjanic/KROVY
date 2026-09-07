@@ -12,6 +12,7 @@ using AcKrovy.AutoCAD.Settings;
 using AcKrovy.AutoCAD.UI;
 using AcKrovy.Cad.Abstractions.Layers;
 using AcKrovy.Core.Models;
+using AcKrovy.Core.Models.Roofs;
 using AcKrovy.Core.Services;
 using AcKrovy.Localization;
 using Xunit;
@@ -20,6 +21,78 @@ namespace AcKrovy.Wpf.Tests;
 
 public sealed class SettingsXamlRuntimeSmokeTests
 {
+    [Fact]
+    [Trait("Feature", "RoofRafterSpacing")]
+    public void ManufacturingRafterSpacing_HydratesAndDispatchesDrawingValue()
+    {
+        Exception? failure = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                _ = Application.Current ?? new Application
+                {
+                    ShutdownMode = ShutdownMode.OnExplicitShutdown,
+                };
+                AppLanguageService.Apply("en");
+                LoadResourceDictionaries();
+                SettingsApplyRequest? captured = null;
+                var window = new LayerSettingsWindow(
+                    ElementLayerProfile.CreateDefault(),
+                    TimberElementDefaultProfile.CreateDefault(),
+                    "en",
+                    CadLinetypeNames.SupportedStandardNames,
+                    [new CadLayerPreset("0", 7, CadLinetypeNames.Continuous)],
+                    request =>
+                    {
+                        captured = request;
+                        return new SettingsApplyResponse(
+                            true,
+                            true,
+                            StatusBannerSeverity.Success,
+                            "SettingsWindow_SettingsApplied",
+                            [],
+                            CadLinetypeNames.SupportedStandardNames,
+                            [new CadLayerPreset("0", 7, CadLinetypeNames.Continuous)]);
+                    },
+                    rafterSpacingState: new RafterSpacingSettingsState(
+                        true,
+                        new RoofRafterSettings(600d, 450d)))
+                {
+                    Left = -30000,
+                    Top = -30000,
+                    ShowInTaskbar = false,
+                    WindowStyle = WindowStyle.None,
+                };
+                window.Show();
+                window.Visual.SelectedSection = SettingsWindowTabKind.Manufacturing;
+                window.UpdateLayout();
+
+                Assert.Equal("600", window.DefaultAutomaticRafterSpacingTextBox.Text);
+                Assert.Equal("450", window.MinimumAutomaticRafterSpacingTextBox.Text);
+                window.DefaultAutomaticRafterSpacingTextBox.Text = "750";
+                window.MinimumAutomaticRafterSpacingTextBox.Text = "500";
+                window.ManufacturingApplyButton.RaiseEvent(
+                    new RoutedEventArgs(Button.ClickEvent));
+
+                Assert.NotNull(captured);
+                Assert.True(captured!.RafterSpacingChanged);
+                Assert.Equal(
+                    new RoofRafterSettings(750d, 500d),
+                    captured.RafterSettings);
+                window.Close();
+            }
+            catch (Exception exception)
+            {
+                failure = exception;
+            }
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        Assert.True(thread.Join(TimeSpan.FromSeconds(60)));
+        Assert.Null(failure);
+    }
+
     [Fact]
     [Trait("Feature", "FashionLook")]
     [Trait("Feature", "AciPickerRuntime")]

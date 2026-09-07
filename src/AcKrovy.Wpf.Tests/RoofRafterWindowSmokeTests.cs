@@ -32,6 +32,7 @@ public sealed class RoofRafterWindowSmokeTests
                         var window = new RoofRafterWindow(
                             geometry,
                             RoofRafterPreferences.CreateFirstUse("Smrek C24"),
+                            500d,
                             theme)
                         {
                             Left = -30000,
@@ -81,6 +82,7 @@ public sealed class RoofRafterWindowSmokeTests
                     var window = new RoofRafterWindow(
                         geometry,
                         RoofRafterPreferences.CreateFirstUse("Smrek C24"),
+                        500d,
                         SettingsTheme.Light)
                     {
                         Left = -30000,
@@ -124,6 +126,7 @@ public sealed class RoofRafterWindowSmokeTests
                     var window = new RoofRafterWindow(
                         geometry,
                         RoofRafterPreferences.CreateFirstUse("Smrek C24"),
+                        500d,
                         SettingsTheme.Light);
 
                     Assert.Single(window.PreviewLayout!.Planes);
@@ -167,6 +170,7 @@ public sealed class RoofRafterWindowSmokeTests
                 var window = new RoofRafterWindow(
                     MonopitchGeometry(10000, 6000, 30),
                     new RoofRafterPreferences(80, 160, 1000, "Smrek C24"),
+                    500d,
                     SettingsTheme.Light);
                 var published = new List<RoofRafterLayout?>();
                 window.PreviewLayoutChanged += published.Add;
@@ -210,6 +214,7 @@ public sealed class RoofRafterWindowSmokeTests
                 var window = new RoofRafterWindow(
                     Geometry(10000, 8000, 30),
                     new RoofRafterPreferences(80, 160, 1000, "Smrek C24"),
+                    500d,
                     SettingsTheme.Light);
                 window.WidthTextBox.Text = "100";
                 window.UpdateLayout();
@@ -243,6 +248,7 @@ public sealed class RoofRafterWindowSmokeTests
                 var window = new RoofRafterWindow(
                     Geometry(10000, 8000, 38),
                     new RoofRafterPreferences(100, 180, 1000, "KVH C24 NSi"),
+                    500d,
                     SettingsTheme.Dark)
                 {
                     Left = -30000,
@@ -272,6 +278,47 @@ public sealed class RoofRafterWindowSmokeTests
                 var reopened = JsonSerializer.Deserialize<SettingsUiPreferences>(json)!.Normalize();
                 Assert.Equal(request.ToPreferences(), reopened.AutomaticRafterPreferences);
                 Assert.DoesNotContain("RoofSlope", json, StringComparison.Ordinal);
+            }
+            catch (Exception exception)
+            {
+                failure = exception;
+            }
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        Assert.True(thread.Join(TimeSpan.FromSeconds(30)));
+        Assert.Null(failure);
+    }
+
+    [Fact]
+    public void HipUsesWorkingSpacingAndConfiguredMinimumForTransientPreviewOnly()
+    {
+        Exception? failure = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                AppLanguageService.Apply("sk");
+                var window = new RoofRafterWindow(
+                    HipGeometry(10000, 6000, 30),
+                    new RoofRafterPreferences(80, 160, 900, "Smrek C24"),
+                    500d,
+                    SettingsTheme.Light);
+
+                Assert.Equal("900", window.MaximumSpacingTextBox.Text);
+                Assert.NotNull(window.HipPreviewLayout);
+                Assert.Equal(900d, window.HipPreviewLayout!.RequestedSpacingMm);
+                Assert.False(window.CreateButton.IsEnabled);
+
+                window.MaximumSpacingTextBox.Text = "499";
+                Assert.Null(window.HipPreviewLayout);
+                Assert.Contains("500", window.ValidationTextBlock.Text);
+
+                window.MaximumSpacingTextBox.Text = "500";
+                Assert.NotNull(window.HipPreviewLayout);
+                Assert.Equal(64, window.HipPreviewLayout!.Segments.Count);
+                Assert.False(window.CreateButton.IsEnabled);
+                window.Close();
             }
             catch (Exception exception)
             {
@@ -321,5 +368,20 @@ public sealed class RoofRafterWindowSmokeTests
             validation.Footprint!,
             new RoofParameters(slope, SlopeDirection: direction),
             RoofKind.Monopitch)).Geometry);
+    }
+
+    private static HipRoofGeometry HipGeometry(
+        double length,
+        double width,
+        double slope)
+    {
+        var validation = RoofFootprintValidator.Validate(new RoofFootprintInput(
+            [new(0, 0), new(length, 0), new(length, width), new(0, width)], true));
+        var result = RoofGeometrySolver.Solve(new RoofDefinition(
+            validation.Footprint!,
+            new RoofParameters(slope),
+            RoofKind.Hip));
+        Assert.True(result.IsValid, result.Error.ToString());
+        return Assert.IsType<HipRoofGeometry>(result.Geometry);
     }
 }

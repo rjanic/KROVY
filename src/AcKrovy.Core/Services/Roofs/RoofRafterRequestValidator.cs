@@ -10,6 +10,7 @@ public static class RoofRafterRequestValidator
         double widthMm,
         double heightMm,
         double maximumSpacingMm,
+        double minimumAutomaticSpacingMm,
         string? material)
     {
         if (geometry is null)
@@ -17,21 +18,15 @@ public static class RoofRafterRequestValidator
             throw new ArgumentNullException(nameof(geometry));
         }
 
-        if (!IsFinite(widthMm) || widthMm <= 0d)
+        var inputError = ValidateAutomaticInputs(
+            widthMm,
+            heightMm,
+            maximumSpacingMm,
+            minimumAutomaticSpacingMm,
+            material);
+        if (inputError != RoofRafterRequestValidationError.None)
         {
-            return Invalid(RoofRafterRequestValidationError.InvalidWidth);
-        }
-        if (!IsFinite(heightMm) || heightMm <= 0d)
-        {
-            return Invalid(RoofRafterRequestValidationError.InvalidHeight);
-        }
-        if (!IsFinite(maximumSpacingMm) || maximumSpacingMm <= 0d)
-        {
-            return Invalid(RoofRafterRequestValidationError.InvalidMaximumSpacing);
-        }
-        if (string.IsNullOrWhiteSpace(material))
-        {
-            return Invalid(RoofRafterRequestValidationError.InvalidMaterial);
+            return Invalid(inputError);
         }
 
         var layoutResult = RoofRafterLayoutSolver.Solve(
@@ -55,6 +50,35 @@ public static class RoofRafterRequestValidator
                 geometry.PrimarySlopeDegrees),
             layoutResult.Layout,
             RoofRafterRequestValidationError.None);
+    }
+
+    public static RoofRafterRequestValidationError ValidateAutomaticInputs(
+        double widthMm,
+        double heightMm,
+        double workingSpacingMm,
+        double minimumAutomaticSpacingMm,
+        string? material)
+    {
+        if (!IsFinite(widthMm) || widthMm <= 0d)
+        {
+            return RoofRafterRequestValidationError.InvalidWidth;
+        }
+        if (!IsFinite(heightMm) || heightMm <= 0d)
+        {
+            return RoofRafterRequestValidationError.InvalidHeight;
+        }
+        if (!RoofRafterSpacingRules.IsValidAutomaticWorkingSpacing(
+                workingSpacingMm,
+                minimumAutomaticSpacingMm))
+        {
+            return RoofRafterRequestValidationError.InvalidMaximumSpacing;
+        }
+        if (string.IsNullOrWhiteSpace(material))
+        {
+            return RoofRafterRequestValidationError.InvalidMaterial;
+        }
+
+        return RoofRafterRequestValidationError.None;
     }
 
     private static RoofRafterRequestValidationResult Invalid(

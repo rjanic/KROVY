@@ -618,7 +618,7 @@
   <data name="RoofRafterWindow_Description" xml:space="preserve"><value>Querschnitt, maximalen Abstand und Material der Sparren festlegen.</value></data>
   <data name="RoofRafterWindow_WidthMm" xml:space="preserve"><value>Breite [mm]</value></data>
   <data name="RoofRafterWindow_HeightMm" xml:space="preserve"><value>Höhe [mm]</value></data>
-  <data name="RoofRafterWindow_MaximumSpacingMm" xml:space="preserve"><value>Max. Abstand [mm]</value></data>
+  <data name="RoofRafterWindow_MaximumSpacingMm" xml:space="preserve"><value>Sparrenabstand [mm]</value></data>
   <data name="RoofRafterWindow_Material" xml:space="preserve"><value>Material</value></data>
   <data name="RoofRafterWindow_RoofSlope" xml:space="preserve"><value>Dachneigung</value></data>
   <data name="RoofRafterWindow_RoofSlopeHint" xml:space="preserve"><value>Die Neigung wird vom ausgewählten Dach geladen.</value></data>
@@ -633,6 +633,9 @@
   <data name="RoofRafterWindow_InvalidSpacing" xml:space="preserve"><value>Der maximale Abstand muss eine endliche Zahl größer als 0 sein.</value></data>
   <data name="RoofRafterWindow_InvalidMaterial" xml:space="preserve"><value>Ein gültiges Material auswählen.</value></data>
   <data name="RoofRafterWindow_InvalidRoof" xml:space="preserve"><value>Die Sparrenaufteilung kann für dieses Dach nicht berechnet werden.</value></data>
+  <data name="RoofRafterWindow_InvalidAutomaticSpacingFormat" xml:space="preserve"><value>Der Abstand automatisch erzeugter Sparren darf nicht kleiner als {0:0.###} mm sein.</value></data>
+  <data name="RoofRafterWindow_HipSummaryFormat" xml:space="preserve"><value>{0} Sparren • Arbeitsabstand {1:0.###} mm</value></data>
+  <data name="RoofRafterWindow_HipPreviewOnly" xml:space="preserve"><value>Die dauerhafte Sparrenerzeugung für Walmdächer ist noch nicht Bestandteil von R1. Diese Vorschau ist temporär.</value></data>
   <data name="Command_RoofUnlock_SelectPrompt" xml:space="preserve"><value>&#xA;Dach zum Entsperren auswählen: </value></data>
   <data name="Command_RoofToggleLock_SelectPrompt" xml:space="preserve"><value>&#xA;Wählen Sie ein Dach zum Sperren oder Entsperren: </value></data>
   <data name="Command_RoofUnlock_Unlocked" xml:space="preserve"><value>&#xA;Das Dach ist entsperrt. Erzeugtes Holz kann mit unterstützten Befehlen bearbeitet werden.</value></data>
@@ -727,4 +730,13 @@
   <data name="Command_ImportDwg_Cancelled" xml:space="preserve"><value>\nImport abgebrochen.</value></data>
   <data name="Command_ImportDwg_CompletedFormat" xml:space="preserve"><value>\nDWG wurde sicher als Block {0} importiert.</value></data>
   <data name="Command_ImportDwg_FailedFormat" xml:space="preserve"><value>\nDWG-Import wurde abgelehnt oder ist fehlgeschlagen: {0}</value></data>
+  <data name="SettingsWindow_Manufacturing_DefaultAutomaticRafterSpacing" xml:space="preserve">
+    <value>Standardabstand automatisch erzeugter Sparren</value>
+  </data>
+  <data name="SettingsWindow_Manufacturing_MinimumAutomaticRafterSpacing" xml:space="preserve">
+    <value>Mindestabstand automatisch erzeugter Sparren</value>
+  </data>
+  <data name="Dialog_SettingsRafterSpacing" xml:space="preserve">
+    <value>Beide Abstände müssen positive endliche Zahlen sein; der Standardabstand darf nicht kleiner als der Mindestabstand sein.</value>
+  </data>
 </root>
