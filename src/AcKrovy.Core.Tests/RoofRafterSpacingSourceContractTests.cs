@@ -102,6 +102,10 @@ public sealed class RoofRafterSpacingSourceContractTests
         Assert.Contains("ResolveRidgeCoordinatedPhases", service);
         Assert.Contains("CollectCompatibleRidgeEdges", service);
         Assert.Contains("AreConnectedRidgeComponentEdges", service);
+        Assert.Contains("ShareAnyFace", service);
+        Assert.Contains("AreCollinearEquivalentSegments", service);
+        Assert.Contains("shared-face-offset-parallel", service);
+        Assert.Contains("DescribePhasePlan", service);
         Assert.Contains("TryCreateComponentPhase", service);
         Assert.Contains("FindFaceIntervals", service);
         Assert.Contains("index + 1 < hits.Count", service);

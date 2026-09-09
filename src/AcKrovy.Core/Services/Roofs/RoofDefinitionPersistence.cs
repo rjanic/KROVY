@@ -386,6 +386,12 @@ public static class RoofDefinitionPersistence
                 RoofDefinitionRestoreError.StaleFootprint);
         }
 
+        // Schema-5 Hip RigidFootprint stores only VertexCount + Edge01/Edge12.
+        // Descriptor match means "no compact evidence of change" and must remain
+        // RigidEquivalent so Locked generated-timber recovery and assembly snapshots
+        // keep working for L/U/T/stepped Hip. Shape changes that keep Edge01/Edge12
+        // are promoted to SupportedResize by host ClassifyOwner (display drift and/or
+        // generated relative-coverage mismatch) — not by weakening RigidEquivalent here.
         var kind = Matches(topology.Descriptor, data.RigidFootprint) ||
                    MatchesOrientationFlippedRigid(topology.Descriptor, data.RigidFootprint)
             ? RoofSourceChangeKind.RigidEquivalent

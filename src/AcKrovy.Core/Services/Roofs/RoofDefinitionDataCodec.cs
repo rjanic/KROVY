@@ -625,12 +625,9 @@ public static class RoofDefinitionDataCodec
             return false;
         }
 
-        if (data.Kind == RoofKind.Hip && !HasDefaultEditState(data))
-        {
-            error = RoofDefinitionDataDecodeError.InvalidEditState;
-            return false;
-        }
-
+        // Schema 5 already persists EditState for every roof kind. Hip uses the same
+        // Locked/Unlocked lifecycle as non-Hip roofs; do not reject Hip Unlocked or
+        // Hip Locked-with-overrides here.
         if (RoofGeneratedMemberOverrideRules.HasDuplicateKeys(data.Overrides) ||
             data.Overrides.Any(item => item is null || item.Key.StationIndex < 0))
         {

@@ -115,7 +115,7 @@ internal static class RoofUnsupportedStretchRecoverySnapshotService
                 blockTable[BlockTableRecord.ModelSpace],
                 OpenMode.ForRead);
 
-            var eligibleRoofs = new List<(ObjectId Id, Polyline Polyline, RoofUnsupportedStretchSourceSnapshotData Source)>();
+            var eligibleRoofs = new List<(ObjectId Id, Polyline Polyline, RoofUnsupportedStretchSourceSnapshotData Source, RoofDefinitionData Data, RoofSourceChangeKind Classifier, int SourceVertexCount, int NormalizedVertexCount)>();
             foreach (ObjectId id in modelSpace)
             {
                 if (id.IsErased ||
@@ -131,12 +131,46 @@ internal static class RoofUnsupportedStretchRecoverySnapshotService
                     continue;
                 }
 
-                if (!TryBuildRoofSourceSnapshot(polyline, out var sourceData))
+                var stored = RoofDefinitionStore.Read(polyline);
+                if (stored.Data is null)
                 {
                     continue;
                 }
 
-                eligibleRoofs.Add((id, polyline, sourceData));
+                if (!TryBuildRoofSourceSnapshot(
+                        polyline,
+                        out var sourceData,
+                        out var sourceSkip,
+                        out var classifier,
+                        out var sourceVertexCount,
+                        out var normalizedVertexCount))
+                {
+#if DEBUG
+                    RoofGeneratedSnapshotDiag.WriteCapture(
+                        document.Editor,
+                        polyline.Handle.ToString(),
+                        normalized,
+                        stored.Data.Kind.ToString(),
+                        stored.Data.EditState.ToString(),
+                        sourceVertexCount,
+                        normalizedVertexCount,
+                        classifier.ToString(),
+                        generatedCount: -1,
+                        annotationCount: -1,
+                        action: "skipped",
+                        reason: sourceSkip);
+#endif
+                    continue;
+                }
+
+                eligibleRoofs.Add((
+                    id,
+                    polyline,
+                    sourceData,
+                    stored.Data,
+                    classifier,
+                    sourceVertexCount,
+                    normalizedVertexCount));
             }
 
             foreach (var roof in eligibleRoofs)
@@ -152,6 +186,21 @@ internal static class RoofUnsupportedStretchRecoverySnapshotService
                         out var skipReason))
                 {
                     RecordCaptureSkip(roof.Source.OwnerHandle, skipReason);
+#if DEBUG
+                    RoofGeneratedSnapshotDiag.WriteCapture(
+                        document.Editor,
+                        roof.Source.OwnerHandle,
+                        normalized,
+                        roof.Data.Kind.ToString(),
+                        roof.Data.EditState.ToString(),
+                        roof.SourceVertexCount,
+                        roof.NormalizedVertexCount,
+                        roof.Classifier.ToString(),
+                        generatedCount: -1,
+                        annotationCount: -1,
+                        action: "skipped",
+                        reason: skipReason);
+#endif
                     continue;
                 }
 
@@ -159,6 +208,21 @@ internal static class RoofUnsupportedStretchRecoverySnapshotService
                 {
                     ByOwner[roof.Id] = new SnapshotEntry(roof.Id, assembly);
                 }
+#if DEBUG
+                RoofGeneratedSnapshotDiag.WriteCapture(
+                    document.Editor,
+                    roof.Source.OwnerHandle,
+                    normalized,
+                    roof.Data.Kind.ToString(),
+                    roof.Data.EditState.ToString(),
+                    roof.SourceVertexCount,
+                    roof.NormalizedVertexCount,
+                    roof.Classifier.ToString(),
+                    generatedCount: assembly.TimberLines.Count,
+                    annotationCount: assembly.Annotations.Count,
+                    action: "captured",
+                    reason: "-");
+#endif
             }
 
             // Read-only capture — do not Commit (avoid DBMOD).
@@ -235,32 +299,35 @@ internal static class RoofUnsupportedStretchRecoverySnapshotService
 
     private static bool TryBuildRoofSourceSnapshot(
         Polyline polyline,
-        out RoofUnsupportedStretchSourceSnapshotData sourceData)
+        out RoofUnsupportedStretchSourceSnapshotData sourceData,
+        out string skipReason,
+        out RoofSourceChangeKind classifier,
+        out int sourceVertexCount,
+        out int normalizedVertexCount)
     {
         sourceData = null!;
+        skipReason = "unknown";
+        classifier = RoofSourceChangeKind.None;
+        sourceVertexCount = 0;
+        normalizedVertexCount = 0;
         var stored = RoofDefinitionStore.Read(polyline);
         if (stored.Data is null)
         {
+            skipReason = "no-roof-definition";
             return false;
         }
 
+        // Same Extract → effective-closed → Validate → Classify path as topology /
+        // live resize. Do NOT gate on polyline.Closed alone: HOST L/U/T often store
+        // Closed=false with an explicit duplicated closing vertex.
         var input = RoofPolylineExtractor.Extract(polyline);
-        if (input.Vertices is null || input.Vertices.Count < 3 || !input.IsClosed)
-        {
-            return false;
-        }
-
-        var validation = RoofFootprintValidator.Validate(input);
-        if (!validation.IsValid || validation.Footprint is null)
-        {
-            return false;
-        }
-
-        var classification = RoofDefinitionPersistence.Classify(
-            input,
-            validation.Footprint,
-            stored.Data);
-        if (classification.Kind != RoofSourceChangeKind.RigidEquivalent)
+        if (!RoofAssemblySnapshotCaptureRules.TryEvaluateSourceForCapture(
+                input,
+                stored.Data,
+                out sourceVertexCount,
+                out normalizedVertexCount,
+                out classifier,
+                out skipReason))
         {
             return false;
         }
@@ -268,13 +335,20 @@ internal static class RoofUnsupportedStretchRecoverySnapshotService
         var normal = polyline.Normal;
         sourceData = new RoofUnsupportedStretchSourceSnapshotData(
             polyline.Handle.ToString(),
-            input.Vertices.ToArray(),
+            input.Vertices!.ToArray(),
             polyline.Closed,
             RoofPolylineExtractor.GetSourceElevation(polyline),
             normal.X,
             normal.Y,
             normal.Z);
-        return RoofUnsupportedStretchRecoveryRules.IsEligibleSnapshot(sourceData);
+        if (!RoofUnsupportedStretchRecoveryRules.IsEligibleSnapshot(sourceData))
+        {
+            skipReason = "snapshot-eligibility-failed";
+            return false;
+        }
+
+        skipReason = string.Empty;
+        return true;
     }
 
     private static bool TryBuildAssembly(

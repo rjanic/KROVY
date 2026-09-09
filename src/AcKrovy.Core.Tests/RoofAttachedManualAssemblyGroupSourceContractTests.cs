@@ -36,10 +36,11 @@ public sealed class RoofAttachedManualAssemblyGroupSourceContractTests
     }
 
     [Fact]
-    public void StructuralTopology_AllowsExtendedAssemblyMembership()
+    public void FullSync_UsesCurrentTopologyDependentDisplaySubset()
     {
         Assert.Contains("ContainsStructuralDisplayTopology", Group);
-        Assert.Contains("ExpectedStructuralDisplayChildCount = 7", Group);
+        Assert.Contains("TryCollectCurrentStructuralDisplayChildIds", Sync);
+        Assert.DoesNotContain("displayChildIds.Count != RoofDisplayGroupService.ExpectedStructuralDisplayChildCount", Sync);
     }
 
     private static string Read(string fileName) =>

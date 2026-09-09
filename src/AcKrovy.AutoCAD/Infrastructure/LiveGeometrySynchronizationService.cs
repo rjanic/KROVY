@@ -279,28 +279,23 @@ internal static class LiveGeometrySynchronizationService
                 return;
             }
 
-            if (!SlopeArrowStore.TryRead(entity, out _) &&
-                !PostFootprintPerpendicularAnnotationStore.TryRead(entity, out _) &&
-                !SlopeAngleTextStore.TryRead(entity, out _))
+            // Framed MLeader presentation tracking remains for Unlocked
+            // PersistFramedManualOffsets. Do NOT early-return: Locked roofs need
+            // the same ObjectId in _modifiedIds so RoofLiveResizeService Inspect
+            // can resolve SourceHandle → owner → LockedAnnotationTamper recovery.
+            // Slope/post annotations with readable XData must also enter _modifiedIds
+            // (previously they fell out of both queues when TryRead succeeded).
+            if (entity is MLeader)
             {
-                // Do not inspect XData from ObjectModified. During native
-                // STRETCH AutoCAD can raise this event while the MLeader is in
-                // an evaluation/open state in which XData is unavailable.
-                // Classification is performed safely in the CommandEnded
-                // transaction by PersistFramedManualOffsets.
-                if (entity is MLeader)
-                {
-                    _modifiedFramedLabelIds.TryAdd(entity.ObjectId);
+                _modifiedFramedLabelIds.TryAdd(entity.ObjectId);
 #if DEBUG
-                    AutoCadFramedBlockContentStretchNormalizeLifecycleService.TraceQueueMLeader(
-                        _document,
-                        entity.ObjectId);
+                AutoCadFramedBlockContentStretchNormalizeLifecycleService.TraceQueueMLeader(
+                    _document,
+                    entity.ObjectId);
 #endif
-                    return;
-                }
-
-                _modifiedIds.TryAdd(entity.ObjectId);
             }
+
+            _modifiedIds.TryAdd(entity.ObjectId);
         }
 
         private void ObjectErased(object? sender, ObjectErasedEventArgs e)
@@ -733,6 +728,12 @@ internal static class LiveGeometrySynchronizationService
             if (roofRelatedIds.Count > 0)
             {
                 ids = ids.Where(id => !roofRelatedIds.Contains(id)).ToArray();
+                // LockedAnnotationTamper restores annotations from the assembly
+                // snapshot. Drop those ids from framed-label persistence so
+                // PersistFramedManualOffsets cannot re-bake the native MOVE.
+                modifiedFramedLabelIds = modifiedFramedLabelIds
+                    .Where(id => !roofRelatedIds.Contains(id))
+                    .ToArray();
             }
 
             var hasLiveGeometryWork =

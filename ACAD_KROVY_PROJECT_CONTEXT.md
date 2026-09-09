@@ -1,14 +1,14 @@
 # ACAD KROVY – PROJECT CONTEXT
 
-**Aktualizované:** 7. 9. 2026
+**Aktualizované:** 9. 9. 2026
 
-**Predchádzajúci stabilný commit v0.21.0:** `f98900c1bd257a8e5357f6e77eb6f118bd4930d3`
+**Predchádzajúci stabilný commit v0.23.0 R2:** `Add Hip intelligent rafter lifecycle`
 
 **Branch:** `main`
 
 **Verzia aplikácie:** autoritatívne v `Directory.Build.props`
 
-**Aktuálny míľnik:** R1 Hip automatic ordinary-rafter geometry + transient preview – HOST PASS (Rectangle + L + U + T, connected-Ridge phase); permanent Hip rafters PENDING
+**Aktuálny míľnik:** R2 Hip intelligent rafter lifecycle – permanent intelligent Hip ordinary rafters, live regeneration, complete-face coverage, Ridge phase coupling, compact layout fingerprint and Locked protection (HOST PASS).
 
 **Overovanie:** Debug/Release build, kompletné automatické testy a Portable/Full Compatibility Gate
 
@@ -624,10 +624,11 @@ Stabilný commit: `4a951041e2deef40a127ac9560cf6fb2ba4b6a5b`
   - globálny AutoCAD `PICKSTYLE` sa nemení,
 - priame mazanie odvodeného display prvku cez `ERASE` ostáva otvorené (Locked derived-display ERASE protection: PENDING)
   a je plánované ako spoločný roof lifecycle fix pre Sedlovú, Pultovú aj Valbovú strechu,
-- ďalšie oblasti ako COPY lifecycle expanzia, permanentné Hip krokvy/drevené prvky
-  či širšia polygonálna HOST certifikácia ostávajú future work.
+- ďalšie oblasti ako COPY lifecycle expanzia, structural Hip/Valley/Ridge timber
+  či širšia polygonálna HOST certifikácia ostávajú future work. R2
+  permanent ordinary Hip rafters + live regeneration is fully implemented and HOST PASS.
 
-### Valbová R1 – CAD-neutral field-rafter layout a transient preview
+### Valbová R1 – CAD-neutral field-rafter layout a transient preview (HOST PASS)
 
 - Core `RoofFaceRafterLayoutService` spracuje všeobecnú `RoofTopology` bez Autodesk
   typov. Pre každú kanonickú eave-owned face používa jednu kolmú parallel station
@@ -671,18 +672,54 @@ Stabilný commit: `4a951041e2deef40a127ac9560cf6fb2ba4b6a5b`
   záznam nič nezapisuje a staré DWG ostávajú kompatibilné.
 - `AK_ROOF_RAFTERS` pri každom otvorení prevezme drawing default ako pracovný
   `Rozostup krokiev`, dovolí ho meniť a validuje ho voči drawing minimu. Hip vetva
-  po každej platnej zmene volá `RoofFaceRafterLayoutService` a zobrazí iba transient
-  ordinary-rafter centerlines; permanentné Hip krokvy R1 nevytvára. Hip CREATE/EDIT
-  ostáva výhradne editorom geometrie strechy a drawing spacing už nečíta.
-- Refresh/Cancel/close disponuje všetky transient drawables; nevzniká XData, GROUP,
-  layer ani permanentná entita. Minimum je policy iba pre automatické generovanie
-  a nijako sa nepripája k manuálnemu timber assignment alebo manuálne vloženým prvkom.
+  po každej platnej zmene volá `RoofFaceRafterLayoutService` a zobrazí transient
+  ordinary-rafter centerlines. R2 Stage 1 po `Vytvoriť` znovu použije ten istý
+  neutral layout cez `RoofFaceRafterMaterializationAdapter` a existujúci
+  `RoofGeneratedRafterSetService.Materialize` (schema-7 timber + schema-1 generated
+  ownership/group); nevzniká druhá Hip persistence schéma.
+- Refresh/Cancel/close pred Create disponuje všetky transient drawables; Cancel
+  ostáva no-write. Permanent create je jedna DocumentLock + jedna DB transaction.
+  Opätovný Create pri existujúcom generated sete ostáva `ReplacementDeferred`
+  (rovnako ako Gable/Monopitch). Manual/`AttachedManual` sa nemenia.
 - R1 nemení Hip slope, schema-5 definíciu, source lifecycle ani existujúce trvalé
-  Ridge/Hip/Valley zobrazenie. Finálny HOST míľnik:
+  Ridge/Hip/Valley zobrazenie. Finálny R1 HOST míľnik:
   `AutoCAD Hip / Valbová automatic ordinary-rafter transient preview: HOST PASS
   for Rectangle + L + U + T` a `Connected-Ridge opposing-rafter phase alignment:
-  HOST PASS` (vrátane Cancel/`DBMOD=0`). Permanentné Hip / Valbová automatic
-  rafters: PENDING (R2). R1 nevytvára structural Hip/Valley/Ridge timber.
+  HOST PASS` (vrátane Cancel/`DBMOD=0`).
+- R2 Stage 1: permanent ordinary Hip rafters sú code-side implementované cez existujúci
+  timber/generated/group kontrakt.
+- R2 Stage 2: po SupportedResize (vrátane native STRETCH / GRIP_STRETCH podľa
+  existujúceho generic classifiera) a po `AK_ROOF_EDIT` slope Apply Hip strecha
+  s generated ordinary rafters vstupuje do toho istého
+  `RoofGeneratedRafterSetService.TryReplaceForSupportedResize` pipeline. Layout
+  pre Hip rieši `RoofRafterLayoutSolver` cez R1 `RoofFaceRafterLayoutService` +
+  Stage 1 adapter. Recipe (spacing/width/height/material) ostáva z existujúceho
+  generated setu; manual/`AttachedManual` sa nemenia. Schemy nezmenené.
+  **HOST validation Stage 2 is PASS.**
+- R2 canonical GROUP reopen blocker je code-side diagnostikovaný ako persistence
+  failure pred QSAVE, nie reload shrink: full sync po materializácii odmietal Hip
+  display množinu s 5 členmi cez historickú Gable podmienku `count == 7`, takže sa
+  uložila iba 6-členná skupina (source + display). Full sync teraz validuje aktuálnu
+  topology-dependent display množinu a pred commitom zachová celý same-owner assembly:
+  Generated, ich anotácie a AttachedManual. Display rebuild naďalej odstráni stale
+  display/foreign členov a nevytvára druhú skupinu.
+- Reopen nepridáva membership repair ani nový write-on-open zápis. DEBUG snapshot
+  zaznamená reálne handle/role pred full sync, po ňom a pred reopen selectability
+  reconcile. HOST retest `R2-G1` is PASS.
+- `R2-S2-H3a` L-shaped Hip permanent-rafter CREATE zlyhal na prvom kandidátovi
+  (`RoofGeneratedTimberStore.WriteAtomic` → `eXdataSizeExceeded`). Neutral layout bol
+  platný (HOST fixture total **131**, Ridge↔Valley **12**). Root cause: schema-1
+  generated metadata ukladalo celý verbose `ROOF_FACE_RAFTER_LAYOUT_V2` signature na
+  každej timber entite; pri veľkom concave layout signature to prekročí AutoCAD XData
+  kapacitu (Rectangle prešiel len menším signature).
+- Fix: `RoofGeneratedLayoutFingerprint` (`RF2-SHA256:` + SHA-256 UTF-8 hex) persistuje
+  kompaktnú identitu do existujúceho poľa `LayoutSignature` bez schema bump. Plný
+  kanonický signature ostáva v pamäti pre Core/diagnostiku. Legacy verbose hodnoty
+  ostávajú čitateľné; freshness používa `MatchesPersistedLayoutIdentity`. Nový CREATE
+  zapisuje iba fingerprint. HOST retest `R2-S2-H3b` is PASS.
+- Keďže H3a už má preukázanú XData príčinu, predchádzajúca H3 hypotéza „nie XData“ je
+  prekonaná pre veľké concave layouty. DEBUG `ROOF_RAFTER_CREATE_REQUEST` už nedumpuje
+  celý signature; loguje fingerprint + `fullSignatureChars` + count.
 
 ### STRECHY S2 – Roof COPY / STRETCH / GROUP GRIP (stabilný HOST checkpoint)
 - **Supported source STRETCH:** gable-end aj eave-side, enlarge/shrink, rotated,
@@ -795,6 +832,19 @@ Status:
 - C1 zostáva closed/PASS; C2 zostáva closed/PASS; C14 redefine zostáva nepodporovaný,
 - `DBMOD` zostáva iba diagnostický.
 
+### STRECHY R2 – Hip Intelligent Rafter Lifecycle (HOST PASS)
+- **Permanent intelligent Hip rafters:** automatic ordinary rafters materialization through existing timber infrastructure; schema-7 timber + schema-1 generated metadata;
+- **Layout fingerprinting:** compact `RF2-SHA256:` fingerprint prevents `eXdataSizeExceeded` on large concave layouts; legacy verbose signatures remain readable;
+- **Live regeneration:** automatic rafter refresh after source `STRETCH` / `GRIP_STRETCH` or `AK_ROOF_EDIT` slope apply; existing set recipe (spacing/material) is preserved;
+- **Ridge phase coupling:** connected collinear Ridge components share one station family; offset-parallel faces are coupled to prevent zipper/stagger;
+- **Complete-face coverage:** rafters are generated over the entire face domain including Ridge↔Valley wedge regions;
+- **Locked protection:** native `MOVE` of generated rafters or their annotations is automatically recovered from a command-scoped snapshot (`LockedGeneratedTamper` / `LockedAnnotationTamper`);
+- **Unlock parity:** Hip supports `Unlocked` state; manual edits enter the accepted `ROOF_MANUAL_EDIT` path; re-locking restores protection;
+- **Outside-domain overrides:** manual geometry overrides fully outside the current footprint become `DormantInvalidDomain` after source resize;
+- **Assembly GROUP:** canonical synchronization of owner Polyline + display Lines + generated timber + annotations;
+- **Snapshot normalization:** generic closed-polyline normalization (`7→6`, `9→8`) without shape heuristics;
+- **Compatibility:** full support for Rectangle, L, U, T, stepped and concave Hip footprints.
+
 ## Povinné kompatibilné pravidlá
 
 1. Výpočty a geometrické rozhodovanie preferovať v Core.
@@ -820,9 +870,8 @@ Poradie:
 Multi-CAD kompatibilita sa má overiť ešte pred tým, než projekt prerastie do príliš veľkého AutoCAD-špecifického roof automation modulu.
 
 ## Najbližšia priorita
-1. R2 permanentný Hip / Valbová automatic rafter lifecycle,
-2. Locked derived-display ERASE ochrana (Sedlová, Pultová, Valbová),
-3. DEFERRED – generated rafters following rigid MOVE / `RigidGroupTransform`,
-4. compatibility checkpoint a alternatívne CAD adaptéry bez vendor typov v Core.
+1. Locked derived-display ERASE ochrana (Sedlová, Pultová, Valbová),
+2. DEFERRED – generated rafters following rigid MOVE / `RigidGroupTransform`,
+3. compatibility checkpoint a alternatívne CAD adaptéry bez vendor typov v Core.
 
 Presné poradie je v `ACAD_KROVY_ROADMAP.md`, úplný zásobník nápadov v `ACAD_KROVY_BACKLOG.md`.

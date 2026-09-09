@@ -329,9 +329,9 @@ internal static class RoofEditCommandWorkflow
     /// <summary>
     /// Applies the edited geometry to the EXISTING roof. Re-validates the source,
     /// rebases the persisted definition (schema 5) and rebuilds the permanent display.
-    /// Supported Gable and Monopitch roofs also regenerate the generated rafter set
-    /// through the proven replacement path and replay anchored AttachedManual children
-    /// against their rebuilt anchors. Hip roofs finish with canonical group sync.
+    /// Supported Gable, Monopitch, and Hip roofs also regenerate the generated rafter
+    /// set through the proven replacement path and replay anchored AttachedManual
+    /// children against their rebuilt anchors when replacement succeeds.
     /// A single write transaction; no lock/transaction is held while the dialog is
     /// open or while the transient preview is active.
     /// </summary>
@@ -426,24 +426,21 @@ internal static class RoofEditCommandWorkflow
                 StringComparison.Ordinal);
             var outcome = RoofGeneratedRafterSetService.ReplacementOutcome.NotApplicable;
             RoofGeneratedAnchorResolutionContext? anchorResolutionContext = null;
-            if (restored.Geometry is not HipRoofGeometry)
+            outcome = RoofGeneratedRafterSetService.TryReplaceForSupportedResize(
+                document.Database,
+                transaction,
+                document.Editor,
+                owner,
+                restored.Geometry,
+                TimberElementDefaultProfileStore.Load(),
+                ElementLayerProfileStore.Load(),
+                out anchorResolutionContext,
+                forceRegenerateOnSourceResize: geometryChanged,
+                rebuildReason: "roof-edit");
+            if (outcome == RoofGeneratedRafterSetService.ReplacementOutcome.Failed)
             {
-                outcome = RoofGeneratedRafterSetService.TryReplaceForSupportedResize(
-                    document.Database,
-                    transaction,
-                    document.Editor,
-                    owner,
-                    restored.Geometry,
-                    TimberElementDefaultProfileStore.Load(),
-                    ElementLayerProfileStore.Load(),
-                    out anchorResolutionContext,
-                    forceRegenerateOnSourceResize: geometryChanged,
-                    rebuildReason: "roof-edit");
-                if (outcome == RoofGeneratedRafterSetService.ReplacementOutcome.Failed)
-                {
-                    failureMessageKey = "Command_RoofRafters_GenerationFailed";
-                    return null;
-                }
+                failureMessageKey = "Command_RoofRafters_GenerationFailed";
+                return null;
             }
 
             if (outcome == RoofGeneratedRafterSetService.ReplacementOutcome.Replaced)

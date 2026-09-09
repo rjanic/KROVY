@@ -89,6 +89,66 @@ public static class RoofFootprintContainmentRules
         return true;
     }
 
+    /// <summary>
+    /// True when any portion of the segment lies inside or on the polygon.
+    /// Unlike <see cref="IsSegmentInsideOrOnBoundary"/>, endpoints may leave the
+    /// domain (TRIM/EXTEND past eave) as long as the segment still overlaps.
+    /// </summary>
+    public static bool SegmentOverlapsPolygon(
+        RoofPoint2D start,
+        RoofPoint2D end,
+        IReadOnlyList<RoofPoint2D> vertices)
+    {
+        if (vertices is null || vertices.Count < 3)
+        {
+            return false;
+        }
+
+        if (IsPointInsideOrOnBoundary(start, vertices) ||
+            IsPointInsideOrOnBoundary(end, vertices))
+        {
+            return true;
+        }
+
+        var mid = new RoofPoint2D((start.X + end.X) * 0.5d, (start.Y + end.Y) * 0.5d);
+        if (IsPointInsideOrOnBoundary(mid, vertices))
+        {
+            return true;
+        }
+
+        for (var index = 0; index < vertices.Count; index++)
+        {
+            var edgeStart = vertices[index];
+            var edgeEnd = vertices[(index + 1) % vertices.Count];
+            if (SegmentsIntersectInclusive(start, end, edgeStart, edgeEnd))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Inclusive intersection: proper crossing or shared boundary contact counts.
+    /// </summary>
+    private static bool SegmentsIntersectInclusive(
+        RoofPoint2D firstStart,
+        RoofPoint2D firstEnd,
+        RoofPoint2D secondStart,
+        RoofPoint2D secondEnd)
+    {
+        if (SegmentsProperlyCross(firstStart, firstEnd, secondStart, secondEnd))
+        {
+            return true;
+        }
+
+        return DistanceToSegment(firstStart, secondStart, secondEnd) <= ContainmentToleranceMm ||
+               DistanceToSegment(firstEnd, secondStart, secondEnd) <= ContainmentToleranceMm ||
+               DistanceToSegment(secondStart, firstStart, firstEnd) <= ContainmentToleranceMm ||
+               DistanceToSegment(secondEnd, firstStart, firstEnd) <= ContainmentToleranceMm;
+    }
+
     private static bool IsOnBoundary(
         RoofPoint2D point,
         IReadOnlyList<RoofPoint2D> vertices,

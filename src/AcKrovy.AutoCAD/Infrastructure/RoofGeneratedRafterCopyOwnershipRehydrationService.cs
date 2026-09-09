@@ -246,7 +246,8 @@ internal static class RoofGeneratedRafterCopyOwnershipRehydrationService
 
                                 association.OwnerReference,
 
-                                association.ExpectedLayout.Signature))
+                                RoofGeneratedLayoutFingerprint.ToPersistedIdentity(
+                                    association.ExpectedLayout.Signature)))
 
                         {
 

@@ -183,6 +183,49 @@ internal static class RoofGeneratedMemberManualEditDiag
         WriteLine(editor, line);
     }
 
+    public static void WriteOverrideDomain(
+        Editor? editor,
+        string? owner,
+        string? logicalKey,
+        string? oldFace,
+        string? newFace,
+        string? storedStart,
+        string? storedEnd,
+        string? canonicalStart,
+        string? canonicalEnd,
+        bool startInsideFootprint,
+        bool endInsideFootprint,
+        bool startInsideFace,
+        bool endInsideFace,
+        bool segmentIntersectsFace,
+        string? domainResult,
+        string? reason)
+    {
+        if (editor is null)
+        {
+            return;
+        }
+
+        var line =
+            "ROOF_GENERATED_OVERRIDE_DOMAIN" +
+            $" owner={Token(owner)}" +
+            $" logicalKey={Token(logicalKey)}" +
+            $" oldFace={Token(oldFace)}" +
+            $" newFace={Token(newFace)}" +
+            $" storedStart={Token(storedStart)}" +
+            $" storedEnd={Token(storedEnd)}" +
+            $" canonicalStart={Token(canonicalStart)}" +
+            $" canonicalEnd={Token(canonicalEnd)}" +
+            $" startInsideFootprint={(startInsideFootprint ? "1" : "0")}" +
+            $" endInsideFootprint={(endInsideFootprint ? "1" : "0")}" +
+            $" startInsideFace={(startInsideFace ? "1" : "0")}" +
+            $" endInsideFace={(endInsideFace ? "1" : "0")}" +
+            $" segmentIntersectsFace={(segmentIntersectsFace ? "1" : "0")}" +
+            $" domainResult={Token(domainResult)}" +
+            $" reason={Token(reason)}";
+        WriteLine(editor, line);
+    }
+
     public static void WriteAttachedManualErase(
         Editor? editor,
         string? command,
@@ -347,6 +390,64 @@ internal static class RoofGeneratedMemberManualEditDiag
         var line =
             $"ROOF_MANUAL_EDIT_RECALC_FAIL command={Token(command)} owner={Token(owner)}" +
             $" handle={Token(handle)} stage={Token(stage)} reason={Token(reason)}";
+        WriteLine(editor, line);
+    }
+
+    public static void WriteGeneratedTamper(
+        Editor? editor,
+        string? owner,
+        string? command,
+        int modifiedGeneratedCount,
+        int modifiedAnnotationCount,
+        bool sourceModified,
+        string? editState,
+        string? classification,
+        string? action)
+    {
+        if (editor is null)
+        {
+            return;
+        }
+
+        var line =
+            "ROOF_GENERATED_TAMPER" +
+            $" owner={Token(owner)}" +
+            $" command={Token(command)}" +
+            $" modifiedGeneratedCount={modifiedGeneratedCount.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
+            $" modifiedAnnotationCount={modifiedAnnotationCount.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
+            $" sourceModified={(sourceModified ? "1" : "0")}" +
+            $" editState={Token(editState)}" +
+            $" classification={Token(classification)}" +
+            $" action={Token(action)}";
+        WriteLine(editor, line);
+    }
+
+    public static void WriteGeneratedTamperRepair(
+        Editor? editor,
+        string? owner,
+        string? command,
+        int oldGenerated,
+        int newGenerated,
+        bool repairedGeometry,
+        bool repairedAnnotations,
+        int groupMembers,
+        string? result)
+    {
+        if (editor is null)
+        {
+            return;
+        }
+
+        var line =
+            "ROOF_GENERATED_TAMPER_REPAIR" +
+            $" owner={Token(owner)}" +
+            $" command={Token(command)}" +
+            $" oldGenerated={oldGenerated.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
+            $" newGenerated={newGenerated.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
+            $" repairedGeometry={(repairedGeometry ? "1" : "0")}" +
+            $" repairedAnnotations={(repairedAnnotations ? "1" : "0")}" +
+            $" groupMembers={groupMembers.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
+            $" result={Token(result)}";
         WriteLine(editor, line);
     }
 

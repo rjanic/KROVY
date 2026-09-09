@@ -57,7 +57,7 @@ public sealed class MonopitchRafterStage2CSourceContractTests
             "private sealed record MaterializationResult(");
         Assert.Equal(1, Count(core, "TimberSourceLineCreationService.Create("));
         Assert.Equal(1, Count(core, "TimberCreatedElementAnnotationService.EnsureForCreatedElements("));
-        Assert.Equal(1, Count(core, "RoofAssemblyGroupSyncService.TrySyncForOwner"));
+        Assert.Equal(1, Count(core, "!RoofAssemblyGroupSyncService.TrySyncForOwner("));
     }
 
     [Fact]

@@ -4,8 +4,9 @@ using AcKrovy.Core.Models.Roofs;
 namespace AcKrovy.Core.Services.Roofs;
 
 /// <summary>
-/// Shared deterministic rafter station and bounded-plane geometry engine.
-/// Simple/asymmetric gables provide two planes; a monopitch roof provides one.
+/// Shared deterministic rafter layout entry point for automatic generation and
+/// supported-source replacement. Simple/asymmetric gables and monopitch use
+/// bounded planes; Hip reuses the R1 face-layout + materialization adapter.
 /// </summary>
 public static class RoofRafterLayoutSolver
 {
@@ -34,6 +35,13 @@ public static class RoofRafterLayoutSolver
         if (!IsFinite(rafterPlanWidth) || rafterPlanWidth <= 0d)
         {
             return Invalid(RoofRafterLayoutError.InvalidRafterPlanWidth);
+        }
+
+        // Hip ordinary rafters share this generation/replacement entry point so
+        // live resize and edit reuse the R1 face layout without a host-side solver.
+        if (geometry is HipRoofGeometry hip)
+        {
+            return SolveHip(hip, maximumSpacing, rafterPlanWidth);
         }
 
         if (!TryCreateNormalizedPlanes(geometry, out var planes) || planes.Count == 0)
@@ -113,7 +121,8 @@ public static class RoofRafterLayoutSolver
                 stationDirection,
                 planes,
                 rafters,
-                signature),
+                signature,
+                RoofRafterDomainPolygon.FromGeometry(geometry)),
             RoofRafterLayoutError.None);
     }
 
@@ -309,6 +318,39 @@ public static class RoofRafterLayoutSolver
 
     private static bool IsFinite(double value) =>
         !double.IsNaN(value) && !double.IsInfinity(value);
+
+    private static RoofRafterLayoutResult SolveHip(
+        HipRoofGeometry geometry,
+        double maximumSpacingMm,
+        double rafterPlanWidthMm)
+    {
+        var faceResult = RoofFaceRafterLayoutService.Create(
+            geometry.Topology,
+            maximumSpacingMm);
+        if (!faceResult.IsValid || faceResult.Layout is null)
+        {
+            return faceResult.Error switch
+            {
+                RoofFaceRafterLayoutError.InvalidSpacing =>
+                    Invalid(RoofRafterLayoutError.InvalidMaximumSpacing),
+                RoofFaceRafterLayoutError.TooManyStations =>
+                    Invalid(RoofRafterLayoutError.TooManyStations),
+                _ => Invalid(RoofRafterLayoutError.InvalidRoofGeometry),
+            };
+        }
+
+        if (!RoofFaceRafterMaterializationAdapter.TryCreateMaterializationLayout(
+                geometry,
+                faceResult.Layout,
+                rafterPlanWidthMm,
+                out var layout) ||
+            !RoofRafterMaterializationRules.IsConsistent(geometry, layout))
+        {
+            return Invalid(RoofRafterLayoutError.InvalidRoofGeometry);
+        }
+
+        return new RoofRafterLayoutResult(true, layout, RoofRafterLayoutError.None);
+    }
 
     private static RoofRafterLayoutResult Invalid(RoofRafterLayoutError error) =>
         new(false, null, error);

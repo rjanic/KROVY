@@ -51,6 +51,14 @@ internal static class RoofDisplayGroupSelectabilityService
                 continue;
             }
 
+#if DEBUG
+            RoofAssemblyGroupDiag.WriteMembershipSnapshot(
+                Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument?.Editor,
+                database,
+                transaction,
+                id,
+                "reopen-before-selectability");
+#endif
             if (TryApplyForOwner(database, transaction, id, RoofDefinitionStore.Read(polyline).Data!.EditState))
             {
                 changed = true;

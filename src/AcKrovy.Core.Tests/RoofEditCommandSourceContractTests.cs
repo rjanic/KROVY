@@ -212,7 +212,7 @@ public sealed class RoofEditCommandSourceContractTests
     }
 
     [Fact]
-    public void HipApplyUsesTheSharedAtomicDefinitionDisplayAndGroupPipelineWithoutRafters()
+    public void HipApplyUsesTheSharedAtomicDefinitionDisplayRafterReplacementAndGroupPipeline()
     {
         var apply = Segment(
             EditWorkflow,
@@ -222,9 +222,12 @@ public sealed class RoofEditCommandSourceContractTests
         Assert.Contains("RoofDefinitionPersistence.UpdateGeometry(", apply);
         Assert.Contains("RoofDefinitionStore.Write(owner, transaction, data)", apply);
         Assert.Contains("RoofDisplayService.Rebuild(", apply);
-        Assert.Contains("restored.Geometry is not HipRoofGeometry", apply);
+        Assert.Contains("RoofGeneratedRafterSetService.TryReplaceForSupportedResize(", apply);
+        Assert.Contains("rebuildReason: \"roof-edit\"", apply);
+        Assert.DoesNotContain("restored.Geometry is not HipRoofGeometry", apply);
         Assert.Contains("RoofAssemblyGroupSyncService.TrySyncForOwner(", apply);
         Assert.Equal(1, Count(apply, "RoofDisplayService.Rebuild("));
+        Assert.Equal(1, Count(apply, "RoofGeneratedRafterSetService.TryReplaceForSupportedResize("));
         Assert.Equal(1, Count(apply, "RoofAssemblyGroupSyncService.TrySyncForOwner("));
         Assert.Equal(1, Count(apply, "transaction.Commit();"));
     }

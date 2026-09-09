@@ -128,8 +128,9 @@ public sealed class HipRoofLiveResizeTests
             HipRoofWireframe.Create(changedGeometry, 0d));
 
         // The compact schema-5 descriptor intentionally stores only the first two edge
-        // lengths. Host live refresh therefore also compares the complete expected
-        // permanent-display signature before deciding that a modified Hip is unchanged.
+        // lengths. Core Classify therefore remains RigidEquivalent; host live refresh
+        // promotes SupportedResize via display-signature drift and/or generated
+        // relative-coverage mismatch so Locked generated-timber recovery stays intact.
         Assert.Equal(RoofSourceChangeKind.RigidEquivalent, classification.Kind);
         Assert.NotEqual(oldSignature, newSignature);
     }

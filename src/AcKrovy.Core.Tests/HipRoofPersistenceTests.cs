@@ -78,7 +78,6 @@ public sealed class HipRoofPersistenceTests
     [InlineData("5|Hip|30|30|1|None|4|CCW|10000|6000|Locked|", RoofDefinitionDataDecodeError.InvalidEaveHeightDifference)]
     [InlineData("5|Hip|30|30|0|Edge01|4|CCW|10000|6000|Locked|", RoofDefinitionDataDecodeError.InvalidRidgeEdgeFamily)]
     [InlineData("5|Hip|30|30|0|None|2|CCW|10000|6000|Locked|", RoofDefinitionDataDecodeError.InvalidRigidFootprintDescriptor)]
-    [InlineData("5|Hip|30|30|0|None|4|CCW|10000|6000|Unlocked|", RoofDefinitionDataDecodeError.InvalidEditState)]
     public void MalformedHipPayloadsFailDeterministically(
         string payload,
         RoofDefinitionDataDecodeError expected)
@@ -86,6 +85,47 @@ public sealed class HipRoofPersistenceTests
         Assert.False(RoofDefinitionDataCodec.TryDecode(payload, out var data, out var error));
         Assert.Null(data);
         Assert.Equal(expected, error);
+    }
+
+    [Fact]
+    public void HipUnlocked_IsAcceptedBySchema5Codec()
+    {
+        const string payload = "5|Hip|30|30|0|None|4|CCW|10000|6000|Unlocked|";
+        Assert.True(RoofDefinitionDataCodec.TryDecode(payload, out var data, out var error));
+        Assert.Equal(RoofDefinitionDataDecodeError.None, error);
+        Assert.NotNull(data);
+        Assert.Equal(RoofKind.Hip, data!.Kind);
+        Assert.Equal(RoofEditState.Unlocked, data.EditState);
+        Assert.Equal(payload, RoofDefinitionDataCodec.Encode(data));
+    }
+
+    [Fact]
+    public void HipLockUnlockRoundTrip_PreservesTopologyDescriptor()
+    {
+        var input = new RoofFootprintInput(
+            (RoofPoint2D[])SupportedFootprints().First(item => (string)item[0] == "L")[1],
+            true);
+        var footprint = Validate(input);
+        var created = RoofDefinitionPersistence.Create(input, footprint, Solve(footprint, 30d));
+        Assert.Equal(RoofEditState.Locked, created.EditState);
+
+        var unlocked = RoofGeneratedMemberOverrideRules.WithEditState(
+            created,
+            RoofEditState.Unlocked,
+            created.Overrides);
+        Assert.Equal(RoofEditState.Unlocked, unlocked.EditState);
+        Assert.Equal(created.RigidFootprint, unlocked.RigidFootprint);
+
+        var encoded = RoofDefinitionDataCodec.Encode(unlocked);
+        var decoded = Decode(encoded);
+        Assert.Equal(RoofEditState.Unlocked, decoded.EditState);
+
+        var relocked = RoofGeneratedMemberOverrideRules.WithEditState(
+            decoded,
+            RoofEditState.Locked,
+            decoded.Overrides);
+        Assert.Equal(RoofEditState.Locked, relocked.EditState);
+        Assert.Equal(created.RigidFootprint, relocked.RigidFootprint);
     }
 
     [Fact]

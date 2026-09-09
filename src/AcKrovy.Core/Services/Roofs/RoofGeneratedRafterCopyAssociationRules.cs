@@ -224,10 +224,9 @@ public static class RoofGeneratedRafterCopyAssociationRules
                 member.EffectiveOwnerReference,
                 ownerReference,
                 StringComparison.OrdinalIgnoreCase) ||
-            !string.Equals(
+            !RoofGeneratedTimberFreshness.MatchesPersistedLayoutIdentity(
                 member.LayoutSignature,
-                expectedLayout.Signature,
-                StringComparison.Ordinal));
+                expectedLayout.Signature));
 
     private static bool IsValidObservation(RoofGeneratedRafterGeometryObservation observation) =>
         observation is not null &&

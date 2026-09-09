@@ -12,9 +12,9 @@ public sealed class RoofDisplayGroupSourceContractTests
         "src", "AcKrovy.AutoCAD", "Infrastructure", "RoofCommandWorkflow.cs");
 
     [Fact]
-    public void GroupContainsOwnerSevenDisplayAndAssemblyMembers()
+    public void GroupContainsOwnerCurrentDisplayAndAssemblyMembers()
     {
-        Assert.Contains("ExpectedStructuralDisplayChildCount = 7", Group);
+        Assert.Contains("only the current structural-display subset", Group);
         Assert.Contains("RoofAssemblyGroupMemberCollector.TryCollect", Group);
         Assert.Contains("group.Append(addId)", Group);
         Assert.Contains("group.Remove(removeId)", Group);

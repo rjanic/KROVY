@@ -507,6 +507,13 @@ public sealed class RoofFaceRafterLayoutTests
         RoofTopology topology,
         RoofFaceRafterLayout layout)
     {
+        var report = RoofFaceRafterLayoutService.EvaluateSharedRidgePairing(
+            topology,
+            layout);
+        Assert.True(
+            report.IsSatisfied,
+            $"unmatchedLeft={report.UnmatchedLeft} maxPairGapMm={report.MaxPairGapMm}");
+        Assert.Equal(0d, report.MaxPairGapMm, 8);
         Assert.Equal(0d, MaxCompatibleRidgeHitMismatch(topology, layout), 8);
     }
 

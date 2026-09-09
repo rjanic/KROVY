@@ -83,4 +83,22 @@ public sealed class RoofGeneratedOverrideReplayDomainSourceContractTests
         Assert.Contains("RoofUnsupportedStretchRecoverySnapshotService.Clear", ended);
         Assert.DoesNotContain("RoofGeneratedMemberReplayPlanner", ended);
     }
+
+    [Fact]
+    public void DomainValidation_UsesFootprintPolygonNotUvSlabAlone()
+    {
+        var planner = RoofUxSourceContractText.Read(
+            "src", "AcKrovy.Core", "Services", "Roofs", "RoofGeneratedMemberReplayPlanner.cs");
+        var adapter = RoofUxSourceContractText.Read(
+            "src", "AcKrovy.Core", "Services", "Roofs", "RoofFaceRafterMaterializationAdapter.cs");
+        var layoutModel = RoofUxSourceContractText.Read(
+            "src", "AcKrovy.Core", "Models", "Roofs", "RoofRafterLayout.cs");
+        var containment = RoofUxSourceContractText.Read(
+            "src", "AcKrovy.Core", "Services", "Roofs", "RoofFootprintContainmentRules.cs");
+        Assert.Contains("DomainPolygon", layoutModel);
+        Assert.Contains("RoofRafterDomainPolygon.FromHip", adapter);
+        Assert.Contains("SegmentOverlapsPolygon", containment);
+        Assert.Contains("layout.DomainPolygon", planner);
+        Assert.Contains("ROOF_GENERATED_OVERRIDE_DOMAIN", Diagnostics);
+    }
 }

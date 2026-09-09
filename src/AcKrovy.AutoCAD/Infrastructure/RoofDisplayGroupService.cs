@@ -66,6 +66,12 @@ internal static class RoofDisplayGroupService
             : new RoofDisplayGroupInspection(membershipCurrent, name);
     }
 
+    /// <summary>
+    /// Synchronizes the one canonical full roof-assembly GROUP. The supplied ids are
+    /// only the current structural-display subset; owner-authoritative generated timber,
+    /// AttachedManual timber and their annotations are added by the assembly collector.
+    /// Existing members outside that complete collected set are removed.
+    /// </summary>
     public static void EnsureGroup(
         Database database,
         Transaction transaction,

@@ -44,58 +44,80 @@ internal static class TimberSourceLineCreationService
         IReadOnlyList<string>? finalElementIds = null;
         if (writeSecondaryMetadata is not null)
         {
-            var newSnapshots = requests
-                .Select(request => new TimberElementSnapshot(
-                    request.Data,
-                    request.Start.DistanceTo(request.End)))
-                .ToList();
-            finalElementIds = TimberElementItemIdentityService.ComputeFinalElementIds(
-                database,
-                transaction,
-                metadataStore,
-                newSnapshots,
-                roundingStepMm);
+            try
+            {
+                var newSnapshots = requests
+                    .Select(request => new TimberElementSnapshot(
+                        request.Data,
+                        request.Start.DistanceTo(request.End)))
+                    .ToList();
+                finalElementIds = TimberElementItemIdentityService.ComputeFinalElementIds(
+                    database,
+                    transaction,
+                    metadataStore,
+                    newSnapshots,
+                    roundingStepMm);
+            }
+            catch (Exception ex)
+            {
+                throw new TimberSourceLineCreationPhaseException(
+                    "TimberElementItemIdentityService.ComputeFinalElementIds",
+                    -1,
+                    ex);
+            }
         }
 
         for (var index = 0; index < requests.Count; index++)
         {
             var request = requests[index];
-            var effectiveData = finalElementIds is not null
-                ? request.Data with { ElementId = finalElementIds[index] }
-                : request.Data;
-            var line = new Line(request.Start, request.End);
-            var id = modelSpace.AppendEntity(line);
-            var secondarySection = writeSecondaryMetadata?.Invoke(line, transaction, index);
-            if (secondarySection is null || secondarySection.Count == 0)
+            var phase = "TimberSourceLineCreationService.Create/prepare";
+            try
             {
-                // Ordinary (non-Generated) timber: unchanged order.
-                transaction.AddNewlyCreatedDBObject(line, true);
-                metadataStore.Write(line, effectiveData);
-            }
-            else
-            {
-                // Generated timber: AppendEntity -> WriteAtomic -> AddNewlyCreatedDBObject
-                // (probe timing T2). Writing XData BEFORE AddNewlyCreatedDBObject is the
-                // timing proven to survive native STRETCH -> U -> REDO; the T3 order
-                // (AddNewlyCreatedDBObject then XData) dropped the secondary RegApp.
-                RoofGeneratedTimberStore.WriteAtomic(
-                    line,
-                    transaction,
-                    effectiveData,
-                    secondarySection);
-                transaction.AddNewlyCreatedDBObject(line, true);
-            }
+                var effectiveData = finalElementIds is not null
+                    ? request.Data with { ElementId = finalElementIds[index] }
+                    : request.Data;
+                phase = "Autodesk.AutoCAD.DatabaseServices.Line.ctor";
+                var line = new Line(request.Start, request.End);
+                phase = "BlockTableRecord.AppendEntity";
+                var id = modelSpace.AppendEntity(line);
+                phase = "RoofGeneratedTimberStore.BuildSection";
+                var secondarySection = writeSecondaryMetadata?.Invoke(line, transaction, index);
+                if (secondarySection is null || secondarySection.Count == 0)
+                {
+                    phase = "AutoCadTimberElementMetadataStore.Write";
+                    transaction.AddNewlyCreatedDBObject(line, true);
+                    metadataStore.Write(line, effectiveData);
+                }
+                else
+                {
+                    // Generated timber: AppendEntity -> WriteAtomic -> AddNewlyCreatedDBObject
+                    // (probe timing T2). Writing XData BEFORE AddNewlyCreatedDBObject is the
+                    // timing proven to survive native STRETCH -> U -> REDO; the T3 order
+                    // (AddNewlyCreatedDBObject then XData) dropped the secondary RegApp.
+                    phase = "RoofGeneratedTimberStore.WriteAtomic";
+                    RoofGeneratedTimberStore.WriteAtomic(
+                        line,
+                        transaction,
+                        effectiveData,
+                        secondarySection);
+                    transaction.AddNewlyCreatedDBObject(line, true);
+                }
 
-            layerService.ApplyLayerForTimberType(
-                line,
-                effectiveData.ElementType,
-                layerProfile,
-                CadLayerUpdateMode.PreserveExisting);
-            createdIds.Add(id);
+                phase = "AutoCadTimberLayerService.ApplyLayerForTimberType";
+                layerService.ApplyLayerForTimberType(
+                    line,
+                    effectiveData.ElementType,
+                    layerProfile,
+                    CadLayerUpdateMode.PreserveExisting);
+                createdIds.Add(id);
+            }
+            catch (Exception ex) when (ex is not TimberSourceLineCreationPhaseException)
+            {
+                throw new TimberSourceLineCreationPhaseException(phase, index, ex);
+            }
         }
 
-        var synchronizedDataById =
-            TimberElementItemIdentityService.SynchronizeElementIds(
+        var synchronizedDataById = SynchronizeElementIds(
             database,
             transaction,
             metadataStore,
@@ -107,6 +129,32 @@ internal static class TimberSourceLineCreationService
         return createdIds.ToDictionary(
             id => id,
             id => synchronizedDataById[id]);
+    }
+
+    private static IReadOnlyDictionary<ObjectId, TimberElementData> SynchronizeElementIds(
+        Database database,
+        Transaction transaction,
+        AutoCadTimberElementMetadataStore metadataStore,
+        IReadOnlyCollection<ObjectId> createdIds,
+        double roundingStepMm)
+    {
+        try
+        {
+            var result = TimberElementItemIdentityService.SynchronizeElementIds(
+                database,
+                transaction,
+                metadataStore,
+                createdIds,
+                roundingStepMm);
+            return result;
+        }
+        catch (Exception ex)
+        {
+            throw new TimberSourceLineCreationPhaseException(
+                "TimberElementItemIdentityService.SynchronizeElementIds",
+                -1,
+                ex);
+        }
     }
 }
 

@@ -29,6 +29,16 @@ public static class RoofRafterRequestValidator
             return Invalid(inputError);
         }
 
+        if (geometry is HipRoofGeometry hip)
+        {
+            return ValidateHip(
+                hip,
+                widthMm,
+                heightMm,
+                maximumSpacingMm,
+                material!.Trim());
+        }
+
         var layoutResult = RoofRafterLayoutSolver.Solve(
             geometry,
             new RafterLayoutParameters(maximumSpacingMm, widthMm));
@@ -49,6 +59,44 @@ public static class RoofRafterRequestValidator
                 material!.Trim(),
                 geometry.PrimarySlopeDegrees),
             layoutResult.Layout,
+            RoofRafterRequestValidationError.None);
+    }
+
+    public static RoofRafterRequestValidationResult ValidateHip(
+        HipRoofGeometry geometry,
+        double widthMm,
+        double heightMm,
+        double maximumSpacingMm,
+        string material)
+    {
+        if (geometry is null)
+        {
+            throw new ArgumentNullException(nameof(geometry));
+        }
+
+        var faceResult = RoofFaceRafterLayoutService.Create(
+            geometry.Topology,
+            maximumSpacingMm);
+        if (!faceResult.IsValid ||
+            faceResult.Layout is null ||
+            !RoofFaceRafterMaterializationAdapter.TryCreateMaterializationLayout(
+                geometry,
+                faceResult.Layout,
+                widthMm,
+                out var layout) ||
+            !RoofRafterMaterializationRules.IsConsistent(geometry, layout))
+        {
+            return Invalid(RoofRafterRequestValidationError.InvalidRoof);
+        }
+
+        return new RoofRafterRequestValidationResult(
+            new RoofRafterCreationRequest(
+                widthMm,
+                heightMm,
+                maximumSpacingMm,
+                material,
+                geometry.PrimarySlopeDegrees),
+            layout,
             RoofRafterRequestValidationError.None);
     }
 

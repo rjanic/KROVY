@@ -152,7 +152,21 @@ internal static class RoofGeneratedMemberManualEditService
                     return OwnerEditOutcome.Skipped;
                 }
 
+#if DEBUG
+                WriteLockedGeneratedTamperDiag(
+                    document,
+                    transaction,
+                    owner,
+                    stored.Data,
+                    globalCommandName,
+                    sourceModified,
+                    modifiedIds);
+#endif
                 owner.UpgradeOpen();
+                var timberBefore = RoofGeneratedTimberStore.FindByOwner(
+                    document.Database,
+                    transaction,
+                    owner.Handle.ToString()).Count;
                 var recovered = RoofUnsupportedStretchRecoveryService.TryRecoverGeneratedMembersOnly(
                     document.Database,
                     transaction,
@@ -160,6 +174,24 @@ internal static class RoofGeneratedMemberManualEditService
                     document.Editor);
                 if (recovered == RoofUnsupportedStretchRecoveryOutcome.Recovered)
                 {
+#if DEBUG
+                    var timberAfter = RoofGeneratedTimberStore.FindByOwner(
+                        document.Database,
+                        transaction,
+                        owner.Handle.ToString()).Count;
+                    RoofGeneratedMemberManualEditDiag.WriteGeneratedTamperRepair(
+                        document.Editor,
+                        owner.Handle.ToString(),
+                        globalCommandName,
+                        timberBefore,
+                        timberAfter,
+                        repairedGeometry: true,
+                        repairedAnnotations: true,
+                        groupMembers: -1,
+                        result: "Recovered");
+#else
+                    _ = timberBefore;
+#endif
                     if (unlocked)
                     {
                         WriteUnlockedReject(
@@ -2462,6 +2494,114 @@ internal static class RoofGeneratedMemberManualEditService
         _ = reject;
 #endif
     }
+
+#if DEBUG
+    private static void WriteLockedGeneratedTamperDiag(
+        Document document,
+        Transaction transaction,
+        Polyline owner,
+        RoofDefinitionData data,
+        string? globalCommandName,
+        bool sourceModified,
+        IReadOnlyCollection<ObjectId> modifiedIds)
+    {
+        var ownerHandle = owner.Handle.ToString();
+        var generatedIds = RoofGeneratedTimberStore.FindByOwner(
+            document.Database,
+            transaction,
+            ownerHandle);
+        var modifiedGenerated = generatedIds.Count(id => modifiedIds.Contains(id));
+        var modifiedAnnotations = 0;
+        foreach (var id in generatedIds)
+        {
+            if (!AutoCadObjectIdAccess.TryGetObject<Entity>(
+                    transaction,
+                    id,
+                    OpenMode.ForRead,
+                    out var timber,
+                    document.Database) ||
+                timber is null)
+            {
+                continue;
+            }
+
+            var sourceHandle = timber.Handle.ToString();
+            foreach (var annotationId in modifiedIds)
+            {
+                if (!AutoCadObjectIdAccess.TryGetObject<Entity>(
+                        transaction,
+                        annotationId,
+                        OpenMode.ForRead,
+                        out var annotation,
+                        document.Database) ||
+                    annotation is null ||
+                    !IsOwnedGeneratedAnnotation(annotation, sourceHandle))
+                {
+                    continue;
+                }
+
+                modifiedAnnotations++;
+            }
+        }
+
+        var sourceKind = RoofSourceChangeKind.None;
+        var input = RoofPolylineExtractor.Extract(owner);
+        var validation = RoofFootprintValidator.Validate(input);
+        if (validation.IsValid && validation.Footprint is not null)
+        {
+            sourceKind = RoofDefinitionPersistence.Classify(
+                input,
+                validation.Footprint,
+                data).Kind;
+        }
+
+        var classification = RoofGeneratedMemberLockedTamperRules.Classify(
+            data.EditState,
+            globalCommandName,
+            sourceModified,
+            generatedMemberModified: modifiedGenerated > 0,
+            ownedAnnotationModified: modifiedAnnotations > 0,
+            sourceKind);
+        RoofGeneratedMemberManualEditDiag.WriteGeneratedTamper(
+            document.Editor,
+            ownerHandle,
+            globalCommandName,
+            modifiedGenerated,
+            modifiedAnnotations,
+            sourceModified,
+            data.EditState.ToString(),
+            classification.ToString(),
+            "recover-generated-only");
+    }
+
+    private static bool IsOwnedGeneratedAnnotation(Entity annotation, string sourceHandle)
+    {
+        if (ElementLabelStore.TryRead(annotation, out var label) &&
+            label is not null &&
+            string.Equals(label.SourceHandle, sourceHandle, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (SlopeArrowStore.TryRead(annotation, out var arrow) &&
+            arrow is not null &&
+            string.Equals(arrow.SourceHandle, sourceHandle, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (SlopeAngleTextStore.TryRead(annotation, out var angle) &&
+            angle is not null &&
+            string.Equals(angle.SourceHandle, sourceHandle, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return PostFootprintPerpendicularAnnotationStore.TryRead(annotation, out var post) &&
+               post is not null &&
+               string.Equals(post.SourceHandle, sourceHandle, StringComparison.OrdinalIgnoreCase);
+    }
+#endif
 
     private static bool TryResolveErasedMemberKey(
         Database database,

@@ -336,21 +336,46 @@ internal static class RoofDisplayService
         line.LineWeight = LineWeight.ByLayer;
     }
 
-    public static IReadOnlyList<ObjectId> CollectStructuralDisplayChildIds(
+    /// <summary>
+    /// Resolves the complete current structural-display subset for an owner.
+    /// The number of members is topology-dependent (for example, a Rectangle Hip
+    /// has five while the legacy Gable wireframe has seven), so current display
+    /// metadata and geometry are authoritative instead of a fixed count.
+    /// </summary>
+    public static bool TryCollectCurrentStructuralDisplayChildIds(
         Database database,
         Transaction transaction,
-        ObjectId ownerId,
-        string ownerReference)
+        Polyline owner,
+        out IReadOnlyList<ObjectId> childIds)
     {
         ArgumentNullException.ThrowIfNull(database);
         ArgumentNullException.ThrowIfNull(transaction);
-        return ScanModelSpaceDisplayChildren(database, transaction)
+        ArgumentNullException.ThrowIfNull(owner);
+        childIds = Array.Empty<ObjectId>();
+        if (!TryGetExpectedDisplay(owner, out var expectedEdges, out var signature))
+        {
+            return false;
+        }
+
+        var ownerReference = owner.Handle.ToString();
+        var records = ScanModelSpaceDisplayChildren(database, transaction)
             .Where(record => string.Equals(
                 record.Stored.OwnerReference,
                 ownerReference,
                 StringComparison.OrdinalIgnoreCase))
-            .Select(record => record.Id)
             .ToList();
+        var validation = RoofDisplayValidator.Validate(
+            ownerReference,
+            expectedEdges,
+            signature,
+            records.Select(record => record.Observation).ToArray());
+        if (!validation.IsCurrent)
+        {
+            return false;
+        }
+
+        childIds = records.Select(record => record.Id).ToList();
+        return true;
     }
 
     private static List<ScannedDisplayChild> ScanModelSpaceDisplayChildren(

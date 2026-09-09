@@ -62,7 +62,8 @@ public partial class RoofRafterWindow : Window
 
     internal RoofRafterCreationRequest? Request { get; private set; }
 
-    internal RoofRafterLayout? PreviewLayout => _currentValidation?.Layout;
+    internal RoofRafterLayout? PreviewLayout =>
+        _geometry is HipRoofGeometry ? null : _currentValidation?.Layout;
 
     internal RoofFaceRafterLayout? HipPreviewLayout => _currentHipPreviewLayout;
 
@@ -107,14 +108,16 @@ public partial class RoofRafterWindow : Window
         }
         else if (_geometry is HipRoofGeometry hip)
         {
-            var hipResult = RoofFaceRafterLayoutService.Create(hip.Topology, spacing);
-            _currentHipPreviewLayout = hipResult.Layout;
-            validation = new RoofRafterRequestValidationResult(
-                null,
-                null,
-                hipResult.IsValid
-                    ? RoofRafterRequestValidationError.None
-                    : RoofRafterRequestValidationError.InvalidRoof);
+            validation = RoofRafterRequestValidator.Validate(
+                hip,
+                width,
+                height,
+                spacing,
+                _minimumAutomaticSpacingMm,
+                material);
+            _currentHipPreviewLayout = validation.IsValid
+                ? RoofFaceRafterLayoutService.Create(hip.Topology, spacing).Layout
+                : null;
         }
         else
         {
@@ -135,12 +138,11 @@ public partial class RoofRafterWindow : Window
                 null,
                 null,
                 RoofRafterRequestValidationError.InvalidMaterial);
+            _currentHipPreviewLayout = null;
         }
 
         _currentValidation = validation;
-        var hipPreviewOnly = _geometry is HipRoofGeometry &&
-                             _currentHipPreviewLayout is not null;
-        CreateButton.IsEnabled = validation.IsValid && !hipPreviewOnly;
+        CreateButton.IsEnabled = validation.IsValid;
         ValidationTextBlock.Text = validation.Error ==
                                    RoofRafterRequestValidationError.InvalidMaximumSpacing
             ? UiStrings.Format(
@@ -148,11 +150,9 @@ public partial class RoofRafterWindow : Window
                     "RoofRafterWindow_InvalidAutomaticSpacingFormat",
                     _culture),
                 _minimumAutomaticSpacingMm)
-            : hipPreviewOnly
-                ? UiStrings.GetString("RoofRafterWindow_HipPreviewOnly", _culture)
-                : validation.IsValid
-                    ? string.Empty
-                    : UiStrings.GetString(ValidationKey(validation.Error), _culture);
+            : validation.IsValid
+                ? string.Empty
+                : UiStrings.GetString(ValidationKey(validation.Error), _culture);
         SummaryTextBlock.Text = _currentHipPreviewLayout is { } hipLayout
             ? UiStrings.Format(
                 UiStrings.GetString("RoofRafterWindow_HipSummaryFormat", _culture),
@@ -165,7 +165,7 @@ public partial class RoofRafterWindow : Window
                 layout.StationCount,
                 layout.ActualSpacingMm)
             : UiStrings.GetString("RoofRafterWindow_SummaryUnavailable", _culture);
-        PreviewLayoutChanged?.Invoke(validation.Layout);
+        PreviewLayoutChanged?.Invoke(PreviewLayout);
         HipPreviewLayoutChanged?.Invoke(_currentHipPreviewLayout);
     }
 

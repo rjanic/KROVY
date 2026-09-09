@@ -392,16 +392,71 @@ internal static class RoofLiveResizeService
                 continue;
             }
 
-            // Only when the source footprint itself is still valid/rigid.
+            // Only when the source footprint itself is still valid. Child-only edits must
+            // not require RigidEquivalent alone: a false SupportedResize from a weak Hip
+            // compact descriptor must not suppress Locked generated recovery. When the
+            // authoritative source polyline was also modified, source resize/unsupported
+            // owns the owner and this loop already skipped above.
             if (!AutoCadObjectIdAccess.TryGetObject<Polyline>(
                     transaction,
                     ownerId,
                     OpenMode.ForRead,
                     out var owner,
                     database) ||
-                owner is null ||
-                ClassifyOwner(database, transaction, owner).Kind !=
-                    RoofSourceChangeKind.RigidEquivalent)
+                owner is null)
+            {
+                continue;
+            }
+
+            var ownerDefinition = RoofDefinitionStore.Read(owner).Data;
+            if (ownerDefinition is null)
+            {
+                continue;
+            }
+
+            var sourceModified = modifiedIds.Contains(ownerId);
+            ClassifyModifiedGeneratedChildren(
+                database,
+                transaction,
+                owner,
+                modifiedIds,
+                out var generatedTimberModified,
+                out var ownedAnnotationModified);
+
+            // Unlocked annotation-only MOVE/ROTATE stays on the existing
+            // presentation-only path (PersistFramedManualOffsets). Do not force
+            // TryAcceptUnlockedEdits / snapshot recovery for label presentation.
+            if (RoofGeneratedMemberLockedTamperRules.ShouldDeferUnlockedAnnotationPresentationOnly(
+                    ownerDefinition.EditState,
+                    generatedTimberModified,
+                    ownedAnnotationModified))
+            {
+                continue;
+            }
+
+            if (!generatedTimberModified && !ownedAnnotationModified && !sourceModified)
+            {
+                continue;
+            }
+
+            var classification = ClassifyOwner(database, transaction, owner);
+            if (classification.Geometry is null ||
+                classification.Kind == RoofSourceChangeKind.Unsupported ||
+                classification.Kind == RoofSourceChangeKind.None)
+            {
+                continue;
+            }
+
+            if (sourceModified &&
+                classification.Kind != RoofSourceChangeKind.RigidEquivalent)
+            {
+                continue;
+            }
+
+            if (!sourceModified &&
+                classification.Kind is not (
+                    RoofSourceChangeKind.RigidEquivalent or
+                    RoofSourceChangeKind.SupportedResize))
             {
                 continue;
             }
@@ -503,6 +558,75 @@ internal static class RoofLiveResizeService
         return false;
     }
 
+    private static void ClassifyModifiedGeneratedChildren(
+        Database database,
+        Transaction transaction,
+        Polyline owner,
+        IReadOnlyList<ObjectId> modifiedIds,
+        out bool generatedTimberModified,
+        out bool ownedAnnotationModified)
+    {
+        generatedTimberModified = false;
+        ownedAnnotationModified = false;
+        var ownerHandle = owner.Handle.ToString();
+        var generatedIds = RoofGeneratedTimberStore.FindByOwner(
+            database,
+            transaction,
+            ownerHandle);
+        var generatedIdSet = new HashSet<ObjectId>(generatedIds);
+        var timberSourceHandles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var timberId in generatedIds)
+        {
+            if (modifiedIds.Contains(timberId))
+            {
+                generatedTimberModified = true;
+            }
+
+            if (AutoCadObjectIdAccess.TryGetObject<Entity>(
+                    transaction,
+                    timberId,
+                    OpenMode.ForRead,
+                    out var timber,
+                    database) &&
+                timber is not null)
+            {
+                timberSourceHandles.Add(timber.Handle.ToString());
+            }
+        }
+
+        foreach (var id in modifiedIds.Distinct())
+        {
+            if (id.IsNull || id.IsErased || generatedIdSet.Contains(id))
+            {
+                continue;
+            }
+
+            if (!AutoCadObjectIdAccess.TryGetObject<Entity>(
+                    transaction,
+                    id,
+                    OpenMode.ForRead,
+                    out var entity,
+                    database) ||
+                entity is null)
+            {
+                continue;
+            }
+
+            if (!TryResolveAnnotationSourceHandle(entity, out var sourceHandle) ||
+                string.IsNullOrWhiteSpace(sourceHandle) ||
+                !timberSourceHandles.Contains(sourceHandle))
+            {
+                continue;
+            }
+
+            ownedAnnotationModified = true;
+            if (generatedTimberModified)
+            {
+                return;
+            }
+        }
+    }
+
     private static bool TryResolveGeneratedAssemblyOwner(
         Database database,
         Transaction transaction,
@@ -534,15 +658,36 @@ internal static class RoofLiveResizeService
             return true;
         }
 
-        if (!TryResolveAnnotationSourceHandle(entity, out var sourceHandle) ||
-            string.IsNullOrWhiteSpace(sourceHandle))
+        var hasAnnotationMetadata = TryResolveAnnotationSourceHandle(entity, out var sourceHandle);
+        if (!hasAnnotationMetadata || string.IsNullOrWhiteSpace(sourceHandle))
         {
+#if DEBUG
+            if (LooksLikeAnnotationCandidate(entity))
+            {
+                RoofAnnotationOwnerResolutionDiag.Write(
+                    entity.Handle.ToString(),
+                    entity.GetType().Name,
+                    sourceHandle: "-",
+                    owner: "-",
+                    result: "miss",
+                    reason: "annotation-metadata-missing");
+            }
+#endif
             return false;
         }
 
         if (!TryResolveHandleToEntity(database, transaction, sourceHandle, out var sourceEntity) ||
             sourceEntity is null)
         {
+#if DEBUG
+            RoofAnnotationOwnerResolutionDiag.Write(
+                entity.Handle.ToString(),
+                entity.GetType().Name,
+                sourceHandle,
+                owner: "-",
+                result: "miss",
+                reason: "source-handle-unresolved");
+#endif
             return false;
         }
 
@@ -559,14 +704,35 @@ internal static class RoofLiveResizeService
         }
 
         var sourceTimber = RoofGeneratedTimberStore.Read(sourceEntity);
-        return sourceTimber.Data is not null &&
+        if (sourceTimber.Data is not null &&
                !string.IsNullOrWhiteSpace(sourceTimber.Data.RoofOwnerReference) &&
                TryResolveHandleToOwnerPolyline(
                    database,
                    transaction,
                    sourceTimber.Data.RoofOwnerReference,
-                   out ownerId);
+                   out ownerId))
+        {
+            return true;
+        }
+
+#if DEBUG
+        RoofAnnotationOwnerResolutionDiag.Write(
+            entity.Handle.ToString(),
+            entity.GetType().Name,
+            sourceHandle,
+            owner: "-",
+            result: "miss",
+            reason: "timber-owner-unresolved");
+#endif
+        return false;
     }
+
+    private static bool LooksLikeAnnotationCandidate(Entity entity) =>
+        entity is MLeader or DBText or MText ||
+        ElementLabelStore.TryRead(entity, out _) ||
+        SlopeArrowStore.TryRead(entity, out _) ||
+        SlopeAngleTextStore.TryRead(entity, out _) ||
+        PostFootprintPerpendicularAnnotationStore.TryRead(entity, out _);
 
     private static bool TryResolveAnnotationSourceHandle(Entity entity, out string sourceHandle)
     {
@@ -1107,49 +1273,55 @@ internal static class RoofLiveResizeService
             return ResizeApplyResult.HardFailure;
         }
 
-        if (!isHip)
+        var generatedMemberCount = RoofGeneratedTimberStore.FindByOwner(
+            database,
+            transaction,
+            owner.Handle.ToString()).Count;
+        var rafterOutcome = RoofGeneratedRafterSetService.TryReplaceForSupportedResize(
+            database,
+            transaction,
+            document.Editor,
+            owner,
+            classification.Geometry,
+            TimberElementDefaultProfileStore.Load(),
+            ElementLayerProfileStore.Load(),
+            out var anchorResolutionContext,
+            out var generatedReplayPlan,
+            forceRegenerateOnSourceResize: true,
+            rebuildReason: "source-resize");
+        if (rafterOutcome == RoofGeneratedRafterSetService.ReplacementOutcome.Failed)
         {
-            var generatedMemberCount = RoofGeneratedTimberStore.FindByOwner(
-                database,
-                transaction,
-                owner.Handle.ToString()).Count;
-            var rafterOutcome = RoofGeneratedRafterSetService.TryReplaceForSupportedResize(
-                database,
-                transaction,
-                document.Editor,
-                owner,
-                classification.Geometry,
-                TimberElementDefaultProfileStore.Load(),
-                ElementLayerProfileStore.Load(),
-                out var anchorResolutionContext,
-                out var generatedReplayPlan,
-                forceRegenerateOnSourceResize: true,
-                rebuildReason: "source-resize");
-            if (rafterOutcome == RoofGeneratedRafterSetService.ReplacementOutcome.Failed)
-            {
-                return ResizeApplyResult.HardFailure;
-            }
+            return ResizeApplyResult.HardFailure;
+        }
 
-            _ = RoofSourceResizeChildPolicyService.Apply(
-                document,
-                transaction,
-                owner,
-                rafterOutcome,
-                generatedMemberCount,
-                generatedReplayPlan?.GeometryReplayCount ?? 0,
-                anchorResolutionContext,
-                replayAttachedManualChildren: true);
+        // Hip ordinary rafters must rematerialize with the rebuilt display. Returning
+        // Applied after a skipped replace leaves expanded faces visually uncovered.
+        if (isHip &&
+            generatedMemberCount > 0 &&
+            rafterOutcome != RoofGeneratedRafterSetService.ReplacementOutcome.Replaced)
+        {
+            return ResizeApplyResult.HardFailure;
+        }
 
-            if (rafterOutcome == RoofGeneratedRafterSetService.ReplacementOutcome.SkippedAmbiguousRecipe)
-            {
-                document.Editor.WriteMessage(
-                    UiStrings.GetString("Command_RoofRafters_RecipeAmbiguous"));
-            }
-            else if (rafterOutcome == RoofGeneratedRafterSetService.ReplacementOutcome.SkippedInvalidLayout)
-            {
-                document.Editor.WriteMessage(
-                    UiStrings.GetString("Command_RoofRafters_InvalidSpacing"));
-            }
+        _ = RoofSourceResizeChildPolicyService.Apply(
+            document,
+            transaction,
+            owner,
+            rafterOutcome,
+            generatedMemberCount,
+            generatedReplayPlan?.GeometryReplayCount ?? 0,
+            anchorResolutionContext,
+            replayAttachedManualChildren: true);
+
+        if (rafterOutcome == RoofGeneratedRafterSetService.ReplacementOutcome.SkippedAmbiguousRecipe)
+        {
+            document.Editor.WriteMessage(
+                UiStrings.GetString("Command_RoofRafters_RecipeAmbiguous"));
+        }
+        else if (rafterOutcome == RoofGeneratedRafterSetService.ReplacementOutcome.SkippedInvalidLayout)
+        {
+            document.Editor.WriteMessage(
+                UiStrings.GetString("Command_RoofRafters_InvalidSpacing"));
         }
 
         RoofUnlockIndicatorService.Sync(database, transaction, owner);
@@ -1162,6 +1334,43 @@ internal static class RoofLiveResizeService
                 globalCommandName,
                 input.Vertices?.Count ?? 0,
                 edges);
+            if (classification.Geometry is HipRoofGeometry hipForDiag)
+            {
+                RoofRafterPermanentCreateDiag.WriteHipSourcePolygon(
+                    document.Editor,
+                    owner.Handle.ToString(),
+                    input);
+                var afterIds = RoofGeneratedTimberStore.FindByOwner(
+                    database,
+                    transaction,
+                    owner.Handle.ToString());
+                if (RoofGeneratedRafterSetService.TryRecoverRecipe(
+                        database,
+                        transaction,
+                        afterIds,
+                        out var recipeAfter))
+                {
+                    var liveSolve = RoofRafterLayoutSolver.Solve(
+                        hipForDiag,
+                        new RafterLayoutParameters(
+                            recipeAfter.MaximumSpacingMm,
+                            recipeAfter.WidthMm));
+                    if (liveSolve.IsValid && liveSolve.Layout is not null)
+                    {
+                        RoofRafterPermanentCreateDiag.WriteSolveInput(
+                            document.Editor,
+                            owner.Handle.ToString(),
+                            input,
+                            hipForDiag,
+                            recipeAfter.MaximumSpacingMm,
+                            liveSolve.Layout);
+                        RoofRafterPermanentCreateDiag.WriteFaceCoverageSummary(
+                            document.Editor,
+                            hipForDiag,
+                            liveSolve.Layout);
+                    }
+                }
+            }
         }
         RoofRedoStateDiag.Capture(
             database,
@@ -1372,6 +1581,16 @@ internal static class RoofLiveResizeService
             {
                 geometric = geometric with { Kind = RoofSourceChangeKind.SupportedResize };
             }
+            else if (HipGeneratedRelativeCoverageMismatch(
+                database,
+                transaction,
+                polyline,
+                hipGeometry))
+            {
+                // Rectangle Hip can still keep Edge01/Edge12 while generated timber
+                // no longer matches the solved layout (native STRETCH left old lattice).
+                geometric = geometric with { Kind = RoofSourceChangeKind.SupportedResize };
+            }
         }
 
         return geometric with
@@ -1381,6 +1600,87 @@ internal static class RoofLiveResizeService
                 stored.Data.EditState,
                 geometric.Kind),
         };
+    }
+
+    /// <summary>
+    /// Translation-invariant mismatch between existing generated timber and the layout
+    /// solved from the current Hip geometry. Distinguishes true MOVE (lengths match)
+    /// from native STRETCH that left an incomplete station lattice on an expanded face.
+    /// </summary>
+    private static bool HipGeneratedRelativeCoverageMismatch(
+        Database database,
+        Transaction transaction,
+        Polyline owner,
+        HipRoofGeometry hipGeometry)
+    {
+        var existingIds = RoofGeneratedTimberStore.FindByOwner(
+            database,
+            transaction,
+            owner.Handle.ToString());
+        if (existingIds.Count == 0)
+        {
+            return false;
+        }
+
+        if (!RoofGeneratedRafterSetService.TryRecoverRecipe(
+                database,
+                transaction,
+                existingIds,
+                out var recipe))
+        {
+            return true;
+        }
+
+        var layoutResult = RoofRafterLayoutSolver.Solve(
+            hipGeometry,
+            new RafterLayoutParameters(recipe.MaximumSpacingMm, recipe.WidthMm));
+        if (!layoutResult.IsValid || layoutResult.Layout is null)
+        {
+            return true;
+        }
+
+        if (layoutResult.Layout.Rafters.Count != existingIds.Count)
+        {
+            return true;
+        }
+
+        var expected = layoutResult.Layout.Rafters
+            .Select(rafter => Math.Round(rafter.PlanLengthMm, 3, MidpointRounding.AwayFromZero))
+            .OrderBy(length => length)
+            .ToArray();
+        var actual = new List<double>(existingIds.Count);
+        foreach (var id in existingIds)
+        {
+            if (!AutoCadObjectIdAccess.TryGetObject<Entity>(
+                    transaction,
+                    id,
+                    OpenMode.ForRead,
+                    out var entity,
+                    database) ||
+                entity is not Line line)
+            {
+                return true;
+            }
+
+            var dx = line.EndPoint.X - line.StartPoint.X;
+            var dy = line.EndPoint.Y - line.StartPoint.Y;
+            actual.Add(Math.Round(
+                Math.Sqrt(dx * dx + dy * dy),
+                3,
+                MidpointRounding.AwayFromZero));
+        }
+
+        actual.Sort();
+        for (var index = 0; index < expected.Length; index++)
+        {
+            if (Math.Abs(expected[index] - actual[index]) >
+                SimpleGableRoofGeometryTolerance.CoordinateToleranceMm)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static bool TryInvokeUndoMark(Document document, string methodName)

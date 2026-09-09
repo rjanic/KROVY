@@ -200,7 +200,7 @@ internal static class RoofGeneratedRafterSetService
         }
 
         if (!forceRegenerateOnSourceResize &&
-            !IsGeneratedSetStale(database, transaction, existingIds, geometry.Signature))
+            !IsGeneratedSetStale(database, transaction, existingIds, geometry))
         {
 #if DEBUG
             RoofGeneratedTimberCopyOwnershipDiagService.WriteReplaceDiag(
@@ -258,6 +258,7 @@ internal static class RoofGeneratedRafterSetService
                 editor,
                 owner,
                 ownerReference,
+                geometry,
                 layoutResult.Layout,
                 recipe,
                 defaultProfile,
@@ -266,6 +267,12 @@ internal static class RoofGeneratedRafterSetService
                 replayPlan);
             var created = materialized.Created;
 #if DEBUG
+            WriteOverrideDomainDiagnostics(
+                editor,
+                ownerReference,
+                layoutResult.Layout,
+                RoofPolylineExtractor.GetSourceElevation(owner),
+                replayPlan);
             RoofGeneratedMemberManualEditDiag.WriteReplay(
                 editor,
                 ownerReference,
@@ -343,6 +350,7 @@ internal static class RoofGeneratedRafterSetService
             editor,
             owner,
             ownerReference,
+            geometry,
             sharedLayout.Layout,
             recipe,
             defaultProfile,
@@ -378,6 +386,7 @@ internal static class RoofGeneratedRafterSetService
             editor,
             owner,
             ownerReference,
+            geometry,
             layout,
             recipe,
             defaultProfile,
@@ -391,6 +400,7 @@ internal static class RoofGeneratedRafterSetService
         Editor editor,
         Polyline owner,
         string ownerReference,
+        IRoofGeometry geometry,
         RoofRafterLayout layout,
         RoofRafterGenerationRecipe recipe,
         TimberElementDefaultProfile defaultProfile,
@@ -402,15 +412,50 @@ internal static class RoofGeneratedRafterSetService
         var sourceElevation = RoofPolylineExtractor.GetSourceElevation(owner);
         var storedOverrides = RoofDefinitionStore.Read(owner).Data?.Overrides;
         var planeNormal = RoofGeneratedMemberOverrideRules.SourceWorkingPlaneNormal;
-        var replayPlan = preparedReplayPlan ?? RoofGeneratedMemberReplayPlanner.Create(
-            layout,
-            sourceElevation,
-            planeNormal,
-            storedOverrides);
+        RoofGeneratedMemberReplayPlan replayPlan;
+        try
+        {
+            replayPlan = preparedReplayPlan ?? RoofGeneratedMemberReplayPlanner.Create(
+                layout,
+                sourceElevation,
+                planeNormal,
+                storedOverrides);
+        }
+        catch (Exception ex)
+        {
+#if DEBUG
+            RoofRafterPermanentCreateDiag.WriteMaterializeFailure(
+                editor,
+                geometry,
+                layout,
+                recipe,
+                -1,
+                "RoofGeneratedMemberReplayPlanner.Create",
+                ex);
+#endif
+            throw new RoofRafterMaterializationPhaseException(
+                "RoofGeneratedMemberReplayPlanner.Create",
+                -1,
+                ex);
+        }
         if (!replayPlan.IsValid)
         {
-            throw new InvalidOperationException(
+            var exception = new InvalidOperationException(
                 $"Generated override replay planning failed: {replayPlan.FailureReason ?? "unknown"}.");
+#if DEBUG
+            RoofRafterPermanentCreateDiag.WriteMaterializeFailure(
+                editor,
+                geometry,
+                layout,
+                recipe,
+                -1,
+                "RoofGeneratedMemberReplayPlanner.Validate",
+                exception);
+#endif
+            throw new RoofRafterMaterializationPhaseException(
+                "RoofGeneratedMemberReplayPlanner.Validate",
+                -1,
+                exception);
         }
         var canonicalRafterData = TimberElementDefaults.For(
             TimberElementType.Rafter,
@@ -457,39 +502,133 @@ internal static class RoofGeneratedRafterSetService
                 item.End,
                 item.Data))
             .ToArray();
-        var created = TimberSourceLineCreationService.Create(
-            database,
-            transaction,
-            editor,
-            requests,
-            defaultProfile,
-            layerProfile,
-            (line, currentTransaction, index) =>
-            {
-                var rafter = accepted[index].Rafter;
-                return RoofGeneratedTimberStore.BuildSection(
-                    line,
-                    currentTransaction,
-                    new RoofGeneratedTimberData(
-                        RoofGeneratedTimberDataSchema.CurrentVersion,
-                        ownerReference,
-                        RoofGeneratedTimberKind.Rafter,
-                        rafter.Face,
-                        rafter.StationIndex,
-                        rafter.StationCount,
-                        layout.RequestedMaximumSpacingMm,
-                        layout.Signature));
-            });
-        TimberCreatedElementAnnotationService.EnsureForCreatedElements(
-            database,
-            transaction,
-            created,
-            defaultProfile);
-        var document = editor.Document;
-        if (document is not null)
+        IReadOnlyDictionary<ObjectId, TimberElementData> created;
+        try
         {
-            _ = RoofAssemblyGroupSyncService.TrySyncForOwner(document, transaction, owner.ObjectId);
+            created = TimberSourceLineCreationService.Create(
+                database,
+                transaction,
+                editor,
+                requests,
+                defaultProfile,
+                layerProfile,
+                (line, currentTransaction, index) =>
+                {
+                    var rafter = accepted[index].Rafter;
+                    return RoofGeneratedTimberStore.BuildSection(
+                        line,
+                        currentTransaction,
+                        new RoofGeneratedTimberData(
+                            RoofGeneratedTimberDataSchema.CurrentVersion,
+                            ownerReference,
+                            RoofGeneratedTimberKind.Rafter,
+                            rafter.Face,
+                            rafter.StationIndex,
+                            rafter.StationCount,
+                            layout.RequestedMaximumSpacingMm,
+                            RoofGeneratedLayoutFingerprint.ToPersistedIdentity(layout.Signature)));
+                });
         }
+        catch (TimberSourceLineCreationPhaseException ex)
+        {
+#if DEBUG
+            RoofRafterPermanentCreateDiag.WriteMaterializeFailure(
+                editor,
+                geometry,
+                layout,
+                recipe,
+                ex.CandidateOrdinal,
+                ex.ServicePhase,
+                ex.InnerException ?? ex);
+#endif
+            throw new RoofRafterMaterializationPhaseException(
+                ex.ServicePhase,
+                ex.CandidateOrdinal,
+                ex.InnerException ?? ex);
+        }
+
+        try
+        {
+            TimberCreatedElementAnnotationService.EnsureForCreatedElements(
+                database,
+                transaction,
+                created,
+                defaultProfile);
+        }
+        catch (TimberCreatedElementAnnotationPhaseException ex)
+        {
+            const string phase = "TimberAnnotationService.EnsureForElement";
+#if DEBUG
+            RoofRafterPermanentCreateDiag.WriteMaterializeFailure(
+                editor,
+                geometry,
+                layout,
+                recipe,
+                ex.CandidateOrdinal,
+                phase,
+                ex.InnerException ?? ex);
+#endif
+            throw new RoofRafterMaterializationPhaseException(
+                phase,
+                ex.CandidateOrdinal,
+                ex.InnerException ?? ex);
+        }
+        catch (Exception ex)
+        {
+            const string phase = "TimberCreatedElementAnnotationService.EnsureForCreatedElements";
+#if DEBUG
+            RoofRafterPermanentCreateDiag.WriteMaterializeFailure(
+                editor,
+                geometry,
+                layout,
+                recipe,
+                -1,
+                phase,
+                ex);
+#endif
+            throw new RoofRafterMaterializationPhaseException(phase, -1, ex);
+        }
+        var document = editor.Document;
+#if DEBUG
+        RoofAssemblyGroupDiag.WriteMembershipSnapshot(
+            editor,
+            database,
+            transaction,
+            owner.ObjectId,
+            "materialize-before-full-sync");
+#endif
+        const string groupSyncPhase = "RoofAssemblyGroupSyncService.TrySyncForOwner";
+        try
+        {
+            if (document is null ||
+                !RoofAssemblyGroupSyncService.TrySyncForOwner(document, transaction, owner.ObjectId))
+            {
+                throw new InvalidOperationException(
+                    "The canonical roof assembly group could not be synchronized.");
+            }
+        }
+        catch (Exception ex)
+        {
+#if DEBUG
+            RoofRafterPermanentCreateDiag.WriteMaterializeFailure(
+                editor,
+                geometry,
+                layout,
+                recipe,
+                -1,
+                groupSyncPhase,
+                ex);
+#endif
+            throw new RoofRafterMaterializationPhaseException(groupSyncPhase, -1, ex);
+        }
+#if DEBUG
+        RoofAssemblyGroupDiag.WriteMembershipSnapshot(
+            editor,
+            database,
+            transaction,
+            owner.ObjectId,
+            "materialize-after-full-sync");
+#endif
 
         return new MaterializationResult(created, replayPlan);
     }
@@ -584,13 +723,27 @@ internal static class RoofGeneratedRafterSetService
         Database database,
         Transaction transaction,
         IReadOnlyList<ObjectId> generatedIds,
-        string geometrySignature)
+        IRoofGeometry geometry)
     {
         if (generatedIds.Count == 0)
         {
             return false;
         }
 
+        if (!TryRecoverRecipe(database, transaction, generatedIds, out var recipe))
+        {
+            return true;
+        }
+
+        var layoutResult = RoofRafterLayoutSolver.Solve(
+            geometry,
+            new RafterLayoutParameters(recipe.MaximumSpacingMm, recipe.WidthMm));
+        if (!layoutResult.IsValid || layoutResult.Layout is null)
+        {
+            return true;
+        }
+
+        var currentFullSignature = layoutResult.Layout.Signature;
         foreach (var id in generatedIds)
         {
             if (!AutoCadObjectIdAccess.TryGetObject<Entity>(
@@ -606,9 +759,9 @@ internal static class RoofGeneratedRafterSetService
 
             var stored = RoofGeneratedTimberStore.Read(entity);
             if (stored.Data is null ||
-                !RoofGeneratedTimberFreshness.IsLayoutCurrent(
+                !RoofGeneratedTimberFreshness.MatchesPersistedLayoutIdentity(
                     stored.Data.LayoutSignature,
-                    geometrySignature))
+                    currentFullSignature))
             {
                 return true;
             }
@@ -655,4 +808,65 @@ internal static class RoofGeneratedRafterSetService
             entity.Erase();
         }
     }
+
+#if DEBUG
+    private static void WriteOverrideDomainDiagnostics(
+        Autodesk.AutoCAD.EditorInput.Editor? editor,
+        string ownerReference,
+        RoofRafterLayout layout,
+        double sourceElevationMm,
+        RoofGeneratedMemberReplayPlan replayPlan)
+    {
+        foreach (var item in replayPlan.Items)
+        {
+            if (item.Override is null || !item.Override.HasGeometryOverride)
+            {
+                continue;
+            }
+
+            var canonical = RoofGeneratedMemberOverrideRules.CanonicalGeometry(
+                item.Rafter,
+                sourceElevationMm);
+            if (!RoofGeneratedMemberOverrideMath.TryApply(
+                    canonical,
+                    RoofGeneratedMemberOverrideRules.SourceWorkingPlaneNormal,
+                    item.Override,
+                    out var applied))
+            {
+                continue;
+            }
+
+            var evaluation = RoofGeneratedMemberDomainRules.Evaluate(
+                layout,
+                item.Rafter,
+                applied);
+            var face = item.Rafter.Face.ToString();
+            RoofGeneratedMemberManualEditDiag.WriteOverrideDomain(
+                editor,
+                ownerReference,
+                $"{item.Rafter.LogicalKey.MemberKind}:{face}:{item.Rafter.StationIndex}",
+                oldFace: face,
+                newFace: face,
+                storedStart: FormatPoint(applied.Start),
+                storedEnd: FormatPoint(applied.End),
+                canonicalStart: FormatPoint(canonical.Start),
+                canonicalEnd: FormatPoint(canonical.End),
+                startInsideFootprint: evaluation.StartInsideFootprint,
+                endInsideFootprint: evaluation.EndInsideFootprint,
+                startInsideFace: evaluation.StartInsideFootprint,
+                endInsideFace: evaluation.EndInsideFootprint,
+                segmentIntersectsFace: evaluation.SegmentIntersectsDomain,
+                domainResult: item.Disposition.ToString(),
+                reason: evaluation.Reason);
+        }
+    }
+
+    private static string FormatPoint(RoofPoint3D point)
+    {
+        var culture = System.Globalization.CultureInfo.InvariantCulture;
+        return point.X.ToString("0.###", culture) + "," +
+               point.Y.ToString("0.###", culture) + "," +
+               point.Z.ToString("0.###", culture);
+    }
+#endif
 }

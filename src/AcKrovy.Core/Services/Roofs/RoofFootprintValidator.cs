@@ -11,6 +11,35 @@ public static class RoofFootprintValidator
     public const double MinimumAreaMm2 = 0.01d;
     public const double CollinearityTolerance = 0.0000000001d;
 
+    /// <summary>
+    /// Closed flag OR an explicit duplicated terminal point within
+    /// <see cref="ClosingPointToleranceMm"/> both count as a closed roof polygon.
+    /// Snapshot capture, topology, and footprint validation must share this rule.
+    /// </summary>
+    public static bool IsEffectivelyClosed(RoofFootprintInput? input)
+    {
+        if (input?.Vertices is null || input.Vertices.Count < 3)
+        {
+            return false;
+        }
+
+        if (input.IsClosed)
+        {
+            return true;
+        }
+
+        return input.Vertices[0].DistanceTo(input.Vertices[input.Vertices.Count - 1]) <=
+            ClosingPointToleranceMm;
+    }
+
+    /// <summary>
+    /// True when the vertex list ends with an explicit duplicated closing point.
+    /// </summary>
+    public static bool HasRepeatedClosingVertex(IReadOnlyList<RoofPoint2D>? vertices) =>
+        vertices is not null &&
+        vertices.Count >= 2 &&
+        vertices[0].DistanceTo(vertices[vertices.Count - 1]) <= ClosingPointToleranceMm;
+
     public static RoofValidationResult Validate(RoofFootprintInput? input)
     {
         if (input is null)
@@ -39,10 +68,8 @@ public static class RoofFootprintValidator
         }
 
         var vertices = input.Vertices.ToList();
-        var hasRepeatedClosingVertex =
-            vertices[0].DistanceTo(vertices[vertices.Count - 1]) <= ClosingPointToleranceMm;
-        var isEffectiveClosed = input.IsClosed || hasRepeatedClosingVertex;
-        if (!isEffectiveClosed)
+        var hasRepeatedClosingVertex = HasRepeatedClosingVertex(vertices);
+        if (!IsEffectivelyClosed(input))
         {
             return Invalid(RoofValidationError.OpenLoop);
         }

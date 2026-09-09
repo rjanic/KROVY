@@ -634,9 +634,7 @@
   <data name="RoofRafterWindow_InvalidMaterial" xml:space="preserve"><value>Ein gültiges Material auswählen.</value></data>
   <data name="RoofRafterWindow_InvalidRoof" xml:space="preserve"><value>Die Sparrenaufteilung kann für dieses Dach nicht berechnet werden.</value></data>
   <data name="RoofRafterWindow_InvalidAutomaticSpacingFormat" xml:space="preserve"><value>Der Abstand automatisch erzeugter Sparren darf nicht kleiner als {0:0.###} mm sein.</value></data>
-  <data name="RoofRafterWindow_HipSummaryFormat" xml:space="preserve"><value>{0} Sparren • Arbeitsabstand {1:0.###} mm</value></data>
-  <data name="RoofRafterWindow_HipPreviewOnly" xml:space="preserve"><value>Die dauerhafte Sparrenerzeugung für Walmdächer ist noch nicht Bestandteil von R1. Diese Vorschau ist temporär.</value></data>
-  <data name="Command_RoofUnlock_SelectPrompt" xml:space="preserve"><value>&#xA;Dach zum Entsperren auswählen: </value></data>
+  <data name="RoofRafterWindow_HipSummaryFormat" xml:space="preserve"><value>{0} Sparren • Arbeitsabstand {1:0.###} mm</value></data>  <data name="Command_RoofUnlock_SelectPrompt" xml:space="preserve"><value>&#xA;Dach zum Entsperren auswählen: </value></data>
   <data name="Command_RoofToggleLock_SelectPrompt" xml:space="preserve"><value>&#xA;Wählen Sie ein Dach zum Sperren oder Entsperren: </value></data>
   <data name="Command_RoofUnlock_Unlocked" xml:space="preserve"><value>&#xA;Das Dach ist entsperrt. Erzeugtes Holz kann mit unterstützten Befehlen bearbeitet werden.</value></data>
   <data name="Command_RoofUnlock_AlreadyUnlocked" xml:space="preserve"><value>&#xA;Das Dach ist bereits entsperrt.</value></data>

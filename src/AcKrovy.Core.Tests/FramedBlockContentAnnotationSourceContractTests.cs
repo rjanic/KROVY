@@ -330,16 +330,20 @@ public sealed class FramedBlockContentAnnotationSourceContractTests
             "_modifiedFramedLabelIds.TryAdd(entity.ObjectId);",
             mleaderGate,
             StringComparison.Ordinal);
-        var returnAfterGripQueue = objectModified.IndexOf(
+        var sourceQueue = objectModified.IndexOf(
+            "_modifiedIds.TryAdd(entity.ObjectId);",
+            gripQueue,
+            StringComparison.Ordinal);
+        // LockedAnnotationTamper: MLeader must enter _modifiedIds (Inspect), not only
+        // framed-label presentation tracking. No early-return between the two queues.
+        var earlyReturnBetween = objectModified.IndexOf(
             "return;",
             gripQueue,
             StringComparison.Ordinal);
-        var sourceQueue = objectModified.IndexOf(
-            "_modifiedIds.TryAdd(entity.ObjectId);",
-            StringComparison.Ordinal);
+        Assert.True(mleaderGate >= 0 && gripQueue > mleaderGate && sourceQueue > gripQueue);
         Assert.True(
-            mleaderGate >= 0 && gripQueue > mleaderGate &&
-            returnAfterGripQueue > gripQueue && sourceQueue > returnAfterGripQueue);
+            earlyReturnBetween < 0 || earlyReturnBetween > sourceQueue,
+            "MLeader must reach _modifiedIds for Locked annotation recovery.");
 
         Assert.Contains("foreach (var id in ids.Distinct())", filter);
         Assert.Contains("foreach (var id in timberIds)", refresh);

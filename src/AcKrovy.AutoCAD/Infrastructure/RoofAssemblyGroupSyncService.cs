@@ -27,13 +27,11 @@ internal static class RoofAssemblyGroupSyncService
             return false;
         }
 
-        var ownerReference = owner.Handle.ToString();
-        var displayChildIds = RoofDisplayService.CollectStructuralDisplayChildIds(
+        if (!RoofDisplayService.TryCollectCurrentStructuralDisplayChildIds(
             document.Database,
             transaction,
-            ownerId,
-            ownerReference);
-        if (displayChildIds.Count != RoofDisplayGroupService.ExpectedStructuralDisplayChildCount)
+            owner,
+            out var displayChildIds))
         {
             return false;
         }
@@ -84,6 +82,86 @@ internal static class RoofAssemblyGroupSyncService
 #if DEBUG
 internal static class RoofAssemblyGroupDiag
 {
+    public static void WriteMembershipSnapshot(
+        Autodesk.AutoCAD.EditorInput.Editor? editor,
+        Database database,
+        Transaction transaction,
+        ObjectId ownerId,
+        string checkpoint)
+    {
+        if (editor is null ||
+            !AutoCadObjectIdAccess.TryGetObject<Entity>(
+                transaction,
+                ownerId,
+                OpenMode.ForRead,
+                out var owner,
+                database) ||
+            owner is null)
+        {
+            return;
+        }
+
+        var ownerReference = owner.Handle.ToString();
+        if (!RoofDisplayGroupService.TryOpenCanonicalGroup(
+                database,
+                transaction,
+                ownerId,
+                OpenMode.ForRead,
+                out var group) ||
+            group is null)
+        {
+            WriteSnapshotLine(editor, ownerReference, checkpoint, Array.Empty<string>());
+            return;
+        }
+
+        var members = group.GetAllEntityIds()
+            .Where(id => !id.IsNull && !id.IsErased)
+            .OrderBy(id => id.Handle.Value)
+            .ToArray();
+        var timberHandles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var id in members)
+        {
+            if (!AutoCadObjectIdAccess.TryGetObject<Entity>(
+                    transaction,
+                    id,
+                    OpenMode.ForRead,
+                    out var entity,
+                    database) ||
+                entity is null)
+            {
+                continue;
+            }
+
+            var generated = RoofGeneratedTimberStore.Read(entity).Data;
+            var attached = RoofAttachedManualTimberStore.Read(entity).Data;
+            if (string.Equals(generated?.RoofOwnerReference, ownerReference, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(attached?.RoofOwnerReference, ownerReference, StringComparison.OrdinalIgnoreCase))
+            {
+                timberHandles.Add(entity.Handle.ToString());
+            }
+        }
+
+        var observations = new List<string>(members.Length);
+        foreach (var id in members)
+        {
+            var role = "Unreadable";
+            if (AutoCadObjectIdAccess.TryGetObject<Entity>(
+                    transaction,
+                    id,
+                    OpenMode.ForRead,
+                    out var entity,
+                    database) &&
+                entity is not null)
+            {
+                role = ResolveMemberRole(entity, ownerId, ownerReference, timberHandles);
+            }
+
+            observations.Add(id.Handle.ToString() + ":" + role);
+        }
+
+        WriteSnapshotLine(editor, ownerReference, checkpoint, observations);
+    }
+
     public static void WriteSync(
         Autodesk.AutoCAD.EditorInput.Editor? editor,
         string owner,
@@ -133,6 +211,67 @@ internal static class RoofAssemblyGroupDiag
             $" handle={handle}" +
             $" role={role}" +
             $" result={result}";
+        try
+        {
+            editor.WriteMessage("\n" + line);
+        }
+        catch
+        {
+        }
+    }
+
+    private static string ResolveMemberRole(
+        Entity entity,
+        ObjectId ownerId,
+        string ownerReference,
+        IReadOnlySet<string> timberHandles)
+    {
+        if (entity.ObjectId == ownerId)
+        {
+            return "Owner";
+        }
+        if (string.Equals(
+                RoofDisplayStore.Read(entity).Data?.OwnerReference,
+                ownerReference,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return "Display";
+        }
+        if (string.Equals(
+                RoofGeneratedTimberStore.Read(entity).Data?.RoofOwnerReference,
+                ownerReference,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return "Generated";
+        }
+        if (string.Equals(
+                RoofAttachedManualTimberStore.Read(entity).Data?.RoofOwnerReference,
+                ownerReference,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return "AttachedManual";
+        }
+        if (RoofOwnedAnnotationSourceResolver.TryResolveSourceHandle(entity, out var sourceHandle) &&
+            timberHandles.Contains(sourceHandle))
+        {
+            return "Annotation";
+        }
+
+        return "Foreign";
+    }
+
+    private static void WriteSnapshotLine(
+        Autodesk.AutoCAD.EditorInput.Editor editor,
+        string owner,
+        string checkpoint,
+        IReadOnlyList<string> observations)
+    {
+        var line =
+            "ROOF_GROUP_MEMBERS" +
+            $" owner={owner}" +
+            $" checkpoint={checkpoint}" +
+            $" memberCount={observations.Count.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
+            $" members={string.Join(",", observations)}";
         try
         {
             editor.WriteMessage("\n" + line);

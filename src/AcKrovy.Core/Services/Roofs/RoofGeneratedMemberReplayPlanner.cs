@@ -159,15 +159,30 @@ public static class RoofGeneratedMemberReplayPlanner
 }
 
 /// <summary>
-/// CAD-neutral membership test for a final generated centerline against the rafter's
-/// current bounded roof plane. Endpoint containment is intentionally not required:
-/// any segment overlap with the plane keeps supported TRIM/EXTEND endpoint semantics.
+/// CAD-neutral membership test for a final generated centerline against the
+/// current regenerated roof domain. Prefers the authoritative footprint polygon
+/// on <see cref="RoofRafterLayout.DomainPolygon"/>. Endpoint containment is not
+/// required: any segment overlap keeps supported TRIM/EXTEND past-eave semantics.
+/// Completely disjoint outside geometry must dormant as invalid-domain.
 /// </summary>
 public static class RoofGeneratedMemberDomainRules
 {
     private const double ToleranceMm = RoofGeneratedMemberOverrideMath.LengthToleranceMm;
 
+    public readonly record struct DomainEvaluation(
+        bool StartInsideFootprint,
+        bool EndInsideFootprint,
+        bool SegmentIntersectsDomain,
+        bool OverlapsDomain,
+        string Reason);
+
     public static bool OverlapsBoundedPlane(
+        RoofRafterLayout layout,
+        RoofRafterGeometry canonicalRafter,
+        RoofGeneratedMemberGeometry finalGeometry) =>
+        Evaluate(layout, canonicalRafter, finalGeometry).OverlapsDomain;
+
+    public static DomainEvaluation Evaluate(
         RoofRafterLayout layout,
         RoofRafterGeometry canonicalRafter,
         RoofGeneratedMemberGeometry finalGeometry)
@@ -182,11 +197,32 @@ public static class RoofGeneratedMemberDomainRules
         }
         if (!IsFinite(finalGeometry.Start) ||
             !IsFinite(finalGeometry.End) ||
-            finalGeometry.LengthMm <= ToleranceMm ||
-            layout.StationSpanMm <= ToleranceMm ||
+            finalGeometry.LengthMm <= ToleranceMm)
+        {
+            return new DomainEvaluation(false, false, false, false, "invalid-geometry");
+        }
+
+        var start2 = new RoofPoint2D(finalGeometry.Start.X, finalGeometry.Start.Y);
+        var end2 = new RoofPoint2D(finalGeometry.End.X, finalGeometry.End.Y);
+        var domain = layout.DomainPolygon;
+        if (domain is not null && domain.Count >= 3)
+        {
+            var startInside = RoofFootprintContainmentRules.IsPointInsideOrOnBoundary(start2, domain);
+            var endInside = RoofFootprintContainmentRules.IsPointInsideOrOnBoundary(end2, domain);
+            var intersects = RoofFootprintContainmentRules.SegmentOverlapsPolygon(start2, end2, domain);
+            return new DomainEvaluation(
+                startInside,
+                endInside,
+                intersects,
+                intersects,
+                intersects ? "footprint-overlap" : "outside-footprint");
+        }
+
+        // Legacy rectangular UV slab for layouts without a footprint polygon.
+        if (layout.StationSpanMm <= ToleranceMm ||
             canonicalRafter.PlanLengthMm <= ToleranceMm)
         {
-            return false;
+            return new DomainEvaluation(false, false, false, false, "invalid-plane");
         }
 
         var origin = canonicalRafter.PlanStart;
@@ -194,7 +230,7 @@ public static class RoofGeneratedMemberDomainRules
         var end = ToLocal(finalGeometry.End, origin, canonicalRafter.RunDirection, layout.StationDirection);
         var minimumStation = -canonicalRafter.StationPositionMm;
         var maximumStation = layout.StationSpanMm - canonicalRafter.StationPositionMm;
-        return SegmentIntersectsRectangle(
+        var overlaps = SegmentIntersectsRectangle(
             start.U,
             start.V,
             end.U,
@@ -203,6 +239,12 @@ public static class RoofGeneratedMemberDomainRules
             canonicalRafter.PlanLengthMm,
             minimumStation,
             maximumStation);
+        return new DomainEvaluation(
+            false,
+            false,
+            overlaps,
+            overlaps,
+            overlaps ? "uv-plane-overlap" : "outside-uv-plane");
     }
 
     private static LocalPoint ToLocal(

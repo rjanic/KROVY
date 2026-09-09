@@ -18,6 +18,10 @@ public sealed class HipRoofLiveResizeSourceContractTests
     private static readonly string Snapshot = Read("RoofUnsupportedStretchRecoverySnapshotService.cs");
     private static readonly string RecoveryRules = File.ReadAllText(Path.Combine(
         RepositoryRoot(), "src", "AcKrovy.Core", "Services", "Roofs", "RoofUnsupportedStretchRecoveryRules.cs"));
+    private static readonly string CaptureRules = File.ReadAllText(Path.Combine(
+        RepositoryRoot(), "src", "AcKrovy.Core", "Services", "Roofs", "RoofAssemblySnapshotCaptureRules.cs"));
+    private static readonly string FootprintValidator = File.ReadAllText(Path.Combine(
+        RepositoryRoot(), "src", "AcKrovy.Core", "Services", "Roofs", "RoofFootprintValidator.cs"));
 
     [Fact]
     public void ObjectModifiedOnlyQueuesAndCommandEndOwnsTheRefresh()
@@ -77,9 +81,11 @@ public sealed class HipRoofLiveResizeSourceContractTests
         Assert.Contains("RoofDefinitionStore.Write(owner, transaction, updated)", apply);
         Assert.Contains("RoofWireframe.Create(", apply);
         Assert.Contains("RoofDisplayService.Rebuild(", apply);
-        Assert.Contains("if (!isHip)", apply);
+        Assert.Contains("var isHip = classification.Geometry is HipRoofGeometry", apply);
         Assert.Contains("RoofGeneratedRafterSetService.TryReplaceForSupportedResize(", apply);
+        Assert.Contains("forceRegenerateOnSourceResize: true", apply);
         Assert.Contains("RoofSourceResizeChildPolicyService.Apply(", apply);
+        Assert.DoesNotContain("if (!isHip)", apply);
     }
 
     [Fact]
@@ -90,7 +96,17 @@ public sealed class HipRoofLiveResizeSourceContractTests
         Assert.Contains("RoofWireframe.BuildGenerationSignature", classify);
         Assert.Contains("RoofDisplayService.Inspect(", classify);
         Assert.Contains("!display.Validation.IsCurrent", classify);
+        Assert.Contains("HipGeneratedRelativeCoverageMismatch(", classify);
         Assert.Contains("Kind = RoofSourceChangeKind.SupportedResize", classify);
+    }
+
+    [Fact]
+    public void HipSkippedReplaceWithExistingTimberIsHardFailure()
+    {
+        var apply = Member(Resize, "private static ResizeApplyResult TryApplyResize", "private static IReadOnlyCollection<ObjectId> TryAcceptRigidGroupTransforms");
+        Assert.Contains("generatedMemberCount > 0", apply);
+        Assert.Contains("rafterOutcome != RoofGeneratedRafterSetService.ReplacementOutcome.Replaced", apply);
+        Assert.Contains("return ResizeApplyResult.HardFailure", apply);
     }
 
     [Fact]
@@ -108,7 +124,9 @@ public sealed class HipRoofLiveResizeSourceContractTests
     {
         Assert.DoesNotContain("UnsupportedHipOwnerIds", Resize);
         Assert.Contains("TryRecoverUnsupportedOwners(", Resize);
-        Assert.Contains("input.Vertices.Count < 3", Snapshot);
+        Assert.Contains("RoofAssemblySnapshotCaptureRules.TryEvaluateSourceForCapture(", Snapshot);
+        Assert.Contains("RoofFootprintValidator.IsEffectivelyClosed", CaptureRules);
+        Assert.Contains("public static bool IsEffectivelyClosed", FootprintValidator);
         Assert.Contains("snapshot.Vertices.Count < 3", RecoveryRules);
         Assert.Contains("owner.NumberOfVertices == vertices.Count", Recovery);
         Assert.Contains("for (var i = 0; i < vertices.Count; i++)", Recovery);

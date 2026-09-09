@@ -20,6 +20,11 @@ public static class RoofRafterMaterializationRules
             throw new ArgumentNullException(nameof(layout));
         }
 
+        if (geometry is HipRoofGeometry hip)
+        {
+            return IsConsistentHip(hip, layout);
+        }
+
         var expectedFaces = geometry switch
         {
             MonopitchRoofGeometry => new[] { RafterRoofFace.Face0 },
@@ -66,6 +71,44 @@ public static class RoofRafterMaterializationRules
                 {
                     return false;
                 }
+            }
+        }
+
+        return true;
+    }
+
+    private static bool IsConsistentHip(HipRoofGeometry geometry, RoofRafterLayout layout)
+    {
+        if (!layout.Signature.StartsWith(
+                "ROOF_FACE_RAFTER_LAYOUT_V2;" + geometry.Topology.Signature + ";",
+                StringComparison.Ordinal) ||
+            layout.StationCount < 2 ||
+            layout.Rafters.Count != layout.StationCount ||
+            layout.Planes.Count != 1 ||
+            layout.Planes[0].Face != RafterRoofFace.Face0)
+        {
+            return false;
+        }
+
+        var keys = new HashSet<RoofGeneratedMemberKey>();
+        for (var index = 0; index < layout.Rafters.Count; index++)
+        {
+            var rafter = layout.Rafters[index];
+            var planLength = rafter.PlanStart.DistanceTo(rafter.PlanEnd);
+            var expectedTrueLength = planLength /
+                Math.Cos(rafter.SlopeDegrees * Math.PI / 180d);
+            if (rafter.Face != RafterRoofFace.Face0 ||
+                rafter.StationIndex != index ||
+                rafter.StationCount != layout.StationCount ||
+                !IsFinite(rafter.SlopeDegrees) ||
+                Math.Abs(rafter.SlopeDegrees) >= 90d ||
+                !IsFinite(planLength) ||
+                planLength <= RoofRafterLayoutSolver.CoordinateToleranceMm ||
+                !NearlyEqual(rafter.PlanLengthMm, planLength) ||
+                !NearlyEqual(rafter.TrueLengthMm, expectedTrueLength) ||
+                !keys.Add(rafter.LogicalKey))
+            {
+                return false;
             }
         }
 

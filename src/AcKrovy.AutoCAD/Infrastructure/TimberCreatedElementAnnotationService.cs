@@ -36,21 +36,34 @@ internal static class TimberCreatedElementAnnotationService
                 transaction,
                 defaultProfile);
         var roundingStepMm = defaultProfile.GetCuttingLengthRoundingStepMm();
+        var candidateOrdinal = 0;
         foreach (var (sourceId, data) in annotatedElements)
         {
-            if (transaction.GetObject(sourceId, OpenMode.ForRead) is not Entity sourceEntity)
+            try
             {
-                throw new InvalidOperationException(
-                    "A newly created timber source could not be opened for annotation.");
+                if (transaction.GetObject(sourceId, OpenMode.ForRead) is not Entity sourceEntity)
+                {
+                    throw new InvalidOperationException(
+                        "A newly created timber source could not be opened for annotation.");
+                }
+
+                TimberAnnotationService.EnsureForElement(
+                    database,
+                    transaction,
+                    sourceEntity,
+                    data,
+                    presentationBatchContext,
+                    roundingStepMm: roundingStepMm);
+            }
+            catch (Exception ex) when (ex is not TimberCreatedElementAnnotationPhaseException)
+            {
+                throw new TimberCreatedElementAnnotationPhaseException(
+                    candidateOrdinal,
+                    sourceId,
+                    ex);
             }
 
-            TimberAnnotationService.EnsureForElement(
-                database,
-                transaction,
-                sourceEntity,
-                data,
-                presentationBatchContext,
-                roundingStepMm: roundingStepMm);
+            candidateOrdinal++;
         }
     }
 }

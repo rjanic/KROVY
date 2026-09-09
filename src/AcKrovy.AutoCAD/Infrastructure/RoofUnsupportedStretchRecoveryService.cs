@@ -245,16 +245,45 @@ internal static class RoofUnsupportedStretchRecoveryService
         Autodesk.AutoCAD.EditorInput.Editor? editor = null)
     {
         if (ownerId.IsNull ||
-            !RoofUnsupportedStretchRecoverySnapshotService.TryGet(ownerId, out var entry))
+            (!RoofUnsupportedStretchRecoverySnapshotService.TryGet(ownerId, out var entry) &&
+             !(AutoCadObjectIdAccess.TryGetObject<Polyline>(
+                   transaction,
+                   ownerId,
+                   OpenMode.ForRead,
+                   out var ownerForHandle,
+                   database) &&
+               ownerForHandle is not null &&
+               RoofUnsupportedStretchRecoverySnapshotService.TryGetByHandle(
+                   ownerForHandle.Handle.ToString(),
+                   out entry))))
         {
 #if DEBUG
             RoofUnsupportedStretchRecoveryDiag.WriteFallback(
                 editor,
                 "generated-only",
                 ownerId.IsNull ? "roof-source-objectid-missing" : "owner-snapshot-missing");
+            RoofGeneratedSnapshotDiag.WriteLookup(
+                editor,
+                owner: "-",
+                command: RoofUnsupportedStretchRecoverySnapshotService.CurrentCommandName,
+                found: false,
+                snapshotGenerated: 0,
+                snapshotAnnotations: 0,
+                result: "missing");
 #endif
             return RoofUnsupportedStretchRecoveryOutcome.Unavailable;
         }
+
+#if DEBUG
+        RoofGeneratedSnapshotDiag.WriteLookup(
+            editor,
+            entry.Assembly.RoofSource.OwnerHandle,
+            RoofUnsupportedStretchRecoverySnapshotService.CurrentCommandName,
+            found: true,
+            snapshotGenerated: entry.Assembly.TimberLines.Count,
+            snapshotAnnotations: entry.Assembly.Annotations.Count,
+            result: "found");
+#endif
 
         if (!AutoCadObjectIdAccess.TryGetObject<Polyline>(
                 transaction,
@@ -292,7 +321,13 @@ internal static class RoofUnsupportedStretchRecoveryService
         }
 
         var classification = Classify(owner);
-        if (classification.Kind != RoofSourceChangeKind.RigidEquivalent)
+        var liveInput = RoofPolylineExtractor.Extract(owner);
+        var sourceUnchanged = RoofUnsupportedStretchRecoveryRules.RestoredMatchesSnapshot(
+            liveInput.Vertices,
+            liveInput.IsClosed,
+            entry.Assembly.RoofSource);
+        if (classification.Kind != RoofSourceChangeKind.RigidEquivalent &&
+            !sourceUnchanged)
         {
 #if DEBUG
             RoofUnsupportedStretchRecoveryDiag.WriteFallback(

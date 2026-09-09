@@ -20,8 +20,7 @@ public static class RoofUnsupportedStretchRecoveryRules
         if (snapshot is null ||
             string.IsNullOrWhiteSpace(snapshot.OwnerHandle) ||
             snapshot.Vertices is null ||
-            snapshot.Vertices.Count < 3 ||
-            !snapshot.IsClosed)
+            snapshot.Vertices.Count < 3)
         {
             return false;
         }
@@ -51,7 +50,14 @@ public static class RoofUnsupportedStretchRecoveryRules
             }
         }
 
-        var input = new RoofFootprintInput(snapshot.Vertices, true, false, true);
+        // Same effective-closed contract as footprint validation / topology —
+        // AutoCAD Closed=false with an explicit duplicated terminal point is eligible.
+        var input = new RoofFootprintInput(snapshot.Vertices, snapshot.IsClosed, false, true);
+        if (!RoofFootprintValidator.IsEffectivelyClosed(input))
+        {
+            return false;
+        }
+
         var validation = RoofFootprintValidator.Validate(input);
         return validation.IsValid && validation.Footprint is not null;
     }

@@ -12,4 +12,9 @@ public sealed record RoofRafterLayout(
     RoofDirection2D StationDirection,
     IReadOnlyList<RoofRafterPlane> Planes,
     IReadOnlyList<RoofRafterGeometry> Rafters,
-    string Signature);
+    string Signature,
+    /// <summary>
+    /// Authoritative XY roof-footprint polygon for manual-override domain tests.
+    /// Must be the current regenerated contour (not a station×run AABB).
+    /// </summary>
+    IReadOnlyList<RoofPoint2D> DomainPolygon);

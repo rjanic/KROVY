@@ -634,9 +634,7 @@
   <data name="RoofRafterWindow_InvalidMaterial" xml:space="preserve"><value>Sélectionnez un matériau valide.</value></data>
   <data name="RoofRafterWindow_InvalidRoof" xml:space="preserve"><value>La disposition des chevrons ne peut pas être calculée pour cette toiture.</value></data>
   <data name="RoofRafterWindow_InvalidAutomaticSpacingFormat" xml:space="preserve"><value>L’espacement des chevrons automatiques ne doit pas être inférieur à {0:0.###} mm.</value></data>
-  <data name="RoofRafterWindow_HipSummaryFormat" xml:space="preserve"><value>{0} chevrons • espacement de travail {1:0.###} mm</value></data>
-  <data name="RoofRafterWindow_HipPreviewOnly" xml:space="preserve"><value>La création permanente des chevrons de toiture à croupes ne fait pas encore partie de R1. Cet aperçu est temporaire.</value></data>
-  <data name="Command_RoofUnlock_SelectPrompt" xml:space="preserve"><value>&#xA;Sélectionnez un toit à déverrouiller : </value></data>
+  <data name="RoofRafterWindow_HipSummaryFormat" xml:space="preserve"><value>{0} chevrons • espacement de travail {1:0.###} mm</value></data>  <data name="Command_RoofUnlock_SelectPrompt" xml:space="preserve"><value>&#xA;Sélectionnez un toit à déverrouiller : </value></data>
   <data name="Command_RoofToggleLock_SelectPrompt" xml:space="preserve"><value>&#xA;Sélectionnez un toit à verrouiller ou déverrouiller : </value></data>
   <data name="Command_RoofUnlock_Unlocked" xml:space="preserve"><value>&#xA;Le toit est déverrouillé. Le bois généré peut être modifié avec les commandes prises en charge.</value></data>
   <data name="Command_RoofUnlock_AlreadyUnlocked" xml:space="preserve"><value>&#xA;Le toit est déjà déverrouillé.</value></data>

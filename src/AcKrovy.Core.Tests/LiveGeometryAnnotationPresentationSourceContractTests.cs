@@ -122,7 +122,7 @@ public sealed class LiveGeometryAnnotationPresentationSourceContractTests
     }
 
     [Fact]
-    public void ObjectModified_StillQueuesMLeaderAsAnnotationNotSource()
+    public void ObjectModified_QueuesMLeaderForAnnotationPresentationAndRoofInspect()
     {
         var objectModified = Member(
             Normalize(LiveGeometrySource()),
@@ -131,21 +131,24 @@ public sealed class LiveGeometryAnnotationPresentationSourceContractTests
         var mleaderGate = objectModified.IndexOf(
             "if (entity is MLeader)",
             StringComparison.Ordinal);
-        var gripQueue = objectModified.IndexOf(
+        var framedQueue = objectModified.IndexOf(
             "_modifiedFramedLabelIds.TryAdd(entity.ObjectId);",
             mleaderGate,
             StringComparison.Ordinal);
-        var returnAfterGripQueue = objectModified.IndexOf(
-            "return;",
-            gripQueue,
-            StringComparison.Ordinal);
-        var sourceQueue = objectModified.IndexOf(
+        var modifiedQueue = objectModified.IndexOf(
             "_modifiedIds.TryAdd(entity.ObjectId);",
+            framedQueue,
             StringComparison.Ordinal);
-
+        // LockedAnnotationTamper requires MLeader in _modifiedIds. Do not early-return
+        // after framed-label tracking (HOST H7d root cause).
+        var earlyReturnAfterFramed = objectModified.IndexOf(
+            "return;",
+            framedQueue,
+            StringComparison.Ordinal);
+        Assert.True(mleaderGate >= 0 && framedQueue > mleaderGate && modifiedQueue > framedQueue);
         Assert.True(
-            mleaderGate >= 0 && gripQueue > mleaderGate &&
-            returnAfterGripQueue > gripQueue && sourceQueue > returnAfterGripQueue);
+            earlyReturnAfterFramed < 0 || earlyReturnAfterFramed > modifiedQueue,
+            "MLeader must enqueue _modifiedIds before any return.");
     }
 
     [Fact]

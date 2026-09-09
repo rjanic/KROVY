@@ -53,7 +53,7 @@ public sealed class MonopitchRafterStage2BSourceContractTests
     [Fact]
     public void LiveRefreshDisposesOldTransientSetAndInvalidLayoutClearsIt()
     {
-        Assert.Contains("PreviewLayoutChanged?.Invoke(validation.Layout)", Window);
+        Assert.Contains("PreviewLayoutChanged?.Invoke(PreviewLayout)", Window);
         Assert.Contains("dialog.PreviewLayoutChanged += previewChanged", Workflow);
         Assert.Contains("preview.Refresh(dialog.PreviewLayout)", Workflow);
         Assert.Contains("_current?.Dispose();", Controller);

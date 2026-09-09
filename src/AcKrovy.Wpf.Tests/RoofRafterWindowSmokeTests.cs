@@ -291,7 +291,7 @@ public sealed class RoofRafterWindowSmokeTests
     }
 
     [Fact]
-    public void HipUsesWorkingSpacingAndConfiguredMinimumForTransientPreviewOnly()
+    public void HipUsesWorkingSpacingAndEnablesPermanentCreateFromFaceLayout()
     {
         Exception? failure = null;
         var thread = new Thread(() =>
@@ -308,16 +308,19 @@ public sealed class RoofRafterWindowSmokeTests
                 Assert.Equal("900", window.MaximumSpacingTextBox.Text);
                 Assert.NotNull(window.HipPreviewLayout);
                 Assert.Equal(900d, window.HipPreviewLayout!.RequestedSpacingMm);
-                Assert.False(window.CreateButton.IsEnabled);
+                Assert.Null(window.PreviewLayout);
+                Assert.True(window.CreateButton.IsEnabled);
+                Assert.Equal(string.Empty, window.ValidationTextBlock.Text);
 
                 window.MaximumSpacingTextBox.Text = "499";
                 Assert.Null(window.HipPreviewLayout);
                 Assert.Contains("500", window.ValidationTextBlock.Text);
+                Assert.False(window.CreateButton.IsEnabled);
 
                 window.MaximumSpacingTextBox.Text = "500";
                 Assert.NotNull(window.HipPreviewLayout);
                 Assert.Equal(64, window.HipPreviewLayout!.Segments.Count);
-                Assert.False(window.CreateButton.IsEnabled);
+                Assert.True(window.CreateButton.IsEnabled);
                 window.Close();
             }
             catch (Exception exception)

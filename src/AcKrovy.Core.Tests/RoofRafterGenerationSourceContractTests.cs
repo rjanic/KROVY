@@ -97,7 +97,7 @@ public sealed class RoofRafterGenerationSourceContractTests
         Assert.Contains("rafter.StationIndex", Replacement);
         Assert.Contains("rafter.StationCount", Replacement);
         Assert.Contains("layout.RequestedMaximumSpacingMm", Replacement);
-        Assert.Contains("layout.Signature", Replacement);
+        Assert.Contains("RoofGeneratedLayoutFingerprint.ToPersistedIdentity(layout.Signature)", Replacement);
         Assert.Contains("DECORAIR_ACADKROVY_ROOF_TIMBER", Store);
         Assert.Contains("ReadForeignXData", Store);
     }
@@ -113,7 +113,7 @@ public sealed class RoofRafterGenerationSourceContractTests
         Assert.Contains("Command_RoofRafters_ReplacementDeferred", Workflow);
         Assert.Contains("Command_RoofRafters_ExistingStale", Workflow);
         Assert.Contains("RoofGeneratedRafterSetService.IsGeneratedSetStale(", Workflow);
-        Assert.Contains("RoofGeneratedTimberFreshness.IsLayoutCurrent(", Replacement);
+        Assert.Contains("RoofGeneratedTimberFreshness.MatchesPersistedLayoutIdentity(", Replacement);
         Assert.DoesNotContain(".Erase(", Workflow);
     }
 

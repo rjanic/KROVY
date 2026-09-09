@@ -634,9 +634,7 @@
   <data name="RoofRafterWindow_InvalidMaterial" xml:space="preserve"><value>Vyberte platný materiál.</value></data>
   <data name="RoofRafterWindow_InvalidRoof" xml:space="preserve"><value>Rozložení krokví nelze pro tuto střechu vypočítat.</value></data>
   <data name="RoofRafterWindow_InvalidAutomaticSpacingFormat" xml:space="preserve"><value>Rozteč automatických krokví nesmí být menší než {0:0.###} mm.</value></data>
-  <data name="RoofRafterWindow_HipSummaryFormat" xml:space="preserve"><value>{0} krokví • pracovní rozteč {1:0.###} mm</value></data>
-  <data name="RoofRafterWindow_HipPreviewOnly" xml:space="preserve"><value>Trvalé vytvoření krokví pro valbovou střechu zatím není součástí R1. Náhled je dočasný.</value></data>
-  <data name="Command_RoofUnlock_SelectPrompt" xml:space="preserve"><value>&#xA;Vyberte střechu, kterou chcete odemknout: </value></data>
+  <data name="RoofRafterWindow_HipSummaryFormat" xml:space="preserve"><value>{0} krokví • pracovní rozteč {1:0.###} mm</value></data>  <data name="Command_RoofUnlock_SelectPrompt" xml:space="preserve"><value>&#xA;Vyberte střechu, kterou chcete odemknout: </value></data>
   <data name="Command_RoofToggleLock_SelectPrompt" xml:space="preserve"><value>&#xA;Vyberte střechu pro zamknutí nebo odemknutí: </value></data>
   <data name="Command_RoofUnlock_Unlocked" xml:space="preserve"><value>&#xA;Střecha je odemčená. Generované řezivo lze upravovat podporovanými příkazy.</value></data>
   <data name="Command_RoofUnlock_AlreadyUnlocked" xml:space="preserve"><value>&#xA;Střecha je již odemčená.</value></data>
