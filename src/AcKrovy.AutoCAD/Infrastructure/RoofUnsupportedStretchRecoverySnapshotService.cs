@@ -458,57 +458,71 @@ internal static class RoofUnsupportedStretchRecoverySnapshotService
         }
 
         var annotations = new List<RoofUnsupportedStretchAnnotationSnapshotData>();
-        if (timberSourceHandles.Count > 0)
+        var displayHandles = new List<string>();
+        // Display children are independent of generated timber. Always capture them so
+        // Locked display-only ERASE can resolve owners without post-erase XData.
+        foreach (ObjectId id in modelSpace)
         {
-            foreach (ObjectId id in modelSpace)
+            if (id.IsErased || timberIdSet.Contains(id))
             {
-                if (id.IsErased || timberIdSet.Contains(id))
-                {
-                    continue;
-                }
-
-                if (!AutoCadObjectIdAccess.TryGetObject<Entity>(
-                        transaction,
-                        id,
-                        OpenMode.ForRead,
-                        out var entity,
-                        database) ||
-                    entity is null ||
-                    entity.IsErased)
-                {
-                    continue;
-                }
-
-                // Skip roof display Lines — rebuilt after source restore.
-                if (RoofDisplayStore.Read(entity).Exists)
-                {
-                    continue;
-                }
-
-                if (!TryResolveAnnotationSourceHandle(entity, out var annotationSourceHandle) ||
-                    !timberSourceHandles.Contains(annotationSourceHandle))
-                {
-                    continue;
-                }
-
-                if (!TryCaptureAnnotation(
-                        entity,
-                        annotationSourceHandle,
-                        out var annotation,
-                        out var annotationSkip))
-                {
-                    skipReason = annotationSkip;
-                    return false;
-                }
-
-                annotations.Add(annotation);
+                continue;
             }
+
+            if (!AutoCadObjectIdAccess.TryGetObject<Entity>(
+                    transaction,
+                    id,
+                    OpenMode.ForRead,
+                    out var entity,
+                    database) ||
+                entity is null ||
+                entity.IsErased)
+            {
+                continue;
+            }
+
+            var display = RoofDisplayStore.Read(entity);
+            if (display.Exists)
+            {
+                if (string.Equals(
+                        display.OwnerReference,
+                        sourceData.OwnerHandle,
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    displayHandles.Add(entity.Handle.ToString());
+                }
+
+                continue;
+            }
+
+            if (timberSourceHandles.Count == 0)
+            {
+                continue;
+            }
+
+            if (!TryResolveAnnotationSourceHandle(entity, out var annotationSourceHandle) ||
+                !timberSourceHandles.Contains(annotationSourceHandle))
+            {
+                continue;
+            }
+
+            if (!TryCaptureAnnotation(
+                    entity,
+                    annotationSourceHandle,
+                    out var annotation,
+                    out var annotationSkip))
+            {
+                skipReason = annotationSkip;
+                return false;
+            }
+
+            annotations.Add(annotation);
         }
 
         assembly = new RoofUnsupportedStretchAssemblySnapshotData(
             sourceData,
             timberLines,
-            annotations);
+            annotations,
+            displayHandles);
         if (!RoofUnsupportedStretchRecoveryRules.IsEligibleAssembly(assembly))
         {
             skipReason = "assembly-eligibility-failed";

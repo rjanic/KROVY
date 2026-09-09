@@ -372,6 +372,22 @@ internal static class RoofUnsupportedStretchRecoveryService
             {
                 return RoofUnsupportedStretchRecoveryOutcome.HardFailure;
             }
+
+            // Locked generated tamper recovery must also ensure canonical display.
+            if (classification.Geometry is not null)
+            {
+                var edges = RoofWireframe.Create(
+                    classification.Geometry,
+                    RoofPolylineExtractor.GetSourceElevation(owner));
+                var signature = RoofWireframe.BuildGenerationSignature(edges);
+                _ = RoofDisplayService.Rebuild(
+                    database,
+                    transaction,
+                    ownerId,
+                    liveHandle,
+                    edges,
+                    signature);
+            }
         }
 #if DEBUG
         catch (Autodesk.AutoCAD.Runtime.Exception ex)

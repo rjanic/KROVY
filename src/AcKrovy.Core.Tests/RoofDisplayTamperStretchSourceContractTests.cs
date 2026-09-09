@@ -52,7 +52,8 @@ public sealed class RoofDisplayTamperStretchSourceContractTests
         Assert.Contains("var displayTamperCandidates = new HashSet<ObjectId>();", ResizeService);
         Assert.Contains("var displayTamperOwners = new HashSet<ObjectId>();", ResizeService);
         Assert.Contains("foreach (var ownerId in displayTamperCandidates)", ResizeService);
-        Assert.Contains("ApplyDisplayTampers(document, displayTamperOwners, modifiedIds)", ResizeService);
+        Assert.Contains("ApplyDisplayTampers(document, displayTamperOwners, modifiedIds", ResizeService);
+        Assert.Contains("erasedSourceHandles", ResizeService);
         Assert.Equal(1, Count(ResizeService, "ApplyDisplayTampers(document,"));
         Assert.Equal(1, Count(ResizeService, "TryApplyDisplayTamper(document.Database,"));
     }
@@ -173,7 +174,7 @@ public sealed class RoofDisplayTamperStretchSourceContractTests
         Assert.True(RoofDisplayTamperRepairRules.ShouldRepair(RoofEditState.Locked, "SCALE"));
         Assert.True(RoofDisplayTamperRepairRules.ShouldRepair(RoofEditState.Locked, "STRETCH"));
         Assert.True(RoofDisplayTamperRepairRules.ShouldRepair(RoofEditState.Locked, "GRIP_STRETCH"));
-        Assert.False(RoofDisplayTamperRepairRules.ShouldRepair(RoofEditState.Locked, "ERASE"));
+        Assert.True(RoofDisplayTamperRepairRules.ShouldRepair(RoofEditState.Locked, "ERASE"));
         Assert.False(RoofDisplayTamperRepairRules.ShouldRepair(RoofEditState.Unlocked, "MOVE"));
         Assert.True(RoofDisplayTamperRepairRules.ShouldRepair(RoofEditState.Unlocked, "STRETCH"));
         Assert.True(RoofDisplayTamperRepairRules.ShouldRepair(RoofEditState.Unlocked, "GRIP_STRETCH"));

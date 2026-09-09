@@ -108,6 +108,18 @@ public static class RoofUnsupportedStretchRecoveryRules
             }
         }
 
+        if (assembly.DisplayHandles is not null)
+        {
+            var seenDisplay = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var handle in assembly.DisplayHandles)
+            {
+                if (string.IsNullOrWhiteSpace(handle) || !seenDisplay.Add(handle))
+                {
+                    return false;
+                }
+            }
+        }
+
         return true;
     }
 

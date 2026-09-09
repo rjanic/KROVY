@@ -175,6 +175,7 @@ internal static class LiveGeometrySynchronizationService
             RoofGroupGripGeometrySnapshotService.EndCommandScope("dispose");
             RoofGroupGripPreCommandBaselineService.Clear("dispose");
             RoofUnsupportedStretchRecoverySnapshotService.Clear("dispose");
+            RoofDisplayErasePreCommandMapService.Clear("dispose");
 #if DEBUG
             AutoCadFramedBlockContentStretchNormalizeLifecycleService.RemoveSession(_document);
             AutoCadFramedBlockContentGripUndoProofService.RemoveSession(_document);
@@ -301,15 +302,52 @@ internal static class LiveGeometrySynchronizationService
         private void ObjectErased(object? sender, ObjectErasedEventArgs e)
         {
             if (_ignoreCurrentCommand ||
-                _erasedSourceHandles.IsSuppressed ||
-                !e.Erased ||
-                e.DBObject is not Entity entity ||
-                !AutoCadEntityHelpers.IsSupportedTimberGeometry(entity))
+                _erasedSourceHandles.IsSuppressed)
             {
                 return;
             }
 
-            _erasedSourceHandles.TryAdd(entity.Handle.ToString());
+            if (e.DBObject is not Entity entity)
+            {
+                return;
+            }
+
+            var handle = entity.Handle.ToString();
+            var mapped = RoofDisplayErasePreCommandMapService.TryResolve(handle, out var mappedEntity);
+            var mappedKind = mapped ? mappedEntity.Kind.ToString() : "-";
+            var mappedOwner = mapped ? mappedEntity.OwnerHandle : "-";
+            var shouldQueue =
+                e.Erased &&
+                (mapped || AutoCadEntityHelpers.IsSupportedTimberGeometry(entity));
+            var action = !e.Erased
+                ? "ignore-unerase"
+                : shouldQueue
+                    ? mapped
+                        ? "queued-mapped"
+                        : "queued-geometry"
+                    : "ignore-unmapped";
+
+#if DEBUG
+            RoofGeneratedMemberManualEditDiag.WriteObjectErased(
+                _document.Editor,
+                entity.ObjectId.ToString(),
+                handle,
+                e.Erased,
+                unerased: !e.Erased,
+                _currentGlobalCommandName,
+                _document.Name,
+                _document.Database.Filename,
+                mappedKind,
+                mappedOwner,
+                action);
+#endif
+
+            if (!shouldQueue)
+            {
+                return;
+            }
+
+            _erasedSourceHandles.TryAdd(handle);
         }
 
         private void CommandWillStart(object? sender, CommandEventArgs e)
@@ -386,6 +424,21 @@ internal static class LiveGeometrySynchronizationService
             else
             {
                 RoofUnsupportedStretchRecoverySnapshotService.Clear("non-recovery-command", e.GlobalCommandName);
+            }
+
+            // Read-only display→owner map for native ERASE. ObjectErased resolves
+            // through this map; never rely on post-erase XData from erased DBObjects.
+            if (!isUndoRedo &&
+                !_ignoreCurrentCommand &&
+                RoofGeneratedMemberEditCommandRules.IsEraseCommand(e.GlobalCommandName))
+            {
+                RoofDisplayErasePreCommandMapService.CaptureForErase(
+                    _document,
+                    e.GlobalCommandName);
+            }
+            else
+            {
+                RoofDisplayErasePreCommandMapService.Clear("non-erase-command");
             }
 
             if (!isUndoRedo &&
@@ -479,6 +532,7 @@ internal static class LiveGeometrySynchronizationService
                 RoofGroupGripGeometrySnapshotService.EndCommandScope("CommandEnded");
                 RoofGroupGripPreCommandBaselineService.Clear("CommandEnded");
                 RoofUnsupportedStretchRecoverySnapshotService.Clear("CommandEnded", e.GlobalCommandName);
+                RoofDisplayErasePreCommandMapService.Clear("CommandEnded");
                 _currentGlobalCommandName = null;
             }
         }
@@ -511,6 +565,7 @@ internal static class LiveGeometrySynchronizationService
             RoofGroupGripGeometrySnapshotService.EndCommandScope("CommandCancelled");
             RoofGroupGripPreCommandBaselineService.Clear("CommandCancelled");
             RoofUnsupportedStretchRecoverySnapshotService.Clear("CommandCancelled", e.GlobalCommandName);
+            RoofDisplayErasePreCommandMapService.Clear("CommandCancelled");
             _currentGlobalCommandName = null;
 #if DEBUG
             AutoCadRedoDiagService.OnCommandCancelledOrFailed(
@@ -551,6 +606,7 @@ internal static class LiveGeometrySynchronizationService
             RoofGroupGripGeometrySnapshotService.EndCommandScope("CommandFailed");
             RoofGroupGripPreCommandBaselineService.Clear("CommandFailed");
             RoofUnsupportedStretchRecoverySnapshotService.Clear("CommandFailed", e.GlobalCommandName);
+            RoofDisplayErasePreCommandMapService.Clear("CommandFailed");
             _currentGlobalCommandName = null;
 #if DEBUG
             AutoCadRedoDiagService.OnCommandCancelledOrFailed(
@@ -723,6 +779,7 @@ internal static class LiveGeometrySynchronizationService
                     _document,
                     globalCommandName,
                     ids,
+                    erasedSourceHandles,
                     appendedTimberIds);
             }
             if (roofRelatedIds.Count > 0)

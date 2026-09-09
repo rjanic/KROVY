@@ -451,6 +451,155 @@ internal static class RoofGeneratedMemberManualEditDiag
         WriteLine(editor, line);
     }
 
+    public static void WriteObjectErased(
+        Editor? editor,
+        string? objectId,
+        string? handle,
+        bool erased,
+        bool unerased,
+        string? command,
+        string? document,
+        string? database,
+        string? mappedKind,
+        string? mappedOwner,
+        string? action)
+    {
+        if (editor is null)
+        {
+            return;
+        }
+
+        var line =
+            "ROOF_OBJECT_ERASED" +
+            $" objectId={Token(objectId)}" +
+            $" handle={Token(handle)}" +
+            $" erased={(erased ? "1" : "0")}" +
+            $" unerased={(unerased ? "1" : "0")}" +
+            $" command={Token(command)}" +
+            $" document={Token(document)}" +
+            $" database={Token(database)}" +
+            $" mappedKind={Token(mappedKind)}" +
+            $" mappedOwner={Token(mappedOwner)}" +
+            $" action={Token(action)}";
+        WriteLine(editor, line);
+    }
+
+    public static void WriteSourceEraseTamper(
+        Editor? editor,
+        string? owner,
+        string? command,
+        string? sourceObjectId,
+        string? sourceHandle,
+        string? editStateAtStart,
+        bool sourceErased,
+        int displayErasedCount,
+        string? classification,
+        string? action)
+    {
+        if (editor is null)
+        {
+            return;
+        }
+
+        var line =
+            "ROOF_SOURCE_ERASE_TAMPER" +
+            $" owner={Token(owner)}" +
+            $" command={Token(command)}" +
+            $" sourceObjectId={Token(sourceObjectId)}" +
+            $" sourceHandle={Token(sourceHandle)}" +
+            $" editStateAtStart={Token(editStateAtStart)}" +
+            $" sourceErased={(sourceErased ? "1" : "0")}" +
+            $" displayErasedCount={displayErasedCount.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
+            $" classification={Token(classification)}" +
+            $" action={Token(action)}";
+        WriteLine(editor, line);
+    }
+
+    public static void WriteSourceEraseRepair(
+        Editor? editor,
+        string? owner,
+        bool sourceRestored,
+        bool sameObjectId,
+        bool sameHandle,
+        bool displayRebuilt,
+        int groupMembers,
+        bool canonical,
+        string? result)
+    {
+        if (editor is null)
+        {
+            return;
+        }
+
+        var line =
+            "ROOF_SOURCE_ERASE_REPAIR" +
+            $" owner={Token(owner)}" +
+            $" sourceRestored={(sourceRestored ? "1" : "0")}" +
+            $" sameObjectId={(sameObjectId ? "1" : "0")}" +
+            $" sameHandle={(sameHandle ? "1" : "0")}" +
+            $" displayRebuilt={(displayRebuilt ? "1" : "0")}" +
+            $" groupMembers={groupMembers.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
+            $" canonical={(canonical ? "1" : "0")}" +
+            $" result={Token(result)}";
+        WriteLine(editor, line);
+    }
+
+    public static void WriteDisplayEraseTamper(
+        Editor? editor,
+        string? owner,
+        string? command,
+        int erasedDisplayCount,
+        bool sourceErased,
+        bool sourceModified,
+        string? editState,
+        string? classification,
+        string? action)
+    {
+        if (editor is null)
+        {
+            return;
+        }
+
+        var line =
+            "ROOF_DISPLAY_ERASE_TAMPER" +
+            $" owner={Token(owner)}" +
+            $" command={Token(command)}" +
+            $" erasedDisplayCount={erasedDisplayCount.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
+            $" sourceErased={(sourceErased ? "1" : "0")}" +
+            $" sourceModified={(sourceModified ? "1" : "0")}" +
+            $" editState={Token(editState)}" +
+            $" classification={Token(classification)}" +
+            $" action={Token(action)}";
+        WriteLine(editor, line);
+    }
+
+    public static void WriteDisplayEraseRepair(
+        Editor? editor,
+        string? owner,
+        string? command,
+        int expectedDisplay,
+        int restoredDisplay,
+        int groupMembers,
+        bool canonical,
+        string? result)
+    {
+        if (editor is null)
+        {
+            return;
+        }
+
+        var line =
+            "ROOF_DISPLAY_ERASE_REPAIR" +
+            $" owner={Token(owner)}" +
+            $" command={Token(command)}" +
+            $" expectedDisplay={expectedDisplay.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
+            $" restoredDisplay={restoredDisplay.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
+            $" groupMembers={groupMembers.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
+            $" canonical={(canonical ? "1" : "0")}" +
+            $" result={Token(result)}";
+        WriteLine(editor, line);
+    }
+
     private static void WriteLine(Editor editor, string line)
     {
         try

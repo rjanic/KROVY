@@ -62,6 +62,7 @@ internal static class RoofLiveResizeService
         Document document,
         string? globalCommandName,
         IReadOnlyList<ObjectId> modifiedIds,
+        IReadOnlyList<string> erasedSourceHandles,
         IReadOnlyCollection<ObjectId> appendedTimberIds)
     {
         ArgumentNullException.ThrowIfNull(document);
@@ -77,6 +78,7 @@ internal static class RoofLiveResizeService
         }
 
         if (modifiedIds.Count == 0 &&
+            erasedSourceHandles.Count == 0 &&
             !RoofGeneratedMemberEditCommandRules.IsEraseCommand(globalCommandName))
         {
             return Array.Empty<ObjectId>();
@@ -84,7 +86,7 @@ internal static class RoofLiveResizeService
 
         try
         {
-            var plan = Inspect(document.Database, modifiedIds, globalCommandName);
+            var plan = Inspect(document.Database, modifiedIds, erasedSourceHandles, globalCommandName);
             if (plan.RelatedIds.Count == 0)
             {
                 return Array.Empty<ObjectId>();
@@ -157,6 +159,18 @@ internal static class RoofLiveResizeService
                     appendedTimberIds);
             }
 
+            // Locked source footprint ERASE: unerase same ObjectId, then reconcile display.
+            // Runs before display-only tamper so source+display ERASE restores once.
+            // No TransientNotification — Locked protection mirrors a refused erase.
+            if (plan.SourceEraseOwnerIds.Count > 0)
+            {
+                _ = ApplySourceEraseTampers(
+                    document,
+                    plan.SourceEraseOwnerIds,
+                    erasedSourceHandles,
+                    globalCommandName);
+            }
+
             // Derived display edits are never geometry authority. Inspect applies the
             // edit-state-aware command policy; source resize/unsupported outcomes retain
             // precedence, including deferred rebuild events from the same command.
@@ -183,7 +197,7 @@ internal static class RoofLiveResizeService
             }
 
             if (displayTamperOwners.Count > 0 &&
-                ApplyDisplayTampers(document, displayTamperOwners, modifiedIds))
+                ApplyDisplayTampers(document, displayTamperOwners, modifiedIds, erasedSourceHandles, globalCommandName))
             {
                 TransientNotificationService.Show(
                     "Command_Roof_DisplayTamperNotificationTitle",
@@ -272,6 +286,7 @@ internal static class RoofLiveResizeService
     private static InspectionPlan Inspect(
         Database database,
         IReadOnlyList<ObjectId> modifiedIds,
+        IReadOnlyList<string> erasedSourceHandles,
         string? globalCommandName)
     {
         var related = new HashSet<ObjectId>();
@@ -280,6 +295,53 @@ internal static class RoofLiveResizeService
         var displayTamperCandidates = new HashSet<ObjectId>();
         var generatedMemberTamperCandidates = new HashSet<ObjectId>();
         using var transaction = database.TransactionManager.StartTransaction();
+
+        var sourceEraseOwners = new HashSet<ObjectId>();
+        if (RoofGeneratedMemberEditCommandRules.IsEraseCommand(globalCommandName))
+        {
+            var erasedSet = new HashSet<string>(erasedSourceHandles, StringComparer.OrdinalIgnoreCase);
+            foreach (var ownerId in RoofDisplayErasePreCommandMapService.CollectLockedSourceEraseOwners(
+                         erasedSet,
+                         globalCommandName))
+            {
+                related.Add(ownerId);
+                sourceEraseOwners.Add(ownerId);
+            }
+
+            // Prefer the read-only pre-command display→owner map. Do not depend on
+            // post-erase XData or on assembly DisplayHandles that historically required
+            // generated timber to be present.
+            foreach (var ownerId in RoofDisplayErasePreCommandMapService.CollectDisplayOwners(erasedSet))
+            {
+                // Locked source recovery owns source+display ERASE in the same command.
+                if (sourceEraseOwners.Contains(ownerId) ||
+                    RoofDisplayErasePreCommandMapService.IsOwnerSourceErased(ownerId, erasedSet))
+                {
+                    continue;
+                }
+
+                related.Add(ownerId);
+                displayTamperCandidates.Add(ownerId);
+            }
+
+            foreach (var ownerId in RoofUnsupportedStretchRecoverySnapshotService.GetOwnerIds())
+            {
+                if (sourceEraseOwners.Contains(ownerId) ||
+                    RoofDisplayErasePreCommandMapService.IsOwnerSourceErased(ownerId, erasedSet))
+                {
+                    continue;
+                }
+
+                if (RoofUnsupportedStretchRecoverySnapshotService.TryGet(ownerId, out var entry) &&
+                    entry.Assembly.DisplayHandles is not null &&
+                    entry.Assembly.DisplayHandles.Any(handle => erasedSet.Contains(handle)))
+                {
+                    related.Add(ownerId);
+                    displayTamperCandidates.Add(ownerId);
+                }
+            }
+        }
+
         foreach (var id in modifiedIds.Distinct())
         {
             if (!AutoCadObjectIdAccess.TryGetObject<Entity>(
@@ -359,6 +421,17 @@ internal static class RoofLiveResizeService
                 continue;
             }
 
+            if (RoofGeneratedMemberEditCommandRules.IsEraseCommand(globalCommandName) &&
+                (sourceEraseOwners.Contains(ownerId) ||
+                 RoofDisplayErasePreCommandMapService.IsOwnerSourceErased(
+                     ownerId,
+                     erasedSourceHandles)))
+            {
+                // Source ERASE: Locked recovery owns full roof restore; Unlocked
+                // intentional source deletion must not resurrect orphaned display.
+                continue;
+            }
+
             if (!AutoCadObjectIdAccess.TryGetObject<Polyline>(
                     transaction,
                     ownerId,
@@ -373,6 +446,16 @@ internal static class RoofLiveResizeService
             var displayOwnerDefinition = RoofDefinitionStore.Read(displayOwner).Data;
             if (displayOwnerDefinition is null ||
                 !RoofDisplayTamperRepairRules.ShouldRepair(
+                    displayOwnerDefinition.EditState,
+                    globalCommandName))
+            {
+                continue;
+            }
+
+            if (RoofGeneratedMemberEditCommandRules.IsEraseCommand(globalCommandName) &&
+                !RoofDisplayErasePreCommandMapRules.ShouldClassifyLockedDisplayEraseTamper(
+                    RoofEraseMappedKind.Display,
+                    sourceErasedInSameCommand: false,
                     displayOwnerDefinition.EditState,
                     globalCommandName))
             {
@@ -491,7 +574,39 @@ internal static class RoofLiveResizeService
             resizeOwners,
             unsupportedOwners,
             displayTamperOwners,
-            generatedMemberTamperOwners);
+            generatedMemberTamperOwners,
+            sourceEraseOwners);
+    }
+
+    private static bool HasErasedDerivedDisplay(
+        Database database,
+        RoofUnsupportedStretchRecoverySnapshotService.SnapshotEntry entry)
+    {
+        foreach (var handle in entry.Assembly.DisplayHandles ?? Array.Empty<string>())
+        {
+            try
+            {
+                if (!long.TryParse(
+                        handle,
+                        System.Globalization.NumberStyles.HexNumber,
+                        System.Globalization.CultureInfo.InvariantCulture,
+                        out var handleValue))
+                {
+                    continue;
+                }
+
+                var id = database.GetObjectId(false, new Handle(handleValue), 0);
+                if (!id.IsNull && id.IsErased)
+                {
+                    return true;
+                }
+            }
+            catch (Autodesk.AutoCAD.Runtime.Exception)
+            {
+            }
+        }
+
+        return false;
     }
 
     private static bool HasErasedGeneratedTimber(
@@ -1466,23 +1581,263 @@ internal static class RoofLiveResizeService
         return remaining;
     }
 
+    private static bool ApplySourceEraseTampers(
+        Document document,
+        IReadOnlyCollection<ObjectId> ownerIds,
+        IReadOnlyList<string> erasedSourceHandles,
+        string? globalCommandName)
+    {
+        using (document.LockDocument())
+        using (var transaction = document.Database.TransactionManager.StartTransaction())
+        {
+            var wrote = false;
+            var erasedSet = new HashSet<string>(erasedSourceHandles, StringComparer.OrdinalIgnoreCase);
+            foreach (var ownerId in ownerIds)
+            {
+                if (!RoofDisplayErasePreCommandMapService.TryGetSourceState(ownerId, out var state) ||
+                    !RoofDisplayErasePreCommandMapRules.ShouldRestoreLockedSourceErase(
+                        state.EditState,
+                        globalCommandName))
+                {
+                    continue;
+                }
+
+                var displayErasedCount =
+                    RoofDisplayErasePreCommandMapService.CountErasedDisplaysForOwner(
+                        ownerId,
+                        erasedSet);
+#if DEBUG
+                RoofGeneratedMemberManualEditDiag.WriteSourceEraseTamper(
+                    document.Editor,
+                    state.OwnerHandle,
+                    globalCommandName,
+                    ownerId.ToString(),
+                    state.OwnerHandle,
+                    state.EditState.ToString(),
+                    sourceErased: true,
+                    displayErasedCount,
+                    "LockedSourceEraseTamper",
+                    "restore-source");
+#else
+                _ = displayErasedCount;
+#endif
+
+                if (!TryUnEraseLockedSource(
+                        document.Database,
+                        transaction,
+                        ownerId,
+                        state,
+                        out var sameObjectId,
+                        out var sameHandle))
+                {
+#if DEBUG
+                    RoofGeneratedMemberManualEditDiag.WriteSourceEraseRepair(
+                        document.Editor,
+                        state.OwnerHandle,
+                        sourceRestored: false,
+                        sameObjectId: false,
+                        sameHandle: false,
+                        displayRebuilt: false,
+                        groupMembers: -1,
+                        canonical: false,
+                        result: "failed-unerase");
+#else
+                    _ = sameObjectId;
+                    _ = sameHandle;
+#endif
+                    continue;
+                }
+
+                var displayRebuilt = TryApplyDisplayTamper(
+                    document.Database,
+                    transaction,
+                    ownerId);
+                SourceHandledOwnersThisCommand.Add(ownerId);
+
+#if DEBUG
+                var groupMembers = -1;
+                var canonical = false;
+                if (RoofDisplayGroupService.TryOpenCanonicalGroup(
+                        document.Database,
+                        transaction,
+                        ownerId,
+                        OpenMode.ForRead,
+                        out var group) && group is not null)
+                {
+                    groupMembers = group.GetAllEntityIds().Length;
+                    canonical = true;
+                }
+
+                RoofGeneratedMemberManualEditDiag.WriteSourceEraseRepair(
+                    document.Editor,
+                    state.OwnerHandle,
+                    sourceRestored: true,
+                    sameObjectId,
+                    sameHandle,
+                    displayRebuilt,
+                    groupMembers,
+                    canonical,
+                    result: displayRebuilt ? "Recovered|ok" : "source-ok-display-failed");
+#else
+                _ = sameObjectId;
+                _ = sameHandle;
+                _ = displayRebuilt;
+#endif
+                wrote = true;
+            }
+
+            if (wrote)
+            {
+                transaction.Commit();
+            }
+
+            return wrote;
+        }
+    }
+
+    private static bool TryUnEraseLockedSource(
+        Database database,
+        Transaction transaction,
+        ObjectId ownerId,
+        RoofDisplayErasePreCommandMapService.SourcePreCommandState state,
+        out bool sameObjectId,
+        out bool sameHandle)
+    {
+        sameObjectId = false;
+        sameHandle = false;
+        if (!AutoCadObjectIdAccess.TryGetObjectAllowErased<Polyline>(
+                transaction,
+                ownerId,
+                OpenMode.ForWrite,
+                out var owner,
+                database) ||
+            owner is null)
+        {
+            return false;
+        }
+
+        if (owner.IsErased)
+        {
+            owner.Erase(false);
+        }
+
+        if (owner.IsErased)
+        {
+            return false;
+        }
+
+        sameObjectId = owner.ObjectId == ownerId;
+        var liveHandle = owner.Handle.ToString();
+        sameHandle = string.Equals(
+            liveHandle,
+            state.OwnerHandle,
+            StringComparison.OrdinalIgnoreCase);
+        if (!sameObjectId || !sameHandle)
+        {
+            return false;
+        }
+
+        var definition = RoofDefinitionStore.Read(owner).Data;
+        return definition is not null &&
+               definition.EditState == state.EditState &&
+               definition.Kind == state.Kind;
+    }
+
     private static bool ApplyDisplayTampers(
         Document document,
         IReadOnlyCollection<ObjectId> ownerIds,
-        IReadOnlyList<ObjectId> modifiedIds)
+        IReadOnlyList<ObjectId> modifiedIds,
+        IReadOnlyList<string> erasedSourceHandles,
+        string? globalCommandName)
     {
         _ = modifiedIds;
         using (document.LockDocument())
         using (var transaction = document.Database.TransactionManager.StartTransaction())
         {
             var wrote = false;
+            var erasedSet = new HashSet<string>(erasedSourceHandles, StringComparer.OrdinalIgnoreCase);
             foreach (var ownerId in ownerIds)
             {
+                if (SourceHandledOwnersThisCommand.Contains(ownerId))
+                {
+                    continue;
+                }
+
+                var sourceErased = RoofDisplayErasePreCommandMapService.IsOwnerSourceErased(
+                    ownerId,
+                    erasedSet);
+                if (sourceErased)
+                {
+                    // Unlocked intentional source delete, or Locked source recovery already
+                    // owns this owner — never rebuild display against a deleted source here.
+                    continue;
+                }
+
+#if DEBUG
+                if (AutoCadObjectIdAccess.TryGetObject<Polyline>(
+                        transaction,
+                        ownerId,
+                        OpenMode.ForRead,
+                        out var owner,
+                        document.Database) && owner is not null)
+                {
+                    var definition = RoofDefinitionStore.Read(owner).Data;
+                    var erasedCount =
+                        RoofDisplayErasePreCommandMapService.CountErasedDisplaysForOwner(
+                            ownerId,
+                            erasedSet);
+                    if (erasedCount == 0 &&
+                        RoofUnsupportedStretchRecoverySnapshotService.TryGet(ownerId, out var entry))
+                    {
+                        erasedCount = entry.Assembly.DisplayHandles?.Count(h => erasedSet.Contains(h)) ?? 0;
+                    }
+
+                    RoofGeneratedMemberManualEditDiag.WriteDisplayEraseTamper(
+                        document.Editor,
+                        owner.Handle.ToString(),
+                        globalCommandName,
+                        erasedCount,
+                        sourceErased: false,
+                        sourceModified: modifiedIds.Contains(ownerId),
+                        definition?.EditState.ToString(),
+                        "LockedDisplayEraseTamper",
+                        "repair-rebuild");
+                }
+#endif
+
                 if (!TryApplyDisplayTamper(document.Database, transaction, ownerId))
                 {
                     continue;
                 }
 
+#if DEBUG
+                if (AutoCadObjectIdAccess.TryGetObject<Polyline>(
+                        transaction,
+                        ownerId,
+                        OpenMode.ForRead,
+                        out var repairedOwner,
+                        document.Database) && repairedOwner is not null)
+                {
+                    if (RoofDisplayGroupService.TryOpenCanonicalGroup(
+                            document.Database,
+                            transaction,
+                            ownerId,
+                            OpenMode.ForRead,
+                            out var group) && group is not null)
+                    {
+                        var memberCount = group.GetAllEntityIds().Length;
+                        RoofGeneratedMemberManualEditDiag.WriteDisplayEraseRepair(
+                            document.Editor,
+                            repairedOwner.Handle.ToString(),
+                            globalCommandName,
+                            expectedDisplay: -1,
+                            restoredDisplay: -1,
+                            groupMembers: memberCount,
+                            canonical: true,
+                            result: "Recovered|ok");
+                    }
+                }
+#endif
                 wrote = true;
             }
 
@@ -1729,7 +2084,8 @@ internal static class RoofLiveResizeService
         HashSet<ObjectId> ResizeOwnerIds,
         HashSet<ObjectId> UnsupportedOwnerIds,
         HashSet<ObjectId> DisplayTamperOwnerIds,
-        HashSet<ObjectId> GeneratedMemberTamperOwnerIds);
+        HashSet<ObjectId> GeneratedMemberTamperOwnerIds,
+        HashSet<ObjectId> SourceEraseOwnerIds);
 
     private enum ResizeApplyResult
     {

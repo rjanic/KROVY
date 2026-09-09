@@ -19,11 +19,9 @@ public static class RoofDisplayTamperRepairRules
             return true;
         }
 
-        // ERASE does not leave a readable ObjectModified display candidate from which
-        // the existing owner resolver can recover the roof. Its lifecycle remains a
-        // separate feature rather than guessing ownership after erasure.
+        // Locked roofs protect derived display against both transform tamper
+        // and native ERASE.
         return editState == RoofEditState.Locked &&
-               !RoofGeneratedMemberEditCommandRules.IsEraseCommand(globalCommandName) &&
                RoofGeneratedMemberEditCommandRules.IsGeneratedTimberEditCommand(
                    globalCommandName);
     }

@@ -63,7 +63,8 @@ public sealed record RoofUnsupportedStretchAnnotationSnapshotData(
 public sealed record RoofUnsupportedStretchAssemblySnapshotData(
     RoofUnsupportedStretchSourceSnapshotData RoofSource,
     IReadOnlyList<RoofUnsupportedStretchTimberLineSnapshotData> TimberLines,
-    IReadOnlyList<RoofUnsupportedStretchAnnotationSnapshotData> Annotations);
+    IReadOnlyList<RoofUnsupportedStretchAnnotationSnapshotData> Annotations,
+    IReadOnlyList<string>? DisplayHandles = null);
 
 public enum RoofUnsupportedStretchRecoveryOutcome
 {

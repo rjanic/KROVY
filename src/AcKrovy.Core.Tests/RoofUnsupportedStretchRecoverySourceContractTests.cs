@@ -139,7 +139,8 @@ public sealed class RoofUnsupportedStretchRecoverySourceContractTests
         Assert.Contains("timber Lines", Snapshot);
         Assert.DoesNotContain("TryGetPreCommandDisplayByRole", Snapshot + Recovery);
         Assert.DoesNotContain("RoofGroupGripPreCommandBaselineService", Snapshot + Recovery);
-        Assert.Contains("RoofDisplayStore.Read(entity).Exists", Snapshot);
+        Assert.Contains("displayHandles.Add(entity.Handle.ToString())", Snapshot);
+        Assert.Contains("RoofDisplayStore.Read(entity)", Snapshot);
     }
 
     [Fact]
