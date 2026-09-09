@@ -6,6 +6,8 @@ public sealed class RoofDisplayGroupSourceContractTests
 {
     private static readonly string Group = RoofUxSourceContractText.Read(
         "src", "AcKrovy.AutoCAD", "Infrastructure", "RoofDisplayGroupService.cs");
+    private static readonly string Sync = RoofUxSourceContractText.Read(
+        "src", "AcKrovy.AutoCAD", "Infrastructure", "RoofAssemblyGroupSyncService.cs");
     private static readonly string Display = RoofUxSourceContractText.Read(
         "src", "AcKrovy.AutoCAD", "Infrastructure", "RoofDisplayService.cs");
     private static readonly string Workflow = RoofUxSourceContractText.Read(
@@ -18,18 +20,22 @@ public sealed class RoofDisplayGroupSourceContractTests
         Assert.Contains("RoofAssemblyGroupMemberCollector.TryCollect", Group);
         Assert.Contains("group.Append(addId)", Group);
         Assert.Contains("group.Remove(removeId)", Group);
-        Assert.Contains("expected.SetEquals(actual)", Group);
+        Assert.Contains("RoofAssemblyGroupMembershipRules.IsCanonicalMembership(", Group);
         Assert.Contains("group.Selectable", Group);
     }
 
     [Fact]
-    public void DiffSync_ComputesToAddToRemoveAndVerifiesInvariant()
+    public void DiffSync_ComputesMultisetPlanAndVerifiesInvariant()
     {
-        Assert.Contains("toRemove = current.Where(id => !expected.Contains(id))", Group);
-        Assert.Contains("toAdd = expected.Where(id => !current.Contains(id))", Group);
+        Assert.Contains("RoofAssemblyGroupMembershipRules.PlanCanonicalization(", Group);
+        Assert.Contains("plan.RemoveOnce", Group);
+        Assert.Contains("plan.AppendOnce", Group);
         Assert.Contains("VerifyGroupUndoInvariant", Group);
         Assert.Contains("ROOF_GROUP_UNDO_INVARIANT", Group);
+        Assert.Contains("ROOF_GROUP_SYNC_POST", Sync);
         Assert.Contains("DetachMembersBeforeErase", Group);
+        Assert.DoesNotContain("toRemove = current.Where(id => !expected.Contains(id))", Group);
+        Assert.DoesNotContain("toAdd = expected.Where(id => !current.Contains(id))", Group);
     }
 
     [Fact]
@@ -67,13 +73,15 @@ public sealed class RoofDisplayGroupSourceContractTests
             "public static void EnsureGroup",
             "private static void VerifyGroupUndoInvariant");
         Assert.DoesNotContain("group.Clear()", ensureGroup);
-        Assert.Contains("group.Remove(removeId)", ensureGroup);
-        Assert.Contains("group.Append(addId)", ensureGroup);
+        Assert.Contains("plan.RemoveOnce", ensureGroup);
+        Assert.Contains("plan.AppendOnce", ensureGroup);
+        Assert.Contains("RoofAssemblyGroupMembershipRules.PlanCanonicalization(", ensureGroup);
         Assert.Contains("childIds.Distinct().Count()", Group);
         Assert.Contains("newChildIds", Display);
         Assert.Contains("RoofDisplayGroupService.EnsureGroup", Display);
         Assert.Contains("CollectDisplayIdsToErase", Display);
         Assert.Contains("DissociateOwnerFromForeignGroups", Group);
+        Assert.Contains("while (group.GetAllEntityIds().Contains(timberId))", Group);
     }
 
     [Fact]

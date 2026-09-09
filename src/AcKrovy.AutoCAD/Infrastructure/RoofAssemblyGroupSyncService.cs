@@ -193,6 +193,40 @@ internal static class RoofAssemblyGroupDiag
         }
     }
 
+    public static void WriteSyncPost(
+        Autodesk.AutoCAD.EditorInput.Editor? editor,
+        string owner,
+        int expected,
+        int actual,
+        int duplicates,
+        int missing,
+        int foreign,
+        bool canonical)
+    {
+        if (editor is null)
+        {
+            return;
+        }
+
+        var invariant = System.Globalization.CultureInfo.InvariantCulture;
+        var line =
+            "ROOF_GROUP_SYNC_POST" +
+            $" owner={owner}" +
+            $" expected={expected.ToString(invariant)}" +
+            $" actual={actual.ToString(invariant)}" +
+            $" duplicates={duplicates.ToString(invariant)}" +
+            $" missing={missing.ToString(invariant)}" +
+            $" foreign={foreign.ToString(invariant)}" +
+            $" canonical={(canonical ? "1" : "0")}";
+        try
+        {
+            editor.WriteMessage("\n" + line);
+        }
+        catch
+        {
+        }
+    }
+
     public static void WriteMember(
         Autodesk.AutoCAD.EditorInput.Editor? editor,
         string owner,

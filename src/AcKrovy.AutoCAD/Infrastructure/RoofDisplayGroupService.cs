@@ -56,10 +56,9 @@ internal static class RoofDisplayGroupService
         var actual = group.GetAllEntityIds();
         var editState = ResolveEditState(database, transaction, ownerId);
         var expectedSelectable = RoofDisplayGroupSelectabilityRules.ShouldEnableGroupSelection(editState);
-        var membershipCurrent =
-            actual.Length == expected.Count &&
-            actual.Distinct().Count() == expected.Count &&
-            expected.SetEquals(actual);
+        var membershipCurrent = RoofAssemblyGroupMembershipRules.IsCanonicalMembership(
+            actual,
+            expected);
         return membershipCurrent &&
                group.Selectable == expectedSelectable
             ? new RoofDisplayGroupInspection(true, name)
@@ -125,20 +124,21 @@ internal static class RoofDisplayGroupService
             group.Selectable = groupSelectable;
         }
 
-        // Diff-based membership sync. Never Clear() the canonical group during the
-        // resize lifecycle: a full Clear records the entire prior membership for undo
+        // Diff-based multiset membership sync. Never Clear() the canonical group during
+        // the resize lifecycle: a full Clear records the entire prior membership for undo
         // and can re-add erased ObjectIds when native U reverses the transaction
-        // (eInvalidInput). Remove only stale members, append only new ones.
+        // (eInvalidInput). AutoCAD Group can retain erased members and Erase(false) /
+        // Append can leave duplicate ObjectId entries — HashSet equivalence alone is not
+        // enough. Remove surplus/foreign copies, then append missing ids once.
         var expected = new HashSet<ObjectId>(memberIds);
-        var current = new HashSet<ObjectId>(group.GetAllEntityIds());
-        var toRemove = current.Where(id => !expected.Contains(id)).ToList();
-        var toAdd = expected.Where(id => !current.Contains(id)).ToList();
+        var actual = group.GetAllEntityIds();
+        var plan = RoofAssemblyGroupMembershipRules.PlanCanonicalization(actual, expected);
 
 #if DEBUG
         var editor = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument?.Editor;
         var groupObjectId = group.ObjectId.Handle.ToString();
 #endif
-        foreach (var removeId in toRemove)
+        foreach (var removeId in plan.RemoveOnce)
         {
             group.Remove(removeId);
 #if DEBUG
@@ -146,7 +146,7 @@ internal static class RoofDisplayGroupService
 #endif
         }
 
-        foreach (var addId in toAdd)
+        foreach (var addId in plan.AppendOnce)
         {
             group.Append(addId);
 #if DEBUG
@@ -164,7 +164,19 @@ internal static class RoofDisplayGroupService
             new HashSet<ObjectId>(memberIds));
 
 #if DEBUG
-        VerifyGroupUndoInvariant(database, transaction, group, name, editor);
+        var postActual = group.GetAllEntityIds();
+        var postCanonical = RoofAssemblyGroupMembershipRules.IsCanonicalMembership(
+            postActual,
+            expected);
+        VerifyGroupUndoInvariant(
+            database,
+            transaction,
+            group,
+            name,
+            editor,
+            expectedCount: expected.Count,
+            duplicates: RoofAssemblyGroupMembershipRules.CountDuplicates(postActual),
+            canonical: postCanonical);
         if (AutoCadObjectIdAccess.TryGetObject<Entity>(
                 transaction,
                 ownerId,
@@ -181,6 +193,15 @@ internal static class RoofDisplayGroupService
                 collected.AnnotationCount,
                 memberIds.Count,
                 "ok");
+            RoofAssemblyGroupDiag.WriteSyncPost(
+                editor,
+                ownerEntity.Handle.ToString(),
+                expected.Count,
+                postActual.Length,
+                RoofAssemblyGroupMembershipRules.CountDuplicates(postActual),
+                RoofAssemblyGroupMembershipRules.CountMissing(postActual, expected),
+                RoofAssemblyGroupMembershipRules.CountForeign(postActual, expected),
+                postCanonical);
         }
 #endif
     }
@@ -191,7 +212,10 @@ internal static class RoofDisplayGroupService
         Transaction transaction,
         Group group,
         string groupName,
-        Autodesk.AutoCAD.EditorInput.Editor? editor)
+        Autodesk.AutoCAD.EditorInput.Editor? editor,
+        int expectedCount,
+        int duplicates,
+        bool canonical)
     {
         var memberIds = group.GetAllEntityIds();
         var erased = 0;
@@ -224,6 +248,13 @@ internal static class RoofDisplayGroupService
             }
         }
 
+        var result =
+            canonical &&
+            duplicates == 0 &&
+            memberIds.Length == expectedCount &&
+            invalid + erased + wrongDatabase == 0
+                ? "ok"
+                : "failure";
         RoofGroupUndoInvariantDiag.Write(
             editor,
             groupName,
@@ -231,7 +262,7 @@ internal static class RoofDisplayGroupService
             invalid,
             erased,
             wrongDatabase,
-            invalid + erased + wrongDatabase == 0 ? "ok" : "failure");
+            result);
     }
 #endif
 
@@ -262,7 +293,6 @@ internal static class RoofDisplayGroupService
 
         var detachedTimber = 0;
         var handles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var currentMembers = new HashSet<ObjectId>(group.GetAllEntityIds());
 #if DEBUG
         var editor = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument?.Editor;
         var groupObjectId = group.ObjectId.Handle.ToString();
@@ -276,13 +306,19 @@ internal static class RoofDisplayGroupService
             }
 
             handles.Add(timberId.Handle.ToString());
-            if (currentMembers.Contains(timberId))
+            var removedAny = false;
+            while (group.GetAllEntityIds().Contains(timberId))
             {
                 group.Remove(timberId);
-                detachedTimber++;
+                removedAny = true;
 #if DEBUG
                 RoofGroupMutationDiag.Write(editor, ownerName, "remove", groupObjectId, timberId.Handle.ToString(), "detach-before-erase");
 #endif
+            }
+
+            if (removedAny)
+            {
+                detachedTimber++;
             }
         }
 
@@ -291,30 +327,42 @@ internal static class RoofDisplayGroupService
             return detachedTimber;
         }
 
-        foreach (var memberId in group.GetAllEntityIds())
+        // Annotations may also be duplicated after Erase(false); remove every copy.
+        while (true)
         {
-            if (memberId == ownerId)
+            var removed = false;
+            foreach (var memberId in group.GetAllEntityIds())
             {
-                continue;
-            }
+                if (memberId == ownerId)
+                {
+                    continue;
+                }
 
-            if (!AutoCadObjectIdAccess.TryGetObject<Entity>(
-                    transaction,
-                    memberId,
-                    OpenMode.ForRead,
-                    out var member,
-                    database) ||
-                member is null ||
-                !RoofOwnedAnnotationSourceResolver.TryResolveSourceHandle(member, out var sourceHandle) ||
-                !handles.Contains(sourceHandle))
-            {
-                continue;
-            }
+                if (!AutoCadObjectIdAccess.TryGetObject<Entity>(
+                        transaction,
+                        memberId,
+                        OpenMode.ForRead,
+                        out var member,
+                        database) ||
+                    member is null ||
+                    !RoofOwnedAnnotationSourceResolver.TryResolveSourceHandle(member, out var sourceHandle) ||
+                    !handles.Contains(sourceHandle))
+                {
+                    continue;
+                }
 
-            group.Remove(memberId);
+                group.Remove(memberId);
+                removed = true;
 #if DEBUG
-            RoofGroupMutationDiag.Write(editor, ownerName, "remove", groupObjectId, memberId.Handle.ToString(), "detach-before-erase");
+                RoofGroupMutationDiag.Write(editor, ownerName, "remove", groupObjectId, memberId.Handle.ToString(), "detach-before-erase");
 #endif
+                break;
+            }
+
+            if (!removed)
+            {
+                break;
+            }
         }
 
         return detachedTimber;

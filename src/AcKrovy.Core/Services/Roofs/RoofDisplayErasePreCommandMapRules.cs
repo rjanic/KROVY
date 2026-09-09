@@ -40,6 +40,23 @@ public static class RoofDisplayErasePreCommandMapRules
         return RoofDisplayTamperRepairRules.ShouldRepair(editState, globalCommandName);
     }
 
+    public static bool ShouldRestoreLockedGeneratedChildErase(
+        RoofEditState editStateAtStart,
+        RoofEraseMappedKind mappedKind,
+        string? globalCommandName)
+    {
+        if (mappedKind is not (
+                RoofEraseMappedKind.GeneratedTimber or
+                RoofEraseMappedKind.GeneratedAnnotation) ||
+            LiveGeometryCommandRules.IsUndoRedoCommand(globalCommandName) ||
+            !RoofGeneratedMemberEditCommandRules.IsEraseCommand(globalCommandName))
+        {
+            return false;
+        }
+
+        return editStateAtStart == RoofEditState.Locked;
+    }
+
     /// <summary>
     /// Unlocked source ERASE remains intentional deletion (no Locked resurrection).
     /// </summary>

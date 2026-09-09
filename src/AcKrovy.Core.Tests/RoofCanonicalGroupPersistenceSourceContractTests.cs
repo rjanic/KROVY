@@ -94,12 +94,15 @@ public sealed class RoofCanonicalGroupPersistenceSourceContractTests
             "public static void EnsureGroup",
             "private static void VerifyGroupUndoInvariant");
 
-        Assert.Contains("toRemove = current.Where(id => !expected.Contains(id))", ensure);
-        Assert.Contains("toAdd = expected.Where(id => !current.Contains(id))", ensure);
+        Assert.Contains("RoofAssemblyGroupMembershipRules.PlanCanonicalization(", ensure);
+        Assert.Contains("plan.RemoveOnce", ensure);
+        Assert.Contains("plan.AppendOnce", ensure);
         Assert.Contains("group.Remove(removeId)", ensure);
         Assert.Contains("group.Append(addId)", ensure);
         Assert.DoesNotContain("group.Clear()", ensure);
         Assert.Contains("DissociateOwnerFromForeignGroups", ensure);
+        Assert.DoesNotContain("toRemove = current.Where(id => !expected.Contains(id))", ensure);
+        Assert.DoesNotContain("toAdd = expected.Where(id => !current.Contains(id))", ensure);
     }
 
     [Fact]

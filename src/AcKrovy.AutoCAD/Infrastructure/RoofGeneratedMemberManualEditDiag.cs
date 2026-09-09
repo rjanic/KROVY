@@ -600,6 +600,114 @@ internal static class RoofGeneratedMemberManualEditDiag
         WriteLine(editor, line);
     }
 
+    public static void WriteGeneratedEraseTamper(
+        Editor? editor,
+        string? owner,
+        string? command,
+        int erasedGeneratedCount,
+        int erasedAnnotationCount,
+        string? editStateAtStart,
+        bool sourceErased,
+        string? classification,
+        string? action)
+    {
+        if (editor is null)
+        {
+            return;
+        }
+
+        var line =
+            "ROOF_GENERATED_ERASE_TAMPER" +
+            $" owner={Token(owner)}" +
+            $" command={Token(command)}" +
+            $" erasedGeneratedCount={erasedGeneratedCount.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
+            $" erasedAnnotationCount={erasedAnnotationCount.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
+            $" editStateAtStart={Token(editStateAtStart)}" +
+            $" sourceErased={(sourceErased ? "1" : "0")}" +
+            $" classification={Token(classification)}" +
+            $" action={Token(action)}";
+        WriteLine(editor, line);
+    }
+
+    public static void WriteGeneratedEraseRepair(
+        Editor? editor,
+        string? owner,
+        int restoredGenerated,
+        bool sameObjectId,
+        bool sameHandle,
+        bool identityPreserved,
+        int groupMembers,
+        bool canonical,
+        string? result)
+    {
+        if (editor is null)
+        {
+            return;
+        }
+
+        var line =
+            "ROOF_GENERATED_ERASE_REPAIR" +
+            $" owner={Token(owner)}" +
+            $" restoredGenerated={restoredGenerated.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
+            $" sameObjectId={(sameObjectId ? "1" : "0")}" +
+            $" sameHandle={(sameHandle ? "1" : "0")}" +
+            $" identityPreserved={(identityPreserved ? "1" : "0")}" +
+            $" groupMembers={groupMembers.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
+            $" canonical={(canonical ? "1" : "0")}" +
+            $" result={Token(result)}";
+        WriteLine(editor, line);
+    }
+
+    public static void WriteGeneratedAnnotationEraseTamper(
+        Editor? editor,
+        string? owner,
+        string? command,
+        int erasedAnnotationCount,
+        string? editStateAtStart,
+        string? classification,
+        string? action)
+    {
+        if (editor is null)
+        {
+            return;
+        }
+
+        var line =
+            "ROOF_GENERATED_ANNOTATION_ERASE_TAMPER" +
+            $" owner={Token(owner)}" +
+            $" command={Token(command)}" +
+            $" erasedAnnotationCount={erasedAnnotationCount.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
+            $" editStateAtStart={Token(editStateAtStart)}" +
+            $" classification={Token(classification)}" +
+            $" action={Token(action)}";
+        WriteLine(editor, line);
+    }
+
+    public static void WriteGeneratedAnnotationEraseRepair(
+        Editor? editor,
+        string? owner,
+        int erasedAnnotationCount,
+        int restoredAnnotationCount,
+        bool sameObjectId,
+        bool sameHandle,
+        string? result)
+    {
+        if (editor is null)
+        {
+            return;
+        }
+
+        var line =
+            "ROOF_GENERATED_ANNOTATION_ERASE_REPAIR" +
+            $" owner={Token(owner)}" +
+            $" erasedAnnotationCount={erasedAnnotationCount.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
+            $" restoredAnnotationCount={restoredAnnotationCount.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
+            $" sameObjectId={(sameObjectId ? "1" : "0")}" +
+            $" sameHandle={(sameHandle ? "1" : "0")}" +
+            $" result={Token(result)}";
+        WriteLine(editor, line);
+    }
+
     private static void WriteLine(Editor editor, string line)
     {
         try

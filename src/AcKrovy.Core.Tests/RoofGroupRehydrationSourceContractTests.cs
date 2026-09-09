@@ -47,7 +47,7 @@ public sealed class RoofGroupRehydrationSourceContractTests
         // Incremental group sync: the canonical group reuses the existing owner + 7
         // display members via the member collector, then appends only the diff.
         Assert.Contains("RoofAssemblyGroupMemberCollector.TryCollect", Group);
-        Assert.Contains("foreach (var addId in toAdd)", Group);
+        Assert.Contains("foreach (var addId in plan.AppendOnce)", Group);
         Assert.Contains("group.Append(addId)", Group);
         Assert.Contains("ExpectedMemberCount = 8", Group);
         Assert.DoesNotContain("new Line(", rehydrate);

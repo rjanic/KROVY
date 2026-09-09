@@ -40,7 +40,7 @@ public sealed class RoofGroupCopyOwnershipSourceContractTests
     {
         Assert.Contains("ExpectedStructuralDisplayChildCount = 7", Group);
         Assert.Contains("RoofAssemblyGroupMemberCollector.TryCollect", Group);
-        Assert.Contains("expected.SetEquals(actual)", Group);
+        Assert.Contains("RoofAssemblyGroupMembershipRules.IsCanonicalMembership(", Group);
         Assert.Contains("group.Append(addId)", Group);
         Assert.Contains("group.Remove(removeId)", Group);
     }

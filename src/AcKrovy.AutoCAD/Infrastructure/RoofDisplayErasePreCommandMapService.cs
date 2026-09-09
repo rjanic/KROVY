@@ -1,4 +1,5 @@
 using AcKrovy.Core.Models.Roofs;
+using AcKrovy.Core.Models;
 using AcKrovy.Core.Services.Roofs;
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
@@ -24,9 +25,14 @@ internal static class RoofDisplayErasePreCommandMapService
         new(StringComparer.OrdinalIgnoreCase);
 
     internal readonly record struct MappedEntity(
+        ObjectId EntityId,
+        string EntityHandle,
         string OwnerHandle,
         ObjectId OwnerId,
-        RoofEraseMappedKind Kind);
+        RoofEraseMappedKind Kind,
+        string? GeneratedSourceHandle,
+        RoofGeneratedTimberData? GeneratedData,
+        TimberElementData? TimberData);
 
     internal sealed record SourcePreCommandState(
         ObjectId OwnerId,
@@ -97,9 +103,14 @@ internal static class RoofDisplayErasePreCommandMapService
                 ownerIdsByHandle[ownerHandle] = id;
                 sourceHandles.Add(ownerHandle);
                 byHandle[ownerHandle] = new MappedEntity(
+                    id,
+                    ownerHandle,
                     ownerHandle,
                     id,
-                    RoofEraseMappedKind.Source);
+                    RoofEraseMappedKind.Source,
+                    null,
+                    null,
+                    null);
                 sourcesByOwnerId[id] = new SourcePreCommandState(
                     id,
                     ownerHandle,
@@ -136,9 +147,14 @@ internal static class RoofDisplayErasePreCommandMapService
                     ownerIdsByHandle.TryGetValue(display.OwnerReference, out var displayOwnerId))
                 {
                     byHandle[handle] = new MappedEntity(
+                        id,
+                        handle,
                         display.OwnerReference,
                         displayOwnerId,
-                        RoofEraseMappedKind.Display);
+                        RoofEraseMappedKind.Display,
+                        null,
+                        null,
+                        null);
                     continue;
                 }
 
@@ -155,23 +171,16 @@ internal static class RoofDisplayErasePreCommandMapService
                         out var timberOwnerId))
                 {
                     byHandle[handle] = new MappedEntity(
+                        id,
+                        handle,
                         generated.Data.RoofOwnerReference,
                         timberOwnerId,
-                        RoofEraseMappedKind.GeneratedTimber);
-                    continue;
-                }
-
-                var attached = RoofAttachedManualTimberStore.Read(line);
-                if (attached.Data is not null &&
-                    !string.IsNullOrWhiteSpace(attached.Data.RoofOwnerReference) &&
-                    ownerIdsByHandle.TryGetValue(
-                        attached.Data.RoofOwnerReference,
-                        out var attachedOwnerId))
-                {
-                    byHandle[handle] = new MappedEntity(
-                        attached.Data.RoofOwnerReference,
-                        attachedOwnerId,
-                        RoofEraseMappedKind.GeneratedTimber);
+                        RoofEraseMappedKind.GeneratedTimber,
+                        handle,
+                        generated.Data,
+                        ElementDataStore.TryRead(line, transaction, out var timberData)
+                            ? timberData
+                            : null);
                 }
             }
 
@@ -200,9 +209,14 @@ internal static class RoofDisplayErasePreCommandMapService
                 }
 
                 byHandle[handle] = new MappedEntity(
+                    id,
+                    handle,
                     timberMapped.OwnerHandle,
                     timberMapped.OwnerId,
-                    RoofEraseMappedKind.GeneratedAnnotation);
+                    RoofEraseMappedKind.GeneratedAnnotation,
+                    annotationSourceHandle,
+                    null,
+                    null);
             }
 
             lock (Gate)
@@ -341,6 +355,71 @@ internal static class RoofDisplayErasePreCommandMapService
         }
 
         return owners.Count == 0 ? Array.Empty<ObjectId>() : owners.ToArray();
+    }
+
+    public static IReadOnlyCollection<ObjectId> CollectLockedGeneratedEraseOwners(
+        IReadOnlyCollection<string> erasedHandles,
+        RoofEraseMappedKind kind,
+        string? globalCommandName)
+    {
+        if (erasedHandles.Count == 0 ||
+            kind is not (
+                RoofEraseMappedKind.GeneratedTimber or
+                RoofEraseMappedKind.GeneratedAnnotation))
+        {
+            return Array.Empty<ObjectId>();
+        }
+
+        var owners = new HashSet<ObjectId>();
+        lock (Gate)
+        {
+            foreach (var handle in erasedHandles)
+            {
+                if (!_byHandle.TryGetValue(handle, out var mapped) ||
+                    mapped.Kind != kind ||
+                    !_sourcesByOwnerId.TryGetValue(mapped.OwnerId, out var state) ||
+                    !RoofDisplayErasePreCommandMapRules.ShouldRestoreLockedGeneratedChildErase(
+                        state.EditState,
+                        mapped.Kind,
+                        globalCommandName))
+                {
+                    continue;
+                }
+
+                owners.Add(mapped.OwnerId);
+            }
+        }
+
+        return owners.Count == 0 ? Array.Empty<ObjectId>() : owners.ToArray();
+    }
+
+    public static IReadOnlyList<MappedEntity> GetErasedEntriesForOwner(
+        ObjectId ownerId,
+        IReadOnlyCollection<string> erasedHandles,
+        RoofEraseMappedKind kind)
+    {
+        if (ownerId.IsNull || erasedHandles.Count == 0)
+        {
+            return Array.Empty<MappedEntity>();
+        }
+
+        var entries = new Dictionary<ObjectId, MappedEntity>();
+        lock (Gate)
+        {
+            foreach (var handle in erasedHandles)
+            {
+                if (_byHandle.TryGetValue(handle, out var mapped) &&
+                    mapped.OwnerId == ownerId &&
+                    mapped.Kind == kind)
+                {
+                    entries[mapped.EntityId] = mapped;
+                }
+            }
+        }
+
+        return entries.Values
+            .OrderBy(entry => entry.EntityId.Handle.Value)
+            .ToArray();
     }
 
     public static int CountErasedDisplaysForOwner(
