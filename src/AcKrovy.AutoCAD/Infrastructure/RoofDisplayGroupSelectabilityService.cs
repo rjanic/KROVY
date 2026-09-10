@@ -24,7 +24,12 @@ internal static class RoofDisplayGroupSelectabilityService
         }
 
         var editState = RoofDefinitionStore.Read(owner).Data?.EditState ?? RoofEditState.Locked;
-        return TryApplyForOwner(database, transaction, ownerId, editState);
+        return TryApplyForOwner(
+            database,
+            transaction,
+            ownerId,
+            editState,
+            repairMembership: true);
     }
 
     public static bool ReconcileAllRoofOwners(Database database, Transaction transaction)
@@ -59,7 +64,12 @@ internal static class RoofDisplayGroupSelectabilityService
                 id,
                 "reopen-before-selectability");
 #endif
-            if (TryApplyForOwner(database, transaction, id, RoofDefinitionStore.Read(polyline).Data!.EditState))
+            if (TryApplyForOwner(
+                    database,
+                    transaction,
+                    id,
+                    RoofDefinitionStore.Read(polyline).Data!.EditState,
+                    repairMembership: false))
             {
                 changed = true;
             }
@@ -72,7 +82,8 @@ internal static class RoofDisplayGroupSelectabilityService
         Database database,
         Transaction transaction,
         ObjectId ownerId,
-        RoofEditState editState)
+        RoofEditState editState,
+        bool repairMembership)
     {
         var desired = RoofDisplayGroupSelectabilityRules.ShouldEnableGroupSelection(editState);
         var groupName = "-";
@@ -107,6 +118,18 @@ internal static class RoofDisplayGroupSelectabilityService
         }
 
         readAfter = group.Selectable;
+        var membershipRepaired = false;
+        if (repairMembership &&
+            RoofDisplayGroupService.TryCanonicalizeMembership(
+                database,
+                transaction,
+                ownerId,
+                out membershipRepaired) &&
+            membershipRepaired)
+        {
+            result = "ok;membership-repaired";
+        }
+
         var pruned = RoofDisplayGroupService.PruneStaleRoofGroupsContainingCanonicalMembers(
             database,
             transaction,
@@ -119,7 +142,7 @@ internal static class RoofDisplayGroupSelectabilityService
         WriteSelectabilityDiag(database, transaction, ownerId, groupName, editState, readBefore, desired, readAfter, groupObjectId, result);
         WriteGroupMembershipDiagnostics(database, transaction, ownerId);
 #endif
-        return readBefore != readAfter || pruned > 0;
+        return readBefore != readAfter || membershipRepaired || pruned > 0;
     }
 
 #if DEBUG

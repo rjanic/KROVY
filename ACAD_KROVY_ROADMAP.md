@@ -9,6 +9,41 @@
 
 Tento dokument určuje odporúčané poradie ďalšieho vývoja. Úplný zásobník nápadov je v `ACAD_KROVY_BACKLOG.md`.
 
+## R3-S1C – SOURCE-BOUNDARY IDENTITY FOUNDATION — DOKONČENÉ
+
+Verdikt: **PASS – persisted source-boundary identity foundation is viable under the narrow initial contract.**
+
+HOST proof matrix:
+
+| Test | Result |
+| --- | --- |
+| MOVE | PASS |
+| ROTATE 30° | PASS |
+| ROTATE 90° | PASS |
+| SCALE 0.5 | PASS |
+| SCALE 2.0 | PASS |
+| STRETCH | PASS |
+| GRIP_STRETCH | PASS |
+| QSAVE/reopen | PASS |
+| Locked source ERASE recovery | PASS |
+| U | PASS |
+| REDO | PASS |
+| duplicate Owner GROUP repair | PASS |
+
+The accepted narrow contract preserves physical raw source segment order and count,
+including the locked exact-source un-erase recovery. MOVE, rotation, uniform scale,
+STRETCH and GRIP_STRETCH without vertex-count change, QSAVE/reopen, and U/REDO
+suppression are proven. Normalized topology/source-edge numbering may change with WCS
+canonicalization; future structural identity must therefore use persisted physical
+source-boundary identities, not normalized topology edge indexes or lexicographic WCS
+vertex zero.
+
+The contract remains fail-closed for source vertex insertion/deletion, physical
+segment-count changes, raw cyclic-start rewrites, raw winding reversal, unsupported
+foreign-host rewriting, and unverified COPYCLIP/PASTE or INSERT/WBLOCK/import
+transformations. No coordinate fallback is implied. The next identity foundation may
+use stable owner-scoped `BoundaryEdgeId` values; that schema is not implemented here.
+
 # FÁZA A – UPRATANIE A PRODUKTIVITA
 
 ## 1. Dokumentácia + centralizovaná verzia — DOKONČENÉ

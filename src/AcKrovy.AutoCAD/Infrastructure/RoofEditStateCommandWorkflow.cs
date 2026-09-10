@@ -192,6 +192,10 @@ internal static class RoofEditStateCommandWorkflow
                 stored.Data.SchemaVersion == RoofDefinitionDataSchema.CurrentVersion)
             {
                 RoofUnlockIndicatorService.Sync(document.Database, transaction, owner);
+                RoofDisplayGroupSelectabilityService.ApplyForOwner(
+                    document.Database,
+                    transaction,
+                    ownerId);
                 transaction.Commit();
                 editor.WriteMessage(UiStrings.GetString(
                     desired == RoofEditState.Unlocked

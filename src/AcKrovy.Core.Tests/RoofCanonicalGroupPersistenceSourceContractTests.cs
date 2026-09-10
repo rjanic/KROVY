@@ -78,6 +78,7 @@ public sealed class RoofCanonicalGroupPersistenceSourceContractTests
     [Fact]
     public void Collector_PreservesOnlySameOwnerTimberAndBoundAnnotations()
     {
+        Assert.Contains("new HashSet<ObjectId> { ownerId }", Collector);
         Assert.Contains("RoofGeneratedTimberStore.FindByOwner", Collector);
         Assert.Contains("RoofAttachedManualTimberStore.FindByOwner", Collector);
         Assert.Contains("RoofOwnedAnnotationSourceResolver.TryResolveSourceHandle", Collector);
@@ -139,9 +140,19 @@ public sealed class RoofCanonicalGroupPersistenceSourceContractTests
         Assert.Contains("\"Foreign\"", Sync);
     }
 
+    [Fact]
+    public void SelectabilityGroupDiagnostic_UsesStrictCanonicalMembership()
+    {
+        Assert.Contains("TryBuildExpectedCanonicalMembers", Group);
+        Assert.Contains("RoofAssemblyGroupMembershipRules.IsCanonicalMembership(", Group);
+        Assert.Contains("members", Group);
+        Assert.Contains("expectedCanonicalMembers", Group);
+    }
+
     [Theory]
     [InlineData(5, 64, 192, 262)]
     [InlineData(5, 72, 216, 294)]
+    [InlineData(9, 66, 198, 274)]
     public void RectangleHip_CanonicalAssemblyCountIncludesEveryOwnedMember(
         int display,
         int generated,

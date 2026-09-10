@@ -97,4 +97,73 @@ public sealed class RoofAssemblyGroupMembershipRulesTests
         Assert.Equal(expected.Count, actual.Count);
         Assert.Equal(0, RoofAssemblyGroupMembershipRules.CountDuplicates(actual));
     }
+
+    [Fact]
+    public void ToggleCycles_KeepCleanOwnerExactlyOnceAndCountStable()
+    {
+        var expected = new HashSet<string>(
+            ["Owner", "Display", "Generated", "Annotation"],
+            StringComparer.Ordinal);
+        var actual = expected.ToList();
+
+        for (var cycle = 0; cycle < 6; cycle++)
+        {
+            ApplyCanonicalization(actual, expected);
+            Assert.Equal(expected.Count, actual.Count);
+            Assert.Equal(1, actual.Count(id => id == "Owner"));
+            Assert.True(RoofAssemblyGroupMembershipRules.IsCanonicalMembership(actual, expected));
+        }
+    }
+
+    [Fact]
+    public void ToggleRepair_RemovesDuplicateOwnerBeforeStrictCanonicalPasses()
+    {
+        var expected = new HashSet<string>(
+            ["Owner", "Display", "Generated", "Annotation"],
+            StringComparer.Ordinal);
+        var actual = new List<string>
+        {
+            "Owner", "Owner", "Display", "Generated", "Annotation",
+        };
+
+        Assert.False(RoofAssemblyGroupMembershipRules.IsCanonicalMembership(actual, expected));
+        Assert.Equal(1, RoofAssemblyGroupMembershipRules.CountDuplicates(actual));
+
+        ApplyCanonicalization(actual, expected);
+
+        Assert.Equal(expected.Count, actual.Count);
+        Assert.Equal(1, actual.Count(id => id == "Owner"));
+        Assert.True(RoofAssemblyGroupMembershipRules.IsCanonicalMembership(actual, expected));
+    }
+
+    [Fact]
+    public void ToggleRepair_StillRemovesDuplicateGeneratedChild()
+    {
+        var expected = new HashSet<string>(
+            ["Owner", "Display", "Generated", "Annotation"],
+            StringComparer.Ordinal);
+        var actual = new List<string>
+        {
+            "Owner", "Display", "Generated", "Generated", "Annotation",
+        };
+
+        ApplyCanonicalization(actual, expected);
+
+        Assert.Equal(1, actual.Count(id => id == "Generated"));
+        Assert.True(RoofAssemblyGroupMembershipRules.IsCanonicalMembership(actual, expected));
+    }
+
+    private static void ApplyCanonicalization<T>(
+        List<T> actual,
+        IReadOnlyCollection<T> expected)
+        where T : notnull
+    {
+        var plan = RoofAssemblyGroupMembershipRules.PlanCanonicalization(actual, expected);
+        foreach (var remove in plan.RemoveOnce)
+        {
+            actual.Remove(remove);
+        }
+
+        actual.AddRange(plan.AppendOnce);
+    }
 }

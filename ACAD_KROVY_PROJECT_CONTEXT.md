@@ -832,6 +832,28 @@ Status:
 - C1 zostáva closed/PASS; C2 zostáva closed/PASS; C14 redefine zostáva nepodporovaný,
 - `DBMOD` zostáva iba diagnostický.
 
+### STRECHY R3-S1C – Source-boundary identity foundation (HOST PASS)
+- Persisted physical source-boundary identity is viable for the narrow initial R3
+  contract. Accepted HOST proofs: MOVE, ROTATE 30°, ROTATE 90°, SCALE 0.5, SCALE
+  2.0, STRETCH, GRIP_STRETCH, QSAVE/reopen, locked authoritative-source ERASE
+  recovery, U suppression and REDO suppression; duplicate Owner GROUP repair also
+  passed.
+- The raw physical segment count and source order remained stable, with same-session
+  Handle/ObjectId preservation and Handle preservation across QSAVE/reopen. ObjectId
+  is session identity only and is not persistent identity.
+- WCS normalization may change normalized topology/source-edge numbering. Future
+  structural identity must anchor to persisted physical source-boundary identities,
+  not normalized topology edge index or lexicographic WCS vertex zero.
+- Fail-closed until separately proven: source vertex INSERT/DELETE, physical segment
+  count changes, raw cyclic start-index rewrite, raw winding reversal, unsupported
+  foreign-host rewriting, COPYCLIP/PASTE, INSERT, WBLOCK and import transformations.
+  No coordinate fallback is used. Persisted owner-scoped `BoundaryEdgeId` is the next
+  foundation and is not implemented in R3-S1C.
+- The canonical assembly GROUP is a strict multiset: exactly one owner and each
+  expected display, generated timber, annotation and attached-manual member exactly
+  once, with no duplicates, foreign or erased members. Lock/Unlock repairs polluted
+  membership without regenerating geometry or annotations.
+
 ### STRECHY R2 – Hip Intelligent Rafter Lifecycle (HOST PASS)
 - **Permanent intelligent Hip rafters:** automatic ordinary rafters materialization through existing timber infrastructure; schema-7 timber + schema-1 generated metadata;
 - **Layout fingerprinting:** compact `RF2-SHA256:` fingerprint prevents `eXdataSizeExceeded` on large concave layouts; legacy verbose signatures remain readable;

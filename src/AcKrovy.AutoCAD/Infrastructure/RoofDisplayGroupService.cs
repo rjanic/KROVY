@@ -495,6 +495,12 @@ internal static class RoofDisplayGroupService
 
         var canonicalName = BuildCanonicalGroupName(transaction, ownerId);
         var canonicalMembers = canonical.GetAllEntityIds().ToHashSet();
+        var hasStrictCanonicalExpectation =
+            TryBuildExpectedCanonicalMembers(
+                database,
+                transaction,
+                ownerId,
+                out var expectedCanonicalMembers);
         var observations = new List<RoofGroupMembershipObservation>();
         foreach (DBDictionaryEntry entry in dictionary)
         {
@@ -509,10 +515,15 @@ internal static class RoofDisplayGroupService
                 continue;
             }
 
-            var isCanonical = string.Equals(
-                entry.Key,
-                canonicalName,
-                StringComparison.OrdinalIgnoreCase);
+            var isCanonical =
+                string.Equals(
+                    entry.Key,
+                    canonicalName,
+                    StringComparison.OrdinalIgnoreCase) &&
+                hasStrictCanonicalExpectation &&
+                RoofAssemblyGroupMembershipRules.IsCanonicalMembership(
+                    members,
+                    expectedCanonicalMembers);
             observations.Add(new RoofGroupMembershipObservation(
                 entry.Key,
                 entry.Value.Handle.ToString(),
@@ -523,6 +534,88 @@ internal static class RoofDisplayGroupService
         }
 
         return observations;
+    }
+
+    public static bool TryCanonicalizeMembership(
+        Database database,
+        Transaction transaction,
+        ObjectId ownerId,
+        out bool changed)
+    {
+        changed = false;
+        if (!TryBuildExpectedCanonicalMembers(
+                database,
+                transaction,
+                ownerId,
+                out var expectedMembers) ||
+            !TryOpenCanonicalGroup(
+                database,
+                transaction,
+                ownerId,
+                OpenMode.ForRead,
+                out var group) ||
+            group is null)
+        {
+            return false;
+        }
+
+        var actualMembers = group.GetAllEntityIds();
+        if (RoofAssemblyGroupMembershipRules.IsCanonicalMembership(
+                actualMembers,
+                expectedMembers))
+        {
+            return true;
+        }
+
+        var displayChildIds = expectedMembers
+            .Where(id => id != ownerId)
+            .Where(id =>
+                AutoCadObjectIdAccess.TryGetObject<Entity>(
+                    transaction,
+                    id,
+                    OpenMode.ForRead,
+                    out var entity,
+                    database) &&
+                entity is not null &&
+                RoofDisplayStore.Read(entity).Data is not null)
+            .ToArray();
+        EnsureGroup(database, transaction, ownerId, displayChildIds);
+        changed = true;
+        return true;
+    }
+
+    private static bool TryBuildExpectedCanonicalMembers(
+        Database database,
+        Transaction transaction,
+        ObjectId ownerId,
+        out IReadOnlyCollection<ObjectId> expectedMembers)
+    {
+        expectedMembers = Array.Empty<ObjectId>();
+        if (!AutoCadObjectIdAccess.TryGetObject<Polyline>(
+                transaction,
+                ownerId,
+                OpenMode.ForRead,
+                out var owner,
+                database) ||
+            owner is null ||
+            !RoofDisplayService.TryCollectCurrentStructuralDisplayChildIds(
+                database,
+                transaction,
+                owner,
+                out var displayChildIds) ||
+            !RoofAssemblyGroupMemberCollector.TryCollect(
+                database,
+                transaction,
+                ownerId,
+                displayChildIds,
+                out var collected) ||
+            collected is null)
+        {
+            return false;
+        }
+
+        expectedMembers = collected.MemberIds;
+        return true;
     }
 
     private static int PruneStaleRoofGroupsContainingMembers(

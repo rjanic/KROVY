@@ -21,8 +21,29 @@ public sealed class RoofDisplayGroupSelectabilitySourceContractTests
     public void LockUnlock_SyncGroupSelectabilityWithoutDissolvingGroup()
     {
         Assert.Contains("RoofDisplayGroupSelectabilityService.ApplyForOwner", EditState);
+        Assert.Contains("TryCanonicalizeMembership", Selectability + Group);
         Assert.Contains("TryOpenCanonicalGroup", Selectability + Group);
         Assert.DoesNotContain("group.Clear()", EditState);
+    }
+
+    [Fact]
+    public void LockUnlock_CanonicalizesMembershipBeforeChangingSelectability()
+    {
+        var apply = Member(
+            EditState,
+            "private static void ApplyEditState",
+            "private static bool TrySelectOwner");
+        var sync = Selectability.IndexOf(
+            "RoofDisplayGroupService.TryCanonicalizeMembership",
+            StringComparison.Ordinal);
+        var selectableWrite = Selectability.IndexOf(
+            "group.Selectable = desired",
+            StringComparison.Ordinal);
+
+        Assert.True(selectableWrite >= 0 && sync > selectableWrite);
+        Assert.Equal(2, Count(apply, "RoofDisplayGroupSelectabilityService.ApplyForOwner"));
+        Assert.DoesNotContain("TryRebuildGeneratedSet", apply);
+        Assert.DoesNotContain("RoofGeneratedRafterSetService", apply);
     }
 
     [Fact]
@@ -60,6 +81,27 @@ public sealed class RoofDisplayGroupSelectabilitySourceContractTests
 
     private static string Read(string fileName) =>
         File.ReadAllText(Path.Combine(RepositoryRoot(), "src", "AcKrovy.AutoCAD", "Infrastructure", fileName));
+
+    private static string Member(string source, string startMarker, string endMarker)
+    {
+        var start = source.IndexOf(startMarker, StringComparison.Ordinal);
+        var end = source.IndexOf(endMarker, start, StringComparison.Ordinal);
+        Assert.True(start >= 0 && end > start);
+        return source[start..end];
+    }
+
+    private static int Count(string source, string value)
+    {
+        var count = 0;
+        var index = 0;
+        while ((index = source.IndexOf(value, index, StringComparison.Ordinal)) >= 0)
+        {
+            count++;
+            index += value.Length;
+        }
+
+        return count;
+    }
 
     private static string RepositoryRoot()
     {
