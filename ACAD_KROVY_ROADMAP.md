@@ -42,7 +42,39 @@ The contract remains fail-closed for source vertex insertion/deletion, physical
 segment-count changes, raw cyclic-start rewrites, raw winding reversal, unsupported
 foreign-host rewriting, and unverified COPYCLIP/PASTE or INSERT/WBLOCK/import
 transformations. No coordinate fallback is implied. The next identity foundation may
-use stable owner-scoped `BoundaryEdgeId` values; that schema is not implemented here.
+use stable owner-scoped `BoundaryEdgeId` values; that schema was not implemented in S1C.
+
+### R3 BoundaryIdentity Foundation – HOST PASS
+
+- independent source-owned XData contract
+  `DECORAIR_ACADKROVY_ROOF_BOUNDARY_IDENTITY`, schema 1;
+- positive owner-scoped IDs follow physical raw source segments and are not derived
+  from WCS coordinates, normalized topology indexes, handles or transient database IDs;
+- CAD-neutral provenance maps canonical topology source-edge indexes to raw physical
+  segment indexes and then to persisted `BoundaryEdgeId` values;
+- legacy drawings remain untouched on open/reopen and ordinary refresh; identity is
+  created only by an explicit lazy structural workflow;
+- first creation changes DBMOD intentionally; a second valid ensure is read-only and
+  does not commit; malformed/incompatible identity fails closed without replacement;
+- same-DWG whole-roof COPY naturally clones the numeric sequence to the new owner.
+  Because IDs are owner-scoped this is acceptable for unchanged copied geometry, but
+  COPYCLIP/PASTE, INSERT, WBLOCK and import reconciliation remain deferred.
+- HOST H1–H7 proved explicit initialization, second-call no-op, QSAVE/reopen,
+  MOVE, ROTATE, STRETCH, GRIP_STRETCH, uniform SCALE and Locked exact source
+  un-erase preservation; normalized topology order may change while raw physical
+  segment identity remains stable.
+- The temporary DEBUG proof command and its output markers were removed after HOST
+  proof. Production BoundaryIdentity persistence and validation remain.
+
+The supported narrow contract is explicit lazy initialization, second Ensure no-op,
+QSAVE/reopen, MOVE, ROTATE, uniform SCALE, unchanged-order STRETCH and
+GRIP_STRETCH, and Locked exact source un-erase. Vertex INSERT/DELETE, physical
+segment-count changes, raw cyclic-start rewrites, raw winding reversal, unverified
+COPYCLIP/PASTE, INSERT/WBLOCK/import rewriting, foreign-host reorder and arbitrary
+source replacement remain unsupported and fail-closed.
+
+Structural Hip/Valley/Ridge timber generation and structural generated-member identity
+are not part of this foundation.
 
 # FÁZA A – UPRATANIE A PRODUKTIVITA
 

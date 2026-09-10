@@ -854,6 +854,32 @@ Status:
   once, with no duplicates, foreign or erased members. Lock/Unlock repairs polluted
   membership without regenerating geometry or annotations.
 
+### STRECHY R3 – BoundaryIdentity Foundation (HOST PASS)
+- The independent source-owned contract uses RegApp
+  `DECORAIR_ACADKROVY_ROOF_BOUNDARY_IDENTITY`, schema 1. Its typed sequence is schema,
+  physical segment count, `CW`/`CCW`, then one positive owner-scoped integer ID per raw
+  physical segment.
+- Core owns validation and provenance only. It carries raw segment indexes through
+  repeated-closing-point removal, winding normalization and canonical cyclic rotation,
+  then resolves normalized topology face/source-edge indexes to persisted IDs. Core has
+  no Autodesk type, handle or transient database identity.
+- Initialization is lazy and explicit. Opening/reopening a legacy roof, read-only
+  inspection, rafter refresh and unrelated commands do not write identity. An explicit
+  structural workflow creates a missing valid payload once; an existing valid payload
+  is a no-op, while malformed/incompatible payloads are never overwritten.
+- First explicit initialization may change DBMOD; the second valid ensure performs no
+  commit. HOST H1–H7 proved this distinction, QSAVE/reopen persistence, MOVE, ROTATE,
+  STRETCH, GRIP_STRETCH, uniform SCALE and Locked exact source un-erase preservation.
+- Same-DWG whole-roof COPY clones the same numeric sequence onto the copied source; this
+  is valid because IDs are owner-scoped. No COPYCLIP/PASTE, INSERT/WBLOCK/import or
+  foreign-host reconciliation is implemented yet.
+- Vertex insertion/deletion, segment-count change, raw cyclic-start rewrite, winding
+  reversal and unsupported source replacement remain fail-closed. No coordinate
+  fallback or structural Hip/Valley/Ridge generated identity is introduced.
+- The temporary DEBUG proof command and markers were removed after HOST proof. The
+  production BoundaryIdentity model, typed XData store, explicit Ensure service and
+  provenance mapping remain available for the next structural foundation.
+
 ### STRECHY R2 – Hip Intelligent Rafter Lifecycle (HOST PASS)
 - **Permanent intelligent Hip rafters:** automatic ordinary rafters materialization through existing timber infrastructure; schema-7 timber + schema-1 generated metadata;
 - **Layout fingerprinting:** compact `RF2-SHA256:` fingerprint prevents `eXdataSizeExceeded` on large concave layouts; legacy verbose signatures remain readable;

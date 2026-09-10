@@ -40,38 +40,47 @@ public static class RoofFootprintValidator
         vertices.Count >= 2 &&
         vertices[0].DistanceTo(vertices[vertices.Count - 1]) <= ClosingPointToleranceMm;
 
-    public static RoofValidationResult Validate(RoofFootprintInput? input)
+    public static RoofValidationResult Validate(RoofFootprintInput? input) =>
+        ValidateWithProvenance(input).Validation;
+
+    /// <summary>
+    /// Validates and canonicalizes a footprint while carrying each canonical edge's
+    /// original physical segment index through closing-point removal, winding reversal,
+    /// and cyclic canonical rotation.
+    /// </summary>
+    public static RoofFootprintNormalizationResult ValidateWithProvenance(
+        RoofFootprintInput? input)
     {
         if (input is null)
         {
-            return Invalid(RoofValidationError.OpenLoop);
+            return InvalidWithProvenance(RoofValidationError.OpenLoop);
         }
 
         if (input.HasCurvedSegments)
         {
-            return Invalid(RoofValidationError.UnsupportedCurvedSegment);
+            return InvalidWithProvenance(RoofValidationError.UnsupportedCurvedSegment);
         }
 
         if (!input.IsPlanar)
         {
-            return Invalid(RoofValidationError.NonPlanar);
+            return InvalidWithProvenance(RoofValidationError.NonPlanar);
         }
 
         if (input.Vertices is null || input.Vertices.Count < 3)
         {
-            return Invalid(RoofValidationError.FewerThanThreeUniqueVertices);
+            return InvalidWithProvenance(RoofValidationError.FewerThanThreeUniqueVertices);
         }
 
         if (input.Vertices.Any(vertex => !IsFinite(vertex.X) || !IsFinite(vertex.Y)))
         {
-            return Invalid(RoofValidationError.NonFiniteCoordinate);
+            return InvalidWithProvenance(RoofValidationError.NonFiniteCoordinate);
         }
 
         var vertices = input.Vertices.ToList();
         var hasRepeatedClosingVertex = HasRepeatedClosingVertex(vertices);
         if (!IsEffectivelyClosed(input))
         {
-            return Invalid(RoofValidationError.OpenLoop);
+            return InvalidWithProvenance(RoofValidationError.OpenLoop);
         }
 
         if (hasRepeatedClosingVertex)
@@ -81,7 +90,7 @@ public static class RoofFootprintValidator
 
         if (CountUniqueVertices(vertices) < 3)
         {
-            return Invalid(RoofValidationError.FewerThanThreeUniqueVertices);
+            return InvalidWithProvenance(RoofValidationError.FewerThanThreeUniqueVertices);
         }
 
         for (var index = 0; index < vertices.Count; index++)
@@ -89,52 +98,72 @@ public static class RoofFootprintValidator
             var length = vertices[index].DistanceTo(vertices[(index + 1) % vertices.Count]);
             if (length <= DuplicateVertexToleranceMm)
             {
-                return Invalid(RoofValidationError.DuplicateConsecutiveVertex);
+                return InvalidWithProvenance(RoofValidationError.DuplicateConsecutiveVertex);
             }
 
             if (length < MinimumEdgeLengthMm)
             {
-                return Invalid(RoofValidationError.ZeroLengthEdge);
+                return InvalidWithProvenance(RoofValidationError.ZeroLengthEdge);
             }
         }
 
         if (HasSelfIntersection(vertices))
         {
-            return Invalid(RoofValidationError.SelfIntersection);
+            return InvalidWithProvenance(RoofValidationError.SelfIntersection);
         }
 
         var signedArea = RoofFootprint.CalculateSignedArea(vertices);
         if (Math.Abs(signedArea) < MinimumAreaMm2)
         {
-            return Invalid(RoofValidationError.DegenerateArea);
+            return InvalidWithProvenance(RoofValidationError.DegenerateArea);
         }
 
         if (HasRedundantCollinearVertex(vertices))
         {
-            return Invalid(RoofValidationError.RedundantCollinearVertex);
+            return InvalidWithProvenance(RoofValidationError.RedundantCollinearVertex);
         }
 
+        var rawSegmentIndices = Enumerable.Range(0, vertices.Count).ToArray();
         var sourceOrientation = signedArea > 0d
             ? RoofPolygonOrientation.CounterClockwise
             : RoofPolygonOrientation.Clockwise;
         if (sourceOrientation == RoofPolygonOrientation.Clockwise)
         {
             vertices.Reverse();
+            rawSegmentIndices = Enumerable.Range(0, vertices.Count)
+                .Select(index => Mod(vertices.Count - 2 - index, vertices.Count))
+                .ToArray();
         }
 
         var firstIndex = FindCanonicalFirstVertex(vertices);
         var canonical = Enumerable.Range(0, vertices.Count)
             .Select(offset => vertices[(firstIndex + offset) % vertices.Count])
             .ToArray();
-        return new RoofValidationResult(
-            true,
-            new RoofFootprint(canonical),
-            RoofValidationError.None,
-            sourceOrientation);
+        var provenance = Enumerable.Range(0, vertices.Count)
+            .Select(index => new RoofNormalizedBoundaryEdgeProvenance(
+                index,
+                rawSegmentIndices[(firstIndex + index) % vertices.Count]))
+            .ToArray();
+        return new RoofFootprintNormalizationResult(
+            new RoofValidationResult(
+                true,
+                new RoofFootprint(canonical),
+                RoofValidationError.None,
+                sourceOrientation),
+            Array.AsReadOnly(provenance));
     }
 
-    private static RoofValidationResult Invalid(RoofValidationError error) =>
-        new(false, null, error, RoofPolygonOrientation.Undefined);
+    private static RoofFootprintNormalizationResult InvalidWithProvenance(
+        RoofValidationError error) => new(
+            new RoofValidationResult(
+                false,
+                null,
+                error,
+                RoofPolygonOrientation.Undefined),
+            Array.Empty<RoofNormalizedBoundaryEdgeProvenance>());
+
+    private static int Mod(int value, int modulus) =>
+        (value % modulus + modulus) % modulus;
 
     private static int CountUniqueVertices(IReadOnlyList<RoofPoint2D> vertices)
     {
