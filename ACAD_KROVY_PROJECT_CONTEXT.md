@@ -880,6 +880,23 @@ Status:
   production BoundaryIdentity model, typed XData store, explicit Ensure service and
   provenance mapping remain available for the next structural foundation.
 
+### STRECHY R3 – Structural identity + generated metadata foundation (HOST PASS)
+- Core resolves only Ridge/Hip/Valley edges from the existing Hip topology. Each edge's
+  two incident faces map through `SourceEdgeIndex` and BoundaryIdentity provenance to a
+  canonical owner-scoped `Role|BoundaryEdgeIdA|BoundaryEdgeIdB` key. Eave and
+  CoplanarSeam never become structural members.
+- Resolution is atomic: missing face ownership, invalid pairs, invalid 3D segments and
+  duplicate logical keys return no partial edge list. The transient topology edge index
+  is diagnostic only and is neither a logical-key field nor persisted metadata.
+- Future structural generated entities have a separate typed contract,
+  `DECORAIR_ACADKROVY_ROOF_STRUCTURAL_GENERATED`, schema 1: canonical ASCII owner Handle,
+  structural role and canonical positive BoundaryEdgeId pair. It is isolated from the
+  existing ordinary Generated schema 1 and Rafter/face/station payload.
+- No normal command writes this new XData yet. No structural timber, annotation, GROUP
+  membership or ordinary-rafter behavior is introduced. HOST proved that normalized
+  topology edge numbering changes after ROTATE 90°, while the BoundaryEdgeId-based
+  structural identity set remains identical.
+
 ### STRECHY R2 – Hip Intelligent Rafter Lifecycle (HOST PASS)
 - **Permanent intelligent Hip rafters:** automatic ordinary rafters materialization through existing timber infrastructure; schema-7 timber + schema-1 generated metadata;
 - **Layout fingerprinting:** compact `RF2-SHA256:` fingerprint prevents `eXdataSizeExceeded` on large concave layouts; legacy verbose signatures remain readable;

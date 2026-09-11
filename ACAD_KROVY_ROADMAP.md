@@ -76,6 +76,28 @@ source replacement remain unsupported and fail-closed.
 Structural Hip/Valley/Ridge timber generation and structural generated-member identity
 are not part of this foundation.
 
+### R3 structural identity + generated metadata foundation — HOST PASS
+
+- `RoofStructuralRole` keeps Hip, Valley and Ridge separate from ordinary rafters;
+- the owner-scoped logical key is `Role|min(BoundaryEdgeIdA, BoundaryEdgeIdB)|max(...)`;
+- the existing Hip topology supplies each structural edge's two incident faces, whose
+  source-edge provenance resolves the persisted BoundaryEdgeId pair;
+- duplicate logical keys or any unresolved face ownership fail the complete resolution
+  atomically; Eave and CoplanarSeam edges are ignored;
+- resolved edges retain only a transient topology edge index plus the existing true
+  `RoofSegment3D`; the index and geometry never enter identity;
+- independent typed XData contract
+  `DECORAIR_ACADKROVY_ROOF_STRUCTURAL_GENERATED`, schema 1, stores owner Handle as
+  canonical ASCII plus role and canonical BoundaryEdgeId pair;
+- no production workflow writes the structural contract and no structural timber,
+  annotation or GROUP membership is created in this stage;
+- HOST proved on a real concave Hip roof that normalized topology edge numbering changes
+  after ROTATE 90°, while the complete BoundaryEdgeId-based structural identity set
+  remains identical; no structural timber entities were created.
+
+Existing Roof/Timber/Generated/Drawing/Roof-rafter/BoundaryIdentity schemas and ordinary
+rafter metadata remain unchanged.
+
 # FÁZA A – UPRATANIE A PRODUKTIVITA
 
 ## 1. Dokumentácia + centralizovaná verzia — DOKONČENÉ
