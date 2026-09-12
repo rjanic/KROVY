@@ -5,14 +5,16 @@ namespace AcKrovy.AutoCAD.Infrastructure;
 
 /// <summary>
 /// Builds the deterministic roof assembly member set for GROUP membership.
-/// Structural display (owner + 7 lines) plus owned generated/attached timber and
-/// their source-handle-bound annotations. Does not mutate the database.
+/// Structural display plus owned ordinary-generated, structural-generated and
+/// attached timber and their source-handle-bound annotations. Does not mutate the
+/// database.
 /// </summary>
 internal static class RoofAssemblyGroupMemberCollector
 {
     public sealed record CollectResult(
         IReadOnlyList<ObjectId> MemberIds,
         int GeneratedCount,
+        int StructuralGeneratedCount,
         int AttachedManualCount,
         int AnnotationCount);
 
@@ -67,6 +69,20 @@ internal static class RoofAssemblyGroupMemberCollector
             }
 
             generatedCount++;
+        }
+
+        var structuralGeneratedCount = 0;
+        foreach (var id in RoofStructuralGeneratedStore.FindByOwner(
+                     database,
+                     transaction,
+                     ownerReference))
+        {
+            if (!TryAddTimberLine(database, transaction, id, members, timberSourceHandles))
+            {
+                continue;
+            }
+
+            structuralGeneratedCount++;
         }
 
         var attachedManualCount = 0;
@@ -124,7 +140,12 @@ internal static class RoofAssemblyGroupMemberCollector
             .OrderBy(id => id == ownerId ? 0 : 1)
             .ThenBy(id => id.Handle.Value)
             .ToList();
-        result = new CollectResult(ordered, generatedCount, attachedManualCount, annotationCount);
+        result = new CollectResult(
+            ordered,
+            generatedCount,
+            structuralGeneratedCount,
+            attachedManualCount,
+            annotationCount);
         return true;
     }
 

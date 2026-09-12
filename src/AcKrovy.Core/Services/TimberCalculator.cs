@@ -57,6 +57,11 @@ public static class TimberCalculator
             TimberElementType.Brace => LengthCalculationMode.SlopeCorrected,
             TimberElementType.Custom => LengthCalculationMode.SlopeCorrected,
             TimberElementType.Post => LengthCalculationMode.ManualLength,
+            // Structural roof materialization persists a true 3D Line from the
+            // authoritative RoofSegment3D. Its direct entity length is therefore the
+            // source length. Generic/manual assignments must never invent a 35° slope.
+            TimberElementType.HipRafter => LengthCalculationMode.PlanLength,
+            TimberElementType.ValleyRafter => LengthCalculationMode.PlanLength,
             _ => LengthCalculationMode.PlanLength,
         };
     }

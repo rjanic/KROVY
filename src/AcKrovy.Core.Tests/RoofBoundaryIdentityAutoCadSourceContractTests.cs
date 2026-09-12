@@ -76,7 +76,15 @@ public sealed class RoofBoundaryIdentityAutoCadSourceContractTests
                 .Where(path => !path.Contains("\\bin\\", StringComparison.OrdinalIgnoreCase))
                 .Where(path => !path.Contains("\\obj\\", StringComparison.OrdinalIgnoreCase))
                 .Select(File.ReadAllText));
-        Assert.Equal(1, CountOccurrences(allProduction, "EnsureBoundaryIdentity("));
+        Assert.Equal(2, CountOccurrences(allProduction, "EnsureBoundaryIdentity("));
+        Assert.Contains(
+            "RoofBoundaryIdentityService.EnsureBoundaryIdentity",
+            File.ReadAllText(Path.Combine(
+                RepositoryRoot(),
+                "src",
+                "AcKrovy.AutoCAD",
+                "Infrastructure",
+                "RoofAutomaticStructuralRafterMaterializationService.cs")));
     }
 
     [Fact]

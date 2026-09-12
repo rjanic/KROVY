@@ -6,7 +6,7 @@ public static class RoofStructuralGeneratedDataSchema
 }
 
 /// <summary>
-/// Independent ownership metadata for a future generated structural roof member.
+/// Independent ownership metadata for a generated structural roof member.
 /// It is not ordinary-rafter metadata and contains no transient topology indexes.
 /// </summary>
 public sealed record RoofStructuralGeneratedData(

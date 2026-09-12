@@ -77,10 +77,11 @@ internal static class RoofTopologyIntegrity
                 var nx = -(left.End.Y - left.Start.Y) / left.LengthMm + (right.End.Y - right.Start.Y) / right.LengthMm;
                 var ny = (left.End.X - left.Start.X) / left.LengthMm - (right.End.X - right.Start.X) / right.LengthMm;
                 var bend = (nx * -dy + ny * dx) / length;
-                var expected = Math.Abs(bend) <= SimpleGableRoofGeometryTolerance.AngularTolerance
-                    ? RoofTopologyEdgeKind.CoplanarSeam : bend > 0 ? RoofTopologyEdgeKind.Valley :
-                    Math.Min(a, b) < n ? RoofTopologyEdgeKind.Hip : RoofTopologyEdgeKind.Ridge;
-                if (edge.Kind != expected) return false;
+                var coplanar = Math.Abs(bend) <= SimpleGableRoofGeometryTolerance.AngularTolerance;
+                if (coplanar && edge.Kind != RoofTopologyEdgeKind.CoplanarSeam ||
+                    !coplanar && bend > 0 && edge.Kind != RoofTopologyEdgeKind.Valley ||
+                    !coplanar && bend < 0 && edge.Kind is not (RoofTopologyEdgeKind.Hip or RoofTopologyEdgeKind.Ridge))
+                    return false;
                 adjacency[a].Add(b);
                 adjacency[b].Add(a);
             }

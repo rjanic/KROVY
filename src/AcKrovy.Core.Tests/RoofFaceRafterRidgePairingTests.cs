@@ -46,12 +46,12 @@ public sealed class RoofFaceRafterRidgePairingTests
     public void H5_IrregularT_Create_PairsSharedRidgeStations()
     {
         var topology = Solve(H5IrregularTCreate(), 35d);
-        Assert.Equal(5, topology.Edges.Count(e => e.Kind == RoofTopologyEdgeKind.Ridge));
+        Assert.Equal(4, topology.Edges.Count(e => e.Kind == RoofTopologyEdgeKind.Ridge));
         Assert.Equal(2, topology.Edges.Count(e => e.Kind == RoofTopologyEdgeKind.Valley));
 
         var layout = Create(topology, 900d);
         Assert.Equal(70, layout.Segments.Count);
-        Assert.Equal(9, layout.Segments.Count(s =>
+        Assert.Equal(8, layout.Segments.Count(s =>
             HasRoles(s, RoofRafterBoundaryRole.Ridge, RoofRafterBoundaryRole.Valley)));
 
         var report = AssertPairing(topology, layout);
@@ -64,11 +64,11 @@ public sealed class RoofFaceRafterRidgePairingTests
     public void H5_IrregularT_PostStretchLike_PairsSharedRidgeStations()
     {
         var topology = Solve(H5IrregularTPostStretch(), 35d);
-        Assert.Equal(5, topology.Edges.Count(e => e.Kind == RoofTopologyEdgeKind.Ridge));
+        Assert.Equal(4, topology.Edges.Count(e => e.Kind == RoofTopologyEdgeKind.Ridge));
 
         var layout = Create(topology, 900d);
         Assert.Equal(74, layout.Segments.Count);
-        Assert.Equal(9, layout.Segments.Count(s =>
+        Assert.Equal(8, layout.Segments.Count(s =>
             HasRoles(s, RoofRafterBoundaryRole.Ridge, RoofRafterBoundaryRole.Valley)));
 
         var report = AssertPairing(topology, layout);
@@ -176,7 +176,7 @@ public sealed class RoofFaceRafterRidgePairingTests
         var ridgeValley = layout.Segments
             .Where(s => HasRoles(s, RoofRafterBoundaryRole.Ridge, RoofRafterBoundaryRole.Valley))
             .ToArray();
-        Assert.Equal(9, ridgeValley.Length);
+        Assert.Equal(8, ridgeValley.Length);
         AssertPairing(topology, layout);
     }
 
@@ -320,7 +320,7 @@ public sealed class RoofFaceRafterRidgePairingTests
 
     /// <summary>
     /// HOST H5 failure class: irregular T with valleys that split the bar Ridge into
-    /// collinear pieces that no longer share a Ridge node (ridge=5, valley=2).
+    /// collinear pieces that no longer share a Ridge node (ridge=4, valley=2).
     /// </summary>
     private static RoofPoint2D[] H5IrregularTCreate() =>
     [
@@ -329,7 +329,7 @@ public sealed class RoofFaceRafterRidgePairingTests
     ];
 
     /// <summary>
-    /// Post-STRETCH-like enlargement of the same irregular T class (still ridge=5).
+    /// Post-STRETCH-like enlargement of the same irregular T class (still ridge=4).
     /// </summary>
     private static RoofPoint2D[] H5IrregularTPostStretch() =>
     [

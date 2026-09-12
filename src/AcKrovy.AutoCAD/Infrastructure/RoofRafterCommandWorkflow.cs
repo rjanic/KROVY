@@ -431,6 +431,29 @@ internal static class RoofRafterCommandWorkflow
                     request.Material),
                 defaultProfile,
                 layerProfile);
+            var automaticStructuralRafterCount = 0;
+            if (restored.Geometry is HipRoofGeometry automaticRafterHipGeometry)
+            {
+                phase = "RoofAutomaticStructuralRafterMaterializationService.MaterializeInTransaction";
+                var structuralRafters =
+                    RoofAutomaticStructuralRafterMaterializationService.MaterializeInTransaction(
+                        document,
+                        transaction,
+                        owner,
+                        expectedOwnerReference,
+                        sourceInput,
+                        automaticRafterHipGeometry,
+                        defaultProfile,
+                        layerProfile);
+                if (!structuralRafters.IsSuccess)
+                {
+                    throw new InvalidOperationException(
+                        "Automatic Hip/Valley rafter materialization failed: " +
+                        structuralRafters.Result);
+                }
+
+                automaticStructuralRafterCount = structuralRafters.Actual;
+            }
 #if DEBUG
             var annotationCount = RoofRafterPermanentCreateDiag.CountAnnotations(
                 document.Database,
@@ -446,7 +469,8 @@ internal static class RoofRafterCommandWorkflow
                 created.Count,
                 annotationCount);
 #endif
-            return RoofRafterCreationResult.Success(currentValidation.Layout.Rafters.Count);
+            return RoofRafterCreationResult.Success(
+                currentValidation.Layout.Rafters.Count + automaticStructuralRafterCount);
         }
         catch (RoofRafterMaterializationPhaseException ex)
         {

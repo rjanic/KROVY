@@ -303,6 +303,8 @@
   <data name="Error_InvalidAnnotationLayerFormat" xml:space="preserve"><value>Invalid annotation layer: {0}</value></data>
   <data name="Error_InvalidSlopeDegrees" xml:space="preserve"><value>The slope must be between 0° and 89.9°.</value></data>
   <data name="ElementType_Custom" xml:space="preserve"><value>Custom element</value></data>
+  <data name="ElementType_HipRafter" xml:space="preserve"><value>Hip rafter</value></data>
+  <data name="ElementType_ValleyRafter" xml:space="preserve"><value>Valley rafter</value></data>
   <data name="CommandUi_Custom_Label" xml:space="preserve"><value>Custom element</value></data>
   <data name="CommandUi_Custom_Tooltip" xml:space="preserve"><value>Assigns a reusable custom timber element type to a line.</value></data>
   <data name="Command_Custom_PromptSelection" xml:space="preserve"><value>&#xA;Select LINE or LWPOLYLINE for the custom element: </value></data>

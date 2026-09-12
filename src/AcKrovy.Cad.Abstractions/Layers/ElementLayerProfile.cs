@@ -81,11 +81,25 @@ public sealed class ElementLayerProfile
             new(TimberElementType.Brace, "VZPERA", 1),
             new(TimberElementType.TieBeam, "VAZNY_TRAM", 6),
             new(TimberElementType.Custom, "KROV_CUSTOM", 7),
+            new(
+                TimberElementType.HipRafter,
+                "KROKVA",
+                2,
+                CadLinetypeNames.DashDot,
+                DefaultRafterLinetypeScale),
+            new(
+                TimberElementType.ValleyRafter,
+                "KROKVA",
+                2,
+                CadLinetypeNames.DashDot,
+                DefaultRafterLinetypeScale),
         },
     };
 
     public static double GetDefaultLinetypeScale(TimberElementType type) =>
-        type == TimberElementType.Rafter
+        type is TimberElementType.Rafter or
+            TimberElementType.HipRafter or
+            TimberElementType.ValleyRafter
             ? DefaultRafterLinetypeScale
             : DefaultOtherLinetypeScale;
 

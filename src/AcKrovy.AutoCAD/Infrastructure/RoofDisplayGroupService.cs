@@ -67,8 +67,9 @@ internal static class RoofDisplayGroupService
 
     /// <summary>
     /// Synchronizes the one canonical full roof-assembly GROUP. The supplied ids are
-    /// only the current structural-display subset; owner-authoritative generated timber,
-    /// AttachedManual timber and their annotations are added by the assembly collector.
+    /// only the current structural-display subset; owner-authoritative ordinary-generated,
+    /// structural-generated and AttachedManual timber plus their annotations are added by
+    /// the assembly collector.
     /// Existing members outside that complete collected set are removed.
     /// </summary>
     public static void EnsureGroup(
@@ -189,6 +190,7 @@ internal static class RoofDisplayGroupService
                 editor,
                 ownerEntity.Handle.ToString(),
                 collected.GeneratedCount,
+                collected.StructuralGeneratedCount,
                 collected.AttachedManualCount,
                 collected.AnnotationCount,
                 memberIds.Count,

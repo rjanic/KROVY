@@ -303,6 +303,8 @@
   <data name="Error_InvalidAnnotationLayerFormat" xml:space="preserve"><value>Calque d'annotation non valide : {0}</value></data>
   <data name="Error_InvalidSlopeDegrees" xml:space="preserve"><value>La pente doit être un nombre positif ou nul inférieur à 89,9°.</value></data>
   <data name="ElementType_Custom" xml:space="preserve"><value>Élément personnalisé</value></data>
+  <data name="ElementType_HipRafter" xml:space="preserve"><value>Chevron d’arêtier</value></data>
+  <data name="ElementType_ValleyRafter" xml:space="preserve"><value>Chevron de noue</value></data>
   <data name="CommandUi_Custom_Label" xml:space="preserve"><value>Élément personnalisé</value></data>
   <data name="CommandUi_Custom_Tooltip" xml:space="preserve"><value>Attribue à une ligne un type d'élément bois personnalisé réutilisable.</value></data>
   <data name="Command_Custom_PromptSelection" xml:space="preserve"><value>&#xA;Sélectionnez une LINE ou LWPOLYLINE pour l'élément personnalisé : </value></data>

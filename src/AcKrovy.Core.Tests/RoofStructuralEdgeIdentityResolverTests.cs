@@ -16,6 +16,7 @@ public sealed class RoofStructuralEdgeIdentityResolverTests
         yield return ["T", new RoofPoint2D[] { P(0, 0), P(10000, 0), P(10000, 3000), P(6500, 3000), P(6500, 9000), P(3500, 9000), P(3500, 3000), P(0, 3000) }];
         yield return ["stepped", new RoofPoint2D[] { P(0, 0), P(11000, 0), P(11000, 2500), P(8000, 2500), P(8000, 5000), P(5000, 5000), P(5000, 8500), P(0, 8500) }];
         yield return ["reflex-hexagon", new RoofPoint2D[] { P(0, 0), P(9000, 0), P(7000, 4000), P(10000, 8000), P(3000, 10000), P(-1000, 5000) }];
+        yield return ["host-291A", Host291AConcave()];
         yield return ["split-dumbbell", new RoofPoint2D[] { P(0, 0), P(4000, 0), P(4000, 1500), P(8000, 1500), P(8000, 0), P(14000, 0), P(14000, 8000), P(8000, 8000), P(8000, 3500), P(4000, 3500), P(4000, 6000), P(0, 6000) }];
     }
 
@@ -50,8 +51,9 @@ public sealed class RoofStructuralEdgeIdentityResolverTests
     [InlineData("U", 3, 6, 2)]
     [InlineData("T", 3, 6, 2)]
     [InlineData("stepped", 4, 6, 2)]
-    [InlineData("reflex-hexagon", 3, 5, 1)]
-    [InlineData("split-dumbbell", 5, 8, 4)]
+    [InlineData("reflex-hexagon", 2, 6, 1)]
+    [InlineData("host-291A", 2, 6, 1)]
+    [InlineData("split-dumbbell", 4, 9, 4)]
     public void SupportedFixtures_HaveExpectedRoleCounts(
         string name,
         int ridge,
@@ -146,6 +148,7 @@ public sealed class RoofStructuralEdgeIdentityResolverTests
                 new[] { 0 }.Concat(Enumerable.Range(1, count - 1).Reverse()).ToArray(),
                 0d),
             ResolveVariant(points, baselineOrder, 90d),
+            ResolveVariant(points, baselineOrder, 37d),
         };
 
         var expectedKeys = Keys(variants[0].Resolution);
@@ -199,6 +202,28 @@ public sealed class RoofStructuralEdgeIdentityResolverTests
             RoofStructuralEdgeResolutionError.DuplicateStructuralIdentity,
             result.Error);
         Assert.Equal("Hip|1|2", result.DuplicateIdentity!.ToString());
+    }
+
+    [Fact]
+    public void Host291AFormerInternalRidgePair_IsNowUniqueResolvedHipIdentity()
+    {
+        var solved = Resolve(Host291AConcave());
+        var topology = solved.Geometry.Topology;
+        var correctedTopologyEdge = Assert.Single(topology.Edges.Select((edge, index) => (edge, index)), item =>
+            item.edge.StartNodeIndex >= topology.BoundaryVertexCount &&
+            item.edge.EndNodeIndex >= topology.BoundaryVertexCount &&
+            item.edge.FaceIndices.SequenceEqual(new[] { 1, 4 }));
+        var corrected = Assert.Single(solved.Resolution.Edges, edge =>
+            edge.TopologyEdgeIndex == correctedTopologyEdge.index);
+
+        Assert.Equal(RoofTopologyEdgeKind.Hip, correctedTopologyEdge.edge.Kind);
+        Assert.Equal(RoofStructuralRole.Hip, corrected.StructuralRole);
+        Assert.DoesNotContain(solved.Resolution.Edges, edge =>
+            edge.StructuralRole == RoofStructuralRole.Ridge &&
+            edge.BoundaryEdgeIdA == corrected.BoundaryEdgeIdA &&
+            edge.BoundaryEdgeIdB == corrected.BoundaryEdgeIdB);
+        Assert.Equal(solved.Resolution.Edges.Count,
+            solved.Resolution.Edges.Select(edge => edge.StructuralIdentity).Distinct().Count());
     }
 
     private static SolvedFixture Resolve(
@@ -287,6 +312,16 @@ public sealed class RoofStructuralEdgeIdentityResolverTests
     }
 
     private static RoofPoint2D P(double x, double y) => new(x, y);
+
+    private static RoofPoint2D[] Host291AConcave() =>
+    [
+        P(47947.813661, 12295.184331),
+        P(47947.813661, 20038.646240),
+        P(57988.858409, 20038.646240),
+        P(57988.858409, 15403.104447),
+        P(52849.740922, 15403.104447),
+        P(52849.740922, 12295.184331),
+    ];
 
     private sealed record SolvedFixture(
         HipRoofGeometry Geometry,

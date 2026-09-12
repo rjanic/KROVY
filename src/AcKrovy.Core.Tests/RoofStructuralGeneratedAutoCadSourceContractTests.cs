@@ -61,7 +61,7 @@ public sealed class RoofStructuralGeneratedAutoCadSourceContractTests
     }
 
     [Fact]
-    public void NoProductionWorkflowWritesStructuralMetadataYet()
+    public void OnlyExplicitStructuralMaterializerWritesStructuralMetadata()
     {
         var allOtherProduction = string.Join(
             "\n",
@@ -71,6 +71,15 @@ public sealed class RoofStructuralGeneratedAutoCadSourceContractTests
                     SearchOption.AllDirectories)
                 .Where(path => !path.EndsWith(
                     "RoofStructuralGeneratedStore.cs",
+                    StringComparison.OrdinalIgnoreCase))
+                .Where(path => !path.EndsWith(
+                    "RoofAutomaticStructuralRafterMaterializationService.cs",
+                    StringComparison.OrdinalIgnoreCase))
+                .Where(path => !path.EndsWith(
+                    "RoofAssemblyGroupMemberCollector.cs",
+                    StringComparison.OrdinalIgnoreCase))
+                .Where(path => !path.EndsWith(
+                    "RoofAssemblyGroupSyncService.cs",
                     StringComparison.OrdinalIgnoreCase))
                 .Where(path => !path.Contains("\\bin\\", StringComparison.OrdinalIgnoreCase))
                 .Where(path => !path.Contains("\\obj\\", StringComparison.OrdinalIgnoreCase))
@@ -93,10 +102,19 @@ public sealed class RoofStructuralGeneratedAutoCadSourceContractTests
     [Fact]
     public void StoreWriter_UsesOneMergedXDataAssignment()
     {
-        var write = Member(Store, "public static void Write(", "public static IReadOnlyList<TypedValue> BuildSection");
+        var write = Member(Store, "public static void Write(", "public static void WriteAtomic(");
         Assert.Equal(1, CountOccurrences(write, "entity.XData ="));
         Assert.Contains("ReadForeignXData(entity)", write);
         Assert.Contains("BuildSection(entity, transaction, data)", write);
+    }
+
+    [Fact]
+    public void AtomicWriter_MergesTimberAndStructuralSectionsInOneAssignment()
+    {
+        var write = Member(Store, "public static void WriteAtomic(", "public static IReadOnlyList<ObjectId> FindByOwner");
+        Assert.Equal(1, CountOccurrences(write, "entity.XData ="));
+        Assert.Contains("ElementDataStore.BuildSection", write);
+        Assert.Contains("BuildSection(entity, transaction, structuralData)", write);
     }
 
     private static void AssertOrdered(string source, params string[] values)

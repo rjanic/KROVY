@@ -6,8 +6,7 @@ using Autodesk.AutoCAD.DatabaseServices;
 namespace AcKrovy.AutoCAD.Infrastructure;
 
 /// <summary>
-/// Independent typed XData store for future generated structural roof members.
-/// No production command writes this contract in the foundation stage.
+/// Independent typed XData store for generated structural roof members.
 /// </summary>
 internal static class RoofStructuralGeneratedStore
 {
@@ -98,6 +97,77 @@ internal static class RoofStructuralGeneratedStore
         entity.XData = buffer;
     }
 
+    /// <summary>
+    /// Writes generic Timber and StructuralGenerated metadata in the same XData
+    /// assignment before a newly appended entity is registered with the transaction.
+    /// </summary>
+    public static void WriteAtomic(
+        Entity entity,
+        Transaction transaction,
+        AcKrovy.Core.Models.TimberElementData timberData,
+        RoofStructuralGeneratedData structuralData)
+    {
+        ArgumentNullException.ThrowIfNull(entity);
+        ArgumentNullException.ThrowIfNull(transaction);
+        ArgumentNullException.ThrowIfNull(timberData);
+        ArgumentNullException.ThrowIfNull(structuralData);
+        if (!entity.IsWriteEnabled)
+        {
+            throw new InvalidOperationException(
+                "Structural generated member must be opened ForWrite.");
+        }
+
+        var values = ReadForeignXData(entity, removeGenericTimberSection: true);
+        values.AddRange(ElementDataStore.BuildSection(entity, transaction, timberData));
+        values.AddRange(BuildSection(entity, transaction, structuralData));
+        using var buffer = new ResultBuffer(values.ToArray());
+        entity.XData = buffer;
+    }
+
+    public static IReadOnlyList<ObjectId> FindByOwner(
+        Database database,
+        Transaction transaction,
+        string ownerReference)
+    {
+        ArgumentNullException.ThrowIfNull(database);
+        ArgumentNullException.ThrowIfNull(transaction);
+        if (!RoofStructuralGeneratedDataRules.TryNormalizeOwnerReference(
+                ownerReference,
+                out var normalizedOwner))
+        {
+            return Array.Empty<ObjectId>();
+        }
+
+        var blockTable = (BlockTable)transaction.GetObject(
+            database.BlockTableId,
+            OpenMode.ForRead);
+        var modelSpace = (BlockTableRecord)transaction.GetObject(
+            blockTable[BlockTableRecord.ModelSpace],
+            OpenMode.ForRead);
+        var matches = new List<ObjectId>();
+        foreach (ObjectId id in modelSpace)
+        {
+            if (id.IsErased ||
+                transaction.GetObject(id, OpenMode.ForRead, false) is not Entity entity ||
+                entity.IsErased)
+            {
+                continue;
+            }
+
+            var stored = Read(entity);
+            if (stored.Data is not null &&
+                string.Equals(
+                    stored.Data.RoofOwnerReference,
+                    normalizedOwner,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                matches.Add(id);
+            }
+        }
+
+        return matches;
+    }
+
     public static IReadOnlyList<TypedValue> BuildSection(
         Entity entity,
         Transaction transaction,
@@ -134,7 +204,9 @@ internal static class RoofStructuralGeneratedStore
         });
     }
 
-    private static List<TypedValue> ReadForeignXData(Entity entity)
+    private static List<TypedValue> ReadForeignXData(
+        Entity entity,
+        bool removeGenericTimberSection = false)
     {
         var retained = new List<TypedValue>();
         using var xdata = entity.XData;
@@ -148,10 +220,19 @@ internal static class RoofStructuralGeneratedStore
         {
             if (value.TypeCode == DxfRegAppNameCode)
             {
-                skipStructuralSection = string.Equals(
-                    Convert.ToString(value.Value, CultureInfo.InvariantCulture),
-                    RegAppName,
-                    StringComparison.OrdinalIgnoreCase);
+                var applicationName = Convert.ToString(
+                    value.Value,
+                    CultureInfo.InvariantCulture);
+                skipStructuralSection =
+                    string.Equals(
+                        applicationName,
+                        RegAppName,
+                        StringComparison.OrdinalIgnoreCase) ||
+                    removeGenericTimberSection &&
+                    string.Equals(
+                        applicationName,
+                        ElementDataStore.RegAppName,
+                        StringComparison.OrdinalIgnoreCase);
             }
 
             if (!skipStructuralSection)

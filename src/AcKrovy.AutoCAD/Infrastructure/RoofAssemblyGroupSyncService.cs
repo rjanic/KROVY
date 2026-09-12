@@ -166,6 +166,7 @@ internal static class RoofAssemblyGroupDiag
         Autodesk.AutoCAD.EditorInput.Editor? editor,
         string owner,
         int generated,
+        int structuralGenerated,
         int attachedManual,
         int annotations,
         int total,
@@ -180,6 +181,7 @@ internal static class RoofAssemblyGroupDiag
             "ROOF_GROUP_SYNC" +
             $" owner={owner}" +
             $" generated={generated.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
+            $" structuralGenerated={structuralGenerated.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
             $" attachedManual={attachedManual.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
             $" annotations={annotations.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
             $" total={total.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
@@ -277,6 +279,13 @@ internal static class RoofAssemblyGroupDiag
                 StringComparison.OrdinalIgnoreCase))
         {
             return "Generated";
+        }
+        if (string.Equals(
+                RoofStructuralGeneratedStore.Read(entity).Data?.RoofOwnerReference,
+                ownerReference,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return "StructuralGenerated";
         }
         if (string.Equals(
                 RoofAttachedManualTimberStore.Read(entity).Data?.RoofOwnerReference,

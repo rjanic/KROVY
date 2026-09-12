@@ -12,6 +12,7 @@ public sealed class ConcaveRoofTopologySolverTests
         yield return ["asymmetric U", new RoofPoint2D[] { new(0, 0), new(12000, 0), new(12000, 9500), new(8500, 9500), new(8500, 4000), new(2500, 4000), new(2500, 8000), new(0, 8000) }];
         yield return ["asymmetric T", new RoofPoint2D[] { new(0, 0), new(12000, 0), new(12000, 2500), new(8500, 2500), new(8500, 11000), new(3500, 11000), new(3500, 2500), new(0, 2500) }];
         yield return ["reflex hexagon", new RoofPoint2D[] { new(0, 0), new(9000, 0), new(7000, 4000), new(10000, 8000), new(3000, 10000), new(-1000, 5000) }];
+        yield return ["HOST 291A concave", Host291AConcave()];
         yield return ["stepped", new RoofPoint2D[] { new(0, 0), new(11000, 0), new(11000, 2500), new(8000, 2500), new(8000, 5000), new(5000, 5000), new(5000, 8500), new(0, 8500) }];
         yield return ["shallow reflex", new RoofPoint2D[] { new(0, 0), new(4000, 0.01), new(8000, 0), new(8500, 6000), new(-1000, 7000) }];
         yield return ["narrow notch", new RoofPoint2D[] { new(0, 0), new(10000, 0), new(10000, 9000), new(5001, 9000), new(5001, 4500), new(4999, 4500), new(4999, 9000), new(0, 9000) }];
@@ -126,6 +127,85 @@ public sealed class ConcaveRoofTopologySolverTests
         AssertGeometry(topology);
     }
 
+    [Fact]
+    public void Host291AExplicitClosingPoint_HasCorrectProvenanceRolesAndFortyFourOrdinaryRafters()
+    {
+        var unique = Host291AConcave();
+        var raw = unique.Concat([unique[0]]).ToArray();
+        var input = new RoofFootprintInput(raw, IsClosed: false);
+        var validation = RoofFootprintValidator.Validate(input);
+
+        Assert.Equal(7, raw.Length);
+        Assert.True(RoofFootprintValidator.HasRepeatedClosingVertex(raw));
+        Assert.True(validation.IsValid);
+        Assert.Equal(6, validation.Footprint!.Vertices.Count);
+
+        var result = RoofTopologySolver.Solve(input, 30d);
+        Assert.True(result.IsValid, result.Error.ToString());
+        var topology = Assert.IsType<RoofTopology>(result.Topology);
+        Assert.Equal(2, topology.Edges.Count(edge => edge.Kind == RoofTopologyEdgeKind.Ridge));
+        Assert.Equal(6, topology.Edges.Count(edge => edge.Kind == RoofTopologyEdgeKind.Hip));
+        Assert.Single(topology.Edges, edge => edge.Kind == RoofTopologyEdgeKind.Valley);
+
+        var corrected = Assert.Single(topology.Edges, edge =>
+            edge.StartNodeIndex >= topology.BoundaryVertexCount &&
+            edge.EndNodeIndex >= topology.BoundaryVertexCount &&
+            edge.FaceIndices.SequenceEqual(new[] { 1, 4 }));
+        Assert.Equal(RoofTopologyEdgeKind.Hip, corrected.Kind);
+        Assert.InRange(topology.Segment(corrected).LengthMm, 203.455d, 203.456d);
+
+        Assert.Equal(topology.Edges.Count, topology.Edges.Select(edge =>
+            (Math.Min(edge.StartNodeIndex, edge.EndNodeIndex),
+             Math.Max(edge.StartNodeIndex, edge.EndNodeIndex))).Distinct().Count());
+        Assert.DoesNotContain(topology.Edges, edge => topology.Segment(edge).LengthMm <= 1e-6);
+        Assert.All(topology.Edges.Where(edge => edge.Kind != RoofTopologyEdgeKind.Eave), edge =>
+            Assert.Contains(edge.Kind, new[]
+            {
+                RoofTopologyEdgeKind.Hip,
+                RoofTopologyEdgeKind.Ridge,
+                RoofTopologyEdgeKind.Valley,
+                RoofTopologyEdgeKind.CoplanarSeam,
+            }));
+
+        var layout = RoofFaceRafterLayoutService.Create(topology, 900d);
+        Assert.True(layout.IsValid, layout.Error.ToString());
+        Assert.Equal(44, layout.Layout!.Segments.Count);
+    }
+
+    [Fact]
+    public void ReflexHexagon_ContainsObliqueInternalHipAndObliqueRidge()
+    {
+        var polygon = (RoofPoint2D[])Fixtures().Single(fixture =>
+            (string)fixture[0] == "reflex hexagon")[1];
+        var topology = Solve(polygon, "oblique provenance");
+        var internalHip = Assert.Single(topology.Edges, edge =>
+            edge.Kind == RoofTopologyEdgeKind.Hip &&
+            edge.StartNodeIndex >= topology.BoundaryVertexCount &&
+            edge.EndNodeIndex >= topology.BoundaryVertexCount);
+
+        AssertOblique(topology.Segment(internalHip));
+        Assert.Contains(topology.Edges, edge =>
+            edge.Kind == RoofTopologyEdgeKind.Ridge &&
+            IsOblique(topology.Segment(edge)));
+    }
+
+    [Fact]
+    public void SplitDumbbell_CompatibleConvexSuccessorIsHipWithoutDuplicatingSplitLineage()
+    {
+        var polygon = (RoofPoint2D[])Fixtures().Single(fixture =>
+            (string)fixture[0] == "split dumbbell")[1];
+        var topology = Solve(polygon, "split lineage");
+
+        Assert.Equal(4, topology.Edges.Count(edge => edge.Kind == RoofTopologyEdgeKind.Ridge));
+        Assert.Equal(9, topology.Edges.Count(edge => edge.Kind == RoofTopologyEdgeKind.Hip));
+        Assert.Equal(4, topology.Edges.Count(edge => edge.Kind == RoofTopologyEdgeKind.Valley));
+        Assert.Equal(2, topology.Edges.Count(edge => edge.Kind == RoofTopologyEdgeKind.CoplanarSeam));
+        var continuedHip = Assert.Single(topology.Edges, edge =>
+            edge.StartNodeIndex == 17 && edge.EndNodeIndex == 18);
+        Assert.Equal(RoofTopologyEdgeKind.Hip, continuedHip.Kind);
+        Assert.Equal(new[] { 4, 7 }, continuedHip.FaceIndices);
+    }
+
     [Theory]
     [InlineData(0d)]
     [InlineData(37d)]
@@ -223,6 +303,22 @@ public sealed class ConcaveRoofTopologySolverTests
         return points.Select(p => new RoofPoint2D(x + p.X * Math.Cos(angle) - p.Y * Math.Sin(angle),
             y + p.X * Math.Sin(angle) + p.Y * Math.Cos(angle))).ToArray();
     }
+
+    private static RoofPoint2D[] Host291AConcave() =>
+    [
+        new(47947.813661, 12295.184331),
+        new(47947.813661, 20038.646240),
+        new(57988.858409, 20038.646240),
+        new(57988.858409, 15403.104447),
+        new(52849.740922, 15403.104447),
+        new(52849.740922, 12295.184331),
+    ];
+
+    private static void AssertOblique(RoofSegment3D segment) => Assert.True(IsOblique(segment));
+
+    private static bool IsOblique(RoofSegment3D segment) =>
+        Math.Abs(segment.End.X - segment.Start.X) > 1e-6 &&
+        Math.Abs(segment.End.Y - segment.Start.Y) > 1e-6;
 
     private static void AssertGeometry(RoofTopology t)
     {

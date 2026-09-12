@@ -11,4 +11,6 @@ public enum TimberElementType
     Brace,
     TieBeam,
     Custom,
+    HipRafter,
+    ValleyRafter,
 }

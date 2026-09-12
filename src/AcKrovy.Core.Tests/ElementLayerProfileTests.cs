@@ -17,6 +17,8 @@ public sealed class ElementLayerProfileTests
     [InlineData(TimberElementType.Brace, "VZPERA", 1)]
     [InlineData(TimberElementType.TieBeam, "VAZNY_TRAM", 6)]
     [InlineData(TimberElementType.Custom, "KROV_CUSTOM", 7)]
+    [InlineData(TimberElementType.HipRafter, "KROKVA", 2)]
+    [InlineData(TimberElementType.ValleyRafter, "KROKVA", 2)]
     public void CreateDefault_KeepsCurrentLayerNamesAndColors(
         TimberElementType type,
         string expectedLayerName,

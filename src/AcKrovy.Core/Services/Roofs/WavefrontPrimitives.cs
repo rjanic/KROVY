@@ -9,8 +9,64 @@ internal readonly record struct WavefrontSource(int Id, RoofPoint2D Origin, doub
     internal double Along(RoofPoint2D a, RoofPoint2D b) => Y * (b.X - a.X) - X * (b.Y - a.Y);
 }
 
+internal enum WavefrontBoundaryCornerKind { None, Convex, Reflex }
+
+// Boundary-corner provenance is independent of the current arc anchor. An
+// event node becomes the next arc anchor, but it must not erase a uniquely
+// surviving convex/reflex corner lineage.
+internal readonly record struct WavefrontLineage(int BoundaryVertex, WavefrontBoundaryCornerKind Kind)
+{
+    internal static WavefrontLineage Internal => new(-1, WavefrontBoundaryCornerKind.None);
+    internal bool HasBoundaryCorner => BoundaryVertex >= 0 && Kind != WavefrontBoundaryCornerKind.None;
+
+    internal static WavefrontLineage ForSuccessor(
+        IEnumerable<WavefrontVertex> localContactVertices,
+        IEnumerable<WavefrontVertex> terminalContactVertices,
+        int successorCount,
+        int previousSource,
+        int nextSource,
+        bool successorReflex)
+    {
+        if (successorCount != 1)
+        {
+            return Internal;
+        }
+
+        var expectedKind = successorReflex
+            ? WavefrontBoundaryCornerKind.Reflex
+            : WavefrontBoundaryCornerKind.Convex;
+        var local = localContactVertices
+            .Where(vertex =>
+                vertex.Lineage.Kind == expectedKind &&
+                (vertex.PreviousSource == previousSource ||
+                 vertex.NextSource == previousSource ||
+                 vertex.PreviousSource == nextSource ||
+                 vertex.NextSource == nextSource))
+            .Select(vertex => vertex.Lineage)
+            .Distinct()
+            .ToArray();
+        if (local.Length != 0)
+        {
+            return local.Length == 1 ? local[0] : Internal;
+        }
+
+        // A split batch may terminate an intervening span at a second contact
+        // root. In left-hand loop order only that root's lineage entering the
+        // successor's outgoing source can continue across the batch.
+        var terminal = terminalContactVertices
+            .Where(vertex =>
+                vertex.Lineage.Kind == expectedKind &&
+                vertex.NextSource == nextSource)
+            .Select(vertex => vertex.Lineage)
+            .Distinct()
+            .ToArray();
+        return terminal.Length == 1 ? terminal[0] : Internal;
+    }
+}
+
 internal sealed record WavefrontVertex(int Id, int PreviousSource, int NextSource,
-    int Anchor, RoofPoint2D Position, double Born, RoofPoint2D Velocity, bool Reflex, bool Coplanar)
+    int Anchor, RoofPoint2D Position, double Born, RoofPoint2D Velocity, bool Reflex, bool Coplanar,
+    WavefrontLineage Lineage)
 {
     internal RoofPoint2D At(double time) => new(Position.X + (time - Born) * Velocity.X,
         Position.Y + (time - Born) * Velocity.Y);
@@ -46,7 +102,7 @@ internal sealed class WavefrontNumerics
     internal static bool Finite(RoofPoint2D p) => RoofTopologySolver.Finite(p.X) && RoofTopologySolver.Finite(p.Y);
 
     internal WavefrontVertex? Vertex(int id, int previous, int next, int anchor,
-        WavefrontNode node, IReadOnlyList<WavefrontSource> sources)
+        WavefrontNode node, IReadOnlyList<WavefrontSource> sources, WavefrontLineage lineage)
     {
         var a = sources[previous];
         var b = sources[next];
@@ -62,9 +118,15 @@ internal sealed class WavefrontNumerics
         var velocity = new RoofPoint2D(sx / denominator, sy / denominator);
         if (!Finite(velocity) || Math.Abs(a.Distance(node.Point) - node.Time) > Tolerance ||
             Math.Abs(b.Distance(node.Point) - node.Time) > Tolerance) return null;
+        var reflex = turn < -SimpleGableRoofGeometryTolerance.AngularTolerance;
+        var coplanar = Math.Abs(turn) <= SimpleGableRoofGeometryTolerance.AngularTolerance;
+        var compatibleLineage = !coplanar &&
+            (lineage.Kind == WavefrontBoundaryCornerKind.Convex && !reflex ||
+             lineage.Kind == WavefrontBoundaryCornerKind.Reflex && reflex)
+                ? lineage
+                : WavefrontLineage.Internal;
         return new(id, previous, next, anchor, node.Point, node.Time, velocity,
-            turn < -SimpleGableRoofGeometryTolerance.AngularTolerance,
-            Math.Abs(turn) <= SimpleGableRoofGeometryTolerance.AngularTolerance);
+            reflex, coplanar, compatibleLineage);
     }
 
     // Complete-link diameter check forbids swallowing chains of small features.

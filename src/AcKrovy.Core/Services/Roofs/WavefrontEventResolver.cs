@@ -72,8 +72,11 @@ internal static class WavefrontEventResolver
             {
                 var vertex = vertices[index];
                 if (nodes[vertex.Anchor].Point.DistanceTo(positions[root]) <= numeric.Tolerance) return null;
-                var kind = vertex.Coplanar ? RoofTopologyEdgeKind.CoplanarSeam : vertex.Reflex ? RoofTopologyEdgeKind.Valley :
-                    vertex.Anchor < sources.Count ? RoofTopologyEdgeKind.Hip : RoofTopologyEdgeKind.Ridge;
+                var kind = vertex.Coplanar ? RoofTopologyEdgeKind.CoplanarSeam :
+                    vertex.Reflex ? RoofTopologyEdgeKind.Valley :
+                    vertex.Lineage.Kind == WavefrontBoundaryCornerKind.Convex
+                        ? RoofTopologyEdgeKind.Hip
+                        : RoofTopologyEdgeKind.Ridge;
                 arcs.Add(new(vertex.Anchor, eventNodes[root], vertex.PreviousSource, vertex.NextSource, kind));
             }
         }
@@ -104,6 +107,10 @@ internal static class WavefrontEventResolver
             successor[i] = candidates[0].Index;
         }
         if (successor.Values.Distinct().Count() != remaining.Count) return null;
+        var successorCounts = successor.Select(pair => remaining[pair.Key].End)
+            .Where(touched.Contains)
+            .GroupBy(root => root)
+            .ToDictionary(group => group.Key, group => group.Count());
         var newVertices = new Dictionary<int, WavefrontVertex>();
         foreach (var pair in successor.OrderBy(p => p.Value))
         {
@@ -114,7 +121,22 @@ internal static class WavefrontEventResolver
             if (touched.Contains(root))
             {
                 var anchor = eventNodes[root];
-                vertex = numeric.Vertex(nextVertex++, incoming.Source, outgoing.Source, anchor, nodes[anchor], sources);
+                vertex = numeric.Vertex(nextVertex++, incoming.Source, outgoing.Source, anchor, nodes[anchor], sources,
+                    WavefrontLineage.Internal);
+                if (vertex is not null)
+                {
+                    var terminalRoots = terminal.Select(pair =>
+                        pair.First.Start == root ? pair.First.End :
+                        pair.First.End == root ? pair.First.Start : -1).Where(candidate => candidate >= 0).Distinct();
+                    var lineage = WavefrontLineage.ForSuccessor(
+                        members[root].Select(index => vertices[index]),
+                        terminalRoots.SelectMany(candidate => members[candidate]).Select(index => vertices[index]),
+                        successorCounts[root],
+                        incoming.Source,
+                        outgoing.Source,
+                        vertex.Reflex);
+                    vertex = vertex with { Lineage = lineage };
+                }
             }
             else
             {

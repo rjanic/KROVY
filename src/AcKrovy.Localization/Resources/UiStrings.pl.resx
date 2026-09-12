@@ -303,6 +303,8 @@
   <data name="Error_InvalidAnnotationLayerFormat" xml:space="preserve"><value>Nieprawidłowa warstwa opisu: {0}</value></data>
   <data name="Error_InvalidSlopeDegrees" xml:space="preserve"><value>Nachylenie musi być nieujemną liczbą mniejszą niż 89,9°.</value></data>
   <data name="ElementType_Custom" xml:space="preserve"><value>Element niestandardowy</value></data>
+  <data name="ElementType_HipRafter" xml:space="preserve"><value>Krokiew narożna</value></data>
+  <data name="ElementType_ValleyRafter" xml:space="preserve"><value>Krokiew koszowa</value></data>
   <data name="CommandUi_Custom_Label" xml:space="preserve"><value>Własny element</value></data>
   <data name="CommandUi_Custom_Tooltip" xml:space="preserve"><value>Przypisuje do linii wielokrotnego użytku niestandardowy typ elementu drewnianego.</value></data>
   <data name="Command_Custom_PromptSelection" xml:space="preserve"><value>&#xA;Wybierz LINE lub LWPOLYLINE dla elementu niestandardowego: </value></data>

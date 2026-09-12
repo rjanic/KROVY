@@ -252,7 +252,7 @@ public sealed class LocalizationFoundationTests
             .ToList();
 
         Assert.All(layerNames, names => Assert.Equal(
-            ["KROKVA", "POMURNICA", "VAZNICA", "STLPIK", "KLIESTINA", "VZPERA", "VAZNY_TRAM", "KROV_CUSTOM"],
+            ["KROKVA", "POMURNICA", "VAZNICA", "STLPIK", "KLIESTINA", "VZPERA", "VAZNY_TRAM", "KROV_CUSTOM", "KROKVA", "KROKVA"],
             names));
     }
 

@@ -77,6 +77,18 @@ public static class TimberElementDefaults
                 HeightMm = 200,
                 SlopeDegrees = 0,
             },
+            TimberElementType.HipRafter => common with
+            {
+                WidthMm = 80,
+                HeightMm = 160,
+                SlopeDegrees = 0,
+            },
+            TimberElementType.ValleyRafter => common with
+            {
+                WidthMm = 80,
+                HeightMm = 160,
+                SlopeDegrees = 0,
+            },
             _ => common,
         };
     }

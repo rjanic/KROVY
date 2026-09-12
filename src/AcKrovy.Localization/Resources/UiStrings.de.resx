@@ -303,6 +303,8 @@
   <data name="Error_InvalidAnnotationLayerFormat" xml:space="preserve"><value>Ungültiger Beschriftungs-Layer: {0}</value></data>
   <data name="Error_InvalidSlopeDegrees" xml:space="preserve"><value>Die Neigung muss zwischen 0° und 89,9° liegen.</value></data>
   <data name="ElementType_Custom" xml:space="preserve"><value>Benutzerdefiniertes Bauteil</value></data>
+  <data name="ElementType_HipRafter" xml:space="preserve"><value>Gratsparren</value></data>
+  <data name="ElementType_ValleyRafter" xml:space="preserve"><value>Kehlsparren</value></data>
   <data name="CommandUi_Custom_Label" xml:space="preserve"><value>Eigenes Bauteil</value></data>
   <data name="CommandUi_Custom_Tooltip" xml:space="preserve"><value>Weist einer Linie einen wiederverwendbaren benutzerdefinierten Holzbauteiltyp zu.</value></data>
   <data name="Command_Custom_PromptSelection" xml:space="preserve"><value>&#xA;LINE oder LWPOLYLINE für das benutzerdefinierte Bauteil wählen: </value></data>

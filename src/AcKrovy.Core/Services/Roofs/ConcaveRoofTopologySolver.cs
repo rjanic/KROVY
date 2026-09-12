@@ -14,9 +14,15 @@ internal static class ConcaveRoofTopologySolver
         var vertices = new List<WavefrontVertex>();
         for (var i = 0; i < sources.Length; i++)
         {
-            var vertex = numeric.Vertex(i, (i + sources.Length - 1) % sources.Length, i, i, nodes[i], sources);
+            var vertex = numeric.Vertex(i, (i + sources.Length - 1) % sources.Length, i, i, nodes[i], sources,
+                WavefrontLineage.Internal);
             if (vertex is null) return Unresolved();
-            vertices.Add(vertex);
+            vertices.Add(vertex with
+            {
+                Lineage = new(i, vertex.Reflex
+                    ? WavefrontBoundaryCornerKind.Reflex
+                    : WavefrontBoundaryCornerKind.Convex),
+            });
         }
         IReadOnlyList<WavefrontLoop> loops = new[] { new WavefrontLoop(0, vertices) };
         var nextVertex = sources.Length;

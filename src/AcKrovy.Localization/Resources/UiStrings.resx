@@ -303,6 +303,8 @@
   <data name="Error_InvalidAnnotationLayerFormat" xml:space="preserve"><value>Neplatná hladina anotácie: {0}</value></data>
   <data name="Error_InvalidSlopeDegrees" xml:space="preserve"><value>Sklon musí byť nezáporné číslo menšie než 89,9°.</value></data>
   <data name="ElementType_Custom" xml:space="preserve"><value>Vlastný prvok</value></data>
+  <data name="ElementType_HipRafter" xml:space="preserve"><value>Nárožná krokva</value></data>
+  <data name="ElementType_ValleyRafter" xml:space="preserve"><value>Úžľabná krokva</value></data>
   <data name="CommandUi_Custom_Label" xml:space="preserve"><value>Vlastný prvok</value></data>
   <data name="CommandUi_Custom_Tooltip" xml:space="preserve"><value>Priradí čiare opakovane použiteľný vlastný typ dreveného prvku.</value></data>
   <data name="Command_Custom_PromptSelection" xml:space="preserve"><value>&#xA;Vyber LINE alebo LWPOLYLINE pre vlastný prvok: </value></data>
