@@ -611,6 +611,8 @@
   <data name="CommandUi_RoofMonoPitch_Tooltip" xml:space="preserve"><value>Spustí pracovní postup pultové střechy.</value></data>
   <data name="CommandUi_RoofRafters_Label" xml:space="preserve"><value>Krokve</value></data>
   <data name="CommandUi_RoofRafters_Tooltip" xml:space="preserve"><value>Vytvoří automatické krokve pro uloženou sedlovou střechu.</value></data>
+  <data name="CommandUi_RoofPurlins_Label" xml:space="preserve"><value>Automatické vaznice</value></data>
+  <data name="CommandUi_RoofPurlins_Tooltip" xml:space="preserve"><value>Vytvoří nebo sjednotí automatické vaznice střechy.</value></data>
   <data name="CommandUi_RoofEdit_Label" xml:space="preserve"><value>Upravit</value></data>
   <data name="CommandUi_RoofEdit_Tooltip" xml:space="preserve"><value>Upraví geometrii a parametry vybrané střechy.</value></data>
   <data name="CommandUi_RoofToggleLock_Label" xml:space="preserve"><value>Zámek</value></data>
@@ -739,4 +741,86 @@
   <data name="Dialog_SettingsRafterSpacing" xml:space="preserve">
     <value>Obě rozteče musí být kladná konečná čísla a výchozí rozteč nesmí být menší než minimální.</value>
   </data>
+  <data name="Command_AutomaticPurlin_ManualEditRestricted" xml:space="preserve">
+    <value>\nAutomatické vaznice jsou řízeny rozložením střechy a momentálně je nelze upravovat pomocí AK_EDIT ani AK_ASSIGN.</value>
+  </data>
+  <data name="AutomaticPurlin_Title" xml:space="preserve"><value>Automatické vaznice</value></data>
+  <data name="AutomaticPurlin_Description" xml:space="preserve"><value>Upravte návrh rozložení a zkontrolujte dočasný náhled. Změny se v tomto kroku neukládají.</value></data>
+  <data name="AutomaticPurlin_ReferenceSection" xml:space="preserve"><value>Referenční výška</value></data>
+  <data name="AutomaticPurlin_DatumStored" xml:space="preserve"><value>Referenční výška je načtena z výkresu.</value></data>
+  <data name="AutomaticPurlin_DatumMissing" xml:space="preserve"><value>Referenční výška není nastavena. Hodnoty níže slouží pouze pro tento náhled.</value></data>
+  <data name="AutomaticPurlin_ReferenceKind" xml:space="preserve"><value>Typ reference</value></data>
+  <data name="AutomaticPurlin_ReferenceRelativeElevation" xml:space="preserve"><value>Relativní výška reference</value></data>
+  <data name="AutomaticPurlin_UnitMetres" xml:space="preserve"><value>m</value></data>
+  <data name="AutomaticPurlin_UnitMillimetres" xml:space="preserve"><value>mm</value></data>
+  <data name="AutomaticPurlin_Advanced" xml:space="preserve"><value>Rozšířené</value></data>
+  <data name="AutomaticPurlin_ReferenceLocalZ" xml:space="preserve"><value>Lokální poloha reference</value></data>
+  <data name="AutomaticPurlin_ReferenceLocalZHelp" xml:space="preserve"><value>Technická lokální poloha Z, ke které je přiřazena relativní stavební výška.</value></data>
+  <data name="AutomaticPurlin_ReferenceExplicitPlane" xml:space="preserve"><value>Výslovně určená lokální rovina</value></data>
+  <data name="AutomaticPurlin_ReferenceSourceEave" xml:space="preserve"><value>Rovina okapu zdrojové střechy</value></data>
+  <data name="AutomaticPurlin_ReferenceWallPlateBottom" xml:space="preserve"><value>Spodní hrana pozednice</value></data>
+  <data name="AutomaticPurlin_LayoutStored" xml:space="preserve"><value>Existující rozložení je načteno beze změny.</value></data>
+  <data name="AutomaticPurlin_LayoutMissing" xml:space="preserve"><value>Rozložení není nastaveno. Nové řádky zůstanou pouze v návrhu.</value></data>
+  <data name="AutomaticPurlin_RidgeSection" xml:space="preserve"><value>Vrcholová vaznice</value></data>
+  <data name="AutomaticPurlin_CreateRidge" xml:space="preserve"><value>Vytvořit vrcholovou vaznici</value></data>
+  <data name="AutomaticPurlin_IntermediateSection" xml:space="preserve"><value>Mezilehlé vaznice</value></data>
+  <data name="AutomaticPurlin_IntermediateRowFormat" xml:space="preserve"><value>Mezilehlá vaznice {0}</value></data>
+  <data name="AutomaticPurlin_Add" xml:space="preserve"><value>Přidat</value></data>
+  <data name="AutomaticPurlin_NoIntermediateRows" xml:space="preserve"><value>Zatím nejsou přidány žádné mezilehlé vaznice.</value></data>
+  <data name="AutomaticPurlin_Enabled" xml:space="preserve"><value>Zapnuta</value></data>
+  <data name="AutomaticPurlin_Remove" xml:space="preserve"><value>Odstranit</value></data>
+  <data name="AutomaticPurlin_PlacementMode" xml:space="preserve"><value>Způsob umístění</value></data>
+  <data name="AutomaticPurlin_ModeBottomHeight" xml:space="preserve"><value>Výška spodní hrany nad referencí</value></data>
+  <data name="AutomaticPurlin_ModeEaveDistance" xml:space="preserve"><value>Půdorysná vzdálenost od okapu</value></data>
+  <data name="AutomaticPurlin_ModeRidgeDistance" xml:space="preserve"><value>Půdorysná vzdálenost od hřebene</value></data>
+  <data name="AutomaticPurlin_ValueBottomHeight" xml:space="preserve"><value>Výška spodní hrany</value></data>
+  <data name="AutomaticPurlin_ValueEaveDistance" xml:space="preserve"><value>Vzdálenost od okapu</value></data>
+  <data name="AutomaticPurlin_ValueRidgeDistance" xml:space="preserve"><value>Vzdálenost od hřebene</value></data>
+  <data name="AutomaticPurlin_RidgeReference" xml:space="preserve"><value>Referenční hřeben</value></data>
+  <data name="AutomaticPurlin_BottomEdge" xml:space="preserve"><value>Spodní</value></data>
+  <data name="AutomaticPurlin_Center" xml:space="preserve"><value>Osa</value></data>
+  <data name="AutomaticPurlin_TopEdge" xml:space="preserve"><value>Horní</value></data>
+  <data name="AutomaticPurlin_RidgeNumberFormat" xml:space="preserve"><value>Hřeben {0}</value></data>
+  <data name="AutomaticPurlin_CrossSection" xml:space="preserve"><value>Průřez vaznice</value></data>
+  <data name="AutomaticPurlin_CrossSectionReadOnly" xml:space="preserve"><value>Účinný výchozí průřez je v tomto kroku pouze pro čtení.</value></data>
+  <data name="AutomaticPurlin_SeatingSection" xml:space="preserve"><value>Zapuštění do krokve</value></data>
+  <data name="AutomaticPurlin_SeatingDefined" xml:space="preserve"><value>Při půdorysném umístění určuje zapuštění fyzickou výšku vodorovné vaznice.</value></data>
+  <data name="AutomaticPurlin_HeightModeSeatingPolicy" xml:space="preserve"><value>Při umístění podle spodní hrany se zapuštění nepoužívá; zadaná výška zůstává rozhodující.</value></data>
+  <data name="AutomaticPurlin_SeatingMethod" xml:space="preserve"><value>Způsob zapuštění</value></data>
+  <data name="AutomaticPurlin_SeatingPercent" xml:space="preserve"><value>Procento výšky krokve</value></data>
+  <data name="AutomaticPurlin_SeatingAbsolute" xml:space="preserve"><value>Pevná hodnota</value></data>
+  <data name="AutomaticPurlin_SeatingValue" xml:space="preserve"><value>Hodnota zapuštění</value></data>
+  <data name="AutomaticPurlin_PlanPosition" xml:space="preserve"><value>Půdorysná poloha</value></data>
+  <data name="AutomaticPurlin_RoofPlaneElevation" xml:space="preserve"><value>Střešní rovina</value></data>
+  <data name="AutomaticPurlin_SeatingDepth" xml:space="preserve"><value>Zapuštění</value></data>
+  <data name="AutomaticPurlin_SeatingNotApplicable" xml:space="preserve"><value>Nepoužívá se</value></data>
+  <data name="AutomaticPurlin_Cancel" xml:space="preserve"><value>Zrušit</value></data>
+  <data name="AutomaticPurlin_Preview" xml:space="preserve"><value>Náhled</value></data>
+  <data name="AutomaticPurlin_ValidationBoundaryIdentity" xml:space="preserve"><value>Stabilní identita hranice chybí nebo je neplatná. Náhled ji nesmí vytvořit ani opravit.</value></data>
+  <data name="AutomaticPurlin_ValidationDatum" xml:space="preserve"><value>Zadejte platnou referenční výšku v metrech a lokální polohu v milimetrech.</value></data>
+  <data name="AutomaticPurlin_ValidationNoHorizontalRidge" xml:space="preserve"><value>Střecha nemá způsobilý vodorovný hřeben.</value></data>
+  <data name="AutomaticPurlin_ValidationValue" xml:space="preserve"><value>Hodnota umístění musí být konečné číslo větší než 0.</value></data>
+  <data name="AutomaticPurlin_ValidationSeating" xml:space="preserve"><value>Zapuštění musí být větší než 0 a menší než 100 % nebo výška krokve.</value></data>
+  <data name="AutomaticPurlin_ValidationRidgeReference" xml:space="preserve"><value>Vyberte platný vodorovný referenční hřeben.</value></data>
+  <data name="AutomaticPurlin_ValidationInclinedRidge" xml:space="preserve"><value>Nakloněný hřeben nelze použít jako referenci.</value></data>
+  <data name="AutomaticPurlin_ValidationOutsideRoof" xml:space="preserve"><value>Umístění leží mimo střechu.</value></data>
+  <data name="AutomaticPurlin_ValidationCriticalElevation" xml:space="preserve"><value>Umístění se shoduje s kritickou výškou topologie.</value></data>
+  <data name="AutomaticPurlin_ValidationLayout" xml:space="preserve"><value>Rozložení nelze zobrazit. Zkontrolujte jeho hodnoty.</value></data>
+  <data name="AutomaticPurlin_CommandSelectRoof" xml:space="preserve"><value>Vyberte autoritativní uloženou zdrojovou křivku valbové střechy: </value></data>
+  <data name="AutomaticPurlin_CommandPolylineRequired" xml:space="preserve"><value>Výběr musí být křivka.</value></data>
+  <data name="AutomaticPurlin_CommandHipRoofRequired" xml:space="preserve"><value>Je vyžadována autoritativní uložená valbová střecha s platnými metadaty.</value></data>
+  <data name="AutomaticPurlin_CommandFailedFormat" xml:space="preserve"><value>Dialog automatických vaznic selhal: {0}</value></data>
+  <data name="AutomaticPurlin_DescriptionProduction" xml:space="preserve"><value>Upravte rozložení, zkontrolujte dočasný náhled a změny potvrďte tlačítkem Použít.</value></data>
+  <data name="AutomaticPurlin_DatumMissingProduction" xml:space="preserve"><value>Referenční výška není uložena. Platná zadaná hodnota se uloží po použití.</value></data>
+  <data name="AutomaticPurlin_LayoutMissingProduction" xml:space="preserve"><value>Rozložení není uloženo. Platný návrh se uloží po použití.</value></data>
+  <data name="AutomaticPurlin_Apply" xml:space="preserve"><value>Použít</value></data>
+  <data name="AutomaticPurlin_ApplySucceeded" xml:space="preserve"><value>Automatické vaznice byly použity.</value></data>
+  <data name="AutomaticPurlin_ApplyFailed" xml:space="preserve"><value>Automatické vaznice se nepodařilo použít.</value></data>
+  <data name="AutomaticPurlin_Schematic" xml:space="preserve"><value>Schéma střešního řezu</value></data>
+  <data name="AutomaticPurlin_SchematicRidge" xml:space="preserve"><value>Vrcholová vaznice</value></data>
+  <data name="AutomaticPurlin_SchematicIntermediate" xml:space="preserve"><value>Mezilehlá vaznice</value></data>
+  <data name="AutomaticPurlin_SchematicRafter" xml:space="preserve"><value>Krokev</value></data>
+  <data name="AutomaticPurlin_SchematicSeatingHelp" xml:space="preserve"><value>Schematické znázornění zapuštění; rozhodující jsou číselné hodnoty.</value></data>
+  <data name="AutomaticPurlin_SchematicRidgeUnresolved" xml:space="preserve"><value>Vyberte platný referenční hřeben.</value></data>
+  <data name="AutomaticPurlin_SchematicNoSelection" xml:space="preserve"><value>Vyberte mezilehlou vaznici, aby se zobrazilo její umístění.</value></data>
 </root>

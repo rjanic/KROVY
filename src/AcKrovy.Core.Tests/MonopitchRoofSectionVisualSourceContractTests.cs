@@ -17,17 +17,21 @@ public sealed class MonopitchRoofSectionVisualSourceContractTests
         Assert.Contains("RoofSectionDiagramStyle.GreenRoofFaceBrush", Monopitch);
         Assert.Contains("RoofSectionDiagramStyle.CreateRoofFacePen", Gable);
         Assert.Contains("RoofSectionDiagramStyle.CreateRoofFacePen", Monopitch);
-        Assert.Contains("Color.FromRgb(43, 151, 96)", Style);
+        Assert.Contains("Color.FromRgb(184, 117, 53)", Style);
+        Assert.Contains("Color.FromRgb(112, 64, 31)", Style);
+        Assert.Contains("Color.FromRgb(122, 79, 42)", Style);
+        Assert.Contains("Color.FromRgb(166, 139, 114)", Style);
+        Assert.Contains("Color.FromRgb(211, 154, 44)", Style);
         Assert.Contains("RoofFaceStrokeThickness = 12d", Style);
         Assert.Contains("DatumStrokeThickness = 1.5d", Style);
         Assert.Contains("ReferenceStrokeThickness = 1.25d", Style);
-        Assert.Equal(1, Count(Style, "Color.FromRgb(43, 151, 96)"));
+        Assert.Equal(1, Count(Style, "Color.FromRgb(112, 64, 31)"));
     }
 
     [Fact]
     public void MonopitchDrawsDashedHorizontalAndVerticalHighProjectionReferences()
     {
-        Assert.Contains("CreateReferencePen(secondary)", Monopitch);
+        Assert.Contains("CreateReferencePen(guide)", Monopitch);
         Assert.Contains("DrawLine(referencePen, low, highProjection)", Monopitch);
         Assert.Contains("DrawLine(referencePen, high, highProjection)", Monopitch);
         Assert.Contains("DashStyle = DashStyles.Dash", Style);

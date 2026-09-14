@@ -38,14 +38,14 @@ public sealed class MonopitchRoofSectionControl : FrameworkElement
 
         var foreground = FindBrush("SettingsTextPrimaryBrush", Brushes.Black);
         var secondary = FindBrush("SettingsTextSecondaryBrush", Brushes.DimGray);
-        var border = FindBrush("SettingsBorderBrush", Brushes.Gray);
         var lowBrush = RoofSectionDiagramStyle.BlueRoofFaceBrush;
         var highBrush = RoofSectionDiagramStyle.GreenRoofFaceBrush;
         var roofBrush = RoofSectionDiagramStyle.GreenRoofFaceBrush;
         var technical = RoofSectionDiagramStyle.TechnicalBrush;
-        var dimensionPen = RoofSectionDiagramStyle.CreateDimensionPen(secondary);
-        var datumPen = RoofSectionDiagramStyle.CreateDatumPen(border);
-        var referencePen = RoofSectionDiagramStyle.CreateReferencePen(secondary);
+        var guide = RoofSectionDiagramStyle.GuideBrush;
+        var dimensionPen = RoofSectionDiagramStyle.CreateDimensionPen(technical);
+        var datumPen = RoofSectionDiagramStyle.CreateDatumPen(guide);
+        var referencePen = RoofSectionDiagramStyle.CreateReferencePen(guide);
         var low = PointOf(layout.Low);
         var high = PointOf(layout.High);
         var highProjection = PointOf(layout.HighProjection);
@@ -83,8 +83,8 @@ public sealed class MonopitchRoofSectionControl : FrameworkElement
             dimensionPen,
             new Point(layout.Left, layout.DimensionY),
             new Point(layout.Right, layout.DimensionY));
-        DrawArrowHead(drawingContext, new Point(layout.Left, layout.DimensionY), 1d, secondary);
-        DrawArrowHead(drawingContext, new Point(layout.Right, layout.DimensionY), -1d, secondary);
+        DrawArrowHead(drawingContext, new Point(layout.Left, layout.DimensionY), 1d, technical);
+        DrawArrowHead(drawingContext, new Point(layout.Right, layout.DimensionY), -1d, technical);
         DrawCenteredText(
             drawingContext,
             $"L = {state.SpanMm.ToString("0", state.Culture)} mm",

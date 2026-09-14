@@ -611,6 +611,8 @@
   <data name="CommandUi_RoofMonoPitch_Tooltip" xml:space="preserve"><value>Starts the mono-pitch roof workflow.</value></data>
   <data name="CommandUi_RoofRafters_Label" xml:space="preserve"><value>Rafters</value></data>
   <data name="CommandUi_RoofRafters_Tooltip" xml:space="preserve"><value>Creates automatic rafters for a stored gable roof.</value></data>
+  <data name="CommandUi_RoofPurlins_Label" xml:space="preserve"><value>Automatic purlins</value></data>
+  <data name="CommandUi_RoofPurlins_Tooltip" xml:space="preserve"><value>Creates or reconciles the roof's automatic purlins.</value></data>
   <data name="CommandUi_RoofEdit_Label" xml:space="preserve"><value>Edit</value></data>
   <data name="CommandUi_RoofEdit_Tooltip" xml:space="preserve"><value>Edits the geometry and parameters of the selected roof.</value></data>
   <data name="CommandUi_RoofToggleLock_Label" xml:space="preserve"><value>Lock</value></data>
@@ -739,4 +741,86 @@
   <data name="Dialog_SettingsRafterSpacing" xml:space="preserve">
     <value>Both spacings must be positive finite numbers, and the default spacing must not be less than the minimum.</value>
   </data>
+  <data name="Command_AutomaticPurlin_ManualEditRestricted" xml:space="preserve">
+    <value>\nAutomatic purlins are controlled by the roof layout and cannot currently be edited through AK_EDIT or AK_ASSIGN.</value>
+  </data>
+  <data name="AutomaticPurlin_Title" xml:space="preserve"><value>Automatic purlins</value></data>
+  <data name="AutomaticPurlin_Description" xml:space="preserve"><value>Edit the layout draft and inspect its transient preview. Changes are not saved in this step.</value></data>
+  <data name="AutomaticPurlin_ReferenceSection" xml:space="preserve"><value>Reference elevation</value></data>
+  <data name="AutomaticPurlin_DatumStored" xml:space="preserve"><value>The reference elevation was loaded from the drawing.</value></data>
+  <data name="AutomaticPurlin_DatumMissing" xml:space="preserve"><value>The reference elevation is not set. The values below apply only to this preview.</value></data>
+  <data name="AutomaticPurlin_ReferenceKind" xml:space="preserve"><value>Reference kind</value></data>
+  <data name="AutomaticPurlin_ReferenceRelativeElevation" xml:space="preserve"><value>Relative reference elevation</value></data>
+  <data name="AutomaticPurlin_UnitMetres" xml:space="preserve"><value>m</value></data>
+  <data name="AutomaticPurlin_UnitMillimetres" xml:space="preserve"><value>mm</value></data>
+  <data name="AutomaticPurlin_Advanced" xml:space="preserve"><value>Advanced</value></data>
+  <data name="AutomaticPurlin_ReferenceLocalZ" xml:space="preserve"><value>Local reference position</value></data>
+  <data name="AutomaticPurlin_ReferenceLocalZHelp" xml:space="preserve"><value>Technical local Z position to which the relative building elevation is assigned.</value></data>
+  <data name="AutomaticPurlin_ReferenceExplicitPlane" xml:space="preserve"><value>Explicit local plane</value></data>
+  <data name="AutomaticPurlin_ReferenceSourceEave" xml:space="preserve"><value>Source roof eave plane</value></data>
+  <data name="AutomaticPurlin_ReferenceWallPlateBottom" xml:space="preserve"><value>Wall plate bottom edge</value></data>
+  <data name="AutomaticPurlin_LayoutStored" xml:space="preserve"><value>The existing layout was loaded without modification.</value></data>
+  <data name="AutomaticPurlin_LayoutMissing" xml:space="preserve"><value>The layout is not set. New rows remain in the draft only.</value></data>
+  <data name="AutomaticPurlin_RidgeSection" xml:space="preserve"><value>Ridge purlin</value></data>
+  <data name="AutomaticPurlin_CreateRidge" xml:space="preserve"><value>Create ridge purlin</value></data>
+  <data name="AutomaticPurlin_IntermediateSection" xml:space="preserve"><value>Intermediate purlins</value></data>
+  <data name="AutomaticPurlin_IntermediateRowFormat" xml:space="preserve"><value>Intermediate purlin {0}</value></data>
+  <data name="AutomaticPurlin_Add" xml:space="preserve"><value>Add</value></data>
+  <data name="AutomaticPurlin_NoIntermediateRows" xml:space="preserve"><value>No intermediate purlins have been added yet.</value></data>
+  <data name="AutomaticPurlin_Enabled" xml:space="preserve"><value>Enabled</value></data>
+  <data name="AutomaticPurlin_Remove" xml:space="preserve"><value>Remove</value></data>
+  <data name="AutomaticPurlin_PlacementMode" xml:space="preserve"><value>Placement mode</value></data>
+  <data name="AutomaticPurlin_ModeBottomHeight" xml:space="preserve"><value>Bottom edge height above reference</value></data>
+  <data name="AutomaticPurlin_ModeEaveDistance" xml:space="preserve"><value>Plan distance from eave</value></data>
+  <data name="AutomaticPurlin_ModeRidgeDistance" xml:space="preserve"><value>Plan distance from ridge</value></data>
+  <data name="AutomaticPurlin_ValueBottomHeight" xml:space="preserve"><value>Bottom edge height</value></data>
+  <data name="AutomaticPurlin_ValueEaveDistance" xml:space="preserve"><value>Distance from eave</value></data>
+  <data name="AutomaticPurlin_ValueRidgeDistance" xml:space="preserve"><value>Distance from ridge</value></data>
+  <data name="AutomaticPurlin_RidgeReference" xml:space="preserve"><value>Reference ridge</value></data>
+  <data name="AutomaticPurlin_BottomEdge" xml:space="preserve"><value>Bottom</value></data>
+  <data name="AutomaticPurlin_Center" xml:space="preserve"><value>Centerline</value></data>
+  <data name="AutomaticPurlin_TopEdge" xml:space="preserve"><value>Top</value></data>
+  <data name="AutomaticPurlin_RidgeNumberFormat" xml:space="preserve"><value>Ridge {0}</value></data>
+  <data name="AutomaticPurlin_CrossSection" xml:space="preserve"><value>Purlin cross-section</value></data>
+  <data name="AutomaticPurlin_CrossSectionReadOnly" xml:space="preserve"><value>The effective default cross-section is read-only in this step.</value></data>
+  <data name="AutomaticPurlin_SeatingSection" xml:space="preserve"><value>Rafter seating</value></data>
+  <data name="AutomaticPurlin_SeatingDefined" xml:space="preserve"><value>For plan-based placement, seating determines the physical elevation of the horizontal purlin.</value></data>
+  <data name="AutomaticPurlin_HeightModeSeatingPolicy" xml:space="preserve"><value>For bottom-edge placement, seating is not applicable; the entered elevation remains authoritative.</value></data>
+  <data name="AutomaticPurlin_SeatingMethod" xml:space="preserve"><value>Seating method</value></data>
+  <data name="AutomaticPurlin_SeatingPercent" xml:space="preserve"><value>Percent of rafter height</value></data>
+  <data name="AutomaticPurlin_SeatingAbsolute" xml:space="preserve"><value>Fixed value</value></data>
+  <data name="AutomaticPurlin_SeatingValue" xml:space="preserve"><value>Seating value</value></data>
+  <data name="AutomaticPurlin_PlanPosition" xml:space="preserve"><value>Plan position</value></data>
+  <data name="AutomaticPurlin_RoofPlaneElevation" xml:space="preserve"><value>Roof plane</value></data>
+  <data name="AutomaticPurlin_SeatingDepth" xml:space="preserve"><value>Seating depth</value></data>
+  <data name="AutomaticPurlin_SeatingNotApplicable" xml:space="preserve"><value>Not applicable</value></data>
+  <data name="AutomaticPurlin_Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="AutomaticPurlin_Preview" xml:space="preserve"><value>Preview</value></data>
+  <data name="AutomaticPurlin_ValidationBoundaryIdentity" xml:space="preserve"><value>Stable boundary identity is missing or invalid. Preview must not create or repair it.</value></data>
+  <data name="AutomaticPurlin_ValidationDatum" xml:space="preserve"><value>Enter a valid reference elevation in metres and local position in millimetres.</value></data>
+  <data name="AutomaticPurlin_ValidationNoHorizontalRidge" xml:space="preserve"><value>The roof has no eligible horizontal ridge.</value></data>
+  <data name="AutomaticPurlin_ValidationValue" xml:space="preserve"><value>The placement value must be a finite number greater than 0.</value></data>
+  <data name="AutomaticPurlin_ValidationSeating" xml:space="preserve"><value>Seating must be greater than 0 and less than 100% or the rafter height.</value></data>
+  <data name="AutomaticPurlin_ValidationRidgeReference" xml:space="preserve"><value>Select a valid horizontal reference ridge.</value></data>
+  <data name="AutomaticPurlin_ValidationInclinedRidge" xml:space="preserve"><value>An inclined ridge cannot be used as the reference.</value></data>
+  <data name="AutomaticPurlin_ValidationOutsideRoof" xml:space="preserve"><value>The placement lies outside the roof.</value></data>
+  <data name="AutomaticPurlin_ValidationCriticalElevation" xml:space="preserve"><value>The placement coincides with a critical topology elevation.</value></data>
+  <data name="AutomaticPurlin_ValidationLayout" xml:space="preserve"><value>The layout cannot be previewed. Check its values.</value></data>
+  <data name="AutomaticPurlin_CommandSelectRoof" xml:space="preserve"><value>Select an authoritative persisted Hip roof source Polyline: </value></data>
+  <data name="AutomaticPurlin_CommandPolylineRequired" xml:space="preserve"><value>Selection must be a Polyline.</value></data>
+  <data name="AutomaticPurlin_CommandHipRoofRequired" xml:space="preserve"><value>An authoritative persisted Hip roof with valid metadata is required.</value></data>
+  <data name="AutomaticPurlin_CommandFailedFormat" xml:space="preserve"><value>Automatic purlin dialog failed: {0}</value></data>
+  <data name="AutomaticPurlin_DescriptionProduction" xml:space="preserve"><value>Edit the layout, inspect the transient preview, and confirm changes with Apply.</value></data>
+  <data name="AutomaticPurlin_DatumMissingProduction" xml:space="preserve"><value>The reference elevation is not stored. A valid entered value will be stored on Apply.</value></data>
+  <data name="AutomaticPurlin_LayoutMissingProduction" xml:space="preserve"><value>The layout is not stored. A valid draft will be stored on Apply.</value></data>
+  <data name="AutomaticPurlin_Apply" xml:space="preserve"><value>Apply</value></data>
+  <data name="AutomaticPurlin_ApplySucceeded" xml:space="preserve"><value>Automatic purlins were applied.</value></data>
+  <data name="AutomaticPurlin_ApplyFailed" xml:space="preserve"><value>Automatic purlins could not be applied.</value></data>
+  <data name="AutomaticPurlin_Schematic" xml:space="preserve"><value>Roof-section schematic</value></data>
+  <data name="AutomaticPurlin_SchematicRidge" xml:space="preserve"><value>Ridge purlin</value></data>
+  <data name="AutomaticPurlin_SchematicIntermediate" xml:space="preserve"><value>Intermediate purlin</value></data>
+  <data name="AutomaticPurlin_SchematicRafter" xml:space="preserve"><value>Rafter</value></data>
+  <data name="AutomaticPurlin_SchematicSeatingHelp" xml:space="preserve"><value>Schematic seating indication; the numerical values remain authoritative.</value></data>
+  <data name="AutomaticPurlin_SchematicRidgeUnresolved" xml:space="preserve"><value>Select a valid reference ridge.</value></data>
+  <data name="AutomaticPurlin_SchematicNoSelection" xml:space="preserve"><value>Select an intermediate purlin to show its placement.</value></data>
 </root>

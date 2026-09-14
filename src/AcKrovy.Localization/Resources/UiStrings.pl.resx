@@ -611,6 +611,8 @@
   <data name="CommandUi_RoofMonoPitch_Tooltip" xml:space="preserve"><value>Uruchamia proces dachu jednospadowego.</value></data>
   <data name="CommandUi_RoofRafters_Label" xml:space="preserve"><value>Krokwie</value></data>
   <data name="CommandUi_RoofRafters_Tooltip" xml:space="preserve"><value>Tworzy automatyczne krokwie dla zapisanego dachu dwuspadowego.</value></data>
+  <data name="CommandUi_RoofPurlins_Label" xml:space="preserve"><value>Automatyczne płatwie</value></data>
+  <data name="CommandUi_RoofPurlins_Tooltip" xml:space="preserve"><value>Tworzy lub uzgadnia automatyczne płatwie dachu.</value></data>
   <data name="CommandUi_RoofEdit_Label" xml:space="preserve"><value>Edytuj</value></data>
   <data name="CommandUi_RoofEdit_Tooltip" xml:space="preserve"><value>Edytuje geometrię i parametry wybranego dachu.</value></data>
   <data name="CommandUi_RoofToggleLock_Label" xml:space="preserve"><value>Blokada</value></data>
@@ -739,4 +741,86 @@
   <data name="Dialog_SettingsRafterSpacing" xml:space="preserve">
     <value>Oba rozstawy muszą być dodatnimi liczbami skończonymi, a rozstaw domyślny nie może być mniejszy niż minimalny.</value>
   </data>
+  <data name="Command_AutomaticPurlin_ManualEditRestricted" xml:space="preserve">
+    <value>\nAutomatyczne płatwie są sterowane przez układ dachu i obecnie nie można ich edytować za pomocą AK_EDIT ani AK_ASSIGN.</value>
+  </data>
+  <data name="AutomaticPurlin_Title" xml:space="preserve"><value>Automatyczne płatwie</value></data>
+  <data name="AutomaticPurlin_Description" xml:space="preserve"><value>Edytuj szkic układu i sprawdź jego tymczasowy podgląd. Zmiany nie są zapisywane na tym etapie.</value></data>
+  <data name="AutomaticPurlin_ReferenceSection" xml:space="preserve"><value>Wysokość odniesienia</value></data>
+  <data name="AutomaticPurlin_DatumStored" xml:space="preserve"><value>Wysokość odniesienia została wczytana z rysunku.</value></data>
+  <data name="AutomaticPurlin_DatumMissing" xml:space="preserve"><value>Wysokość odniesienia nie jest ustawiona. Poniższe wartości dotyczą tylko tego podglądu.</value></data>
+  <data name="AutomaticPurlin_ReferenceKind" xml:space="preserve"><value>Rodzaj odniesienia</value></data>
+  <data name="AutomaticPurlin_ReferenceRelativeElevation" xml:space="preserve"><value>Względna wysokość odniesienia</value></data>
+  <data name="AutomaticPurlin_UnitMetres" xml:space="preserve"><value>m</value></data>
+  <data name="AutomaticPurlin_UnitMillimetres" xml:space="preserve"><value>mm</value></data>
+  <data name="AutomaticPurlin_Advanced" xml:space="preserve"><value>Zaawansowane</value></data>
+  <data name="AutomaticPurlin_ReferenceLocalZ" xml:space="preserve"><value>Lokalne położenie odniesienia</value></data>
+  <data name="AutomaticPurlin_ReferenceLocalZHelp" xml:space="preserve"><value>Techniczne lokalne położenie Z, do którego przypisana jest względna rzędna budowlana.</value></data>
+  <data name="AutomaticPurlin_ReferenceExplicitPlane" xml:space="preserve"><value>Jawna płaszczyzna lokalna</value></data>
+  <data name="AutomaticPurlin_ReferenceSourceEave" xml:space="preserve"><value>Płaszczyzna okapu dachu źródłowego</value></data>
+  <data name="AutomaticPurlin_ReferenceWallPlateBottom" xml:space="preserve"><value>Dolna krawędź murłaty</value></data>
+  <data name="AutomaticPurlin_LayoutStored" xml:space="preserve"><value>Istniejący układ został wczytany bez zmian.</value></data>
+  <data name="AutomaticPurlin_LayoutMissing" xml:space="preserve"><value>Układ nie jest ustawiony. Nowe wiersze pozostaną tylko w szkicu.</value></data>
+  <data name="AutomaticPurlin_RidgeSection" xml:space="preserve"><value>Płatew kalenicowa</value></data>
+  <data name="AutomaticPurlin_CreateRidge" xml:space="preserve"><value>Utwórz płatew kalenicową</value></data>
+  <data name="AutomaticPurlin_IntermediateSection" xml:space="preserve"><value>Płatwie pośrednie</value></data>
+  <data name="AutomaticPurlin_IntermediateRowFormat" xml:space="preserve"><value>Płatew pośrednia {0}</value></data>
+  <data name="AutomaticPurlin_Add" xml:space="preserve"><value>Dodaj</value></data>
+  <data name="AutomaticPurlin_NoIntermediateRows" xml:space="preserve"><value>Nie dodano jeszcze płatwi pośrednich.</value></data>
+  <data name="AutomaticPurlin_Enabled" xml:space="preserve"><value>Włączona</value></data>
+  <data name="AutomaticPurlin_Remove" xml:space="preserve"><value>Usuń</value></data>
+  <data name="AutomaticPurlin_PlacementMode" xml:space="preserve"><value>Sposób rozmieszczenia</value></data>
+  <data name="AutomaticPurlin_ModeBottomHeight" xml:space="preserve"><value>Wysokość dolnej krawędzi nad odniesieniem</value></data>
+  <data name="AutomaticPurlin_ModeEaveDistance" xml:space="preserve"><value>Odległość w rzucie od okapu</value></data>
+  <data name="AutomaticPurlin_ModeRidgeDistance" xml:space="preserve"><value>Odległość w rzucie od kalenicy</value></data>
+  <data name="AutomaticPurlin_ValueBottomHeight" xml:space="preserve"><value>Wysokość dolnej krawędzi</value></data>
+  <data name="AutomaticPurlin_ValueEaveDistance" xml:space="preserve"><value>Odległość od okapu</value></data>
+  <data name="AutomaticPurlin_ValueRidgeDistance" xml:space="preserve"><value>Odległość od kalenicy</value></data>
+  <data name="AutomaticPurlin_RidgeReference" xml:space="preserve"><value>Kalenica odniesienia</value></data>
+  <data name="AutomaticPurlin_BottomEdge" xml:space="preserve"><value>Dół</value></data>
+  <data name="AutomaticPurlin_Center" xml:space="preserve"><value>Oś</value></data>
+  <data name="AutomaticPurlin_TopEdge" xml:space="preserve"><value>Góra</value></data>
+  <data name="AutomaticPurlin_RidgeNumberFormat" xml:space="preserve"><value>Kalenica {0}</value></data>
+  <data name="AutomaticPurlin_CrossSection" xml:space="preserve"><value>Przekrój płatwi</value></data>
+  <data name="AutomaticPurlin_CrossSectionReadOnly" xml:space="preserve"><value>Efektywny domyślny przekrój jest na tym etapie tylko do odczytu.</value></data>
+  <data name="AutomaticPurlin_SeatingSection" xml:space="preserve"><value>Osadzenie w krokwi</value></data>
+  <data name="AutomaticPurlin_SeatingDefined" xml:space="preserve"><value>Przy położeniu w rzucie osadzenie wyznacza fizyczną wysokość poziomej płatwi.</value></data>
+  <data name="AutomaticPurlin_HeightModeSeatingPolicy" xml:space="preserve"><value>Przy położeniu według dolnej krawędzi osadzenie nie ma zastosowania; podana wysokość pozostaje nadrzędna.</value></data>
+  <data name="AutomaticPurlin_SeatingMethod" xml:space="preserve"><value>Sposób osadzenia</value></data>
+  <data name="AutomaticPurlin_SeatingPercent" xml:space="preserve"><value>Procent wysokości krokwi</value></data>
+  <data name="AutomaticPurlin_SeatingAbsolute" xml:space="preserve"><value>Stała wartość</value></data>
+  <data name="AutomaticPurlin_SeatingValue" xml:space="preserve"><value>Wartość osadzenia</value></data>
+  <data name="AutomaticPurlin_PlanPosition" xml:space="preserve"><value>Położenie w rzucie</value></data>
+  <data name="AutomaticPurlin_RoofPlaneElevation" xml:space="preserve"><value>Połać dachowa</value></data>
+  <data name="AutomaticPurlin_SeatingDepth" xml:space="preserve"><value>Osadzenie</value></data>
+  <data name="AutomaticPurlin_SeatingNotApplicable" xml:space="preserve"><value>Nie dotyczy</value></data>
+  <data name="AutomaticPurlin_Cancel" xml:space="preserve"><value>Anuluj</value></data>
+  <data name="AutomaticPurlin_Preview" xml:space="preserve"><value>Podgląd</value></data>
+  <data name="AutomaticPurlin_ValidationBoundaryIdentity" xml:space="preserve"><value>Brakuje stabilnej tożsamości granicy lub jest ona nieprawidłowa. Podgląd nie może jej tworzyć ani naprawiać.</value></data>
+  <data name="AutomaticPurlin_ValidationDatum" xml:space="preserve"><value>Wprowadź prawidłową wysokość odniesienia w metrach i lokalne położenie w milimetrach.</value></data>
+  <data name="AutomaticPurlin_ValidationNoHorizontalRidge" xml:space="preserve"><value>Dach nie ma odpowiedniej poziomej kalenicy.</value></data>
+  <data name="AutomaticPurlin_ValidationValue" xml:space="preserve"><value>Wartość rozmieszczenia musi być skończoną liczbą większą od 0.</value></data>
+  <data name="AutomaticPurlin_ValidationSeating" xml:space="preserve"><value>Osadzenie musi być większe od 0 i mniejsze niż 100% lub wysokość krokwi.</value></data>
+  <data name="AutomaticPurlin_ValidationRidgeReference" xml:space="preserve"><value>Wybierz prawidłową poziomą kalenicę odniesienia.</value></data>
+  <data name="AutomaticPurlin_ValidationInclinedRidge" xml:space="preserve"><value>Pochyłej kalenicy nie można użyć jako odniesienia.</value></data>
+  <data name="AutomaticPurlin_ValidationOutsideRoof" xml:space="preserve"><value>Położenie znajduje się poza dachem.</value></data>
+  <data name="AutomaticPurlin_ValidationCriticalElevation" xml:space="preserve"><value>Położenie pokrywa się z krytyczną wysokością topologii.</value></data>
+  <data name="AutomaticPurlin_ValidationLayout" xml:space="preserve"><value>Nie można wyświetlić układu. Sprawdź jego wartości.</value></data>
+  <data name="AutomaticPurlin_CommandSelectRoof" xml:space="preserve"><value>Wybierz autorytatywną zapisaną polilinię źródłową dachu kopertowego: </value></data>
+  <data name="AutomaticPurlin_CommandPolylineRequired" xml:space="preserve"><value>Wybór musi być polilinią.</value></data>
+  <data name="AutomaticPurlin_CommandHipRoofRequired" xml:space="preserve"><value>Wymagany jest autorytatywny zapisany dach kopertowy z prawidłowymi metadanymi.</value></data>
+  <data name="AutomaticPurlin_CommandFailedFormat" xml:space="preserve"><value>Okno automatycznych płatwi zakończyło się błędem: {0}</value></data>
+  <data name="AutomaticPurlin_DescriptionProduction" xml:space="preserve"><value>Edytuj układ, sprawdź podgląd tymczasowy i zatwierdź zmiany przyciskiem Zastosuj.</value></data>
+  <data name="AutomaticPurlin_DatumMissingProduction" xml:space="preserve"><value>Wysokość odniesienia nie jest zapisana. Poprawna wprowadzona wartość zostanie zapisana po zastosowaniu.</value></data>
+  <data name="AutomaticPurlin_LayoutMissingProduction" xml:space="preserve"><value>Układ nie jest zapisany. Poprawny szkic zostanie zapisany po zastosowaniu.</value></data>
+  <data name="AutomaticPurlin_Apply" xml:space="preserve"><value>Zastosuj</value></data>
+  <data name="AutomaticPurlin_ApplySucceeded" xml:space="preserve"><value>Automatyczne płatwie zostały zastosowane.</value></data>
+  <data name="AutomaticPurlin_ApplyFailed" xml:space="preserve"><value>Nie udało się zastosować automatycznych płatwi.</value></data>
+  <data name="AutomaticPurlin_Schematic" xml:space="preserve"><value>Schemat przekroju dachu</value></data>
+  <data name="AutomaticPurlin_SchematicRidge" xml:space="preserve"><value>Płatew kalenicowa</value></data>
+  <data name="AutomaticPurlin_SchematicIntermediate" xml:space="preserve"><value>Płatew pośrednia</value></data>
+  <data name="AutomaticPurlin_SchematicRafter" xml:space="preserve"><value>Krokiew</value></data>
+  <data name="AutomaticPurlin_SchematicSeatingHelp" xml:space="preserve"><value>Schematyczne przedstawienie oparcia; wartości liczbowe pozostają miarodajne.</value></data>
+  <data name="AutomaticPurlin_SchematicRidgeUnresolved" xml:space="preserve"><value>Wybierz prawidłową kalenicę odniesienia.</value></data>
+  <data name="AutomaticPurlin_SchematicNoSelection" xml:space="preserve"><value>Wybierz płatew pośrednią, aby wyświetlić jej położenie.</value></data>
 </root>

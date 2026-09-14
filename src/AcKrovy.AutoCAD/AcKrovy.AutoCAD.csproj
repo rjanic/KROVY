@@ -55,6 +55,7 @@
     </Content>
     <Resource Include="UI\Assets\Flags\*.png" />
     <Resource Include="UI\Assets\AnnotationPreviews\*.png" />
+    <Resource Include="UI\Assets\Schematics\*.png" />
   </ItemGroup>
 
   <Target Name="ValidateAutoCadReferences" BeforeTargets="ResolveReferences">

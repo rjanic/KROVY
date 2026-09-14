@@ -42,6 +42,7 @@ public static class AcKrovyCommandNames
     public const string RoofAsymmetric = "AK_ROOF_ASYM";
     public const string RoofMonopitch = "AK_ROOF_MONOPITCH";
     public const string RoofRafters = "AK_ROOF_RAFTERS";
+    public const string RoofPurlins = "AK_ROOF_PURLINS";
     public const string RoofUnlock = "AK_ROOF_UNLOCK";
     public const string RoofLock = "AK_ROOF_LOCK";
     public const string RoofToggleLock = "AK_ROOF_TOGGLELOCK";
@@ -54,7 +55,7 @@ public static class AcKrovyCommandNames
         Help, Ribbon, Toolbar, ToolbarShow, ToolbarHide, Settings, ApplyLayers, Label, Labels,
         LabelMissing, LabelSelected, LabelAll, LabelShow, LabelHide, Assign, Rafter, WallPlate, Purlin,
         Post, CollarTie, Brace, TieBeam, Custom, Edit, FlipSlope, Inspect, Report, ReportAll, Recalc,
-        Renumber, Diagnostics, SelectSimilar, ExportCsv, Roof, RoofHip, RoofAsymmetric, RoofMonopitch, RoofRafters, RoofUnlock, RoofLock,
+        Renumber, Diagnostics, SelectSimilar, ExportCsv, Roof, RoofHip, RoofAsymmetric, RoofMonopitch, RoofRafters, RoofPurlins, RoofUnlock, RoofLock,
         RoofToggleLock, RoofResetEdits, RoofEdit, ImportDwg,
     ];
 }
@@ -160,6 +161,12 @@ public static class CommandUiCatalog
         "roof_rafters",
         "CommandUi_RoofRafters_Label",
         "CommandUi_RoofRafters_Tooltip");
+    public static CommandUiDescriptor RoofPurlins { get; } = CreateDirect(
+        AcKrovyCommandNames.RoofPurlins,
+        "DECORAIR_AK_ROOF_PURLINS",
+        "roof_purlins",
+        "CommandUi_RoofPurlins_Label",
+        "CommandUi_RoofPurlins_Tooltip");
     public static CommandUiDescriptor RoofEdit { get; } = CreateDirect(
         AcKrovyCommandNames.RoofEdit,
         "DECORAIR_AK_ROOF_EDIT",
@@ -221,7 +228,7 @@ public static class CommandUiCatalog
 
     public static IReadOnlyList<CommandUiDescriptor> RibbonCommands { get; } =
     [
-        Roof, RoofRafters, RoofEdit, RoofToggleLock, Rafter, WallPlate, Purlin, Post, CollarTie, Brace, TieBeam, Custom, Assign, Edit, Inspect, Recalc, Renumber,
+        Roof, RoofRafters, RoofPurlins, RoofEdit, RoofToggleLock, Rafter, WallPlate, Purlin, Post, CollarTie, Brace, TieBeam, Custom, Assign, Edit, Inspect, Recalc, Renumber,
         Report, ReportAll, Settings, Labels, Toolbar,
     ];
 

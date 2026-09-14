@@ -36,13 +36,13 @@ public sealed class GableRoofSectionControl : FrameworkElement
 
         var foreground = FindBrush("SettingsTextPrimaryBrush", Brushes.Black);
         var secondary = FindBrush("SettingsTextSecondaryBrush", Brushes.DimGray);
-        var border = FindBrush("SettingsBorderBrush", Brushes.Gray);
-        var blue = RoofSectionDiagramStyle.BlueRoofFaceBrush;
-        var green = RoofSectionDiagramStyle.GreenRoofFaceBrush;
+        var oak = RoofSectionDiagramStyle.BlueRoofFaceBrush;
+        var walnut = RoofSectionDiagramStyle.GreenRoofFaceBrush;
         var technical = RoofSectionDiagramStyle.TechnicalBrush;
-        var datumPen = RoofSectionDiagramStyle.CreateDatumPen(border);
-        var referencePen = RoofSectionDiagramStyle.CreateReferencePen(secondary);
-        var dimensionPen = RoofSectionDiagramStyle.CreateDimensionPen(secondary);
+        var guide = RoofSectionDiagramStyle.GuideBrush;
+        var datumPen = RoofSectionDiagramStyle.CreateDatumPen(guide);
+        var referencePen = RoofSectionDiagramStyle.CreateReferencePen(guide);
+        var dimensionPen = RoofSectionDiagramStyle.CreateDimensionPen(technical);
 
         var eaveA = PointOf(layout.EaveA);
         var ridge = PointOf(layout.Ridge);
@@ -51,8 +51,9 @@ public sealed class GableRoofSectionControl : FrameworkElement
         var rightEave = state.IsMirrored ? eaveB : eaveA;
         var leftRun = state.IsMirrored ? state.RunAMm : state.RunBMm;
         var rightRun = state.IsMirrored ? state.RunBMm : state.RunAMm;
-        var leftBrush = state.IsMirrored ? blue : green;
-        var rightBrush = state.IsMirrored ? green : blue;
+        // Non-mirrored: left oak (#C17B34), right walnut (#6E3B18) — matches timber mockup.
+        var leftBrush = state.IsMirrored ? walnut : oak;
+        var rightBrush = state.IsMirrored ? oak : walnut;
         var alphaAnnotation = CreateAngleAnnotation(eaveA, ridge);
         var betaAnnotation = CreateAngleAnnotation(eaveB, ridge);
         var alphaArcVertex = CreateAngleArcVertex(alphaAnnotation, eaveA, ridge);
@@ -83,7 +84,7 @@ public sealed class GableRoofSectionControl : FrameworkElement
             RoofSectionDiagramStyle.CreateRoofFacePen(rightBrush),
             ridge,
             rightEave);
-        drawingContext.DrawEllipse(technical, null, ridge, 6d, 6d);
+        drawingContext.DrawEllipse(RoofSectionDiagramStyle.RidgeBrush, null, ridge, 6d, 6d);
         DrawInteriorAngleArcTowardLowEave(
             drawingContext,
             alphaArcVertex,

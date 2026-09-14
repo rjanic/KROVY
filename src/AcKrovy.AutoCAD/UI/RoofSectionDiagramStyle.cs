@@ -23,14 +23,25 @@ internal static class RoofSectionDiagramStyle
         AngleStrokeThickness / 2d +
         AngleSafeRoofClearance;
 
+    /// <summary>Left-face oak timber (#B87535). Historical name kept for call sites.</summary>
     public static Brush BlueRoofFaceBrush { get; } =
-        FrozenBrush(Color.FromRgb(39, 116, 196));
+        FrozenBrush(Color.FromRgb(184, 117, 53));
 
+    /// <summary>Right-face walnut timber (#70401F). Historical name kept for call sites.</summary>
     public static Brush GreenRoofFaceBrush { get; } =
-        FrozenBrush(Color.FromRgb(43, 151, 96));
+        FrozenBrush(Color.FromRgb(112, 64, 31));
 
+    /// <summary>Dimension / angle annotation color (#7A4F2A).</summary>
     public static Brush TechnicalBrush { get; } =
-        FrozenBrush(Color.FromRgb(210, 145, 24));
+        FrozenBrush(Color.FromRgb(122, 79, 42));
+
+    /// <summary>Guide / construction lines (#A68B72).</summary>
+    public static Brush GuideBrush { get; } =
+        FrozenBrush(Color.FromRgb(166, 139, 114));
+
+    /// <summary>Brass ridge marker (#D39A2C).</summary>
+    public static Brush RidgeBrush { get; } =
+        FrozenBrush(Color.FromRgb(211, 154, 44));
 
     public static Pen CreateRoofFacePen(Brush brush) =>
         new(brush, RoofFaceStrokeThickness);

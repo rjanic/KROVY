@@ -1,0 +1,265 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <DrawingBrush x:Key="WoodOakBrush"
+                  Stretch="Fill"
+                  TileMode="None"
+                  Viewbox="0,0,800,450"
+                  Viewport="0,0,1,1"
+                  ViewboxUnits="Absolute"
+                  ViewportUnits="RelativeToBoundingBox">
+
+        <DrawingBrush.Drawing>
+            <DrawingGroup>
+
+                <!-- základ dreva -->
+                <GeometryDrawing
+                    Brush="#8A5A33"
+                    Geometry="M0,0 L800,0 800,450 0,450 Z"/>
+
+                <!-- jemné stmavenie -->
+                <GeometryDrawing>
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="0,0,800,450"/>
+                    </GeometryDrawing.Geometry>
+
+                    <GeometryDrawing.Brush>
+                        <LinearGradientBrush StartPoint="0,0"
+                                             EndPoint="0,1">
+                            <GradientStop Color="#554D2D17" Offset="0"/>
+                            <GradientStop Color="#00000000" Offset="0.08"/>
+                            <GradientStop Color="#00000000" Offset="0.92"/>
+                            <GradientStop Color="#554D2D17" Offset="1"/>
+                        </LinearGradientBrush>
+                    </GeometryDrawing.Brush>
+                </GeometryDrawing>
+
+                <!-- tmavé vlákna -->
+                <GeometryDrawing Geometry="M0,25 C120,20 280,40 400,25 560,10 680,35 800,22">
+                    <GeometryDrawing.Pen>
+                        <Pen Brush="#6A3F1F" Thickness="0.8"/>
+                    </GeometryDrawing.Pen>
+                </GeometryDrawing>
+
+                <GeometryDrawing Geometry="M0,70 C150,60 300,75 450,65 620,55 700,80 800,68">
+                    <GeometryDrawing.Pen>
+                        <Pen Brush="#6A3F1F" Thickness="0.6"/>
+                    </GeometryDrawing.Pen>
+                </GeometryDrawing>
+
+                <GeometryDrawing Geometry="M0,120 C130,110 300,130 430,118 600,100 720,130 800,115">
+                    <GeometryDrawing.Pen>
+                        <Pen Brush="#6A3F1F" Thickness="0.7"/>
+                    </GeometryDrawing.Pen>
+                </GeometryDrawing>
+
+                <!-- svetlé vlákna -->
+                <GeometryDrawing Geometry="M0,50 C180,45 360,55 540,48 700,40 760,58 800,52">
+                    <GeometryDrawing.Pen>
+                        <Pen Brush="#B57A45" Thickness="0.4"/>
+                    </GeometryDrawing.Pen>
+                </GeometryDrawing>
+
+                <GeometryDrawing Geometry="M0,170 C200,165 400,175 600,168 730,160 780,180 800,172">
+                    <GeometryDrawing.Pen>
+                        <Pen Brush="#B57A45" Thickness="0.4"/>
+                    </GeometryDrawing.Pen>
+                </GeometryDrawing>
+
+                <!-- saténový lak -->
+                <GeometryDrawing>
+                    <GeometryDrawing.Geometry>
+                        <RectangleGeometry Rect="0,0,800,60"/>
+                    </GeometryDrawing.Geometry>
+
+                    <GeometryDrawing.Brush>
+                        <LinearGradientBrush StartPoint="0,0"
+                                             EndPoint="0,1">
+                            <GradientStop Color="#22D7A775" Offset="0"/>
+                            <GradientStop Color="#00D7A775" Offset="1"/>
+                        </LinearGradientBrush>
+                    </GeometryDrawing.Brush>
+                </GeometryDrawing>
+
+            </DrawingGroup>
+        </DrawingBrush.Drawing>
+    </DrawingBrush>
+
+    <LinearGradientBrush x:Key="RoofGeometryHeaderBandBrush" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Offset="0" Color="#4D2D17" />
+        <GradientStop Offset="0.5" Color="#5A3317" />
+        <GradientStop Offset="1" Color="#6A3F1F" />
+    </LinearGradientBrush>
+
+    <SolidColorBrush x:Key="SettingsCardBackgroundBrush" Color="#F8F4EE" />
+    <SolidColorBrush x:Key="SettingsPanelBackgroundBrush" Color="#FCFAF5" />
+    <SolidColorBrush x:Key="RoofGeometrySchematicBackgroundBrush" Color="#FCFAF5" />
+
+    <SolidColorBrush x:Key="SettingsTextPrimaryBrush" Color="#4A2D1A" />
+    <SolidColorBrush x:Key="SettingsTextSecondaryBrush" Color="#725640" />
+    <SolidColorBrush x:Key="SettingsAccentBrush" Color="#8A5A33" />
+    <SolidColorBrush x:Key="SettingsAccentHoverBrush" Color="#B57A45" />
+    <SolidColorBrush x:Key="SettingsAccentPressedBrush" Color="#6A3F1F" />
+    <SolidColorBrush x:Key="SettingsBorderBrush" Color="#D9CABB" />
+    <SolidColorBrush x:Key="SettingsHoverBrush" Color="#F1DFC9" />
+    <LinearGradientBrush x:Key="SettingsSelectedBrush" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Offset="0" Color="#F7EFE3" />
+        <GradientStop Offset="1" Color="#EBD9BF" />
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="SettingsFocusBrush" Color="#B57A45" />
+    <SolidColorBrush x:Key="SettingsDisabledBrush" Color="#8E7968" />
+    <SolidColorBrush x:Key="SettingsValidationBrush" Color="#B64A3A" />
+    <SolidColorBrush x:Key="SettingsInfoBackgroundBrush" Color="#FCFAF5" />
+    <SolidColorBrush x:Key="SettingsInfoBorderBrush" Color="#D9CABB" />
+    <SolidColorBrush x:Key="SettingsInfoTextBrush" Color="#725640" />
+
+    <Color x:Key="SettingsShadowColor">#502D19</Color>
+    <DropShadowEffect x:Key="SettingsCardElevation" Color="{StaticResource SettingsShadowColor}" BlurRadius="18" ShadowDepth="3" Opacity="0.18" />
+    <DropShadowEffect x:Key="RoofGeometryPrimaryButtonElevation" Color="{StaticResource SettingsShadowColor}" BlurRadius="10" ShadowDepth="2" Opacity="0.25" />
+
+    <SolidColorBrush x:Key="RoofGeometryHeaderTextBrush" Color="#F2E1C5" />
+    <SolidColorBrush x:Key="RoofGeometryHeaderSecondaryTextBrush" Color="#E8CDAA" />
+    <SolidColorBrush x:Key="RoofGeometryIconBrush" Color="#6A3F1F" />
+    <SolidColorBrush x:Key="RoofGeometryOptionBorderBrush" Color="#6A3F1F" />
+    <SolidColorBrush x:Key="RoofGeometryOptionHoverBrush" Color="#F1DFC9" />
+    <SolidColorBrush x:Key="RoofGeometryInputBackgroundBrush" Color="#FCFAF5" />
+    <SolidColorBrush x:Key="RoofGeometryInputBorderBrush" Color="#D9CABB" />
+    <SolidColorBrush x:Key="RoofGeometryInputHoverBrush" Color="#FFF8EF" />
+    <SolidColorBrush x:Key="RoofGeometryDisabledBackgroundBrush" Color="#E7D9C7" />
+    <SolidColorBrush x:Key="RoofGeometryDisabledForegroundBrush" Color="#806F60" />
+    <SolidColorBrush x:Key="RoofGeometrySeparatorBrush" Color="#D9CABB" />
+
+    <SolidColorBrush x:Key="RoofGeometryDirectionCardBackgroundBrush" Color="#F8F4EE" />
+    <SolidColorBrush x:Key="RoofGeometryDirectionCardBorderBrush" Color="#D9CABB" />
+    <SolidColorBrush x:Key="RoofGeometryDirectionAccentBarBrush" Color="#8A5A33" />
+    <SolidColorBrush x:Key="RoofGeometryWoodIconPlateBrush" Color="#FCFAF5" />
+
+    <SolidColorBrush x:Key="RoofGeometryPrimaryButtonBorderBrush" Color="#5A3317" />
+
+    <SolidColorBrush x:Key="RoofGeometrySecondaryButtonBrush" Color="#F7EFE3" />
+    <SolidColorBrush x:Key="RoofGeometrySecondaryButtonHoverBrush" Color="#FFF8EF" />
+    <SolidColorBrush x:Key="RoofGeometrySecondaryButtonPressedBrush" Color="#EBD9BF" />
+    <SolidColorBrush x:Key="RoofGeometrySecondaryButtonBorderBrush" Color="#D7C4AE" />
+    <SolidColorBrush x:Key="RoofGeometryDirectionButtonBrush" Color="#F7EFE3" />
+
+
+    <!-- Simple house / gable icon — clean line art. -->
+    <Geometry x:Key="RoofGeometryGableIconGeometry">
+        M3,17 L16,4 L29,17 M5,17 L5,27 L27,27 L27,17 M11,27 L11,20 L17,20 L17,27 M23,10 L23,6 L26,6 L26,13
+    </Geometry>
+
+    <Style x:Key="RoofGeometryRadioButtonStyle" TargetType="RadioButton">
+        <Setter Property="Foreground" Value="{DynamicResource SettingsTextPrimaryBrush}" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="FocusVisualStyle" Value="{DynamicResource SettingsFocusVisualStyle}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RadioButton">
+                    <Grid Background="Transparent">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="18" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Border x:Name="Indicator"
+                                Width="16" Height="16"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Center"
+                                Background="{DynamicResource SettingsPanelBackgroundBrush}"
+                                BorderBrush="{StaticResource RoofGeometryOptionBorderBrush}"
+                                BorderThickness="1.5"
+                                CornerRadius="8">
+                            <Ellipse x:Name="SelectionDot"
+                                     Width="8" Height="8"
+                                     Fill="{DynamicResource SettingsAccentBrush}"
+                                     Visibility="Collapsed" />
+                        </Border>
+                        <ContentPresenter Grid.Column="1"
+                                          Margin="8,0,0,0"
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                          RecognizesAccessKey="True" />
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Indicator" Property="Background"
+                                    Value="{StaticResource RoofGeometryOptionHoverBrush}" />
+                            <Setter TargetName="Indicator" Property="BorderBrush"
+                                    Value="{DynamicResource SettingsAccentHoverBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="SelectionDot" Property="Visibility" Value="Visible" />
+                            <Setter TargetName="Indicator" Property="BorderBrush"
+                                    Value="{DynamicResource SettingsAccentBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.58" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="RoofGeometryCheckBoxStyle" TargetType="CheckBox">
+        <Setter Property="Foreground" Value="{DynamicResource SettingsTextPrimaryBrush}" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="FocusVisualStyle" Value="{DynamicResource SettingsFocusVisualStyle}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="CheckBox">
+                    <Grid Background="Transparent">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="18" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Border x:Name="Indicator"
+                                Width="16" Height="16"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Center"
+                                Background="{DynamicResource SettingsPanelBackgroundBrush}"
+                                BorderBrush="{StaticResource RoofGeometryOptionBorderBrush}"
+                                BorderThickness="1.5"
+                                CornerRadius="3">
+                            <Viewbox Margin="3">
+                                <Path x:Name="CheckMark"
+                                      Data="M1,5 L4,8 L10,1"
+                                      Stroke="#FFF8EF"
+                                      StrokeThickness="2"
+                                      StrokeStartLineCap="Round"
+                                      StrokeEndLineCap="Round"
+                                      Visibility="Collapsed" />
+                            </Viewbox>
+                        </Border>
+                        <ContentPresenter Grid.Column="1"
+                                          Margin="8,0,0,0"
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                          RecognizesAccessKey="True" />
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Indicator" Property="Background"
+                                    Value="{StaticResource RoofGeometryOptionHoverBrush}" />
+                            <Setter TargetName="Indicator" Property="BorderBrush"
+                                    Value="{DynamicResource SettingsAccentHoverBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Indicator" Property="Background"
+                                    Value="{DynamicResource SettingsAccentBrush}" />
+                            <Setter TargetName="Indicator" Property="BorderBrush"
+                                    Value="{DynamicResource SettingsAccentBrush}" />
+                            <Setter TargetName="CheckMark" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.58" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="RoofGeometrySeparatorStyle" TargetType="Separator">
+        <Setter Property="Background" Value="{StaticResource RoofGeometrySeparatorBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource RoofGeometrySeparatorBrush}" />
+    </Style>
+
+</ResourceDictionary>

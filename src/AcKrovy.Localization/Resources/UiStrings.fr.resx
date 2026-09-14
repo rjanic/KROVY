@@ -611,6 +611,8 @@
   <data name="CommandUi_RoofMonoPitch_Tooltip" xml:space="preserve"><value>Lance le flux de toiture monopente.</value></data>
   <data name="CommandUi_RoofRafters_Label" xml:space="preserve"><value>Chevrons</value></data>
   <data name="CommandUi_RoofRafters_Tooltip" xml:space="preserve"><value>Crée des chevrons automatiques pour une toiture à deux pans enregistrée.</value></data>
+  <data name="CommandUi_RoofPurlins_Label" xml:space="preserve"><value>Pannes automatiques</value></data>
+  <data name="CommandUi_RoofPurlins_Tooltip" xml:space="preserve"><value>Crée ou synchronise les pannes automatiques de la toiture.</value></data>
   <data name="CommandUi_RoofEdit_Label" xml:space="preserve"><value>Modifier</value></data>
   <data name="CommandUi_RoofEdit_Tooltip" xml:space="preserve"><value>Modifie la géométrie et les paramètres du toit sélectionné.</value></data>
   <data name="CommandUi_RoofToggleLock_Label" xml:space="preserve"><value>Verrou</value></data>
@@ -739,4 +741,86 @@
   <data name="Dialog_SettingsRafterSpacing" xml:space="preserve">
     <value>Les deux espacements doivent être des nombres positifs et finis, et l’espacement par défaut ne doit pas être inférieur au minimum.</value>
   </data>
+  <data name="Command_AutomaticPurlin_ManualEditRestricted" xml:space="preserve">
+    <value>\nLes pannes automatiques sont contrôlées par la disposition du toit et ne peuvent pas être modifiées actuellement avec AK_EDIT ou AK_ASSIGN.</value>
+  </data>
+  <data name="AutomaticPurlin_Title" xml:space="preserve"><value>Pannes automatiques</value></data>
+  <data name="AutomaticPurlin_Description" xml:space="preserve"><value>Modifiez le brouillon d’implantation et vérifiez son aperçu temporaire. Les modifications ne sont pas enregistrées à cette étape.</value></data>
+  <data name="AutomaticPurlin_ReferenceSection" xml:space="preserve"><value>Altitude de référence</value></data>
+  <data name="AutomaticPurlin_DatumStored" xml:space="preserve"><value>L’altitude de référence a été chargée depuis le dessin.</value></data>
+  <data name="AutomaticPurlin_DatumMissing" xml:space="preserve"><value>L’altitude de référence n’est pas définie. Les valeurs ci-dessous ne servent qu’à cet aperçu.</value></data>
+  <data name="AutomaticPurlin_ReferenceKind" xml:space="preserve"><value>Type de référence</value></data>
+  <data name="AutomaticPurlin_ReferenceRelativeElevation" xml:space="preserve"><value>Altitude relative de référence</value></data>
+  <data name="AutomaticPurlin_UnitMetres" xml:space="preserve"><value>m</value></data>
+  <data name="AutomaticPurlin_UnitMillimetres" xml:space="preserve"><value>mm</value></data>
+  <data name="AutomaticPurlin_Advanced" xml:space="preserve"><value>Avancé</value></data>
+  <data name="AutomaticPurlin_ReferenceLocalZ" xml:space="preserve"><value>Position locale de référence</value></data>
+  <data name="AutomaticPurlin_ReferenceLocalZHelp" xml:space="preserve"><value>Position Z locale technique à laquelle l’altitude relative du bâtiment est associée.</value></data>
+  <data name="AutomaticPurlin_ReferenceExplicitPlane" xml:space="preserve"><value>Plan local explicite</value></data>
+  <data name="AutomaticPurlin_ReferenceSourceEave" xml:space="preserve"><value>Plan d’égout du toit source</value></data>
+  <data name="AutomaticPurlin_ReferenceWallPlateBottom" xml:space="preserve"><value>Arête inférieure de la sablière</value></data>
+  <data name="AutomaticPurlin_LayoutStored" xml:space="preserve"><value>L’implantation existante a été chargée sans modification.</value></data>
+  <data name="AutomaticPurlin_LayoutMissing" xml:space="preserve"><value>L’implantation n’est pas définie. Les nouvelles lignes restent uniquement dans le brouillon.</value></data>
+  <data name="AutomaticPurlin_RidgeSection" xml:space="preserve"><value>Panne faîtière</value></data>
+  <data name="AutomaticPurlin_CreateRidge" xml:space="preserve"><value>Créer la panne faîtière</value></data>
+  <data name="AutomaticPurlin_IntermediateSection" xml:space="preserve"><value>Pannes intermédiaires</value></data>
+  <data name="AutomaticPurlin_IntermediateRowFormat" xml:space="preserve"><value>Panne intermédiaire {0}</value></data>
+  <data name="AutomaticPurlin_Add" xml:space="preserve"><value>Ajouter</value></data>
+  <data name="AutomaticPurlin_NoIntermediateRows" xml:space="preserve"><value>Aucune panne intermédiaire n’a encore été ajoutée.</value></data>
+  <data name="AutomaticPurlin_Enabled" xml:space="preserve"><value>Activée</value></data>
+  <data name="AutomaticPurlin_Remove" xml:space="preserve"><value>Supprimer</value></data>
+  <data name="AutomaticPurlin_PlacementMode" xml:space="preserve"><value>Mode de positionnement</value></data>
+  <data name="AutomaticPurlin_ModeBottomHeight" xml:space="preserve"><value>Hauteur de l’arête inférieure au-dessus de la référence</value></data>
+  <data name="AutomaticPurlin_ModeEaveDistance" xml:space="preserve"><value>Distance en plan depuis l’égout</value></data>
+  <data name="AutomaticPurlin_ModeRidgeDistance" xml:space="preserve"><value>Distance en plan depuis le faîtage</value></data>
+  <data name="AutomaticPurlin_ValueBottomHeight" xml:space="preserve"><value>Hauteur de l’arête inférieure</value></data>
+  <data name="AutomaticPurlin_ValueEaveDistance" xml:space="preserve"><value>Distance depuis l’égout</value></data>
+  <data name="AutomaticPurlin_ValueRidgeDistance" xml:space="preserve"><value>Distance depuis le faîtage</value></data>
+  <data name="AutomaticPurlin_RidgeReference" xml:space="preserve"><value>Faîtage de référence</value></data>
+  <data name="AutomaticPurlin_BottomEdge" xml:space="preserve"><value>Bas</value></data>
+  <data name="AutomaticPurlin_Center" xml:space="preserve"><value>Axe</value></data>
+  <data name="AutomaticPurlin_TopEdge" xml:space="preserve"><value>Haut</value></data>
+  <data name="AutomaticPurlin_RidgeNumberFormat" xml:space="preserve"><value>Faîtage {0}</value></data>
+  <data name="AutomaticPurlin_CrossSection" xml:space="preserve"><value>Section de panne</value></data>
+  <data name="AutomaticPurlin_CrossSectionReadOnly" xml:space="preserve"><value>La section effective par défaut est en lecture seule à cette étape.</value></data>
+  <data name="AutomaticPurlin_SeatingSection" xml:space="preserve"><value>Entaille dans le chevron</value></data>
+  <data name="AutomaticPurlin_SeatingDefined" xml:space="preserve"><value>Pour un positionnement en plan, l’entaille détermine l’altitude physique de la panne horizontale.</value></data>
+  <data name="AutomaticPurlin_HeightModeSeatingPolicy" xml:space="preserve"><value>Pour un positionnement par rive inférieure, l’entaille ne s’applique pas ; l’altitude saisie reste prioritaire.</value></data>
+  <data name="AutomaticPurlin_SeatingMethod" xml:space="preserve"><value>Mode d’entaille</value></data>
+  <data name="AutomaticPurlin_SeatingPercent" xml:space="preserve"><value>Pourcentage de la hauteur du chevron</value></data>
+  <data name="AutomaticPurlin_SeatingAbsolute" xml:space="preserve"><value>Valeur fixe</value></data>
+  <data name="AutomaticPurlin_SeatingValue" xml:space="preserve"><value>Valeur d’entaille</value></data>
+  <data name="AutomaticPurlin_PlanPosition" xml:space="preserve"><value>Position en plan</value></data>
+  <data name="AutomaticPurlin_RoofPlaneElevation" xml:space="preserve"><value>Plan de toiture</value></data>
+  <data name="AutomaticPurlin_SeatingDepth" xml:space="preserve"><value>Profondeur d’entaille</value></data>
+  <data name="AutomaticPurlin_SeatingNotApplicable" xml:space="preserve"><value>Non applicable</value></data>
+  <data name="AutomaticPurlin_Cancel" xml:space="preserve"><value>Annuler</value></data>
+  <data name="AutomaticPurlin_Preview" xml:space="preserve"><value>Aperçu</value></data>
+  <data name="AutomaticPurlin_ValidationBoundaryIdentity" xml:space="preserve"><value>L’identité stable de la limite est absente ou invalide. L’aperçu ne doit ni la créer ni la réparer.</value></data>
+  <data name="AutomaticPurlin_ValidationDatum" xml:space="preserve"><value>Saisissez une altitude de référence valide en mètres et une position locale en millimètres.</value></data>
+  <data name="AutomaticPurlin_ValidationNoHorizontalRidge" xml:space="preserve"><value>Le toit ne possède aucun faîtage horizontal admissible.</value></data>
+  <data name="AutomaticPurlin_ValidationValue" xml:space="preserve"><value>La valeur de positionnement doit être un nombre fini supérieur à 0.</value></data>
+  <data name="AutomaticPurlin_ValidationSeating" xml:space="preserve"><value>L’entaille doit être supérieure à 0 et inférieure à 100 % ou à la hauteur du chevron.</value></data>
+  <data name="AutomaticPurlin_ValidationRidgeReference" xml:space="preserve"><value>Sélectionnez un faîtage horizontal de référence valide.</value></data>
+  <data name="AutomaticPurlin_ValidationInclinedRidge" xml:space="preserve"><value>Un faîtage incliné ne peut pas servir de référence.</value></data>
+  <data name="AutomaticPurlin_ValidationOutsideRoof" xml:space="preserve"><value>La position se trouve hors du toit.</value></data>
+  <data name="AutomaticPurlin_ValidationCriticalElevation" xml:space="preserve"><value>La position coïncide avec une altitude topologique critique.</value></data>
+  <data name="AutomaticPurlin_ValidationLayout" xml:space="preserve"><value>Impossible d’afficher l’implantation. Vérifiez ses valeurs.</value></data>
+  <data name="AutomaticPurlin_CommandSelectRoof" xml:space="preserve"><value>Sélectionnez la polyligne source persistée faisant autorité d’un toit en croupe : </value></data>
+  <data name="AutomaticPurlin_CommandPolylineRequired" xml:space="preserve"><value>La sélection doit être une polyligne.</value></data>
+  <data name="AutomaticPurlin_CommandHipRoofRequired" xml:space="preserve"><value>Un toit en croupe persisté faisant autorité avec des métadonnées valides est requis.</value></data>
+  <data name="AutomaticPurlin_CommandFailedFormat" xml:space="preserve"><value>Échec de la boîte de dialogue des pannes automatiques : {0}</value></data>
+  <data name="AutomaticPurlin_DescriptionProduction" xml:space="preserve"><value>Modifiez l’implantation, vérifiez l’aperçu temporaire et confirmez les modifications avec Appliquer.</value></data>
+  <data name="AutomaticPurlin_DatumMissingProduction" xml:space="preserve"><value>L’altitude de référence n’est pas enregistrée. Une valeur saisie valide sera enregistrée lors de l’application.</value></data>
+  <data name="AutomaticPurlin_LayoutMissingProduction" xml:space="preserve"><value>L’implantation n’est pas enregistrée. Un brouillon valide sera enregistré lors de l’application.</value></data>
+  <data name="AutomaticPurlin_Apply" xml:space="preserve"><value>Appliquer</value></data>
+  <data name="AutomaticPurlin_ApplySucceeded" xml:space="preserve"><value>Les pannes automatiques ont été appliquées.</value></data>
+  <data name="AutomaticPurlin_ApplyFailed" xml:space="preserve"><value>Impossible d’appliquer les pannes automatiques.</value></data>
+  <data name="AutomaticPurlin_Schematic" xml:space="preserve"><value>Schéma de coupe de toiture</value></data>
+  <data name="AutomaticPurlin_SchematicRidge" xml:space="preserve"><value>Panne faîtière</value></data>
+  <data name="AutomaticPurlin_SchematicIntermediate" xml:space="preserve"><value>Panne intermédiaire</value></data>
+  <data name="AutomaticPurlin_SchematicRafter" xml:space="preserve"><value>Chevron</value></data>
+  <data name="AutomaticPurlin_SchematicSeatingHelp" xml:space="preserve"><value>Représentation schématique de l’appui ; les valeurs numériques restent déterminantes.</value></data>
+  <data name="AutomaticPurlin_SchematicRidgeUnresolved" xml:space="preserve"><value>Sélectionnez un faîtage de référence valide.</value></data>
+  <data name="AutomaticPurlin_SchematicNoSelection" xml:space="preserve"><value>Sélectionnez une panne intermédiaire pour afficher son implantation.</value></data>
 </root>

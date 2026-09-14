@@ -611,6 +611,8 @@
   <data name="CommandUi_RoofMonoPitch_Tooltip" xml:space="preserve"><value>Spustí pracovný postup pultovej strechy.</value></data>
   <data name="CommandUi_RoofRafters_Label" xml:space="preserve"><value>Krokvy</value></data>
   <data name="CommandUi_RoofRafters_Tooltip" xml:space="preserve"><value>Vytvorí automatické krokvy pre uloženú sedlovú strechu.</value></data>
+  <data name="CommandUi_RoofPurlins_Label" xml:space="preserve"><value>Automatické väznice</value></data>
+  <data name="CommandUi_RoofPurlins_Tooltip" xml:space="preserve"><value>Vytvorí alebo zosúladí automatické väznice strechy.</value></data>
   <data name="CommandUi_RoofEdit_Label" xml:space="preserve"><value>Upraviť</value></data>
   <data name="CommandUi_RoofEdit_Tooltip" xml:space="preserve"><value>Upraví geometriu a parametre vybranej strechy.</value></data>
   <data name="CommandUi_RoofToggleLock_Label" xml:space="preserve"><value>Zámok</value></data>
@@ -739,4 +741,86 @@
   <data name="Dialog_SettingsRafterSpacing" xml:space="preserve">
     <value>Oba rozostupy musia byť kladné konečné čísla a predvolený rozostup nesmie byť menší ako minimálny.</value>
   </data>
+  <data name="Command_AutomaticPurlin_ManualEditRestricted" xml:space="preserve">
+    <value>\nAutomatické väznice sú riadené rozložením strechy a momentálne ich nemožno upravovať cez AK_EDIT ani AK_ASSIGN.</value>
+  </data>
+  <data name="AutomaticPurlin_Title" xml:space="preserve"><value>Automatické väznice</value></data>
+  <data name="AutomaticPurlin_Description" xml:space="preserve"><value>Upravte návrh rozloženia a skontrolujte dočasný náhľad. Zmeny sa v tomto kroku neukladajú.</value></data>
+  <data name="AutomaticPurlin_ReferenceSection" xml:space="preserve"><value>Referenčná výška</value></data>
+  <data name="AutomaticPurlin_DatumStored" xml:space="preserve"><value>Referenčná výška je načítaná z výkresu.</value></data>
+  <data name="AutomaticPurlin_DatumMissing" xml:space="preserve"><value>Referenčná výška nie je nastavená. Hodnoty nižšie slúžia iba pre tento náhľad.</value></data>
+  <data name="AutomaticPurlin_ReferenceKind" xml:space="preserve"><value>Typ referencie</value></data>
+  <data name="AutomaticPurlin_ReferenceRelativeElevation" xml:space="preserve"><value>Relatívna výška referencie</value></data>
+  <data name="AutomaticPurlin_UnitMetres" xml:space="preserve"><value>m</value></data>
+  <data name="AutomaticPurlin_UnitMillimetres" xml:space="preserve"><value>mm</value></data>
+  <data name="AutomaticPurlin_Advanced" xml:space="preserve"><value>Rozšírené</value></data>
+  <data name="AutomaticPurlin_ReferenceLocalZ" xml:space="preserve"><value>Lokálna poloha referencie</value></data>
+  <data name="AutomaticPurlin_ReferenceLocalZHelp" xml:space="preserve"><value>Technická lokálna Z poloha, ku ktorej je priradená relatívna stavebná výška.</value></data>
+  <data name="AutomaticPurlin_ReferenceExplicitPlane" xml:space="preserve"><value>Výslovne určená lokálna rovina</value></data>
+  <data name="AutomaticPurlin_ReferenceSourceEave" xml:space="preserve"><value>Rovina odkvapu zdrojovej strechy</value></data>
+  <data name="AutomaticPurlin_ReferenceWallPlateBottom" xml:space="preserve"><value>Spodná hrana pomúrnice</value></data>
+  <data name="AutomaticPurlin_LayoutStored" xml:space="preserve"><value>Existujúce rozloženie je načítané bez zmeny.</value></data>
+  <data name="AutomaticPurlin_LayoutMissing" xml:space="preserve"><value>Rozloženie nie je nastavené. Nové riadky zostanú iba v návrhu.</value></data>
+  <data name="AutomaticPurlin_RidgeSection" xml:space="preserve"><value>Vrcholová väznica</value></data>
+  <data name="AutomaticPurlin_CreateRidge" xml:space="preserve"><value>Vytvoriť vrcholovú väznicu</value></data>
+  <data name="AutomaticPurlin_IntermediateSection" xml:space="preserve"><value>Medziľahlé väznice</value></data>
+  <data name="AutomaticPurlin_IntermediateRowFormat" xml:space="preserve"><value>Medziľahlá väznica {0}</value></data>
+  <data name="AutomaticPurlin_Add" xml:space="preserve"><value>Pridať</value></data>
+  <data name="AutomaticPurlin_NoIntermediateRows" xml:space="preserve"><value>Zatiaľ nie sú pridané žiadne medziľahlé väznice.</value></data>
+  <data name="AutomaticPurlin_Enabled" xml:space="preserve"><value>Zapnutá</value></data>
+  <data name="AutomaticPurlin_Remove" xml:space="preserve"><value>Odstrániť</value></data>
+  <data name="AutomaticPurlin_PlacementMode" xml:space="preserve"><value>Spôsob umiestnenia</value></data>
+  <data name="AutomaticPurlin_ModeBottomHeight" xml:space="preserve"><value>Výška spodnej hrany nad referenciou</value></data>
+  <data name="AutomaticPurlin_ModeEaveDistance" xml:space="preserve"><value>Pôdorysná vzdialenosť od odkvapu</value></data>
+  <data name="AutomaticPurlin_ModeRidgeDistance" xml:space="preserve"><value>Pôdorysná vzdialenosť od hrebeňa</value></data>
+  <data name="AutomaticPurlin_ValueBottomHeight" xml:space="preserve"><value>Výška spodnej hrany</value></data>
+  <data name="AutomaticPurlin_ValueEaveDistance" xml:space="preserve"><value>Vzdialenosť od odkvapu</value></data>
+  <data name="AutomaticPurlin_ValueRidgeDistance" xml:space="preserve"><value>Vzdialenosť od hrebeňa</value></data>
+  <data name="AutomaticPurlin_RidgeReference" xml:space="preserve"><value>Referenčný hrebeň</value></data>
+  <data name="AutomaticPurlin_BottomEdge" xml:space="preserve"><value>Spodná</value></data>
+  <data name="AutomaticPurlin_Center" xml:space="preserve"><value>Os</value></data>
+  <data name="AutomaticPurlin_TopEdge" xml:space="preserve"><value>Horná</value></data>
+  <data name="AutomaticPurlin_RidgeNumberFormat" xml:space="preserve"><value>Hrebeň {0}</value></data>
+  <data name="AutomaticPurlin_CrossSection" xml:space="preserve"><value>Prierez väznice</value></data>
+  <data name="AutomaticPurlin_CrossSectionReadOnly" xml:space="preserve"><value>Účinný predvolený prierez je v tomto kroku iba na čítanie.</value></data>
+  <data name="AutomaticPurlin_SeatingSection" xml:space="preserve"><value>Zapustenie do krokvy</value></data>
+  <data name="AutomaticPurlin_SeatingDefined" xml:space="preserve"><value>Pri pôdorysnom umiestnení určuje zapustenie fyzickú výšku vodorovnej väznice.</value></data>
+  <data name="AutomaticPurlin_HeightModeSeatingPolicy" xml:space="preserve"><value>Pri umiestnení podľa spodnej hrany sa zapustenie nepoužíva; zadaná výška zostáva rozhodujúca.</value></data>
+  <data name="AutomaticPurlin_SeatingMethod" xml:space="preserve"><value>Spôsob zapustenia</value></data>
+  <data name="AutomaticPurlin_SeatingPercent" xml:space="preserve"><value>Percento výšky krokvy</value></data>
+  <data name="AutomaticPurlin_SeatingAbsolute" xml:space="preserve"><value>Pevná hodnota</value></data>
+  <data name="AutomaticPurlin_SeatingValue" xml:space="preserve"><value>Hodnota zapustenia</value></data>
+  <data name="AutomaticPurlin_PlanPosition" xml:space="preserve"><value>Pôdorysná poloha</value></data>
+  <data name="AutomaticPurlin_RoofPlaneElevation" xml:space="preserve"><value>Strešná rovina</value></data>
+  <data name="AutomaticPurlin_SeatingDepth" xml:space="preserve"><value>Zapustenie</value></data>
+  <data name="AutomaticPurlin_SeatingNotApplicable" xml:space="preserve"><value>Nepoužíva sa</value></data>
+  <data name="AutomaticPurlin_Cancel" xml:space="preserve"><value>Zrušiť</value></data>
+  <data name="AutomaticPurlin_Preview" xml:space="preserve"><value>Náhľad</value></data>
+  <data name="AutomaticPurlin_ValidationBoundaryIdentity" xml:space="preserve"><value>Stabilná identita hranice chýba alebo je neplatná. Náhľad ju nesmie vytvoriť ani opraviť.</value></data>
+  <data name="AutomaticPurlin_ValidationDatum" xml:space="preserve"><value>Zadajte platnú referenčnú výšku v metroch a lokálnu polohu v milimetroch.</value></data>
+  <data name="AutomaticPurlin_ValidationNoHorizontalRidge" xml:space="preserve"><value>Strecha nemá oprávnený vodorovný hrebeň.</value></data>
+  <data name="AutomaticPurlin_ValidationValue" xml:space="preserve"><value>Hodnota umiestnenia musí byť konečné číslo väčšie ako 0.</value></data>
+  <data name="AutomaticPurlin_ValidationSeating" xml:space="preserve"><value>Zapustenie musí byť väčšie ako 0 a menšie ako 100 % alebo výška krokvy.</value></data>
+  <data name="AutomaticPurlin_ValidationRidgeReference" xml:space="preserve"><value>Vyberte platný vodorovný referenčný hrebeň.</value></data>
+  <data name="AutomaticPurlin_ValidationInclinedRidge" xml:space="preserve"><value>Naklonený hrebeň nemožno použiť ako referenciu.</value></data>
+  <data name="AutomaticPurlin_ValidationOutsideRoof" xml:space="preserve"><value>Umiestnenie leží mimo strechy.</value></data>
+  <data name="AutomaticPurlin_ValidationCriticalElevation" xml:space="preserve"><value>Umiestnenie sa zhoduje s kritickou výškou topológie.</value></data>
+  <data name="AutomaticPurlin_ValidationLayout" xml:space="preserve"><value>Rozloženie nemožno zobraziť. Skontrolujte jeho hodnoty.</value></data>
+  <data name="AutomaticPurlin_CommandSelectRoof" xml:space="preserve"><value>Vyberte autoritatívnu uloženú zdrojovú polyčiaru valbovej strechy: </value></data>
+  <data name="AutomaticPurlin_CommandPolylineRequired" xml:space="preserve"><value>Výber musí byť polyčiara.</value></data>
+  <data name="AutomaticPurlin_CommandHipRoofRequired" xml:space="preserve"><value>Vyžaduje sa autoritatívna uložená valbová strecha s platnými metadátami.</value></data>
+  <data name="AutomaticPurlin_CommandFailedFormat" xml:space="preserve"><value>Dialóg automatických väzníc zlyhal: {0}</value></data>
+  <data name="AutomaticPurlin_DescriptionProduction" xml:space="preserve"><value>Upravte rozloženie, skontrolujte dočasný náhľad a zmeny potvrďte tlačidlom Použiť.</value></data>
+  <data name="AutomaticPurlin_DatumMissingProduction" xml:space="preserve"><value>Referenčná výška nie je uložená. Platná zadaná hodnota sa uloží po použití.</value></data>
+  <data name="AutomaticPurlin_LayoutMissingProduction" xml:space="preserve"><value>Rozloženie nie je uložené. Platný návrh sa uloží po použití.</value></data>
+  <data name="AutomaticPurlin_Apply" xml:space="preserve"><value>Použiť</value></data>
+  <data name="AutomaticPurlin_ApplySucceeded" xml:space="preserve"><value>Automatické väznice boli použité.</value></data>
+  <data name="AutomaticPurlin_ApplyFailed" xml:space="preserve"><value>Nepodarilo sa použiť automatické väznice.</value></data>
+  <data name="AutomaticPurlin_Schematic" xml:space="preserve"><value>Schéma strešného rezu</value></data>
+  <data name="AutomaticPurlin_SchematicRidge" xml:space="preserve"><value>Vrcholová väznica</value></data>
+  <data name="AutomaticPurlin_SchematicIntermediate" xml:space="preserve"><value>Medziľahlá väznica</value></data>
+  <data name="AutomaticPurlin_SchematicRafter" xml:space="preserve"><value>Krokva</value></data>
+  <data name="AutomaticPurlin_SchematicSeatingHelp" xml:space="preserve"><value>Schematické znázornenie zapustenia; rozhodujúce sú číselné hodnoty.</value></data>
+  <data name="AutomaticPurlin_SchematicRidgeUnresolved" xml:space="preserve"><value>Vyberte platný referenčný hrebeň.</value></data>
+  <data name="AutomaticPurlin_SchematicNoSelection" xml:space="preserve"><value>Vyberte medziľahlú väznicu, aby sa zobrazilo jej umiestnenie.</value></data>
 </root>

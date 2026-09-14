@@ -10,7 +10,6 @@
         MinHeight="720"
         ShowInTaskbar="False"
         WindowStartupLocation="CenterOwner"
-        Background="{DynamicResource SettingsWindowBackgroundBrush}"
         Foreground="{DynamicResource SettingsTextPrimaryBrush}">
     <Window.Resources>
         <ResourceDictionary>
@@ -18,12 +17,128 @@
                 <ResourceDictionary Source="Design/SettingsColors.Light.xaml" />
                 <ResourceDictionary Source="Design/SettingsDesignSystem.xaml" />
                 <ResourceDictionary Source="Design/SettingsControls.xaml" />
+                <ResourceDictionary Source="Design/RoofGeometryVisuals.xaml" />
             </ResourceDictionary.MergedDictionaries>
             <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+            <Style x:Key="RoofGeometryTextBoxStyle"
+                   TargetType="TextBox"
+                   BasedOn="{StaticResource {x:Type TextBox}}">
+                <Setter Property="Background" Value="{StaticResource RoofGeometryInputBackgroundBrush}" />
+                <Setter Property="BorderBrush" Value="{StaticResource RoofGeometryInputBorderBrush}" />
+                <Setter Property="Foreground" Value="{DynamicResource SettingsTextPrimaryBrush}" />
+                <Style.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter Property="Background" Value="{StaticResource RoofGeometryInputHoverBrush}" />
+                        <Setter Property="BorderBrush" Value="{StaticResource RoofGeometryOptionBorderBrush}" />
+                    </Trigger>
+                    <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                        <Setter Property="BorderBrush" Value="{DynamicResource SettingsFocusBrush}" />
+                        <Setter Property="BorderThickness" Value="2" />
+                    </Trigger>
+                    <Trigger Property="IsReadOnly" Value="True">
+                        <Setter Property="Background" Value="{StaticResource RoofGeometryDisabledBackgroundBrush}" />
+                        <Setter Property="Foreground" Value="{StaticResource RoofGeometryDisabledForegroundBrush}" />
+                    </Trigger>
+                    <Trigger Property="IsEnabled" Value="False">
+                        <Setter Property="Background" Value="{StaticResource RoofGeometryDisabledBackgroundBrush}" />
+                        <Setter Property="Foreground" Value="{StaticResource RoofGeometryDisabledForegroundBrush}" />
+                        <Setter Property="Opacity" Value="0.72" />
+                    </Trigger>
+                    <Trigger Property="Validation.HasError" Value="True">
+                        <Setter Property="BorderBrush" Value="{DynamicResource SettingsValidationBrush}" />
+                        <Setter Property="BorderThickness" Value="2" />
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+            <Style TargetType="TextBox" BasedOn="{StaticResource RoofGeometryTextBoxStyle}" />
+            <Style TargetType="RadioButton" BasedOn="{StaticResource RoofGeometryRadioButtonStyle}" />
+            <Style TargetType="CheckBox" BasedOn="{StaticResource RoofGeometryCheckBoxStyle}" />
+            <Style TargetType="Separator" BasedOn="{StaticResource RoofGeometrySeparatorStyle}" />
+
+            <Style x:Key="SettingsPrimaryButtonStyle"
+                   TargetType="Button"
+                   BasedOn="{StaticResource SettingsBaseButtonStyle}">
+                <Setter Property="Foreground" Value="#FFFFFF" />
+                <Setter Property="Background" Value="{StaticResource WoodOakBrush}" />
+                <Setter Property="BorderBrush" Value="{StaticResource RoofGeometryPrimaryButtonBorderBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="Effect" Value="{StaticResource RoofGeometryPrimaryButtonElevation}" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Grid>
+                                <Border x:Name="Chrome"
+                                        Background="{TemplateBinding Background}"
+                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                        BorderThickness="{TemplateBinding BorderThickness}"
+                                        CornerRadius="{DynamicResource SettingsCornerRadiusSmall}" />
+                                <Border x:Name="StateOverlay"
+                                        Margin="{TemplateBinding BorderThickness}"
+                                        Background="Transparent"
+                                        CornerRadius="5" />
+                                <ContentPresenter Margin="{TemplateBinding Padding}"
+                                                  HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center" />
+                            </Grid>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="StateOverlay" Property="Background" Value="#18FFFFFF" />
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="StateOverlay" Property="Background" Value="#26000000" />
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter TargetName="StateOverlay" Property="Background" Value="#55E0D3C2" />
+                                    <Setter Property="Foreground" Value="#E0D3C2" />
+                                    <Setter Property="Effect" Value="{x:Null}" />
+                                </Trigger>
+                                <Trigger Property="IsKeyboardFocused" Value="True">
+                                    <Setter TargetName="Chrome" Property="BorderBrush" Value="#F2E1C5" />
+                                    <Setter TargetName="Chrome" Property="BorderThickness" Value="2" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <Style x:Key="SettingsSecondaryButtonStyle"
+                   TargetType="Button"
+                   BasedOn="{StaticResource SettingsBaseButtonStyle}">
+                <Setter Property="Foreground" Value="{DynamicResource SettingsTextPrimaryBrush}" />
+                <Setter Property="Background" Value="{StaticResource RoofGeometrySecondaryButtonBrush}" />
+                <Setter Property="BorderBrush" Value="{StaticResource RoofGeometrySecondaryButtonBorderBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Style.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter Property="Background" Value="{StaticResource RoofGeometrySecondaryButtonHoverBrush}" />
+                        <Setter Property="BorderBrush" Value="{DynamicResource SettingsAccentHoverBrush}" />
+                    </Trigger>
+                    <Trigger Property="IsPressed" Value="True">
+                        <Setter Property="Background" Value="{StaticResource RoofGeometrySecondaryButtonPressedBrush}" />
+                    </Trigger>
+                    <Trigger Property="IsEnabled" Value="False">
+                        <Setter Property="Background" Value="{StaticResource RoofGeometryDisabledBackgroundBrush}" />
+                        <Setter Property="Foreground" Value="{StaticResource RoofGeometryDisabledForegroundBrush}" />
+                    </Trigger>
+                    <Trigger Property="IsKeyboardFocused" Value="True">
+                        <Setter Property="BorderBrush" Value="{DynamicResource SettingsFocusBrush}" />
+                        <Setter Property="BorderThickness" Value="2" />
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+
+            <Style x:Key="RoofGeometryDirectionButtonStyle"
+                   TargetType="Button"
+                   BasedOn="{StaticResource SettingsSecondaryButtonStyle}">
+                <Setter Property="Background" Value="{StaticResource RoofGeometryDirectionButtonBrush}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource SettingsAccentBrush}" />
+            </Style>
             <Style x:Key="RoofModeCardStyle" TargetType="RadioButton">
                 <Setter Property="Foreground" Value="{DynamicResource SettingsTextPrimaryBrush}" />
                 <Setter Property="Background" Value="{DynamicResource SettingsCardBackgroundBrush}" />
                 <Setter Property="BorderBrush" Value="{DynamicResource SettingsBorderBrush}" />
+                <Setter Property="FocusVisualStyle" Value="{DynamicResource SettingsFocusVisualStyle}" />
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="RadioButton">
@@ -39,8 +154,9 @@
                                         <ColumnDefinition Width="18" />
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
-                                    <Ellipse Width="16" Height="16"
-                                             Stroke="{DynamicResource SettingsTextSecondaryBrush}"
+                                    <Ellipse x:Name="ModeRing"
+                                             Width="16" Height="16"
+                                             Stroke="{StaticResource RoofGeometryOptionBorderBrush}"
                                              StrokeThickness="1.5" />
                                     <Ellipse x:Name="SelectionDot"
                                              Width="8" Height="8"
@@ -55,6 +171,10 @@
                                 <Trigger Property="IsMouseOver" Value="True">
                                     <Setter TargetName="Chrome" Property="Background"
                                             Value="{DynamicResource SettingsHoverBrush}" />
+                                    <Setter TargetName="Chrome" Property="BorderBrush"
+                                            Value="{DynamicResource SettingsAccentHoverBrush}" />
+                                    <Setter TargetName="ModeRing" Property="Stroke"
+                                            Value="{DynamicResource SettingsAccentHoverBrush}" />
                                 </Trigger>
                                 <Trigger Property="IsChecked" Value="True">
                                     <Setter TargetName="Chrome" Property="Background"
@@ -62,7 +182,17 @@
                                     <Setter TargetName="Chrome" Property="BorderBrush"
                                             Value="{DynamicResource SettingsAccentBrush}" />
                                     <Setter TargetName="Chrome" Property="BorderThickness" Value="2" />
+                                    <Setter TargetName="ModeRing" Property="Stroke"
+                                            Value="{DynamicResource SettingsAccentBrush}" />
                                     <Setter TargetName="SelectionDot" Property="Visibility" Value="Visible" />
+                                </Trigger>
+                                <Trigger Property="IsKeyboardFocused" Value="True">
+                                    <Setter TargetName="Chrome" Property="BorderBrush"
+                                            Value="{DynamicResource SettingsFocusBrush}" />
+                                    <Setter TargetName="Chrome" Property="BorderThickness" Value="2" />
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter TargetName="Chrome" Property="Opacity" Value="0.58" />
                                 </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
@@ -72,8 +202,13 @@
         </ResourceDictionary>
     </Window.Resources>
 
-    <Grid Margin="20">
+    <Window.Background>
+        <StaticResource ResourceKey="WoodOakBrush" />
+    </Window.Background>
+
+    <Grid Margin="16">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
@@ -81,15 +216,48 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <StackPanel>
-            <TextBlock Style="{DynamicResource SettingsSectionTitleStyle}"
-                       Text="{Binding WindowHeading}" />
-            <TextBlock Margin="0,4,0,14"
-                       Style="{DynamicResource SettingsDescriptionStyle}"
-                       Text="{Binding WindowDescription}" />
-        </StackPanel>
+        <Border x:Name="HeaderBand"
+                Grid.Row="0"
+                Margin="0,0,0,12"
+                Padding="14,12"
+                Background="{StaticResource RoofGeometryHeaderBandBrush}"
+                BorderBrush="#4D2D17"
+                BorderThickness="1"
+                CornerRadius="8">
+            <Grid>
+                <Border Background="#18000000" CornerRadius="7" />
+                <StackPanel Orientation="Horizontal">
+                <Border Width="42" Height="42"
+                        Margin="0,0,12,0"
+                        VerticalAlignment="Center"
+                        Background="#2AFFFFFF"
+                        BorderBrush="#88FFF4DF"
+                        BorderThickness="1"
+                        CornerRadius="8">
+                    <Viewbox Width="26" Height="26" Margin="7">
+                        <Path Data="{StaticResource RoofGeometryGableIconGeometry}"
+                              Stroke="{StaticResource RoofGeometryHeaderTextBrush}"
+                              StrokeThickness="1.7"
+                              StrokeStartLineCap="Round"
+                              StrokeEndLineCap="Round"
+                              StrokeLineJoin="Round"
+                              Fill="Transparent" />
+                    </Viewbox>
+                </Border>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Style="{DynamicResource SettingsSectionTitleStyle}"
+                               Foreground="{DynamicResource RoofGeometryHeaderTextBrush}"
+                               Text="{Binding WindowHeading}" />
+                    <TextBlock Margin="0,3,0,0"
+                               Style="{DynamicResource SettingsDescriptionStyle}"
+                               Foreground="{DynamicResource RoofGeometryHeaderSecondaryTextBrush}"
+                               Text="{Binding WindowDescription}" />
+                </StackPanel>
+                </StackPanel>
+            </Grid>
+        </Border>
 
-        <Border Grid.Row="1" Padding="12" Margin="0,0,0,14"
+        <Border Grid.Row="1" Padding="12" Margin="0,0,0,10"
                 Style="{DynamicResource SettingsCardStyle}">
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -118,7 +286,7 @@
                         <StackPanel Orientation="Horizontal">
                             <Viewbox x:Name="SymmetricRoofTypeIcon"
                                      Width="28" Height="18" Margin="0,0,8,0">
-                                <Path Stroke="{DynamicResource SettingsTextPrimaryBrush}"
+                                <Path Stroke="{StaticResource RoofGeometryIconBrush}"
                                       StrokeThickness="2"
                                       StrokeStartLineCap="Round"
                                       StrokeEndLineCap="Round"
@@ -135,7 +303,7 @@
                         <StackPanel Orientation="Horizontal">
                             <Viewbox x:Name="AsymmetricRoofTypeIcon"
                                      Width="28" Height="18" Margin="0,0,8,0">
-                                <Path Stroke="{DynamicResource SettingsTextPrimaryBrush}"
+                                <Path Stroke="{StaticResource RoofGeometryIconBrush}"
                                       StrokeThickness="2"
                                       StrokeStartLineCap="Round"
                                       StrokeEndLineCap="Round"
@@ -155,7 +323,7 @@
                         Visibility="{Binding IsMonopitchEditor, Converter={StaticResource BoolToVisibility}}">
                     <StackPanel Orientation="Horizontal">
                         <Viewbox Width="28" Height="18" Margin="0,0,8,0">
-                            <Path Stroke="{DynamicResource SettingsTextPrimaryBrush}"
+                            <Path Stroke="{StaticResource RoofGeometryIconBrush}"
                                   StrokeThickness="2"
                                   StrokeStartLineCap="Round"
                                   StrokeEndLineCap="Round"
@@ -168,7 +336,99 @@
             </Grid>
         </Border>
 
-        <Grid Grid.Row="2">
+        <!-- Full-width ridge / slope direction action, matching the mockup row. -->
+        <Border x:Name="RidgeDirectionActionCard"
+                Grid.Row="2"
+                Margin="0,0,0,12"
+                Padding="14,12"
+                Background="{StaticResource RoofGeometryDirectionCardBackgroundBrush}"
+                BorderBrush="{StaticResource RoofGeometryDirectionCardBorderBrush}"
+                BorderThickness="1"
+                CornerRadius="8"
+                Effect="{DynamicResource SettingsCardElevation}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="14" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="16" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="16" />
+                    <ColumnDefinition Width="240" />
+                </Grid.ColumnDefinitions>
+                <Border Width="40" Height="40"
+                        VerticalAlignment="Center"
+                        Background="{StaticResource RoofGeometryWoodIconPlateBrush}"
+                        BorderBrush="{DynamicResource SettingsBorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="8">
+                    <Viewbox Width="24" Height="24" Margin="8">
+                        <Path Stroke="{DynamicResource SettingsAccentBrush}"
+                              StrokeThickness="1.6"
+                              StrokeStartLineCap="Round"
+                              StrokeEndLineCap="Round"
+                              StrokeLineJoin="Round"
+                              Fill="Transparent"
+                              Data="M2,20 L16,4 L30,20 M16,4 L16,22 M8,22 L24,22 M12,14 L20,14 M4,10 L4,6 M4,6 L8,6" />
+                    </Viewbox>
+                </Border>
+                <StackPanel Grid.Column="2" VerticalAlignment="Center" MaxWidth="160">
+                    <TextBlock FontWeight="SemiBold"
+                               FontSize="{DynamicResource SettingsFontSizeBody}"
+                               Text="{Binding OrientationDirectionLabel}" />
+                </StackPanel>
+                <Button x:Name="PickRidgeDirectionButton"
+                        Grid.Column="4"
+                        MinHeight="44"
+                        HorizontalAlignment="Stretch"
+                        Click="PickRidgeDirectionButton_Click"
+                        Style="{DynamicResource RoofGeometryDirectionButtonStyle}">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <Viewbox x:Name="PickRidgeDirectionIcon"
+                                 Width="24" Height="18" Margin="0,0,10,0">
+                            <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                  StrokeThickness="1.8"
+                                  StrokeStartLineCap="Round"
+                                  StrokeEndLineCap="Round"
+                                  StrokeLineJoin="Round"
+                                  Data="M 1,10 L 7,4 L 13,10 M 7,4 L 7,13 M 11,15 L 22,15 M 18,11 L 22,15 L 18,19" />
+                        </Viewbox>
+                        <TextBlock VerticalAlignment="Center"
+                                   FontWeight="SemiBold"
+                                   Text="{Binding PickOrientationDirectionLabel}" />
+                    </StackPanel>
+                </Button>
+                <Border Grid.Column="6"
+                        Padding="10,8"
+                        Background="{DynamicResource SettingsInfoBackgroundBrush}"
+                        BorderBrush="{DynamicResource SettingsInfoBorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="6">
+                    <DockPanel LastChildFill="True">
+                        <Border DockPanel.Dock="Left"
+                                Width="18" Height="18"
+                                Margin="0,0,8,0"
+                                VerticalAlignment="Top"
+                                Background="{DynamicResource SettingsAccentBrush}"
+                                CornerRadius="9">
+                            <TextBlock HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       FontWeight="SemiBold"
+                                       FontSize="11"
+                                       Foreground="White"
+                                       Text="i" />
+                        </Border>
+                        <TextBlock x:Name="RidgeDirectionTextBlock"
+                                   VerticalAlignment="Center"
+                                   Foreground="{DynamicResource SettingsInfoTextBrush}"
+                                   TextWrapping="Wrap"
+                                   Text="{Binding OrientationDirectionText}" />
+                    </DockPanel>
+                </Border>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="3">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="370" />
                 <ColumnDefinition Width="14" />
@@ -328,40 +588,13 @@
                             </Border>
                         </StackPanel>
 
-                        <Separator Margin="0,5" />
-                        <DockPanel Margin="0,0,0,7" LastChildFill="True">
-                            <TextBlock DockPanel.Dock="Left"
-                                       Margin="0,0,8,0"
-                                       FontWeight="SemiBold"
-                                       Text="{Binding OrientationDirectionLabel}" />
-                            <TextBlock x:Name="RidgeDirectionTextBlock"
-                                       HorizontalAlignment="Right"
-                                       Foreground="{DynamicResource SettingsTextSecondaryBrush}"
-                                       Text="{Binding OrientationDirectionText}" />
-                        </DockPanel>
-                        <Button x:Name="PickRidgeDirectionButton"
-                                HorizontalAlignment="Stretch"
-                                Click="PickRidgeDirectionButton_Click"
-                                Style="{DynamicResource SettingsSecondaryButtonStyle}">
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                <Viewbox x:Name="PickRidgeDirectionIcon"
-                                         Width="24" Height="18" Margin="0,0,8,0">
-                                    <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
-                                          StrokeThickness="1.8"
-                                          StrokeStartLineCap="Round"
-                                          StrokeEndLineCap="Round"
-                                          StrokeLineJoin="Round"
-                                          Data="M 1,10 L 7,4 L 13,10 M 7,4 L 7,13 M 11,15 L 22,15 M 18,11 L 22,15 L 18,19" />
-                                </Viewbox>
-                                <TextBlock VerticalAlignment="Center"
-                                           Text="{Binding PickOrientationDirectionLabel}" />
-                            </StackPanel>
-                        </Button>
-
                     </StackPanel>
             </Border>
 
-            <Border Grid.Column="2" Padding="14" Style="{DynamicResource SettingsCardStyle}">
+            <Border Grid.Column="2"
+                    Padding="14"
+                    Background="{StaticResource RoofGeometrySchematicBackgroundBrush}"
+                    Style="{DynamicResource SettingsCardStyle}">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -446,33 +679,48 @@
             </Border>
         </Grid>
 
+        <Border x:Name="FooterBand"
+                Grid.Row="4"
+                Grid.RowSpan="2"
+                Margin="0,12,0,0"
+                Background="{StaticResource WoodOakBrush}"
+                BorderBrush="#5A3317"
+                BorderThickness="1"
+                CornerRadius="8" />
+
         <TextBlock x:Name="ValidationTextBlock"
-                   Grid.Row="3"
-                   Margin="0,12,0,0"
+                   Grid.Row="4"
+                   Margin="12,20,12,0"
                    MinHeight="20"
-                   Foreground="{DynamicResource SettingsValidationBrush}"
+                   Foreground="#F2E1C5"
                    Text="{Binding ValidationMessage}"
                    TextWrapping="Wrap" />
 
-        <StackPanel Grid.Row="4" Margin="0,14,0,0"
-                    Orientation="Horizontal" HorizontalAlignment="Right">
-            <Button x:Name="CancelButton"
-                    Margin="0,0,10,0"
-                    Click="CancelButton_Click"
-                    Style="{DynamicResource SettingsSecondaryButtonStyle}"
-                    Content="{localization:Loc RoofGeometryWindow_Cancel}" />
-            <Button x:Name="PreviewButton"
-                    Margin="0,0,10,0"
-                    Click="PreviewButton_Click"
-                    IsEnabled="{Binding CanPreview}"
-                    Style="{DynamicResource SettingsSecondaryButtonStyle}"
-                    Content="{localization:Loc RoofGeometryWindow_Preview}" />
-            <Button x:Name="ApplyButton"
-                    Click="ApplyButton_Click"
-                    IsDefault="True"
-                    IsEnabled="{Binding CanApply}"
-                    Style="{DynamicResource SettingsPrimaryButtonStyle}"
-                    Content="{Binding PrimaryActionText}" />
-        </StackPanel>
+        <Border Grid.Row="5"
+                Margin="0,14,0,0"
+                Padding="12,10"
+                Background="Transparent"
+                BorderThickness="0"
+                CornerRadius="8">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button x:Name="CancelButton"
+                        Margin="0,0,10,0"
+                        Click="CancelButton_Click"
+                        Style="{DynamicResource SettingsSecondaryButtonStyle}"
+                        Content="{localization:Loc RoofGeometryWindow_Cancel}" />
+                <Button x:Name="PreviewButton"
+                        Margin="0,0,10,0"
+                        Click="PreviewButton_Click"
+                        IsEnabled="{Binding CanPreview}"
+                        Style="{DynamicResource SettingsSecondaryButtonStyle}"
+                        Content="{localization:Loc RoofGeometryWindow_Preview}" />
+                <Button x:Name="ApplyButton"
+                        Click="ApplyButton_Click"
+                        IsDefault="True"
+                        IsEnabled="{Binding CanApply}"
+                        Style="{DynamicResource SettingsPrimaryButtonStyle}"
+                        Content="{Binding PrimaryActionText}" />
+            </StackPanel>
+        </Border>
     </Grid>
 </Window>

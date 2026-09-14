@@ -18,6 +18,7 @@ internal sealed class RoofTransientPreviewSession : IDisposable
     internal const short FaceBoundaryColorIndex = 4;
     internal const short Face1BoundaryColorIndex = 3;
     internal const short RafterColorIndex = 2;
+    internal const short PurlinColorIndex = 6;
     private const int TransientSubDrawingMode = 128;
 
     private readonly Document _document;
@@ -47,6 +48,32 @@ internal sealed class RoofTransientPreviewSession : IDisposable
         try
         {
             session.AddGeometry(geometry, sourceElevation);
+            document.Editor.UpdateScreen();
+            return session;
+        }
+        catch
+        {
+            session.Dispose();
+            throw;
+        }
+    }
+
+    public static RoofTransientPreviewSession ShowAutomaticPurlins(
+        Document document,
+        RoofAutomaticPurlinPlan plan,
+        double sourceElevation)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(plan);
+        if (!double.IsFinite(sourceElevation))
+        {
+            throw new ArgumentOutOfRangeException(nameof(sourceElevation));
+        }
+
+        var session = new RoofTransientPreviewSession(document);
+        try
+        {
+            session.AddAutomaticPurlins(plan, sourceElevation);
             document.Editor.UpdateScreen();
             return session;
         }
@@ -227,6 +254,24 @@ internal sealed class RoofTransientPreviewSession : IDisposable
             .ToArray();
     }
 
+    internal static IReadOnlyList<RoofPreviewSegment> MapAutomaticPurlinSegments(
+        RoofAutomaticPurlinPlan plan,
+        double sourceElevation)
+    {
+        ArgumentNullException.ThrowIfNull(plan);
+        if (!double.IsFinite(sourceElevation))
+        {
+            throw new ArgumentOutOfRangeException(nameof(sourceElevation));
+        }
+
+        return plan.Items.Select(item => new RoofPreviewSegment(
+            MapPoint(AddElevation(item.Segment3D.Start, sourceElevation)),
+            MapPoint(AddElevation(item.Segment3D.End, sourceElevation)),
+            item.GeneratorRole == RoofAutomaticPurlinGeneratorRole.Ridge,
+            FaceIndex: 0))
+            .ToArray();
+    }
+
     internal static IReadOnlyList<RoofRafterPlanPreviewSegment> MapRafterPlanSegments(
         RoofFaceRafterLayout layout)
     {
@@ -356,6 +401,29 @@ internal sealed class RoofTransientPreviewSession : IDisposable
             {
                 ColorIndex = RafterColorIndex,
                 LineWeight = LineWeight.LineWeight025,
+            };
+            _drawables.Add(drawable);
+            transientManager.AddTransient(
+                drawable,
+                TransientDrawingMode.DirectShortTerm,
+                TransientSubDrawingMode,
+                _viewportNumbers);
+        }
+    }
+
+    private void AddAutomaticPurlins(
+        RoofAutomaticPurlinPlan plan,
+        double sourceElevation)
+    {
+        var transientManager = TransientManager.CurrentTransientManager;
+        foreach (var segment in MapAutomaticPurlinSegments(plan, sourceElevation))
+        {
+            var drawable = new Line(segment.Start, segment.End)
+            {
+                ColorIndex = PurlinColorIndex,
+                LineWeight = segment.IsRidge
+                    ? LineWeight.LineWeight050
+                    : LineWeight.LineWeight025,
             };
             _drawables.Add(drawable);
             transientManager.AddTransient(

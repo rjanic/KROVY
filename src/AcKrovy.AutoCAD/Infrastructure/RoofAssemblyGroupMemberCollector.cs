@@ -5,9 +5,9 @@ namespace AcKrovy.AutoCAD.Infrastructure;
 
 /// <summary>
 /// Builds the deterministic roof assembly member set for GROUP membership.
-/// Structural display plus owned ordinary-generated, structural-generated and
-/// attached timber and their source-handle-bound annotations. Does not mutate the
-/// database.
+/// Structural display plus owned ordinary-generated, structural-generated,
+/// automatic-purlin and attached timber and their source-handle-bound annotations.
+/// Does not mutate the database.
 /// </summary>
 internal static class RoofAssemblyGroupMemberCollector
 {
@@ -15,6 +15,7 @@ internal static class RoofAssemblyGroupMemberCollector
         IReadOnlyList<ObjectId> MemberIds,
         int GeneratedCount,
         int StructuralGeneratedCount,
+        int AutomaticPurlinCount,
         int AttachedManualCount,
         int AnnotationCount);
 
@@ -85,6 +86,27 @@ internal static class RoofAssemblyGroupMemberCollector
             structuralGeneratedCount++;
         }
 
+        var automaticPurlinCount = 0;
+        var metadataStore = new AutoCadTimberElementMetadataStore(transaction);
+        foreach (var id in RoofAutomaticPurlinGeneratedStore.FindByOwner(
+                     database,
+                     transaction,
+                     ownerReference))
+        {
+            if (!TryAddAutomaticPurlinLine(
+                    database,
+                    transaction,
+                    metadataStore,
+                    id,
+                    members,
+                    timberSourceHandles))
+            {
+                continue;
+            }
+
+            automaticPurlinCount++;
+        }
+
         var attachedManualCount = 0;
         foreach (var id in RoofAttachedManualTimberStore.FindByOwner(database, transaction, ownerReference))
         {
@@ -144,9 +166,42 @@ internal static class RoofAssemblyGroupMemberCollector
             ordered,
             generatedCount,
             structuralGeneratedCount,
+            automaticPurlinCount,
             attachedManualCount,
             annotationCount);
         return true;
+    }
+
+    private static bool TryAddAutomaticPurlinLine(
+        Database database,
+        Transaction transaction,
+        AutoCadTimberElementMetadataStore metadataStore,
+        ObjectId id,
+        HashSet<ObjectId> members,
+        HashSet<string> timberSourceHandles)
+    {
+        if (!AutoCadObjectIdAccess.TryGetObject<Line>(
+                transaction,
+                id,
+                OpenMode.ForRead,
+                out var line,
+                database) ||
+            line is null ||
+            RoofGeneratedTimberStore.Read(line).Exists ||
+            RoofStructuralGeneratedStore.Read(line).Exists ||
+            RoofAttachedManualTimberStore.Read(line).Exists ||
+            !metadataStore.TryRead(line, out var timber) ||
+            timber?.ElementType != AcKrovy.Core.Models.TimberElementType.Purlin)
+        {
+            return false;
+        }
+
+        return TryAddTimberLine(
+            database,
+            transaction,
+            id,
+            members,
+            timberSourceHandles);
     }
 
     private static bool TryAddTimberLine(

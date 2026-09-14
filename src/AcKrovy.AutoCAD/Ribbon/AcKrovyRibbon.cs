@@ -141,6 +141,7 @@ internal static class AcKrovyRibbon
         {
             RoofTypeDropDown(),
             Button(CommandUiCatalog.RoofRafters),
+            Button(CommandUiCatalog.RoofPurlins),
             Button(CommandUiCatalog.RoofEdit),
             Button(CommandUiCatalog.RoofToggleLock),
         }));

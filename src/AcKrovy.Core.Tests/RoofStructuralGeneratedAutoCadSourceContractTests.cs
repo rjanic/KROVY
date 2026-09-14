@@ -84,7 +84,8 @@ public sealed class RoofStructuralGeneratedAutoCadSourceContractTests
                 .Where(path => !path.Contains("\\bin\\", StringComparison.OrdinalIgnoreCase))
                 .Where(path => !path.Contains("\\obj\\", StringComparison.OrdinalIgnoreCase))
                 .Select(File.ReadAllText));
-        Assert.DoesNotContain("RoofStructuralGeneratedStore.", allOtherProduction);
+        Assert.DoesNotContain("RoofStructuralGeneratedStore.Write(", allOtherProduction);
+        Assert.DoesNotContain("RoofStructuralGeneratedStore.WriteAtomic(", allOtherProduction);
     }
 
     [Fact]

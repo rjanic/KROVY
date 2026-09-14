@@ -425,11 +425,11 @@ public sealed class LocalizationFoundationTests
             "AK_ASSIGN", "AK_KROKVA", "AK_POMURNICA", "AK_VAZNICA", "AK_STLPIK", "AK_KLIESTINA",
             "AK_VZPERA", "AK_VAZNYTRAM", "AK_CUSTOM", "AK_EDIT", "AK_FLIPSLOPE", "AK_INSPECT", "AK_REPORT",
             "AK_REPORTALL", "AK_RECALC", "AK_RENUMBER", "AK_DIAGNOSTICS", "AK_SELECTSIMILAR", "AK_EXPORTCSV",
-            "AK_ROOF", "AK_ROOF_HIP", "AK_ROOF_ASYM", "AK_ROOF_MONOPITCH", "AK_ROOF_RAFTERS", "AK_ROOF_UNLOCK", "AK_ROOF_LOCK", "AK_ROOF_TOGGLELOCK", "AK_ROOF_RESET_EDITS",
+            "AK_ROOF", "AK_ROOF_HIP", "AK_ROOF_ASYM", "AK_ROOF_MONOPITCH", "AK_ROOF_RAFTERS", "AK_ROOF_PURLINS", "AK_ROOF_UNLOCK", "AK_ROOF_LOCK", "AK_ROOF_TOGGLELOCK", "AK_ROOF_RESET_EDITS",
             "AK_ROOF_EDIT", "AK_IMPORT_DWG",
         };
 
-        Assert.Equal(44, AcKrovyCommandNames.All.Count);
+        Assert.Equal(45, AcKrovyCommandNames.All.Count);
         Assert.Equal(expected, AcKrovyCommandNames.All);
         Assert.All(AcKrovyCommandNames.All, command => Assert.StartsWith("AK_", command, StringComparison.Ordinal));
     }
@@ -441,6 +441,7 @@ public sealed class LocalizationFoundationTests
         {
             ("AK_ROOF", "DECORAIR_AK_ROOF_GABLE", "roof_gable", "Sedlová strecha"),
             ("AK_ROOF_RAFTERS", "DECORAIR_AK_ROOF_RAFTERS", "roof_rafters", "Krokvy"),
+            ("AK_ROOF_PURLINS", "DECORAIR_AK_ROOF_PURLINS", "roof_purlins", "Automatické väznice"),
             ("AK_ROOF_EDIT", "DECORAIR_AK_ROOF_EDIT", "roof_edit", "Upraviť"),
             ("AK_ROOF_TOGGLELOCK", "DECORAIR_AK_ROOF_TOGGLELOCK", "roof_locktoggle", "Zámok"),
             ("AK_KROKVA", "DECORAIR_AK_RAFTER", "rafter", "Krokva"),

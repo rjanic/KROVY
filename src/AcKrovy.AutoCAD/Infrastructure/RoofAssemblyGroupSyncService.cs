@@ -133,8 +133,12 @@ internal static class RoofAssemblyGroupDiag
             }
 
             var generated = RoofGeneratedTimberStore.Read(entity).Data;
+            var structural = RoofStructuralGeneratedStore.Read(entity).Data;
+            var automaticPurlin = RoofAutomaticPurlinGeneratedStore.Read(entity).Data;
             var attached = RoofAttachedManualTimberStore.Read(entity).Data;
             if (string.Equals(generated?.RoofOwnerReference, ownerReference, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(structural?.RoofOwnerReference, ownerReference, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(automaticPurlin?.RoofOwnerReference, ownerReference, StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(attached?.RoofOwnerReference, ownerReference, StringComparison.OrdinalIgnoreCase))
             {
                 timberHandles.Add(entity.Handle.ToString());
@@ -167,6 +171,7 @@ internal static class RoofAssemblyGroupDiag
         string owner,
         int generated,
         int structuralGenerated,
+        int automaticPurlin,
         int attachedManual,
         int annotations,
         int total,
@@ -182,6 +187,7 @@ internal static class RoofAssemblyGroupDiag
             $" owner={owner}" +
             $" generated={generated.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
             $" structuralGenerated={structuralGenerated.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
+            $" automaticPurlin={automaticPurlin.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
             $" attachedManual={attachedManual.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
             $" annotations={annotations.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
             $" total={total.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
@@ -286,6 +292,13 @@ internal static class RoofAssemblyGroupDiag
                 StringComparison.OrdinalIgnoreCase))
         {
             return "StructuralGenerated";
+        }
+        if (string.Equals(
+                RoofAutomaticPurlinGeneratedStore.Read(entity).Data?.RoofOwnerReference,
+                ownerReference,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return "AutomaticPurlin";
         }
         if (string.Equals(
                 RoofAttachedManualTimberStore.Read(entity).Data?.RoofOwnerReference,

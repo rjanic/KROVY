@@ -611,6 +611,8 @@
   <data name="CommandUi_RoofMonoPitch_Tooltip" xml:space="preserve"><value>Startet den Pultdach-Arbeitsablauf.</value></data>
   <data name="CommandUi_RoofRafters_Label" xml:space="preserve"><value>Sparren</value></data>
   <data name="CommandUi_RoofRafters_Tooltip" xml:space="preserve"><value>Erzeugt automatische Sparren für ein gespeichertes Satteldach.</value></data>
+  <data name="CommandUi_RoofPurlins_Label" xml:space="preserve"><value>Automatische Pfetten</value></data>
+  <data name="CommandUi_RoofPurlins_Tooltip" xml:space="preserve"><value>Erstellt oder gleicht die automatischen Dachpfetten ab.</value></data>
   <data name="CommandUi_RoofEdit_Label" xml:space="preserve"><value>Bearbeiten</value></data>
   <data name="CommandUi_RoofEdit_Tooltip" xml:space="preserve"><value>Bearbeitet Geometrie und Parameter des ausgewählten Dachs.</value></data>
   <data name="CommandUi_RoofToggleLock_Label" xml:space="preserve"><value>Sperre</value></data>
@@ -739,4 +741,86 @@
   <data name="Dialog_SettingsRafterSpacing" xml:space="preserve">
     <value>Beide Abstände müssen positive endliche Zahlen sein; der Standardabstand darf nicht kleiner als der Mindestabstand sein.</value>
   </data>
+  <data name="Command_AutomaticPurlin_ManualEditRestricted" xml:space="preserve">
+    <value>\nAutomatische Pfetten werden durch die Dachanordnung gesteuert und können derzeit nicht mit AK_EDIT oder AK_ASSIGN bearbeitet werden.</value>
+  </data>
+  <data name="AutomaticPurlin_Title" xml:space="preserve"><value>Automatische Pfetten</value></data>
+  <data name="AutomaticPurlin_Description" xml:space="preserve"><value>Bearbeiten Sie den Layout-Entwurf und prüfen Sie die temporäre Vorschau. Änderungen werden in diesem Schritt nicht gespeichert.</value></data>
+  <data name="AutomaticPurlin_ReferenceSection" xml:space="preserve"><value>Referenzhöhe</value></data>
+  <data name="AutomaticPurlin_DatumStored" xml:space="preserve"><value>Die Referenzhöhe wurde aus der Zeichnung geladen.</value></data>
+  <data name="AutomaticPurlin_DatumMissing" xml:space="preserve"><value>Die Referenzhöhe ist nicht festgelegt. Die folgenden Werte gelten nur für diese Vorschau.</value></data>
+  <data name="AutomaticPurlin_ReferenceKind" xml:space="preserve"><value>Referenzart</value></data>
+  <data name="AutomaticPurlin_ReferenceRelativeElevation" xml:space="preserve"><value>Relative Referenzhöhe</value></data>
+  <data name="AutomaticPurlin_UnitMetres" xml:space="preserve"><value>m</value></data>
+  <data name="AutomaticPurlin_UnitMillimetres" xml:space="preserve"><value>mm</value></data>
+  <data name="AutomaticPurlin_Advanced" xml:space="preserve"><value>Erweitert</value></data>
+  <data name="AutomaticPurlin_ReferenceLocalZ" xml:space="preserve"><value>Lokale Referenzposition</value></data>
+  <data name="AutomaticPurlin_ReferenceLocalZHelp" xml:space="preserve"><value>Technische lokale Z-Position, der die relative Bauhöhe zugeordnet ist.</value></data>
+  <data name="AutomaticPurlin_ReferenceExplicitPlane" xml:space="preserve"><value>Explizite lokale Ebene</value></data>
+  <data name="AutomaticPurlin_ReferenceSourceEave" xml:space="preserve"><value>Traufebene des Quelldachs</value></data>
+  <data name="AutomaticPurlin_ReferenceWallPlateBottom" xml:space="preserve"><value>Unterkante der Fußpfette</value></data>
+  <data name="AutomaticPurlin_LayoutStored" xml:space="preserve"><value>Das vorhandene Layout wurde unverändert geladen.</value></data>
+  <data name="AutomaticPurlin_LayoutMissing" xml:space="preserve"><value>Das Layout ist nicht festgelegt. Neue Zeilen bleiben nur im Entwurf.</value></data>
+  <data name="AutomaticPurlin_RidgeSection" xml:space="preserve"><value>Firstpfette</value></data>
+  <data name="AutomaticPurlin_CreateRidge" xml:space="preserve"><value>Firstpfette erstellen</value></data>
+  <data name="AutomaticPurlin_IntermediateSection" xml:space="preserve"><value>Zwischenpfetten</value></data>
+  <data name="AutomaticPurlin_IntermediateRowFormat" xml:space="preserve"><value>Zwischenpfette {0}</value></data>
+  <data name="AutomaticPurlin_Add" xml:space="preserve"><value>Hinzufügen</value></data>
+  <data name="AutomaticPurlin_NoIntermediateRows" xml:space="preserve"><value>Es wurden noch keine Zwischenpfetten hinzugefügt.</value></data>
+  <data name="AutomaticPurlin_Enabled" xml:space="preserve"><value>Aktiv</value></data>
+  <data name="AutomaticPurlin_Remove" xml:space="preserve"><value>Entfernen</value></data>
+  <data name="AutomaticPurlin_PlacementMode" xml:space="preserve"><value>Platzierungsart</value></data>
+  <data name="AutomaticPurlin_ModeBottomHeight" xml:space="preserve"><value>Höhe der Unterkante über Referenz</value></data>
+  <data name="AutomaticPurlin_ModeEaveDistance" xml:space="preserve"><value>Grundrissabstand von der Traufe</value></data>
+  <data name="AutomaticPurlin_ModeRidgeDistance" xml:space="preserve"><value>Grundrissabstand vom First</value></data>
+  <data name="AutomaticPurlin_ValueBottomHeight" xml:space="preserve"><value>Höhe der Unterkante</value></data>
+  <data name="AutomaticPurlin_ValueEaveDistance" xml:space="preserve"><value>Abstand von der Traufe</value></data>
+  <data name="AutomaticPurlin_ValueRidgeDistance" xml:space="preserve"><value>Abstand vom First</value></data>
+  <data name="AutomaticPurlin_RidgeReference" xml:space="preserve"><value>Referenzfirst</value></data>
+  <data name="AutomaticPurlin_BottomEdge" xml:space="preserve"><value>Unterkante</value></data>
+  <data name="AutomaticPurlin_Center" xml:space="preserve"><value>Achse</value></data>
+  <data name="AutomaticPurlin_TopEdge" xml:space="preserve"><value>Oberkante</value></data>
+  <data name="AutomaticPurlin_RidgeNumberFormat" xml:space="preserve"><value>First {0}</value></data>
+  <data name="AutomaticPurlin_CrossSection" xml:space="preserve"><value>Pfettenquerschnitt</value></data>
+  <data name="AutomaticPurlin_CrossSectionReadOnly" xml:space="preserve"><value>Der wirksame Standardquerschnitt ist in diesem Schritt schreibgeschützt.</value></data>
+  <data name="AutomaticPurlin_SeatingSection" xml:space="preserve"><value>Sparrenausklinkung</value></data>
+  <data name="AutomaticPurlin_SeatingDefined" xml:space="preserve"><value>Bei grundrissbezogener Platzierung bestimmt die Ausklinkung die physische Höhe der waagerechten Pfette.</value></data>
+  <data name="AutomaticPurlin_HeightModeSeatingPolicy" xml:space="preserve"><value>Bei Platzierung nach Unterkante ist die Ausklinkung nicht anwendbar; die eingegebene Höhe bleibt maßgebend.</value></data>
+  <data name="AutomaticPurlin_SeatingMethod" xml:space="preserve"><value>Ausklinkungsart</value></data>
+  <data name="AutomaticPurlin_SeatingPercent" xml:space="preserve"><value>Prozent der Sparrenhöhe</value></data>
+  <data name="AutomaticPurlin_SeatingAbsolute" xml:space="preserve"><value>Fester Wert</value></data>
+  <data name="AutomaticPurlin_SeatingValue" xml:space="preserve"><value>Ausklinkungswert</value></data>
+  <data name="AutomaticPurlin_PlanPosition" xml:space="preserve"><value>Grundrissposition</value></data>
+  <data name="AutomaticPurlin_RoofPlaneElevation" xml:space="preserve"><value>Dachfläche</value></data>
+  <data name="AutomaticPurlin_SeatingDepth" xml:space="preserve"><value>Ausklinkung</value></data>
+  <data name="AutomaticPurlin_SeatingNotApplicable" xml:space="preserve"><value>Nicht verwendet</value></data>
+  <data name="AutomaticPurlin_Cancel" xml:space="preserve"><value>Abbrechen</value></data>
+  <data name="AutomaticPurlin_Preview" xml:space="preserve"><value>Vorschau</value></data>
+  <data name="AutomaticPurlin_ValidationBoundaryIdentity" xml:space="preserve"><value>Die stabile Randidentität fehlt oder ist ungültig. Die Vorschau darf sie nicht erstellen oder reparieren.</value></data>
+  <data name="AutomaticPurlin_ValidationDatum" xml:space="preserve"><value>Geben Sie eine gültige Referenzhöhe in Metern und eine lokale Position in Millimetern ein.</value></data>
+  <data name="AutomaticPurlin_ValidationNoHorizontalRidge" xml:space="preserve"><value>Das Dach hat keinen geeigneten horizontalen First.</value></data>
+  <data name="AutomaticPurlin_ValidationValue" xml:space="preserve"><value>Der Platzierungswert muss eine endliche Zahl größer als 0 sein.</value></data>
+  <data name="AutomaticPurlin_ValidationSeating" xml:space="preserve"><value>Die Ausklinkung muss größer als 0 und kleiner als 100 % oder die Sparrenhöhe sein.</value></data>
+  <data name="AutomaticPurlin_ValidationRidgeReference" xml:space="preserve"><value>Wählen Sie einen gültigen horizontalen Referenzfirst.</value></data>
+  <data name="AutomaticPurlin_ValidationInclinedRidge" xml:space="preserve"><value>Ein geneigter First kann nicht als Referenz verwendet werden.</value></data>
+  <data name="AutomaticPurlin_ValidationOutsideRoof" xml:space="preserve"><value>Die Platzierung liegt außerhalb des Dachs.</value></data>
+  <data name="AutomaticPurlin_ValidationCriticalElevation" xml:space="preserve"><value>Die Platzierung fällt mit einer kritischen Topologiehöhe zusammen.</value></data>
+  <data name="AutomaticPurlin_ValidationLayout" xml:space="preserve"><value>Das Layout kann nicht angezeigt werden. Prüfen Sie seine Werte.</value></data>
+  <data name="AutomaticPurlin_CommandSelectRoof" xml:space="preserve"><value>Wählen Sie die maßgebliche gespeicherte Quellpolylinie eines Walmdachs: </value></data>
+  <data name="AutomaticPurlin_CommandPolylineRequired" xml:space="preserve"><value>Die Auswahl muss eine Polylinie sein.</value></data>
+  <data name="AutomaticPurlin_CommandHipRoofRequired" xml:space="preserve"><value>Ein maßgebliches gespeichertes Walmdach mit gültigen Metadaten ist erforderlich.</value></data>
+  <data name="AutomaticPurlin_CommandFailedFormat" xml:space="preserve"><value>Dialog für automatische Pfetten fehlgeschlagen: {0}</value></data>
+  <data name="AutomaticPurlin_DescriptionProduction" xml:space="preserve"><value>Bearbeiten Sie das Layout, prüfen Sie die temporäre Vorschau und bestätigen Sie die Änderungen mit Anwenden.</value></data>
+  <data name="AutomaticPurlin_DatumMissingProduction" xml:space="preserve"><value>Die Referenzhöhe ist nicht gespeichert. Ein gültiger eingegebener Wert wird beim Anwenden gespeichert.</value></data>
+  <data name="AutomaticPurlin_LayoutMissingProduction" xml:space="preserve"><value>Das Layout ist nicht gespeichert. Ein gültiger Entwurf wird beim Anwenden gespeichert.</value></data>
+  <data name="AutomaticPurlin_Apply" xml:space="preserve"><value>Anwenden</value></data>
+  <data name="AutomaticPurlin_ApplySucceeded" xml:space="preserve"><value>Automatische Pfetten wurden angewendet.</value></data>
+  <data name="AutomaticPurlin_ApplyFailed" xml:space="preserve"><value>Automatische Pfetten konnten nicht angewendet werden.</value></data>
+  <data name="AutomaticPurlin_Schematic" xml:space="preserve"><value>Dachquerschnitt-Schema</value></data>
+  <data name="AutomaticPurlin_SchematicRidge" xml:space="preserve"><value>Firstpfette</value></data>
+  <data name="AutomaticPurlin_SchematicIntermediate" xml:space="preserve"><value>Zwischenpfette</value></data>
+  <data name="AutomaticPurlin_SchematicRafter" xml:space="preserve"><value>Sparren</value></data>
+  <data name="AutomaticPurlin_SchematicSeatingHelp" xml:space="preserve"><value>Schematische Darstellung der Auflagerung; maßgeblich sind die Zahlenwerte.</value></data>
+  <data name="AutomaticPurlin_SchematicRidgeUnresolved" xml:space="preserve"><value>Wählen Sie einen gültigen Bezugsfirst.</value></data>
+  <data name="AutomaticPurlin_SchematicNoSelection" xml:space="preserve"><value>Wählen Sie eine Zwischenpfette, um ihre Position anzuzeigen.</value></data>
 </root>

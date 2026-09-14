@@ -21,6 +21,10 @@ public sealed class RoofRafterUxSourceContractTests
         Assert.Contains("AcKrovyCommandNames.RoofRafters", Catalog);
         Assert.Equal(AcKrovyCommandNames.Roof, CommandUiCatalog.Roof.CommandName);
         Assert.Equal(AcKrovyCommandNames.RoofRafters, CommandUiCatalog.RoofRafters.CommandName);
+        Assert.Contains("Button(CommandUiCatalog.RoofPurlins)", Ribbon);
+        Assert.Equal(AcKrovyCommandNames.RoofPurlins, CommandUiCatalog.RoofPurlins.CommandName);
+        Assert.Equal("DECORAIR_AK_ROOF_PURLINS", CommandUiCatalog.RoofPurlins.RibbonControlId);
+        Assert.Equal("roof_purlins", CommandUiCatalog.RoofPurlins.IconKey);
     }
 
     [Fact]
@@ -80,7 +84,7 @@ public sealed class RoofRafterUxSourceContractTests
     [Fact]
     public void IconsUseExistingPersistentPngPipelineAtBothRibbonSizes()
     {
-        var keys = new[] { "roof", "roof_gable", "roof_hip", "roof_halfhip", "roof_monopitch", "roof_rafters", "roof_edit", "roof_locktoggle" };
+        var keys = new[] { "roof", "roof_gable", "roof_hip", "roof_halfhip", "roof_monopitch", "roof_rafters", "roof_purlins", "roof_edit", "roof_locktoggle" };
         foreach (var key in keys)
         {
             AssertPngDimensions(IconPath(key, 16), 16, 16);

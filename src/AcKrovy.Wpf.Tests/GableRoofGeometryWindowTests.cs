@@ -1,6 +1,7 @@
 using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using AcKrovy.AutoCAD.UI;
 using AcKrovy.Core.Models.Roofs;
 using AcKrovy.Core.Services.Roofs;
@@ -12,6 +13,40 @@ namespace AcKrovy.Wpf.Tests;
 [Collection(WpfUiSerialCollection.CollectionName)]
 public sealed class GableRoofGeometryWindowTests
 {
+    [Fact]
+    public void MaterialBrushes_KeepIvoryCardsAboveWalnutFrame()
+    {
+        RunSta(() =>
+        {
+            var window = CreateOffscreenWindow(
+                new GableRoofGeometryViewModel(Rectangle(10000d, 6000d)),
+                SettingsTheme.Light);
+            window.Show();
+            window.UpdateLayout();
+
+            var wood = Assert.IsType<DrawingBrush>(window.FindResource("WoodOakBrush"));
+            Assert.Equal(Stretch.Fill, wood.Stretch);
+            Assert.Equal(TileMode.None, wood.TileMode);
+            Assert.Equal(BrushMappingMode.Absolute, wood.ViewboxUnits);
+            Assert.Equal(BrushMappingMode.RelativeToBoundingBox, wood.ViewportUnits);
+            Assert.Equal(new Rect(0d, 0d, 800d, 450d), wood.Viewbox);
+            Assert.Equal(new Rect(0d, 0d, 1d, 1d), wood.Viewport);
+            Assert.Same(wood, window.Background);
+            Assert.Same(wood, window.FooterBand.Background);
+            Assert.Same(wood, window.ApplyButton.Background);
+            var header = Assert.IsType<LinearGradientBrush>(window.HeaderBand.Background);
+            Assert.Equal(Color.FromRgb(0x4D, 0x2D, 0x17), header.GradientStops[0].Color);
+            Assert.Equal(Color.FromRgb(0x5A, 0x33, 0x17), header.GradientStops[1].Color);
+            Assert.Equal(Color.FromRgb(0x6A, 0x3F, 0x1F), header.GradientStops[2].Color);
+            Assert.Same(
+                window.FindResource("SettingsCardBackgroundBrush"),
+                window.LeftInputCard.Background);
+            Assert.NotSame(wood, window.LeftInputCard.Background);
+
+            window.Close();
+        });
+    }
+
     [Fact]
     public void ViewModel_DefaultsToSymmetricAndLoadsRotatedCanonicalDimensions()
     {
@@ -348,7 +383,7 @@ public sealed class GableRoofGeometryWindowTests
                     Assert.Equal(Visibility.Visible, window.AsymmetricFieldsPanel.Visibility);
                     Assert.True(window.MirrorAsymmetryPanel.IsVisible);
                     Assert.True(window.AsymmetricRadioButton.IsChecked);
-                    AssertElementFitsInside(window.PickRidgeDirectionButton, window.LeftInputCard);
+                    AssertElementFitsInside(window.PickRidgeDirectionButton, window.RidgeDirectionActionCard);
                     Assert.Equal(Visibility.Visible, window.DeltaHeightInputPanel.Visibility);
                     Assert.Equal(Visibility.Collapsed, window.RidgeDistanceInputPanel.Visibility);
                     viewModel.AsymmetricInputMode = AsymmetricGableInputMode.RidgeDistanceFromEaveA;
@@ -356,7 +391,7 @@ public sealed class GableRoofGeometryWindowTests
                     Assert.Equal(Visibility.Collapsed, window.DeltaHeightInputPanel.Visibility);
                     Assert.Equal(Visibility.Visible, window.RidgeDistanceInputPanel.Visibility);
                     Assert.True(window.CalculatedDeltaHeightTextBox.IsReadOnly);
-                    AssertElementFitsInside(window.PickRidgeDirectionButton, window.LeftInputCard);
+                    AssertElementFitsInside(window.PickRidgeDirectionButton, window.RidgeDirectionActionCard);
                     Assert.DoesNotContain("RoofGeometryWindow_", window.Title);
                     window.Close();
                 }

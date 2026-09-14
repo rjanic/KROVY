@@ -427,6 +427,12 @@ public sealed class AcKrovyCommands
             AcKrovyCommandNames.RoofRafters,
             () => RoofRafterCommandWorkflow.Run(ActiveDocument()));
 
+    [CommandMethod(AcKrovyCommandNames.RoofPurlins, CommandFlags.Modal | CommandFlags.Redraw)]
+    public void RoofPurlins() =>
+        CommandExecutionBoundary.Execute(
+            AcKrovyCommandNames.RoofPurlins,
+            () => RoofAutomaticPurlinCommandWorkflow.Run(ActiveDocument()));
+
     [CommandMethod(AcKrovyCommandNames.RoofUnlock, CommandFlags.Modal | CommandFlags.Redraw)]
     public void RoofUnlock() =>
         CommandExecutionBoundary.Execute(
@@ -664,6 +670,14 @@ public sealed class AcKrovyCommands
         var ids = selection.Ids;
         if (ids.Count == 0)
         {
+            return;
+        }
+
+        if (ContainsAutomaticPurlinGenerated(document.Database, ids))
+        {
+            editor.WriteMessage(UiStrings.GetString(
+                "Command_AutomaticPurlin_ManualEditRestricted",
+                uiCulture));
             return;
         }
 
@@ -1319,6 +1333,14 @@ public sealed class AcKrovyCommands
     {
         var editor = document.Editor;
         var uiCulture = AppLanguageService.CurrentUiCulture;
+        if (ContainsAutomaticPurlinGenerated(document.Database, ids))
+        {
+            editor.WriteMessage(UiStrings.GetString(
+                "Command_AutomaticPurlin_ManualEditRestricted",
+                uiCulture));
+            return;
+        }
+
         var dialog = new ElementEditWindow(seedData, isNewAssignment: true, defaultProfile);
         if (AcApp.ShowModalWindow(dialog) != true || dialog.Patch is null)
         {
@@ -1493,6 +1515,29 @@ public sealed class AcKrovyCommands
 
         var first = selectedData[0].CuttingAllowanceMm;
         return selectedData.Skip(1).Any(data => Math.Abs(data.CuttingAllowanceMm - first) > 0.000001);
+    }
+
+    private static bool ContainsAutomaticPurlinGenerated(
+        Database database,
+        IReadOnlyList<ObjectId> ids)
+    {
+        using var transaction = database.TransactionManager.StartTransaction();
+        foreach (var id in ids)
+        {
+            if (AutoCadObjectIdAccess.TryGetObject<Entity>(
+                    transaction,
+                    id,
+                    OpenMode.ForRead,
+                    out var entity,
+                    database) &&
+                entity is not null &&
+                RoofAutomaticPurlinGeneratedStore.Read(entity).Exists)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static bool HasMixedSlopeDirection(IReadOnlyList<TimberElementData> selectedData)
