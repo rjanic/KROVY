@@ -58,6 +58,17 @@ internal static class RoofTopologyIntegrity
                 !keys.Add((Math.Min(a, b), Math.Max(a, b))) ||
                 local[a].Point.DistanceTo(local[b].Point) <= numeric.Tolerance ||
                 !RoofTopologySolver.Finite(nodes[a].DistanceTo(nodes[b]))) return false;
+            if (edge.OriginatingBoundaryVertexIndex is { } origin)
+            {
+                if (origin < 0 || origin >= n ||
+                    edge.Kind is not (RoofTopologyEdgeKind.Hip or RoofTopologyEdgeKind.Valley or RoofTopologyEdgeKind.Ridge)) return false;
+                var turn = WavefrontNumerics.Cross(
+                    footprint.Vertices[(origin + n - 1) % n],
+                    footprint.Vertices[origin],
+                    footprint.Vertices[(origin + 1) % n]);
+                if (turn > 0d && edge.Kind != RoofTopologyEdgeKind.Hip ||
+                    turn < 0d && edge.Kind is not (RoofTopologyEdgeKind.Valley or RoofTopologyEdgeKind.Ridge)) return false;
+            }
             var eave = edge.Kind == RoofTopologyEdgeKind.Eave;
             if (edge.FaceIndices.Count != (eave ? 1 : 2) || edge.FaceIndices.Any(f => f < 0 || f >= n) ||
                 edge.FaceIndices.Distinct().Count() != edge.FaceIndices.Count ||

@@ -26,6 +26,14 @@ public static class RoofAutomaticStructuralRafterPlanner
                 continue;
             }
 
+            // Timber follows physical fold semantics: exposed convex Hip folds and
+            // concave Valley folds. Horizontal Ridge is excluded upstream as Ridge
+            // role. Path anchors remain optional provenance, not eligibility.
+            if (!edge.IsAutomaticStructuralTimberEligible)
+            {
+                continue;
+            }
+
             if (!TryMapType(edge.StructuralRole, out var elementType))
             {
                 return Invalid(RoofAutomaticStructuralRafterPlanError.UnsupportedStructuralRole);

@@ -25,7 +25,8 @@ internal readonly record struct WavefrontLineage(int BoundaryVertex, WavefrontBo
         int successorCount,
         int previousSource,
         int nextSource,
-        bool successorReflex)
+        bool successorReflex,
+        bool successorCoplanar)
     {
         if (successorCount != 1)
         {
@@ -48,6 +49,26 @@ internal readonly record struct WavefrontLineage(int BoundaryVertex, WavefrontBo
         if (local.Length != 0)
         {
             return local.Length == 1 ? local[0] : Internal;
+        }
+
+        // A convex successor may be born at a reflex contact when the opposite
+        // side of that contact collapses. Retain the reflex event provenance
+        // only when the successor keeps the contact's directed outgoing source.
+        // The structural resolver still requires an independently anchored Hip
+        // path and incident-face continuity before this marker is materializable.
+        if (!successorReflex && !successorCoplanar)
+        {
+            var outgoingReflex = localContactVertices
+                .Where(vertex =>
+                    vertex.Lineage.Kind == WavefrontBoundaryCornerKind.Reflex &&
+                    vertex.NextSource == nextSource)
+                .Select(vertex => vertex.Lineage)
+                .Distinct()
+                .ToArray();
+            if (outgoingReflex.Length != 0)
+            {
+                return outgoingReflex.Length == 1 ? outgoingReflex[0] : Internal;
+            }
         }
 
         // A split batch may terminate an intervening span at a second contact
@@ -84,7 +105,13 @@ internal enum WavefrontEventKind { Edge, Split }
 internal sealed record WavefrontEvent(double Time, WavefrontEventKind Kind, int Vertex,
     int EdgeStart, int EdgeEnd, int Source);
 internal readonly record struct WavefrontNode(RoofPoint2D Point, double Time);
-internal readonly record struct WavefrontArc(int Start, int End, int LeftFace, int RightFace, RoofTopologyEdgeKind Kind);
+internal readonly record struct WavefrontArc(
+    int Start,
+    int End,
+    int LeftFace,
+    int RightFace,
+    RoofTopologyEdgeKind Kind,
+    WavefrontLineage Lineage);
 internal readonly record struct WavefrontSpan(int Start, int End, int Source);
 
 internal sealed class WavefrontNumerics

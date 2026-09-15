@@ -44,12 +44,38 @@ public enum RoofStructuralIdentityError
 public sealed record ResolvedRoofStructuralEdge(
     RoofStructuralLogicalKey StructuralIdentity,
     int TopologyEdgeIndex,
-    RoofSegment3D Segment3D)
+    RoofSegment3D Segment3D,
+    int? OriginatingBoundaryVertexIndex = null,
+    int? PhysicalBoundaryAnchorVertexIndex = null,
+    int? PhysicalPathAnchorVertexIndex = null,
+    bool IsPhysicalFoldTimberEligible = false)
 {
     public RoofStructuralRole StructuralRole => StructuralIdentity.Role;
     public int BoundaryEdgeIdA => StructuralIdentity.BoundaryEdgeIdA;
     public int BoundaryEdgeIdB => StructuralIdentity.BoundaryEdgeIdB;
     public double Length3dMm => Segment3D.LengthMm;
+
+    /// <summary>
+    /// True only when this exact topology segment reaches its compatible physical
+    /// footprint corner. Surviving wavefront lineage alone is insufficient.
+    /// </summary>
+    public bool HasPhysicalBoundaryAnchor => PhysicalBoundaryAnchorVertexIndex.HasValue;
+
+    /// <summary>
+    /// Optional provenance: unambiguous path connected to a compatible footprint
+    /// corner, including Valley-junction Hip continuations. Not required for timber
+    /// eligibility of a real exposed convex/concave roof fold.
+    /// </summary>
+    public bool HasPhysicalPathAnchor => PhysicalPathAnchorVertexIndex.HasValue;
+
+    /// <summary>
+    /// Timber eligibility follows physical fold semantics: convex Hip folds and
+    /// concave Valley folds that pass geometric validation. Horizontal Ridge is
+    /// never eligible. Path anchors remain provenance only.
+    /// </summary>
+    public bool IsAutomaticStructuralTimberEligible =>
+        (StructuralRole is RoofStructuralRole.Hip or RoofStructuralRole.Valley) &&
+        IsPhysicalFoldTimberEligible;
 }
 
 public enum RoofStructuralEdgeResolutionError

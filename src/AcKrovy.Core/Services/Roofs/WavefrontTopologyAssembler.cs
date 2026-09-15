@@ -28,7 +28,12 @@ internal static class WavefrontTopologyAssembler
                 arc.LeftFace == arc.RightFace || a == b) return Unresolved();
             directed[arc.LeftFace].Add((a, b));
             directed[arc.RightFace].Add((b, a));
-            edges.Add(new(Math.Min(a, b), Math.Max(a, b), arc.Kind, new[] { arc.LeftFace, arc.RightFace }));
+            edges.Add(new(
+                Math.Min(a, b),
+                Math.Max(a, b),
+                arc.Kind,
+                new[] { arc.LeftFace, arc.RightFace },
+                arc.Lineage.HasBoundaryCorner ? arc.Lineage.BoundaryVertex : null));
         }
         var faces = new List<RoofTopologyFace>();
         for (var i = 0; i < count; i++)

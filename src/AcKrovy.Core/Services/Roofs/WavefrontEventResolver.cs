@@ -77,12 +77,19 @@ internal static class WavefrontEventResolver
                     vertex.Lineage.Kind == WavefrontBoundaryCornerKind.Convex
                         ? RoofTopologyEdgeKind.Hip
                         : RoofTopologyEdgeKind.Ridge;
-                arcs.Add(new(vertex.Anchor, eventNodes[root], vertex.PreviousSource, vertex.NextSource, kind));
+                arcs.Add(new(
+                    vertex.Anchor,
+                    eventNodes[root],
+                    vertex.PreviousSource,
+                    vertex.NextSource,
+                    kind,
+                    vertex.Lineage));
             }
         }
         foreach (var pair in terminal)
             arcs.Add(new(eventNodes[pair.First.Start], eventNodes[pair.First.End],
-                pair.Second.Source, pair.First.Source, RoofTopologyEdgeKind.Ridge));
+                pair.Second.Source, pair.First.Source, RoofTopologyEdgeKind.Ridge,
+                WavefrontLineage.Internal));
 
         if (remaining.Count == 0) return Array.Empty<WavefrontLoop>();
         // Follow the left-hand bounded region: at a multi-contact node choose the
@@ -134,7 +141,8 @@ internal static class WavefrontEventResolver
                         successorCounts[root],
                         incoming.Source,
                         outgoing.Source,
-                        vertex.Reflex);
+                        vertex.Reflex,
+                        vertex.Coplanar);
                     vertex = vertex with { Lineage = lineage };
                 }
             }

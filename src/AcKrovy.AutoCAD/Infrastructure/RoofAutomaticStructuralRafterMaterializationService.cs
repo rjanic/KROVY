@@ -141,12 +141,24 @@ internal static class RoofAutomaticStructuralRafterMaterializationService
                 ownerReference);
         }
 
+        var sourceElevation = RoofPolylineExtractor.GetSourceElevation(owner);
+#if DEBUG
+        RoofAutomaticStructuralRafterTrace.WriteTopologyAndDesired(
+            document.Editor,
+            ownerReference,
+            sourceInput,
+            boundaryIdentityResult.Identity,
+            hipGeometry,
+            structuralResolution,
+            plan,
+            sourceElevation);
+#endif
         return Reconcile(
             document,
             transaction,
             owner,
             ownerReference,
-            RoofPolylineExtractor.GetSourceElevation(owner),
+            sourceElevation,
             plan.Items,
             defaultProfile,
             layerProfile);
@@ -168,6 +180,14 @@ internal static class RoofAutomaticStructuralRafterMaterializationService
             database,
             transaction,
             ownerReference);
+#if DEBUG
+        RoofAutomaticStructuralRafterTrace.WriteExistingSet(
+            document.Editor,
+            database,
+            transaction,
+            ownerReference,
+            existingIds);
+#endif
         var desiredByKey = desired.ToDictionary(item => item.LogicalKey);
         var candidatesByKey = new Dictionary<RoofStructuralLogicalKey, List<ExistingMember>>();
         var staleIds = new HashSet<ObjectId>();
@@ -179,9 +199,36 @@ internal static class RoofAutomaticStructuralRafterMaterializationService
                     metadataStore,
                     id,
                     out var existing) ||
-                existing is null ||
-                !desiredByKey.ContainsKey(existing.StructuralData.LogicalKey))
+                existing is null)
             {
+#if DEBUG
+                RoofAutomaticStructuralRafterTrace.WriteRejectedExistingAction(
+                    document.Editor,
+                    database,
+                    transaction,
+                    ownerReference,
+                    id,
+                    "malformed-block",
+                    "unreadable-or-incompatible-structural-child");
+#endif
+                staleIds.Add(id);
+                continue;
+            }
+
+            if (!desiredByKey.ContainsKey(existing.StructuralData.LogicalKey))
+            {
+#if DEBUG
+                RoofAutomaticStructuralRafterTrace.WriteReconcile(
+                    document.Editor,
+                    ownerReference,
+                    existing.StructuralData.LogicalKey,
+                    "stale-erase",
+                    existing.Line.Handle.ToString(),
+                    null,
+                    null,
+                    RoofAutomaticStructuralRafterTrace.Segment(existing.Line),
+                    "key-absent-from-desired-set");
+#endif
                 staleIds.Add(id);
                 continue;
             }
@@ -202,10 +249,28 @@ internal static class RoofAutomaticStructuralRafterMaterializationService
             survivorByKey.Add(key, survivor);
             foreach (var duplicate in bucket.Where(item => item.Id != survivor.Id))
             {
+#if DEBUG
+                RoofAutomaticStructuralRafterTrace.WriteReconcile(
+                    document.Editor,
+                    ownerReference,
+                    duplicate.StructuralData.LogicalKey,
+                    "duplicate-block",
+                    duplicate.Line.Handle.ToString(),
+                    null,
+                    RoofAutomaticStructuralRafterTrace.Segment(
+                        desiredByKey[duplicate.StructuralData.LogicalKey].Segment3D.Start,
+                        desiredByKey[duplicate.StructuralData.LogicalKey].Segment3D.End,
+                        sourceElevation),
+                    RoofAutomaticStructuralRafterTrace.Segment(duplicate.Line),
+                    "duplicate-key-noncanonical-handle");
+#endif
                 staleIds.Add(duplicate.Id);
             }
         }
 
+#if DEBUG
+        var staleErasedCount = 0;
+#endif
         if (staleIds.Count > 0)
         {
             _ = RoofAssemblyGroupSyncService.DetachMembersBeforeErase(
@@ -225,6 +290,9 @@ internal static class RoofAutomaticStructuralRafterMaterializationService
                     !stale.IsErased)
                 {
                     stale.Erase();
+#if DEBUG
+                    staleErasedCount++;
+#endif
                 }
             }
         }
@@ -256,6 +324,9 @@ internal static class RoofAutomaticStructuralRafterMaterializationService
             var end = MapPoint(item.Segment3D.End, sourceElevation);
             if (survivorByKey.TryGetValue(item.LogicalKey, out var existing))
             {
+#if DEBUG
+                var existingSegmentTrace = RoofAutomaticStructuralRafterTrace.Segment(existing.Line);
+#endif
                 existingCount++;
                 var elementId = ResolveElementId(
                     database,
@@ -291,6 +362,22 @@ internal static class RoofAutomaticStructuralRafterMaterializationService
                     updatedCount++;
                 }
 
+#if DEBUG
+                RoofAutomaticStructuralRafterTrace.WriteReconcile(
+                    document.Editor,
+                    ownerReference,
+                    item.LogicalKey,
+                    geometryChanged || metadataChanged ? "update-geometry" : "reuse-unchanged",
+                    existing.Line.Handle.ToString(),
+                    existing.Line.Handle.ToString(),
+                    RoofAutomaticStructuralRafterTrace.Segment(start, end),
+                    existingSegmentTrace,
+                    geometryChanged
+                        ? "endpoint-geometry-diff"
+                        : metadataChanged
+                            ? "metadata-diff"
+                            : "key-type-geometry-match");
+#endif
                 members.Add(new RoofAutomaticStructuralRafterMemberResult(
                     item.LogicalKey,
                     existing.Line.Handle.ToString(),
@@ -323,6 +410,18 @@ internal static class RoofAutomaticStructuralRafterMaterializationService
                 layerProfile,
                 AcKrovy.Cad.Abstractions.Layers.CadLayerUpdateMode.PreserveExisting);
             createdCount++;
+#if DEBUG
+            RoofAutomaticStructuralRafterTrace.WriteReconcile(
+                document.Editor,
+                ownerReference,
+                item.LogicalKey,
+                "create",
+                null,
+                id.Handle.ToString(),
+                RoofAutomaticStructuralRafterTrace.Segment(start, end),
+                null,
+                "desired-key-had-no-survivor");
+#endif
             members.Add(new RoofAutomaticStructuralRafterMemberResult(
                 item.LogicalKey,
                 id.Handle.ToString(),
@@ -372,6 +471,20 @@ internal static class RoofAutomaticStructuralRafterMaterializationService
             groupCanonical &&
             VerifyMembers(database, transaction, metadataStore, actualIds, desiredByKey);
 
+#if DEBUG
+        RoofAutomaticStructuralRafterTrace.WriteFinalSetAndSummary(
+            document.Editor,
+            database,
+            transaction,
+            ownerReference,
+            actualIds,
+            staleErasedCount,
+            createdCount,
+            existingCount - updatedCount,
+            updatedCount,
+            groupCanonical,
+            success);
+#endif
         return new RoofAutomaticStructuralRafterMaterializationResult(
             success,
             ownerReference,

@@ -26,6 +26,22 @@ internal static class RoofRafterCommandWorkflow
 
         if (selectedRoof.ExistingGeneratedRafterCount > 0)
         {
+            // Ordinary generated rafters can predate the explicit structural
+            // Hip/Valley materializer. Reconcile that independent desired set
+            // before retaining the existing ordinary-set replacement guard.
+            if (selectedRoof.Geometry is HipRoofGeometry)
+            {
+                var structural = RoofAutomaticStructuralRafterMaterializationService.Materialize(
+                    document,
+                    selectedRoof.OwnerId);
+                if (!structural.IsSuccess)
+                {
+                    editor.WriteMessage(UiStrings.GetString(
+                        "Command_RoofRafters_GenerationFailed"));
+                    return;
+                }
+            }
+
             editor.WriteMessage(UiStrings.Format(
                 UiStrings.GetString("Command_RoofRafters_ExistingFoundFormat"),
                 selectedRoof.ExistingGeneratedRafterCount));

@@ -18,17 +18,34 @@ public sealed class RoofTopologyEdge
 {
     internal RoofTopologyEdge(int startNodeIndex, int endNodeIndex,
         RoofTopologyEdgeKind kind, IEnumerable<int> faceIndices)
+        : this(startNodeIndex, endNodeIndex, kind, faceIndices, null)
+    {
+    }
+
+    internal RoofTopologyEdge(int startNodeIndex, int endNodeIndex,
+        RoofTopologyEdgeKind kind, IEnumerable<int> faceIndices,
+        int? originatingBoundaryVertexIndex)
     {
         StartNodeIndex = startNodeIndex;
         EndNodeIndex = endNodeIndex;
         Kind = kind;
         FaceIndices = Array.AsReadOnly(faceIndices.OrderBy(index => index).ToArray());
+        OriginatingBoundaryVertexIndex = originatingBoundaryVertexIndex;
     }
 
     public int StartNodeIndex { get; }
     public int EndNodeIndex { get; }
     public RoofTopologyEdgeKind Kind { get; }
     public IReadOnlyList<int> FaceIndices { get; }
+
+    /// <summary>
+    /// Boundary-corner lineage carried by the wavefront arc, when one survives.
+    /// An interior-to-interior edge can retain this topology provenance without
+    /// being physically anchored at that boundary corner. A topological Ridge
+    /// may carry reflex lineage as a directed Valley-junction transition marker
+    /// after the incident-plane fold changes at an event.
+    /// </summary>
+    public int? OriginatingBoundaryVertexIndex { get; }
 }
 
 /// <summary>A planar face with a connected, upward-facing boundary cycle.</summary>

@@ -127,7 +127,12 @@ internal static class RoofTopologyBuilder
                 if (Math.Abs(turn) <= RoofFootprintValidator.CollinearityTolerance) return Unresolved();
                 kind = turn < 0d ? RoofTopologyEdgeKind.Valley : RoofTopologyEdgeKind.Hip;
             }
-            edges.Add(new RoofTopologyEdge(start, end, kind, entry.Value.Select(use => use.Face)));
+            edges.Add(new RoofTopologyEdge(
+                start,
+                end,
+                kind,
+                entry.Value.Select(use => use.Face),
+                start < boundaryCount ? start : null));
         }
         // A single no-hole roof has a connected tree of skeleton edges, boundary
         // leaves and degree >= 3 internal nodes (including simultaneous events).

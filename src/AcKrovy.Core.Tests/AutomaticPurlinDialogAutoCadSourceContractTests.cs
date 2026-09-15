@@ -111,8 +111,9 @@ public sealed class AutomaticPurlinDialogAutoCadSourceContractTests
         Assert.Contains("x:Name=\"SchematicCard\"", Window);
         Assert.Contains("x:Name=\"SchematicBaseImage\"", Window);
         Assert.Contains("x:Name=\"SchematicHighlightOverlay\"", Window);
-        Assert.Contains("SchematicImagePackUri", Window);
-        Assert.Contains("automatic-purlin-roof-section.png", ViewModel);
+        Assert.Contains("automatic-purlin-roof-section.png", Window);
+        Assert.Contains("SettingsPanelBackgroundBrush", Window);
+        Assert.DoesNotContain("Background=\"#FF000000\"", Window);
         Assert.Contains("SchematicRidgeActive", Window);
         Assert.Contains("SchematicRidgeEmphasized", Window);
         Assert.Contains("SchematicAnyIntermediateEnabled", Window);

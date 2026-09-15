@@ -20,7 +20,11 @@ public sealed class HipRoofGeometry : IRoofGeometry
     public IReadOnlyList<RoofSegment3D> Ridges => Segments(RoofTopologyEdgeKind.Ridge);
     public IReadOnlyList<RoofSegment3D> Valleys => Segments(RoofTopologyEdgeKind.Valley);
 
-    /// <summary>Corner-to-interior segments ordered by the corresponding eave starts.</summary>
+    /// <summary>
+    /// Hip-classified topology segments. Concave event continuations can retain
+    /// convex lineage after leaving the boundary; physical timber eligibility is
+    /// resolved separately.
+    /// </summary>
     public IReadOnlyList<RoofSegment3D> Hips => Array.AsReadOnly(Topology.Edges
         .Where(edge => edge.Kind == RoofTopologyEdgeKind.Hip)
         .OrderBy(edge => (edge.StartNodeIndex - _firstFace + Faces.Count) % Faces.Count)

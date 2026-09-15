@@ -12,22 +12,31 @@ public sealed class RoofAutomaticStructuralRafterPlannerTests
 {
     public static IEnumerable<object[]> MaterializationFixtures()
     {
-        yield return ["rectangle", Points((0, 0), (10000, 0), (10000, 6000), (0, 6000)), 1, 4, 0, 4];
-        yield return ["L", Points((0, 0), (8000, 0), (8000, 3000), (3000, 3000), (3000, 8000), (0, 8000)), 2, 5, 1, 6];
-        yield return ["U", Points((0, 0), (10000, 0), (10000, 9000), (7000, 9000), (7000, 3000), (3000, 3000), (3000, 9000), (0, 9000)), 3, 6, 2, 8];
-        yield return ["T", Points((0, 0), (10000, 0), (10000, 3000), (6500, 3000), (6500, 9000), (3500, 9000), (3500, 3000), (0, 3000)), 3, 6, 2, 8];
-        yield return ["stepped", Points((0, 0), (11000, 0), (11000, 2500), (8000, 2500), (8000, 5000), (5000, 5000), (5000, 8500), (0, 8500)), 4, 6, 2, 8];
-        yield return ["HOST 291A", Points((47947.813661, 12295.184331), (47947.813661, 20038.646240), (57988.858409, 20038.646240), (57988.858409, 15403.104447), (52849.740922, 15403.104447), (52849.740922, 12295.184331)), 2, 6, 1, 7];
+        yield return ["rectangle", Points((0, 0), (10000, 0), (10000, 6000), (0, 6000)), 1, 4, 0, 4, 4];
+        yield return ["L", Points((0, 0), (8000, 0), (8000, 3000), (3000, 3000), (3000, 8000), (0, 8000)), 2, 5, 1, 5, 6];
+        yield return ["U", Points((0, 0), (10000, 0), (10000, 9000), (7000, 9000), (7000, 3000), (3000, 3000), (3000, 9000), (0, 9000)), 3, 6, 2, 6, 8];
+        yield return ["T", Points((0, 0), (10000, 0), (10000, 3000), (6500, 3000), (6500, 9000), (3500, 9000), (3500, 3000), (0, 3000)), 3, 6, 2, 6, 8];
+        yield return ["stepped", Points((0, 0), (11000, 0), (11000, 2500), (8000, 2500), (8000, 5000), (5000, 5000), (5000, 8500), (0, 8500)), 3, 7, 2, 7, 9];
+        yield return ["HOST 291A", Points((47947.813661, 12295.184331), (47947.813661, 20038.646240), (57988.858409, 20038.646240), (57988.858409, 15403.104447), (52849.740922, 15403.104447), (52849.740922, 12295.184331)), 2, 6, 1, 6, 7];
+        yield return ["skewed L continuation", Points((535.9508311543385, -614.8670056438385), (8310.79917634409, -540.4368551636287), (8607.299408366578, 3580.2053038404347), (3024.887563299801, 3431.0999022475908), (3190.644176020587, 8301.789694745927), (358.22164540096253, 8869.577687871446)), 2, 6, 1, 6, 7];
+        yield return ["skewed U continuation", Points((47.96957771664938, 699.5318859813418), (10598.020908934073, 294.6911721465603), (11028.608622648106, 9681.530072997106), (8043.833415370357, 9417.967178261824), (6959.520126906931, 3725.9610330806863), (3097.280868700371, 3167.0296671181122), (2973.673720785265, 8206.962798818462), (-620.7920469906144, 9030.245679165351)), 4, 7, 2, 7, 9];
+        yield return ["reflex hexagon continuation", Points((0, 0), (9000, 0), (7000, 4000), (10000, 8000), (3000, 10000), (-1000, 5000)), 2, 6, 1, 6, 7];
+        yield return ["split dumbbell continuation", Points((0, 0), (4000, 0), (4000, 1500), (8000, 1500), (8000, 0), (14000, 0), (14000, 8000), (8000, 8000), (8000, 3500), (4000, 3500), (4000, 6000), (0, 6000)), 4, 9, 4, 9, 13];
+        yield return ["concave quadrilateral continuation", Points((0, 0), (8000, 0), (2500, 2000), (0, 6000)), 0, 4, 1, 4, 5];
+        yield return ["asymmetric U", Points((0, 0), (12000, 0), (12000, 9500), (8500, 9500), (8500, 4000), (2500, 4000), (2500, 8000), (0, 8000)), 3, 8, 2, 8, 10];
+        yield return ["asymmetric T", Points((0, 0), (12000, 0), (12000, 2500), (8500, 2500), (8500, 11000), (3500, 11000), (3500, 2500), (0, 2500)), 3, 8, 2, 8, 10];
+        yield return ["actual HOST 291A L", Points((47947.81366099819, 12295.18433052305), (47947.81366099819, 21478.922129281324), (57988.8584085473, 21478.922129281324), (57988.8584085473, 15403.104446947087), (52849.74092174883, 15403.104446947087), (52849.740921748824, 12295.18433052305)), 2, 6, 1, 6, 7];
     }
 
     [Theory]
     [MemberData(nameof(MaterializationFixtures))]
-    public void Create_MapsCompleteStructuralDesiredSet(
+    public void Create_MapsCompletePhysicalPathStructuralDesiredSet(
         string name,
         RoofPoint2D[] points,
         int ridge,
-        int hip,
+        int topologyHip,
         int valley,
+        int desiredHip,
         int total)
     {
         var resolution = Resolve(points);
@@ -37,7 +46,9 @@ public sealed class RoofAutomaticStructuralRafterPlannerTests
         Assert.Equal(ridge, resolution.Edges.Count(
             edge => edge.StructuralRole == RoofStructuralRole.Ridge));
         Assert.Equal(total, plan.Items.Count);
-        Assert.Equal(hip, plan.Items.Count(item => item.ElementType == TimberElementType.HipRafter));
+        Assert.Equal(topologyHip, resolution.Edges.Count(
+            edge => edge.StructuralRole == RoofStructuralRole.Hip));
+        Assert.Equal(desiredHip, plan.Items.Count(item => item.ElementType == TimberElementType.HipRafter));
         Assert.Equal(valley, plan.Items.Count(item => item.ElementType == TimberElementType.ValleyRafter));
         Assert.Equal(total, plan.Items.Select(item => item.LogicalKey).Distinct().Count());
         Assert.DoesNotContain(

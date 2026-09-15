@@ -71,19 +71,23 @@ public sealed class MonopitchRafterStage2BSourceContractTests
             Workflow,
             "public static void Run(Document document)",
             "private static bool TrySelectCurrentRoof(");
+        var normalDialogPath = run.IndexOf(
+            "var defaultProfile = TimberElementDefaultProfileStore.Load();",
+            StringComparison.Ordinal);
         var dialog = run.IndexOf("AcApp.ShowModalWindow(dialog)", StringComparison.Ordinal);
         var acceptedGuard = run.IndexOf("if (!accepted || dialog.Request is null)", StringComparison.Ordinal);
         var createCall = run.IndexOf("var result = TryCreateRafters(", StringComparison.Ordinal);
+        var beforeAcceptedCreate = run[normalDialogPath..createCall];
 
-        Assert.True(dialog >= 0 && acceptedGuard > dialog);
+        Assert.True(normalDialogPath >= 0 && dialog > normalDialogPath && acceptedGuard > dialog);
         Assert.True(createCall > acceptedGuard);
-        Assert.DoesNotContain("LockDocument", run[..createCall]);
-        Assert.DoesNotContain("OpenMode.ForWrite", run[..createCall]);
-        Assert.DoesNotContain("AppendEntity", run[..createCall]);
-        Assert.DoesNotContain("AddNewlyCreatedDBObject", run[..createCall]);
-        Assert.DoesNotContain("Materialize(", run[..createCall]);
-        Assert.DoesNotContain("RoofDefinitionStore.Write", run[..createCall]);
-        Assert.DoesNotContain("RoofGeneratedTimberStore.Write", run[..createCall]);
+        Assert.DoesNotContain("LockDocument", beforeAcceptedCreate);
+        Assert.DoesNotContain("OpenMode.ForWrite", beforeAcceptedCreate);
+        Assert.DoesNotContain("AppendEntity", beforeAcceptedCreate);
+        Assert.DoesNotContain("AddNewlyCreatedDBObject", beforeAcceptedCreate);
+        Assert.DoesNotContain("Materialize(", beforeAcceptedCreate);
+        Assert.DoesNotContain("RoofDefinitionStore.Write", beforeAcceptedCreate);
+        Assert.DoesNotContain("RoofGeneratedTimberStore.Write", beforeAcceptedCreate);
     }
 
     [Fact]

@@ -136,16 +136,19 @@
                                        Text="{localization:Loc AutomaticPurlin_Schematic}" />
                             <Border x:Name="SchematicImageHost"
                                     Margin="0,6,0,0"
-                                    Background="#FF000000"
+                                    Background="{DynamicResource SettingsPanelBackgroundBrush}"
+                                    BorderBrush="{DynamicResource SettingsBorderBrush}"
+                                    BorderThickness="1"
                                     CornerRadius="4"
                                     ClipToBounds="True"
                                     ToolTip="{localization:Loc AutomaticPurlin_SchematicSeatingHelp}">
                                 <Viewbox Height="168" Stretch="Uniform">
                                     <Grid Width="1024" Height="768"
+                                          Background="Transparent"
                                           SnapsToDevicePixels="True"
                                           UseLayoutRounding="True">
                                         <Image x:Name="SchematicBaseImage"
-                                               Source="{Binding SchematicImagePackUri}"
+                                               Source="pack://application:,,,/AcKrovy.AutoCAD;component/UI/Assets/Schematics/automatic-purlin-roof-section.png"
                                                Stretch="Uniform"
                                                RenderOptions.BitmapScalingMode="HighQuality"
                                                SnapsToDevicePixels="True" />

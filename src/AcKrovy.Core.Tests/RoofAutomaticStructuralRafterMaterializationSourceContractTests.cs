@@ -7,6 +7,7 @@ public sealed class RoofAutomaticStructuralRafterMaterializationSourceContractTe
     private static readonly string Service = Read("Infrastructure", "RoofAutomaticStructuralRafterMaterializationService.cs");
     private static readonly string Collector = Read("Infrastructure", "RoofAssemblyGroupMemberCollector.cs");
     private static readonly string Workflow = Read("Infrastructure", "RoofRafterCommandWorkflow.cs");
+    private static readonly string Trace = Read("Infrastructure", "RoofAutomaticStructuralRafterTrace.cs");
 
     [Fact]
     public void ExplicitMaterializer_UsesIdentityPlanAndAuthoritativeThreeDimensionalEndpoints()
@@ -24,6 +25,8 @@ public sealed class RoofAutomaticStructuralRafterMaterializationSourceContractTe
     [Fact]
     public void Materializer_PreservesMatchingEntityAndElementIdWhileRemovingStaleMembers()
     {
+        Assert.Contains("var desiredByKey = desired.ToDictionary", Service);
+        Assert.Contains("!desiredByKey.ContainsKey", Service);
         Assert.Contains("survivorByKey.TryGetValue(item.LogicalKey", Service);
         Assert.Contains("existing.Line.StartPoint = start", Service);
         Assert.Contains("existing.TimberData.ElementId", Service);
@@ -62,6 +65,26 @@ public sealed class RoofAutomaticStructuralRafterMaterializationSourceContractTe
     }
 
     [Fact]
+    public void ExistingOrdinaryHipSet_ReconcilesStructuralSetBeforeReplacementDeferredReturn()
+    {
+        var existingGuard = Member(
+            Workflow,
+            "if (selectedRoof.ExistingGeneratedRafterCount > 0)",
+            "var defaultProfile = TimberElementDefaultProfileStore.Load();");
+
+        Assert.Contains("selectedRoof.Geometry is HipRoofGeometry", existingGuard);
+        Assert.Contains(
+            "RoofAutomaticStructuralRafterMaterializationService.Materialize(",
+            existingGuard);
+        Assert.Contains("if (!structural.IsSuccess)", existingGuard);
+        AssertOrdered(
+            existingGuard,
+            "RoofAutomaticStructuralRafterMaterializationService.Materialize(",
+            "Command_RoofRafters_ExistingFoundFormat",
+            "Command_RoofRafters_ReplacementDeferred");
+    }
+
+    [Fact]
     public void AutomaticStructuralRafterMaterializer_DoesNotMaterializeRidge()
     {
         Assert.Contains("RoofStructuralEdgeIdentityResolver.Resolve", Service);
@@ -87,6 +110,45 @@ public sealed class RoofAutomaticStructuralRafterMaterializationSourceContractTe
         Assert.DoesNotContain("CommandEnded", Service);
         Assert.DoesNotContain("ObjectModified", Service);
         Assert.DoesNotContain("Undo", Service, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void HostTruthTrace_IsDebugOnlyAndCoversEveryStructuralPipelineStage()
+    {
+        Assert.StartsWith("#if DEBUG", Trace.TrimStart());
+        Assert.EndsWith("#endif", Trace.TrimEnd());
+        Assert.Contains("ROOF_STRUCT_INPUT", Trace);
+        Assert.Contains("ROOF_STRUCT_FOOTPRINT", Trace);
+        Assert.Contains("ROOF_STRUCT_TOPOLOGY", Trace);
+        Assert.Contains("ROOF_STRUCT_DESIRED", Trace);
+        Assert.Contains("ROOF_STRUCT_EXISTING", Trace);
+        Assert.Contains("ROOF_STRUCT_RECONCILE", Trace);
+        Assert.Contains("ROOF_STRUCT_FINAL", Trace);
+        Assert.Contains("ROOF_STRUCT_FINAL_SUMMARY", Trace);
+        Assert.Contains("desiredEqualsFinal", Trace);
+        Assert.Contains("reuse-unchanged", Service);
+        Assert.Contains("update-geometry", Service);
+        Assert.Contains("create", Service);
+        Assert.Contains("stale-erase", Service);
+        Assert.Contains("duplicate-block", Service);
+        Assert.Contains("malformed-block", Service);
+        AssertDebugGuarded(Service, "RoofAutomaticStructuralRafterTrace.WriteTopologyAndDesired");
+        AssertDebugGuarded(Service, "RoofAutomaticStructuralRafterTrace.WriteExistingSet");
+        AssertDebugGuarded(Service, "RoofAutomaticStructuralRafterTrace.WriteFinalSetAndSummary");
+    }
+
+    [Fact]
+    public void ReconciliationContract_UpdatesSameKeyGeometryAndChecksDesiredFinalEquality()
+    {
+        Assert.Contains("!SamePoint(existing.Line.StartPoint, start)", Service);
+        Assert.Contains("!SamePoint(existing.Line.EndPoint, end)", Service);
+        Assert.Contains("existing.Line.StartPoint = start", Service);
+        Assert.Contains("existing.Line.EndPoint = end", Service);
+        Assert.Contains("actualIds.Count == desired.Count", Service);
+        Assert.Contains("duplicates == 0", Service);
+        Assert.Contains("missing == 0", Service);
+        Assert.Contains("groupCanonical", Service);
+        Assert.Contains("VerifyMembers(database, transaction, metadataStore, actualIds, desiredByKey)", Service);
     }
 
     private static string Read(string folder, string fileName) =>
@@ -115,4 +177,33 @@ public sealed class RoofAutomaticStructuralRafterMaterializationSourceContractTe
 
     private static int Count(string source, string value) =>
         source.Split(value, StringSplitOptions.None).Length - 1;
+
+    private static string Member(string source, string startMarker, string endMarker)
+    {
+        var start = source.IndexOf(startMarker, StringComparison.Ordinal);
+        Assert.True(start >= 0, startMarker);
+        var end = source.IndexOf(endMarker, start, StringComparison.Ordinal);
+        Assert.True(end > start, endMarker);
+        return source[start..end];
+    }
+
+    private static void AssertOrdered(string source, params string[] values)
+    {
+        var previous = -1;
+        foreach (var value in values)
+        {
+            var current = source.IndexOf(value, StringComparison.Ordinal);
+            Assert.True(current > previous, value);
+            previous = current;
+        }
+    }
+
+    private static void AssertDebugGuarded(string source, string value)
+    {
+        var valueIndex = source.IndexOf(value, StringComparison.Ordinal);
+        Assert.True(valueIndex >= 0, value);
+        var guardIndex = source.LastIndexOf("#if DEBUG", valueIndex, StringComparison.Ordinal);
+        var endIndex = source.LastIndexOf("#endif", valueIndex, StringComparison.Ordinal);
+        Assert.True(guardIndex > endIndex, value + " must remain DEBUG-only.");
+    }
 }

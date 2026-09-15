@@ -50,7 +50,7 @@ public sealed class RoofStructuralEdgeIdentityResolverTests
     [InlineData("L", 2, 5, 1)]
     [InlineData("U", 3, 6, 2)]
     [InlineData("T", 3, 6, 2)]
-    [InlineData("stepped", 4, 6, 2)]
+    [InlineData("stepped", 3, 7, 2)]
     [InlineData("reflex-hexagon", 2, 6, 1)]
     [InlineData("host-291A", 2, 6, 1)]
     [InlineData("split-dumbbell", 4, 9, 4)]
@@ -205,7 +205,7 @@ public sealed class RoofStructuralEdgeIdentityResolverTests
     }
 
     [Fact]
-    public void Host291AFormerInternalRidgePair_IsNowUniqueResolvedHipIdentity()
+    public void Host291AInternalConvexLineage_IsEligiblePhysicalHipFold()
     {
         var solved = Resolve(Host291AConcave());
         var topology = solved.Geometry.Topology;
@@ -217,7 +217,15 @@ public sealed class RoofStructuralEdgeIdentityResolverTests
             edge.TopologyEdgeIndex == correctedTopologyEdge.index);
 
         Assert.Equal(RoofTopologyEdgeKind.Hip, correctedTopologyEdge.edge.Kind);
+        Assert.Equal(4, correctedTopologyEdge.edge.OriginatingBoundaryVertexIndex);
         Assert.Equal(RoofStructuralRole.Hip, corrected.StructuralRole);
+        Assert.Equal(4, corrected.OriginatingBoundaryVertexIndex);
+        Assert.Null(corrected.PhysicalBoundaryAnchorVertexIndex);
+        Assert.Null(corrected.PhysicalPathAnchorVertexIndex);
+        Assert.True(RoofPhysicalStructuralFold.TryClassify(
+            topology, correctedTopologyEdge.edge, out var fold));
+        Assert.Equal(RoofPhysicalStructuralFoldClass.ConvexHip, fold);
+        Assert.True(corrected.IsAutomaticStructuralTimberEligible);
         Assert.DoesNotContain(solved.Resolution.Edges, edge =>
             edge.StructuralRole == RoofStructuralRole.Ridge &&
             edge.BoundaryEdgeIdA == corrected.BoundaryEdgeIdA &&

@@ -152,6 +152,7 @@ public sealed class ConcaveRoofTopologySolverTests
             edge.EndNodeIndex >= topology.BoundaryVertexCount &&
             edge.FaceIndices.SequenceEqual(new[] { 1, 4 }));
         Assert.Equal(RoofTopologyEdgeKind.Hip, corrected.Kind);
+        Assert.Equal(4, corrected.OriginatingBoundaryVertexIndex);
         Assert.InRange(topology.Segment(corrected).LengthMm, 203.455d, 203.456d);
 
         Assert.Equal(topology.Edges.Count, topology.Edges.Select(edge =>
