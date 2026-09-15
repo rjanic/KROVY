@@ -57,9 +57,10 @@ public sealed class RoofAutomaticStructuralRafterPlannerTests
     }
 
     [Fact]
-    public void Create_UsesApprovedDefaultsAndNoAnnotations()
+    public void Create_UsesApprovedDefaultsProfileAnnotationModeAndPlaneIntersectionSlope()
     {
         var plan = Create(Points((0, 0), (8000, 0), (8000, 3000), (3000, 3000), (3000, 8000), (0, 8000)));
+        var expectedHipSlope = Math.Atan(Math.Tan(30d * Math.PI / 180d) / Math.Sqrt(2d)) * (180d / Math.PI);
 
         Assert.All(plan.Items.Where(item => item.ElementType is TimberElementType.HipRafter or TimberElementType.ValleyRafter), item =>
         {
@@ -70,10 +71,20 @@ public sealed class RoofAutomaticStructuralRafterPlannerTests
         Assert.All(plan.Items, item =>
         {
             Assert.Equal("Smrek C24", item.TimberData.Material);
-            Assert.Equal(TimberAnnotationMode.NoAnnotations, item.TimberData.AnnotationMode);
+            Assert.Equal(TimberAnnotationMode.FullLabel, item.TimberData.AnnotationMode);
+            Assert.NotEqual(TimberAnnotationMode.NoAnnotations, item.TimberData.AnnotationMode);
             Assert.Equal(LengthCalculationMode.PlanLength, item.TimberData.LengthCalculationMode);
-            Assert.Equal(0d, item.TimberData.SlopeDegrees);
+            Assert.True(item.TimberData.SlopeDegrees > 0d);
+            Assert.NotEqual(30d, item.TimberData.SlopeDegrees);
+            Assert.Equal(item.Segment3D.InclinationDegreesAboveHorizontal, item.TimberData.SlopeDegrees, 9);
+            Assert.Equal(
+                TimberSlopeDirectionRules.ResolveIsReversedForDownhillDisplay(item.Segment3D),
+                item.TimberData.IsSlopeDirectionReversed);
         });
+        Assert.Contains(
+            plan.Items,
+            item => item.ElementType == TimberElementType.HipRafter &&
+                Math.Abs(item.TimberData.SlopeDegrees - expectedHipSlope) < 1e-3);
     }
 
     [Fact]

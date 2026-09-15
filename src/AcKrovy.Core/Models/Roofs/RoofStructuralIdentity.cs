@@ -48,7 +48,8 @@ public sealed record ResolvedRoofStructuralEdge(
     int? OriginatingBoundaryVertexIndex = null,
     int? PhysicalBoundaryAnchorVertexIndex = null,
     int? PhysicalPathAnchorVertexIndex = null,
-    bool IsPhysicalFoldTimberEligible = false)
+    bool IsPhysicalFoldTimberEligible = false,
+    double MemberInclinationDegrees = 0d)
 {
     public RoofStructuralRole StructuralRole => StructuralIdentity.Role;
     public int BoundaryEdgeIdA => StructuralIdentity.BoundaryEdgeIdA;

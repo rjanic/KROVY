@@ -98,6 +98,20 @@ public static class RoofStructuralEdgeIdentityResolver
                     topologyEdgeIndex);
             }
 
+            var memberInclinationDegrees = 0d;
+            if (role is RoofStructuralRole.Hip or RoofStructuralRole.Valley)
+            {
+                if (!RoofPhysicalStructuralFold.TryMemberInclinationDegreesAboveHorizontal(
+                        topology,
+                        edge,
+                        out memberInclinationDegrees))
+                {
+                    return Invalid(
+                        RoofStructuralEdgeResolutionError.InvalidStructuralSegment,
+                        topologyEdgeIndex);
+                }
+            }
+
             resolved.Add(new ResolvedRoofStructuralEdge(
                 identity,
                 topologyEdgeIndex,
@@ -107,7 +121,8 @@ public static class RoofStructuralEdgeIdentityResolver
                 physicalPathAnchors.TryGetValue(topologyEdgeIndex, out var pathAnchor)
                     ? pathAnchor
                     : null,
-                RoofPhysicalStructuralFold.IsTimberEligibleFold(topology, edge, role)));
+                RoofPhysicalStructuralFold.IsTimberEligibleFold(topology, edge, role),
+                memberInclinationDegrees));
         }
 
         if (RoofStructuralIdentityRules.TryFindDuplicate(

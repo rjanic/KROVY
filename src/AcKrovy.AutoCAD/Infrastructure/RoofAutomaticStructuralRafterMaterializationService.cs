@@ -289,6 +289,10 @@ internal static class RoofAutomaticStructuralRafterMaterializationService
                     stale is not null &&
                     !stale.IsErased)
                 {
+                    TimberAnnotationService.DeleteForSourceHandle(
+                        database,
+                        transaction,
+                        stale.Handle.ToString());
                     stale.Erase();
 #if DEBUG
                     staleErasedCount++;
@@ -308,6 +312,7 @@ internal static class RoofAutomaticStructuralRafterMaterializationService
             transaction,
             document.Editor);
         var members = new List<RoofAutomaticStructuralRafterMemberResult>(desired.Count);
+        var annotationTargets = new Dictionary<ObjectId, TimberElementData>(desired.Count);
         var createdCount = 0;
         var existingCount = 0;
         var updatedCount = 0;
@@ -378,6 +383,7 @@ internal static class RoofAutomaticStructuralRafterMaterializationService
                             ? "metadata-diff"
                             : "key-type-geometry-match");
 #endif
+                annotationTargets[existing.Id] = timberData;
                 members.Add(new RoofAutomaticStructuralRafterMemberResult(
                     item.LogicalKey,
                     existing.Line.Handle.ToString(),
@@ -422,6 +428,7 @@ internal static class RoofAutomaticStructuralRafterMaterializationService
                 null,
                 "desired-key-had-no-survivor");
 #endif
+            annotationTargets[id] = newTimberData;
             members.Add(new RoofAutomaticStructuralRafterMemberResult(
                 item.LogicalKey,
                 id.Handle.ToString(),
@@ -430,6 +437,14 @@ internal static class RoofAutomaticStructuralRafterMaterializationService
                 item.True3DLengthMm,
                 "created"));
         }
+
+        // Annotate every surviving desired structural timber (created and existing).
+        // EnsureForCreatedElements upserts by SourceHandle and is safe for both.
+        TimberCreatedElementAnnotationService.EnsureForCreatedElements(
+            database,
+            transaction,
+            annotationTargets,
+            defaultProfile);
 
         if (!RoofAssemblyGroupSyncService.TrySyncForOwner(
                 document,
@@ -621,8 +636,6 @@ internal static class RoofAutomaticStructuralRafterMaterializationService
                 !metadataStore.TryRead(line, out var timber) ||
                 timber is null ||
                 timber.SchemaVersion != TimberElementDataSchema.CurrentVersion ||
-                TimberAnnotationModeRules.Normalize(timber.AnnotationMode) !=
-                    TimberAnnotationMode.NoAnnotations ||
                 !elementIds.Add(timber.ElementId))
             {
                 return false;
@@ -633,6 +646,10 @@ internal static class RoofAutomaticStructuralRafterMaterializationService
                 structural.SchemaVersion != RoofStructuralGeneratedDataSchema.CurrentVersion ||
                 !desired.TryGetValue(structural.LogicalKey, out var item) ||
                 item.ElementType != timber.ElementType ||
+                TimberAnnotationModeRules.Normalize(timber.AnnotationMode) !=
+                    TimberAnnotationModeRules.Normalize(item.TimberData.AnnotationMode) ||
+                timber.LengthCalculationMode != LengthCalculationMode.PlanLength ||
+                Math.Abs(timber.SlopeDegrees - item.TimberData.SlopeDegrees) > GeometryToleranceMm ||
                 TimberElementIdentityRules.TryParseElementNumber(
                     timber.ElementId,
                     timber.ElementType) is not > 0 ||

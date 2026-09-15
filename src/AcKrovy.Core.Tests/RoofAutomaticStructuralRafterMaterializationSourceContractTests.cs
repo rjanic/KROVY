@@ -10,6 +10,30 @@ public sealed class RoofAutomaticStructuralRafterMaterializationSourceContractTe
     private static readonly string Trace = Read("Infrastructure", "RoofAutomaticStructuralRafterTrace.cs");
 
     [Fact]
+    public void Materializer_AnnotatesEverySurvivingDesiredMemberThroughExistingPipeline()
+    {
+        Assert.Contains("annotationTargets[existing.Id] = timberData", Service);
+        Assert.Contains("annotationTargets[id] = newTimberData", Service);
+        Assert.Contains(
+            "TimberCreatedElementAnnotationService.EnsureForCreatedElements(",
+            Service);
+        Assert.Contains("annotationTargets,", Service);
+        Assert.True(
+            Service.IndexOf(
+                "TimberCreatedElementAnnotationService.EnsureForCreatedElements(",
+                StringComparison.Ordinal) <
+            Service.IndexOf(
+                "RoofAssemblyGroupSyncService.TrySyncForOwner",
+                StringComparison.Ordinal));
+        Assert.Contains("TimberAnnotationService.DeleteForSourceHandle(", Service);
+        Assert.True(
+            Service.IndexOf("TimberAnnotationService.DeleteForSourceHandle(", StringComparison.Ordinal) <
+            Service.IndexOf("stale.Erase()", StringComparison.Ordinal));
+        Assert.DoesNotContain("TimberAnnotationMode.NoAnnotations", Service);
+        Assert.DoesNotContain("RoofAutomaticPurlinMaterializationRules", Service);
+    }
+
+    [Fact]
     public void ExplicitMaterializer_UsesIdentityPlanAndAuthoritativeThreeDimensionalEndpoints()
     {
         Assert.Contains("RoofBoundaryIdentityService.EnsureBoundaryIdentity", Service);

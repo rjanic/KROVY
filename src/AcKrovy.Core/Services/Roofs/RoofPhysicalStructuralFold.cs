@@ -87,6 +87,112 @@ public static class RoofPhysicalStructuralFold
         };
     }
 
+    /// <summary>
+    /// Physical Hip/Valley member inclination above horizontal from the intersection
+    /// of the two adjacent roof planes. Does not copy either face pitch.
+    /// Magnitude is invariant under direction reversal of the intersection vector.
+    /// </summary>
+    public static bool TryMemberInclinationDegreesAboveHorizontal(
+        RoofTopology topology,
+        RoofTopologyEdge edge,
+        out double slopeDegrees)
+    {
+        slopeDegrees = 0d;
+        if (edge.FaceIndices.Count != 2)
+        {
+            return false;
+        }
+
+        var faceA = edge.FaceIndices[0];
+        var faceB = edge.FaceIndices[1];
+        if (faceA == faceB ||
+            faceA < 0 || faceB < 0 ||
+            faceA >= topology.Faces.Count ||
+            faceB >= topology.Faces.Count ||
+            !TryFaceNormal(topology, faceA, out var normalA) ||
+            !TryFaceNormal(topology, faceB, out var normalB))
+        {
+            return false;
+        }
+
+        return TryInclinationDegreesFromUpwardPlaneNormals(
+            normalA.X,
+            normalA.Y,
+            normalA.Z,
+            normalB.X,
+            normalB.Y,
+            normalB.Z,
+            out slopeDegrees);
+    }
+
+    /// <summary>
+    /// Inclination of the intersection direction of two upward roof-plane normals.
+    /// Supports unequal adjacent pitches; no equal-pitch formula is hard-coded.
+    /// </summary>
+    public static bool TryInclinationDegreesFromUpwardPlaneNormals(
+        double normalAX,
+        double normalAY,
+        double normalAZ,
+        double normalBX,
+        double normalBY,
+        double normalBZ,
+        out double slopeDegrees)
+    {
+        slopeDegrees = 0d;
+        var normalA = new Vec3(normalAX, normalAY, normalAZ);
+        var normalB = new Vec3(normalBX, normalBY, normalBZ);
+        var lengthA = Length(normalA);
+        var lengthB = Length(normalB);
+        if (!IsFinite(lengthA) ||
+            !IsFinite(lengthB) ||
+            lengthA <= CoordinateToleranceMm ||
+            lengthB <= CoordinateToleranceMm)
+        {
+            return false;
+        }
+
+        normalA = Scale(normalA, 1d / lengthA);
+        normalB = Scale(normalB, 1d / lengthB);
+        if (normalA.Z < 0d)
+        {
+            normalA = new Vec3(-normalA.X, -normalA.Y, -normalA.Z);
+        }
+
+        if (normalB.Z < 0d)
+        {
+            normalB = new Vec3(-normalB.X, -normalB.Y, -normalB.Z);
+        }
+
+        var intersection = Cross(normalA, normalB);
+        var intersectionLen = Length(intersection);
+        if (!IsFinite(intersectionLen) || intersectionLen <= CoordinateToleranceMm)
+        {
+            return false;
+        }
+
+        var direction = Scale(intersection, 1d / intersectionLen);
+        slopeDegrees = InclinationDegreesAboveHorizontal(direction.X, direction.Y, direction.Z);
+        return IsFinite(slopeDegrees) &&
+            slopeDegrees >= 0d &&
+            slopeDegrees < MaximumMemberSlopeDegreesExclusive;
+    }
+
+    /// <summary>
+    /// Positive inclination of a 3D direction above horizontal. Endpoint / direction
+    /// reversal does not change the magnitude.
+    /// </summary>
+    public static double InclinationDegreesAboveHorizontal(
+        double directionX,
+        double directionY,
+        double directionZ)
+    {
+        var horizontal = Math.Sqrt((directionX * directionX) + (directionY * directionY));
+        return Math.Atan2(Math.Abs(directionZ), horizontal) * (180d / Math.PI);
+    }
+
+    /// <summary>Matches timber slope domain without referencing presentation/length rules.</summary>
+    private const double MaximumMemberSlopeDegreesExclusive = 89.9d;
+
     public static bool IsGeometricallyValidExposedFold(
         RoofTopology topology,
         RoofTopologyEdge edge)

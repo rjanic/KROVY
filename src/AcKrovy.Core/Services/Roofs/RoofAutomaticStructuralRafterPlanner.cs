@@ -46,11 +46,21 @@ public static class RoofAutomaticStructuralRafterPlanner
                 return Invalid(RoofAutomaticStructuralRafterPlanError.InvalidStructuralLength);
             }
 
+            // AnnotationMode comes from the drawing/profile default (same path as
+            // ordinary intelligent timber). Length stays PlanLength because the
+            // persisted AutoCAD Line already is the true 3D member axis — do not
+            // apply ordinary-rafter slope correction again. SlopeDegrees is the
+            // physical member inclination from the two adjacent roof-plane
+            // intersection (not either neighboring face pitch). Arrow direction
+            // uses the shared downhill contract: high-Z → low-Z on the member.
             var data = TimberElementDefaults.For(elementType, defaultProfile) with
             {
-                AnnotationMode = TimberAnnotationMode.NoAnnotations,
                 LengthCalculationMode = LengthCalculationMode.PlanLength,
                 ManualLengthMm = null,
+                SlopeDegrees = edge.MemberInclinationDegrees,
+                IsSlopeDirectionReversed =
+                    TimberSlopeDirectionRules.ResolveIsReversedForDownhillDisplay(
+                        edge.Segment3D),
             };
             items.Add(new RoofAutomaticStructuralRafterPlanItem(
                 edge.StructuralIdentity,
