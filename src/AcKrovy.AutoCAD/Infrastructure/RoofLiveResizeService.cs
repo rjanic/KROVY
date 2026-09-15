@@ -1477,6 +1477,35 @@ internal static class RoofLiveResizeService
                 UiStrings.GetString("Command_RoofRafters_InvalidSpacing"));
         }
 
+        // Physical Hip/Valley structural members follow the authoritative roof source.
+        // Reuse the same MaterializeInTransaction reconcile used by AK_ROOF_RAFTERS so
+        // STRETCH / GRIP_STRETCH do not leave stale structural Lines/annotations.
+        if (classification.Geometry is HipRoofGeometry hipGeometryForStructural)
+        {
+            var ownerReference = owner.Handle.ToString();
+            var existingStructuralCount = RoofStructuralGeneratedStore.FindByOwner(
+                database,
+                transaction,
+                ownerReference).Count;
+            if (existingStructuralCount > 0)
+            {
+                var structural =
+                    RoofAutomaticStructuralRafterMaterializationService.MaterializeInTransaction(
+                        document,
+                        transaction,
+                        owner,
+                        ownerReference,
+                        input,
+                        hipGeometryForStructural,
+                        TimberElementDefaultProfileStore.Load(),
+                        ElementLayerProfileStore.Load());
+                if (!structural.IsSuccess)
+                {
+                    return ResizeApplyResult.HardFailure;
+                }
+            }
+        }
+
         RoofUnlockIndicatorService.Sync(database, transaction, owner);
 #if DEBUG
         if (isHip)
@@ -1532,6 +1561,7 @@ internal static class RoofLiveResizeService
             owner.Handle.ToString(),
             "after-resize");
 #endif
+        RoofDisplayService.EnsureAllDisplayBehindTimber(database, transaction);
         return ResizeApplyResult.Applied;
     }
 

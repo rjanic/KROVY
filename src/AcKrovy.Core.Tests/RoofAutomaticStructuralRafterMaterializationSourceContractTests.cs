@@ -127,13 +127,34 @@ public sealed class RoofAutomaticStructuralRafterMaterializationSourceContractTe
     }
 
     [Fact]
-    public void Service_IsStaticExplicitOnlyAndNotConnectedToLiveLifecycle()
+    public void Service_RemainsDesiredStateReconcilerWithoutOwningLiveEventHooks()
     {
-        Assert.Contains("Authoritative explicit desired-state materialization", Service);
+        Assert.Contains("Authoritative desired-state materialization", Service);
         Assert.DoesNotContain("LiveGeometrySynchronizationService", Service);
         Assert.DoesNotContain("CommandEnded", Service);
         Assert.DoesNotContain("ObjectModified", Service);
         Assert.DoesNotContain("Undo", Service, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void LiveSupportedResize_ReusesMaterializeInTransactionForExistingStructuralSet()
+    {
+        var resize = Read("Infrastructure", "RoofLiveResizeService.cs");
+        var apply = Member(
+            resize,
+            "private static ResizeApplyResult TryApplyResize",
+            "private static IReadOnlyCollection<ObjectId> TryAcceptRigidGroupTransforms");
+        Assert.Contains(
+            "RoofAutomaticStructuralRafterMaterializationService.MaterializeInTransaction(",
+            apply);
+        Assert.Contains("existingStructuralCount > 0", apply);
+        Assert.Contains("if (!structural.IsSuccess)", apply);
+        Assert.Contains("ResizeApplyResult.HardFailure", apply);
+        Assert.DoesNotContain("RoofAutomaticPurlinMaterializationService", apply);
+        Assert.True(
+            resize.IndexOf(
+                "if (LiveGeometryCommandRules.IsUndoRedoCommand(globalCommandName))",
+                StringComparison.Ordinal) >= 0);
     }
 
     [Fact]

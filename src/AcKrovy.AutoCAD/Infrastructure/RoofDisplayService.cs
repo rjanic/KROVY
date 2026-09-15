@@ -197,6 +197,7 @@ internal static class RoofDisplayService
                 transaction,
                 ownerId,
                 inspection.ChildIds);
+            EnsureAllDisplayBehindTimber(database, transaction);
             return true;
         }
         if (inspection.Validation.Issues.HasFlag(
@@ -264,8 +265,47 @@ internal static class RoofDisplayService
             transaction,
             ownerId,
             newChildIds);
+        EnsureAllDisplayBehindTimber(database, transaction);
 
         return true;
+    }
+
+    /// <summary>
+    /// Keeps every Roof Display line behind timber and annotations in model space.
+    /// The selection is based only on Roof Display ownership metadata; timber and
+    /// annotation entities are never included in the draw-order operation.
+    /// </summary>
+    public static void EnsureAllDisplayBehindTimber(
+        Database database,
+        Transaction transaction)
+    {
+        ArgumentNullException.ThrowIfNull(database);
+        ArgumentNullException.ThrowIfNull(transaction);
+        var ids = ScanModelSpaceDisplayChildren(database, transaction)
+            .Where(record => record.Observation.IsNativeLine)
+            .Select(record => record.Id)
+            .ToArray();
+        if (ids.Length == 0)
+        {
+            return;
+        }
+
+        var blockTable = (BlockTable)transaction.GetObject(
+            database.BlockTableId,
+            OpenMode.ForRead);
+        var modelSpace = (BlockTableRecord)transaction.GetObject(
+            blockTable[BlockTableRecord.ModelSpace],
+            OpenMode.ForRead);
+        var drawOrderTable = (DrawOrderTable)transaction.GetObject(
+            modelSpace.DrawOrderTableId,
+            OpenMode.ForWrite);
+        var displayIds = new ObjectIdCollection();
+        foreach (var id in ids)
+        {
+            displayIds.Add(id);
+        }
+
+        drawOrderTable.MoveToBottom(displayIds);
     }
 
     private static List<ObjectId> CollectDisplayIdsToErase(

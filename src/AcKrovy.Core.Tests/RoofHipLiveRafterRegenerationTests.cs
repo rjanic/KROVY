@@ -234,6 +234,9 @@ public sealed class RoofHipLiveRafterRegenerationSourceContractTests
 
         Assert.Contains("RoofGeneratedRafterSetService.TryReplaceForSupportedResize(", liveResize);
         Assert.Contains("forceRegenerateOnSourceResize: true", liveResize);
+        Assert.Contains(
+            "RoofAutomaticStructuralRafterMaterializationService.MaterializeInTransaction(",
+            liveResize);
         Assert.DoesNotContain("if (!isHip)", liveResize);
         Assert.DoesNotContain("HipGeneratedRafterReplacementService", liveResize + replacement);
         Assert.Contains("SolveHip(", solver);

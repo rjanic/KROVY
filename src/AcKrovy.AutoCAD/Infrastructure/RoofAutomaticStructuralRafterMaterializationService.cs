@@ -10,8 +10,10 @@ using Autodesk.AutoCAD.Geometry;
 namespace AcKrovy.AutoCAD.Infrastructure;
 
 /// <summary>
-/// Authoritative explicit desired-state materialization for automatic Hip/Valley
-/// rafters. Ridge topology is intentionally not materialized by this subsystem.
+/// Authoritative desired-state materialization for automatic Hip/Valley rafters.
+/// Used by explicit AK_ROOF_RAFTERS creation and by SupportedResize live regeneration
+/// inside the existing RoofLiveResizeService transaction. Ridge topology is
+/// intentionally not materialized by this subsystem.
 /// </summary>
 internal static class RoofAutomaticStructuralRafterMaterializationService
 {

@@ -85,6 +85,21 @@ public sealed class HipRoofLiveResizeSourceContractTests
         Assert.Contains("RoofGeneratedRafterSetService.TryReplaceForSupportedResize(", apply);
         Assert.Contains("forceRegenerateOnSourceResize: true", apply);
         Assert.Contains("RoofSourceResizeChildPolicyService.Apply(", apply);
+        Assert.Contains(
+            "RoofAutomaticStructuralRafterMaterializationService.MaterializeInTransaction(",
+            apply);
+        Assert.Contains("RoofStructuralGeneratedStore.FindByOwner(", apply);
+        Assert.Contains("existingStructuralCount > 0", apply);
+        Assert.True(
+            apply.IndexOf("RoofSourceResizeChildPolicyService.Apply(", StringComparison.Ordinal) <
+            apply.IndexOf(
+                "RoofAutomaticStructuralRafterMaterializationService.MaterializeInTransaction(",
+                StringComparison.Ordinal));
+        Assert.True(
+            apply.IndexOf(
+                "RoofAutomaticStructuralRafterMaterializationService.MaterializeInTransaction(",
+                StringComparison.Ordinal) <
+            apply.IndexOf("RoofUnlockIndicatorService.Sync(", StringComparison.Ordinal));
         Assert.DoesNotContain("if (!isHip)", apply);
     }
 
