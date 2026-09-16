@@ -196,8 +196,8 @@
   <data name="SettingsWindow_AllElementsAlreadyMatch" xml:space="preserve"><value>Wszystkie elementy są już zgodne z ustawieniami.</value></data>
   <data name="SettingsWindow_ExistingLayerInfoFormat" xml:space="preserve"><value>Warstwy {0} już istnieją z innymi właściwościami i nie zostały zmienione. Aby użyć innych właściwości tylko dla nowych elementów, użyj nowej nazwy warstwy lub jawnego Zastosuj.</value></data>
   <data name="SettingsWindow_ValidationFailed" xml:space="preserve"><value>Popraw nieprawidłowe wartości. Ustawienia nie zostały zastosowane.</value></data>
-  <data name="SettingsWindow_Manufacturing_Tab" xml:space="preserve"><value>Naddatki na cięcie</value></data>
-  <data name="SettingsWindow_Manufacturing_Description" xml:space="preserve"><value>Domyślny naddatek na cięcie jest używany przy nowym przypisaniu elementu. Podczas zapisywania można wybrać, czy zastosować go również do istniejących elementów.</value></data>
+  <data name="SettingsWindow_Manufacturing_Tab" xml:space="preserve"><value>Ustawienia produkcyjne</value></data>
+  <data name="SettingsWindow_Manufacturing_Description" xml:space="preserve"><value>Ustawienia automatycznych krokwi, obliczania długości produkcyjnej oraz domyślnych naddatków na cięcie. Podczas zapisywania można wybrać, czy naddatki zastosować również do istniejących elementów.</value></data>
   <data name="SettingsWindow_Manufacturing_RoundingStep" xml:space="preserve"><value>Zaokrąglaj długość produkcyjną w górę do [mm]</value></data>
   <data name="SettingsWindow_Manufacturing_ElementTypeColumn" xml:space="preserve"><value>Typ elementu</value></data>
   <data name="SettingsWindow_Manufacturing_DefaultAllowanceColumn" xml:space="preserve"><value>Domyślny naddatek na cięcie [mm]</value></data>
@@ -738,8 +738,23 @@
   <data name="SettingsWindow_Manufacturing_MinimumAutomaticRafterSpacing" xml:space="preserve">
     <value>Minimalny rozstaw automatycznych krokwi</value>
   </data>
+  <data name="SettingsWindow_Manufacturing_AutomaticRaftersSection" xml:space="preserve">
+    <value>Automatyczne krokwie</value>
+  </data>
+  <data name="SettingsWindow_Manufacturing_MinimumAutomaticRafterLength" xml:space="preserve">
+    <value>Minimalna długość automatycznej krokwi</value>
+  </data>
+  <data name="SettingsWindow_Manufacturing_MinimumAutomaticRafterLengthHelp" xml:space="preserve">
+    <value>Automatycznie generowane krokwie krótsze niż ta wartość nie są tworzone.</value>
+  </data>
+  <data name="SettingsWindow_Manufacturing_LengthCalculationSection" xml:space="preserve">
+    <value>Obliczanie długości produkcyjnej</value>
+  </data>
+  <data name="SettingsWindow_Manufacturing_AllowancesSection" xml:space="preserve">
+    <value>Naddatki produkcyjne</value>
+  </data>
   <data name="Dialog_SettingsRafterSpacing" xml:space="preserve">
-    <value>Oba rozstawy muszą być dodatnimi liczbami skończonymi, a rozstaw domyślny nie może być mniejszy niż minimalny.</value>
+    <value>Rozstawy i minimalna długość muszą być dodatnimi liczbami skończonymi, a rozstaw domyślny nie może być mniejszy niż minimalny.</value>
   </data>
   <data name="Command_AutomaticPurlin_ManualEditRestricted" xml:space="preserve">
     <value>\nAutomatyczne płatwie są sterowane przez układ dachu i obecnie nie można ich edytować za pomocą AK_EDIT ani AK_ASSIGN.</value>

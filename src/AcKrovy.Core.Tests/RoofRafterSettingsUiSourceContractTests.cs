@@ -15,8 +15,10 @@ public sealed class RoofRafterSettingsUiSourceContractTests
 
         Assert.Contains("SettingsWindow_Manufacturing_DefaultAutomaticRafterSpacing", xaml);
         Assert.Contains("SettingsWindow_Manufacturing_MinimumAutomaticRafterSpacing", xaml);
+        Assert.Contains("SettingsWindow_Manufacturing_MinimumAutomaticRafterLength", xaml);
         Assert.Contains("DefaultAutomaticRafterSpacingMmText", xaml);
         Assert.Contains("MinimumAutomaticRafterSpacingMmText", xaml);
+        Assert.Contains("MinimumAutomaticRafterLengthMmText", xaml);
         Assert.Contains("TryReadPositiveFiniteNumber", window);
         Assert.Contains("RoofRafterSpacingRules.IsValidSettings", window);
         Assert.Contains("RafterSpacingChanged", window);
@@ -39,6 +41,7 @@ public sealed class RoofRafterSettingsUiSourceContractTests
             var resource = Read("src", "AcKrovy.Localization", "Resources", name);
             Assert.Contains("SettingsWindow_Manufacturing_DefaultAutomaticRafterSpacing", resource);
             Assert.Contains("SettingsWindow_Manufacturing_MinimumAutomaticRafterSpacing", resource);
+            Assert.Contains("SettingsWindow_Manufacturing_MinimumAutomaticRafterLength", resource);
             Assert.Contains("RoofRafterWindow_InvalidAutomaticSpacingFormat", resource);
             Assert.Contains("Dialog_SettingsRafterSpacing", resource);
         }

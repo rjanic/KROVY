@@ -71,7 +71,8 @@ internal static class RoofRafterCommandWorkflow
             selectedRoof.Geometry,
             workingPreferences,
             rafterSettings.MinimumAutomaticSpacingMm,
-            uiPreferences.Theme);
+            uiPreferences.Theme,
+            minimumAutomaticLengthMm: rafterSettings.MinimumAutomaticLengthMm);
         SettingsWindowOwner.TryAssign(dialog, TryGetAutoCadMainWindowHandle());
         using var preview = new RoofRafterTransientPreviewController(
             document,
@@ -109,6 +110,7 @@ internal static class RoofRafterCommandWorkflow
             selectedRoof.Geometry.Kind,
             dialog.Request,
             rafterSettings.MinimumAutomaticSpacingMm,
+            rafterSettings.MinimumAutomaticLengthMm,
             defaultProfile);
         if (result.IsSuccess)
         {
@@ -221,6 +223,7 @@ internal static class RoofRafterCommandWorkflow
         RoofKind expectedRoofKind,
         RoofRafterCreationRequest request,
         double minimumAutomaticSpacingMm,
+        double minimumAutomaticLengthMm,
         TimberElementDefaultProfile defaultProfile)
     {
         var phase = "start";
@@ -343,6 +346,18 @@ internal static class RoofRafterCommandWorkflow
                 return RoofRafterCreationResult.Failure("Command_RoofRafters_InvalidSpacing");
             }
 
+            if (!RoofRafterLengthRules.IsValidMinimumLength(minimumAutomaticLengthMm))
+            {
+#if DEBUG
+                RoofRafterPermanentCreateDiag.WriteCreateResultFailure(
+                    document.Editor,
+                    expectedOwnerReference,
+                    phase,
+                    "InvalidMinimumAutomaticLength");
+#endif
+                return RoofRafterCreationResult.Failure("Command_RoofRafters_GenerationFailed");
+            }
+
             phase = restored.Geometry is HipRoofGeometry
                 ? "RoofRafterRequestValidator.ValidateHip"
                 : "RoofRafterRequestValidator.Validate";
@@ -352,14 +367,16 @@ internal static class RoofRafterCommandWorkflow
                     request.WidthMm,
                     request.HeightMm,
                     request.MaximumSpacingMm,
-                    request.Material.Trim())
+                    request.Material.Trim(),
+                    minimumAutomaticLengthMm)
                 : RoofRafterRequestValidator.Validate(
                     restored.Geometry,
                     request.WidthMm,
                     request.HeightMm,
                     request.MaximumSpacingMm,
                     minimumAutomaticSpacingMm,
-                    request.Material);
+                    request.Material,
+                    minimumAutomaticLengthMm);
             if (!currentValidation.IsValid || currentValidation.Layout is null)
             {
 #if DEBUG
@@ -369,7 +386,10 @@ internal static class RoofRafterCommandWorkflow
                     phase,
                     currentValidation.Error.ToString());
 #endif
-                return RoofRafterCreationResult.Failure("Command_RoofRafters_InvalidSpacing");
+                return RoofRafterCreationResult.Failure(
+                    currentValidation.Error == RoofRafterRequestValidationError.InvalidMaximumSpacing
+                        ? "Command_RoofRafters_InvalidSpacing"
+                        : "Command_RoofRafters_GenerationFailed");
             }
 
             phase = "TimberMaterialCatalog.TryGetItem";
@@ -382,7 +402,7 @@ internal static class RoofRafterCommandWorkflow
                     phase,
                     RoofRafterRequestValidationError.InvalidMaterial.ToString());
 #endif
-                return RoofRafterCreationResult.Failure("Command_RoofRafters_InvalidSpacing");
+                return RoofRafterCreationResult.Failure("Command_RoofRafters_GenerationFailed");
             }
 
             phase = "RoofRafterMaterializationRules.IsConsistent";
@@ -397,7 +417,9 @@ internal static class RoofRafterCommandWorkflow
                     phase,
                     "false");
 #endif
-                return RoofRafterCreationResult.Failure("Command_RoofRafters_InvalidSpacing");
+                // Length-filtered sparse layouts are consistent. A false result here is
+                // not a spacing-policy failure and must not reuse the spacing error text.
+                return RoofRafterCreationResult.Failure("Command_RoofRafters_GenerationFailed");
             }
 
 #if DEBUG

@@ -222,7 +222,10 @@ internal static class RoofGeneratedRafterSetService
 
         var layoutResult = RoofRafterLayoutSolver.Solve(
             geometry,
-            new RafterLayoutParameters(recipe.MaximumSpacingMm, recipe.WidthMm));
+            AutoCadRoofRafterSpacingStore.CreateLayoutParameters(
+                database,
+                recipe.MaximumSpacingMm,
+                recipe.WidthMm));
         if (!layoutResult.IsValid || layoutResult.Layout is null)
         {
 #if DEBUG
@@ -335,7 +338,8 @@ internal static class RoofGeneratedRafterSetService
         ArgumentNullException.ThrowIfNull(recipe);
         var sharedLayout = RoofRafterLayoutSolver.Solve(
             geometry,
-            new RafterLayoutParameters(
+            AutoCadRoofRafterSpacingStore.CreateLayoutParameters(
+                database,
                 layout.RequestedMaximumSpacingMm,
                 layout.RafterPlanWidthMm));
         if (!sharedLayout.IsValid || sharedLayout.Layout is null)
@@ -737,7 +741,10 @@ internal static class RoofGeneratedRafterSetService
 
         var layoutResult = RoofRafterLayoutSolver.Solve(
             geometry,
-            new RafterLayoutParameters(recipe.MaximumSpacingMm, recipe.WidthMm));
+            AutoCadRoofRafterSpacingStore.CreateLayoutParameters(
+                database,
+                recipe.MaximumSpacingMm,
+                recipe.WidthMm));
         if (!layoutResult.IsValid || layoutResult.Layout is null)
         {
             return true;

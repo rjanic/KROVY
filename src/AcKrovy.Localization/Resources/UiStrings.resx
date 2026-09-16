@@ -196,8 +196,8 @@
   <data name="SettingsWindow_AllElementsAlreadyMatch" xml:space="preserve"><value>Všetky prvky už zodpovedajú nastaveniam.</value></data>
   <data name="SettingsWindow_ExistingLayerInfoFormat" xml:space="preserve"><value>Vrstvy {0} už existujú s inými vlastnosťami a neboli zmenené. Pre odlišné vlastnosti iba nových prvkov použite nový názov vrstvy alebo explicitné Aplikovať.</value></data>
   <data name="SettingsWindow_ValidationFailed" xml:space="preserve"><value>Opravte neplatné hodnoty. Nastavenia neboli použité.</value></data>
-  <data name="SettingsWindow_Manufacturing_Tab" xml:space="preserve"><value>Výrobné prídavky</value></data>
-  <data name="SettingsWindow_Manufacturing_Description" xml:space="preserve"><value>Predvolený prídavok na rez sa použije pri novom priradení prvku. Pri uložení si môžeš vybrať, či sa má premietnuť aj do existujúcich prvkov.</value></data>
+  <data name="SettingsWindow_Manufacturing_Tab" xml:space="preserve"><value>Výrobné nastavenia</value></data>
+  <data name="SettingsWindow_Manufacturing_Description" xml:space="preserve"><value>Nastavenia automatických krokiev, výpočtu výrobnej dĺžky a predvolených prídavkov na rez. Pri uložení si môžeš vybrať, či sa majú prídavky premietnuť aj do existujúcich prvkov.</value></data>
   <data name="SettingsWindow_Manufacturing_RoundingStep" xml:space="preserve"><value>Zaokrúhľovať výrobnú dĺžku nahor na [mm]</value></data>
   <data name="SettingsWindow_Manufacturing_ElementTypeColumn" xml:space="preserve"><value>Typ prvku</value></data>
   <data name="SettingsWindow_Manufacturing_DefaultAllowanceColumn" xml:space="preserve"><value>Predvolený prídavok na rez [mm]</value></data>
@@ -738,8 +738,23 @@
   <data name="SettingsWindow_Manufacturing_MinimumAutomaticRafterSpacing" xml:space="preserve">
     <value>Minimálny rozostup automatických krokiev</value>
   </data>
+  <data name="SettingsWindow_Manufacturing_AutomaticRaftersSection" xml:space="preserve">
+    <value>Automatické krokvy</value>
+  </data>
+  <data name="SettingsWindow_Manufacturing_MinimumAutomaticRafterLength" xml:space="preserve">
+    <value>Minimálna dĺžka automatickej krokvy</value>
+  </data>
+  <data name="SettingsWindow_Manufacturing_MinimumAutomaticRafterLengthHelp" xml:space="preserve">
+    <value>Automaticky generované krokvy kratšie ako táto hodnota sa nevytvoria.</value>
+  </data>
+  <data name="SettingsWindow_Manufacturing_LengthCalculationSection" xml:space="preserve">
+    <value>Výpočet výrobnej dĺžky</value>
+  </data>
+  <data name="SettingsWindow_Manufacturing_AllowancesSection" xml:space="preserve">
+    <value>Výrobné prídavky</value>
+  </data>
   <data name="Dialog_SettingsRafterSpacing" xml:space="preserve">
-    <value>Oba rozostupy musia byť kladné konečné čísla a predvolený rozostup nesmie byť menší ako minimálny.</value>
+    <value>Rozostupy a minimálna dĺžka musia byť kladné konečné čísla a predvolený rozostup nesmie byť menší ako minimálny.</value>
   </data>
   <data name="Command_AutomaticPurlin_ManualEditRestricted" xml:space="preserve">
     <value>\nAutomatické väznice sú riadené rozložením strechy a momentálne ich nemožno upravovať cez AK_EDIT ani AK_ASSIGN.</value>

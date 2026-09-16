@@ -196,8 +196,8 @@
   <data name="SettingsWindow_AllElementsAlreadyMatch" xml:space="preserve"><value>Všechny prvky již odpovídají nastavení.</value></data>
   <data name="SettingsWindow_ExistingLayerInfoFormat" xml:space="preserve"><value>Hladiny {0} již existují s jinými vlastnostmi a nebyly změněny. Pro odlišné vlastnosti pouze nových prvků použijte nový název hladiny nebo explicitní Použít.</value></data>
   <data name="SettingsWindow_ValidationFailed" xml:space="preserve"><value>Opravte neplatné hodnoty. Nastavení nebyla použita.</value></data>
-  <data name="SettingsWindow_Manufacturing_Tab" xml:space="preserve"><value>Výrobní přídavky</value></data>
-  <data name="SettingsWindow_Manufacturing_Description" xml:space="preserve"><value>Výchozí přídavek na řez se použije při novém přiřazení prvku. Při uložení lze zvolit, zda se má použít také na existující prvky.</value></data>
+  <data name="SettingsWindow_Manufacturing_Tab" xml:space="preserve"><value>Výrobní nastavení</value></data>
+  <data name="SettingsWindow_Manufacturing_Description" xml:space="preserve"><value>Nastavení automatických krokví, výpočtu výrobní délky a výchozích přídavků na řez. Při uložení lze zvolit, zda se mají přídavky použít také na existující prvky.</value></data>
   <data name="SettingsWindow_Manufacturing_RoundingStep" xml:space="preserve"><value>Zaokrouhlit výrobní délku nahoru na [mm]</value></data>
   <data name="SettingsWindow_Manufacturing_ElementTypeColumn" xml:space="preserve"><value>Typ prvku</value></data>
   <data name="SettingsWindow_Manufacturing_DefaultAllowanceColumn" xml:space="preserve"><value>Výchozí přídavek na řez [mm]</value></data>
@@ -738,8 +738,23 @@
   <data name="SettingsWindow_Manufacturing_MinimumAutomaticRafterSpacing" xml:space="preserve">
     <value>Minimální rozteč automatických krokví</value>
   </data>
+  <data name="SettingsWindow_Manufacturing_AutomaticRaftersSection" xml:space="preserve">
+    <value>Automatické krokve</value>
+  </data>
+  <data name="SettingsWindow_Manufacturing_MinimumAutomaticRafterLength" xml:space="preserve">
+    <value>Minimální délka automatické krokve</value>
+  </data>
+  <data name="SettingsWindow_Manufacturing_MinimumAutomaticRafterLengthHelp" xml:space="preserve">
+    <value>Automaticky generované krokve kratší než tato hodnota se nevytvoří.</value>
+  </data>
+  <data name="SettingsWindow_Manufacturing_LengthCalculationSection" xml:space="preserve">
+    <value>Výpočet výrobní délky</value>
+  </data>
+  <data name="SettingsWindow_Manufacturing_AllowancesSection" xml:space="preserve">
+    <value>Výrobní přídavky</value>
+  </data>
   <data name="Dialog_SettingsRafterSpacing" xml:space="preserve">
-    <value>Obě rozteče musí být kladná konečná čísla a výchozí rozteč nesmí být menší než minimální.</value>
+    <value>Rozteče a minimální délka musí být kladná konečná čísla a výchozí rozteč nesmí být menší než minimální.</value>
   </data>
   <data name="Command_AutomaticPurlin_ManualEditRestricted" xml:space="preserve">
     <value>\nAutomatické vaznice jsou řízeny rozložením střechy a momentálně je nelze upravovat pomocí AK_EDIT ani AK_ASSIGN.</value>

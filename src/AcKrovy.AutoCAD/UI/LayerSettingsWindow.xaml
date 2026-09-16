@@ -412,7 +412,7 @@
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="18" />
                             <RowDefinition Height="Auto" />
-                            <RowDefinition Height="12" />
+                            <RowDefinition Height="18" />
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="18" />
                             <RowDefinition Height="*" />
@@ -424,70 +424,127 @@
                                        Style="{DynamicResource SettingsDescriptionStyle}"
                                        Text="{localization:Loc SettingsWindow_Manufacturing_Description}" />
                         </StackPanel>
-                        <StackPanel Grid.Row="2" Orientation="Horizontal" VerticalAlignment="Center">
-                            <TextBlock VerticalAlignment="Center"
-                                       Text="{localization:Loc SettingsWindow_Manufacturing_RoundingStep}" />
-                            <TextBox Width="110"
-                                     Margin="14,0,8,0"
-                                     Text="{Binding RoundingStepMmText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                     automation:AutomationProperties.Name="{localization:Loc SettingsWindow_Manufacturing_RoundingStep}" />
-                            <TextBlock VerticalAlignment="Center"
-                                       Foreground="{DynamicResource SettingsTextSecondaryBrush}"
-                                       Text="{localization:Loc SettingsWindow_UnitMillimetres}" />
-                        </StackPanel>
-                        <StackPanel Grid.Row="4">
-                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                <TextBlock Width="330"
-                                           VerticalAlignment="Center"
-                                           Text="{localization:Loc SettingsWindow_Manufacturing_DefaultAutomaticRafterSpacing}" />
-                                <TextBox x:Name="DefaultAutomaticRafterSpacingTextBox"
-                                         Width="110"
-                                         Margin="14,0,8,0"
-                                         Text="{Binding DefaultAutomaticRafterSpacingMmText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                         automation:AutomationProperties.Name="{localization:Loc SettingsWindow_Manufacturing_DefaultAutomaticRafterSpacing}" />
-                                <TextBlock VerticalAlignment="Center"
-                                           Foreground="{DynamicResource SettingsTextSecondaryBrush}"
-                                           Text="{localization:Loc SettingsWindow_UnitMillimetres}" />
+
+                        <Border Grid.Row="2"
+                                Style="{DynamicResource SettingsCardStyle}"
+                                Padding="16">
+                            <StackPanel>
+                                <TextBlock Style="{DynamicResource SettingsSectionTitleStyle}"
+                                           FontSize="{DynamicResource SettingsFontSizeBody}"
+                                           Text="{localization:Loc SettingsWindow_Manufacturing_AutomaticRaftersSection}" />
+                                <StackPanel Margin="0,12,0,0"
+                                            Orientation="Horizontal"
+                                            VerticalAlignment="Center">
+                                    <TextBlock Width="330"
+                                               VerticalAlignment="Center"
+                                               Text="{localization:Loc SettingsWindow_Manufacturing_DefaultAutomaticRafterSpacing}" />
+                                    <TextBox x:Name="DefaultAutomaticRafterSpacingTextBox"
+                                             Width="110"
+                                             Margin="14,0,8,0"
+                                             Text="{Binding DefaultAutomaticRafterSpacingMmText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                             automation:AutomationProperties.Name="{localization:Loc SettingsWindow_Manufacturing_DefaultAutomaticRafterSpacing}" />
+                                    <TextBlock VerticalAlignment="Center"
+                                               Foreground="{DynamicResource SettingsTextSecondaryBrush}"
+                                               Text="{localization:Loc SettingsWindow_UnitMillimetres}" />
+                                </StackPanel>
+                                <StackPanel Margin="0,10,0,0"
+                                            Orientation="Horizontal"
+                                            VerticalAlignment="Center">
+                                    <TextBlock Width="330"
+                                               VerticalAlignment="Center"
+                                               Text="{localization:Loc SettingsWindow_Manufacturing_MinimumAutomaticRafterSpacing}" />
+                                    <TextBox x:Name="MinimumAutomaticRafterSpacingTextBox"
+                                             Width="110"
+                                             Margin="14,0,8,0"
+                                             Text="{Binding MinimumAutomaticRafterSpacingMmText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                             automation:AutomationProperties.Name="{localization:Loc SettingsWindow_Manufacturing_MinimumAutomaticRafterSpacing}" />
+                                    <TextBlock VerticalAlignment="Center"
+                                               Foreground="{DynamicResource SettingsTextSecondaryBrush}"
+                                               Text="{localization:Loc SettingsWindow_UnitMillimetres}" />
+                                </StackPanel>
+                                <StackPanel Margin="0,10,0,0"
+                                            Orientation="Horizontal"
+                                            VerticalAlignment="Center">
+                                    <TextBlock Width="330"
+                                               VerticalAlignment="Center"
+                                               Text="{localization:Loc SettingsWindow_Manufacturing_MinimumAutomaticRafterLength}" />
+                                    <TextBox x:Name="MinimumAutomaticRafterLengthTextBox"
+                                             Width="110"
+                                             Margin="14,0,8,0"
+                                             Text="{Binding MinimumAutomaticRafterLengthMmText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                             automation:AutomationProperties.Name="{localization:Loc SettingsWindow_Manufacturing_MinimumAutomaticRafterLength}" />
+                                    <TextBlock VerticalAlignment="Center"
+                                               Foreground="{DynamicResource SettingsTextSecondaryBrush}"
+                                               Text="{localization:Loc SettingsWindow_UnitMillimetres}" />
+                                </StackPanel>
+                                <TextBlock Margin="0,8,0,0"
+                                           Style="{DynamicResource SettingsHintStyle}"
+                                           TextWrapping="Wrap"
+                                           TextTrimming="None"
+                                           Text="{localization:Loc SettingsWindow_Manufacturing_MinimumAutomaticRafterLengthHelp}" />
                             </StackPanel>
-                            <StackPanel Margin="0,10,0,0"
-                                        Orientation="Horizontal"
-                                        VerticalAlignment="Center">
-                                <TextBlock Width="330"
-                                           VerticalAlignment="Center"
-                                           Text="{localization:Loc SettingsWindow_Manufacturing_MinimumAutomaticRafterSpacing}" />
-                                <TextBox x:Name="MinimumAutomaticRafterSpacingTextBox"
-                                         Width="110"
-                                         Margin="14,0,8,0"
-                                         Text="{Binding MinimumAutomaticRafterSpacingMmText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                         automation:AutomationProperties.Name="{localization:Loc SettingsWindow_Manufacturing_MinimumAutomaticRafterSpacing}" />
-                                <TextBlock VerticalAlignment="Center"
-                                           Foreground="{DynamicResource SettingsTextSecondaryBrush}"
-                                           Text="{localization:Loc SettingsWindow_UnitMillimetres}" />
+                        </Border>
+
+                        <Border Grid.Row="4"
+                                Style="{DynamicResource SettingsCardStyle}"
+                                Padding="16">
+                            <StackPanel>
+                                <TextBlock Style="{DynamicResource SettingsSectionTitleStyle}"
+                                           FontSize="{DynamicResource SettingsFontSizeBody}"
+                                           Text="{localization:Loc SettingsWindow_Manufacturing_LengthCalculationSection}" />
+                                <StackPanel Margin="0,12,0,0"
+                                            Orientation="Horizontal"
+                                            VerticalAlignment="Center">
+                                    <TextBlock VerticalAlignment="Center"
+                                               Text="{localization:Loc SettingsWindow_Manufacturing_RoundingStep}" />
+                                    <TextBox Width="110"
+                                             Margin="14,0,8,0"
+                                             Text="{Binding RoundingStepMmText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                             automation:AutomationProperties.Name="{localization:Loc SettingsWindow_Manufacturing_RoundingStep}" />
+                                    <TextBlock VerticalAlignment="Center"
+                                               Foreground="{DynamicResource SettingsTextSecondaryBrush}"
+                                               Text="{localization:Loc SettingsWindow_UnitMillimetres}" />
+                                </StackPanel>
                             </StackPanel>
-                        </StackPanel>
-                        <DataGrid x:Name="DefaultsDataGrid"
-                                  Grid.Row="6"
-                                  Style="{DynamicResource SettingsDataGridStyle}"
-                                  AutoGenerateColumns="False"
-                                  CanUserAddRows="False"
-                                  CanUserDeleteRows="False"
-                                  CanUserReorderColumns="False"
-                                  CanUserSortColumns="False"
-                                  AlternationCount="2">
-                            <DataGrid.Columns>
-                                <DataGridTextColumn Header="{localization:Loc SettingsWindow_Manufacturing_ElementTypeColumn}"
-                                                    Binding="{Binding ElementLabel}"
-                                                    IsReadOnly="True"
-                                                    Width="260" />
-                                <DataGridTextColumn Header="{localization:Loc SettingsWindow_Manufacturing_DefaultAllowanceColumn}"
-                                                    Binding="{Binding CuttingAllowanceMmText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                    Width="*" />
-                                <DataGridTextColumn Header="{localization:Loc SettingsWindow_UnitMillimetres}"
-                                                    Binding="{Binding UnitLabel}"
-                                                    IsReadOnly="True"
-                                                    Width="90" />
-                            </DataGrid.Columns>
-                        </DataGrid>
+                        </Border>
+
+                        <Border Grid.Row="6"
+                                Style="{DynamicResource SettingsCardStyle}"
+                                Padding="16">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="12" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+                                <TextBlock Style="{DynamicResource SettingsSectionTitleStyle}"
+                                           FontSize="{DynamicResource SettingsFontSizeBody}"
+                                           Text="{localization:Loc SettingsWindow_Manufacturing_AllowancesSection}" />
+                                <DataGrid x:Name="DefaultsDataGrid"
+                                          Grid.Row="2"
+                                          Style="{DynamicResource SettingsDataGridStyle}"
+                                          AutoGenerateColumns="False"
+                                          CanUserAddRows="False"
+                                          CanUserDeleteRows="False"
+                                          CanUserReorderColumns="False"
+                                          CanUserSortColumns="False"
+                                          AlternationCount="2">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="{localization:Loc SettingsWindow_Manufacturing_ElementTypeColumn}"
+                                                            Binding="{Binding ElementLabel}"
+                                                            IsReadOnly="True"
+                                                            Width="260" />
+                                        <DataGridTextColumn Header="{localization:Loc SettingsWindow_Manufacturing_DefaultAllowanceColumn}"
+                                                            Binding="{Binding CuttingAllowanceMmText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                            Width="*" />
+                                        <DataGridTextColumn Header="{localization:Loc SettingsWindow_UnitMillimetres}"
+                                                            Binding="{Binding UnitLabel}"
+                                                            IsReadOnly="True"
+                                                            Width="90" />
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </Grid>
+                        </Border>
                     </Grid>
                 </Border>
 

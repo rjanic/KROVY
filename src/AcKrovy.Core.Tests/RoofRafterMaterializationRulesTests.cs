@@ -66,17 +66,40 @@ public sealed class RoofRafterMaterializationRulesTests
 
         Assert.False(RoofRafterMaterializationRules.IsConsistent(
             geometry,
-            layout with { Rafters = layout.Rafters.Skip(1).ToArray() }));
+            layout with { Signature = "stale-layout" }));
         Assert.False(RoofRafterMaterializationRules.IsConsistent(
             geometry,
-            layout with { Signature = "stale-layout" }));
+            layout with
+            {
+                Rafters =
+                [
+                    layout.Rafters[0] with { StationIndex = layout.StationCount + 1 },
+                ],
+            }));
     }
 
-    private static RoofRafterLayout SolveLayout(IRoofGeometry geometry)
+    [Fact]
+    public void MinimumLengthFilteredSparseLayout_RemainsMaterializable()
+    {
+        var geometry = SolveMonopitch(0d, false, 10000d, 6000d);
+        var full = SolveLayout(geometry, minimumAutomaticLengthMm: 1d);
+        var filtered = full with
+        {
+            Rafters = full.Rafters.Where((_, index) => index % 2 == 0).ToArray(),
+        };
+
+        Assert.True(filtered.Rafters.Count < full.Rafters.Count);
+        Assert.True(RoofRafterMaterializationRules.IsConsistent(geometry, filtered));
+    }
+
+    private static RoofRafterLayout SolveLayout(
+        IRoofGeometry geometry,
+        double minimumAutomaticLengthMm =
+            RoofRafterLengthRules.DefaultMinimumAutomaticLengthMm)
     {
         var result = RoofRafterLayoutSolver.Solve(
             geometry,
-            new RafterLayoutParameters(1000d, 100d));
+            new RafterLayoutParameters(1000d, 100d, minimumAutomaticLengthMm));
         Assert.True(result.IsValid, result.Error.ToString());
         return result.Layout!;
     }

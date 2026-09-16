@@ -13,26 +13,30 @@ public sealed class RoofRafterSpacingRulesTests
 
         Assert.Equal(900d, settings.DefaultAutomaticSpacingMm);
         Assert.Equal(500d, settings.MinimumAutomaticSpacingMm);
+        Assert.Equal(500d, settings.MinimumAutomaticLengthMm);
     }
 
     [Theory]
-    [InlineData(900d, 500d, true)]
-    [InlineData(400d, 500d, false)]
-    [InlineData(700d, 650d, true)]
-    [InlineData(double.NaN, 500d, false)]
-    [InlineData(900d, double.PositiveInfinity, false)]
-    [InlineData(900d, 0d, false)]
-    [InlineData(900d, -1d, false)]
+    [InlineData(900d, 500d, 500d, true)]
+    [InlineData(400d, 500d, 500d, false)]
+    [InlineData(700d, 650d, 500d, true)]
+    [InlineData(double.NaN, 500d, 500d, false)]
+    [InlineData(900d, double.PositiveInfinity, 500d, false)]
+    [InlineData(900d, 0d, 500d, false)]
+    [InlineData(900d, -1d, 500d, false)]
+    [InlineData(900d, 500d, 0d, false)]
     public void SettingsRequirePositiveFiniteValuesAndDefaultAtLeastMinimum(
         double defaultSpacing,
         double minimumSpacing,
+        double minimumLength,
         bool expected)
     {
         Assert.Equal(
             expected,
             RoofRafterSpacingRules.IsValidSettings(
                 defaultSpacing,
-                minimumSpacing));
+                minimumSpacing,
+                minimumLength));
     }
 
     [Theory]
@@ -59,7 +63,7 @@ public sealed class RoofRafterSpacingRulesTests
     [Fact]
     public void ValidStoredSettingsAreReturnedWithoutClamping()
     {
-        var stored = new RoofRafterSettings(775d, 450d);
+        var stored = new RoofRafterSettings(775d, 450d, 600d);
 
         Assert.Same(stored, RoofRafterSpacingRules.Resolve(true, stored));
     }

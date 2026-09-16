@@ -196,8 +196,8 @@
   <data name="SettingsWindow_AllElementsAlreadyMatch" xml:space="preserve"><value>All elements already match the settings.</value></data>
   <data name="SettingsWindow_ExistingLayerInfoFormat" xml:space="preserve"><value>Layers {0} already exist with different properties and were not changed. To use different properties only for new elements, use a new layer name or an explicit Apply.</value></data>
   <data name="SettingsWindow_ValidationFailed" xml:space="preserve"><value>Correct the invalid values. Settings were not applied.</value></data>
-  <data name="SettingsWindow_Manufacturing_Tab" xml:space="preserve"><value>Cutting allowances</value></data>
-  <data name="SettingsWindow_Manufacturing_Description" xml:space="preserve"><value>The default cutting allowance is used when an element is newly assigned. When saving, you can choose whether to apply it to existing elements as well.</value></data>
+  <data name="SettingsWindow_Manufacturing_Tab" xml:space="preserve"><value>Manufacturing settings</value></data>
+  <data name="SettingsWindow_Manufacturing_Description" xml:space="preserve"><value>Settings for automatic rafters, manufacturing length calculation, and default cutting allowances. When saving, you can choose whether to apply allowances to existing elements as well.</value></data>
   <data name="SettingsWindow_Manufacturing_RoundingStep" xml:space="preserve"><value>Round fabrication length up to [mm]</value></data>
   <data name="SettingsWindow_Manufacturing_ElementTypeColumn" xml:space="preserve"><value>Element type</value></data>
   <data name="SettingsWindow_Manufacturing_DefaultAllowanceColumn" xml:space="preserve"><value>Default cutting allowance [mm]</value></data>
@@ -738,8 +738,23 @@
   <data name="SettingsWindow_Manufacturing_MinimumAutomaticRafterSpacing" xml:space="preserve">
     <value>Minimum automatic rafter spacing</value>
   </data>
+  <data name="SettingsWindow_Manufacturing_AutomaticRaftersSection" xml:space="preserve">
+    <value>Automatic rafters</value>
+  </data>
+  <data name="SettingsWindow_Manufacturing_MinimumAutomaticRafterLength" xml:space="preserve">
+    <value>Minimum automatic rafter length</value>
+  </data>
+  <data name="SettingsWindow_Manufacturing_MinimumAutomaticRafterLengthHelp" xml:space="preserve">
+    <value>Automatically generated rafters shorter than this value are not created.</value>
+  </data>
+  <data name="SettingsWindow_Manufacturing_LengthCalculationSection" xml:space="preserve">
+    <value>Manufacturing length calculation</value>
+  </data>
+  <data name="SettingsWindow_Manufacturing_AllowancesSection" xml:space="preserve">
+    <value>Manufacturing allowances</value>
+  </data>
   <data name="Dialog_SettingsRafterSpacing" xml:space="preserve">
-    <value>Both spacings must be positive finite numbers, and the default spacing must not be less than the minimum.</value>
+    <value>Spacings and the minimum length must be positive finite numbers, and the default spacing must not be less than the minimum.</value>
   </data>
   <data name="Command_AutomaticPurlin_ManualEditRestricted" xml:space="preserve">
     <value>\nAutomatic purlins are controlled by the roof layout and cannot currently be edited through AK_EDIT or AK_ASSIGN.</value>

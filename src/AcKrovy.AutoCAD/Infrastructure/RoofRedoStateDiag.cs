@@ -164,9 +164,9 @@ internal static class RoofRedoStateDiag
 
     /// <summary>
     /// Read-only ownership invariant emitted at the start of a genuine SupportedResize,
-    /// before any mutation. Detects generic Timber entities in the roof group that have
-    /// lost their RoofGenerated metadata (the orphan pattern after a U/REDO cycle).
-    /// Diagnostic only — never repairs.
+    /// before any mutation. Validates that physical timber candidates resolve to a
+    /// supported generated ownership class (ordinary Generated, StructuralGenerated
+    /// Hip/Valley, or AutomaticPurlin) or AttachedManual. Diagnostic only — never repairs.
     /// </summary>
     public static void CaptureOwnershipInvariant(
         Database database,
@@ -187,8 +187,11 @@ internal static class RoofRedoStateDiag
                 database,
                 transaction,
                 ownerReference).Count;
-            var groupTimberCandidates = 0;
-            var missingGeneratedMetadata = 0;
+            var structuralByOwner = RoofStructuralGeneratedStore.FindByOwner(
+                database,
+                transaction,
+                ownerReference).Count;
+            var classifications = new List<RoofGeneratedOwnershipInvariantRules.CandidateClass>();
             var orphanHandles = new List<string>();
             if (ownerId != ObjectId.Null &&
                 RoofDisplayGroupService.TryOpenCanonicalGroup(
@@ -206,41 +209,54 @@ internal static class RoofRedoStateDiag
                         continue;
                     }
 
-                    if (!metadataStore.TryRead(member, out var timber) || timber is null)
+                    var hasTimber = metadataStore.TryRead(member, out var timber) && timber is not null;
+                    var attached = RoofAttachedManualTimberStore.Read(member).Data;
+                    var ordinary = RoofGeneratedTimberStore.Read(member).Data;
+                    var structural = RoofStructuralGeneratedStore.Read(member).Data;
+                    var purlin = RoofAutomaticPurlinGeneratedStore.Read(member).Data;
+                    var classification = RoofGeneratedOwnershipInvariantRules.Classify(
+                        hasGenericTimberMetadata: hasTimber,
+                        hasAttachedManualOwnership: attached is not null,
+                        hasOrdinaryGeneratedOwnership: ordinary is not null,
+                        ordinaryOwnerReference: ordinary?.RoofOwnerReference,
+                        hasStructuralGeneratedOwnership: structural is not null,
+                        structuralRole: structural?.StructuralRole ?? RoofStructuralRole.Undefined,
+                        structuralOwnerReference: structural?.RoofOwnerReference,
+                        hasAutomaticPurlinOwnership: purlin is not null,
+                        automaticPurlinOwnerReference: purlin?.RoofOwnerReference,
+                        expectedOwnerReference: ownerReference);
+                    if (classification == RoofGeneratedOwnershipInvariantRules.CandidateClass.IgnoreNonTimber)
                     {
                         continue;
                     }
 
-                    // A valid AttachedManual child legitimately carries generic Timber
-                    // metadata without Generated metadata — exclude it from the orphan
-                    // detection so it is not misreported as a lost Generated member.
-                    if (RoofAttachedManualTimberStore.Read(member).Data is not null)
+                    classifications.Add(classification);
+                    if ((classification is
+                            RoofGeneratedOwnershipInvariantRules.CandidateClass.InvalidOrdinaryOwnership or
+                            RoofGeneratedOwnershipInvariantRules.CandidateClass.InvalidStructuralOwnership or
+                            RoofGeneratedOwnershipInvariantRules.CandidateClass.OrphanPhysicalTimber) &&
+                        orphanHandles.Count < 8)
                     {
-                        continue;
-                    }
-
-                    groupTimberCandidates++;
-                    var generated = RoofGeneratedTimberStore.Read(member);
-                    if (generated.Data is null)
-                    {
-                        missingGeneratedMetadata++;
-                        if (orphanHandles.Count < 8)
-                        {
-                            orphanHandles.Add(member.Handle.ToString());
-                        }
+                        orphanHandles.Add(member.Handle.ToString());
                     }
                 }
             }
 
+            var snapshot = RoofGeneratedOwnershipInvariantRules.Aggregate(classifications);
             editor.WriteMessage(
                 "\nROOF_GENERATED_OWNERSHIP_INVARIANT" +
                 " owner=" + ownerReference +
-                " physicalTimberCandidates=" + groupTimberCandidates +
+                " physicalTimberCandidates=" + snapshot.PhysicalTimberCandidates +
+                " ordinaryGenerated=" + snapshot.OrdinaryGenerated +
+                " structuralGenerated=" + snapshot.StructuralGenerated +
+                " automaticPurlin=" + snapshot.AutomaticPurlin +
                 " generatedByOwner=" + generatedByOwner +
-                " groupTimberCandidates=" + groupTimberCandidates +
-                " missingGeneratedMetadata=" + missingGeneratedMetadata +
-                " orphanHandles=" + string.Join(",", orphanHandles) +
-                " result=" + (missingGeneratedMetadata == 0 ? "ok" : "failure"));
+                " structuralByOwner=" + structuralByOwner +
+                " groupTimberCandidates=" + snapshot.PhysicalTimberCandidates +
+                " invalidOrdinaryOwnership=" + snapshot.InvalidOrdinaryOwnership +
+                " invalidStructuralOwnership=" + snapshot.InvalidStructuralOwnership +
+                " orphanHandles=" + (orphanHandles.Count == 0 ? "-" : string.Join(",", orphanHandles)) +
+                " result=" + (snapshot.IsOk ? "ok" : "failure"));
         }
         catch
         {

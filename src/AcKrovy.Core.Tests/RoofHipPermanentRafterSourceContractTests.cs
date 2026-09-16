@@ -40,8 +40,10 @@ public sealed class RoofHipPermanentRafterSourceContractTests
         Assert.Contains("CreateButton.IsEnabled = validation.IsValid", window);
         Assert.DoesNotContain("hipPreviewOnly", window);
         Assert.DoesNotContain("RoofRafterWindow_HipPreviewOnly", window);
-        Assert.Contains("RoofFaceRafterMaterializationAdapter", validator);
-        Assert.Contains("RoofFaceRafterLayoutService.Create", validator);
+        Assert.Contains("RoofRafterLayoutSolver.Solve", validator);
+        Assert.Contains("RoofFaceRafterMaterializationAdapter", Read(
+            "src", "AcKrovy.Core", "Services", "Roofs",
+            "RoofRafterLayoutSolver.cs"));
         Assert.Contains("IsConsistentHip", rules);
         Assert.Contains("faceLayout.Signature", adapter);
         Assert.DoesNotContain("LShape", adapter);
@@ -84,12 +86,16 @@ public sealed class RoofHipPermanentRafterSourceContractTests
         var spacingStore = Read(
             "src", "AcKrovy.AutoCAD", "Infrastructure",
             "AutoCadRoofRafterSpacingStore.cs");
+        var spacingPayload = Read(
+            "src", "AcKrovy.Core", "Services", "Roofs",
+            "RoofRafterSettingsPayload.cs");
 
         Assert.Contains("<AcKrovyVersion>0.23.0</AcKrovyVersion>", props);
         Assert.Contains("public const int CurrentVersion = 1", schema);
         Assert.Contains("public const int CurrentVersion = 7", timberSchema);
         Assert.Contains("public const int CurrentVersion = 5", roofSchema);
-        Assert.Contains("private const int SchemaVersion = 1", spacingStore);
+        Assert.Contains("public const int SchemaVersion = 1", spacingPayload);
+        Assert.Contains("RoofRafterSettingsPayload.SchemaVersion", spacingStore);
         Assert.Contains("RafterRoofFace RoofFace", generated);
         Assert.Contains("int StationIndex", generated);
         Assert.Contains("int StationCount", generated);

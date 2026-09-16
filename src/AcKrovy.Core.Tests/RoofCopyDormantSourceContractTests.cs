@@ -50,7 +50,9 @@ public sealed class RoofCopyDormantSourceContractTests
     public void OwnershipInvariant_ExcludesValidAttachedManualChildren()
     {
         var invariant = Segment(RedoDiag, "public static void CaptureOwnershipInvariant", "editor.WriteMessage");
-        Assert.Contains("RoofAttachedManualTimberStore.Read(member).Data is not null", invariant);
+        Assert.Contains("RoofAttachedManualTimberStore.Read(member)", invariant);
+        Assert.Contains("RoofGeneratedOwnershipInvariantRules.Classify", invariant);
+        Assert.Contains("hasAttachedManualOwnership", invariant);
     }
 
     [Fact]

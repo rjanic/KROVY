@@ -45,6 +45,8 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
         Format(RoofRafterSpacingRules.DefaultAutomaticSpacingMm);
     private string _minimumAutomaticRafterSpacingMmText =
         Format(RoofRafterSpacingRules.DefaultMinimumAutomaticSpacingMm);
+    private string _minimumAutomaticRafterLengthMmText =
+        Format(RoofRafterLengthRules.DefaultMinimumAutomaticLengthMm);
     private string _selectedLanguageCode = AppLanguageService.DefaultLanguageCode;
     private TimberAnnotationMode _selectedAnnotationMode = TimberAnnotationMode.FullLabel;
     private ItemNumberLeaderStyle _selectedItemNumberLeaderStyle = ItemNumberLeaderStyle.Plain;
@@ -374,6 +376,22 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
         }
     }
 
+    public string MinimumAutomaticRafterLengthMmText
+    {
+        get => _minimumAutomaticRafterLengthMmText;
+        set
+        {
+            if (_minimumAutomaticRafterLengthMmText == value)
+            {
+                return;
+            }
+
+            _minimumAutomaticRafterLengthMmText = value;
+            OnPropertyChanged();
+            UpdateFormState();
+        }
+    }
+
     public event PropertyChangedEventHandler? PropertyChanged;
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
@@ -414,6 +432,8 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
             Format(_loadedRafterSettings.DefaultAutomaticSpacingMm);
         _minimumAutomaticRafterSpacingMmText =
             Format(_loadedRafterSettings.MinimumAutomaticSpacingMm);
+        _minimumAutomaticRafterLengthMmText =
+            Format(_loadedRafterSettings.MinimumAutomaticLengthMm);
         InitializeScaleSelections(normalizedDefaultProfile.AnnotationScaleDenominator);
         _selectedAnnotationPreset = SettingsAnnotationPresetRules.FromProduction(
             _selectedAnnotationMode,
@@ -478,6 +498,8 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
                 Format(RoofRafterSpacingRules.DefaultAutomaticSpacingMm);
             MinimumAutomaticRafterSpacingMmText =
                 Format(RoofRafterSpacingRules.DefaultMinimumAutomaticSpacingMm);
+            MinimumAutomaticRafterLengthMmText =
+                Format(RoofRafterLengthRules.DefaultMinimumAutomaticLengthMm);
         }
 
         UpdateFormState();
@@ -554,6 +576,8 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
             _loadedRafterSettings.DefaultAutomaticSpacingMm;
         var minimumAutomaticSpacingMm =
             _loadedRafterSettings.MinimumAutomaticSpacingMm;
+        var minimumAutomaticLengthMm =
+            _loadedRafterSettings.MinimumAutomaticLengthMm;
         if (scope.HasFlag(SettingsSectionScope.Allowances) &&
             (!TryReadPositiveFiniteNumber(
                  DefaultAutomaticRafterSpacingMmText,
@@ -561,9 +585,13 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
              !TryReadPositiveFiniteNumber(
                  MinimumAutomaticRafterSpacingMmText,
                  out minimumAutomaticSpacingMm) ||
+             !TryReadPositiveFiniteNumber(
+                 MinimumAutomaticRafterLengthMmText,
+                 out minimumAutomaticLengthMm) ||
              !RoofRafterSpacingRules.IsValidSettings(
                  defaultAutomaticSpacingMm,
-                 minimumAutomaticSpacingMm)))
+                 minimumAutomaticSpacingMm,
+                 minimumAutomaticLengthMm)))
         {
             WpfMessageBox.Show(
                 UiStrings.GetString(
@@ -602,7 +630,9 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
             (defaultAutomaticSpacingMm !=
                  _loadedRafterSettings.DefaultAutomaticSpacingMm ||
              minimumAutomaticSpacingMm !=
-                 _loadedRafterSettings.MinimumAutomaticSpacingMm);
+                 _loadedRafterSettings.MinimumAutomaticSpacingMm ||
+             minimumAutomaticLengthMm !=
+                 _loadedRafterSettings.MinimumAutomaticLengthMm);
         var profileChanged =
             layerProfileChanged || defaultProfileChanged || rafterSpacingChanged;
         if (!SettingsApplyDispatchRules.ShouldDispatch(
@@ -662,8 +692,9 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
             layerProfileChanged,
             defaultProfileChanged,
             new RoofRafterSettings(
-                defaultAutomaticSpacingMm,
-                minimumAutomaticSpacingMm),
+                DefaultAutomaticSpacingMm: defaultAutomaticSpacingMm,
+                MinimumAutomaticSpacingMm: minimumAutomaticSpacingMm,
+                MinimumAutomaticLengthMm: minimumAutomaticLengthMm),
             rafterSpacingChanged,
             layerProfileChanged
                 ? Rows.Select(row => new CadLayerOverrideIntent(
@@ -720,12 +751,15 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
             if (rafterSpacingChanged)
             {
                 _loadedRafterSettings = new RoofRafterSettings(
-                    defaultAutomaticSpacingMm,
-                    minimumAutomaticSpacingMm);
+                    DefaultAutomaticSpacingMm: defaultAutomaticSpacingMm,
+                    MinimumAutomaticSpacingMm: minimumAutomaticSpacingMm,
+                    MinimumAutomaticLengthMm: minimumAutomaticLengthMm);
                 DefaultAutomaticRafterSpacingMmText =
                     Format(defaultAutomaticSpacingMm);
                 MinimumAutomaticRafterSpacingMmText =
                     Format(minimumAutomaticSpacingMm);
+                MinimumAutomaticRafterLengthMmText =
+                    Format(minimumAutomaticLengthMm);
                 AcceptUiSectionBaselines(SettingsSectionScope.Allowances);
             }
             LanguageCode = languageCode;
@@ -1544,6 +1578,7 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
             RoundingStepMmText,
             DefaultAutomaticRafterSpacingMmText,
             MinimumAutomaticRafterSpacingMmText,
+            MinimumAutomaticRafterLengthMmText,
         });
 
     private string CreateAnnotationUiFingerprint() =>

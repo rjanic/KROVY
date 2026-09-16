@@ -68,7 +68,7 @@ public sealed class RoofFaceRafterCompleteFaceCoverageTests
         var face = Create(hip.Topology, 900d);
         var live = RoofRafterLayoutSolver.Solve(
             hip,
-            new RafterLayoutParameters(900d, 50d));
+            new RafterLayoutParameters(900d, 50d, 1d));
         Assert.True(live.IsValid, live.Error.ToString());
         Assert.NotNull(live.Layout);
         Assert.Equal(face.Segments.Count, live.Layout!.Rafters.Count);

@@ -118,7 +118,7 @@ public sealed class RoofGeneratedLayoutFingerprintTests
         var geometry = SolveHip(Rectangle(10000, 6000), 30d);
         var layout = RoofRafterLayoutSolver.Solve(
             geometry,
-            new RafterLayoutParameters(500d, 80d)).Layout!;
+            new RafterLayoutParameters(500d, 80d, 1d)).Layout!;
         var full = layout.Signature;
         var fingerprint = RoofGeneratedLayoutFingerprint.ToPersistedIdentity(full);
         var after = CreateRectangleLayout(12000, 6000, 30d, 500d).Signature;
@@ -162,7 +162,7 @@ public sealed class RoofGeneratedLayoutFingerprintTests
         var face = CreateFaceLayout(geometry, 500d);
         var layout = RoofRafterLayoutSolver.Solve(
             geometry,
-            new RafterLayoutParameters(500d, 80d)).Layout!;
+            new RafterLayoutParameters(500d, 80d, 1d)).Layout!;
 
         Assert.Equal(131, face.Segments.Count);
         Assert.Equal(131, layout.Rafters.Count);
@@ -235,7 +235,7 @@ public sealed class RoofGeneratedLayoutFingerprintTests
         var geometry = SolveHip(Rectangle(length, width), slope);
         var result = RoofRafterLayoutSolver.Solve(
             geometry,
-            new RafterLayoutParameters(spacing, 80d));
+            new RafterLayoutParameters(spacing, 80d, 1d));
         Assert.True(result.IsValid);
         return result.Layout!;
     }

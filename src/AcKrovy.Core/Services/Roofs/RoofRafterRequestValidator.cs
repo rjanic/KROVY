@@ -11,7 +11,9 @@ public static class RoofRafterRequestValidator
         double heightMm,
         double maximumSpacingMm,
         double minimumAutomaticSpacingMm,
-        string? material)
+        string? material,
+        double minimumAutomaticLengthMm =
+            RoofRafterLengthRules.DefaultMinimumAutomaticLengthMm)
     {
         if (geometry is null)
         {
@@ -29,6 +31,11 @@ public static class RoofRafterRequestValidator
             return Invalid(inputError);
         }
 
+        if (!RoofRafterLengthRules.IsValidMinimumLength(minimumAutomaticLengthMm))
+        {
+            return Invalid(RoofRafterRequestValidationError.InvalidRoof);
+        }
+
         if (geometry is HipRoofGeometry hip)
         {
             return ValidateHip(
@@ -36,12 +43,16 @@ public static class RoofRafterRequestValidator
                 widthMm,
                 heightMm,
                 maximumSpacingMm,
-                material!.Trim());
+                material!.Trim(),
+                minimumAutomaticLengthMm);
         }
 
         var layoutResult = RoofRafterLayoutSolver.Solve(
             geometry,
-            new RafterLayoutParameters(maximumSpacingMm, widthMm));
+            new RafterLayoutParameters(
+                maximumSpacingMm,
+                widthMm,
+                minimumAutomaticLengthMm));
         if (!layoutResult.IsValid || layoutResult.Layout is null)
         {
             if (layoutResult.Error == RoofRafterLayoutError.InvalidRafterPlanWidth)
@@ -67,24 +78,22 @@ public static class RoofRafterRequestValidator
         double widthMm,
         double heightMm,
         double maximumSpacingMm,
-        string material)
+        string material,
+        double minimumAutomaticLengthMm =
+            RoofRafterLengthRules.DefaultMinimumAutomaticLengthMm)
     {
         if (geometry is null)
         {
             throw new ArgumentNullException(nameof(geometry));
         }
 
-        var faceResult = RoofFaceRafterLayoutService.Create(
-            geometry.Topology,
-            maximumSpacingMm);
-        if (!faceResult.IsValid ||
-            faceResult.Layout is null ||
-            !RoofFaceRafterMaterializationAdapter.TryCreateMaterializationLayout(
-                geometry,
-                faceResult.Layout,
+        var layoutResult = RoofRafterLayoutSolver.Solve(
+            geometry,
+            new RafterLayoutParameters(
+                maximumSpacingMm,
                 widthMm,
-                out var layout) ||
-            !RoofRafterMaterializationRules.IsConsistent(geometry, layout))
+                minimumAutomaticLengthMm));
+        if (!layoutResult.IsValid || layoutResult.Layout is null)
         {
             return Invalid(RoofRafterRequestValidationError.InvalidRoof);
         }
@@ -96,7 +105,7 @@ public static class RoofRafterRequestValidator
                 maximumSpacingMm,
                 material,
                 geometry.PrimarySlopeDegrees),
-            layout,
+            layoutResult.Layout,
             RoofRafterRequestValidationError.None);
     }
 

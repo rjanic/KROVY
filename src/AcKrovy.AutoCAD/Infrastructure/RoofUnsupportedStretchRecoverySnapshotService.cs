@@ -416,6 +416,63 @@ internal static class RoofUnsupportedStretchRecoverySnapshotService
                 ToPoint(line.EndPoint)));
         }
 
+        foreach (var structuralId in RoofStructuralGeneratedStore.FindByOwner(
+                     database,
+                     transaction,
+                     sourceData.OwnerHandle))
+        {
+            if (structuralId.IsNull ||
+                structuralId.IsErased ||
+                timberIdSet.Contains(structuralId))
+            {
+                continue;
+            }
+
+            if (!AutoCadObjectIdAccess.TryGetObject<Entity>(
+                    transaction,
+                    structuralId,
+                    OpenMode.ForRead,
+                    out var structuralEntity,
+                    database) ||
+                structuralEntity is null)
+            {
+                skipReason = "structural-generated-missing";
+                return false;
+            }
+
+            var structural = RoofStructuralGeneratedStore.Read(structuralEntity);
+            if (structural.Data is null ||
+                !RoofStructuralGeneratedLockRules.IsLockProtectedRole(
+                    structural.Data.StructuralRole))
+            {
+                continue;
+            }
+
+            if (structuralEntity is not Line structuralLine)
+            {
+                skipReason = $"structural-generated-type-mismatch:{structuralEntity.GetType().Name}";
+                return false;
+            }
+
+            if (!metadataStore.TryRead(structuralLine, out var structuralTimberData) ||
+                structuralTimberData is null ||
+                string.IsNullOrWhiteSpace(structuralTimberData.ElementId))
+            {
+                skipReason = "structural-generated-metadata-mismatch";
+                return false;
+            }
+
+            var structuralHandle = structuralLine.Handle.ToString();
+            timberIdSet.Add(structuralId);
+            timberSourceHandles.Add(structuralHandle);
+            timberLines.Add(new RoofUnsupportedStretchTimberLineSnapshotData(
+                structuralHandle,
+                structuralTimberData.ElementId,
+                structuralHandle,
+                ToPoint(structuralLine.StartPoint),
+                ToPoint(structuralLine.EndPoint)));
+        }
+
         foreach (var attachedId in RoofAttachedManualTimberStore.FindByOwner(
                      database,
                      transaction,

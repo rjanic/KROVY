@@ -2,14 +2,17 @@ namespace AcKrovy.Core.Models.Roofs;
 
 /// <summary>
 /// Drawing-level defaults and minimum policy for automatic rafter generation.
-/// These values are not geometry constants and do not constrain manual timber.
+/// These values are not geometry constants and do not constrain manual timber,
+/// HipRafter, ValleyRafter, or Purlin materialization.
 /// </summary>
 public sealed record RoofRafterSettings(
     double DefaultAutomaticSpacingMm,
-    double MinimumAutomaticSpacingMm)
+    double MinimumAutomaticSpacingMm,
+    double MinimumAutomaticLengthMm)
 {
     public static RoofRafterSettings CreateDefault() =>
         new(
             Services.Roofs.RoofRafterSpacingRules.DefaultAutomaticSpacingMm,
-            Services.Roofs.RoofRafterSpacingRules.DefaultMinimumAutomaticSpacingMm);
+            Services.Roofs.RoofRafterSpacingRules.DefaultMinimumAutomaticSpacingMm,
+            Services.Roofs.RoofRafterLengthRules.DefaultMinimumAutomaticLengthMm);
 }

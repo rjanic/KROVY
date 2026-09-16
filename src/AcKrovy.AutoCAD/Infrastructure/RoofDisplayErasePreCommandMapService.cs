@@ -181,6 +181,29 @@ internal static class RoofDisplayErasePreCommandMapService
                         ElementDataStore.TryRead(line, transaction, out var timberData)
                             ? timberData
                             : null);
+                    continue;
+                }
+
+                var structural = RoofStructuralGeneratedStore.Read(line);
+                if (structural.Data is not null &&
+                    RoofStructuralGeneratedLockRules.IsLockProtectedRole(
+                        structural.Data.StructuralRole) &&
+                    !string.IsNullOrWhiteSpace(structural.Data.RoofOwnerReference) &&
+                    ownerIdsByHandle.TryGetValue(
+                        structural.Data.RoofOwnerReference,
+                        out var structuralOwnerId))
+                {
+                    byHandle[handle] = new MappedEntity(
+                        id,
+                        handle,
+                        structural.Data.RoofOwnerReference,
+                        structuralOwnerId,
+                        RoofEraseMappedKind.GeneratedTimber,
+                        handle,
+                        null,
+                        ElementDataStore.TryRead(line, transaction, out var structuralTimberData)
+                            ? structuralTimberData
+                            : null);
                 }
             }
 

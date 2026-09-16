@@ -726,7 +726,12 @@ internal static class RoofLiveResizeService
             database,
             transaction,
             ownerHandle);
+        var structuralIds = RoofStructuralGeneratedStore.FindByOwner(
+            database,
+            transaction,
+            ownerHandle);
         var generatedIdSet = new HashSet<ObjectId>(generatedIds);
+        generatedIdSet.UnionWith(structuralIds);
         var timberSourceHandles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var timberId in generatedIds)
         {
@@ -745,6 +750,35 @@ internal static class RoofLiveResizeService
             {
                 timberSourceHandles.Add(timber.Handle.ToString());
             }
+        }
+
+        foreach (var structuralId in structuralIds)
+        {
+            if (modifiedIds.Contains(structuralId))
+            {
+                generatedTimberModified = true;
+            }
+
+            if (!AutoCadObjectIdAccess.TryGetObject<Entity>(
+                    transaction,
+                    structuralId,
+                    OpenMode.ForRead,
+                    out var structuralEntity,
+                    database) ||
+                structuralEntity is null)
+            {
+                continue;
+            }
+
+            var structural = RoofStructuralGeneratedStore.Read(structuralEntity);
+            if (structural.Data is null ||
+                !RoofStructuralGeneratedLockRules.IsLockProtectedRole(
+                    structural.Data.StructuralRole))
+            {
+                continue;
+            }
+
+            timberSourceHandles.Add(structuralEntity.Handle.ToString());
         }
 
         foreach (var id in modifiedIds.Distinct())
@@ -811,6 +845,20 @@ internal static class RoofLiveResizeService
             return true;
         }
 
+        var structural = RoofStructuralGeneratedStore.Read(entity);
+        if (structural.Data is not null &&
+            RoofStructuralGeneratedLockRules.IsLockProtectedRole(
+                structural.Data.StructuralRole) &&
+            !string.IsNullOrWhiteSpace(structural.Data.RoofOwnerReference) &&
+            TryResolveHandleToOwnerPolyline(
+                database,
+                transaction,
+                structural.Data.RoofOwnerReference,
+                out ownerId))
+        {
+            return true;
+        }
+
         var hasAnnotationMetadata = TryResolveAnnotationSourceHandle(entity, out var sourceHandle);
         if (!hasAnnotationMetadata || string.IsNullOrWhiteSpace(sourceHandle))
         {
@@ -864,6 +912,20 @@ internal static class RoofLiveResizeService
                    transaction,
                    sourceTimber.Data.RoofOwnerReference,
                    out ownerId))
+        {
+            return true;
+        }
+
+        var sourceStructural = RoofStructuralGeneratedStore.Read(sourceEntity);
+        if (sourceStructural.Data is not null &&
+            RoofStructuralGeneratedLockRules.IsLockProtectedRole(
+                sourceStructural.Data.StructuralRole) &&
+            !string.IsNullOrWhiteSpace(sourceStructural.Data.RoofOwnerReference) &&
+            TryResolveHandleToOwnerPolyline(
+                database,
+                transaction,
+                sourceStructural.Data.RoofOwnerReference,
+                out ownerId))
         {
             return true;
         }
@@ -1534,7 +1596,8 @@ internal static class RoofLiveResizeService
                 {
                     var liveSolve = RoofRafterLayoutSolver.Solve(
                         hipForDiag,
-                        new RafterLayoutParameters(
+                        AutoCadRoofRafterSpacingStore.CreateLayoutParameters(
+                            database,
                             recipeAfter.MaximumSpacingMm,
                             recipeAfter.WidthMm));
                     if (liveSolve.IsValid && liveSolve.Layout is not null)
@@ -2297,7 +2360,10 @@ internal static class RoofLiveResizeService
 
         var layoutResult = RoofRafterLayoutSolver.Solve(
             hipGeometry,
-            new RafterLayoutParameters(recipe.MaximumSpacingMm, recipe.WidthMm));
+            AutoCadRoofRafterSpacingStore.CreateLayoutParameters(
+                database,
+                recipe.MaximumSpacingMm,
+                recipe.WidthMm));
         if (!layoutResult.IsValid || layoutResult.Layout is null)
         {
             return true;

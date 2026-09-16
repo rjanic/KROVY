@@ -234,6 +234,85 @@ internal static class RoofUnsupportedStretchRecoveryService
     }
 
     /// <summary>
+    /// Restores only StructuralGenerated Hip/Valley Lines (and their annotations)
+    /// from the pre-command assembly snapshot. Ordinary generated rafters are left
+    /// untouched so unlocked accepted edits remain authoritative for those members
+    /// only. Erased Hip/Valley Lines are un-erased.
+    /// </summary>
+    public static bool TryRestoreStructuralHipValleyMembersOnly(
+        Database database,
+        Transaction transaction,
+        ObjectId ownerId,
+        Autodesk.AutoCAD.EditorInput.Editor? editor = null)
+    {
+        if (ownerId.IsNull ||
+            !RoofUnsupportedStretchRecoverySnapshotService.TryGet(ownerId, out var entry))
+        {
+            return false;
+        }
+
+        var structuralLines = new List<RoofUnsupportedStretchTimberLineSnapshotData>();
+        var structuralSourceHandles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var timber in entry.Assembly.TimberLines)
+        {
+            if (!TryGetEntityByHandle<Line>(
+                    database,
+                    transaction,
+                    timber.EntityHandle,
+                    OpenMode.ForRead,
+                    out var line,
+                    allowErased: true) ||
+                line is null)
+            {
+                continue;
+            }
+
+            var structural = RoofStructuralGeneratedStore.Read(line);
+            if (structural.Data is null ||
+                !RoofStructuralGeneratedLockRules.IsLockProtectedRole(
+                    structural.Data.StructuralRole))
+            {
+                continue;
+            }
+
+            structuralLines.Add(timber);
+            structuralSourceHandles.Add(timber.SourceHandle);
+        }
+
+        if (structuralLines.Count == 0)
+        {
+            return true;
+        }
+
+        var structuralAnnotations = entry.Assembly.Annotations
+            .Where(annotation =>
+                structuralSourceHandles.Contains(annotation.SourceHandle))
+            .ToList();
+
+        var ownerHandle = entry.Assembly.RoofSource.OwnerHandle;
+        return TryRestoreTimberLines(
+                   database,
+                   transaction,
+                   structuralLines,
+                   editor,
+                   ownerHandle,
+                   allowErased: true) &&
+               TryRestoreAnnotations(
+                   database,
+                   transaction,
+                   structuralAnnotations,
+                   editor,
+                   ownerHandle,
+                   allowErased: true) &&
+               TryEraseUnsnapshotStructuralDuplicates(
+                   database,
+                   transaction,
+                   ownerId,
+                   entry.Assembly.TimberLines,
+                   editor);
+    }
+
+    /// <summary>
     /// Scenario 2: roof source remains <see cref="RoofSourceChangeKind.RigidEquivalent"/>;
     /// restore only owned generated timber Lines + annotations in place. Does not write
     /// the roof Polyline, RoofDefinition, or regenerate timber.
@@ -368,7 +447,13 @@ internal static class RoofUnsupportedStretchRecoveryService
                     database,
                     transaction,
                     ownerId,
-                    entry.Assembly.TimberLines))
+                    entry.Assembly.TimberLines) ||
+                !TryEraseUnsnapshotStructuralDuplicates(
+                    database,
+                    transaction,
+                    ownerId,
+                    entry.Assembly.TimberLines,
+                    editor))
             {
                 return RoofUnsupportedStretchRecoveryOutcome.HardFailure;
             }
@@ -493,7 +578,13 @@ internal static class RoofUnsupportedStretchRecoveryService
                     database,
                     transaction,
                     ownerId,
-                    translatedTimberLines))
+                    translatedTimberLines) ||
+                !TryEraseUnsnapshotStructuralDuplicates(
+                    database,
+                    transaction,
+                    ownerId,
+                    translatedTimberLines,
+                    editor))
             {
                 return false;
             }
@@ -579,7 +670,24 @@ internal static class RoofUnsupportedStretchRecoveryService
                 return false;
             }
 
-            return true;
+            // Resolve owner ObjectId for unsnapshot structural erase (BREAK clones).
+            if (!TryResolveEntityByHandle(
+                    database,
+                    entry.Assembly.RoofSource.OwnerHandle,
+                    role: "roof-source",
+                    out var ownerObjectId,
+                    out _) ||
+                ownerObjectId.IsNull)
+            {
+                return true;
+            }
+
+            return TryEraseUnsnapshotStructuralDuplicates(
+                database,
+                transaction,
+                ownerObjectId,
+                entry.Assembly.TimberLines,
+                editor);
         }
         catch (Autodesk.AutoCAD.Runtime.Exception)
         {
@@ -914,6 +1022,83 @@ internal static class RoofUnsupportedStretchRecoveryService
                 database,
                 transaction,
                 sourceHandle);
+            line.Erase(true);
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// BREAK (and similar) can append a Line that inherits StructuralGenerated XData.
+    /// Snapshot restore alone puts original Hip/Valley geometry back but leaves the
+    /// clone. Erase any owned Hip/Valley whose handle is not in the pre-command set.
+    /// </summary>
+    private static bool TryEraseUnsnapshotStructuralDuplicates(
+        Database database,
+        Transaction transaction,
+        ObjectId ownerId,
+        IReadOnlyList<RoofUnsupportedStretchTimberLineSnapshotData> timberLines,
+        Autodesk.AutoCAD.EditorInput.Editor? editor = null)
+    {
+        if (ownerId.IsNull)
+        {
+            return false;
+        }
+
+        var snapshotHandles = timberLines
+            .Select(item => item.EntityHandle)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var ownerHandle = ownerId.Handle.ToString();
+        foreach (var id in RoofStructuralGeneratedStore.FindByOwner(
+                     database,
+                     transaction,
+                     ownerHandle))
+        {
+            if (!AutoCadObjectIdAccess.TryGetObject<Line>(
+                    transaction,
+                    id,
+                    OpenMode.ForWrite,
+                    out var line,
+                    database) ||
+                line is null ||
+                line.IsErased)
+            {
+                continue;
+            }
+
+            var handle = line.Handle.ToString();
+            if (snapshotHandles.Contains(handle))
+            {
+                continue;
+            }
+
+            var structural = RoofStructuralGeneratedStore.Read(line);
+            if (structural.Data is null ||
+                !RoofStructuralGeneratedLockRules.IsLockProtectedRole(
+                    structural.Data.StructuralRole) ||
+                !string.Equals(
+                    structural.Data.RoofOwnerReference,
+                    ownerHandle,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+#if DEBUG
+            RoofUnsupportedStretchRecoveryDiag.WriteFallback(
+                editor,
+                "structural-unsnapshot-erase",
+                "break-fragment",
+                owner: ownerHandle,
+                handle: handle,
+                kind: structural.Data.StructuralRole.ToString());
+#endif
+            ElementLabelService.DeleteForSourceHandle(database, transaction, handle);
+            SlopeAnnotationService.DeleteForSourceHandle(database, transaction, handle);
+            PostFootprintPerpendicularAnnotationService.DeleteForSourceHandle(
+                database,
+                transaction,
+                handle);
             line.Erase(true);
         }
 

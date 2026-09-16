@@ -17,12 +17,12 @@ public sealed class RoofRafterSpacingSourceContractTests
             "AutoCadDrawingAnnotationScaleStore.cs");
 
         Assert.Contains("DrawingSettingsRecordName = \"ROOF_RAFTER_SETTINGS\"", Store);
-        Assert.Contains("private const int SchemaVersion = 1", Store);
+        Assert.Contains("RoofRafterSettingsPayload.SchemaVersion", Store);
         Assert.Contains("DxfCode.Real", Store);
-        Assert.Contains("settings.DefaultAutomaticSpacingMm", Store);
-        Assert.Contains("settings.MinimumAutomaticSpacingMm", Store);
-        Assert.Contains("RoofRafterSpacingRules.IsValidSettings", Store);
-        Assert.Contains("values.Count != 3", Store);
+        Assert.Contains("RoofRafterSettingsPayload.EncodeReals", Store);
+        Assert.Contains("RoofRafterSettingsPayload.TryDecode", Store);
+        Assert.Contains("values.Count is not (3 or 4)", Store);
+        Assert.Contains("settings.MinimumAutomaticLengthMm", Store);
         Assert.DoesNotContain("RafterSpacing", annotationStore);
         Assert.Contains("values.Count != 2", annotationStore);
     }

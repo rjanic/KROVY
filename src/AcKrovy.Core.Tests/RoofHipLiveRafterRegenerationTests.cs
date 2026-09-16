@@ -13,7 +13,7 @@ public sealed class RoofHipLiveRafterRegenerationTests
         var face = CreateFaceLayout(before, 500d);
         var solved = RoofRafterLayoutSolver.Solve(
             before,
-            new RafterLayoutParameters(500d, 80d));
+            new RafterLayoutParameters(500d, 80d, 1d));
 
         Assert.True(solved.IsValid);
         Assert.NotNull(solved.Layout);
@@ -34,10 +34,10 @@ public sealed class RoofHipLiveRafterRegenerationTests
 
         var before = RoofRafterLayoutSolver.Solve(
             beforeGeometry,
-            new RafterLayoutParameters(recipe.MaximumSpacingMm, recipe.WidthMm));
+            new RafterLayoutParameters(recipe.MaximumSpacingMm, recipe.WidthMm, 1d));
         var after = RoofRafterLayoutSolver.Solve(
             afterGeometry,
-            new RafterLayoutParameters(recipe.MaximumSpacingMm, recipe.WidthMm));
+            new RafterLayoutParameters(recipe.MaximumSpacingMm, recipe.WidthMm, 1d));
 
         Assert.True(before.IsValid);
         Assert.True(after.IsValid);
@@ -81,7 +81,7 @@ public sealed class RoofHipLiveRafterRegenerationTests
         var face = CreateFaceLayout(geometry, 500d);
         var solved = RoofRafterLayoutSolver.Solve(
             geometry,
-            new RafterLayoutParameters(500d, 80d));
+            new RafterLayoutParameters(500d, 80d, 1d));
 
         Assert.Equal(expectedCount, face.Segments.Count);
         Assert.True(solved.IsValid);
@@ -103,7 +103,7 @@ public sealed class RoofHipLiveRafterRegenerationTests
         var face = CreateFaceLayout(geometry, 900d);
         var solved = RoofRafterLayoutSolver.Solve(
             geometry,
-            new RafterLayoutParameters(900d, 80d));
+            new RafterLayoutParameters(900d, 80d, 1d));
 
         Assert.True(solved.IsValid);
         Assert.Equal(face.Segments.Count, solved.Layout!.Rafters.Count);
@@ -138,7 +138,7 @@ public sealed class RoofHipLiveRafterRegenerationTests
         var footprint = Rectangle(10000, 6000);
         var at30 = SolveHip(footprint, 30d);
         var at45 = SolveHip(footprint, 45d);
-        var recipe = new RafterLayoutParameters(500d, 80d);
+        var recipe = new RafterLayoutParameters(500d, 80d, 1d);
         var layout30 = RoofRafterLayoutSolver.Solve(at30, recipe).Layout!;
         var layout45 = RoofRafterLayoutSolver.Solve(at45, recipe).Layout!;
 
@@ -159,10 +159,10 @@ public sealed class RoofHipLiveRafterRegenerationTests
     {
         var before = RoofRafterLayoutSolver.Solve(
             SolveHip(Rectangle(10000, 6000), 30d),
-            new RafterLayoutParameters(500d, 80d)).Layout!;
+            new RafterLayoutParameters(500d, 80d, 1d)).Layout!;
         var after = RoofRafterLayoutSolver.Solve(
             SolveHip(Rectangle(12000, 6000), 30d),
-            new RafterLayoutParameters(500d, 80d)).Layout!;
+            new RafterLayoutParameters(500d, 80d, 1d)).Layout!;
 
         Assert.Equal(64, before.Rafters.Select(item => item.LogicalKey).Distinct().Count());
         Assert.Equal(72, after.Rafters.Select(item => item.LogicalKey).Distinct().Count());

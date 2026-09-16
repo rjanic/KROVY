@@ -57,7 +57,7 @@ public sealed class SettingsXamlRuntimeSmokeTests
                     },
                     rafterSpacingState: new RafterSpacingSettingsState(
                         true,
-                        new RoofRafterSettings(600d, 450d)))
+                        new RoofRafterSettings(600d, 450d, 500d)))
                 {
                     Left = -30000,
                     Top = -30000,
@@ -78,7 +78,7 @@ public sealed class SettingsXamlRuntimeSmokeTests
                 Assert.NotNull(captured);
                 Assert.True(captured!.RafterSpacingChanged);
                 Assert.Equal(
-                    new RoofRafterSettings(750d, 500d),
+                    new RoofRafterSettings(750d, 500d, 500d),
                     captured.RafterSettings);
                 window.Close();
             }

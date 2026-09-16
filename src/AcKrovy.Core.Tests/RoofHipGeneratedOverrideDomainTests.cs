@@ -185,7 +185,7 @@ public sealed class RoofHipGeneratedOverrideDomainTests
         var geometry = SolveHip(polygon, 30d);
         var result = RoofRafterLayoutSolver.Solve(
             geometry,
-            new RafterLayoutParameters(SpacingMm, WidthMm));
+            new RafterLayoutParameters(SpacingMm, WidthMm, 1d));
         Assert.True(result.IsValid, result.Error.ToString());
         Assert.True(result.Layout!.DomainPolygon.Count >= 3);
         return result.Layout;

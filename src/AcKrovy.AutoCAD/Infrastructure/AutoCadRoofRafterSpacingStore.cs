@@ -7,12 +7,12 @@ namespace AcKrovy.AutoCAD.Infrastructure;
 /// <summary>
 /// Stores optional drawing-level automatic-rafter defaults independently from the
 /// established annotation-scale payload. Missing data resolves in Core and is not
-/// written during a read.
+/// written during a read. SchemaVersion stays 1; payloads with three reals are
+/// accepted and resolve MinimumAutomaticLengthMm to the Core default.
 /// </summary>
 internal sealed class AutoCadRoofRafterSpacingStore
 {
     internal const string DrawingSettingsRecordName = "ROOF_RAFTER_SETTINGS";
-    private const int SchemaVersion = 1;
     private const int DxfInt32Code = (int)DxfCode.Int32;
     private const int DxfRealCode = (int)DxfCode.Real;
 
@@ -76,7 +76,8 @@ internal sealed class AutoCadRoofRafterSpacingStore
         ArgumentNullException.ThrowIfNull(settings);
         if (!RoofRafterSpacingRules.IsValidSettings(
                 settings.DefaultAutomaticSpacingMm,
-                settings.MinimumAutomaticSpacingMm))
+                settings.MinimumAutomaticSpacingMm,
+                settings.MinimumAutomaticLengthMm))
         {
             throw new ArgumentOutOfRangeException(nameof(settings));
         }
@@ -90,10 +91,12 @@ internal sealed class AutoCadRoofRafterSpacingStore
             OpenMode.ForRead);
         var applicationDictionary = GetOrCreateApplicationDictionary(root);
         var record = GetOrCreateRecord(applicationDictionary);
+        var reals = RoofRafterSettingsPayload.EncodeReals(settings);
         using var data = new ResultBuffer(
-            new TypedValue(DxfInt32Code, SchemaVersion),
-            new TypedValue(DxfRealCode, settings.DefaultAutomaticSpacingMm),
-            new TypedValue(DxfRealCode, settings.MinimumAutomaticSpacingMm));
+            new TypedValue(DxfInt32Code, RoofRafterSettingsPayload.SchemaVersion),
+            new TypedValue(DxfRealCode, reals[0]),
+            new TypedValue(DxfRealCode, reals[1]),
+            new TypedValue(DxfRealCode, reals[2]));
         record.Data = data;
     }
 
@@ -106,6 +109,18 @@ internal sealed class AutoCadRoofRafterSpacingStore
         var store = new AutoCadRoofRafterSpacingStore(database, transaction);
         hasStoredValue = store.TryRead(out var stored);
         return RoofRafterSpacingRules.Resolve(hasStoredValue, stored);
+    }
+
+    public static RafterLayoutParameters CreateLayoutParameters(
+        Database database,
+        double maximumSpacingMm,
+        double rafterPlanWidthMm)
+    {
+        var settings = ReadEffective(database, out _);
+        return new RafterLayoutParameters(
+            MaximumSpacingMm: maximumSpacingMm,
+            RafterPlanWidthMm: rafterPlanWidthMm,
+            MinimumAutomaticLengthMm: settings.MinimumAutomaticLengthMm);
     }
 
     private DBDictionary GetOrCreateApplicationDictionary(DBDictionary root)
@@ -156,20 +171,54 @@ internal sealed class AutoCadRoofRafterSpacingStore
         out RoofRafterSettings? settings)
     {
         settings = null;
-        if (values.Count != 3 ||
+        // Payload: version + 2 or 3 reals. AutoCAD may surface Int32 DXF values as
+        // Int16/Int32; accept both so a successful Write is not lost on read-back.
+        if (values.Count is not (3 or 4) ||
             values[0].TypeCode != DxfInt32Code ||
             values[1].TypeCode != DxfRealCode ||
             values[2].TypeCode != DxfRealCode ||
-            values[0].Value is not int version ||
-            version != SchemaVersion ||
+            !TryReadSchemaVersion(values[0].Value, out var version) ||
             values[1].Value is not double defaultSpacing ||
-            values[2].Value is not double minimumSpacing ||
-            !RoofRafterSpacingRules.IsValidSettings(defaultSpacing, minimumSpacing))
+            values[2].Value is not double minimumSpacing)
         {
             return false;
         }
 
-        settings = new RoofRafterSettings(defaultSpacing, minimumSpacing);
-        return true;
+        double[] reals;
+        if (values.Count == 3)
+        {
+            reals = [defaultSpacing, minimumSpacing];
+        }
+        else
+        {
+            if (values[3].TypeCode != DxfRealCode ||
+                values[3].Value is not double minimumLength)
+            {
+                return false;
+            }
+
+            reals = [defaultSpacing, minimumSpacing, minimumLength];
+        }
+
+        return RoofRafterSettingsPayload.TryDecode(version, reals, out settings);
+    }
+
+    private static bool TryReadSchemaVersion(object? value, out int version)
+    {
+        switch (value)
+        {
+            case int int32:
+                version = int32;
+                return true;
+            case short int16:
+                version = int16;
+                return true;
+            case long int64 when int64 is >= int.MinValue and <= int.MaxValue:
+                version = (int)int64;
+                return true;
+            default:
+                version = 0;
+                return false;
+        }
     }
 }

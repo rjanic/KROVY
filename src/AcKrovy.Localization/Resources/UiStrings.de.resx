@@ -196,8 +196,8 @@
   <data name="SettingsWindow_AllElementsAlreadyMatch" xml:space="preserve"><value>Alle Bauteile entsprechen bereits den Einstellungen.</value></data>
   <data name="SettingsWindow_ExistingLayerInfoFormat" xml:space="preserve"><value>Die Layer {0} sind bereits mit anderen Eigenschaften vorhanden und wurden nicht geändert. Verwenden Sie für abweichende Eigenschaften nur neuer Bauteile einen neuen Layernamen oder explizites Anwenden.</value></data>
   <data name="SettingsWindow_ValidationFailed" xml:space="preserve"><value>Korrigieren Sie die ungültigen Werte. Die Einstellungen wurden nicht angewendet.</value></data>
-  <data name="SettingsWindow_Manufacturing_Tab" xml:space="preserve"><value>Schnittzugaben</value></data>
-  <data name="SettingsWindow_Manufacturing_Description" xml:space="preserve"><value>Die Standard-Schnittzugabe wird bei der Neuzuweisung eines Bauteils verwendet. Beim Speichern können Sie wählen, ob sie auch auf vorhandene Bauteile angewendet wird.</value></data>
+  <data name="SettingsWindow_Manufacturing_Tab" xml:space="preserve"><value>Fertigungseinstellungen</value></data>
+  <data name="SettingsWindow_Manufacturing_Description" xml:space="preserve"><value>Einstellungen für automatisch erzeugte Sparren, die Fertigungslängenberechnung und Standard-Schnittzugaben. Beim Speichern können Sie wählen, ob Zugaben auch auf vorhandene Bauteile angewendet werden.</value></data>
   <data name="SettingsWindow_Manufacturing_RoundingStep" xml:space="preserve"><value>Fertigungslänge aufrunden auf [mm]</value></data>
   <data name="SettingsWindow_Manufacturing_ElementTypeColumn" xml:space="preserve"><value>Bauteiltyp</value></data>
   <data name="SettingsWindow_Manufacturing_DefaultAllowanceColumn" xml:space="preserve"><value>Standard-Schnittzugabe [mm]</value></data>
@@ -738,8 +738,23 @@
   <data name="SettingsWindow_Manufacturing_MinimumAutomaticRafterSpacing" xml:space="preserve">
     <value>Mindestabstand automatisch erzeugter Sparren</value>
   </data>
+  <data name="SettingsWindow_Manufacturing_AutomaticRaftersSection" xml:space="preserve">
+    <value>Automatische Sparren</value>
+  </data>
+  <data name="SettingsWindow_Manufacturing_MinimumAutomaticRafterLength" xml:space="preserve">
+    <value>Mindestlänge automatisch erzeugter Sparren</value>
+  </data>
+  <data name="SettingsWindow_Manufacturing_MinimumAutomaticRafterLengthHelp" xml:space="preserve">
+    <value>Automatisch erzeugte Sparren, die kürzer als dieser Wert sind, werden nicht erstellt.</value>
+  </data>
+  <data name="SettingsWindow_Manufacturing_LengthCalculationSection" xml:space="preserve">
+    <value>Berechnung der Fertigungslänge</value>
+  </data>
+  <data name="SettingsWindow_Manufacturing_AllowancesSection" xml:space="preserve">
+    <value>Schnittzugaben</value>
+  </data>
   <data name="Dialog_SettingsRafterSpacing" xml:space="preserve">
-    <value>Beide Abstände müssen positive endliche Zahlen sein; der Standardabstand darf nicht kleiner als der Mindestabstand sein.</value>
+    <value>Abstände und die Mindestlänge müssen positive endliche Zahlen sein; der Standardabstand darf nicht kleiner als der Mindestabstand sein.</value>
   </data>
   <data name="Command_AutomaticPurlin_ManualEditRestricted" xml:space="preserve">
     <value>\nAutomatische Pfetten werden durch die Dachanordnung gesteuert und können derzeit nicht mit AK_EDIT oder AK_ASSIGN bearbeitet werden.</value>

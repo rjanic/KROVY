@@ -529,7 +529,10 @@ internal static class RoofAttachedManualLifecycleService
 
         var layoutResult = RoofRafterLayoutSolver.Solve(
             before,
-            new RafterLayoutParameters(recipe.MaximumSpacingMm, recipe.WidthMm));
+            AutoCadRoofRafterSpacingStore.CreateLayoutParameters(
+                document.Database,
+                recipe.MaximumSpacingMm,
+                recipe.WidthMm));
         if (!layoutResult.IsValid ||
             layoutResult.Layout is null ||
             !RoofGeneratedAnchorResolutionContext.TryCreate(

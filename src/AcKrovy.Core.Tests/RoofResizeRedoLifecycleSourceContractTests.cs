@@ -145,7 +145,9 @@ public sealed class RoofResizeRedoLifecycleSourceContractTests
     {
         Assert.Contains("ROOF_GENERATED_OWNERSHIP_INVARIANT", RedoDiag);
         Assert.Contains("CaptureOwnershipInvariant", RedoDiag);
-        Assert.Contains("missingGeneratedMetadata", RedoDiag);
+        Assert.Contains("ordinaryGenerated=", RedoDiag);
+        Assert.Contains("structuralGenerated=", RedoDiag);
+        Assert.Contains("invalidOrdinaryOwnership=", RedoDiag);
         Assert.Contains("CaptureOwnershipInvariant", Resize);
     }
 

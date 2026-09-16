@@ -13,6 +13,7 @@ public partial class RoofRafterWindow : Window
     private readonly IRoofGeometry _geometry;
     private readonly CultureInfo _culture;
     private readonly double _minimumAutomaticSpacingMm;
+    private readonly double _minimumAutomaticLengthMm;
     private RoofRafterRequestValidationResult? _currentValidation;
     private RoofFaceRafterLayout? _currentHipPreviewLayout;
     private bool _initialized;
@@ -22,7 +23,9 @@ public partial class RoofRafterWindow : Window
         RoofRafterPreferences preferences,
         double minimumAutomaticSpacingMm,
         SettingsTheme theme,
-        CultureInfo? culture = null)
+        CultureInfo? culture = null,
+        double minimumAutomaticLengthMm =
+            RoofRafterLengthRules.DefaultMinimumAutomaticLengthMm)
     {
         ArgumentNullException.ThrowIfNull(geometry);
         ArgumentNullException.ThrowIfNull(preferences);
@@ -30,11 +33,16 @@ public partial class RoofRafterWindow : Window
         {
             throw new ArgumentOutOfRangeException(nameof(minimumAutomaticSpacingMm));
         }
+        if (!RoofRafterLengthRules.IsValidMinimumLength(minimumAutomaticLengthMm))
+        {
+            throw new ArgumentOutOfRangeException(nameof(minimumAutomaticLengthMm));
+        }
 
         InitializeComponent();
         FashionWindowTheme.Apply(this, theme);
         _geometry = geometry;
         _minimumAutomaticSpacingMm = minimumAutomaticSpacingMm;
+        _minimumAutomaticLengthMm = minimumAutomaticLengthMm;
         _culture = culture ?? AppLanguageService.CurrentUiCulture;
         MaterialOptions = TimberMaterialDisplayNameProvider.GetOptions(
             preferences.Material,
@@ -114,7 +122,8 @@ public partial class RoofRafterWindow : Window
                 height,
                 spacing,
                 _minimumAutomaticSpacingMm,
-                material);
+                material,
+                _minimumAutomaticLengthMm);
             _currentHipPreviewLayout = validation.IsValid
                 ? RoofFaceRafterLayoutService.Create(hip.Topology, spacing).Layout
                 : null;
@@ -128,7 +137,8 @@ public partial class RoofRafterWindow : Window
                 height,
                 spacing,
                 _minimumAutomaticSpacingMm,
-                material);
+                material,
+                _minimumAutomaticLengthMm);
         }
 
         if (validation.IsValid &&

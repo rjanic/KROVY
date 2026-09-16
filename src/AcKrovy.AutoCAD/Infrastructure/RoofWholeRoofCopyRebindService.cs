@@ -357,7 +357,10 @@ internal static class RoofWholeRoofCopyRebindService
 
             var layoutResult = SimpleGableRafterLayoutSolver.Solve(
                 gableGeometry,
-                new RafterLayoutParameters(recipe.MaximumSpacingMm, recipe.WidthMm));
+                AutoCadRoofRafterSpacingStore.CreateLayoutParameters(
+                    database,
+                    recipe.MaximumSpacingMm,
+                    recipe.WidthMm));
             if (!layoutResult.IsValid || layoutResult.Layout is null)
             {
                 stage = "layout";

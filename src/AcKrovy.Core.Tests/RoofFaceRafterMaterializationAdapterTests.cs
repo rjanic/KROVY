@@ -122,7 +122,7 @@ public sealed class RoofFaceRafterMaterializationAdapterTests
             180d,
             500d,
             500d,
-            "  Smrek C24  ");
+            "  Smrek C24  ", 1d);
 
         Assert.True(validation.IsValid);
         Assert.NotNull(validation.Request);
@@ -150,7 +150,7 @@ public sealed class RoofFaceRafterMaterializationAdapterTests
             160d,
             499d,
             500d,
-            "Smrek C24");
+            "Smrek C24", 1d);
 
         Assert.False(validation.IsValid);
         Assert.Equal(
@@ -214,7 +214,7 @@ public sealed class RoofFaceRafterMaterializationAdapterTests
             180d,
             spacingMm,
             spacingMm,
-            "Smrek C24");
+            "Smrek C24", 1d);
 
         Assert.True(validation.IsValid);
         var layout = Assert.IsType<RoofRafterLayout>(validation.Layout);

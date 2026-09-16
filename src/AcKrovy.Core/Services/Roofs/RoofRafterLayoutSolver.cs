@@ -37,11 +37,17 @@ public static class RoofRafterLayoutSolver
             return Invalid(RoofRafterLayoutError.InvalidRafterPlanWidth);
         }
 
+        var minimumAutomaticLength = parameters.MinimumAutomaticLengthMm;
+        if (!RoofRafterLengthRules.IsValidMinimumLength(minimumAutomaticLength))
+        {
+            return Invalid(RoofRafterLayoutError.InvalidMaximumSpacing);
+        }
+
         // Hip ordinary rafters share this generation/replacement entry point so
         // live resize and edit reuse the R1 face layout without a host-side solver.
         if (geometry is HipRoofGeometry hip)
         {
-            return SolveHip(hip, maximumSpacing, rafterPlanWidth);
+            return SolveHip(hip, maximumSpacing, rafterPlanWidth, minimumAutomaticLength);
         }
 
         if (!TryCreateNormalizedPlanes(geometry, out var planes) || planes.Count == 0)
@@ -108,8 +114,7 @@ public static class RoofRafterLayoutSolver
             maximumSpacing.ToString("R", CultureInfo.InvariantCulture),
             rafterPlanWidth.ToString("R", CultureInfo.InvariantCulture),
             intervalCount.ToString(CultureInfo.InvariantCulture));
-        return new RoofRafterLayoutResult(
-            true,
+        return Finalize(
             new RoofRafterLayout(
                 maximumSpacing,
                 rafterPlanWidth,
@@ -123,7 +128,7 @@ public static class RoofRafterLayoutSolver
                 rafters,
                 signature,
                 RoofRafterDomainPolygon.FromGeometry(geometry)),
-            RoofRafterLayoutError.None);
+            minimumAutomaticLength);
     }
 
     private static bool TryCreateNormalizedPlanes(
@@ -322,7 +327,8 @@ public static class RoofRafterLayoutSolver
     private static RoofRafterLayoutResult SolveHip(
         HipRoofGeometry geometry,
         double maximumSpacingMm,
-        double rafterPlanWidthMm)
+        double rafterPlanWidthMm,
+        double minimumAutomaticLengthMm)
     {
         var faceResult = RoofFaceRafterLayoutService.Create(
             geometry.Topology,
@@ -349,7 +355,27 @@ public static class RoofRafterLayoutSolver
             return Invalid(RoofRafterLayoutError.InvalidRoofGeometry);
         }
 
-        return new RoofRafterLayoutResult(true, layout, RoofRafterLayoutError.None);
+        return Finalize(layout, minimumAutomaticLengthMm);
+    }
+
+    /// <summary>
+    /// Suppress ordinary automatic candidates whose TrueLengthMm is below the
+    /// drawing minimum. Station planning is unchanged; filtering happens after
+    /// authoritative true lengths exist so spacing logic stays intact.
+    /// </summary>
+    private static RoofRafterLayoutResult Finalize(
+        RoofRafterLayout layout,
+        double minimumAutomaticLengthMm)
+    {
+        var filtered = RoofRafterLengthRules.FilterByMinimumTrueLength(
+            layout.Rafters,
+            minimumAutomaticLengthMm);
+        return new RoofRafterLayoutResult(
+            true,
+            filtered.Count == layout.Rafters.Count
+                ? layout
+                : layout with { Rafters = filtered },
+            RoofRafterLayoutError.None);
     }
 
     private static RoofRafterLayoutResult Invalid(RoofRafterLayoutError error) =>

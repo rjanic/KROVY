@@ -15,10 +15,12 @@ public static class RoofRafterSpacingRules
 
     public static bool IsValidSettings(
         double defaultAutomaticSpacingMm,
-        double minimumAutomaticSpacingMm) =>
+        double minimumAutomaticSpacingMm,
+        double minimumAutomaticLengthMm) =>
         IsValidDimension(defaultAutomaticSpacingMm) &&
         IsValidDimension(minimumAutomaticSpacingMm) &&
-        defaultAutomaticSpacingMm >= minimumAutomaticSpacingMm;
+        defaultAutomaticSpacingMm >= minimumAutomaticSpacingMm &&
+        RoofRafterLengthRules.IsValidMinimumLength(minimumAutomaticLengthMm);
 
     public static bool IsValidAutomaticWorkingSpacing(
         double workingSpacingMm,
@@ -34,7 +36,8 @@ public static class RoofRafterSpacingRules
         storedSettings is not null &&
         IsValidSettings(
             storedSettings.DefaultAutomaticSpacingMm,
-            storedSettings.MinimumAutomaticSpacingMm)
+            storedSettings.MinimumAutomaticSpacingMm,
+            storedSettings.MinimumAutomaticLengthMm)
             ? storedSettings
             : RoofRafterSettings.CreateDefault();
 }

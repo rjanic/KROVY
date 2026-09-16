@@ -196,8 +196,8 @@
   <data name="SettingsWindow_AllElementsAlreadyMatch" xml:space="preserve"><value>Tous les éléments correspondent déjà aux paramètres.</value></data>
   <data name="SettingsWindow_ExistingLayerInfoFormat" xml:space="preserve"><value>Les calques {0} existent déjà avec des propriétés différentes et n'ont pas été modifiés. Pour appliquer des propriétés différentes uniquement aux nouveaux éléments, utilisez un nouveau nom de calque ou une application explicite.</value></data>
   <data name="SettingsWindow_ValidationFailed" xml:space="preserve"><value>Corrigez les valeurs non valides. Les paramètres n'ont pas été appliqués.</value></data>
-  <data name="SettingsWindow_Manufacturing_Tab" xml:space="preserve"><value>Surcotes de coupe</value></data>
-  <data name="SettingsWindow_Manufacturing_Description" xml:space="preserve"><value>La surcote de coupe par défaut est utilisée lors de la nouvelle attribution d'un élément. Lors de l'enregistrement, vous pouvez choisir de l'appliquer également aux éléments existants.</value></data>
+  <data name="SettingsWindow_Manufacturing_Tab" xml:space="preserve"><value>Paramètres de fabrication</value></data>
+  <data name="SettingsWindow_Manufacturing_Description" xml:space="preserve"><value>Paramètres des chevrons automatiques, du calcul de longueur de fabrication et des surcotes de coupe par défaut. Lors de l’enregistrement, vous pouvez choisir d’appliquer aussi les surcotes aux éléments existants.</value></data>
   <data name="SettingsWindow_Manufacturing_RoundingStep" xml:space="preserve"><value>Arrondir la longueur de fabrication au multiple supérieur de [mm]</value></data>
   <data name="SettingsWindow_Manufacturing_ElementTypeColumn" xml:space="preserve"><value>Type d'élément</value></data>
   <data name="SettingsWindow_Manufacturing_DefaultAllowanceColumn" xml:space="preserve"><value>Surcote de coupe par défaut [mm]</value></data>
@@ -738,8 +738,23 @@
   <data name="SettingsWindow_Manufacturing_MinimumAutomaticRafterSpacing" xml:space="preserve">
     <value>Espacement minimal des chevrons automatiques</value>
   </data>
+  <data name="SettingsWindow_Manufacturing_AutomaticRaftersSection" xml:space="preserve">
+    <value>Chevrons automatiques</value>
+  </data>
+  <data name="SettingsWindow_Manufacturing_MinimumAutomaticRafterLength" xml:space="preserve">
+    <value>Longueur minimale des chevrons automatiques</value>
+  </data>
+  <data name="SettingsWindow_Manufacturing_MinimumAutomaticRafterLengthHelp" xml:space="preserve">
+    <value>Les chevrons générés automatiquement plus courts que cette valeur ne sont pas créés.</value>
+  </data>
+  <data name="SettingsWindow_Manufacturing_LengthCalculationSection" xml:space="preserve">
+    <value>Calcul de la longueur de fabrication</value>
+  </data>
+  <data name="SettingsWindow_Manufacturing_AllowancesSection" xml:space="preserve">
+    <value>Surcotes de fabrication</value>
+  </data>
   <data name="Dialog_SettingsRafterSpacing" xml:space="preserve">
-    <value>Les deux espacements doivent être des nombres positifs et finis, et l’espacement par défaut ne doit pas être inférieur au minimum.</value>
+    <value>Les espacements et la longueur minimale doivent être des nombres positifs et finis, et l’espacement par défaut ne doit pas être inférieur au minimum.</value>
   </data>
   <data name="Command_AutomaticPurlin_ManualEditRestricted" xml:space="preserve">
     <value>\nLes pannes automatiques sont contrôlées par la disposition du toit et ne peuvent pas être modifiées actuellement avec AK_EDIT ou AK_ASSIGN.</value>

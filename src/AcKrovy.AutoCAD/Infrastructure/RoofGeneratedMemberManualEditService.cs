@@ -175,6 +175,15 @@ internal static class RoofGeneratedMemberManualEditService
                 if (recovered == RoofUnsupportedStretchRecoveryOutcome.Recovered)
                 {
 #if DEBUG
+                    WriteStructuralEditGuardDiag(
+                        document,
+                        transaction,
+                        owner,
+                        globalCommandName,
+                        stored.Data.EditState,
+                        modifiedIds,
+                        action: "restored",
+                        result: "locked-generated-members-only");
                     var timberAfter = RoofGeneratedTimberStore.FindByOwner(
                         document.Database,
                         transaction,
@@ -207,6 +216,12 @@ internal static class RoofGeneratedMemberManualEditService
                                         : "command-misclassified"));
                     }
 
+                    // BREAK clones inherit StructuralGenerated metadata; unsnapshot erase
+                    // removes them. Canonical GROUP sync drops any leftover membership.
+                    _ = RoofAssemblyGroupSyncService.TrySyncForOwner(
+                        document,
+                        transaction,
+                        ownerId);
                     transaction.Commit();
                     return unlocked
                         ? OwnerEditOutcome.UnsupportedRecovered
@@ -266,6 +281,24 @@ internal static class RoofGeneratedMemberManualEditService
                 return OwnerEditOutcome.Skipped;
             }
 
+            // Hip/Valley are derived StructuralGenerated members: never keep freeform
+            // geometry after an unlocked ordinary-member accept path.
+            _ = RoofUnsupportedStretchRecoveryService.TryRestoreStructuralHipValleyMembersOnly(
+                document.Database,
+                transaction,
+                ownerId,
+                document.Editor);
+#if DEBUG
+            WriteStructuralEditGuardDiag(
+                document,
+                transaction,
+                owner,
+                globalCommandName,
+                stored.Data.EditState,
+                modifiedIds,
+                action: "restored",
+                result: "structural-hip-valley-after-unlocked-accept");
+#endif
             RoofAttachedManualLifecycleService.RefreshModifiedAttachedManualRelatives(
                 document,
                 transaction,
@@ -470,6 +503,16 @@ internal static class RoofGeneratedMemberManualEditService
             var acceptedCount = 0;
             foreach (var timber in snapshot.Assembly.TimberLines)
             {
+                // Derived Hip/Valley never become Suppress overrides. They are restored
+                // after accept via TryRestoreStructuralHipValleyMembersOnly.
+                if (TryIsLockProtectedStructuralTimber(
+                        document.Database,
+                        transaction,
+                        timber.EntityHandle))
+                {
+                    continue;
+                }
+
                 if (TryIsLiveTimber(document.Database, timber.EntityHandle))
                 {
                     if (HasErasedOwnedAnnotation(document.Database, snapshot.Assembly, timber.SourceHandle) &&
@@ -685,6 +728,7 @@ internal static class RoofGeneratedMemberManualEditService
 
                 var key = RoofGeneratedMemberKey.From(generated.Data);
                 if (!TryCanonicalGeometry(
+                        document.Database,
                         roofGeometry,
                         generated.Data,
                         timberData.WidthMm,
@@ -933,7 +977,10 @@ internal static class RoofGeneratedMemberManualEditService
 
         var layoutResult = RoofRafterLayoutSolver.Solve(
             geometry,
-            new RafterLayoutParameters(recipe.MaximumSpacingMm, recipe.WidthMm));
+            AutoCadRoofRafterSpacingStore.CreateLayoutParameters(
+                database,
+                recipe.MaximumSpacingMm,
+                recipe.WidthMm));
         if (!layoutResult.IsValid || layoutResult.Layout is null)
         {
             return null;
@@ -2397,6 +2444,7 @@ internal static class RoofGeneratedMemberManualEditService
     }
 
     private static bool TryCanonicalGeometry(
+        Database database,
         IRoofGeometry geometry,
         RoofGeneratedTimberData generated,
         double rafterWidthMm,
@@ -2406,7 +2454,10 @@ internal static class RoofGeneratedMemberManualEditService
         canonical = default;
         var layout = RoofRafterLayoutSolver.Solve(
             geometry,
-            new RafterLayoutParameters(generated.RequestedMaximumSpacingMm, rafterWidthMm));
+            AutoCadRoofRafterSpacingStore.CreateLayoutParameters(
+                database,
+                generated.RequestedMaximumSpacingMm,
+                rafterWidthMm));
         if (!layout.IsValid || layout.Layout is null)
         {
             return false;
@@ -2496,6 +2547,59 @@ internal static class RoofGeneratedMemberManualEditService
     }
 
 #if DEBUG
+    private static void WriteStructuralEditGuardDiag(
+        Document document,
+        Transaction transaction,
+        Polyline owner,
+        string? globalCommandName,
+        RoofEditState editState,
+        IReadOnlyCollection<ObjectId> modifiedIds,
+        string action,
+        string result)
+    {
+        var ownerHandle = owner.Handle.ToString();
+        foreach (var id in RoofStructuralGeneratedStore.FindByOwner(
+                     document.Database,
+                     transaction,
+                     ownerHandle))
+        {
+            if (!modifiedIds.Contains(id) ||
+                !AutoCadObjectIdAccess.TryGetObject<Entity>(
+                    transaction,
+                    id,
+                    OpenMode.ForRead,
+                    out var entity,
+                    document.Database) ||
+                entity is null)
+            {
+                continue;
+            }
+
+            var structural = RoofStructuralGeneratedStore.Read(entity);
+            if (structural.Data is null ||
+                !RoofStructuralGeneratedLockRules.IsLockProtectedRole(
+                    structural.Data.StructuralRole))
+            {
+                continue;
+            }
+
+            var type = structural.Data.StructuralRole switch
+            {
+                RoofStructuralRole.Hip => "HipRafter",
+                RoofStructuralRole.Valley => "ValleyRafter",
+                _ => structural.Data.StructuralRole.ToString(),
+            };
+            document.Editor.WriteMessage(
+                $"\nROOF_STRUCT_EDIT_GUARD owner={ownerHandle}" +
+                $" handle={entity.Handle}" +
+                $" type={type}" +
+                $" command={LiveGeometryCommandRules.NormalizeCommandName(globalCommandName)}" +
+                $" editState={editState}" +
+                $" action={action}" +
+                $" result={result}");
+        }
+    }
+
     private static void WriteLockedGeneratedTamperDiag(
         Document document,
         Transaction transaction,
@@ -2718,6 +2822,45 @@ internal static class RoofGeneratedMemberManualEditService
 
             var id = database.GetObjectId(false, new Handle(handleValue), 0);
             return !id.IsNull && !id.IsErased;
+        }
+        catch (Autodesk.AutoCAD.Runtime.Exception)
+        {
+            return false;
+        }
+    }
+
+    private static bool TryIsLockProtectedStructuralTimber(
+        Database database,
+        Transaction transaction,
+        string handleText)
+    {
+        if (!long.TryParse(
+                handleText,
+                System.Globalization.NumberStyles.HexNumber,
+                System.Globalization.CultureInfo.InvariantCulture,
+                out var handleValue))
+        {
+            return false;
+        }
+
+        try
+        {
+            var id = database.GetObjectId(false, new Handle(handleValue), 0);
+            if (!AutoCadObjectIdAccess.TryGetObjectAllowErased<Entity>(
+                    transaction,
+                    id,
+                    OpenMode.ForRead,
+                    out var entity,
+                    database) ||
+                entity is null)
+            {
+                return false;
+            }
+
+            var structural = RoofStructuralGeneratedStore.Read(entity);
+            return structural.Data is not null &&
+                   RoofStructuralGeneratedLockRules.IsLockProtectedRole(
+                       structural.Data.StructuralRole);
         }
         catch (Autodesk.AutoCAD.Runtime.Exception)
         {
