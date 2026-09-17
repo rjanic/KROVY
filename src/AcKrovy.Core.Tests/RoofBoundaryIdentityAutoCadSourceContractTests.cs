@@ -44,16 +44,31 @@ public sealed class RoofBoundaryIdentityAutoCadSourceContractTests
     [Fact]
     public void Ensure_IsLazyCreateOnceAndMalformedDataIsNotOverwritten()
     {
-        var ensure = Member(Service, "public static RoofBoundaryIdentityEnsureResult EnsureBoundaryIdentity", "internal enum RoofBoundaryIdentityEnsureStatus");
+        var ensure = Member(Service, "public static RoofBoundaryIdentityEnsureResult EnsureBoundaryIdentity", "/// <summary>");
         var readIndex = ensure.IndexOf("RoofBoundaryIdentityStore.Read(source)", StringComparison.Ordinal);
         var existingIndex = ensure.IndexOf("RoofBoundaryIdentityEnsureResult.Existing", StringComparison.Ordinal);
         var invalidIndex = ensure.IndexOf("if (stored.Exists)", StringComparison.Ordinal);
-        var writeIndex = ensure.IndexOf("RoofBoundaryIdentityStore.Write", StringComparison.Ordinal);
+        var createHelper = ensure.IndexOf("CreateAndWriteForCurrentSource", StringComparison.Ordinal);
 
         Assert.True(readIndex >= 0 && existingIndex > readIndex);
-        Assert.True(invalidIndex > existingIndex && writeIndex > invalidIndex);
-        Assert.Contains("CreateSequential", ensure);
-        Assert.Contains("source.UpgradeOpen()", ensure);
+        Assert.True(invalidIndex > existingIndex && createHelper > invalidIndex);
+        Assert.Contains("CreateAndWriteForCurrentSource(source, transaction)", ensure);
+        Assert.DoesNotContain("CurrentRawWindingMismatch", ensure);
+    }
+
+    [Fact]
+    public void Rehome_RecreatesOnlyOnCurrentRawWindingMismatch_LeavesValidExistingUntouched()
+    {
+        Assert.Contains("RehomeForCurrentSource", Service);
+        var rehome = Member(
+            Service,
+            "public static RoofBoundaryIdentityEnsureResult RehomeForCurrentSource",
+            "private static RoofBoundaryIdentityEnsureResult CreateAndWriteForCurrentSource");
+        Assert.Contains("CurrentRawWindingMismatch", rehome);
+        Assert.Contains("RoofBoundaryIdentityEnsureResult.Existing", rehome);
+        Assert.Contains("CreateAndWriteForCurrentSource(source, transaction)", rehome);
+        // Fail-closed for other malformed Exists payloads — do not overwrite.
+        Assert.Contains("stored.Error != RoofBoundaryIdentityError.CurrentRawWindingMismatch", rehome);
     }
 
     [Fact]
@@ -77,6 +92,7 @@ public sealed class RoofBoundaryIdentityAutoCadSourceContractTests
                 .Where(path => !path.Contains("\\obj\\", StringComparison.OrdinalIgnoreCase))
                 .Select(File.ReadAllText));
         Assert.Equal(3, CountOccurrences(allProduction, "EnsureBoundaryIdentity("));
+        Assert.Equal(2, CountOccurrences(allProduction, "RehomeForCurrentSource("));
         Assert.Contains(
             "RoofBoundaryIdentityService.EnsureBoundaryIdentity",
             File.ReadAllText(Path.Combine(
@@ -93,6 +109,14 @@ public sealed class RoofBoundaryIdentityAutoCadSourceContractTests
                 "AcKrovy.AutoCAD",
                 "Infrastructure",
                 "RoofAutomaticPurlinMaterializationService.cs")));
+        Assert.Contains(
+            "RoofBoundaryIdentityService.RehomeForCurrentSource",
+            File.ReadAllText(Path.Combine(
+                RepositoryRoot(),
+                "src",
+                "AcKrovy.AutoCAD",
+                "Infrastructure",
+                "RoofWholeRoofCopyRebindService.cs")));
     }
 
     [Fact]

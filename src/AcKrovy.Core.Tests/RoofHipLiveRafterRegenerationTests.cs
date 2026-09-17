@@ -1,4 +1,6 @@
+using AcKrovy.Core.Models;
 using AcKrovy.Core.Models.Roofs;
+using AcKrovy.Core.Services;
 using AcKrovy.Core.Services.Roofs;
 using Xunit;
 
@@ -155,6 +157,90 @@ public sealed class RoofHipLiveRafterRegenerationTests
     }
 
     [Fact]
+    public void RoofEditHostRegression_RectanglePitch30To45RefreshesOrdinaryAndStructuralDesiredState()
+    {
+        var footprint = Rectangle(10000, 6000);
+        var at30 = SolveHip(footprint, 30d);
+        var at45 = SolveHip(footprint, 45d);
+        var drawingParameters = new RafterLayoutParameters(
+            MaximumSpacingMm: 900d,
+            RafterPlanWidthMm: 80d,
+            MinimumAutomaticLengthMm: 500d);
+
+        var ordinary30 = RoofRafterLayoutSolver.Solve(at30, drawingParameters).Layout!;
+        var ordinary45 = RoofRafterLayoutSolver.Solve(at45, drawingParameters).Layout!;
+        Assert.Equal(32, ordinary30.Rafters.Count);
+        Assert.NotEqual(ordinary30.Signature, ordinary45.Signature);
+        Assert.All(ordinary45.Rafters, rafter =>
+        {
+            Assert.Equal(45d, rafter.SlopeDegrees, 8);
+            Assert.True(RoofRafterLengthRules.MeetsMinimumTrueLength(
+                rafter.TrueLengthMm,
+                drawingParameters.MinimumAutomaticLengthMm));
+        });
+
+        var structural30 = CreateStructuralPlan(footprint, at30);
+        var structural45 = CreateStructuralPlan(footprint, at45);
+        Assert.Equal(4, structural30.Items.Count);
+        Assert.Equal(4, structural45.Items.Count);
+        Assert.All(structural45.Items, item =>
+            Assert.Equal(TimberElementType.HipRafter, item.ElementType));
+        Assert.DoesNotContain(
+            structural45.Items,
+            item => item.ElementType == TimberElementType.ValleyRafter);
+        Assert.Equal(
+            structural30.Items.Select(item => item.LogicalKey),
+            structural45.Items.Select(item => item.LogicalKey));
+        Assert.Equal(4, structural45.Items.Select(item => item.LogicalKey).Distinct().Count());
+
+        var oldHighZ = structural30.Items.Max(HighZ);
+        var newHighZ = structural45.Items.Max(HighZ);
+        Assert.Equal(1732.0508075688772d, oldHighZ, 8);
+        Assert.Equal(3000d, newHighZ, 8);
+        Assert.DoesNotContain(
+            structural45.Items.SelectMany(item =>
+                new[] { item.Segment3D.Start.Z, item.Segment3D.End.Z }),
+            z => Math.Abs(z - oldHighZ) <= 1e-6);
+
+        Assert.All(structural45.Items, item =>
+        {
+            Assert.Equal(LengthCalculationMode.PlanLength, item.TimberData.LengthCalculationMode);
+            Assert.Equal(item.True3DLengthMm, item.Segment3D.LengthMm, 8);
+            Assert.Equal(
+                item.Segment3D.InclinationDegreesAboveHorizontal,
+                item.TimberData.SlopeDegrees,
+                8);
+            Assert.Equal(
+                TimberSlopeDirectionRules.ResolveIsReversedForDownhillDisplay(item.Segment3D),
+                item.TimberData.IsSlopeDirectionReversed);
+        });
+    }
+
+    [Fact]
+    public void SamePitchEditProducesTheSameUniqueOrdinaryAndStructuralDesiredSets()
+    {
+        var footprint = Rectangle(10000, 6000);
+        var firstGeometry = SolveHip(footprint, 45d);
+        var secondGeometry = SolveHip(footprint, 45d);
+        var parameters = new RafterLayoutParameters(900d, 80d, 500d);
+        var firstOrdinary = RoofRafterLayoutSolver.Solve(firstGeometry, parameters).Layout!;
+        var secondOrdinary = RoofRafterLayoutSolver.Solve(secondGeometry, parameters).Layout!;
+        var firstStructural = CreateStructuralPlan(footprint, firstGeometry);
+        var secondStructural = CreateStructuralPlan(footprint, secondGeometry);
+
+        Assert.Equal(firstOrdinary.Signature, secondOrdinary.Signature);
+        Assert.Equal(
+            firstOrdinary.Rafters.Select(item => item.LogicalKey),
+            secondOrdinary.Rafters.Select(item => item.LogicalKey));
+        Assert.Equal(
+            firstStructural.Items.Select(DescribeStructural),
+            secondStructural.Items.Select(DescribeStructural));
+        Assert.Equal(
+            firstStructural.Items.Count,
+            firstStructural.Items.Select(item => item.LogicalKey).Distinct().Count());
+    }
+
+    [Fact]
     public void StationIdentityKeysRemainUniqueAcrossCountChangingResize()
     {
         var before = RoofRafterLayoutSolver.Solve(
@@ -189,6 +275,37 @@ public sealed class RoofHipLiveRafterRegenerationTests
         Assert.True(solved.IsValid, solved.Error.ToString());
         return Assert.IsType<HipRoofGeometry>(solved.Geometry);
     }
+
+    private static RoofAutomaticStructuralRafterPlanResult CreateStructuralPlan(
+        RoofPoint2D[] footprint,
+        HipRoofGeometry geometry)
+    {
+        var input = new RoofFootprintInput(footprint, IsClosed: true);
+        var normalized = RoofFootprintValidator.ValidateWithProvenance(input);
+        Assert.True(normalized.Validation.IsValid);
+        var identity = RoofBoundaryIdentityRules.CreateSequential(
+            normalized.EdgeProvenance.Count,
+            normalized.Validation.SourceOrientation).Identity!;
+        var provenance = RoofBoundaryIdentityProvenanceResolver.Resolve(input, identity);
+        var resolution = RoofStructuralEdgeIdentityResolver.Resolve(geometry, provenance);
+        Assert.True(resolution.IsValid, resolution.Error.ToString());
+        var plan = RoofAutomaticStructuralRafterPlanner.Create(resolution);
+        Assert.True(plan.IsValid, plan.Error.ToString());
+        return plan;
+    }
+
+    private static double HighZ(RoofAutomaticStructuralRafterPlanItem item) =>
+        Math.Max(item.Segment3D.Start.Z, item.Segment3D.End.Z);
+
+    private static string DescribeStructural(RoofAutomaticStructuralRafterPlanItem item) =>
+        string.Join(
+            "|",
+            item.LogicalKey,
+            item.ElementType,
+            item.Segment3D.Start,
+            item.Segment3D.End,
+            item.TimberData.SlopeDegrees.ToString("R"),
+            item.TimberData.IsSlopeDirectionReversed);
 
     private static RoofPoint2D[] Rectangle(double length, double width) =>
         [new(0, 0), new(length, 0), new(length, width), new(0, width)];

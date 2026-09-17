@@ -143,16 +143,16 @@ public sealed class ConcaveRoofTopologySolverTests
         var result = RoofTopologySolver.Solve(input, 30d);
         Assert.True(result.IsValid, result.Error.ToString());
         var topology = Assert.IsType<RoofTopology>(result.Topology);
-        Assert.Equal(2, topology.Edges.Count(edge => edge.Kind == RoofTopologyEdgeKind.Ridge));
-        Assert.Equal(6, topology.Edges.Count(edge => edge.Kind == RoofTopologyEdgeKind.Hip));
+        Assert.Equal(3, topology.Edges.Count(edge => edge.Kind == RoofTopologyEdgeKind.Ridge));
+        Assert.Equal(5, topology.Edges.Count(edge => edge.Kind == RoofTopologyEdgeKind.Hip));
         Assert.Single(topology.Edges, edge => edge.Kind == RoofTopologyEdgeKind.Valley);
 
         var corrected = Assert.Single(topology.Edges, edge =>
             edge.StartNodeIndex >= topology.BoundaryVertexCount &&
             edge.EndNodeIndex >= topology.BoundaryVertexCount &&
             edge.FaceIndices.SequenceEqual(new[] { 1, 4 }));
-        Assert.Equal(RoofTopologyEdgeKind.Hip, corrected.Kind);
-        Assert.Equal(4, corrected.OriginatingBoundaryVertexIndex);
+        Assert.Equal(RoofTopologyEdgeKind.Ridge, corrected.Kind);
+        Assert.Equal(2, corrected.OriginatingBoundaryVertexIndex);
         Assert.InRange(topology.Segment(corrected).LengthMm, 203.455d, 203.456d);
 
         Assert.Equal(topology.Edges.Count, topology.Edges.Select(edge =>

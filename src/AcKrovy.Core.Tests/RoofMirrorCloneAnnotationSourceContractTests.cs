@@ -49,27 +49,33 @@ public sealed class RoofMirrorCloneAnnotationSourceContractTests
         // The cleanup iterates the appended annotation ids and erases only those bound to the
         // source identity via the source-handle resolver. It MUST NOT keep/delete by midpoint
         // distance, bounding-box proximity, nearest entity, or visual location.
+        // ModelSpace scan is allowed only to detect living non-appended peers / sole survivors.
         var helper = Segment(Mirror, "private static void DeleteMirroredCloneAnnotations", "private static void RefreshClonePresentation");
         Assert.Contains("appendedAnnotationIds", helper);
         Assert.Contains("RoofOwnedAnnotationSourceResolver.TryResolveSourceHandle", helper);
         Assert.Contains("sourceIdentity", helper);
+        Assert.Contains("ShouldEraseAppendedAnnotationClone(true)", helper);
         Assert.DoesNotContain("sourceMid", helper);
         Assert.DoesNotContain("DistanceTo", helper);
         Assert.DoesNotContain("keepId", helper);
         Assert.DoesNotContain("GetAnnotationMidpoint", helper);
         Assert.DoesNotContain("midpoint", helper);
         Assert.DoesNotContain("GeometricExtents", helper);
-        Assert.DoesNotContain("modelSpace", helper);
     }
 
     [Fact]
-    public void Cleanup_TargetsAllAppendedClones_NotOnlyNearest()
+    public void Cleanup_TargetsAllTrueClones_KeepsSoleAppendedSurvivor()
     {
-        // A timber may own multiple annotations; ALL appended source-identity clones are
-        // erased (each mirrored annotation must not become authoritative), never "all but one".
+        // True mirrored clones (living non-appended peer same role) are erased.
+        // AutoCAD source MLeader recreate (sole appended survivor) must be kept —
+        // never "nearest of N" geometry selection.
         var helper = Segment(Mirror, "private static void DeleteMirroredCloneAnnotations", "private static void RefreshClonePresentation");
         Assert.Contains("foreach (var id in appendedAnnotationIds)", helper);
+        Assert.Contains("ShouldEraseAppendedAnnotationClone(true)", helper);
+        Assert.Contains("SelectSoleSurvivorKeepIdsForSource(", helper);
         Assert.Contains("writable.Erase()", helper);
+        Assert.DoesNotContain("DistanceTo", helper);
+        Assert.DoesNotContain("nearest", helper);
     }
 
     [Fact]

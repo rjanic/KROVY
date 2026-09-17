@@ -655,11 +655,11 @@ public sealed class MonopitchRafterStage2D4AClipboardTests
         Assert.True(classify >= 0 && gate > classify && attached > gate && generated > attached);
         Assert.Contains("_appendedRoofOwnerIds", Live);
         Assert.Contains("appendedRoofOwnerIds.Count > 0", refresh);
-        Assert.Contains("if (nativeCopy)", refresh);
+        Assert.Contains("if (nativeCopy || nativeMirror)", refresh);
         Assert.DoesNotContain("RoofWholeRoofCopyRebindService.Process", Member(
             refresh,
             "if (nativeCopy || clipboardDecision.ShouldProcessIndividualTimber)",
-            "// MIRROR:"));
+            "// MIRROR: member-only"));
     }
 
     [Fact]

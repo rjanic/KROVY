@@ -188,6 +188,66 @@ public sealed class RoofWholeRoofCopyIdentityRulesTests
     }
 
     [Fact]
+    public void IsCompleteAssemblyClone_HipAssemblyIncludesStructuralChildren()
+    {
+        Assert.True(RoofWholeRoofCopyIdentityRules.IsCompleteAssemblyClone(
+            46,
+            12,
+            0,
+            46,
+            12,
+            0));
+    }
+
+    [Fact]
+    public void IsCompleteAssemblyClone_PartialStructuralSet_ReturnsFalse()
+    {
+        Assert.False(RoofWholeRoofCopyIdentityRules.IsCompleteAssemblyClone(
+            46,
+            12,
+            0,
+            46,
+            8,
+            0));
+    }
+
+    [Fact]
+    public void IsCompleteAssemblyClone_StructuralOnlyRoof_IsACompleteAssembly()
+    {
+        Assert.True(RoofWholeRoofCopyIdentityRules.IsCompleteAssemblyClone(
+            0,
+            12,
+            0,
+            0,
+            12,
+            0));
+    }
+
+    [Fact]
+    public void IsCompleteAssemblyClone_NegativeStructuralCount_ReturnsFalse()
+    {
+        Assert.False(RoofWholeRoofCopyIdentityRules.IsCompleteAssemblyClone(
+            46,
+            -1,
+            0,
+            46,
+            12,
+            0));
+    }
+
+    [Fact]
+    public void IsCompleteAssemblyClone_HostHipMirrorParity_56Ordinary16Structural()
+    {
+        Assert.True(RoofWholeRoofCopyIdentityRules.IsCompleteAssemblyClone(
+            56,
+            16,
+            0,
+            56,
+            16,
+            0));
+    }
+
+    [Fact]
     public void ClassifyPairing_UniqueAmbiguousNone()
     {
         Assert.Equal(

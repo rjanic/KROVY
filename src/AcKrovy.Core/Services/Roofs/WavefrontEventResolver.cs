@@ -64,7 +64,15 @@ internal static class WavefrontEventResolver
                 positions[vertexRoots[pending.EdgeStart]], positions[vertexRoots[pending.EdgeEnd]])) return null;
         }
         var eventNodes = new Dictionary<int, int>();
-        foreach (var root in touched.OrderBy(k => positions[k].X).ThenBy(k => positions[k].Y))
+        // Order contacts by combinatorial wavefront identity only. Geometric
+        // OrderBy(X).ThenBy(Y) is not reflection-invariant and can attach convex
+        // vs reflex lineage to opposite folds under pure MIRROR.
+        foreach (var root in touched
+                     .OrderBy(k => members[k].Min(index => vertices[index].Id))
+                     .ThenBy(k => members[k].Length)
+                     .ThenBy(k => members[k].Min(index => vertices[index].PreviousSource))
+                     .ThenBy(k => members[k].Min(index => vertices[index].NextSource))
+                     .ThenBy(k => k))
         {
             eventNodes[root] = nodes.Count;
             nodes.Add(new(positions[root], time));
@@ -132,17 +140,24 @@ internal static class WavefrontEventResolver
                     WavefrontLineage.Internal);
                 if (vertex is not null)
                 {
-                    var terminalRoots = terminal.Select(pair =>
-                        pair.First.Start == root ? pair.First.End :
-                        pair.First.End == root ? pair.First.Start : -1).Where(candidate => candidate >= 0).Distinct();
+                    var terminalAtRoot = terminal
+                        .Where(pair => pair.First.Start == root || pair.First.End == root)
+                        .ToArray();
+                    var terminalRoots = terminalAtRoot.Select(pair =>
+                        pair.First.Start == root ? pair.First.End : pair.First.Start);
+                    var terminalSources = new HashSet<int>(
+                        terminalAtRoot.SelectMany(pair => new[] { pair.First.Source, pair.Second.Source }));
+                    var firstGenerationEvent = nodes.Count - eventNodes.Count == sources.Count;
                     var lineage = WavefrontLineage.ForSuccessor(
                         members[root].Select(index => vertices[index]),
                         terminalRoots.SelectMany(candidate => members[candidate]).Select(index => vertices[index]),
+                        terminalSources,
                         successorCounts[root],
                         incoming.Source,
                         outgoing.Source,
                         vertex.Reflex,
-                        vertex.Coplanar);
+                        vertex.Coplanar,
+                        firstGenerationEvent);
                     vertex = vertex with { Lineage = lineage };
                 }
             }

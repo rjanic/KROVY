@@ -373,7 +373,8 @@ internal static class RoofGeneratedRafterSetService
         RoofRafterGenerationRecipe recipe,
         TimberElementDefaultProfile defaultProfile,
         ElementLayerProfile layerProfile,
-        IReadOnlyDictionary<RoofGeneratedMemberKey, string>? reservedElementIds = null)
+        IReadOnlyDictionary<RoofGeneratedMemberKey, string>? reservedElementIds = null,
+        bool syncAssemblyGroup = true)
     {
         ArgumentNullException.ThrowIfNull(geometry);
         ArgumentNullException.ThrowIfNull(layout);
@@ -395,7 +396,8 @@ internal static class RoofGeneratedRafterSetService
             recipe,
             defaultProfile,
             layerProfile,
-            reservedElementIds).Created;
+            reservedElementIds,
+            syncAssemblyGroup: syncAssemblyGroup).Created;
     }
 
     private static MaterializationResult MaterializeCore(
@@ -410,7 +412,8 @@ internal static class RoofGeneratedRafterSetService
         TimberElementDefaultProfile defaultProfile,
         ElementLayerProfile layerProfile,
         IReadOnlyDictionary<RoofGeneratedMemberKey, string>? reservedElementIds,
-        RoofGeneratedMemberReplayPlan? preparedReplayPlan = null)
+        RoofGeneratedMemberReplayPlan? preparedReplayPlan = null,
+        bool syncAssemblyGroup = true)
     {
 
         var sourceElevation = RoofPolylineExtractor.GetSourceElevation(owner);
@@ -557,7 +560,8 @@ internal static class RoofGeneratedRafterSetService
                 database,
                 transaction,
                 created,
-                defaultProfile);
+                defaultProfile,
+                copySourcePreservation: !syncAssemblyGroup);
         }
         catch (TimberCreatedElementAnnotationPhaseException ex)
         {
@@ -593,6 +597,11 @@ internal static class RoofGeneratedRafterSetService
             throw new RoofRafterMaterializationPhaseException(phase, -1, ex);
         }
         var document = editor.Document;
+        if (!syncAssemblyGroup)
+        {
+            return new MaterializationResult(created, replayPlan);
+        }
+
 #if DEBUG
         RoofAssemblyGroupDiag.WriteMembershipSnapshot(
             editor,

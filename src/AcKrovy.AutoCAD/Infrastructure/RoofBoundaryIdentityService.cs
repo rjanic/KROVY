@@ -37,6 +37,58 @@ internal static class RoofBoundaryIdentityService
             return RoofBoundaryIdentityEnsureResult.Invalid(stored.Error);
         }
 
+        return CreateAndWriteForCurrentSource(source, transaction);
+    }
+
+    /// <summary>
+    /// Whole-roof MIRROR rebind: the mirrored owner polyline is authoritative and
+    /// carries a deep-cloned BoundaryIdentity whose RawWinding no longer matches.
+    /// Recreate identity from the CURRENT mirrored footprint using the same
+    /// CreateSequential path as first establish. Valid existing identity (COPY /
+    /// translation) is left untouched. Malformed non-winding payloads stay fail-closed.
+    /// Never mutates any other owner.
+    /// </summary>
+    public static RoofBoundaryIdentityEnsureResult RehomeForCurrentSource(
+        Database database,
+        Transaction transaction,
+        ObjectId sourceId)
+    {
+        ArgumentNullException.ThrowIfNull(database);
+        ArgumentNullException.ThrowIfNull(transaction);
+        if (!AutoCadObjectIdAccess.TryGetObject<Polyline>(
+                transaction,
+                sourceId,
+                OpenMode.ForRead,
+                out var source,
+                database) ||
+            source is null ||
+            RoofDefinitionStore.Read(source).Data is null)
+        {
+            return RoofBoundaryIdentityEnsureResult.Invalid(
+                RoofBoundaryIdentityError.NotAuthoritativeSource);
+        }
+
+        var stored = RoofBoundaryIdentityStore.Read(source);
+        if (stored.Data is not null)
+        {
+            // Already consistent with current winding — COPY / no-op.
+            return RoofBoundaryIdentityEnsureResult.Existing(stored.Data);
+        }
+
+        if (stored.Exists &&
+            stored.Error != RoofBoundaryIdentityError.CurrentRawWindingMismatch)
+        {
+            // Preserve Ensure fail-closed behavior for malformed payloads.
+            return RoofBoundaryIdentityEnsureResult.Invalid(stored.Error);
+        }
+
+        return CreateAndWriteForCurrentSource(source, transaction);
+    }
+
+    private static RoofBoundaryIdentityEnsureResult CreateAndWriteForCurrentSource(
+        Polyline source,
+        Transaction transaction)
+    {
         var normalized = RoofFootprintValidator.ValidateWithProvenance(
             RoofPolylineExtractor.Extract(source));
         if (!normalized.Validation.IsValid)

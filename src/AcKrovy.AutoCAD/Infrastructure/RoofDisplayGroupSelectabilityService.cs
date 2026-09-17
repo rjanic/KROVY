@@ -9,7 +9,22 @@ internal static class RoofDisplayGroupSelectabilityService
     public static bool ApplyForOwner(
         Database database,
         Transaction transaction,
-        ObjectId ownerId)
+        ObjectId ownerId) =>
+        ApplyForOwner(database, transaction, ownerId, repairMembership: true);
+
+    /// <param name="repairMembership">
+    /// When true (default), canonicalize full assembly membership. Whole-roof COPY/MIRROR
+    /// rebind must pass false: Rebuild already created a display-only group and the
+    /// immediately following TrySyncForOwner performs the single full EnsureGroup.
+    /// A second EnsureGroup in the same transaction can Append the same timber/annotation
+    /// ObjectIds again (AutoCAD Groups allow duplicate ObjectId slots), which persists as
+    /// 22 + 2×children after SAVE/REOPEN.
+    /// </param>
+    public static bool ApplyForOwner(
+        Database database,
+        Transaction transaction,
+        ObjectId ownerId,
+        bool repairMembership)
     {
         if (ownerId.IsNull ||
             !AutoCadObjectIdAccess.TryGetObject<Polyline>(
@@ -29,7 +44,7 @@ internal static class RoofDisplayGroupSelectabilityService
             transaction,
             ownerId,
             editState,
-            repairMembership: true);
+            repairMembership);
     }
 
     public static bool ReconcileAllRoofOwners(Database database, Transaction transaction)
@@ -58,6 +73,12 @@ internal static class RoofDisplayGroupSelectabilityService
 
 #if DEBUG
             RoofAssemblyGroupDiag.WriteMembershipSnapshot(
+                Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument?.Editor,
+                database,
+                transaction,
+                id,
+                "reopen-before-selectability");
+            RoofGroupPersistenceDiag.Write(
                 Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument?.Editor,
                 database,
                 transaction,

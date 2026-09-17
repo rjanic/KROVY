@@ -51,7 +51,7 @@ public sealed class RoofStructuralEdgeIdentityResolverTests
     [InlineData("U", 3, 6, 2)]
     [InlineData("T", 3, 6, 2)]
     [InlineData("stepped", 3, 7, 2)]
-    [InlineData("reflex-hexagon", 2, 6, 1)]
+    [InlineData("reflex-hexagon", 1, 7, 1)]
     [InlineData("host-291A", 2, 6, 1)]
     [InlineData("split-dumbbell", 4, 9, 4)]
     public void SupportedFixtures_HaveExpectedRoleCounts(
@@ -216,12 +216,12 @@ public sealed class RoofStructuralEdgeIdentityResolverTests
         var corrected = Assert.Single(solved.Resolution.Edges, edge =>
             edge.TopologyEdgeIndex == correctedTopologyEdge.index);
 
-        Assert.Equal(RoofTopologyEdgeKind.Hip, correctedTopologyEdge.edge.Kind);
-        Assert.Equal(4, correctedTopologyEdge.edge.OriginatingBoundaryVertexIndex);
+        Assert.Equal(RoofTopologyEdgeKind.Ridge, correctedTopologyEdge.edge.Kind);
+        Assert.Equal(2, correctedTopologyEdge.edge.OriginatingBoundaryVertexIndex);
         Assert.Equal(RoofStructuralRole.Hip, corrected.StructuralRole);
-        Assert.Equal(4, corrected.OriginatingBoundaryVertexIndex);
+        Assert.Equal(2, corrected.OriginatingBoundaryVertexIndex);
         Assert.Null(corrected.PhysicalBoundaryAnchorVertexIndex);
-        Assert.Null(corrected.PhysicalPathAnchorVertexIndex);
+        Assert.Equal(5, corrected.PhysicalPathAnchorVertexIndex);
         Assert.True(RoofPhysicalStructuralFold.TryClassify(
             topology, correctedTopologyEdge.edge, out var fold));
         Assert.Equal(RoofPhysicalStructuralFoldClass.ConvexHip, fold);

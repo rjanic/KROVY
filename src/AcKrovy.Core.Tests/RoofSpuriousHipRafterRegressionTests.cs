@@ -84,14 +84,14 @@ public sealed class RoofSpuriousHipRafterRegressionTests
         yield return ["canonical L", CanonicalL(), 2, 5, 5, 1, 5, 1];
         yield return ["canonical U", CanonicalU(), 3, 6, 6, 2, 6, 2];
         yield return ["canonical T", CanonicalT(), 3, 6, 6, 2, 6, 2];
-        yield return ["HOST 291A L", Host291AL(), 2, 6, 5, 1, 6, 1];
+        yield return ["HOST 291A L", Host291AL(), 3, 5, 5, 1, 6, 1];
         yield return ["actual HOST 291A L", ActualHost291AL(), 3, 5, 5, 1, 6, 1];
         yield return ["asymmetric U", AsymmetricU(), 4, 7, 6, 2, 8, 2];
         yield return ["mirrored asymmetric U", MirrorX(AsymmetricU()), 4, 7, 6, 2, 8, 2];
         yield return ["skewed L continuation", SkewedLContinuation(), 2, 6, 5, 1, 6, 1];
-        yield return ["skewed U continuation", SkewedUContinuation(), 4, 7, 6, 2, 7, 2];
+        yield return ["skewed U continuation", SkewedUContinuation(), 4, 7, 6, 2, 8, 2];
         yield return ["mirrored skewed U continuation", MirrorX(SkewedUContinuation()), 4, 7, 6, 2, 8, 2];
-        yield return ["reflex hexagon", ReflexHexagon(), 2, 6, 5, 1, 6, 1];
+        yield return ["reflex hexagon", ReflexHexagon(), 2, 6, 5, 1, 7, 1];
         yield return ["split dumbbell", SplitDumbbell(), 4, 9, 8, 4, 9, 4];
         yield return ["concave quadrilateral", ConcaveQuadrilateral(), 0, 4, 3, 1, 4, 1];
     }
@@ -102,14 +102,14 @@ public sealed class RoofSpuriousHipRafterRegressionTests
         var pipeline = CreatePipeline(Host291AL());
         var topology = pipeline.Geometry.Topology;
         var candidate = Assert.Single(topology.Edges.Select((edge, index) => (edge, index)), item =>
-            item.edge.Kind == RoofTopologyEdgeKind.Hip &&
             item.edge.StartNodeIndex >= topology.BoundaryVertexCount &&
-            item.edge.EndNodeIndex >= topology.BoundaryVertexCount);
+            item.edge.EndNodeIndex >= topology.BoundaryVertexCount &&
+            item.edge.FaceIndices.SequenceEqual(new[] { 1, 4 }));
         var resolved = Assert.Single(pipeline.Resolution.Edges, edge =>
             edge.TopologyEdgeIndex == candidate.index);
 
-        Assert.Equal(new[] { 1, 4 }, candidate.edge.FaceIndices);
-        Assert.Equal(4, candidate.edge.OriginatingBoundaryVertexIndex);
+        Assert.Equal(RoofTopologyEdgeKind.Ridge, candidate.edge.Kind);
+        Assert.Equal(2, candidate.edge.OriginatingBoundaryVertexIndex);
         AssertPoint(
             new RoofPoint3D(50398.777291499995, 17587.6826095, 1415.0645118431564),
             topology.Nodes[candidate.edge.StartNodeIndex]);
@@ -118,9 +118,9 @@ public sealed class RoofSpuriousHipRafterRegressionTests
             topology.Nodes[candidate.edge.EndNodeIndex]);
         Assert.Equal(RoofStructuralRole.Hip, resolved.StructuralRole);
         Assert.Equal("Hip|2|5", resolved.StructuralIdentity.ToString());
-        Assert.Equal(4, resolved.OriginatingBoundaryVertexIndex);
+        Assert.Equal(2, resolved.OriginatingBoundaryVertexIndex);
         Assert.Null(resolved.PhysicalBoundaryAnchorVertexIndex);
-        Assert.Null(resolved.PhysicalPathAnchorVertexIndex);
+        Assert.Equal(5, resolved.PhysicalPathAnchorVertexIndex);
         Assert.True(RoofPhysicalStructuralFold.TryClassify(
             topology, candidate.edge, out var fold));
         Assert.Equal(RoofPhysicalStructuralFoldClass.ConvexHip, fold);
@@ -181,15 +181,15 @@ public sealed class RoofSpuriousHipRafterRegressionTests
             !edge.HasPhysicalPathAnchor &&
             originalTopology.Edges[edge.TopologyEdgeIndex].Kind == RoofTopologyEdgeKind.Hip);
         var originalEdge = originalTopology.Edges[originalCandidate.TopologyEdgeIndex];
-        Assert.Equal(new[] { 4, 7 }, originalEdge.FaceIndices);
-        Assert.Equal(7, originalCandidate.OriginatingBoundaryVertexIndex);
-        Assert.Equal("Hip|5|8", originalCandidate.StructuralIdentity.ToString());
+        Assert.Equal(new[] { 1, 4 }, originalEdge.FaceIndices);
+        Assert.Equal(2, originalCandidate.OriginatingBoundaryVertexIndex);
+        Assert.Equal("Hip|2|5", originalCandidate.StructuralIdentity.ToString());
         Assert.True(originalCandidate.IsAutomaticStructuralTimberEligible);
         AssertPoint(
-            new RoofPoint3D(1250, 2750, 721.6878364870322),
+            new RoofPoint3D(10000, 2000, 1154.7005383792514),
             originalCandidate.Segment3D.Start);
         AssertPoint(
-            new RoofPoint3D(2000, 2000, 1154.7005383792514),
+            new RoofPoint3D(10250, 2250, 1010.362971081845),
             originalCandidate.Segment3D.End);
     }
 

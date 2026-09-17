@@ -8,8 +8,9 @@ namespace AcKrovy.Core.Tests;
 /// edit workflow, the shared GableRoofGeometryWindow/ViewModel are reused with a
 /// seed-from-existing-geometry path, the read-only phase (open/preview/cancel)
 /// never writes, and Apply replays the canonical rebuild pipeline (definition
-/// rebase, display rebuild, generated-set replacement, anchored AttachedManual
-/// replay, indicator/selectability/group sync) without the create conflict path.
+/// rebase, display rebuild, ordinary/structural generated-set reconciliation,
+/// anchored AttachedManual replay, indicator/selectability/group sync and final
+/// draw-order restoration) without the create conflict path.
 /// </summary>
 public sealed class RoofEditCommandSourceContractTests
 {
@@ -222,14 +223,79 @@ public sealed class RoofEditCommandSourceContractTests
         Assert.Contains("RoofDefinitionPersistence.UpdateGeometry(", apply);
         Assert.Contains("RoofDefinitionStore.Write(owner, transaction, data)", apply);
         Assert.Contains("RoofDisplayService.Rebuild(", apply);
+        Assert.Contains("RoofGeneratedTimberStore.FindByOwner(", apply);
+        Assert.Contains("RoofStructuralGeneratedStore.FindByOwner(", apply);
         Assert.Contains("RoofGeneratedRafterSetService.TryReplaceForSupportedResize(", apply);
         Assert.Contains("rebuildReason: \"roof-edit\"", apply);
         Assert.DoesNotContain("restored.Geometry is not HipRoofGeometry", apply);
+        Assert.Contains(
+            "RoofAutomaticStructuralRafterMaterializationService.MaterializeInTransaction(",
+            apply);
+        Assert.Contains("hadGeneratedRafterSystem", apply);
+        Assert.Contains("if (!structural.IsSuccess)", apply);
         Assert.Contains("RoofAssemblyGroupSyncService.TrySyncForOwner(", apply);
+        Assert.Contains("RoofDisplayService.EnsureAllDisplayBehindTimber(", apply);
         Assert.Equal(1, Count(apply, "RoofDisplayService.Rebuild("));
         Assert.Equal(1, Count(apply, "RoofGeneratedRafterSetService.TryReplaceForSupportedResize("));
+        Assert.Equal(
+            1,
+            Count(
+                apply,
+                "RoofAutomaticStructuralRafterMaterializationService.MaterializeInTransaction("));
         Assert.Equal(1, Count(apply, "RoofAssemblyGroupSyncService.TrySyncForOwner("));
+        Assert.Equal(1, Count(apply, "RoofDisplayService.EnsureAllDisplayBehindTimber("));
         Assert.Equal(1, Count(apply, "transaction.Commit();"));
+
+        var ordinaryIndex = apply.IndexOf(
+            "RoofGeneratedRafterSetService.TryReplaceForSupportedResize(",
+            StringComparison.Ordinal);
+        var structuralIndex = apply.IndexOf(
+            "RoofAutomaticStructuralRafterMaterializationService.MaterializeInTransaction(",
+            StringComparison.Ordinal);
+        var groupIndex = apply.IndexOf(
+            "RoofAssemblyGroupSyncService.TrySyncForOwner(",
+            StringComparison.Ordinal);
+        var drawOrderIndex = apply.IndexOf(
+            "RoofDisplayService.EnsureAllDisplayBehindTimber(",
+            StringComparison.Ordinal);
+        var commitIndex = apply.IndexOf("transaction.Commit();", StringComparison.Ordinal);
+        Assert.True(ordinaryIndex >= 0);
+        Assert.True(structuralIndex > ordinaryIndex);
+        Assert.True(groupIndex > structuralIndex);
+        Assert.True(drawOrderIndex > groupIndex);
+        Assert.True(commitIndex > drawOrderIndex);
+    }
+
+    [Fact]
+    public void GeneratedRefreshIsExistingSystemOnlyAndAnyFailureRollsBackApply()
+    {
+        var apply = Segment(
+            EditWorkflow,
+            "private static RoofGeneratedRafterSetService.ReplacementOutcome? TryApply(",
+            "private static string GetSoftReplacementMessage(");
+
+        Assert.Contains("existingOrdinaryGeneratedCount", apply);
+        Assert.Contains("existingStructuralGeneratedCount", apply);
+        Assert.Contains(
+            "hadGeneratedRafterSystem = existingOrdinaryGeneratedCount > 0 ||",
+            apply);
+        Assert.Contains("geometryChanged &&", apply);
+        Assert.Contains("existingOrdinaryGeneratedCount > 0 &&", apply);
+        Assert.Contains(
+            "outcome != RoofGeneratedRafterSetService.ReplacementOutcome.Replaced",
+            apply);
+        Assert.Contains(
+            "hadGeneratedRafterSystem &&\n                restored.Geometry is HipRoofGeometry",
+            apply.Replace("\r\n", "\n", StringComparison.Ordinal));
+
+        var ordinaryFailure = apply.IndexOf(
+            "outcome != RoofGeneratedRafterSetService.ReplacementOutcome.Replaced",
+            StringComparison.Ordinal);
+        var structuralFailure = apply.IndexOf("if (!structural.IsSuccess)", StringComparison.Ordinal);
+        var commit = apply.IndexOf("transaction.Commit();", StringComparison.Ordinal);
+        Assert.True(ordinaryFailure >= 0 && ordinaryFailure < commit);
+        Assert.True(structuralFailure >= 0 && structuralFailure < commit);
+        Assert.Contains("return null;", apply[ordinaryFailure..commit]);
     }
 
     [Fact]

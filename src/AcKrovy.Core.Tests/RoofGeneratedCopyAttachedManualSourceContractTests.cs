@@ -67,7 +67,10 @@ public sealed class RoofGeneratedCopyAttachedManualSourceContractTests
     [Fact]
     public void PostCopyVerify_RunsBeforeCommit()
     {
-        var process = Segment(Rehydration, "if (wrote)", "catch (System.Exception");
+        var process = Segment(
+            Rehydration,
+            "if (wrote || hasWholeRoofCopyExpectations)",
+            "catch (System.Exception");
         var verifyIndex = process.IndexOf("VerifyPostCopyInvariants", StringComparison.Ordinal);
         var commitIndex = process.IndexOf("transaction.Commit();", StringComparison.Ordinal);
         Assert.True(verifyIndex >= 0 && commitIndex > verifyIndex);

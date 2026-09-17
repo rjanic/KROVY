@@ -88,7 +88,11 @@ internal static class RoofGeneratedRafterCopyOwnershipRehydrationService
 
                 var observations = CollectObservations(document.Database, transaction);
 
-                if (owners.Count == 0 || observations.Count == 0)
+                var hasWholeRoofCopyExpectations =
+                    RoofGeneratedCopyPreCommandSnapshotService.HasWholeRoofCopyExpectations();
+
+                if (owners.Count == 0 ||
+                    (observations.Count == 0 && !hasWholeRoofCopyExpectations))
 
                 {
 
@@ -357,7 +361,7 @@ internal static class RoofGeneratedRafterCopyOwnershipRehydrationService
 
 
 
-                if (wrote)
+                if (wrote || hasWholeRoofCopyExpectations)
 
                 {
 
@@ -592,6 +596,18 @@ internal static class RoofGeneratedRafterCopyOwnershipRehydrationService
 
 
             var generated = RoofGeneratedTimberStore.Read(line);
+
+            if (RoofGeneratedCopyPreCommandSnapshotService.IsConsumedWholeRoofClone(
+                    line.Handle.ToString()))
+
+            {
+
+                // Whole-roof candidates are all-or-nothing. When that branch rolls
+                // back, inherited clones must not be reassociated piecemeal here.
+
+                continue;
+
+            }
 
             if (generated.Data is null ||
 
@@ -1054,9 +1070,26 @@ internal static class RoofGeneratedRafterCopyOwnershipRehydrationService
 
 
             var unique = RoofGeneratedTimberOwnershipRules.HasUniqueMemberStations(members);
-            var preKeysByOwner = RoofGeneratedCopyPreCommandSnapshotService.GetPreCommandLogicalKeysByOwner();
-            preKeysByOwner.TryGetValue(owner.OwnerReference, out var expectedKeys);
-            expectedKeys ??= Array.Empty<string>();
+            IReadOnlyCollection<string> expectedKeys;
+            bool wholeCopyRebindSucceeded;
+            string wholeCopyRebind;
+            if (RoofGeneratedCopyPreCommandSnapshotService.TryGetWholeRoofCopyExpectedLogicalKeys(
+                    owner.OwnerReference,
+                    out var wholeRoofExpectedKeys,
+                    out wholeCopyRebindSucceeded))
+            {
+                expectedKeys = wholeRoofExpectedKeys;
+                wholeCopyRebind = wholeCopyRebindSucceeded ? "ok" : "fail";
+            }
+            else
+            {
+                var preKeysByOwner =
+                    RoofGeneratedCopyPreCommandSnapshotService.GetPreCommandLogicalKeysByOwner();
+                preKeysByOwner.TryGetValue(owner.OwnerReference, out var preCommandExpectedKeys);
+                expectedKeys = preCommandExpectedKeys ?? Array.Empty<string>();
+                wholeCopyRebindSucceeded = true;
+                wholeCopyRebind = "not-applicable";
+            }
             var actualKeys = members
                 .Select(member => RoofGeneratedRafterCopyDetachRules.FormatLogicalKey(
                     member.RoofFace,
@@ -1083,7 +1116,14 @@ internal static class RoofGeneratedRafterCopyOwnershipRehydrationService
                     .Select(id => id.Handle.ToString())),
                 missing.Length == 0 ? "none" : string.Join("|", missing),
                 duplicate.Length == 0 ? "none" : string.Join("|", duplicate),
-                unique && missing.Length == 0 && duplicate.Length == 0 ? "ok" : "fail");
+                wholeCopyRebind,
+                wholeCopyRebindSucceeded &&
+                expectedKeys.Count == actualKeys.Count &&
+                unique &&
+                missing.Length == 0 &&
+                duplicate.Length == 0
+                    ? "ok"
+                    : "fail");
         }
 
 

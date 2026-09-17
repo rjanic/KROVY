@@ -14,7 +14,8 @@ internal static class TimberCreatedElementAnnotationService
         Database database,
         Transaction transaction,
         IReadOnlyDictionary<ObjectId, TimberElementData> createdElements,
-        TimberElementDefaultProfile defaultProfile)
+        TimberElementDefaultProfile defaultProfile,
+        bool copySourcePreservation = false)
     {
         ArgumentNullException.ThrowIfNull(database);
         ArgumentNullException.ThrowIfNull(transaction);
@@ -53,7 +54,8 @@ internal static class TimberCreatedElementAnnotationService
                     sourceEntity,
                     data,
                     presentationBatchContext,
-                    roundingStepMm: roundingStepMm);
+                    roundingStepMm: roundingStepMm,
+                    copySourcePreservation: copySourcePreservation);
             }
             catch (Exception ex) when (ex is not TimberCreatedElementAnnotationPhaseException)
             {

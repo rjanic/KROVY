@@ -153,6 +153,24 @@ public sealed class RoofAssemblyGroupMembershipRulesTests
         Assert.True(RoofAssemblyGroupMembershipRules.IsCanonicalMembership(actual, expected));
     }
 
+    [Fact]
+    public void DisplayOnlyPartialGroup_ExpandsExactlyToExpectedWithoutDroppingOwner()
+    {
+        var expected = new HashSet<string>(
+            ["Owner", "D0", "D1", "G0", "S0", "A0"],
+            StringComparer.Ordinal);
+        var actual = new List<string> { "Owner", "D0", "D1" };
+
+        Assert.False(RoofAssemblyGroupMembershipRules.IsCanonicalMembership(actual, expected));
+        var plan = RoofAssemblyGroupMembershipRules.PlanCanonicalization(actual, expected);
+        Assert.Empty(plan.RemoveOnce);
+        Assert.Equal(["A0", "G0", "S0"], plan.AppendOnce.OrderBy(id => id, StringComparer.Ordinal));
+
+        actual.AddRange(plan.AppendOnce);
+        Assert.True(RoofAssemblyGroupMembershipRules.IsCanonicalMembership(actual, expected));
+        Assert.Equal(1, actual.Count(id => id == "Owner"));
+    }
+
     private static void ApplyCanonicalization<T>(
         List<T> actual,
         IReadOnlyCollection<T> expected)

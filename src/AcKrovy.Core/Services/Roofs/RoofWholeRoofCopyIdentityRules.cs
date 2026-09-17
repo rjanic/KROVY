@@ -29,6 +29,10 @@ public static class RoofWholeRoofCopyIdentityRules
     /// legitimately differ for a copied Polyline (its CAD handle, absolute WCS
     /// footprint vertices) are not part of the decoded payload, so the comparison is
     /// translation-independent by construction.
+    /// A same-DWG MIRROR may persist a pure winding reversal on
+    /// <see cref="RoofRigidFootprintDescriptor.SourceOrientation"/> (edge lengths
+    /// unchanged). Live-resize rewrite of the mirrored owner also produces that
+    /// flip; treat it as equivalent for whole-roof pairing only.
     /// </summary>
     public static bool DefinitionsEquivalent(
         RoofDefinitionData? left,
@@ -51,12 +55,55 @@ public static class RoofWholeRoofCopyIdentityRules
             left.FootprintSignature != right.FootprintSignature ||
             left.RidgeEdgeFamily != right.RidgeEdgeFamily ||
             left.EditState != right.EditState ||
-            !Equals(left.RigidFootprint, right.RigidFootprint))
+            !RigidFootprintsEquivalent(left.RigidFootprint, right.RigidFootprint))
         {
             return false;
         }
 
         return left.Overrides.SequenceEqual(right.Overrides);
+    }
+
+    /// <summary>
+    /// Exact descriptor equality, or a pure orientation/winding flip with equal
+    /// Edge01/Edge12 length families (MIRROR / mirrored live-resize rewrite).
+    /// </summary>
+    public static bool RigidFootprintsEquivalent(
+        RoofRigidFootprintDescriptor? left,
+        RoofRigidFootprintDescriptor? right)
+    {
+        if (Equals(left, right))
+        {
+            return true;
+        }
+
+        return IsOrientationFlippedRigid(left, right);
+    }
+
+    private static bool IsOrientationFlippedRigid(
+        RoofRigidFootprintDescriptor? left,
+        RoofRigidFootprintDescriptor? right)
+    {
+        if (left is null || right is null)
+        {
+            return false;
+        }
+
+        if (left.VertexCount != right.VertexCount ||
+            left.SourceOrientation == right.SourceOrientation ||
+            left.SourceOrientation == RoofPolygonOrientation.Undefined ||
+            right.SourceOrientation == RoofPolygonOrientation.Undefined)
+        {
+            return false;
+        }
+
+        return Math.Abs(left.Edge01LengthMm - right.Edge01LengthMm) <=
+                   SimpleGableRoofGeometryTolerance.LengthTolerance(
+                       left.Edge01LengthMm,
+                       right.Edge01LengthMm) &&
+               Math.Abs(left.Edge12LengthMm - right.Edge12LengthMm) <=
+                   SimpleGableRoofGeometryTolerance.LengthTolerance(
+                       left.Edge12LengthMm,
+                       right.Edge12LengthMm);
     }
 
     /// <summary>
@@ -69,22 +116,47 @@ public static class RoofWholeRoofCopyIdentityRules
         int preCommandGeneratedCount,
         int preCommandAttachedManualCount,
         int appendedGeneratedCount,
+        int appendedAttachedManualCount) =>
+        IsCompleteAssemblyClone(
+            preCommandGeneratedCount,
+            0,
+            preCommandAttachedManualCount,
+            appendedGeneratedCount,
+            0,
+            appendedAttachedManualCount);
+
+    /// <summary>
+    /// Completeness including independently persisted structural Hip/Valley members.
+    /// Every physical child category must match exactly; otherwise the selection is a
+    /// partial assembly and must retain the existing per-member COPY semantics.
+    /// </summary>
+    public static bool IsCompleteAssemblyClone(
+        int preCommandGeneratedCount,
+        int preCommandStructuralGeneratedCount,
+        int preCommandAttachedManualCount,
+        int appendedGeneratedCount,
+        int appendedStructuralGeneratedCount,
         int appendedAttachedManualCount)
     {
         if (preCommandGeneratedCount < 0 ||
+            preCommandStructuralGeneratedCount < 0 ||
             preCommandAttachedManualCount < 0 ||
             appendedGeneratedCount < 0 ||
+            appendedStructuralGeneratedCount < 0 ||
             appendedAttachedManualCount < 0)
         {
             return false;
         }
 
-        if (preCommandGeneratedCount + preCommandAttachedManualCount == 0)
+        if (preCommandGeneratedCount +
+            preCommandStructuralGeneratedCount +
+            preCommandAttachedManualCount == 0)
         {
             return false;
         }
 
         return preCommandGeneratedCount == appendedGeneratedCount &&
+               preCommandStructuralGeneratedCount == appendedStructuralGeneratedCount &&
                preCommandAttachedManualCount == appendedAttachedManualCount;
     }
 

@@ -133,6 +133,7 @@ internal static class RoofGeneratedCopyLifecycleDiag
         string attachedManualHandles,
         string missingKeys,
         string duplicateKeys,
+        string wholeCopyRebind,
         string result)
     {
         if (editor is null)
@@ -149,6 +150,7 @@ internal static class RoofGeneratedCopyLifecycleDiag
             $" attachedManual={Token(attachedManualHandles)}" +
             $" missingKeys={Token(missingKeys)}" +
             $" duplicateKeys={Token(duplicateKeys)}" +
+            $" wholeCopyRebind={Token(wholeCopyRebind)}" +
             $" result={Token(result)}";
         WriteLine(editor, line);
     }
@@ -170,8 +172,10 @@ internal static class RoofGeneratedCopyLifecycleDiag
         string? oldOwner,
         string? newOwner,
         int generatedClones,
+        int structuralClones,
         int attachedManualClones,
-        string result)
+        string result,
+        bool isMirror = false)
     {
         if (editor is null)
         {
@@ -179,10 +183,11 @@ internal static class RoofGeneratedCopyLifecycleDiag
         }
 
         var line =
-            "ROOF_WHOLE_COPY_DETECT" +
+            (isMirror ? "ROOF_WHOLE_MIRROR_DETECT" : "ROOF_WHOLE_COPY_DETECT") +
             $" oldOwner={Token(oldOwner)}" +
             $" newOwner={Token(newOwner)}" +
             $" generatedClones={generatedClones.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
+            $" structuralClones={structuralClones.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
             $" attachedManualClones={attachedManualClones.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
             $" result={Token(result)}";
         WriteLine(editor, line);
@@ -193,10 +198,12 @@ internal static class RoofGeneratedCopyLifecycleDiag
         string? oldOwner,
         string? newOwner,
         int generatedRebuilt,
+        int structuralRebuilt,
         int attachedManualRebound,
         int annotationsRebuilt,
         string? stage,
-        string result)
+        string result,
+        bool isMirror = false)
     {
         if (editor is null)
         {
@@ -204,14 +211,50 @@ internal static class RoofGeneratedCopyLifecycleDiag
         }
 
         var line =
-            "ROOF_WHOLE_COPY_REBIND" +
+            (isMirror ? "ROOF_WHOLE_MIRROR_REBIND" : "ROOF_WHOLE_COPY_REBIND") +
             $" oldOwner={Token(oldOwner)}" +
             $" newOwner={Token(newOwner)}" +
             $" generatedRebuilt={generatedRebuilt.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
+            $" structuralRebuilt={structuralRebuilt.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
             $" attachedManualRebound={attachedManualRebound.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
             $" annotationsRebuilt={annotationsRebuilt.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
             $" stage={Token(stage)}" +
             $" result={Token(result)}";
+        WriteLine(editor, line);
+    }
+
+    public static void WriteWholeMirrorStage(
+        Editor? editor,
+        string stage,
+        string? oldOwner,
+        string? newOwner,
+        int generatedExpected,
+        int generatedClones,
+        int structuralExpected,
+        int structuralClones,
+        int attachedExpected,
+        int attachedClones,
+        string result,
+        string reason)
+    {
+        if (editor is null)
+        {
+            return;
+        }
+
+        var line =
+            "ROOF_WHOLE_MIRROR_STAGE" +
+            $" stage={Token(stage)}" +
+            $" oldOwner={Token(oldOwner)}" +
+            $" newOwner={Token(newOwner)}" +
+            $" generatedExpected={generatedExpected.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
+            $" generatedClones={generatedClones.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
+            $" structuralExpected={structuralExpected.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
+            $" structuralClones={structuralClones.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
+            $" attachedExpected={attachedExpected.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
+            $" attachedClones={attachedClones.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
+            $" result={Token(result)}" +
+            $" reason={Token(reason)}";
         WriteLine(editor, line);
     }
 

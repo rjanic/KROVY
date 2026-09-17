@@ -97,7 +97,8 @@ internal static class RoofAutomaticStructuralRafterMaterializationService
         RoofFootprintInput sourceInput,
         HipRoofGeometry hipGeometry,
         TimberElementDefaultProfile defaultProfile,
-        AcKrovy.Cad.Abstractions.Layers.ElementLayerProfile layerProfile)
+        AcKrovy.Cad.Abstractions.Layers.ElementLayerProfile layerProfile,
+        bool syncAssemblyGroup = true)
     {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(transaction);
@@ -163,7 +164,8 @@ internal static class RoofAutomaticStructuralRafterMaterializationService
             sourceElevation,
             plan.Items,
             defaultProfile,
-            layerProfile);
+            layerProfile,
+            syncAssemblyGroup);
     }
 
     private static RoofAutomaticStructuralRafterMaterializationResult Reconcile(
@@ -174,7 +176,8 @@ internal static class RoofAutomaticStructuralRafterMaterializationService
         double sourceElevation,
         IReadOnlyList<RoofAutomaticStructuralRafterPlanItem> desired,
         TimberElementDefaultProfile defaultProfile,
-        AcKrovy.Cad.Abstractions.Layers.ElementLayerProfile layerProfile)
+        AcKrovy.Cad.Abstractions.Layers.ElementLayerProfile layerProfile,
+        bool syncAssemblyGroup = true)
     {
         var database = document.Database;
         var metadataStore = new AutoCadTimberElementMetadataStore(transaction);
@@ -442,25 +445,38 @@ internal static class RoofAutomaticStructuralRafterMaterializationService
 
         // Annotate every surviving desired structural timber (created and existing).
         // EnsureForCreatedElements upserts by SourceHandle and is safe for both.
+        // Whole-roof rebind (syncAssemblyGroup=false) preserves ElementId matching so
+        // new-owner upsert cannot reclaim the still-living original owner's labels.
         TimberCreatedElementAnnotationService.EnsureForCreatedElements(
             database,
             transaction,
             annotationTargets,
-            defaultProfile);
+            defaultProfile,
+            copySourcePreservation: !syncAssemblyGroup);
 
-        if (!RoofAssemblyGroupSyncService.TrySyncForOwner(
-                document,
-                transaction,
-                owner.ObjectId) ||
-            !RoofDisplayService.TryCollectCurrentStructuralDisplayChildIds(
+        var groupCanonical = true;
+        if (syncAssemblyGroup)
+        {
+            if (!RoofAssemblyGroupSyncService.TrySyncForOwner(
+                    document,
+                    transaction,
+                    owner.ObjectId) ||
+                !RoofDisplayService.TryCollectCurrentStructuralDisplayChildIds(
+                    database,
+                    transaction,
+                    owner,
+                    out var displayIds))
+            {
+                return RoofAutomaticStructuralRafterMaterializationResult.Failure(
+                    "group-sync-failed",
+                    ownerReference);
+            }
+
+            groupCanonical = RoofDisplayGroupService.Inspect(
                 database,
                 transaction,
-                owner,
-                out var displayIds))
-        {
-            return RoofAutomaticStructuralRafterMaterializationResult.Failure(
-                "group-sync-failed",
-                ownerReference);
+                owner.ObjectId,
+                displayIds).IsCurrent;
         }
 
         var actualIds = RoofStructuralGeneratedStore.FindByOwner(
@@ -477,11 +493,6 @@ internal static class RoofAutomaticStructuralRafterMaterializationService
         var duplicates = actualKeys.Length - actualKeys.Distinct().Count();
         var actualKeySet = actualKeys.ToHashSet();
         var missing = desired.Count(item => !actualKeySet.Contains(item.LogicalKey));
-        var groupCanonical = RoofDisplayGroupService.Inspect(
-            database,
-            transaction,
-            owner.ObjectId,
-            displayIds).IsCurrent;
         var success = actualIds.Count == desired.Count &&
             duplicates == 0 &&
             missing == 0 &&

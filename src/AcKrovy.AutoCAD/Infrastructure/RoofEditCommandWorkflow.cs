@@ -329,9 +329,9 @@ internal static class RoofEditCommandWorkflow
     /// <summary>
     /// Applies the edited geometry to the EXISTING roof. Re-validates the source,
     /// rebases the persisted definition (schema 5) and rebuilds the permanent display.
-    /// Supported Gable, Monopitch, and Hip roofs also regenerate the generated rafter
-    /// set through the proven replacement path and replay anchored AttachedManual
-    /// children against their rebuilt anchors when replacement succeeds.
+    /// Supported Gable, Monopitch, and Hip roofs also regenerate an existing generated
+    /// rafter system through the proven ordinary replacement and structural reconcile
+    /// paths, then replay anchored AttachedManual children against rebuilt anchors.
     /// A single write transaction; no lock/transaction is held while the dialog is
     /// open or while the transient preview is active.
     /// </summary>
@@ -388,6 +388,22 @@ internal static class RoofEditCommandWorkflow
                 return null;
             }
 
+            // Preserve the established create/no-create boundary: an edit refreshes
+            // an existing generated system but never creates one for a bare roof.
+            // Capture both stores before any regeneration mutates their contents.
+            var existingOrdinaryGeneratedCount = RoofGeneratedTimberStore.FindByOwner(
+                document.Database,
+                transaction,
+                ownerReference).Count;
+            var existingStructuralGeneratedCount = RoofStructuralGeneratedStore.FindByOwner(
+                document.Database,
+                transaction,
+                ownerReference).Count;
+            var hadGeneratedRafterSystem = existingOrdinaryGeneratedCount > 0 ||
+                existingStructuralGeneratedCount > 0;
+            var defaultProfile = TimberElementDefaultProfileStore.Load();
+            var layerProfile = ElementLayerProfileStore.Load();
+
             if (newGeometry is not HipRoofGeometry &&
                 !RoofAttachedManualLifecycleService.TryRebaseForMonopitchSemanticMirror(
                         document,
@@ -432,12 +448,19 @@ internal static class RoofEditCommandWorkflow
                 document.Editor,
                 owner,
                 restored.Geometry,
-                TimberElementDefaultProfileStore.Load(),
-                ElementLayerProfileStore.Load(),
+                defaultProfile,
+                layerProfile,
                 out anchorResolutionContext,
                 forceRegenerateOnSourceResize: geometryChanged,
                 rebuildReason: "roof-edit");
             if (outcome == RoofGeneratedRafterSetService.ReplacementOutcome.Failed)
+            {
+                failureMessageKey = "Command_RoofRafters_GenerationFailed";
+                return null;
+            }
+            if (geometryChanged &&
+                existingOrdinaryGeneratedCount > 0 &&
+                outcome != RoofGeneratedRafterSetService.ReplacementOutcome.Replaced)
             {
                 failureMessageKey = "Command_RoofRafters_GenerationFailed";
                 return null;
@@ -464,6 +487,31 @@ internal static class RoofEditCommandWorkflow
                     anchorResolutionContext: anchorResolutionContext!);
             }
 
+            // Hip/Valley Lines are derived from the edited roof definition just like
+            // ordinary rafters. Reuse the authoritative reconcile so surviving logical
+            // identities retain their handles and owned annotations are upserted in the
+            // same transaction. A failed reconcile rolls the entire Apply back.
+            if (geometryChanged &&
+                hadGeneratedRafterSystem &&
+                restored.Geometry is HipRoofGeometry hipGeometryForStructural)
+            {
+                var structural =
+                    RoofAutomaticStructuralRafterMaterializationService.MaterializeInTransaction(
+                        document,
+                        transaction,
+                        owner,
+                        ownerReference,
+                        currentInput,
+                        hipGeometryForStructural,
+                        defaultProfile,
+                        layerProfile);
+                if (!structural.IsSuccess)
+                {
+                    failureMessageKey = "Command_RoofRafters_GenerationFailed";
+                    return null;
+                }
+            }
+
             RoofUnlockIndicatorService.Sync(document.Database, transaction, owner);
             RoofDisplayGroupSelectabilityService.ApplyForOwner(
                 document.Database,
@@ -473,6 +521,9 @@ internal static class RoofEditCommandWorkflow
                 document,
                 transaction,
                 ownerId);
+            RoofDisplayService.EnsureAllDisplayBehindTimber(
+                document.Database,
+                transaction);
             transaction.Commit();
             return outcome;
         }

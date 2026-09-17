@@ -119,6 +119,7 @@ public sealed class RoofCanonicalGroupPersistenceSourceContractTests
             "public void Dispose()");
 
         Assert.Contains("reopen-before-selectability", reconcile);
+        Assert.Contains("ROOF_GROUP_PERSISTENCE_TRACE", Read("RoofDisplayGroupService.cs"));
         Assert.DoesNotContain("RoofAssemblyGroupSyncService", reconcile + startup);
         Assert.DoesNotContain("EnsureGroup", reconcile + startup);
         Assert.Contains("if (RoofDisplayGroupSelectabilityService.ReconcileAllRoofOwners", startup);

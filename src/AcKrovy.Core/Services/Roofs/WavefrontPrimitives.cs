@@ -22,11 +22,13 @@ internal readonly record struct WavefrontLineage(int BoundaryVertex, WavefrontBo
     internal static WavefrontLineage ForSuccessor(
         IEnumerable<WavefrontVertex> localContactVertices,
         IEnumerable<WavefrontVertex> terminalContactVertices,
+        IReadOnlyCollection<int> terminalSources,
         int successorCount,
         int previousSource,
         int nextSource,
         bool successorReflex,
-        bool successorCoplanar)
+        bool successorCoplanar,
+        bool firstGenerationEvent)
     {
         if (successorCount != 1)
         {
@@ -36,7 +38,9 @@ internal readonly record struct WavefrontLineage(int BoundaryVertex, WavefrontBo
         var expectedKind = successorReflex
             ? WavefrontBoundaryCornerKind.Reflex
             : WavefrontBoundaryCornerKind.Convex;
-        var local = localContactVertices
+        var locals = localContactVertices.ToArray();
+        var terminals = terminalContactVertices.ToArray();
+        var local = locals
             .Where(vertex =>
                 vertex.Lineage.Kind == expectedKind &&
                 (vertex.PreviousSource == previousSource ||
@@ -51,37 +55,65 @@ internal readonly record struct WavefrontLineage(int BoundaryVertex, WavefrontBo
             return local.Length == 1 ? local[0] : Internal;
         }
 
-        // A convex successor may be born at a reflex contact when the opposite
-        // side of that contact collapses. Retain the reflex event provenance
-        // only when the successor keeps the contact's directed outgoing source.
-        // The structural resolver still requires an independently anchored Hip
-        // path and incident-face continuity before this marker is materializable.
-        if (!successorReflex && !successorCoplanar)
+        var localReflex = locals
+            .Where(vertex => vertex.Lineage.Kind == WavefrontBoundaryCornerKind.Reflex)
+            .ToArray();
+
+        // Valley-continue under reflection: the valley's next front was absorbed into
+        // the terminal strip and the left-hand outgoing is the other strip source.
+        // Prefer the local reflex before inheriting an opposite Edge-collapse hip.
+        // First-generation always; later events only when no boundary convex is aimed
+        // by next (that case is hip-across-strip).
+        if (!successorReflex &&
+            !successorCoplanar &&
+            localReflex.Length == 1 &&
+            terminalSources.Contains(nextSource) &&
+            terminalSources.Contains(localReflex[0].NextSource) &&
+            (firstGenerationEvent ||
+             !terminals.Any(vertex =>
+                 vertex.Lineage.Kind == WavefrontBoundaryCornerKind.Convex &&
+                 vertex.Born <= 0 &&
+                 vertex.NextSource == nextSource)))
         {
-            var outgoingReflex = localContactVertices
-                .Where(vertex =>
-                    vertex.Lineage.Kind == WavefrontBoundaryCornerKind.Reflex &&
-                    vertex.NextSource == nextSource)
-                .Select(vertex => vertex.Lineage)
-                .Distinct()
-                .ToArray();
-            if (outgoingReflex.Length != 0)
-            {
-                return outgoingReflex.Length == 1 ? outgoingReflex[0] : Internal;
-            }
+            return localReflex[0].Lineage;
         }
 
-        // A split batch may terminate an intervening span at a second contact
-        // root. In left-hand loop order only that root's lineage entering the
-        // successor's outgoing source can continue across the batch.
-        var terminal = terminalContactVertices
+        // Hip-across-strip: opposite convex front aimed by next. On later events the
+        // mirror image aims via previous matching a still-boundary convex's previous
+        // source. Do not match previous against re-anchored (Born>0) contacts.
+        var terminal = terminals
             .Where(vertex =>
                 vertex.Lineage.Kind == expectedKind &&
-                vertex.NextSource == nextSource)
+                (vertex.NextSource == nextSource ||
+                 !firstGenerationEvent &&
+                 vertex.Born <= 0 &&
+                 vertex.PreviousSource == previousSource))
             .Select(vertex => vertex.Lineage)
             .Distinct()
             .ToArray();
-        return terminal.Length == 1 ? terminal[0] : Internal;
+        if (terminal.Length == 1)
+        {
+            return terminal[0];
+        }
+
+        // Reflex retention when the successor keeps the contact's directed outgoing
+        // source, or (mirror image) its directed incoming source.
+        if (!successorReflex && !successorCoplanar)
+        {
+            var outgoingReflex = localReflex
+                .Where(vertex =>
+                    vertex.NextSource == nextSource ||
+                    vertex.PreviousSource == previousSource)
+                .Select(vertex => vertex.Lineage)
+                .Distinct()
+                .ToArray();
+            if (outgoingReflex.Length == 1)
+            {
+                return outgoingReflex[0];
+            }
+        }
+
+        return Internal;
     }
 }
 

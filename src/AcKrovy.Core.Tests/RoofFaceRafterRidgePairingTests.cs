@@ -46,12 +46,12 @@ public sealed class RoofFaceRafterRidgePairingTests
     public void H5_IrregularT_Create_PairsSharedRidgeStations()
     {
         var topology = Solve(H5IrregularTCreate(), 35d);
-        Assert.Equal(4, topology.Edges.Count(e => e.Kind == RoofTopologyEdgeKind.Ridge));
+        Assert.Equal(5, topology.Edges.Count(e => e.Kind == RoofTopologyEdgeKind.Ridge));
         Assert.Equal(2, topology.Edges.Count(e => e.Kind == RoofTopologyEdgeKind.Valley));
 
         var layout = Create(topology, 900d);
         Assert.Equal(70, layout.Segments.Count);
-        Assert.Equal(8, layout.Segments.Count(s =>
+        Assert.Equal(9, layout.Segments.Count(s =>
             HasRoles(s, RoofRafterBoundaryRole.Ridge, RoofRafterBoundaryRole.Valley)));
 
         var report = AssertPairing(topology, layout);
@@ -64,11 +64,11 @@ public sealed class RoofFaceRafterRidgePairingTests
     public void H5_IrregularT_PostStretchLike_PairsSharedRidgeStations()
     {
         var topology = Solve(H5IrregularTPostStretch(), 35d);
-        Assert.Equal(4, topology.Edges.Count(e => e.Kind == RoofTopologyEdgeKind.Ridge));
+        Assert.Equal(5, topology.Edges.Count(e => e.Kind == RoofTopologyEdgeKind.Ridge));
 
         var layout = Create(topology, 900d);
         Assert.Equal(74, layout.Segments.Count);
-        Assert.Equal(8, layout.Segments.Count(s =>
+        Assert.Equal(9, layout.Segments.Count(s =>
             HasRoles(s, RoofRafterBoundaryRole.Ridge, RoofRafterBoundaryRole.Valley)));
 
         var report = AssertPairing(topology, layout);
@@ -176,7 +176,7 @@ public sealed class RoofFaceRafterRidgePairingTests
         var ridgeValley = layout.Segments
             .Where(s => HasRoles(s, RoofRafterBoundaryRole.Ridge, RoofRafterBoundaryRole.Valley))
             .ToArray();
-        Assert.Equal(8, ridgeValley.Length);
+        Assert.Equal(9, ridgeValley.Length);
         AssertPairing(topology, layout);
     }
 

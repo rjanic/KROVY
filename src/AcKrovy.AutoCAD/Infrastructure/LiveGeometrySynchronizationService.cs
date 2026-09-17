@@ -391,9 +391,13 @@ internal static class LiveGeometrySynchronizationService
             RoofGroupGripGeometrySnapshotService.BeginCommandScope(e.GlobalCommandName);
             // True pre-command baseline MUST be captured here, before any native
             // ObjectModified can mutate DB geometry. Do not clear implied selection.
+            // Whole-roof COPY and whole-roof MIRROR (Erase source = No) share the same
+            // pre-command ownership snapshot so CommandEnded can detect a complete
+            // assembly clone before any per-member detach/rehydration runs.
             if (!isUndoRedo &&
                 !_ignoreCurrentCommand &&
-                LiveGeometryCommandRules.IsSameDwgCopyOwnershipCommand(e.GlobalCommandName))
+                (LiveGeometryCommandRules.IsSameDwgCopyOwnershipCommand(e.GlobalCommandName) ||
+                 RoofGeneratedMemberEditCommandRules.IsMirrorCommand(e.GlobalCommandName)))
             {
                 RoofGeneratedCopyPreCommandSnapshotService.CaptureForCopy(_document);
             }
@@ -763,6 +767,46 @@ internal static class LiveGeometrySynchronizationService
                 var appendedSet = new HashSet<ObjectId>(appendedTimberIds);
                 mirrorModifiedTimberIds = ids.Where(id => !appendedSet.Contains(id)).ToArray();
             }
+
+            // Native mirrored/copied annotation clones observed during this command
+            // (before any plugin RefreshTimberElements upsert). Whole-roof rebind must
+            // consume these by command-lifecycle identity.
+            var appendedAnnotationIds = appendedLabelIds
+                .Concat(appendedSlopeArrowIds)
+                .Concat(appendedSlopeAngleTextIds)
+                .Distinct()
+                .ToArray();
+            var nativeCopy =
+                LiveGeometryCommandRules.IsSameDwgCopyOwnershipCommand(globalCommandName);
+            var nativeMirror =
+                RoofGeneratedMemberEditCommandRules.IsMirrorCommand(globalCommandName);
+
+            // HOST-proven MIRROR order: LiveResize SupportedResize on the NEW mirrored
+            // Hip owner runs UpdateGeometry and rewrites FootprintSignature /
+            // RigidFootprint / ridge axis BEFORE whole-roof pairing. That makes
+            // DefinitionsEquivalent fail silently (no DETECT) and all ordinary clones
+            // fall through to AttachedManual under the old owner. Run whole-roof rebind
+            // FIRST while the cloned RoofDefinition XData is still verbatim — the same
+            // order is safe for COPY (translation-invariant signatures already matched).
+            if (nativeCopy || nativeMirror)
+            {
+                using (_modifiedIds.Suppress())
+                using (_appendedTimberIds.Suppress())
+                using (_appendedRoofOwnerIds.Suppress())
+                using (_appendedPasteEntityIds.Suppress())
+                using (_appendedLabelIds.Suppress())
+                using (_appendedSlopeArrowIds.Suppress())
+                using (_appendedSlopeAngleTextIds.Suppress())
+                using (_erasedSourceHandles.Suppress())
+                {
+                    RoofWholeRoofCopyRebindService.Process(
+                        _document,
+                        globalCommandName,
+                        appendedTimberIds,
+                        appendedAnnotationIds);
+                }
+            }
+
             // Suppress ObjectModified while SOURCE resize rebuilds display / regenerates
             // rafters. Otherwise GRIP_STRETCH display rebuild events re-queue and a later
             // pass misclassifies them as independent display-only tamper.
@@ -840,29 +884,7 @@ internal static class LiveGeometrySynchronizationService
                 // AutoCAD clones roof ownership metadata verbatim. Existing geometry
                 // association rehydrates the appended member after timber copy init.
                 // Never runs during U/UNDO/REDO/MREDO.
-                // Union of annotation entities APPENDED by this command (main labels +
-                // slope arrows + slope angle text). Passed to the MIRROR service so it can
-                // erase ONLY the annotation clones native MIRROR appended for the mirrored
-                // child — never a pre-existing source annotation (those are not in the
-                // appended set). Deterministic command-lifecycle identity, not geometry.
-                var appendedAnnotationIds = appendedLabelIds
-                    .Concat(appendedSlopeArrowIds)
-                    .Concat(appendedSlopeAngleTextIds)
-                    .Distinct()
-                    .ToArray();
-                // Whole-roof assembly rebind remains native-COPY-only. Clipboard paste
-                // records appended roof owners solely to exclude those payloads from the
-                // Stage 2D4-A individual-member services.
-                var nativeCopy =
-                    LiveGeometryCommandRules.IsSameDwgCopyOwnershipCommand(globalCommandName);
-                if (nativeCopy)
-                {
-                    RoofWholeRoofCopyRebindService.Process(
-                        _document,
-                        globalCommandName,
-                        appendedTimberIds,
-                        appendedAnnotationIds);
-                }
+                // Whole-roof rebind already ran above (before LiveResize) for COPY/MIRROR.
                 // NOTE: AttachedManual COPY-of-COPY clones are re-initialized BEFORE the
                 // per-rafter rehydration service so a Generated→AttachedManual promotion
                 // there is not re-classified as an already-manual clone.
@@ -879,9 +901,10 @@ internal static class LiveGeometrySynchronizationService
                         appendedTimberIds,
                         sameDwgClipboardPaste);
                 }
-                // MIRROR: a mirrored Generated rafter must not become a second live
-                // Generated member. Detach the clone and promote it to AttachedManual
-                // so the (owner, GeneratedMemberKey) invariant stays unique. MIRROR Yes
+                // MIRROR: member-only mirrored Generated rafters must not become a second
+                // live Generated member. Detach the clone and promote it to AttachedManual
+                // so the (owner, GeneratedMemberKey) invariant stays unique. Whole-roof
+                // MIRROR children already consumed above are skipped. MIRROR Yes
                 // additionally suppresses the erased source's Generated slot.
                 RoofMirrorCloneDetachService.Process(
                     _document,
@@ -890,7 +913,7 @@ internal static class LiveGeometrySynchronizationService
                     erasedSourceHandles,
                     mirrorModifiedTimberIds ?? Array.Empty<ObjectId>(),
                     appendedAnnotationIds);
-                if (LiveGeometryCommandRules.IsSameDwgCopyOwnershipCommand(globalCommandName))
+                if (nativeCopy || nativeMirror)
                 {
                     RoofGeneratedCopyPreCommandSnapshotService.Clear();
                     using (_document.LockDocument())

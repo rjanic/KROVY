@@ -10,6 +10,9 @@ namespace AcKrovy.AutoCAD.Infrastructure;
 /// <summary>
 /// MIRROR lifecycle for roof timber.
 /// <list type="bullet">
+/// <item>Whole-roof MIRROR (Erase source = No): consumed by
+/// <see cref="RoofWholeRoofCopyRebindService"/> before this service runs; those clones
+/// are skipped here so they never become AttachedManual under the old owner.</item>
 /// <item>MIRROR No (Generated source): detach clone from Generated metadata, promote to
 /// AttachedManual Origin.Copy, immediate annotation + group sync.</item>
 /// <item>MIRROR No (AttachedManual source): re-initialize the clone from its final WCS.</item>
@@ -83,6 +86,15 @@ internal static class RoofMirrorCloneDetachService
                             out var cloneLine,
                             document.Database) ||
                         cloneLine is null)
+                    {
+                        continue;
+                    }
+
+                    // Whole-roof MIRROR/COPY already consumed this clone for authoritative
+                    // rebuild under the new owner. Never fall through to per-member
+                    // AttachedManual promotion or generic-timber detach.
+                    if (RoofGeneratedCopyPreCommandSnapshotService.IsConsumedWholeRoofClone(
+                            cloneLine.Handle.ToString()))
                     {
                         continue;
                     }
@@ -836,6 +848,19 @@ internal static class RoofMirrorCloneDetachService
             return;
         }
 
+        var appendedSet = new HashSet<ObjectId>(appendedAnnotationIds);
+        var livingPeerRoles = CollectLivingNonAppendedAnnotationRolesForSource(
+            document.Database,
+            transaction,
+            appendedSet,
+            sourceIdentity);
+        var soleSurvivorKeepIds = SelectSoleSurvivorKeepIdsForSource(
+            document.Database,
+            transaction,
+            appendedAnnotationIds,
+            sourceIdentity,
+            livingPeerRoles);
+
         foreach (var id in appendedAnnotationIds)
         {
             if (id.IsNull ||
@@ -853,9 +878,22 @@ internal static class RoofMirrorCloneDetachService
 
             // The clone annotation deep-copies the source's XData, so it resolves to the
             // SOURCE handle. Being in the appended set AND bound to the source identity is
-            // the deterministic marker of a MIRROR clone for this child.
+            // necessary for a MIRROR clone of this child. AutoCAD may also recreate a
+            // source MLeader into the appended set — keep that sole survivor when no
+            // living non-appended peer owns the same SourceHandle + role; if multiple
+            // appended survivors share the role, keep exactly one.
             if (!RoofOwnedAnnotationSourceResolver.TryResolveSourceHandle(entity, out var handle) ||
-                !string.Equals(handle, sourceIdentity, StringComparison.OrdinalIgnoreCase))
+                !string.Equals(handle, sourceIdentity, StringComparison.OrdinalIgnoreCase) ||
+                !TryResolveMirrorAnnotationConsumeRole(entity, out var roleKey))
+            {
+                continue;
+            }
+
+            var hasPeer = livingPeerRoles.Contains(roleKey);
+            var shouldErase = hasPeer
+                ? RoofMirrorAnnotationConsumeRules.ShouldEraseAppendedAnnotationClone(true)
+                : !soleSurvivorKeepIds.Contains(id);
+            if (!shouldErase)
             {
                 continue;
             }
@@ -871,6 +909,118 @@ internal static class RoofMirrorCloneDetachService
                 writable.Erase();
             }
         }
+    }
+
+    private static HashSet<ObjectId> SelectSoleSurvivorKeepIdsForSource(
+        Database database,
+        Transaction transaction,
+        IReadOnlyCollection<ObjectId> appendedAnnotationIds,
+        string sourceIdentity,
+        IReadOnlySet<string> livingPeerRoles)
+    {
+        var keep = new HashSet<ObjectId>();
+        var bestByRole = new Dictionary<string, (ObjectId Id, long HandleValue)>(
+            StringComparer.OrdinalIgnoreCase);
+        foreach (var id in appendedAnnotationIds)
+        {
+            if (id.IsNull ||
+                id.IsErased ||
+                !AutoCadObjectIdAccess.TryGetObject<Entity>(
+                    transaction,
+                    id,
+                    OpenMode.ForRead,
+                    out var entity,
+                    database) ||
+                entity is null ||
+                !RoofOwnedAnnotationSourceResolver.TryResolveSourceHandle(entity, out var handle) ||
+                !string.Equals(handle, sourceIdentity, StringComparison.OrdinalIgnoreCase) ||
+                !TryResolveMirrorAnnotationConsumeRole(entity, out var roleKey) ||
+                livingPeerRoles.Contains(roleKey))
+            {
+                continue;
+            }
+
+            var handleValue = entity.Handle.Value;
+            if (!bestByRole.TryGetValue(roleKey, out var best) || handleValue < best.HandleValue)
+            {
+                bestByRole[roleKey] = (id, handleValue);
+            }
+        }
+
+        foreach (var entry in bestByRole.Values)
+        {
+            keep.Add(entry.Id);
+        }
+
+        return keep;
+    }
+
+    private static HashSet<string> CollectLivingNonAppendedAnnotationRolesForSource(
+        Database database,
+        Transaction transaction,
+        IReadOnlySet<ObjectId> appendedSet,
+        string sourceIdentity)
+    {
+        var roles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var blockTable = (BlockTable)transaction.GetObject(database.BlockTableId, OpenMode.ForRead);
+        var modelSpace = (BlockTableRecord)transaction.GetObject(
+            blockTable[BlockTableRecord.ModelSpace],
+            OpenMode.ForRead);
+        foreach (ObjectId id in modelSpace)
+        {
+            if (id.IsErased ||
+                appendedSet.Contains(id) ||
+                !AutoCadObjectIdAccess.TryGetObject<Entity>(
+                    transaction,
+                    id,
+                    OpenMode.ForRead,
+                    out var entity,
+                    database) ||
+                entity is null ||
+                entity.IsErased ||
+                !RoofOwnedAnnotationSourceResolver.TryResolveSourceHandle(entity, out var handle) ||
+                !string.Equals(handle, sourceIdentity, StringComparison.OrdinalIgnoreCase) ||
+                !TryResolveMirrorAnnotationConsumeRole(entity, out var roleKey))
+            {
+                continue;
+            }
+
+            roles.Add(roleKey);
+        }
+
+        return roles;
+    }
+
+    private static bool TryResolveMirrorAnnotationConsumeRole(Entity entity, out string roleKey)
+    {
+        roleKey = string.Empty;
+        if (ElementLabelStore.TryRead(entity, out var label) && label is not null)
+        {
+            roleKey = RoofMirrorAnnotationConsumeRules.FormatMainLabelRole(
+                label.ComponentRole.ToString());
+            return true;
+        }
+
+        if (SlopeArrowStore.TryRead(entity, out var arrow) && arrow is not null)
+        {
+            roleKey = RoofMirrorAnnotationConsumeRules.RoleSlopeArrow;
+            return true;
+        }
+
+        if (SlopeAngleTextStore.TryRead(entity, out var angle) && angle is not null)
+        {
+            roleKey = RoofMirrorAnnotationConsumeRules.RoleSlopeAngle;
+            return true;
+        }
+
+        if (PostFootprintPerpendicularAnnotationStore.TryRead(entity, out var post) &&
+            post is not null)
+        {
+            roleKey = RoofMirrorAnnotationConsumeRules.RolePostPerpendicular;
+            return true;
+        }
+
+        return false;
     }
 
     private static void RefreshClonePresentation(

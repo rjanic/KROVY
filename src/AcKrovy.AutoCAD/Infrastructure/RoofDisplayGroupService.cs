@@ -147,12 +147,44 @@ internal static class RoofDisplayGroupService
 #endif
         }
 
+        // AutoCAD Group.Append of an ObjectId that is already a member can create a
+        // second membership slot. PlanCanonicalization already omits present ids, but
+        // refresh the presence set immediately before Append so a stale GetAllEntityIds
+        // snapshot used for planning cannot double-insert within this EnsureGroup call.
+        var present = new HashSet<ObjectId>(group.GetAllEntityIds());
         foreach (var addId in plan.AppendOnce)
         {
+            if (!present.Add(addId))
+            {
+                continue;
+            }
+
             group.Append(addId);
 #if DEBUG
             RoofGroupMutationDiag.Write(editor, name, "append", groupObjectId, addId.Handle.ToString(), "ensure-group");
 #endif
+        }
+
+        // Collapse any remaining duplicate ObjectId slots before commit/persistence.
+        var afterAppend = group.GetAllEntityIds();
+        if (RoofAssemblyGroupMembershipRules.CountDuplicates(afterAppend) > 0)
+        {
+            var collapse = RoofAssemblyGroupMembershipRules.PlanCanonicalization(
+                afterAppend,
+                expected);
+            foreach (var removeId in collapse.RemoveOnce)
+            {
+                group.Remove(removeId);
+#if DEBUG
+                RoofGroupMutationDiag.Write(
+                    editor,
+                    name,
+                    "remove",
+                    groupObjectId,
+                    removeId.Handle.ToString(),
+                    "ensure-group-collapse-duplicate");
+#endif
+            }
         }
 
         // Native GROUP COPY and prior assembly syncs can leave selectable duplicate
@@ -205,6 +237,13 @@ internal static class RoofDisplayGroupService
                 RoofAssemblyGroupMembershipRules.CountMissing(postActual, expected),
                 RoofAssemblyGroupMembershipRules.CountForeign(postActual, expected),
                 postCanonical);
+            RoofGroupPersistenceDiag.WriteFromCounts(
+                editor,
+                ownerEntity.Handle.ToString(),
+                group.ObjectId.Handle.ToString(),
+                "ensure-group",
+                postActual,
+                collected);
         }
 #endif
     }
@@ -1273,6 +1312,121 @@ internal static class RoofGroupUndoInvariantDiag
             $" erasedIds={erasedIds.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
             $" wrongDatabase={wrongDatabase.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
             $" result={result}";
+        try
+        {
+            editor.WriteMessage("\n" + line);
+        }
+        catch
+        {
+        }
+    }
+}
+
+internal static class RoofGroupPersistenceDiag
+{
+    public static void Write(
+        Autodesk.AutoCAD.EditorInput.Editor? editor,
+        Database database,
+        Transaction transaction,
+        ObjectId ownerId,
+        string checkpoint)
+    {
+        if (editor is null ||
+            ownerId.IsNull ||
+            !RoofDisplayGroupService.TryOpenCanonicalGroup(
+                database,
+                transaction,
+                ownerId,
+                OpenMode.ForRead,
+                out var group) ||
+            group is null ||
+            !AutoCadObjectIdAccess.TryGetObject<Entity>(
+                transaction,
+                ownerId,
+                OpenMode.ForRead,
+                out var ownerEntity,
+                database) ||
+            ownerEntity is null)
+        {
+            return;
+        }
+
+        var members = group.GetAllEntityIds();
+        WriteFromMembers(
+            editor,
+            ownerEntity.Handle.ToString(),
+            group.ObjectId.Handle.ToString(),
+            checkpoint,
+            members,
+            database,
+            transaction,
+            ownerId);
+    }
+
+    public static void WriteFromCounts(
+        Autodesk.AutoCAD.EditorInput.Editor? editor,
+        string owner,
+        string groupObjectId,
+        string checkpoint,
+        ObjectId[] members,
+        RoofAssemblyGroupMemberCollector.CollectResult collected)
+    {
+        if (editor is null)
+        {
+            return;
+        }
+
+        var unique = members.Distinct().Count();
+        var duplicates = RoofAssemblyGroupMembershipRules.CountDuplicates(members);
+        var line =
+            "ROOF_GROUP_PERSISTENCE_TRACE" +
+            $" owner={owner}" +
+            $" checkpoint={checkpoint}" +
+            $" groupObjectId={groupObjectId}" +
+            $" rawCount={members.Length.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
+            $" uniqueCount={unique.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
+            $" duplicateCount={duplicates.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
+            $" generatedExpected={collected.GeneratedCount.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
+            $" structuralExpected={collected.StructuralGeneratedCount.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
+            $" annotationsExpected={collected.AnnotationCount.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
+            $" result={(duplicates == 0 && members.Length == unique ? "ok" : "duplicated")}";
+        try
+        {
+            editor.WriteMessage("\n" + line);
+        }
+        catch
+        {
+        }
+    }
+
+    private static void WriteFromMembers(
+        Autodesk.AutoCAD.EditorInput.Editor? editor,
+        string owner,
+        string groupObjectId,
+        string checkpoint,
+        ObjectId[] members,
+        Database database,
+        Transaction transaction,
+        ObjectId ownerId)
+    {
+        if (editor is null)
+        {
+            return;
+        }
+
+        var unique = members.Distinct().Count();
+        var duplicates = RoofAssemblyGroupMembershipRules.CountDuplicates(members);
+        var ownerRaw = members.Count(id => id == ownerId);
+        var line =
+            "ROOF_GROUP_PERSISTENCE_TRACE" +
+            $" owner={owner}" +
+            $" checkpoint={checkpoint}" +
+            $" groupObjectId={groupObjectId}" +
+            $" rawCount={members.Length.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
+            $" uniqueCount={unique.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
+            $" duplicateCount={duplicates.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
+            $" ownerRaw={ownerRaw.ToString(System.Globalization.CultureInfo.InvariantCulture)}" +
+            $" result={(duplicates == 0 && members.Length == unique ? "ok" : "duplicated")}";
         try
         {
             editor.WriteMessage("\n" + line);

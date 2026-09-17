@@ -85,7 +85,10 @@ public sealed class RoofPhysicalStructuralFoldTests
         var internalHip = Assert.Single(pipeline.Resolution.Edges, edge =>
             edge.StructuralIdentity.ToString() == "Hip|5|8");
         Assert.True(internalHip.IsAutomaticStructuralTimberEligible);
-        Assert.Null(internalHip.PhysicalPathAnchorVertexIndex);
+        Assert.Equal(0, internalHip.PhysicalPathAnchorVertexIndex);
+        Assert.Equal(
+            RoofTopologyEdgeKind.Ridge,
+            pipeline.Geometry.Topology.Edges[internalHip.TopologyEdgeIndex].Kind);
         Assert.Contains(pipeline.Plan.Items, item =>
             item.LogicalKey.ToString() == "Hip|5|8" &&
             item.ElementType == TimberElementType.HipRafter);
@@ -93,8 +96,9 @@ public sealed class RoofPhysicalStructuralFoldTests
         var continuation = Assert.Single(pipeline.Resolution.Edges, edge =>
             edge.StructuralIdentity.ToString() == "Hip|2|5");
         Assert.True(continuation.IsAutomaticStructuralTimberEligible);
+        Assert.Null(continuation.PhysicalPathAnchorVertexIndex);
         Assert.Equal(
-            RoofTopologyEdgeKind.Ridge,
+            RoofTopologyEdgeKind.Hip,
             pipeline.Geometry.Topology.Edges[continuation.TopologyEdgeIndex].Kind);
 
         // Both outer long-side hips remain.

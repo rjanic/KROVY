@@ -31,9 +31,12 @@ internal static class RoofGeneratedCopyPreCommandSnapshotService
         Dictionary<string, HashSet<string>> LogicalKeysByOwner,
         HashSet<string> OwnerHandles,
         Dictionary<string, HashSet<string>> GeneratedHandlesByOwner,
+        Dictionary<string, HashSet<string>> StructuralGeneratedHandlesByOwner,
         Dictionary<string, HashSet<string>> AttachedManualHandlesByOwner,
         Dictionary<string, HashSet<string>> DisplayHandlesByOwner,
-        HashSet<string> ConsumedWholeRoofCloneHandles);
+        HashSet<string> ConsumedWholeRoofCloneHandles,
+        Dictionary<string, HashSet<string>> WholeRoofExpectedLogicalKeysByOwner,
+        HashSet<string> SuccessfulWholeRoofRebindOwners);
 
     public static void Clear()
     {
@@ -286,6 +289,7 @@ internal static class RoofGeneratedCopyPreCommandSnapshotService
         var keysByOwner = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
         var ownerHandles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var generatedByOwner = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
+        var structuralByOwner = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
         var attachedByOwner = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
         var displayByOwner = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
 
@@ -329,6 +333,7 @@ internal static class RoofGeneratedCopyPreCommandSnapshotService
             var ownerHandle = owner.Handle.ToString();
             ownerHandles.Add(ownerHandle);
             var generatedSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var structuralSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var attachedSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var timberId in RoofGeneratedTimberStore.FindByOwner(
                          database,
@@ -370,6 +375,23 @@ internal static class RoofGeneratedCopyPreCommandSnapshotService
                     generated.Data.StationIndex));
             }
 
+            foreach (var structuralId in RoofStructuralGeneratedStore.FindByOwner(
+                         database,
+                         transaction,
+                         ownerHandle))
+            {
+                if (AutoCadObjectIdAccess.TryGetObject<Line>(
+                        transaction,
+                        structuralId,
+                        OpenMode.ForRead,
+                        out var line,
+                        database) &&
+                    line is not null)
+                {
+                    structuralSet.Add(line.Handle.ToString());
+                }
+            }
+
             foreach (var attachedId in RoofAttachedManualTimberStore.FindByOwner(
                          database,
                          transaction,
@@ -388,6 +410,7 @@ internal static class RoofGeneratedCopyPreCommandSnapshotService
             }
 
             generatedByOwner[ownerHandle] = generatedSet;
+            structuralByOwner[ownerHandle] = structuralSet;
             attachedByOwner[ownerHandle] = attachedSet;
         }
 
@@ -399,8 +422,11 @@ internal static class RoofGeneratedCopyPreCommandSnapshotService
             keysByOwner,
             ownerHandles,
             generatedByOwner,
+            structuralByOwner,
             attachedByOwner,
             displayByOwner,
+            new HashSet<string>(StringComparer.OrdinalIgnoreCase),
+            new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase),
             new HashSet<string>(StringComparer.OrdinalIgnoreCase));
     }
 
@@ -450,6 +476,18 @@ internal static class RoofGeneratedCopyPreCommandSnapshotService
         {
             return _activeSnapshot is { } snapshot &&
                    snapshot.AttachedManualHandlesByOwner.TryGetValue(ownerHandle, out var set)
+                ? set.ToArray()
+                : Array.Empty<string>();
+        }
+    }
+
+    public static IReadOnlyCollection<string> GetPreCommandStructuralGeneratedHandlesByOwner(
+        string ownerHandle)
+    {
+        lock (Gate)
+        {
+            return _activeSnapshot is { } snapshot &&
+                   snapshot.StructuralGeneratedHandlesByOwner.TryGetValue(ownerHandle, out var set)
                 ? set.ToArray()
                 : Array.Empty<string>();
         }
@@ -506,5 +544,92 @@ internal static class RoofGeneratedCopyPreCommandSnapshotService
         {
             return _activeSnapshot?.ConsumedWholeRoofCloneHandles.Contains(handle) == true;
         }
+    }
+
+    /// <summary>
+    /// Registers the ordinary generated-key expectation for a newly copied owner.
+    /// The expectation is deliberately recorded before the rebind starts so a rolled
+    /// back whole-roof transaction is observable as a failed invariant rather than an
+    /// apparent expected-zero success.
+    /// </summary>
+    public static void RegisterWholeRoofCopyExpectation(
+        string newOwnerHandle,
+        string oldOwnerHandle)
+    {
+        if (string.IsNullOrWhiteSpace(newOwnerHandle) ||
+            string.IsNullOrWhiteSpace(oldOwnerHandle))
+        {
+            return;
+        }
+
+        lock (Gate)
+        {
+            if (_activeSnapshot is not { } snapshot)
+            {
+                return;
+            }
+
+            var expected = snapshot.LogicalKeysByOwner.TryGetValue(oldOwnerHandle, out var keys)
+                ? new HashSet<string>(keys, StringComparer.OrdinalIgnoreCase)
+                : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            snapshot.WholeRoofExpectedLogicalKeysByOwner[newOwnerHandle] = expected;
+            snapshot.SuccessfulWholeRoofRebindOwners.Remove(newOwnerHandle);
+        }
+    }
+
+    public static void MarkWholeRoofCopyRebindSucceeded(IEnumerable<string> ownerHandles)
+    {
+        if (ownerHandles is null)
+        {
+            return;
+        }
+
+        lock (Gate)
+        {
+            if (_activeSnapshot is not { } snapshot)
+            {
+                return;
+            }
+
+            foreach (var ownerHandle in ownerHandles)
+            {
+                if (!string.IsNullOrWhiteSpace(ownerHandle) &&
+                    snapshot.WholeRoofExpectedLogicalKeysByOwner.ContainsKey(ownerHandle))
+                {
+                    snapshot.SuccessfulWholeRoofRebindOwners.Add(ownerHandle);
+                }
+            }
+        }
+    }
+
+    public static bool HasWholeRoofCopyExpectations()
+    {
+        lock (Gate)
+        {
+            return _activeSnapshot?.WholeRoofExpectedLogicalKeysByOwner.Count > 0;
+        }
+    }
+
+    public static bool TryGetWholeRoofCopyExpectedLogicalKeys(
+        string ownerHandle,
+        out IReadOnlyCollection<string> expectedKeys,
+        out bool rebindSucceeded)
+    {
+        lock (Gate)
+        {
+            if (_activeSnapshot is { } snapshot &&
+                snapshot.WholeRoofExpectedLogicalKeysByOwner.TryGetValue(
+                    ownerHandle,
+                    out var keys))
+            {
+                expectedKeys = keys.ToArray();
+                rebindSucceeded = snapshot.SuccessfulWholeRoofRebindOwners.Contains(ownerHandle);
+                return true;
+            }
+        }
+
+        expectedKeys = Array.Empty<string>();
+        rebindSucceeded = false;
+        return false;
     }
 }
