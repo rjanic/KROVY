@@ -10,7 +10,7 @@
         ResizeMode="CanResize"
         ShowInTaskbar="False"
         WindowStartupLocation="CenterOwner"
-        Background="{DynamicResource SettingsWindowBackgroundBrush}"
+        Background="{DynamicResource WoodOakBrush}"
         Foreground="{DynamicResource SettingsTextPrimaryBrush}">
     <Window.Resources>
         <ResourceDictionary>
@@ -18,6 +18,7 @@
                 <ResourceDictionary Source="Design/SettingsColors.Light.xaml" />
                 <ResourceDictionary Source="Design/SettingsDesignSystem.xaml" />
                 <ResourceDictionary Source="Design/SettingsControls.xaml" />
+                <ResourceDictionary Source="Design/RoofGeometryVisuals.xaml" />
             </ResourceDictionary.MergedDictionaries>
             <!--
               Explicit numeric-field template matching the proven Settings TextBox metrics.
@@ -70,7 +71,7 @@
             </Style>
         </ResourceDictionary>
     </Window.Resources>
-    <Grid Margin="20">
+    <Grid Margin="16">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -78,15 +79,28 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <StackPanel>
-            <TextBlock FontSize="21"
-                       FontWeight="SemiBold"
-                       Text="{Binding WindowTitle}" />
-            <TextBlock Margin="0,4,0,14"
-                       Style="{DynamicResource SettingsDescriptionStyle}"
-                       Text="{Binding WindowDescription}"
-                       TextWrapping="Wrap" />
-        </StackPanel>
+        <Border x:Name="HeaderBand" Height="86" Padding="18,14"
+                Background="{StaticResource WoodOakDarkBrush}"
+                BorderBrush="#321708" BorderThickness="1" CornerRadius="8">
+            <StackPanel Orientation="Horizontal">
+                <Border Width="48" Height="48" Margin="0,0,12,0" VerticalAlignment="Center"
+                        Background="#2AFFFFFF" BorderBrush="#88FFF4DF" BorderThickness="1" CornerRadius="8">
+                    <Viewbox Width="26" Height="26" Margin="7">
+                        <Path Data="{StaticResource RoofGeometryGableIconGeometry}"
+                              Stroke="{StaticResource RoofGeometryHeaderTextBrush}" StrokeThickness="1.7"
+                              StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" />
+                    </Viewbox>
+                </Border>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock FontSize="24" FontWeight="Bold"
+                               Foreground="{StaticResource RoofGeometryHeaderTextBrush}"
+                               Text="{Binding WindowTitle}" />
+                    <TextBlock Margin="0,3,0,0" Style="{DynamicResource SettingsDescriptionStyle}"
+                               Foreground="{StaticResource RoofGeometryHeaderSecondaryTextBrush}"
+                               Text="{Binding WindowDescription}" TextWrapping="Wrap" />
+                </StackPanel>
+            </StackPanel>
+        </Border>
 
         <Border Grid.Row="1"
                 Padding="14"
@@ -103,18 +117,15 @@
             </StackPanel>
         </Border>
 
-        <TextBlock x:Name="ValidationTextBlock"
-                   Grid.Row="2"
-                   Margin="0,12,0,0"
-                   MinHeight="20"
-                   Foreground="{DynamicResource SettingsValidationBrush}"
-                   Text="{Binding ValidationMessage}"
-                   TextWrapping="Wrap" />
-
-        <StackPanel Grid.Row="3"
-                    Margin="0,14,0,0"
-                    HorizontalAlignment="Right"
-                    Orientation="Horizontal">
+        <Border x:Name="FooterBand" Grid.Row="2" Grid.RowSpan="2" Height="86" Margin="0,12,0,0"
+                Background="{StaticResource WoodOakDarkBrush}" BorderBrush="#321708" BorderThickness="1" CornerRadius="8">
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                <TextBlock x:Name="ValidationTextBlock" Grid.Column="0" Margin="12,0,12,0"
+                           VerticalAlignment="Center" MinHeight="20" Foreground="#F2E1C5"
+                           Text="{Binding ValidationMessage}" TextWrapping="Wrap" />
+                <StackPanel Grid.Column="1" Margin="0,0,12,0" VerticalAlignment="Center"
+                            HorizontalAlignment="Right" Orientation="Horizontal">
             <Button x:Name="CancelButton"
                     Margin="0,0,10,0"
                     Click="CancelButton_Click"
@@ -132,6 +143,8 @@
                     IsEnabled="{Binding CanApply}"
                     Style="{DynamicResource SettingsPrimaryButtonStyle}"
                     Content="{Binding PrimaryActionText}" />
-        </StackPanel>
+                </StackPanel>
+            </Grid>
+        </Border>
     </Grid>
 </Window>

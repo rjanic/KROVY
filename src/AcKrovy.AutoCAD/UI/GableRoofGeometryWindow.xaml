@@ -4,10 +4,10 @@
         xmlns:local="clr-namespace:AcKrovy.AutoCAD.UI"
         xmlns:localization="clr-namespace:AcKrovy.AutoCAD.UI.Localization"
         Title="{Binding WindowTitle}"
-        Width="1080"
-        Height="780"
-        MinWidth="980"
-        MinHeight="720"
+        Width="1240"
+        Height="900"
+        MinWidth="1140"
+        MinHeight="820"
         ShowInTaskbar="False"
         WindowStartupLocation="CenterOwner"
         Foreground="{DynamicResource SettingsTextPrimaryBrush}">
@@ -59,7 +59,7 @@
                    TargetType="Button"
                    BasedOn="{StaticResource SettingsBaseButtonStyle}">
                 <Setter Property="Foreground" Value="#FFFFFF" />
-                <Setter Property="Background" Value="{StaticResource WoodOakBrush}" />
+                <Setter Property="Background" Value="{StaticResource RoofGeometryPrimaryButtonBrush}" />
                 <Setter Property="BorderBrush" Value="{StaticResource RoofGeometryPrimaryButtonBorderBrush}" />
                 <Setter Property="BorderThickness" Value="1" />
                 <Setter Property="Effect" Value="{StaticResource RoofGeometryPrimaryButtonElevation}" />
@@ -219,15 +219,23 @@
         <Border x:Name="HeaderBand"
                 Grid.Row="0"
                 Margin="0,0,0,12"
-                Padding="14,12"
-                Background="{StaticResource RoofGeometryHeaderBandBrush}"
-                BorderBrush="#4D2D17"
-                BorderThickness="1"
-                CornerRadius="8">
-            <Grid>
-                <Border Background="#18000000" CornerRadius="7" />
-                <StackPanel Orientation="Horizontal">
-                <Border Width="42" Height="42"
+                Height="86"
+                Background="Transparent"
+                BorderThickness="0"
+                Padding="0">
+            <Border x:Name="HeaderSurface"
+                    Margin="0"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch"
+                    Padding="0"
+                    Background="{StaticResource WoodOakDarkBrush}"
+                    BorderBrush="#321708"
+                    BorderThickness="1"
+                    CornerRadius="8">
+                <Grid>
+                    <Grid Margin="18,14,18,14">
+                    <StackPanel Orientation="Horizontal">
+                <Border Width="48" Height="48"
                         Margin="0,0,12,0"
                         VerticalAlignment="Center"
                         Background="#2AFFFFFF"
@@ -246,15 +254,19 @@
                 </Border>
                 <StackPanel VerticalAlignment="Center">
                     <TextBlock Style="{DynamicResource SettingsSectionTitleStyle}"
+                               FontSize="24"
+                               FontWeight="Bold"
                                Foreground="{DynamicResource RoofGeometryHeaderTextBrush}"
                                Text="{Binding WindowHeading}" />
                     <TextBlock Margin="0,3,0,0"
                                Style="{DynamicResource SettingsDescriptionStyle}"
                                Foreground="{DynamicResource RoofGeometryHeaderSecondaryTextBrush}"
                                Text="{Binding WindowDescription}" />
-                </StackPanel>
-                </StackPanel>
-            </Grid>
+                    </StackPanel>
+                    </StackPanel>
+                    </Grid>
+                </Grid>
+            </Border>
         </Border>
 
         <Border Grid.Row="1" Padding="12" Margin="0,0,0,10"
@@ -682,27 +694,31 @@
         <Border x:Name="FooterBand"
                 Grid.Row="4"
                 Grid.RowSpan="2"
-                Margin="0,12,0,0"
-                Background="{StaticResource WoodOakBrush}"
-                BorderBrush="#5A3317"
+                Margin="0,8,0,0"
+                Height="86"
+                Background="{StaticResource WoodOakDarkBrush}"
+                BorderBrush="#321708"
                 BorderThickness="1"
-                CornerRadius="8" />
-
-        <TextBlock x:Name="ValidationTextBlock"
-                   Grid.Row="4"
-                   Margin="12,20,12,0"
-                   MinHeight="20"
-                   Foreground="#F2E1C5"
-                   Text="{Binding ValidationMessage}"
-                   TextWrapping="Wrap" />
-
-        <Border Grid.Row="5"
-                Margin="0,14,0,0"
-                Padding="12,10"
-                Background="Transparent"
-                BorderThickness="0"
                 CornerRadius="8">
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+            <Grid>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock x:Name="ValidationTextBlock"
+                               Grid.Column="0"
+                               Margin="12,0,12,0"
+                               MinHeight="20"
+                               VerticalAlignment="Center"
+                               Foreground="#F2E1C5"
+                               Text="{Binding ValidationMessage}"
+                               TextWrapping="Wrap" />
+                    <StackPanel Grid.Column="1"
+                                Orientation="Horizontal"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Center"
+                                Margin="0,0,12,0">
                 <Button x:Name="CancelButton"
                         Margin="0,0,10,0"
                         Click="CancelButton_Click"
@@ -720,7 +736,9 @@
                         IsEnabled="{Binding CanApply}"
                         Style="{DynamicResource SettingsPrimaryButtonStyle}"
                         Content="{Binding PrimaryActionText}" />
-            </StackPanel>
+                    </StackPanel>
+                </Grid>
+            </Grid>
         </Border>
     </Grid>
 </Window>

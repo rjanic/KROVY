@@ -24,20 +24,19 @@ public sealed class GableRoofGeometryWindowTests
             window.Show();
             window.UpdateLayout();
 
-            var wood = Assert.IsType<DrawingBrush>(window.FindResource("WoodOakBrush"));
-            Assert.Equal(Stretch.Fill, wood.Stretch);
+            var wood = Assert.IsType<ImageBrush>(window.FindResource("WoodOakBrush"));
+            Assert.Equal(Stretch.UniformToFill, wood.Stretch);
+            Assert.Equal(AlignmentX.Center, wood.AlignmentX);
+            Assert.Equal(AlignmentY.Center, wood.AlignmentY);
             Assert.Equal(TileMode.None, wood.TileMode);
-            Assert.Equal(BrushMappingMode.Absolute, wood.ViewboxUnits);
-            Assert.Equal(BrushMappingMode.RelativeToBoundingBox, wood.ViewportUnits);
-            Assert.Equal(new Rect(0d, 0d, 800d, 450d), wood.Viewbox);
-            Assert.Equal(new Rect(0d, 0d, 1d, 1d), wood.Viewport);
+            Assert.Equal("pack://application:,,,/AcKrovy.AutoCAD;component/UI/Assets/wood-oak-bg.png", wood.ImageSource.ToString());
             Assert.Same(wood, window.Background);
-            Assert.Same(wood, window.FooterBand.Background);
-            Assert.Same(wood, window.ApplyButton.Background);
-            var header = Assert.IsType<LinearGradientBrush>(window.HeaderBand.Background);
-            Assert.Equal(Color.FromRgb(0x4D, 0x2D, 0x17), header.GradientStops[0].Color);
-            Assert.Equal(Color.FromRgb(0x5A, 0x33, 0x17), header.GradientStops[1].Color);
-            Assert.Equal(Color.FromRgb(0x6A, 0x3F, 0x1F), header.GradientStops[2].Color);
+            var darkWood = Assert.IsType<DrawingBrush>(window.FindResource("WoodOakDarkBrush"));
+            Assert.Same(darkWood, window.FooterBand.Background);
+            var primary = Assert.IsType<LinearGradientBrush>(window.ApplyButton.Background);
+            Assert.Equal(Color.FromRgb(0x70, 0x42, 0x1F), primary.GradientStops[0].Color);
+            Assert.Equal(Color.FromRgb(0x3B, 0x1F, 0x0E), primary.GradientStops[1].Color);
+            Assert.Same(darkWood, window.HeaderSurface.Background);
             Assert.Same(
                 window.FindResource("SettingsCardBackgroundBrush"),
                 window.LeftInputCard.Background);
