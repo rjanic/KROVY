@@ -1,0 +1,41 @@
+---
+description: Normative roof elevation / purlin / rafter geometry contract for KROVY
+globs:
+  - "**/Roofs/**"
+  - "**/*Purlin*"
+  - "**/*Rafter*"
+  - "**/*Elevation*"
+  - "**/*RelativeElevation*"
+  - "**/*Datum*"
+  - "**/*RoofPlane*"
+  - "**/*Seating*"
+  - "**/*PhysicalPlacement*"
+  - "**/*PhysicalGeometry*"
+  - "**/AutomaticPurlin*"
+  - "**/*SectionPresentation*"
+  - "**/*SectionSvg*"
+  - "**/*SectionReference*"
+  - "**/*MemberCenterAxis*"
+  - "docs/geometry/**"
+alwaysApply: false
+---
+
+# Roof geometry contract
+
+Before implementing or changing roof, rafter, purlin, elevation, datum, RoofPlane, seating, or schematic/section presentation code or tests, read the normative contract:
+
+- [docs/geometry/roof-elevation-contract.md](../../docs/geometry/roof-elevation-contract.md)
+
+That file (*Geometrický slovník KROVY v1.0*) is the single SSOT shared with Codex.
+
+## Critical rules
+
+- Accepted physical definitions, verified HOST elevation measurements, Core tests, Core implementation, and the contract must be mutually consistent. On contradiction: **stop and report**. Do not silently pick one source by list rank; an implementation bug does not override accepted HOST physical geometry.
+- Core owns physical member positions, seating, Bottom/Center/Top, RoofPlane, datum resolution, and persisted geometry.
+- WPF/SVG presentation renders and maps; it is not a geometry solver and is never technical-geometry authority.
+- **Presentation-only changes must not modify physical technical elevations or persisted geometry.**
+- Do not overwrite `ElevationProfile.BottomLocalZMm` / `CenterLocalZMm` / `TopLocalZMm` from SVG seating or visual contact coordinates.
+- `*HostRegression*` test names are not themselves proof of a completed AutoCAD HOST retest.
+- Do not reset, stash, commit, or push uncommitted WIP unless the user explicitly requests it.
+
+Do not duplicate the full glossary here; link and follow the contract.
