@@ -57,7 +57,7 @@ public sealed class RoofRafterUxSourceContractTests
     [Fact]
     public void DialogIsDrawingNeutralAndWpfCreateIsTheOnlyConfirmation()
     {
-        var dialogPrefix = Workflow[..Workflow.IndexOf("TryCreateRafters(", StringComparison.Ordinal)];
+        var dialogPrefix = Workflow[..Workflow.IndexOf("var result = isEdit", StringComparison.Ordinal)];
         Assert.Contains("new RoofRafterWindow(", dialogPrefix);
         Assert.Contains("SettingsWindowOwner.TryAssign", dialogPrefix);
         Assert.Contains("AcApp.ShowModalWindow(dialog)", dialogPrefix);

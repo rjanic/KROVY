@@ -43,7 +43,10 @@ public sealed class AnnotationTextAutoCadSourceContractTests
         {
             var source = File.ReadAllText(file);
             Assert.DoesNotContain("Autodesk", source);
-            Assert.DoesNotContain("ObjectId", source);
+            // Word-boundary: documentation may say "ObjectIds" without using the CAD type.
+            Assert.False(
+                System.Text.RegularExpressions.Regex.IsMatch(source, @"\bObjectId\b"),
+                file);
             Assert.DoesNotContain("TextStyleId", source);
         });
     }

@@ -30,6 +30,7 @@ public enum RoofAutomaticPurlinGeneratedDataError
     MissingOwnerReference,
     MalformedOwnerReference,
     UnsupportedRole,
+    InvalidWallPlateBoundaryEdgeId,
     InvalidRidgeStructuralKey,
     NonPositiveBoundaryEdgeId,
     SameBoundaryEdgeId,
@@ -47,4 +48,3 @@ public sealed record RoofAutomaticPurlinGeneratedDataValidationResult(
     bool IsValid,
     RoofAutomaticPurlinGeneratedData? Data,
     RoofAutomaticPurlinGeneratedDataError Error);
-

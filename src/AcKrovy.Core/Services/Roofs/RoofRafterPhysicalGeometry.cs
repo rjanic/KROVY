@@ -3,12 +3,12 @@ using AcKrovy.Core.Models.Roofs;
 namespace AcKrovy.Core.Services.Roofs;
 
 /// <summary>
-/// CAD-neutral physical-section geometry. The persisted plan-view rafter Line is the
-/// XY representation of a centroidal longitudinal axis reconstructed on the
-/// mathematical roof face; this helper never changes the Line's existing WCS Z.
-/// Section height follows the upward face normal. Rafter width is tangential to the
-/// roof face and perpendicular to the longitudinal axis; it does not affect this
-/// height-only seating calculation.
+/// CAD-neutral physical-section geometry for purlin seating under a rafter.
+/// The persisted plan-view rafter Line is the XY representation of the mathematical
+/// roof face. For automatic-purlin seating that face is the physical UPPER rafter
+/// face (SourceEave plane), not the timber centroid. Section thickness is measured
+/// perpendicular to the face; at a fixed horizontal station the vertical span of
+/// that perpendicular thickness is height / cos(pitch) = height / n_z.
 /// </summary>
 public static class RoofRafterPhysicalGeometry
 {
@@ -79,14 +79,19 @@ public static class RoofRafterPhysicalGeometry
         return IsValidUnitNormal(normal);
     }
 
+    /// <summary>
+    /// Builds a fixed-horizontal-station rafter section whose
+    /// <paramref name="upperFacePoint"/> lies on the mathematical UPPER face.
+    /// Lower / center elevations use vertical span = height / n_z.
+    /// </summary>
     public static bool TryCreateRafterSection(
-        RoofPoint3D centerlinePoint,
+        RoofPoint3D upperFacePoint,
         RoofFaceUnitNormal faceNormal,
         double rafterHeightMm,
         out RoofRafterPhysicalSection? section)
     {
         section = null;
-        if (!IsFinite(centerlinePoint) ||
+        if (!IsFinite(upperFacePoint) ||
             !IsValidUnitNormal(faceNormal) ||
             !IsFinite(rafterHeightMm) ||
             rafterHeightMm <= 0d)
@@ -94,26 +99,80 @@ public static class RoofRafterPhysicalGeometry
             return false;
         }
 
-        var halfHeight = rafterHeightMm / 2d;
-        var offset = Scale(faceNormal, halfHeight);
+        var verticalHalfSpanMm = rafterHeightMm / (2d * faceNormal.Z);
+        var centerPoint = new RoofPoint3D(
+            upperFacePoint.X,
+            upperFacePoint.Y,
+            upperFacePoint.Z - verticalHalfSpanMm);
+        var lowerPoint = new RoofPoint3D(
+            upperFacePoint.X,
+            upperFacePoint.Y,
+            upperFacePoint.Z - 2d * verticalHalfSpanMm);
         section = new RoofRafterPhysicalSection(
-            centerlinePoint,
+            centerPoint,
             faceNormal,
             rafterHeightMm,
-            Subtract(centerlinePoint, offset),
-            Add(centerlinePoint, offset));
+            lowerPoint,
+            upperFacePoint);
         return true;
     }
 
+    /// <summary>
+    /// Inverse of <see cref="CreatePurlinPlacement"/> seating: given the desired timber
+    /// bottom local Z, recover the mathematical UPPER rafter-face elevation at the
+    /// member vertical axis so that seating depth D places Top = Bottom + height.
+    /// axisUpper = Top + (H − D) / n_z + (width / 2) · tan(pitch).
+    /// </summary>
+    public static bool TryResolveUpperFaceLocalZFromSeatedBottom(
+        double bottomLocalZMm,
+        double purlinHeightMm,
+        double purlinWidthMm,
+        double rafterHeightMm,
+        double seatingDepthMm,
+        double pitchDegrees,
+        out double upperFaceLocalZMm)
+    {
+        upperFaceLocalZMm = 0d;
+        if (!IsFinite(bottomLocalZMm) ||
+            !IsFinite(purlinHeightMm) || purlinHeightMm <= 0d ||
+            !IsFinite(purlinWidthMm) || purlinWidthMm < 0d ||
+            !IsFinite(rafterHeightMm) || rafterHeightMm <= 0d ||
+            !IsFinite(seatingDepthMm) ||
+            seatingDepthMm < 0d ||
+            seatingDepthMm > rafterHeightMm ||
+            !IsFinite(pitchDegrees) ||
+            pitchDegrees < 0d ||
+            pitchDegrees >= 90d)
+        {
+            return false;
+        }
+
+        var pitchRad = pitchDegrees * Math.PI / 180d;
+        var cosPitch = Math.Cos(pitchRad);
+        var tanPitch = Math.Tan(pitchRad);
+        if (!IsFinite(cosPitch) || cosPitch <= UnitTolerance || !IsFinite(tanPitch))
+        {
+            return false;
+        }
+
+        var topLocalZMm = bottomLocalZMm + purlinHeightMm;
+        upperFaceLocalZMm =
+            topLocalZMm +
+            (rafterHeightMm - seatingDepthMm) / cosPitch +
+            (purlinWidthMm / 2d) * tanPitch;
+        return IsFinite(upperFaceLocalZMm);
+    }
+
     public static RoofPurlinPhysicalPlacementResult CreatePurlinPlacement(
-        RoofPoint3D rafterCenterlinePoint,
+        RoofPoint3D upperFacePoint,
         RoofFaceUnitNormal faceNormal,
         double rafterHeightMm,
         double purlinHeightMm,
         double seatingDepthMm,
-        RoofRelativeElevationDatum? datum)
+        RoofRelativeElevationDatum? datum,
+        double purlinWidthMm = 0d)
     {
-        if (!IsFinite(rafterCenterlinePoint))
+        if (!IsFinite(upperFacePoint))
         {
             return Invalid(RoofPurlinPhysicalPlacementError.InvalidCenterlinePoint);
         }
@@ -130,10 +189,14 @@ public static class RoofRafterPhysicalGeometry
             return Invalid(RoofPurlinPhysicalPlacementError.InvalidPurlinHeight);
         }
         if (!IsFinite(seatingDepthMm) ||
-            seatingDepthMm <= 0d ||
-            seatingDepthMm >= rafterHeightMm)
+            seatingDepthMm < 0d ||
+            seatingDepthMm > rafterHeightMm)
         {
             return Invalid(RoofPurlinPhysicalPlacementError.InvalidSeatingDepth);
+        }
+        if (!IsFinite(purlinWidthMm) || purlinWidthMm < 0d)
+        {
+            return Invalid(RoofPurlinPhysicalPlacementError.ImpossiblePlacement);
         }
         if (datum is null || !RoofRelativeElevationDatumRules.Validate(
                 RoofRelativeElevationDatumSchema.CurrentVersion,
@@ -143,8 +206,26 @@ public static class RoofRafterPhysicalGeometry
         {
             return Invalid(RoofPurlinPhysicalPlacementError.InvalidRelativeElevationDatum);
         }
+
+        // Outer top corner (eave-side / downslope): evaluate the upper-face Z at the
+        // outer plan station (axis Z − (width/2)·tan(pitch)). Width 0 keeps axis station.
+        var outerUpperFacePoint = upperFacePoint;
+        if (purlinWidthMm > UnitTolerance)
+        {
+            var horizontal = Math.Sqrt(Math.Max(0d, 1d - faceNormal.Z * faceNormal.Z));
+            var tanPitch = horizontal / faceNormal.Z;
+            outerUpperFacePoint = new RoofPoint3D(
+                upperFacePoint.X,
+                upperFacePoint.Y,
+                upperFacePoint.Z - (purlinWidthMm / 2d) * tanPitch);
+            if (!IsFinite(outerUpperFacePoint))
+            {
+                return Invalid(RoofPurlinPhysicalPlacementError.ImpossiblePlacement);
+            }
+        }
+
         if (!TryCreateRafterSection(
-                rafterCenterlinePoint,
+                outerUpperFacePoint,
                 faceNormal,
                 rafterHeightMm,
                 out var section) ||
@@ -153,16 +234,29 @@ public static class RoofRafterPhysicalGeometry
             return Invalid(RoofPurlinPhysicalPlacementError.ImpossiblePlacement);
         }
 
-        // Travel D from the lower surface along the roof normal. The reached point
-        // lies on the horizontal purlin top plane, hence only its Z is used below.
-        var supportPoint = Add(
-            section.LowerSurfacePoint,
-            Scale(faceNormal, seatingDepthMm));
-        var top = supportPoint.Z;
+        // D is perpendicular from the lower face toward the upper face. At a fixed
+        // horizontal station the matching vertical rise is D / cos(pitch) = D / n_z.
+        // D=0 → top at lower face; D=H → top at upper face.
+        double top;
+        if (seatingDepthMm <= UnitTolerance)
+        {
+            top = section.LowerSurfacePoint.Z;
+        }
+        else if (Math.Abs(seatingDepthMm - rafterHeightMm) <= UnitTolerance)
+        {
+            top = section.UpperSurfacePoint.Z;
+        }
+        else
+        {
+            top = section.UpperSurfacePoint.Z -
+                  (rafterHeightMm - seatingDepthMm) / faceNormal.Z;
+        }
+
         var center = top - purlinHeightMm / 2d;
         var bottom = center - purlinHeightMm / 2d;
         if (!IsFinite(top) || !IsFinite(center) || !IsFinite(bottom) ||
-            !(section.LowerSurfacePoint.Z < top && top < section.UpperSurfacePoint.Z))
+            !(section.LowerSurfacePoint.Z - UnitTolerance <= top &&
+              top <= section.UpperSurfacePoint.Z + UnitTolerance))
         {
             return Invalid(RoofPurlinPhysicalPlacementError.ImpossiblePlacement);
         }
@@ -170,20 +264,31 @@ public static class RoofRafterPhysicalGeometry
         double Relative(double localZ) =>
             RoofRelativeElevationDatumRules.ToRelativeElevationMm(datum, localZ);
 
+        // Axis-station rafter elevations remain reported at the member vertical axis.
+        if (!TryCreateRafterSection(
+                upperFacePoint,
+                faceNormal,
+                rafterHeightMm,
+                out var axisSection) ||
+            axisSection is null)
+        {
+            return Invalid(RoofPurlinPhysicalPlacementError.ImpossiblePlacement);
+        }
+
         return new RoofPurlinPhysicalPlacementResult(
             true,
             new RoofPurlinPhysicalPlacement(
-                section,
-                rafterCenterlinePoint.Z,
-                section.LowerSurfacePoint.Z,
-                section.UpperSurfacePoint.Z,
+                axisSection,
+                axisSection.CenterlinePoint.Z,
+                axisSection.LowerSurfacePoint.Z,
+                axisSection.UpperSurfacePoint.Z,
                 seatingDepthMm,
                 bottom,
                 center,
                 top,
-                Relative(rafterCenterlinePoint.Z),
-                Relative(section.LowerSurfacePoint.Z),
-                Relative(section.UpperSurfacePoint.Z),
+                Relative(axisSection.CenterlinePoint.Z),
+                Relative(axisSection.LowerSurfacePoint.Z),
+                Relative(axisSection.UpperSurfacePoint.Z),
                 Relative(bottom),
                 Relative(center),
                 Relative(top)),
@@ -200,15 +305,6 @@ public static class RoofRafterPhysicalGeometry
 
         return Math.Abs(normal.Length - 1d) <= UnitTolerance;
     }
-
-    private static RoofPoint3D Scale(RoofFaceUnitNormal normal, double value) =>
-        new(normal.X * value, normal.Y * value, normal.Z * value);
-
-    private static RoofPoint3D Add(RoofPoint3D point, RoofPoint3D vector) =>
-        new(point.X + vector.X, point.Y + vector.Y, point.Z + vector.Z);
-
-    private static RoofPoint3D Subtract(RoofPoint3D point, RoofPoint3D vector) =>
-        new(point.X - vector.X, point.Y - vector.Y, point.Z - vector.Z);
 
     private static bool IsFinite(RoofPoint3D point) =>
         IsFinite(point.X) && IsFinite(point.Y) && IsFinite(point.Z);

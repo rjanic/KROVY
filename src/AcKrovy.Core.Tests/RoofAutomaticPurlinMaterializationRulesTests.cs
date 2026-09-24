@@ -29,6 +29,66 @@ public sealed class RoofAutomaticPurlinMaterializationRulesTests
     }
 
     [Fact]
+    public void WallPlatePlanItem_MapsToExactTimberTypeDimensionsAndGeneratedFamily()
+    {
+        var item = new RoofAutomaticPurlinPlanItem(
+            new RoofAutomaticPurlinWallPlateKey(17),
+            TimberElementType.WallPlate,
+            new RoofSegment3D(
+                new RoofPoint3D(0d, 0d, 0d),
+                new RoofPoint3D(5000d, 0d, 0d)),
+            160d,
+            180d);
+
+        var timber = RoofAutomaticPurlinMaterializationRules.CreateTimberData(
+            TimberElementDefaultProfile.CreateDefault(),
+            item,
+            "P7");
+        var generated = RoofAutomaticPurlinGeneratedDataRules.Create(
+            "AF",
+            item.GeneratedKey);
+
+        Assert.True(generated.IsValid, generated.Error.ToString());
+        Assert.Equal(item.ElementType, timber.ElementType);
+        Assert.Equal(item.WidthMm, timber.WidthMm);
+        Assert.Equal(item.HeightMm, timber.HeightMm);
+        Assert.Equal("P7", timber.ElementId);
+        Assert.Equal(item.GeneratedKey, generated.Data!.GeneratedKey);
+        Assert.Equal("AF", generated.Data.RoofOwnerReference);
+        Assert.Equal(RoofAutomaticPurlinGeneratorRole.WallPlate, generated.Data.GeneratorRole);
+        Assert.Equal(TimberAnnotationMode.NoAnnotations, timber.AnnotationMode);
+    }
+
+    [Fact]
+    public void Reconcile_SecondIdenticalWallPlateRun_ReusesStableKeyAndElementId()
+    {
+        var desired = new[]
+        {
+            new RoofAutomaticPurlinPlanItem(
+                new RoofAutomaticPurlinWallPlateKey(4),
+                TimberElementType.WallPlate,
+                new RoofSegment3D(
+                    new RoofPoint3D(0d, 0d, 0d),
+                    new RoofPoint3D(4000d, 0d, 0d)),
+                140d,
+                140d),
+        };
+        var existing = new[]
+        {
+            Existing("A1", desired[0].GeneratedKey, "P12"),
+        };
+
+        var result = RoofAutomaticPurlinMaterializationRules.Reconcile(desired, existing);
+
+        Assert.True(result.IsValid);
+        Assert.Empty(result.Plan!.Create);
+        Assert.Empty(result.Plan.Stale);
+        var reused = Assert.Single(result.Plan.Reuse);
+        Assert.Equal("P12", reused.Existing.ElementId);
+        Assert.Equal(desired[0].GeneratedKey, reused.Desired.GeneratedKey);
+    }
+
+    [Fact]
     public void Reconcile_SecondIdenticalRun_ReusesEveryMember()
     {
         var desired = new[] { Item(RidgeKey(1, 2), 0d), Item(IntermediateKey("row-1"), 800d) };
@@ -94,6 +154,111 @@ public sealed class RoofAutomaticPurlinMaterializationRulesTests
         Assert.Empty(result.Plan!.Create);
         Assert.Equal(2, result.Plan.Reuse.Count);
         Assert.Equal(ridge, Assert.Single(result.Plan.Stale).GeneratedKey);
+    }
+
+    [Fact]
+    public void Reconcile_WallPlateLowerEdgeChange_ReusesStableKeysAndElementIds()
+    {
+        var atZero = new[]
+        {
+            WallPlateItem(1, centerZMm: 70d),
+            WallPlateItem(2, centerZMm: 70d),
+            WallPlateItem(3, centerZMm: 70d),
+            WallPlateItem(4, centerZMm: 70d),
+        };
+        var atThousand = new[]
+        {
+            WallPlateItem(1, centerZMm: 1070d),
+            WallPlateItem(2, centerZMm: 1070d),
+            WallPlateItem(3, centerZMm: 1070d),
+            WallPlateItem(4, centerZMm: 1070d),
+        };
+        var existing = atZero
+            .Select((item, index) => Existing(
+                (10 + index).ToString(System.Globalization.CultureInfo.InvariantCulture),
+                item.GeneratedKey,
+                "P" + (index + 1).ToString(System.Globalization.CultureInfo.InvariantCulture)))
+            .ToArray();
+
+        var result = RoofAutomaticPurlinMaterializationRules.Reconcile(atThousand, existing);
+
+        Assert.True(result.IsValid, result.Error.ToString());
+        Assert.Empty(result.Plan!.Create);
+        Assert.Empty(result.Plan.Stale);
+        Assert.Equal(4, result.Plan.Reuse.Count);
+        Assert.Equal(
+            existing.Select(member => member.ElementId),
+            result.Plan.Reuse.Select(reuse => reuse.Existing.ElementId));
+        Assert.Equal(
+            atThousand.Select(item => item.GeneratedKey),
+            result.Plan.Reuse.Select(reuse => reuse.Desired.GeneratedKey));
+        Assert.All(result.Plan.Reuse, reuse =>
+            Assert.Equal(1070d, reuse.Desired.Segment3D.Start.Z, 9));
+    }
+
+    [Fact]
+    public void Reconcile_WallPlateOffToOn_CreatesOnlyMissingWallPlates()
+    {
+        var ridge = Item(RidgeKey(1, 2), 1000d);
+        var wallPlateA = WallPlateItem(1);
+        var wallPlateB = WallPlateItem(2);
+        var result = RoofAutomaticPurlinMaterializationRules.Reconcile(
+            new[] { wallPlateA, wallPlateB, ridge },
+            new[] { Existing("10", ridge.GeneratedKey, "V1") });
+
+        Assert.True(result.IsValid);
+        Assert.Equal(2, result.Plan!.Create.Count);
+        Assert.All(result.Plan.Create, item =>
+            Assert.IsType<RoofAutomaticPurlinWallPlateKey>(item.GeneratedKey));
+        Assert.Equal("V1", Assert.Single(result.Plan.Reuse).Existing.ElementId);
+        Assert.Empty(result.Plan.Stale);
+    }
+
+    [Fact]
+    public void Reconcile_WallPlateOnToOff_RemovesOnlyStaleWallPlates()
+    {
+        var ridge = Item(RidgeKey(1, 2), 1000d);
+        var wallPlate = WallPlateItem(1);
+        var result = RoofAutomaticPurlinMaterializationRules.Reconcile(
+            new[] { ridge },
+            new[]
+            {
+                Existing("10", ridge.GeneratedKey, "V1"),
+                Existing("11", wallPlate.GeneratedKey, "P1"),
+            });
+
+        Assert.True(result.IsValid);
+        Assert.Empty(result.Plan!.Create);
+        Assert.Equal("V1", Assert.Single(result.Plan.Reuse).Existing.ElementId);
+        Assert.Equal("P1", Assert.Single(result.Plan.Stale).ElementId);
+    }
+
+    [Fact]
+    public void Reconcile_RidgeOnToOff_PreservesWallPlateIdentityAndThenIsIdempotent()
+    {
+        var wallPlate = WallPlateItem(1);
+        var ridge = Item(RidgeKey(1, 2), 1000d);
+        var existing = new[]
+        {
+            Existing("10", wallPlate.GeneratedKey, "P7"),
+            Existing("11", ridge.GeneratedKey, "V3"),
+        };
+
+        var toggle = RoofAutomaticPurlinMaterializationRules.Reconcile(
+            new[] { wallPlate },
+            existing);
+        Assert.True(toggle.IsValid);
+        Assert.Empty(toggle.Plan!.Create);
+        Assert.Equal("P7", Assert.Single(toggle.Plan.Reuse).Existing.ElementId);
+        Assert.Equal("V3", Assert.Single(toggle.Plan.Stale).ElementId);
+
+        var identical = RoofAutomaticPurlinMaterializationRules.Reconcile(
+            new[] { wallPlate },
+            new[] { Existing("10", wallPlate.GeneratedKey, "P7") });
+        Assert.True(identical.IsValid);
+        Assert.Empty(identical.Plan!.Create);
+        Assert.Single(identical.Plan.Reuse);
+        Assert.Empty(identical.Plan.Stale);
     }
 
     [Fact]
@@ -184,6 +349,17 @@ public sealed class RoofAutomaticPurlinMaterializationRulesTests
             new RoofSegment3D(
                 new RoofPoint3D(0d, 0d, elevation),
                 new RoofPoint3D(1000d, 0d, elevation)));
+
+    private static RoofAutomaticPurlinPlanItem WallPlateItem(
+        int boundaryEdgeId,
+        double centerZMm = 0d) => new(
+        new RoofAutomaticPurlinWallPlateKey(boundaryEdgeId),
+        TimberElementType.WallPlate,
+        new RoofSegment3D(
+            new RoofPoint3D(0d, boundaryEdgeId * 100d, centerZMm),
+            new RoofPoint3D(1000d, boundaryEdgeId * 100d, centerZMm)),
+        140d,
+        140d);
 
     private static RoofAutomaticPurlinExistingMember Existing(
         string token,

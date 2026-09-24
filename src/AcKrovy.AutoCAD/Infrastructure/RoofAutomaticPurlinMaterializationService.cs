@@ -61,7 +61,8 @@ internal static class RoofAutomaticPurlinMaterializationService
             storedLayout.Data,
             storedDatum.Data,
             defaultProfile,
-            layerProfile);
+            layerProfile,
+            includeWallPlates: storedLayout.Data.WallPlateEnabled);
     }
 
     public static RoofAutomaticPurlinMaterializationResult MaterializeInTransaction(
@@ -71,7 +72,9 @@ internal static class RoofAutomaticPurlinMaterializationService
         RoofAutomaticPurlinLayout layout,
         RoofRelativeElevationDatum relativeElevationDatum,
         TimberElementDefaultProfile defaultProfile,
-        AcKrovy.Cad.Abstractions.Layers.ElementLayerProfile layerProfile)
+        AcKrovy.Cad.Abstractions.Layers.ElementLayerProfile layerProfile,
+        bool includeWallPlates = false,
+        bool syncAssemblyGroup = true)
     {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(transaction);
@@ -101,7 +104,9 @@ internal static class RoofAutomaticPurlinMaterializationService
             layout,
             relativeElevationDatum,
             defaultProfile,
-            layerProfile);
+            layerProfile,
+            includeWallPlates: includeWallPlates,
+            syncAssemblyGroup: syncAssemblyGroup);
     }
 
     public static RoofAutomaticPurlinMaterializationPreparation? PrepareInTransaction(
@@ -224,7 +229,10 @@ internal static class RoofAutomaticPurlinMaterializationService
         RoofRelativeElevationDatum relativeElevationDatum,
         TimberElementDefaultProfile defaultProfile,
         AcKrovy.Cad.Abstractions.Layers.ElementLayerProfile layerProfile,
-        RoofAutomaticPurlinPlan? expectedPreviewPlan = null)
+        RoofAutomaticPurlinPlan? expectedPreviewPlan = null,
+        bool includeWallPlates = false,
+        double? authoritativeRafterHeightMm = null,
+        bool syncAssemblyGroup = true)
     {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(transaction);
@@ -247,14 +255,57 @@ internal static class RoofAutomaticPurlinMaterializationService
         var provenance = RoofBoundaryIdentityProvenanceResolver.Resolve(
             preparation.SourceInput,
             preparation.BoundaryIdentity);
+        var purlinDefaults = TimberElementDefaults.For(
+            TimberElementType.Purlin,
+            defaultProfile);
+        var wallPlateDefaults = TimberElementDefaults.For(
+            TimberElementType.WallPlate,
+            defaultProfile);
+        double rafterHeightMm;
+        if (authoritativeRafterHeightMm is { } explicitHeight)
+        {
+            if (!double.IsFinite(explicitHeight) || explicitHeight <= 0d)
+            {
+                return RoofAutomaticPurlinMaterializationResult.Failure(
+                    "invalid-authoritative-rafter-height",
+                    preparation.OwnerReference);
+            }
+
+            rafterHeightMm = explicitHeight;
+        }
+        else if (!RoofAutomaticPurlinPlanningRafterResolver.TryResolve(
+                document.Database,
+                transaction,
+                preparation.OwnerReference,
+                layout,
+                defaultProfile,
+                out var planningRafter,
+                out var rafterFailure,
+                document.Editor))
+        {
+            return RoofAutomaticPurlinMaterializationResult.Failure(
+                rafterFailure,
+                preparation.OwnerReference);
+        }
+        else
+        {
+            rafterHeightMm = planningRafter.HeightMm;
+        }
+
         var planned = RoofAutomaticPurlinPlanner.Create(
             preparation.HipGeometry,
             provenance,
             layout,
             new RoofAutomaticPurlinPlanningInput(
                 relativeElevationDatum,
-                TimberElementDefaults.For(TimberElementType.Purlin, defaultProfile).HeightMm,
-                TimberElementDefaults.For(TimberElementType.Rafter, defaultProfile).HeightMm));
+                purlinDefaults.HeightMm,
+                rafterHeightMm)
+            {
+                PurlinWidthMm = purlinDefaults.WidthMm,
+                WallPlatesEnabled = includeWallPlates,
+                WallPlateWidthMm = wallPlateDefaults.WidthMm,
+                WallPlateHeightMm = wallPlateDefaults.HeightMm,
+            });
         if (!planned.IsValid || planned.Plan is null)
         {
             return RoofAutomaticPurlinMaterializationResult.Failure(
@@ -278,7 +329,8 @@ internal static class RoofAutomaticPurlinMaterializationService
             preparation.SourceElevation,
             planned.Plan.Items,
             defaultProfile,
-            layerProfile);
+            layerProfile,
+            syncAssemblyGroup: syncAssemblyGroup);
     }
 
     private static RoofAutomaticPurlinMaterializationResult Reconcile(
@@ -289,7 +341,8 @@ internal static class RoofAutomaticPurlinMaterializationService
         double sourceElevation,
         IReadOnlyList<RoofAutomaticPurlinPlanItem> desired,
         TimberElementDefaultProfile defaultProfile,
-        AcKrovy.Cad.Abstractions.Layers.ElementLayerProfile layerProfile)
+        AcKrovy.Cad.Abstractions.Layers.ElementLayerProfile layerProfile,
+        bool syncAssemblyGroup = true)
     {
         var database = document.Database;
         var metadataStore = new AutoCadTimberElementMetadataStore(transaction);
@@ -345,22 +398,17 @@ internal static class RoofAutomaticPurlinMaterializationService
         var existingByKey = existingMembers.ToDictionary(
             member => member.GeneratedData.GeneratedKey);
         var ownersByElementId = ReadElementIdOwners(database, transaction, metadataStore);
-        var elementIdRequests = new List<RoofAutomaticPurlinElementIdRequest>(desired.Count);
         var existingForDesired = new List<ExistingMember?>(desired.Count);
         foreach (var item in desired)
         {
             existingByKey.TryGetValue(item.GeneratedKey, out var existing);
             existingForDesired.Add(existing);
-            elementIdRequests.Add(new RoofAutomaticPurlinElementIdRequest(
-                existing?.Id.Handle.ToString(),
-                existing?.TimberData.ElementId ?? string.Empty));
         }
 
-        var assignedElementIds = RoofAutomaticPurlinElementIdAllocationRules.Assign(
-            TimberElementType.Purlin,
-            elementIdRequests,
+        var assignedElementIds = AssignElementIds(
+            desired,
+            existingForDesired,
             ownersByElementId);
-        var purlinLayerStyle = layerProfile.GetStyle(TimberElementType.Purlin);
         var prepared = new List<PreparedMember>(desired.Count);
         for (var index = 0; index < desired.Count; index++)
         {
@@ -368,6 +416,7 @@ internal static class RoofAutomaticPurlinMaterializationService
             var existing = existingForDesired[index];
             var timberData = RoofAutomaticPurlinMaterializationRules.CreateTimberData(
                 defaultProfile,
+                item,
                 assignedElementIds[index]);
             var generated = RoofAutomaticPurlinGeneratedDataRules.Create(
                 ownerReference,
@@ -384,6 +433,8 @@ internal static class RoofAutomaticPurlinMaterializationService
                     ownerReference);
             }
 
+            var layerStyle = layerProfile.GetStyle(item.ElementType);
+
             prepared.Add(new PreparedMember(
                 item,
                 existing,
@@ -391,8 +442,8 @@ internal static class RoofAutomaticPurlinMaterializationService
                 end,
                 timberData,
                 generated,
-                purlinLayerStyle.LayerName,
-                purlinLayerStyle.LinetypeScale));
+                layerStyle.LayerName,
+                layerStyle.LinetypeScale));
         }
 
         var staleIds = decision.Plan.Stale
@@ -481,7 +532,7 @@ internal static class RoofAutomaticPurlinMaterializationService
                     {
                         layerService.ApplyLayerForTimberType(
                             member.Existing.Line,
-                            TimberElementType.Purlin,
+                            member.Item.ElementType,
                             layerProfile,
                             AcKrovy.Cad.Abstractions.Layers.CadLayerUpdateMode.PreserveExisting);
                     }
@@ -512,26 +563,36 @@ internal static class RoofAutomaticPurlinMaterializationService
             transaction.AddNewlyCreatedDBObject(line, true);
             layerService.ApplyLayerForTimberType(
                 line,
-                TimberElementType.Purlin,
+                member.Item.ElementType,
                 layerProfile,
                 AcKrovy.Cad.Abstractions.Layers.CadLayerUpdateMode.PreserveExisting);
             createdCount++;
             members.Add(CreateMemberResult(member, id.Handle.ToString(), "created"));
         }
 
-        if (!RoofAssemblyGroupSyncService.TrySyncForOwner(
-                document,
-                transaction,
-                owner.ObjectId) ||
-            !RoofDisplayService.TryCollectCurrentStructuralDisplayChildIds(
+        var groupCanonical = true;
+        if (syncAssemblyGroup)
+        {
+            if (!RoofAssemblyGroupSyncService.TrySyncForOwner(
+                    document,
+                    transaction,
+                    owner.ObjectId) ||
+                !RoofDisplayService.TryCollectCurrentStructuralDisplayChildIds(
+                    database,
+                    transaction,
+                    owner,
+                    out var displayIds))
+            {
+                return RoofAutomaticPurlinMaterializationResult.Failure(
+                    "group-sync-failed",
+                    ownerReference);
+            }
+
+            groupCanonical = RoofDisplayGroupService.Inspect(
                 database,
                 transaction,
-                owner,
-                out var displayIds))
-        {
-            return RoofAutomaticPurlinMaterializationResult.Failure(
-                "group-sync-failed",
-                ownerReference);
+                owner.ObjectId,
+                displayIds).IsCurrent;
         }
 
         var postScan = RoofAutomaticPurlinGeneratedStore.ScanForOwner(
@@ -548,11 +609,6 @@ internal static class RoofAutomaticPurlinMaterializationService
         var duplicates = actualKeys.Length - actualKeys.Distinct().Count();
         var actualKeySet = actualKeys.ToHashSet();
         var missing = desired.Count(item => !actualKeySet.Contains(item.GeneratedKey));
-        var groupCanonical = RoofDisplayGroupService.Inspect(
-            database,
-            transaction,
-            owner.ObjectId,
-            displayIds).IsCurrent;
         var expectedByKey = prepared.ToDictionary(item => item.Item.GeneratedKey);
         var success =
             postScan.MalformedIds.Count == 0 &&
@@ -576,6 +632,7 @@ internal static class RoofAutomaticPurlinMaterializationService
             ownerReference,
             desired.Count,
             postScan.MatchingIds.Count,
+            desired.Count(item => item.GeneratorRole == RoofAutomaticPurlinGeneratorRole.WallPlate),
             desired.Count(item => item.GeneratorRole == RoofAutomaticPurlinGeneratorRole.Ridge),
             desired.Count(item => item.GeneratorRole == RoofAutomaticPurlinGeneratorRole.Intermediate),
             createdCount,
@@ -611,13 +668,16 @@ internal static class RoofAutomaticPurlinMaterializationService
             !metadataStore.TryRead(line, out var timberData) ||
             timberData is null ||
             timberData.SchemaVersion != TimberElementDataSchema.CurrentVersion ||
-            timberData.ElementType != TimberElementType.Purlin)
+            !Enum.IsDefined(typeof(TimberElementType), timberData.ElementType))
         {
             return false;
         }
 
         var generated = RoofAutomaticPurlinGeneratedStore.Read(line).Data;
         if (generated is null ||
+            !RoofAutomaticPurlinMaterializationRules.IsMatchingTimberType(
+                generated.GeneratedKey,
+                timberData.ElementType) ||
             !string.Equals(
                 generated.RoofOwnerReference,
                 ownerReference,
@@ -632,9 +692,36 @@ internal static class RoofAutomaticPurlinMaterializationService
 
     /// <summary>
     /// Database-wide ownership map over every readable intelligent Timber entity in
-    /// ModelSpace (all types/owners). Matching automatic Purlins exclude themselves
+    /// ModelSpace (all types/owners). Matching automatic members exclude themselves
     /// via ObjectId handle during Core allocation; batch reservations are explicit.
     /// </summary>
+    private static IReadOnlyList<string> AssignElementIds(
+        IReadOnlyList<RoofAutomaticPurlinPlanItem> desired,
+        IReadOnlyList<ExistingMember?> existing,
+        IReadOnlyDictionary<string, IReadOnlyCollection<string>> ownersByElementId)
+    {
+        var assigned = new string[desired.Count];
+        foreach (var group in Enumerable.Range(0, desired.Count)
+                     .GroupBy(index => desired[index].ElementType))
+        {
+            var indices = group.ToArray();
+            var requests = indices.Select(index =>
+                new RoofAutomaticPurlinElementIdRequest(
+                    existing[index]?.Id.Handle.ToString(),
+                    existing[index]?.TimberData.ElementId ?? string.Empty)).ToArray();
+            var groupAssignments = RoofAutomaticPurlinElementIdAllocationRules.Assign(
+                group.Key,
+                requests,
+                ownersByElementId);
+            for (var index = 0; index < indices.Length; index++)
+            {
+                assigned[indices[index]] = groupAssignments[index];
+            }
+        }
+
+        return assigned;
+    }
+
     private static Dictionary<string, IReadOnlyCollection<string>> ReadElementIdOwners(
         Database database,
         Transaction transaction,
@@ -716,7 +803,7 @@ internal static class RoofAutomaticPurlinMaterializationService
                     GeometryToleranceMm ||
                 TimberElementIdentityRules.TryParseElementNumber(
                     timber.ElementId,
-                    TimberElementType.Purlin) is not > 0 ||
+                    expected.Item.ElementType) is not > 0 ||
                 !SamePoint(line.StartPoint, expected.Start) ||
                 !SamePoint(line.EndPoint, expected.End) ||
                 Math.Abs(line.Length - expected.Item.LengthMm) > GeometryToleranceMm)
@@ -780,9 +867,12 @@ internal static class RoofAutomaticPurlinMaterializationService
         string result) => new(
             member.Item.GeneratedKey,
             member.Item.GeneratorRole,
+            member.Item.ElementType,
             member.Item.LayoutItemId,
             handle,
             member.TimberData.ElementId,
+            member.Item.WidthMm,
+            member.Item.HeightMm,
             member.Item.LengthMm,
             member.Start,
             member.End,
@@ -810,6 +900,8 @@ internal static class RoofAutomaticPurlinMaterializationService
             var right = actual.Items[index];
             if (left.GeneratedKey != right.GeneratedKey ||
                 left.ElementType != right.ElementType ||
+                Math.Abs(left.WidthMm - right.WidthMm) > GeometryToleranceMm ||
+                Math.Abs(left.HeightMm - right.HeightMm) > GeometryToleranceMm ||
                 !SamePoint(left.Segment3D.Start, right.Segment3D.Start) ||
                 !SamePoint(left.Segment3D.End, right.Segment3D.End) ||
                 !SameElevationProfile(left.ElevationProfile, right.ElevationProfile) ||
@@ -924,9 +1016,12 @@ internal sealed record RoofAutomaticPurlinOwnerStateInspection(
 internal sealed record RoofAutomaticPurlinMemberResult(
     RoofAutomaticPurlinGeneratedKey GeneratedKey,
     RoofAutomaticPurlinGeneratorRole Role,
+    TimberElementType ElementType,
     string? LayoutItemId,
     string Handle,
     string ElementId,
+    double WidthMm,
+    double HeightMm,
     double PlanLengthMm,
     Point3d Start,
     Point3d End,
@@ -938,6 +1033,7 @@ internal sealed record RoofAutomaticPurlinMaterializationResult(
     string OwnerReference,
     int Desired,
     int Actual,
+    int WallPlate,
     int Ridge,
     int Intermediate,
     int Created,
@@ -956,6 +1052,7 @@ internal sealed record RoofAutomaticPurlinMaterializationResult(
         int duplicates = 0) => new(
             false,
             ownerReference,
+            0,
             0,
             0,
             0,

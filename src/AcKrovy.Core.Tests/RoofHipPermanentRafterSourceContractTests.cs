@@ -33,8 +33,9 @@ public sealed class RoofHipPermanentRafterSourceContractTests
 
         Assert.Contains("not HipRoofGeometry", workflow);
         Assert.Contains("RoofGeneratedRafterSetService.Materialize", workflow);
+        Assert.Contains("TryReplaceWithEditedRecipe", workflow);
         Assert.Contains("LockDocument()", workflow);
-        Assert.Equal(1, Count(workflow, "transaction.Commit();"));
+        Assert.Equal(2, Count(workflow, "transaction.Commit();"));
         Assert.Contains("Command_RoofRafters_ReplacementDeferred", workflow);
         Assert.Contains("RoofRafterRequestValidator.Validate", window);
         Assert.Contains("CreateButton.IsEnabled = validation.IsValid", window);
@@ -119,7 +120,7 @@ public sealed class RoofHipPermanentRafterSourceContractTests
             "AcApp.ShowModalWindow(dialog)",
             StringComparison.Ordinal);
         var create = workflow.IndexOf(
-            "TryCreateRafters(",
+            "TryReplaceRafters(",
             dialogResult,
             StringComparison.Ordinal);
         Assert.True(dialogResult >= 0 && create > dialogResult);

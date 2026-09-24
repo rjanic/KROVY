@@ -20,6 +20,7 @@
                 <ResourceDictionary Source="Design/SettingsControls.xaml" />
                 <ResourceDictionary Source="Design/RoofGeometryVisuals.xaml" />
             </ResourceDictionary.MergedDictionaries>
+            <BooleanToVisibilityConverter x:Key="BoolToVis" />
             <!--
               Explicit numeric-field template matching the proven Settings TextBox metrics.
               The default TextBox ScrollViewer host clips glyphs when a Star-sized parent
@@ -60,6 +61,10 @@
                                 <Trigger Property="IsKeyboardFocused" Value="True">
                                     <Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource SettingsFocusBrush}" />
                                 </Trigger>
+                                <DataTrigger Binding="{Binding HasValidationMessage}" Value="True">
+                                    <Setter TargetName="Chrome" Property="BorderBrush" Value="#B8860B" />
+                                    <Setter TargetName="Chrome" Property="BorderThickness" Value="2" />
+                                </DataTrigger>
                                 <Trigger Property="Validation.HasError" Value="True">
                                     <Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource SettingsValidationBrush}" />
                                     <Setter TargetName="Chrome" Property="BorderThickness" Value="2" />
@@ -114,6 +119,45 @@
                 <TextBox x:Name="SlopeTextBox"
                          Style="{StaticResource HipSlopeTextBoxStyle}"
                          Text="{Binding SlopeText, UpdateSourceTrigger=PropertyChanged}" />
+                <Border x:Name="ValidationPanel"
+                        Margin="0,8,0,0"
+                        Padding="10,8"
+                        Background="#33B8860B"
+                        BorderBrush="#B8860B"
+                        BorderThickness="1"
+                        CornerRadius="6"
+                        Visibility="{Binding HasValidationMessage, Converter={StaticResource BoolToVis}}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Viewbox x:Name="ValidationIcon"
+                                 Width="16"
+                                 Height="16"
+                                 Margin="0,1,8,0"
+                                 VerticalAlignment="Top"
+                                 Stretch="Uniform">
+                            <Canvas Width="24" Height="24">
+                                <Path Data="M12,2.8 L22.2,20.8 L1.8,20.8 Z"
+                                      Fill="#C9A227"
+                                      Stroke="#8A6A12"
+                                      StrokeThickness="1.2"
+                                      StrokeLineJoin="Round" />
+                                <Ellipse Canvas.Left="10.4" Canvas.Top="8.2" Width="3.2" Height="3.2" Fill="#5C4310" />
+                                <Rectangle Canvas.Left="11" Canvas.Top="12.2" Width="2" Height="5.6" Fill="#5C4310" RadiusX="0.6" RadiusY="0.6" />
+                            </Canvas>
+                        </Viewbox>
+                        <TextBlock x:Name="ValidationTextBlock"
+                                   Grid.Column="1"
+                                   FontFamily="{DynamicResource SettingsFontFamily}"
+                                   FontSize="{DynamicResource SettingsFontSizeBody}"
+                                   Foreground="#6B4A12"
+                                   Text="{Binding ValidationMessage}"
+                                   TextWrapping="Wrap"
+                                   VerticalAlignment="Center" />
+                    </Grid>
+                </Border>
             </StackPanel>
         </Border>
 
@@ -121,9 +165,6 @@
                 Background="{StaticResource WoodOakDarkBrush}" BorderBrush="#321708" BorderThickness="1" CornerRadius="8">
             <Grid>
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                <TextBlock x:Name="ValidationTextBlock" Grid.Column="0" Margin="12,0,12,0"
-                           VerticalAlignment="Center" MinHeight="20" Foreground="#F2E1C5"
-                           Text="{Binding ValidationMessage}" TextWrapping="Wrap" />
                 <StackPanel Grid.Column="1" Margin="0,0,12,0" VerticalAlignment="Center"
                             HorizontalAlignment="Right" Orientation="Horizontal">
             <Button x:Name="CancelButton"

@@ -16,6 +16,7 @@ internal static class RoofAutomaticPurlinGeneratedStore
     private const int DxfInt16Code = (int)DxfCode.ExtendedDataInteger16;
     private const int DxfInt32Code = (int)DxfCode.ExtendedDataInteger32;
     private const int CommonValueCount = 4;
+    private const int WallPlateValueCount = 5;
     private const int RidgeValueCount = 6;
     private const int IntermediateValueCount = 8;
 
@@ -57,6 +58,14 @@ internal static class RoofAutomaticPurlinGeneratedStore
         {
             return RoofAutomaticPurlinGeneratedStoreReadResult.Invalid(
                 RoofAutomaticPurlinGeneratedDataError.MalformedValueType);
+        }
+
+        if (string.Equals(
+                roleToken,
+                RoofAutomaticPurlinGeneratedDataRules.WallPlateToken,
+                StringComparison.Ordinal))
+        {
+            return DecodeWallPlate(values, schemaVersion, ownerReference, roleToken);
         }
 
         if (string.Equals(
@@ -116,6 +125,12 @@ internal static class RoofAutomaticPurlinGeneratedStore
 
         switch (canonical.GeneratedKey)
         {
+            case RoofAutomaticPurlinWallPlateKey wallPlate:
+                values.Add(new TypedValue(
+                    DxfInt32Code,
+                    wallPlate.BoundaryEdgeId));
+                break;
+
             case RoofAutomaticPurlinRidgeKey ridge:
                 values.Add(new TypedValue(
                     DxfInt32Code,
@@ -348,6 +363,39 @@ internal static class RoofAutomaticPurlinGeneratedStore
             roleToken,
             boundaryEdgeIdA,
             boundaryEdgeIdB);
+        return FromValidation(validated);
+    }
+
+    private static RoofAutomaticPurlinGeneratedStoreReadResult DecodeWallPlate(
+        IReadOnlyList<TypedValue> values,
+        short schemaVersion,
+        string ownerReference,
+        string roleToken)
+    {
+        if (values.Count < WallPlateValueCount)
+        {
+            return RoofAutomaticPurlinGeneratedStoreReadResult.Invalid(
+                RoofAutomaticPurlinGeneratedDataError.IncompletePayload);
+        }
+
+        if (values.Count > WallPlateValueCount)
+        {
+            return RoofAutomaticPurlinGeneratedStoreReadResult.Invalid(
+                RoofAutomaticPurlinGeneratedDataError.UnexpectedTrailingValue);
+        }
+
+        if (values[4].TypeCode != DxfInt32Code ||
+            values[4].Value is not int boundaryEdgeId)
+        {
+            return RoofAutomaticPurlinGeneratedStoreReadResult.Invalid(
+                RoofAutomaticPurlinGeneratedDataError.MalformedValueType);
+        }
+
+        var validated = RoofAutomaticPurlinGeneratedDataRules.ValidateWallPlateStored(
+            schemaVersion,
+            ownerReference,
+            roleToken,
+            boundaryEdgeId);
         return FromValidation(validated);
     }
 

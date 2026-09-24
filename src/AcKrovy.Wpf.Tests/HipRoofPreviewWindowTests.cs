@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Threading;
 using AcKrovy.AutoCAD.Infrastructure;
 using AcKrovy.AutoCAD.UI;
 using AcKrovy.Core.Models.Roofs;
@@ -37,6 +38,99 @@ public sealed class HipRoofPreviewWindowTests
         Assert.DoesNotContain(
             typeof(HipRoofPreviewViewModel).GetProperties(),
             property => property.Name.Contains("Direction", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void SessionValidation_PreservesEnteredPitchAndKeepsApplyEnabled()
+    {
+        var culture = CultureInfo.GetCultureInfo("sk-SK");
+        var viewModel = new HipRoofPreviewViewModel(
+            Rectangle(),
+            45d,
+            HipRoofDialogMode.Edit,
+            culture: culture)
+        {
+            SlopeText = "12",
+        };
+
+        Assert.True(viewModel.CanApply);
+        Assert.True(viewModel.TryGetRoofGeometry(out var proposed));
+        Assert.Equal(12d, proposed!.PrimarySlopeDegrees);
+
+        viewModel.SetSessionValidation("Command_RoofEdit_PurlinElevationOutsideRoof");
+
+        Assert.True(viewModel.HasSessionValidation);
+        Assert.True(viewModel.HasValidationMessage);
+        Assert.Equal("12", viewModel.SlopeText);
+        Assert.True(viewModel.CanApply);
+        Assert.True(viewModel.CanPreview);
+        Assert.True(viewModel.TryGetRoofGeometry(out var retained));
+        Assert.Equal(12d, retained!.PrimarySlopeDegrees);
+        Assert.Equal(
+            UiStrings.GetString("Command_RoofEdit_PurlinElevationOutsideRoof", culture)
+                .TrimStart('\r', '\n')
+                .TrimEnd(),
+            viewModel.ValidationMessage);
+        Assert.Contains("Medziľahlá väznica", viewModel.ValidationMessage);
+        Assert.DoesNotContain("Automatické krokvy", viewModel.ValidationMessage);
+
+        viewModel.SlopeText = "55";
+        Assert.False(viewModel.HasSessionValidation);
+        Assert.True(viewModel.CanApply);
+        Assert.Empty(viewModel.ValidationMessage);
+        Assert.True(viewModel.TryGetRoofGeometry(out var corrected));
+        Assert.Equal(55d, corrected!.PrimarySlopeDegrees);
+    }
+
+    [Fact]
+    public void SessionValidation_ShowsInlinePanelAndFocusesSlopeWithoutClosing()
+    {
+        RunSta(() =>
+        {
+            AppLanguageService.Apply("sk");
+            var culture = CultureInfo.GetCultureInfo("sk-SK");
+            var viewModel = new HipRoofPreviewViewModel(
+                Rectangle(),
+                45d,
+                HipRoofDialogMode.Edit,
+                culture: culture)
+            {
+                SlopeText = "12",
+            };
+            var window = CreateOffscreenWindow(viewModel);
+            window.Show();
+            window.UpdateLayout();
+
+            viewModel.SetSessionValidation("Command_RoofEdit_PurlinElevationOutsideRoof");
+            window.UpdateLayout();
+            window.FocusSlopeInput();
+            window.Dispatcher.Invoke(
+                DispatcherPriority.ApplicationIdle,
+                new Action(() => { }));
+
+            Assert.True(viewModel.HasValidationMessage);
+            Assert.Equal(Visibility.Visible, window.ValidationPanel.Visibility);
+            Assert.NotNull(window.ValidationIcon);
+            Assert.Equal(Visibility.Visible, window.ValidationIcon.Visibility);
+            Assert.Contains("Medziľahlá väznica", window.ValidationTextBlock.Text);
+            Assert.True(window.ApplyButton.IsEnabled);
+            Assert.True(window.IsVisible);
+            Assert.False(window.IsClosed);
+            Assert.Equal("12", window.SlopeTextBox.Text);
+            Assert.True(
+                window.SlopeTextBox.SelectionLength == window.SlopeTextBox.Text.Length ||
+                window.SlopeTextBox.IsKeyboardFocused);
+
+            viewModel.SlopeText = "25";
+            window.UpdateLayout();
+            Assert.False(viewModel.HasValidationMessage);
+            Assert.Equal(Visibility.Collapsed, window.ValidationPanel.Visibility);
+
+            window.CancelButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Assert.Equal(HipRoofPreviewDialogAction.Cancel, window.RequestedAction);
+            Assert.False(window.IsVisible);
+            window.Close();
+        });
     }
 
     [Fact]

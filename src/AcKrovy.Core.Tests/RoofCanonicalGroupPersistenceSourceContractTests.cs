@@ -178,7 +178,11 @@ public sealed class RoofCanonicalGroupPersistenceSourceContractTests
         var source = Sync + Group + Collector + Display + Materializer + Selectability + Lifecycle;
         Assert.Equal(1, Count(Group, "GroupNamePrefix = \"AK_ROOF_\""));
         Assert.DoesNotContain("AK_ROOF_DISPLAY", source);
-        Assert.DoesNotContain("AK_ROOF_RAFTER", source);
+        // Word-boundary: comments may name the AK_ROOF_RAFTERS command without adding
+        // a second group prefix AK_ROOF_RAFTER.
+        Assert.False(
+            System.Text.RegularExpressions.Regex.IsMatch(source, @"\bAK_ROOF_RAFTER\b"),
+            "Canonical group sources must not introduce an AK_ROOF_RAFTER group prefix.");
         Assert.DoesNotContain("SetSystemVariable", source);
         Assert.DoesNotContain("TrySyncForOwner", RoofUxSourceContractText.Member(
             Lifecycle,

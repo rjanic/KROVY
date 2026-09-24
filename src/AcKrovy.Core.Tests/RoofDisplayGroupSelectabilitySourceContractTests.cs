@@ -62,6 +62,8 @@ public sealed class RoofDisplayGroupSelectabilitySourceContractTests
         Assert.Contains("CollectGroupsContainingCanonicalMembers", Group + Selectability);
         Assert.Contains("PruneStaleRoofGroupsContainingCanonicalMembers", Group + Selectability);
         Assert.Contains("ROOF_GROUP_MEMBER_GROUP", Selectability);
+        Assert.Contains("ACKROVY_ROOF_GROUP_DIAG", Selectability);
+        Assert.Contains("IsRoofGroupMembershipDiagEnabled", Selectability);
         Assert.Contains("IsKrovyOwnedDuplicateRoofGroup", Group);
     }
 

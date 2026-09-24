@@ -7,6 +7,7 @@ public enum RoofAutomaticPurlinGeneratorRole
 {
     Ridge = 1,
     Intermediate = 2,
+    WallPlate = 3,
 }
 
 /// <summary>
@@ -33,6 +34,19 @@ public sealed record RoofAutomaticPurlinBoundaryKey(
 public abstract record RoofAutomaticPurlinGeneratedKey
 {
     public abstract RoofAutomaticPurlinGeneratorRole GeneratorRole { get; }
+}
+
+/// <summary>Stable owner-scoped identity of one automatic wall plate.</summary>
+public sealed record RoofAutomaticPurlinWallPlateKey(
+    int BoundaryEdgeId) : RoofAutomaticPurlinGeneratedKey
+{
+    public override RoofAutomaticPurlinGeneratorRole GeneratorRole =>
+        RoofAutomaticPurlinGeneratorRole.WallPlate;
+
+    public override string ToString() => string.Join(
+        "|",
+        GeneratorRole.ToString(),
+        BoundaryEdgeId.ToString(CultureInfo.InvariantCulture));
 }
 
 /// <summary>Roof-wide ridge purlin identity reused directly from structural identity.</summary>
@@ -72,6 +86,8 @@ public sealed record RoofAutomaticPurlinPlanItem(
     RoofAutomaticPurlinGeneratedKey GeneratedKey,
     TimberElementType ElementType,
     RoofSegment3D Segment3D,
+    double WidthMm = 160d,
+    double HeightMm = 220d,
     RoofPurlinElevationProfile? ElevationProfile = null,
     RoofPurlinPhysicalPlacement? PhysicalPlacement = null)
 {
@@ -95,7 +111,13 @@ public sealed record RoofPurlinElevationProfile(
 public sealed record RoofAutomaticPurlinPlanningInput(
     RoofRelativeElevationDatum RelativeElevationDatum,
     double PurlinHeightMm,
-    double RafterHeightMm);
+    double RafterHeightMm)
+{
+    public double PurlinWidthMm { get; init; } = 160d;
+    public bool WallPlatesEnabled { get; init; }
+    public double WallPlateWidthMm { get; init; } = 140d;
+    public double WallPlateHeightMm { get; init; } = 140d;
+}
 
 public sealed record RoofAutomaticPurlinPlacementResolution(
     bool IsValid,
@@ -147,3 +169,12 @@ public sealed record RoofAutomaticPurlinPlanResult(
     RoofAutomaticPurlinPlanError Error,
     string? FailedLayoutItemId,
     RoofAutomaticPurlinGeneratedKey? DuplicateGeneratedKey);
+
+/// <summary>
+/// Effective relative-elevation datum after WallPlate-bottom anchoring when required.
+/// </summary>
+public sealed record RoofAutomaticPurlinEffectiveDatumResult(
+    bool IsValid,
+    RoofRelativeElevationDatum? Datum,
+    double? WallPlateBottomLocalZMm,
+    RoofAutomaticPurlinPlanError Error);

@@ -136,7 +136,8 @@ public sealed class AutoCadAutomaticPurlinMaterializationCommands
                 layout,
                 relativeElevationDatum,
                 defaultProfile,
-                layerProfile);
+                layerProfile,
+                includeWallPlates: true);
             if (!result.IsSuccess)
             {
                 WriteLayout(
@@ -300,10 +301,13 @@ public sealed class AutoCadAutomaticPurlinMaterializationCommands
             "\nROOF_PURLIN_MEMBER" +
             $" owner={owner}" +
             $" role={member.Role}" +
+            $" type={member.ElementType}" +
             $" layoutId={member.LayoutItemId ?? "-"}" +
             $" key={member.GeneratedKey}" +
             $" handle={member.Handle}" +
             $" elementId={member.ElementId}" +
+            $" width={Format(member.WidthMm)}" +
+            $" height={Format(member.HeightMm)}" +
             $" length={Format(member.PlanLengthMm)}" +
             $" start={FormatPoint(member.Start)}" +
             $" end={FormatPoint(member.End)}" +
@@ -321,6 +325,7 @@ public sealed class AutoCadAutomaticPurlinMaterializationCommands
             $" owner={result.OwnerReference}" +
             $" desired={result.Desired.ToString(CultureInfo.InvariantCulture)}" +
             $" actual={result.Actual.ToString(CultureInfo.InvariantCulture)}" +
+            $" wallPlate={result.WallPlate.ToString(CultureInfo.InvariantCulture)}" +
             $" ridge={result.Ridge.ToString(CultureInfo.InvariantCulture)}" +
             $" intermediate={result.Intermediate.ToString(CultureInfo.InvariantCulture)}" +
             $" created={result.Created.ToString(CultureInfo.InvariantCulture)}" +

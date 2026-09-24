@@ -34,6 +34,12 @@ public enum RoofRelativeElevationDatumError
     UnsupportedReferenceKind,
     InvalidReferenceRelativeElevation,
     InvalidReferenceLocalZ,
+    /// <summary>
+    /// SourceEavePlane requires roof-local ReferenceLocalZMm = 0. Non-zero values are
+    /// rejected fail-closed (do not silently normalize) so ambiguous persisted records
+    /// cannot drive planning until the user explicitly resolves the reference.
+    /// </summary>
+    InconsistentSourceEaveLocalZ,
 }
 
 public sealed record RoofRelativeElevationDatumValidationResult(

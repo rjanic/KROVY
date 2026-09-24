@@ -2,16 +2,16 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:localization="clr-namespace:AcKrovy.AutoCAD.UI.Localization"
+        xmlns:ui="clr-namespace:AcKrovy.AutoCAD.UI"
         Title="{Binding WindowTitle}"
-        Width="900"
-        Height="760"
-        MinWidth="700"
-        MinHeight="540"
-        MaxHeight="920"
+        Width="1700"
+        Height="820"
+        MinWidth="1400"
+        MinHeight="680"
         ResizeMode="CanResize"
         ShowInTaskbar="False"
         WindowStartupLocation="CenterOwner"
-        Background="{DynamicResource SettingsWindowBackgroundBrush}"
+        Background="{DynamicResource WoodOakBrush}"
         Foreground="{DynamicResource SettingsTextPrimaryBrush}">
     <Window.Resources>
         <ResourceDictionary>
@@ -19,455 +19,899 @@
                 <ResourceDictionary Source="Design/SettingsColors.Light.xaml" />
                 <ResourceDictionary Source="Design/SettingsDesignSystem.xaml" />
                 <ResourceDictionary Source="Design/SettingsControls.xaml" />
+                <ResourceDictionary Source="Design/RoofGeometryVisuals.xaml" />
             </ResourceDictionary.MergedDictionaries>
-        </ResourceDictionary>
-    </Window.Resources>
+            <Style x:Key="CompactCardStyle" TargetType="Border" BasedOn="{StaticResource SettingsCardStyle}">
+                <Setter Property="Padding" Value="10,8" />
+                <Setter Property="Margin" Value="0,0,0,6" />
+            </Style>
+            <Style x:Key="SettingsPrimaryButtonStyle"
+                   TargetType="Button"
+                   BasedOn="{StaticResource SettingsBaseButtonStyle}">
+                <Setter Property="Foreground" Value="White" />
+                <Setter Property="Background" Value="{StaticResource RoofGeometryPrimaryButtonBrush}" />
+                <Setter Property="BorderBrush" Value="{StaticResource RoofGeometryPrimaryButtonBorderBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="Effect" Value="{StaticResource RoofGeometryPrimaryButtonElevation}" />
+            </Style>
+            <Style x:Key="SettingsSecondaryButtonStyle"
+                   TargetType="Button"
+                   BasedOn="{StaticResource SettingsBaseButtonStyle}">
+                <Setter Property="Foreground" Value="{DynamicResource SettingsTextPrimaryBrush}" />
+                <Setter Property="Background" Value="{StaticResource RoofGeometrySecondaryButtonBrush}" />
+                <Setter Property="BorderBrush" Value="{StaticResource RoofGeometrySecondaryButtonBorderBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+            </Style>
 
-    <Grid Margin="20">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
 
-        <StackPanel Margin="0,0,0,10">
-            <TextBlock FontSize="21" FontWeight="SemiBold" Text="{Binding WindowTitle}" />
-            <TextBlock Margin="0,4,0,0"
-                       Style="{DynamicResource SettingsDescriptionStyle}"
-                       Text="{Binding WindowDescription}" />
-        </StackPanel>
-
-        <ScrollViewer x:Name="DialogScrollViewer"
-                      Grid.Row="1"
-                      VerticalScrollBarVisibility="Auto"
-                      HorizontalScrollBarVisibility="Disabled">
-            <StackPanel Margin="0,0,8,0">
-                <Grid Margin="0,0,0,8">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="12" />
-                        <ColumnDefinition Width="300" />
-                    </Grid.ColumnDefinitions>
-                    <StackPanel>
-                        <Border Margin="0,0,0,8" Style="{DynamicResource SettingsCardStyle}">
-                            <StackPanel>
-                                <TextBlock Style="{DynamicResource SettingsSectionTitleStyle}"
-                                           Text="{localization:Loc AutomaticPurlin_ReferenceSection}" />
-                                <TextBlock Margin="0,3,0,8"
-                                           Style="{DynamicResource SettingsDescriptionStyle}"
-                                           Text="{Binding DatumPersistenceStatus}" />
+            <Style x:Key="PurlinElementTabControlStyle" TargetType="TabControl">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="Padding" Value="0" />
+            </Style>
+            <Style x:Key="PurlinElementTabItemStyle" TargetType="TabItem">
+                <Setter Property="Padding" Value="12,6" />
+                <Setter Property="Margin" Value="0,0,4,0" />
+                <Setter Property="MinHeight" Value="32" />
+                <Setter Property="Foreground" Value="{DynamicResource SettingsTextPrimaryBrush}" />
+                <Setter Property="Background" Value="{DynamicResource SettingsPanelBackgroundBrush}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource SettingsBorderBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="TabItem">
+                            <Border x:Name="TabChrome"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="6,6,0,0"
+                                    Padding="{TemplateBinding Padding}"
+                                    SnapsToDevicePixels="True">
                                 <Grid>
+                                    <Border x:Name="ErrorAccent"
+                                            Width="3"
+                                            HorizontalAlignment="Left"
+                                            Margin="-12, -6, 0, -6"
+                                            CornerRadius="6,0,0,0"
+                                            Background="{DynamicResource PurlinValidationBorderBrush}"
+                                            Visibility="Collapsed"
+                                            IsHitTestVisible="False" />
+                                    <ContentPresenter ContentSource="Header"
+                                                      HorizontalAlignment="Center"
+                                                      VerticalAlignment="Center"
+                                                      RecognizesAccessKey="True" />
+                                </Grid>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <DataTrigger Binding="{Binding HasError}" Value="True">
+                                    <Setter TargetName="TabChrome" Property="BorderBrush" Value="{DynamicResource PurlinValidationBorderBrush}" />
+                                    <Setter TargetName="TabChrome" Property="BorderThickness" Value="1.5" />
+                                    <Setter TargetName="TabChrome" Property="Background" Value="{DynamicResource PurlinValidationBackgroundBrush}" />
+                                    <Setter TargetName="ErrorAccent" Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter TargetName="TabChrome" Property="BorderBrush" Value="{DynamicResource SettingsAccentBrush}" />
+                                    <Setter TargetName="TabChrome" Property="BorderThickness" Value="2" />
+                                    <Setter Property="Panel.ZIndex" Value="1" />
+                                </Trigger>
+                                <!-- Keep error chrome visible on the selected tab as well. -->
+                                <MultiDataTrigger>
+                                    <MultiDataTrigger.Conditions>
+                                        <Condition Binding="{Binding HasError}" Value="True" />
+                                        <Condition Binding="{Binding IsSelected, RelativeSource={RelativeSource Self}}" Value="True" />
+                                    </MultiDataTrigger.Conditions>
+                                    <Setter TargetName="TabChrome" Property="BorderBrush" Value="{DynamicResource PurlinValidationBorderBrush}" />
+                                    <Setter TargetName="TabChrome" Property="Background" Value="{DynamicResource PurlinValidationBackgroundBrush}" />
+                                    <Setter TargetName="ErrorAccent" Property="Visibility" Value="Visible" />
+                                </MultiDataTrigger>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="TabChrome" Property="Background" Value="{DynamicResource SettingsHoverBrush}" />
+                                </Trigger>
+                                <MultiDataTrigger>
+                                    <MultiDataTrigger.Conditions>
+                                        <Condition Binding="{Binding HasError}" Value="True" />
+                                        <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource Self}}" Value="True" />
+                                    </MultiDataTrigger.Conditions>
+                                    <Setter TargetName="TabChrome" Property="Background" Value="{DynamicResource PurlinValidationBackgroundBrush}" />
+                                    <Setter TargetName="ErrorAccent" Property="Visibility" Value="Visible" />
+                                </MultiDataTrigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+            <Style x:Key="PurlinElementCardStyle" TargetType="Border" BasedOn="{StaticResource CompactCardStyle}">
+                <Setter Property="Padding" Value="12,10" />
+            </Style>
+            <Style x:Key="PurlinNumericTextBoxStyle" TargetType="TextBox">
+                <Setter Property="MinWidth" Value="88" />
+                <Setter Property="MinHeight" Value="28" />
+                <Setter Property="TextAlignment" Value="Right" />
+                <Setter Property="Padding" Value="6,4" />
+            </Style>
+            <!-- Inline range/validation hint below the field; footer remains authoritative. -->
+            <Style x:Key="PurlinFieldValidationHintStyle" TargetType="TextBlock">
+                <Setter Property="Margin" Value="0,3,0,0" />
+                <Setter Property="FontSize" Value="11" />
+                <Setter Property="TextWrapping" Value="Wrap" />
+                <Setter Property="Foreground" Value="{DynamicResource SettingsErrorTextBrush}" />
+                <Style.Triggers>
+                    <Trigger Property="Text" Value="">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                    </Trigger>
+                    <Trigger Property="Text" Value="{x:Null}">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+            <Style x:Key="PurlinValidatedTextBoxStyle"
+                   TargetType="TextBox"
+                   BasedOn="{StaticResource PurlinNumericTextBoxStyle}">
+                <Style.Triggers>
+                    <Trigger Property="ui:PurlinFieldValidation.HasError" Value="True">
+                        <Setter Property="BorderBrush" Value="{DynamicResource PurlinValidationBorderBrush}" />
+                        <Setter Property="BorderThickness" Value="2" />
+                        <Setter Property="Background" Value="{DynamicResource PurlinValidationBackgroundBrush}" />
+                        <!-- Keep entered value readable (dark on light-red); never cream/header text. -->
+                        <Setter Property="Foreground" Value="{DynamicResource SettingsTextPrimaryBrush}" />
+                    </Trigger>
+                    <MultiTrigger>
+                        <MultiTrigger.Conditions>
+                            <Condition Property="ui:PurlinFieldValidation.HasError" Value="True" />
+                            <Condition Property="IsKeyboardFocused" Value="True" />
+                        </MultiTrigger.Conditions>
+                        <Setter Property="BorderBrush" Value="{DynamicResource PurlinValidationBorderBrush}" />
+                        <Setter Property="BorderThickness" Value="2" />
+                        <Setter Property="Background" Value="{DynamicResource PurlinValidationBackgroundBrush}" />
+                        <Setter Property="Foreground" Value="{DynamicResource SettingsTextPrimaryBrush}" />
+                    </MultiTrigger>
+                </Style.Triggers>
+            </Style>
+            <Style x:Key="PurlinComboBoxStyle" TargetType="ComboBox">
+                <Setter Property="MinHeight" Value="28" />
+                <Setter Property="Padding" Value="6,4" />
+            </Style>
+            <Style x:Key="PurlinValidatedComboBoxStyle"
+                   TargetType="ComboBox"
+                   BasedOn="{StaticResource PurlinComboBoxStyle}">
+                <Style.Triggers>
+                    <Trigger Property="ui:PurlinFieldValidation.HasError" Value="True">
+                        <Setter Property="BorderBrush" Value="{DynamicResource PurlinValidationBorderBrush}" />
+                        <Setter Property="BorderThickness" Value="2" />
+                        <Setter Property="Background" Value="{DynamicResource PurlinValidationBackgroundBrush}" />
+                        <Setter Property="Foreground" Value="{DynamicResource SettingsTextPrimaryBrush}" />
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+            <Style x:Key="PurlinValidatedCardStyle"
+                   TargetType="Border"
+                   BasedOn="{StaticResource PurlinElementCardStyle}">
+                <Style.Triggers>
+                    <Trigger Property="ui:PurlinFieldValidation.HasError" Value="True">
+                        <Setter Property="BorderBrush" Value="{DynamicResource PurlinValidationBorderBrush}" />
+                        <Setter Property="BorderThickness" Value="1.5" />
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+            <Style x:Key="PurlinElevationValueStyle" TargetType="TextBlock">
+                <Setter Property="FontWeight" Value="Bold" />
+                <Setter Property="Margin" Value="6,0,0,0" />
+            </Style>
+            <DataTemplate x:Key="PurlinElevationTooltipTemplate"
+                          DataType="{x:Type ui:AutomaticPurlinElevationTooltipViewModel}">
+                <StackPanel MaxWidth="280">
+                    <Image Source="{Binding Image}"
+                           Stretch="Uniform"
+                           MaxWidth="260"
+                           MaxHeight="180"
+                           SnapsToDevicePixels="True" />
+                    <TextBlock Margin="0,8,0,2"
+                               FontWeight="Bold"
+                               Text="{Binding Title}" />
+                    <TextBlock Margin="0,0,0,6"
+                               TextWrapping="Wrap"
+                               Text="{Binding Description}" />
+                    <TextBlock FontWeight="SemiBold"
+                               Text="{Binding CurrentValueLine}" />
+                </StackPanel>
+            </DataTemplate>
+
+            <DropShadowEffect x:Key="PurlinTechnicalMetricShadow"
+                              BlurRadius="4"
+                              ShadowDepth="1.5"
+                              Opacity="0.28"
+                              Direction="270"
+                              Color="#5A3A1A" />
+            <Style x:Key="PurlinTechnicalMetricButtonStyle" TargetType="Button">
+                <Setter Property="MinHeight" Value="52" />
+                <Setter Property="Padding" Value="8,6" />
+                <Setter Property="Foreground" Value="{DynamicResource SettingsTextPrimaryBrush}" />
+                <Setter Property="Background" Value="{StaticResource RoofGeometrySecondaryButtonBrush}" />
+                <Setter Property="BorderBrush" Value="{StaticResource RoofGeometrySecondaryButtonBorderBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Chrome"
+                                    Background="{TemplateBinding Background}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="5"
+                                    Padding="{TemplateBinding Padding}"
+                                    SnapsToDevicePixels="True"
+                                    Effect="{StaticResource PurlinTechnicalMetricShadow}">
+                                <Border.BorderBrush>
+                                    <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,1">
+                                        <GradientStop Color="#E8D5B5" Offset="0" />
+                                        <GradientStop Color="#8B6914" Offset="1" />
+                                    </LinearGradientBrush>
+                                </Border.BorderBrush>
+                                <Grid>
+                                    <Border CornerRadius="4,4,0,0"
+                                            Height="2"
+                                            VerticalAlignment="Top"
+                                            Margin="2,1,2,0"
+                                            Background="#66FFF8E7"
+                                            IsHitTestVisible="False" />
+                                    <ContentPresenter HorizontalAlignment="Center"
+                                                      VerticalAlignment="Center"
+                                                      RecognizesAccessKey="True" />
+                                </Grid>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource SettingsHoverBrush}" />
+                                    <Setter TargetName="Chrome" Property="Margin" Value="0,-1,0,1" />
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="Chrome" Property="Margin" Value="0,1,0,-1" />
+                                    <Setter TargetName="Chrome" Property="Effect" Value="{x:Null}" />
+                                    <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource SettingsSelectedBrush}" />
+                                </Trigger>
+                                <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                                    <Setter TargetName="Chrome" Property="BorderThickness" Value="2" />
+                                    <Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource SettingsAccentBrush}" />
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter TargetName="Chrome" Property="Opacity" Value="0.55" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+            <Style x:Key="PurlinAddTabButtonStyle"
+                   TargetType="Button"
+                   BasedOn="{StaticResource PurlinTechnicalMetricButtonStyle}">
+                <Setter Property="MinWidth" Value="36" />
+                <Setter Property="MinHeight" Value="32" />
+                <Setter Property="Padding" Value="8,4" />
+                <Setter Property="FontWeight" Value="Bold" />
+                <Setter Property="FontSize" Value="16" />
+            </Style>
+            <Style x:Key="PurlinDynamicTabItemStyle" TargetType="TabItem" BasedOn="{StaticResource PurlinElementTabItemStyle}">
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding HasError}" Value="True">
+                        <Setter Property="Foreground" Value="{DynamicResource SettingsTextPrimaryBrush}" />
+                        <Setter Property="Background" Value="{DynamicResource PurlinValidationBackgroundBrush}" />
+                        <Setter Property="BorderBrush" Value="{DynamicResource PurlinValidationBorderBrush}" />
+                    </DataTrigger>
+                    <MultiDataTrigger>
+                        <MultiDataTrigger.Conditions>
+                            <Condition Binding="{Binding HasError}" Value="False" />
+                            <Condition Binding="{Binding IsSelected, RelativeSource={RelativeSource Self}}" Value="True" />
+                        </MultiDataTrigger.Conditions>
+                        <Setter Property="Background" Value="{DynamicResource SettingsSelectedBrush}" />
+                    </MultiDataTrigger>
+                </Style.Triggers>
+            </Style>
+
+
+                            <DataTemplate x:Key="PurlinTechnicalMetricsBarTemplate">
+                <UniformGrid Columns="4" Margin="0,2,0,0">
+                    <Button Margin="0,0,6,0"
+                            Style="{StaticResource PurlinTechnicalMetricButtonStyle}"
+                            Click="TechnicalMetricButton_Click"
+                            Tag="RoofPlane"
+                            ToolTipService.ShowDuration="60000"
+                            ToolTip="{Binding RoofPlaneTooltip}">
+                        <Button.Resources>
+                            <Style TargetType="ToolTip">
+                                <Setter Property="ContentTemplate" Value="{StaticResource PurlinElevationTooltipTemplate}" />
+                            </Style>
+                        </Button.Resources>
+                        <StackPanel>
+                            <TextBlock FontSize="11"
+                                       FontWeight="SemiBold"
+                                       TextAlignment="Center"
+                                       TextWrapping="Wrap"
+                                       Text="{localization:Loc AutomaticPurlin_RoofPlaneElevation}" />
+                            <TextBlock Margin="0,4,0,0"
+                                       FontWeight="Bold"
+                                       TextAlignment="Center"
+                                       Text="{Binding RoofPlaneRelative}" />
+                        </StackPanel>
+                    </Button>
+                    <Button Margin="0,0,6,0"
+                            Style="{StaticResource PurlinTechnicalMetricButtonStyle}"
+                            Click="TechnicalMetricButton_Click"
+                            Tag="Top"
+                            ToolTipService.ShowDuration="60000"
+                            ToolTip="{Binding TopTooltip}">
+                        <Button.Resources>
+                            <Style TargetType="ToolTip">
+                                <Setter Property="ContentTemplate" Value="{StaticResource PurlinElevationTooltipTemplate}" />
+                            </Style>
+                        </Button.Resources>
+                        <StackPanel>
+                            <TextBlock FontSize="11"
+                                       FontWeight="SemiBold"
+                                       TextAlignment="Center"
+                                       TextWrapping="Wrap"
+                                       Text="{localization:Loc AutomaticPurlin_TopEdge}" />
+                            <TextBlock Margin="0,4,0,0"
+                                       FontWeight="Bold"
+                                       TextAlignment="Center"
+                                       Text="{Binding TopRelative}" />
+                        </StackPanel>
+                    </Button>
+                    <Button Margin="0,0,6,0"
+                            Style="{StaticResource PurlinTechnicalMetricButtonStyle}"
+                            Click="TechnicalMetricButton_Click"
+                            Tag="Center"
+                            ToolTipService.ShowDuration="60000"
+                            ToolTip="{Binding CenterTooltip}">
+                        <Button.Resources>
+                            <Style TargetType="ToolTip">
+                                <Setter Property="ContentTemplate" Value="{StaticResource PurlinElevationTooltipTemplate}" />
+                            </Style>
+                        </Button.Resources>
+                        <StackPanel>
+                            <TextBlock FontSize="11"
+                                       FontWeight="SemiBold"
+                                       TextAlignment="Center"
+                                       TextWrapping="Wrap"
+                                       Text="{localization:Loc AutomaticPurlin_Center}" />
+                            <TextBlock Margin="0,4,0,0"
+                                       FontWeight="Bold"
+                                       TextAlignment="Center"
+                                       Text="{Binding CenterRelative}" />
+                        </StackPanel>
+                    </Button>
+                    <Button Style="{StaticResource PurlinTechnicalMetricButtonStyle}"
+                            Click="TechnicalMetricButton_Click"
+                            Tag="Bottom"
+                            ToolTipService.ShowDuration="60000"
+                            ToolTip="{Binding BottomTooltip}">
+                        <Button.Resources>
+                            <Style TargetType="ToolTip">
+                                <Setter Property="ContentTemplate" Value="{StaticResource PurlinElevationTooltipTemplate}" />
+                            </Style>
+                        </Button.Resources>
+                        <StackPanel>
+                            <TextBlock FontSize="11"
+                                       FontWeight="SemiBold"
+                                       TextAlignment="Center"
+                                       TextWrapping="Wrap"
+                                       Text="{localization:Loc AutomaticPurlin_BottomEdge}" />
+                            <TextBlock Margin="0,4,0,0"
+                                       FontWeight="Bold"
+                                       TextAlignment="Center"
+                                       Text="{Binding BottomRelative}" />
+                        </StackPanel>
+                    </Button>
+                </UniformGrid>
+            </DataTemplate>
+            <DataTemplate x:Key="WallPlateEditorTabTemplate">
+
+                        <ContentControl Content="{Binding ContentHost}">
+                            <ContentControl.ContentTemplate>
+                                <DataTemplate>
+
+                        <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Disabled">
+
+                            <Border Style="{StaticResource PurlinValidatedCardStyle}"
+                                    ui:PurlinFieldValidation.HasError="{Binding WallPlateRow.HasAnyFieldError}">
+                        <StackPanel>
+                            <DockPanel LastChildFill="True">
+                                <CheckBox x:Name="WallPlateEnabledCheckBox"
+                                          DockPanel.Dock="Right"
+                                          Margin="8,0,0,0"
+                                          VerticalAlignment="Center"
+                                          IsChecked="{Binding WallPlateEnabled}"
+                                          Content="{localization:Loc AutomaticPurlin_Enabled}" />
+                                <TextBlock VerticalAlignment="Center"
+                                           Style="{DynamicResource SettingsSectionTitleStyle}"
+                                           Text="{localization:Loc AutomaticPurlin_WallPlateSection}" />
+                            </DockPanel>
+                            <StackPanel Margin="0,6,0,0"
+                                        DataContext="{Binding WallPlateRow}"
+                                        IsEnabled="{Binding DataContext.WallPlateEnabled, RelativeSource={RelativeSource AncestorType=Border}}">
+                                <Grid Margin="0,6,0,0">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="12" />
+                                        <ColumnDefinition Width="10" />
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
                                     <StackPanel>
-                                        <TextBlock Margin="0,0,0,5"
-                                                   Text="{localization:Loc AutomaticPurlin_ReferenceKind}" />
-                                        <ComboBox ItemsSource="{Binding ReferenceKinds}"
+                                        <TextBlock Margin="0,0,0,3"
+                                                   Text="{localization:Loc AutomaticPurlin_PlacementMode}" />
+                                        <ComboBox Style="{StaticResource PurlinComboBoxStyle}"
+                                                  ItemsSource="{Binding PlacementModes}"
                                                   DisplayMemberPath="Label"
-                                                  SelectedValuePath="Kind"
-                                                  SelectedValue="{Binding ReferenceKind, Mode=TwoWay}" />
+                                                  SelectedValuePath="Mode"
+                                                  SelectedValue="{Binding PlacementMode, Mode=TwoWay}" />
                                     </StackPanel>
                                     <StackPanel Grid.Column="2">
-                                        <TextBlock Margin="0,0,0,5"
-                                                   Text="{localization:Loc AutomaticPurlin_ReferenceRelativeElevation}" />
+                                        <TextBlock Margin="0,0,0,3"
+                                                   Text="{Binding ValueLabel}" />
                                         <Grid>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
-                                            <TextBox Text="{Binding RelativeReferenceText, UpdateSourceTrigger=PropertyChanged}"
-                                                     TextAlignment="Right" />
-                                            <TextBlock Grid.Column="1" Margin="8,0,0,0"
+                                            <TextBox x:Name="WallPlatePlacementValueTextBox"
+                                                     Style="{StaticResource PurlinValidatedTextBoxStyle}"
+                                                     ui:PurlinFieldValidation.HasError="{Binding PlacementValueHasError}"
+                                                     ui:PurlinFieldValidation.ErrorText="{Binding PlacementValueErrorText}"
+                                                     Text="{Binding PlacementValueText, UpdateSourceTrigger=PropertyChanged}" />
+                                            <TextBlock Grid.Column="1" Margin="6,0,0,0"
                                                        VerticalAlignment="Center"
-                                                       Text="{localization:Loc AutomaticPurlin_UnitMetres}" />
+                                                       Text="{localization:Loc AutomaticPurlin_UnitMillimetres}" />
                                         </Grid>
+                                        <TextBlock Tag="PurlinFieldValidationHint"
+                                                   Style="{StaticResource PurlinFieldValidationHintStyle}"
+                                                   Text="{Binding PlacementValueErrorText}" />
                                     </StackPanel>
                                 </Grid>
-                                <Expander x:Name="AdvancedDatumExpander"
-                                          Margin="0,8,0,0"
-                                          IsExpanded="False"
-                                          Header="{localization:Loc AutomaticPurlin_Advanced}">
-                                    <StackPanel x:Name="LocalReferencePanel"
-                                                Margin="0,6,0,0"
-                                                ToolTip="{localization:Loc AutomaticPurlin_ReferenceLocalZHelp}">
-                                        <TextBlock Margin="0,0,0,5"
-                                                   Text="{localization:Loc AutomaticPurlin_ReferenceLocalZ}" />
-                                        <Grid Width="260" HorizontalAlignment="Left">
+                                <Grid Margin="0,6,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="10" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <TextBlock Margin="0,0,0,3"
+                                                   Text="{localization:Loc AutomaticPurlin_Width}" />
+                                        <Grid>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
-                                            <TextBox Text="{Binding ReferenceLocalZText, UpdateSourceTrigger=PropertyChanged}"
-                                                     ToolTip="{localization:Loc AutomaticPurlin_ReferenceLocalZHelp}"
-                                                     TextAlignment="Right" />
-                                            <TextBlock Grid.Column="1" Margin="8,0,0,0"
+                                            <TextBox Style="{StaticResource PurlinValidatedTextBoxStyle}"
+                                                     ui:PurlinFieldValidation.HasError="{Binding WidthHasError}"
+                                                     ui:PurlinFieldValidation.ErrorText="{Binding WidthErrorText}"
+                                                     Text="{Binding WidthText, UpdateSourceTrigger=PropertyChanged}" />
+                                            <TextBlock Grid.Column="1" Margin="6,0,0,0"
                                                        VerticalAlignment="Center"
                                                        Text="{localization:Loc AutomaticPurlin_UnitMillimetres}" />
                                         </Grid>
+                                        <TextBlock Tag="PurlinFieldValidationHint"
+                                                   Style="{StaticResource PurlinFieldValidationHintStyle}"
+                                                   Text="{Binding WidthErrorText}" />
                                     </StackPanel>
-                                </Expander>
-                            </StackPanel>
-                        </Border>
-                        <Border Style="{DynamicResource SettingsCardStyle}">
-                            <StackPanel>
-                                <TextBlock Style="{DynamicResource SettingsSectionTitleStyle}"
-                                           Text="{localization:Loc AutomaticPurlin_RidgeSection}" />
+                                    <StackPanel Grid.Column="2">
+                                        <TextBlock Margin="0,0,0,3"
+                                                   Text="{localization:Loc AutomaticPurlin_Height}" />
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBox Style="{StaticResource PurlinValidatedTextBoxStyle}"
+                                                     ui:PurlinFieldValidation.HasError="{Binding HeightHasError}"
+                                                     ui:PurlinFieldValidation.ErrorText="{Binding HeightErrorText}"
+                                                     Text="{Binding HeightText, UpdateSourceTrigger=PropertyChanged}" />
+                                            <TextBlock Grid.Column="1" Margin="6,0,0,0"
+                                                       VerticalAlignment="Center"
+                                                       Text="{localization:Loc AutomaticPurlin_UnitMillimetres}" />
+                                        </Grid>
+                                        <TextBlock Tag="PurlinFieldValidationHint"
+                                                   Style="{StaticResource PurlinFieldValidationHintStyle}"
+                                                   Text="{Binding HeightErrorText}" />
+                                    </StackPanel>
+                                </Grid>
+                                <StackPanel Margin="0,6,0,0">
+                                    <StackPanel.Style>
+                                        <Style TargetType="StackPanel">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsRidgeReferenceVisible}" Value="True">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </StackPanel.Style>
+                                    <TextBlock Margin="0,0,0,3"
+                                               Text="{localization:Loc AutomaticPurlin_RidgeReference}" />
+                                    <ComboBox Style="{StaticResource PurlinValidatedComboBoxStyle}"
+                                              ui:PurlinFieldValidation.HasError="{Binding RidgeReferenceHasError}"
+                                              ui:PurlinFieldValidation.ErrorText="{Binding RidgeReferenceErrorText}"
+                                              ItemsSource="{Binding RidgeReferences}"
+                                              DisplayMemberPath="Label"
+                                              SelectedItem="{Binding SelectedRidgeReference, Mode=TwoWay}" />
+                                    <TextBlock Tag="PurlinFieldValidationHint"
+                                               Style="{StaticResource PurlinFieldValidationHintStyle}"
+                                               Text="{Binding RidgeReferenceErrorText}" />
+                                </StackPanel>
+                                <Grid Margin="0,6,0,0">
+                                    <Grid.Style>
+                                        <Style TargetType="Grid">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsSeatingApplicable}" Value="True">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Grid.Style>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="10" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <TextBlock Margin="0,0,0,3"
+                                                   Text="{localization:Loc AutomaticPurlin_SeatingDepth}" />
+                                        <ComboBox Style="{StaticResource PurlinComboBoxStyle}"
+                                                  ItemsSource="{Binding SeatingModes}"
+                                                  DisplayMemberPath="Label"
+                                                  SelectedValuePath="Mode"
+                                                  SelectedValue="{Binding SelectedSeatingMode, Mode=TwoWay}" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="2">
+                                        <TextBlock Margin="0,0,0,3"
+                                                   Text="{Binding SeatingUnit}" />
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBox Style="{StaticResource PurlinValidatedTextBoxStyle}"
+                                                     ui:PurlinFieldValidation.HasError="{Binding SeatingHasError}"
+                                                     ui:PurlinFieldValidation.ErrorText="{Binding SeatingErrorText}"
+                                                     Text="{Binding SeatingDepthValueText, UpdateSourceTrigger=PropertyChanged}" />
+                                            <TextBlock Grid.Column="1" Margin="6,0,4,0"
+                                                       VerticalAlignment="Center"
+                                                       Text="=" />
+                                            <TextBlock Grid.Column="2"
+                                                       VerticalAlignment="Center"
+                                                       FontWeight="Bold"
+                                                       Text="{Binding SeatingDepthDerived}" />
+                                        </Grid>
+                                        <TextBlock Tag="PurlinFieldValidationHint"
+                                                   Style="{StaticResource PurlinFieldValidationHintStyle}"
+                                                   Text="{Binding SeatingErrorText}" />
+                                    </StackPanel>
+                                </Grid>
+                                <TextBlock Margin="0,5,0,0"
+                                           Text="{Binding SeatingStatusText, Mode=OneWay}">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock"
+                                               BasedOn="{StaticResource SettingsDescriptionStyle}">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsSeatingApplicable}" Value="False">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+</StackPanel>
+
+                                <ContentPresenter Margin="0,8,0,0"
+                                                  Content="{Binding WallPlateRow}"
+                                                  ContentTemplate="{StaticResource PurlinTechnicalMetricsBarTemplate}" />
+</StackPanel>
+                    </Border>
+
+                        </ScrollViewer>
+
+                                </DataTemplate>
+                            </ContentControl.ContentTemplate>
+                        </ContentControl>
+
+                            </DataTemplate>
+                            <DataTemplate x:Key="RidgeEditorTabTemplate">
+
+                        <ContentControl Content="{Binding ContentHost}">
+                            <ContentControl.ContentTemplate>
+                                <DataTemplate>
+
+                        <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Disabled">
+
+                            <Border Style="{StaticResource PurlinValidatedCardStyle}"
+                                    ui:PurlinFieldValidation.HasError="{Binding RidgeHasFieldError}">
+                        <StackPanel>
+                            <DockPanel LastChildFill="True">
                                 <CheckBox x:Name="RidgeEnabledCheckBox"
-                                          Margin="0,6,0,0"
+                                          DockPanel.Dock="Right"
+                                          Margin="8,0,0,0"
+                                          VerticalAlignment="Center"
                                           IsChecked="{Binding RidgeEnabled}"
                                           GotKeyboardFocus="RidgeEnabledCheckBox_InteractionStarted"
                                           LostKeyboardFocus="RidgeEnabledCheckBox_InteractionEnded"
                                           MouseEnter="RidgeEnabledCheckBox_InteractionStarted"
                                           MouseLeave="RidgeEnabledCheckBox_InteractionEnded"
                                           Content="{localization:Loc AutomaticPurlin_CreateRidge}" />
-                            </StackPanel>
-                        </Border>
-                    </StackPanel>
-
-                    <Border x:Name="SchematicCard"
-                            Grid.Column="2"
-                            Style="{DynamicResource SettingsCardStyle}">
-                        <StackPanel>
-                            <TextBlock Style="{DynamicResource SettingsSectionTitleStyle}"
-                                       Text="{localization:Loc AutomaticPurlin_Schematic}" />
-                            <Border x:Name="SchematicImageHost"
-                                    Margin="0,6,0,0"
-                                    Background="{DynamicResource SettingsPanelBackgroundBrush}"
-                                    BorderBrush="{DynamicResource SettingsBorderBrush}"
-                                    BorderThickness="1"
-                                    CornerRadius="4"
-                                    ClipToBounds="True"
-                                    ToolTip="{localization:Loc AutomaticPurlin_SchematicSeatingHelp}">
-                                <Viewbox Height="168" Stretch="Uniform">
-                                    <Grid Width="1024" Height="768"
-                                          Background="Transparent"
-                                          SnapsToDevicePixels="True"
-                                          UseLayoutRounding="True">
-                                        <Image x:Name="SchematicBaseImage"
-                                               Source="pack://application:,,,/AcKrovy.AutoCAD;component/UI/Assets/Schematics/automatic-purlin-roof-section.png"
-                                               Stretch="Uniform"
-                                               RenderOptions.BitmapScalingMode="HighQuality"
-                                               SnapsToDevicePixels="True" />
-                                        <Canvas x:Name="SchematicHighlightOverlay"
-                                                Width="1024"
-                                                Height="768"
-                                                IsHitTestVisible="False">
-                                            <!-- Subtle ridge (enabled) -->
-                                            <Rectangle Canvas.Left="458" Canvas.Top="98"
-                                                       Width="92" Height="68"
-                                                       RadiusX="8" RadiusY="8"
-                                                       StrokeThickness="3"
-                                                       Stroke="#9938BDF8"
-                                                       Fill="#4038BDF8">
-                                                <Rectangle.Style>
-                                                    <Style TargetType="Rectangle">
-                                                        <Setter Property="Visibility" Value="Collapsed" />
-                                                        <Style.Triggers>
-                                                            <MultiDataTrigger>
-                                                                <MultiDataTrigger.Conditions>
-                                                                    <Condition Binding="{Binding SchematicRidgeActive}" Value="True" />
-                                                                    <Condition Binding="{Binding SchematicRidgeEmphasized}" Value="False" />
-                                                                </MultiDataTrigger.Conditions>
-                                                                <Setter Property="Visibility" Value="Visible" />
-                                                            </MultiDataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </Rectangle.Style>
-                                            </Rectangle>
-                                            <!-- Strong ridge (focused / interacting) -->
-                                            <Rectangle Canvas.Left="452" Canvas.Top="92"
-                                                       Width="104" Height="80"
-                                                       RadiusX="10" RadiusY="10"
-                                                       StrokeThickness="5"
-                                                       Stroke="#FFEAB308"
-                                                       Fill="#55EAB308">
-                                                <Rectangle.Effect>
-                                                    <DropShadowEffect BlurRadius="18"
-                                                                      ShadowDepth="0"
-                                                                      Color="#FACC15"
-                                                                      Opacity="0.95" />
-                                                </Rectangle.Effect>
-                                                <Rectangle.Style>
-                                                    <Style TargetType="Rectangle">
-                                                        <Setter Property="Visibility" Value="Collapsed" />
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding SchematicRidgeEmphasized}" Value="True">
-                                                                <Setter Property="Visibility" Value="Visible" />
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </Rectangle.Style>
-                                            </Rectangle>
-
-                                            <!-- Subtle intermediate (any enabled row) -->
-                                            <Canvas>
-                                                <Canvas.Style>
-                                                    <Style TargetType="Canvas">
-                                                        <Setter Property="Visibility" Value="Collapsed" />
-                                                        <Style.Triggers>
-                                                            <MultiDataTrigger>
-                                                                <MultiDataTrigger.Conditions>
-                                                                    <Condition Binding="{Binding SchematicAnyIntermediateEnabled}" Value="True" />
-                                                                    <Condition Binding="{Binding SchematicIntermediateEmphasized}" Value="False" />
-                                                                </MultiDataTrigger.Conditions>
-                                                                <Setter Property="Visibility" Value="Visible" />
-                                                            </MultiDataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </Canvas.Style>
-                                                <Rectangle Canvas.Left="268" Canvas.Top="308"
-                                                           Width="72" Height="78"
-                                                           RadiusX="8" RadiusY="8"
-                                                           StrokeThickness="3"
-                                                           Stroke="#9938BDF8"
-                                                           Fill="#4038BDF8" />
-                                                <Rectangle Canvas.Left="692" Canvas.Top="316"
-                                                           Width="72" Height="78"
-                                                           RadiusX="8" RadiusY="8"
-                                                           StrokeThickness="3"
-                                                           Stroke="#9938BDF8"
-                                                           Fill="#4038BDF8" />
-                                            </Canvas>
-                                            <!-- Strong intermediate (selected/focused row) -->
-                                            <Canvas>
-                                                <Canvas.Style>
-                                                    <Style TargetType="Canvas">
-                                                        <Setter Property="Visibility" Value="Collapsed" />
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding SchematicIntermediateEmphasized}" Value="True">
-                                                                <Setter Property="Visibility" Value="Visible" />
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </Canvas.Style>
-                                                <Rectangle Canvas.Left="262" Canvas.Top="302"
-                                                           Width="84" Height="90"
-                                                           RadiusX="10" RadiusY="10"
-                                                           StrokeThickness="5"
-                                                           Stroke="#FFEAB308"
-                                                           Fill="#55EAB308">
-                                                    <Rectangle.Effect>
-                                                        <DropShadowEffect BlurRadius="18"
-                                                                          ShadowDepth="0"
-                                                                          Color="#FACC15"
-                                                                          Opacity="0.95" />
-                                                    </Rectangle.Effect>
-                                                </Rectangle>
-                                                <Rectangle Canvas.Left="686" Canvas.Top="310"
-                                                           Width="84" Height="90"
-                                                           RadiusX="10" RadiusY="10"
-                                                           StrokeThickness="5"
-                                                           Stroke="#FFEAB308"
-                                                           Fill="#55EAB308">
-                                                    <Rectangle.Effect>
-                                                        <DropShadowEffect BlurRadius="18"
-                                                                          ShadowDepth="0"
-                                                                          Color="#FACC15"
-                                                                          Opacity="0.95" />
-                                                    </Rectangle.Effect>
-                                                </Rectangle>
-                                            </Canvas>
-                                        </Canvas>
+                                <TextBlock VerticalAlignment="Center"
+                                           Style="{DynamicResource SettingsSectionTitleStyle}"
+                                           Text="{localization:Loc AutomaticPurlin_RidgeSection}" />
+                            </DockPanel>
+                            <Grid Margin="0,6,0,0" IsEnabled="{Binding RidgeEnabled}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="10" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Margin="0,0,0,3"
+                                               Text="{localization:Loc AutomaticPurlin_Width}" />
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBox Style="{StaticResource PurlinValidatedTextBoxStyle}"
+                                                 ui:PurlinFieldValidation.HasError="{Binding RidgeWidthHasError}"
+                                                 ui:PurlinFieldValidation.ErrorText="{Binding RidgeWidthErrorText}"
+                                                 Text="{Binding RidgeWidthText, UpdateSourceTrigger=PropertyChanged}" />
+                                        <TextBlock Grid.Column="1" Margin="6,0,0,0"
+                                                   VerticalAlignment="Center"
+                                                   Text="{localization:Loc AutomaticPurlin_UnitMillimetres}" />
                                     </Grid>
-                                </Viewbox>
-                            </Border>
-                            <TextBlock Margin="0,4,0,0" HorizontalAlignment="Center"
-                                       Style="{DynamicResource SettingsDescriptionStyle}"
-                                       Text="{Binding SchematicCaption}" />
-                        </StackPanel>
-                    </Border>
-                </Grid>
+                                    <TextBlock Tag="PurlinFieldValidationHint"
+                                               Style="{StaticResource PurlinFieldValidationHintStyle}"
+                                               Text="{Binding RidgeWidthErrorText}" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Margin="0,0,0,3"
+                                               Text="{localization:Loc AutomaticPurlin_Height}" />
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBox Style="{StaticResource PurlinValidatedTextBoxStyle}"
+                                                 ui:PurlinFieldValidation.HasError="{Binding RidgeHeightHasError}"
+                                                 ui:PurlinFieldValidation.ErrorText="{Binding RidgeHeightErrorText}"
+                                                 Text="{Binding RidgeHeightText, UpdateSourceTrigger=PropertyChanged}" />
+                                        <TextBlock Grid.Column="1" Margin="6,0,0,0"
+                                                   VerticalAlignment="Center"
+                                                   Text="{localization:Loc AutomaticPurlin_UnitMillimetres}" />
+                                    </Grid>
+                                    <TextBlock Tag="PurlinFieldValidationHint"
+                                               Style="{StaticResource PurlinFieldValidationHintStyle}"
+                                               Text="{Binding RidgeHeightErrorText}" />
+                                </StackPanel>
+                            </Grid>
+                            <Grid Margin="0,6,0,0" IsEnabled="{Binding RidgeEnabled}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="10" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Margin="0,0,0,3"
+                                               Text="{localization:Loc AutomaticPurlin_SeatingDepth}" />
+                                    <ComboBox Style="{StaticResource PurlinComboBoxStyle}"
+                                              ItemsSource="{Binding SeatingModes}"
+                                              DisplayMemberPath="Label"
+                                              SelectedValuePath="Mode"
+                                              SelectedValue="{Binding SelectedRidgeSeatingMode, Mode=TwoWay}" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Margin="0,0,0,3"
+                                               Text="{Binding RidgeSeatingUnit}" />
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBox Style="{StaticResource PurlinValidatedTextBoxStyle}"
+                                                 ui:PurlinFieldValidation.HasError="{Binding RidgeSeatingHasError}"
+                                                 ui:PurlinFieldValidation.ErrorText="{Binding RidgeSeatingErrorText}"
+                                                 Text="{Binding RidgeSeatingDepthValueText, UpdateSourceTrigger=PropertyChanged}" />
+                                        <TextBlock Grid.Column="1" Margin="6,0,4,0"
+                                                   VerticalAlignment="Center"
+                                                   Text="=" />
+                                        <TextBlock Grid.Column="2"
+                                                   VerticalAlignment="Center"
+                                                   FontWeight="Bold"
+                                                   Text="{Binding RidgeSeatingDepthDerived}" />
+                                    </Grid>
+                                    <TextBlock Tag="PurlinFieldValidationHint"
+                                               Style="{StaticResource PurlinFieldValidationHintStyle}"
+                                               Text="{Binding RidgeSeatingErrorText}" />
+                                </StackPanel>
+                            </Grid>
 
-                <Border Margin="0,0,0,8" Style="{DynamicResource SettingsCardStyle}">
-                    <StackPanel>
-                        <DockPanel Margin="0,0,0,6" LastChildFill="False">
-                            <TextBlock DockPanel.Dock="Left"
-                                       VerticalAlignment="Center"
-                                       Style="{DynamicResource SettingsSectionTitleStyle}"
-                                       Text="{localization:Loc AutomaticPurlin_IntermediateSection}" />
-                            <Button x:Name="AddRowButton"
-                                    DockPanel.Dock="Right"
-                                    Click="AddRowButton_Click"
-                                    MinWidth="0"
-                                    Padding="12,4"
-                                    Style="{DynamicResource SettingsSecondaryButtonStyle}"
-                                    Content="{localization:Loc AutomaticPurlin_Add}" />
-                        </DockPanel>
-                        <TextBlock Margin="0,0,0,6"
-                                   Style="{DynamicResource SettingsDescriptionStyle}"
-                                   Text="{Binding LayoutPersistenceStatus}" />
-                        <TextBlock x:Name="EmptyRowsText"
-                                   Margin="0,4,0,4"
-                                   Text="{localization:Loc AutomaticPurlin_NoIntermediateRows}">
-                            <TextBlock.Style>
-                                <Style TargetType="TextBlock" BasedOn="{StaticResource SettingsDescriptionStyle}">
-                                    <Setter Property="Visibility" Value="Collapsed" />
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding Rows.Count}" Value="0">
-                                            <Setter Property="Visibility" Value="Visible" />
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </TextBlock.Style>
-                        </TextBlock>
-                        <ListBox x:Name="IntermediateRowsControl"
-                                 ItemsSource="{Binding Rows}"
-                                 SelectedItem="{Binding SelectedRow, Mode=TwoWay}"
-                                 BorderThickness="0"
-                                 Background="Transparent"
-                                 GotKeyboardFocus="IntermediateRowsControl_InteractionStarted"
-                                 PreviewMouseDown="IntermediateRowsControl_InteractionStarted"
-                                 LostKeyboardFocus="IntermediateRowsControl_InteractionEnded"
-                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                                 ScrollViewer.VerticalScrollBarVisibility="Disabled">
-                            <ListBox.ItemContainerStyle>
-                                <Style TargetType="ListBoxItem">
-                                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                                    <Setter Property="Padding" Value="0" />
-                                    <Setter Property="Margin" Value="0" />
-                                    <Setter Property="Background" Value="Transparent" />
-                                </Style>
-                            </ListBox.ItemContainerStyle>
-                            <ListBox.ItemTemplate>
-                                <DataTemplate>
-                                    <Border Margin="0,0,0,8"
-                                            Padding="10,8"
-                                            Background="{DynamicResource SettingsPanelBackgroundBrush}"
-                                            BorderBrush="{DynamicResource SettingsBorderBrush}"
-                                            BorderThickness="1"
-                                            CornerRadius="4">
-                                        <StackPanel>
-                                            <DockPanel LastChildFill="True">
-                                                <CheckBox DockPanel.Dock="Left"
-                                                          Margin="0,0,10,0"
-                                                          VerticalAlignment="Center"
-                                                          IsChecked="{Binding Enabled}"
-                                                          Content="{localization:Loc AutomaticPurlin_Enabled}" />
-                                                <Button DockPanel.Dock="Right"
-                                                        Click="RemoveRowButton_Click"
-                                                        CommandParameter="{Binding}"
-                                                        MinWidth="0"
-                                                        MinHeight="28"
-                                                        Padding="10,3"
-                                                        Style="{DynamicResource SettingsSecondaryButtonStyle}"
-                                                        Content="{localization:Loc AutomaticPurlin_Remove}" />
-                                                <TextBlock VerticalAlignment="Center"
-                                                           FontWeight="SemiBold"
-                                                           Text="{Binding DisplayName}" />
-                                            </DockPanel>
-                                            <Grid Margin="0,7,0,0">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="Auto" />
-                                                    <ColumnDefinition Width="8" />
-                                                    <ColumnDefinition Width="2*" MinWidth="250" />
-                                                    <ColumnDefinition Width="14" />
-                                                    <ColumnDefinition Width="Auto" />
-                                                    <ColumnDefinition Width="8" />
-                                                    <ColumnDefinition Width="*" MinWidth="110" />
-                                                    <ColumnDefinition Width="Auto" />
-                                                </Grid.ColumnDefinitions>
-                                                <TextBlock VerticalAlignment="Center"
-                                                           Text="{localization:Loc AutomaticPurlin_PlacementMode}" />
-                                                <ComboBox Grid.Column="2"
-                                                          ItemsSource="{Binding PlacementModes}"
-                                                          DisplayMemberPath="Label"
-                                                          SelectedValuePath="Mode"
-                                                          SelectedValue="{Binding PlacementMode, Mode=TwoWay}" />
-                                                <TextBlock Grid.Column="4"
-                                                           VerticalAlignment="Center"
-                                                           Text="{Binding ValueLabel}" />
-                                                <TextBox Grid.Column="6"
-                                                         Text="{Binding PlacementValueText, UpdateSourceTrigger=PropertyChanged}"
-                                                         TextAlignment="Right" />
-                                                <TextBlock Grid.Column="7" Margin="7,0,0,0"
-                                                           VerticalAlignment="Center"
-                                                           Text="{localization:Loc AutomaticPurlin_UnitMillimetres}" />
-                                            </Grid>
-                                            <StackPanel x:Name="RidgeReferencePanel" Margin="0,7,0,0">
-                                                <StackPanel.Style>
-                                                    <Style TargetType="StackPanel">
-                                                        <Setter Property="Visibility" Value="Collapsed" />
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding IsRidgeReferenceVisible}" Value="True">
-                                                                <Setter Property="Visibility" Value="Visible" />
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </StackPanel.Style>
-                                                <TextBlock Margin="0,0,0,5"
-                                                           Text="{localization:Loc AutomaticPurlin_RidgeReference}" />
-                                                <ComboBox ItemsSource="{Binding RidgeReferences}"
-                                                          DisplayMemberPath="Label"
-                                                          SelectedItem="{Binding SelectedRidgeReference, Mode=TwoWay}" />
-                                            </StackPanel>
-                                            <Grid x:Name="SeatingControlsPanel" Margin="0,7,0,0">
-                                                <Grid.Style>
-                                                    <Style TargetType="Grid">
-                                                        <Setter Property="Visibility" Value="Collapsed" />
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding IsSeatingApplicable}" Value="True">
-                                                                <Setter Property="Visibility" Value="Visible" />
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </Grid.Style>
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="Auto" />
-                                                    <ColumnDefinition Width="8" />
-                                                    <ColumnDefinition Width="2*" MinWidth="210" />
-                                                    <ColumnDefinition Width="8" />
-                                                    <ColumnDefinition Width="*" MinWidth="80" />
-                                                    <ColumnDefinition Width="Auto" />
-                                                    <ColumnDefinition Width="14" />
-                                                    <ColumnDefinition Width="Auto" />
-                                                </Grid.ColumnDefinitions>
-                                                <TextBlock VerticalAlignment="Center"
-                                                           Text="{localization:Loc AutomaticPurlin_SeatingDepth}" />
-                                                <ComboBox x:Name="SeatingModeComboBox"
-                                                          Grid.Column="2"
-                                                          ItemsSource="{Binding SeatingModes}"
-                                                          DisplayMemberPath="Label"
-                                                          SelectedValuePath="Mode"
-                                                          SelectedValue="{Binding SelectedSeatingMode, Mode=TwoWay}" />
-                                                <TextBox x:Name="SeatingValueTextBox"
-                                                         Grid.Column="4"
-                                                         Text="{Binding SeatingDepthValueText, UpdateSourceTrigger=PropertyChanged}"
-                                                         TextAlignment="Right" />
-                                                <TextBlock Grid.Column="5" Margin="7,0,0,0"
-                                                           VerticalAlignment="Center"
-                                                           Text="{Binding SeatingUnit}" />
-                                                <TextBlock Grid.Column="6"
-                                                           HorizontalAlignment="Center"
-                                                           VerticalAlignment="Center"
-                                                           Text="=" />
-                                                <TextBlock Grid.Column="7"
-                                                           VerticalAlignment="Center"
-                                                           FontWeight="SemiBold"
-                                                           Text="{Binding SeatingDepthDerived}" />
-                                            </Grid>
-                                            <TextBlock x:Name="HeightModeSeatingStatus"
-                                                       Margin="0,7,0,0"
-                                                       Text="{Binding SeatingStatusText, Mode=OneWay}">
-                                                <TextBlock.Style>
-                                                    <Style TargetType="TextBlock"
-                                                           BasedOn="{StaticResource SettingsDescriptionStyle}">
-                                                        <Setter Property="Visibility" Value="Collapsed" />
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding IsSeatingApplicable}" Value="False">
-                                                                <Setter Property="Visibility" Value="Visible" />
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </TextBlock.Style>
-                                            </TextBlock>
-                                            <WrapPanel x:Name="DerivedElevationPanel" Margin="0,7,0,0">
-                                                <StackPanel Margin="0,0,18,0" Orientation="Horizontal">
+                            <ContentPresenter Margin="0,8,0,0"
+                                              Content="{Binding RidgeTechnicalSummary}"
+                                              ContentTemplate="{StaticResource PurlinTechnicalMetricsBarTemplate}" />
+</StackPanel>
+                    </Border>
+
+                        </ScrollViewer>
+
+                                </DataTemplate>
+                            </ContentControl.ContentTemplate>
+                        </ContentControl>
+
+                            </DataTemplate>
+                            <DataTemplate x:Key="IntermediateEditorTabTemplate">
+
+                        <ContentControl Content="{Binding IntermediateRow}">
+                            <ContentControl.ContentTemplate>
+                                <DataTemplate DataType="{x:Type ui:AutomaticPurlinRowViewModel}">
+
+                        <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Disabled"
+                                      Tag="DialogScrollViewer"
+                                      GotKeyboardFocus="IntermediateEditor_InteractionStarted"
+                                      PreviewMouseDown="IntermediateEditor_InteractionStarted"
+                                      LostKeyboardFocus="IntermediateEditor_InteractionEnded">
+                            <Border Style="{StaticResource CompactCardStyle}"
+                                    Tag="IntermediateRowsControl"
+                                    ui:PurlinFieldValidation.HasError="{Binding HasAnyFieldError}">
+                                <StackPanel>
+                                    <TextBlock Margin="0,0,0,4"
+                                               Style="{DynamicResource SettingsDescriptionStyle}"
+                                               Text="{Binding DataContext.LayoutPersistenceStatus, RelativeSource={RelativeSource AncestorType=TabControl}}" />
+
+                                        <Border Margin="0,0,0,6"
+                                                Padding="10,8"
+                                                Background="{DynamicResource SettingsPanelBackgroundBrush}"
+                                                BorderBrush="{DynamicResource SettingsBorderBrush}"
+                                                BorderThickness="1"
+                                                CornerRadius="4">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding HasAnyFieldError}" Value="True">
+                                                            <Setter Property="BorderBrush" Value="{DynamicResource PurlinValidationBorderBrush}" />
+                                                            <Setter Property="BorderThickness" Value="1.5" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <StackPanel>
+                                                <DockPanel LastChildFill="True">
+                                                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                                        <CheckBox Margin="0,0,8,0"
+                                                                  VerticalAlignment="Center"
+                                                                  IsChecked="{Binding Enabled}"
+                                                                  Content="{localization:Loc AutomaticPurlin_Enabled}" />
+                                                        <Button Click="RemoveRowButton_Click"
+                                                                CommandParameter="{Binding}"
+                                                                MinWidth="0"
+                                                                MinHeight="26"
+                                                                Padding="8,2"
+                                                                Style="{DynamicResource SettingsSecondaryButtonStyle}"
+                                                                Content="{localization:Loc AutomaticPurlin_Remove}" />
+                                                    </StackPanel>
+                                                    <TextBlock VerticalAlignment="Center"
+                                                               FontWeight="SemiBold"
+                                                               Text="{Binding DisplayName}" />
+                                                </DockPanel>
+                                                <Grid Margin="0,6,0,0">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="10" />
+                                                        <ColumnDefinition Width="*" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel>
+                                                        <TextBlock Margin="0,0,0,3"
+                                                                   Text="{localization:Loc AutomaticPurlin_PlacementMode}" />
+                                                        <ComboBox Style="{StaticResource PurlinComboBoxStyle}"
+                                                                  ItemsSource="{Binding PlacementModes}"
+                                                                  DisplayMemberPath="Label"
+                                                                  SelectedValuePath="Mode"
+                                                                  SelectedValue="{Binding PlacementMode, Mode=TwoWay}" />
+                                                    </StackPanel>
+                                                    <StackPanel Grid.Column="2">
+                                                        <TextBlock Margin="0,0,0,3"
+                                                                   Text="{Binding ValueLabel}" />
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="*" />
+                                                                <ColumnDefinition Width="Auto" />
+                                                            </Grid.ColumnDefinitions>
+                                                            <TextBox Style="{StaticResource PurlinValidatedTextBoxStyle}"
+                                                                     ui:PurlinFieldValidation.HasError="{Binding PlacementValueHasError}"
+                                                                     ui:PurlinFieldValidation.ErrorText="{Binding PlacementValueErrorText}"
+                                                                     Text="{Binding PlacementValueText, UpdateSourceTrigger=PropertyChanged}" />
+                                                            <TextBlock Grid.Column="1" Margin="6,0,0,0"
+                                                                       VerticalAlignment="Center"
+                                                                       Text="{localization:Loc AutomaticPurlin_UnitMillimetres}" />
+                                                        </Grid>
+                                                        <TextBlock Tag="PurlinFieldValidationHint"
+                                                                   Style="{StaticResource PurlinFieldValidationHintStyle}"
+                                                                   Text="{Binding PlacementValueErrorText}" />
+                                                    </StackPanel>
+                                                </Grid>
+                                                <Grid Margin="0,6,0,0">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="10" />
+                                                        <ColumnDefinition Width="*" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel>
+                                                        <TextBlock Margin="0,0,0,3"
+                                                                   Text="{localization:Loc AutomaticPurlin_Width}" />
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="*" />
+                                                                <ColumnDefinition Width="Auto" />
+                                                            </Grid.ColumnDefinitions>
+                                                            <TextBox Style="{StaticResource PurlinValidatedTextBoxStyle}"
+                                                                     ui:PurlinFieldValidation.HasError="{Binding WidthHasError}"
+                                                                     ui:PurlinFieldValidation.ErrorText="{Binding WidthErrorText}"
+                                                                     Text="{Binding WidthText, UpdateSourceTrigger=PropertyChanged}" />
+                                                            <TextBlock Grid.Column="1" Margin="6,0,0,0"
+                                                                       VerticalAlignment="Center"
+                                                                       Text="{localization:Loc AutomaticPurlin_UnitMillimetres}" />
+                                                        </Grid>
+                                                        <TextBlock Tag="PurlinFieldValidationHint"
+                                                                   Style="{StaticResource PurlinFieldValidationHintStyle}"
+                                                                   Text="{Binding WidthErrorText}" />
+                                                    </StackPanel>
+                                                    <StackPanel Grid.Column="2">
+                                                        <TextBlock Margin="0,0,0,3"
+                                                                   Text="{localization:Loc AutomaticPurlin_Height}" />
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="*" />
+                                                                <ColumnDefinition Width="Auto" />
+                                                            </Grid.ColumnDefinitions>
+                                                            <TextBox Style="{StaticResource PurlinValidatedTextBoxStyle}"
+                                                                     ui:PurlinFieldValidation.HasError="{Binding HeightHasError}"
+                                                                     ui:PurlinFieldValidation.ErrorText="{Binding HeightErrorText}"
+                                                                     Text="{Binding HeightText, UpdateSourceTrigger=PropertyChanged}" />
+                                                            <TextBlock Grid.Column="1" Margin="6,0,0,0"
+                                                                       VerticalAlignment="Center"
+                                                                       Text="{localization:Loc AutomaticPurlin_UnitMillimetres}" />
+                                                        </Grid>
+                                                        <TextBlock Tag="PurlinFieldValidationHint"
+                                                                   Style="{StaticResource PurlinFieldValidationHintStyle}"
+                                                                   Text="{Binding HeightErrorText}" />
+                                                    </StackPanel>
+                                                </Grid>
+                                                <StackPanel Margin="0,6,0,0">
                                                     <StackPanel.Style>
                                                         <Style TargetType="StackPanel">
+                                                            <Setter Property="Visibility" Value="Collapsed" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsRidgeReferenceVisible}" Value="True">
+                                                                    <Setter Property="Visibility" Value="Visible" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </StackPanel.Style>
+                                                    <TextBlock Margin="0,0,0,3"
+                                                               Text="{localization:Loc AutomaticPurlin_RidgeReference}" />
+                                                    <ComboBox Style="{StaticResource PurlinValidatedComboBoxStyle}"
+                                                              ui:PurlinFieldValidation.HasError="{Binding RidgeReferenceHasError}"
+                                                              ui:PurlinFieldValidation.ErrorText="{Binding RidgeReferenceErrorText}"
+                                                              ItemsSource="{Binding RidgeReferences}"
+                                                              DisplayMemberPath="Label"
+                                                              SelectedItem="{Binding SelectedRidgeReference, Mode=TwoWay}" />
+                                                    <TextBlock Tag="PurlinFieldValidationHint"
+                                                               Style="{StaticResource PurlinFieldValidationHintStyle}"
+                                                               Text="{Binding RidgeReferenceErrorText}" />
+                                                </StackPanel>
+                                                <Grid Tag="SeatingControlsPanel" Margin="0,6,0,0">
+                                                    <Grid.Style>
+                                                        <Style TargetType="Grid">
                                                             <Setter Property="Visibility" Value="Collapsed" />
                                                             <Style.Triggers>
                                                                 <DataTrigger Binding="{Binding IsSeatingApplicable}" Value="True">
@@ -475,92 +919,578 @@
                                                                 </DataTrigger>
                                                             </Style.Triggers>
                                                         </Style>
-                                                    </StackPanel.Style>
-                                                    <TextBlock Style="{DynamicResource SettingsHintStyle}"
-                                                               Text="{localization:Loc AutomaticPurlin_RoofPlaneElevation}" />
-                                                    <TextBlock Margin="5,0,0,0" FontWeight="SemiBold"
-                                                               Text="{Binding RoofPlaneRelative}" />
-                                                </StackPanel>
-                                                <StackPanel Margin="0,0,18,0" Orientation="Horizontal">
-                                                    <TextBlock Style="{DynamicResource SettingsHintStyle}"
-                                                               Text="{localization:Loc AutomaticPurlin_BottomEdge}" />
-                                                    <TextBlock Margin="5,0,0,0" FontWeight="SemiBold"
-                                                               Text="{Binding BottomRelative}" />
-                                                </StackPanel>
-                                                <StackPanel Margin="0,0,18,0" Orientation="Horizontal">
-                                                    <TextBlock Style="{DynamicResource SettingsHintStyle}"
-                                                               Text="{localization:Loc AutomaticPurlin_Center}" />
-                                                    <TextBlock Margin="5,0,0,0" FontWeight="SemiBold"
-                                                               Text="{Binding CenterRelative}" />
-                                                </StackPanel>
-                                                <StackPanel Orientation="Horizontal">
-                                                    <TextBlock Style="{DynamicResource SettingsHintStyle}"
-                                                               Text="{localization:Loc AutomaticPurlin_TopEdge}" />
-                                                    <TextBlock Margin="5,0,0,0" FontWeight="SemiBold"
-                                                               Text="{Binding TopRelative}" />
-                                                </StackPanel>
-                                            </WrapPanel>
-                                        </StackPanel>
-                                    </Border>
+                                                    </Grid.Style>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="10" />
+                                                        <ColumnDefinition Width="*" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel>
+                                                        <TextBlock Margin="0,0,0,3"
+                                                                   Text="{localization:Loc AutomaticPurlin_SeatingDepth}" />
+                                                        <ComboBox                                                                   Style="{StaticResource PurlinComboBoxStyle}"
+                                                                  ItemsSource="{Binding SeatingModes}"
+                                                                  DisplayMemberPath="Label"
+                                                                  SelectedValuePath="Mode"
+                                                                  SelectedValue="{Binding SelectedSeatingMode, Mode=TwoWay}" />
+                                                    </StackPanel>
+                                                    <StackPanel Grid.Column="2">
+                                                        <TextBlock Margin="0,0,0,3"
+                                                                   Text="{Binding SeatingUnit}" />
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="*" />
+                                                                <ColumnDefinition Width="Auto" />
+                                                                <ColumnDefinition Width="Auto" />
+                                                            </Grid.ColumnDefinitions>
+                                                            <TextBox                                                                      Style="{StaticResource PurlinValidatedTextBoxStyle}"
+                                                                     ui:PurlinFieldValidation.HasError="{Binding SeatingHasError}"
+                                                                     ui:PurlinFieldValidation.ErrorText="{Binding SeatingErrorText}"
+                                                                     Text="{Binding SeatingDepthValueText, UpdateSourceTrigger=PropertyChanged}" />
+                                                            <TextBlock Grid.Column="1" Margin="6,0,4,0"
+                                                                       VerticalAlignment="Center"
+                                                                       Text="=" />
+                                                            <TextBlock Grid.Column="2"
+                                                                       VerticalAlignment="Center"
+                                                                       FontWeight="Bold"
+                                                                       Text="{Binding SeatingDepthDerived}" />
+                                                        </Grid>
+                                                        <TextBlock Tag="PurlinFieldValidationHint"
+                                                                   Style="{StaticResource PurlinFieldValidationHintStyle}"
+                                                                   Text="{Binding SeatingErrorText}" />
+                                                    </StackPanel>
+                                                </Grid>
+                                                <TextBlock Tag="HeightModeSeatingStatus" Margin="0,5,0,0"
+                                                           Text="{Binding SeatingStatusText, Mode=OneWay}">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock"
+                                                               BasedOn="{StaticResource SettingsDescriptionStyle}">
+                                                            <Setter Property="Visibility" Value="Collapsed" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsSeatingApplicable}" Value="False">
+                                                                    <Setter Property="Visibility" Value="Visible" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+
+                                                <ContentPresenter Margin="0,8,0,0"
+                                                                  Content="{Binding}"
+                                                                  ContentTemplate="{StaticResource PurlinTechnicalMetricsBarTemplate}" />
+</StackPanel>
+                                        </Border>
+
+                                </StackPanel>
+                            </Border>
+                        </ScrollViewer>
+
                                 </DataTemplate>
-                            </ListBox.ItemTemplate>
-                        </ListBox>
-                    </StackPanel>
-                </Border>
+                            </ContentControl.ContentTemplate>
+                        </ContentControl>
 
-                <Border Margin="0,0,0,8" Style="{DynamicResource SettingsCardStyle}">
-                    <StackPanel>
-                        <TextBlock Style="{DynamicResource SettingsSectionTitleStyle}"
-                                   Text="{localization:Loc AutomaticPurlin_CrossSection}" />
-                        <TextBlock Margin="0,8,0,0" FontWeight="SemiBold"
-                                   Text="{Binding PurlinSectionText}" />
-                        <TextBlock Margin="0,4,0,0"
-                                   Style="{DynamicResource SettingsDescriptionStyle}"
-                                   Text="{localization:Loc AutomaticPurlin_CrossSectionReadOnly}" />
-                    </StackPanel>
-                </Border>
+                            </DataTemplate>
+                            <ui:AutomaticPurlinEditorTabContentTemplateSelector x:Key="EditorTabContentSelector"
+                                WallPlateTemplate="{StaticResource WallPlateEditorTabTemplate}"
+                                RidgeTemplate="{StaticResource RidgeEditorTabTemplate}"
+                                IntermediateTemplate="{StaticResource IntermediateEditorTabTemplate}" />
 
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Grid Margin="14">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Border x:Name="HeaderBand"
+                Height="72"
+                Margin="0,0,0,10"
+                Padding="16,10"
+                Background="{StaticResource WoodOakDarkBrush}"
+                BorderBrush="#321708"
+                BorderThickness="1"
+                CornerRadius="8">
+            <StackPanel Orientation="Horizontal">
+                <Border Width="44" Height="44"
+                        Margin="0,0,12,0"
+                        VerticalAlignment="Center"
+                        Background="#2AFFFFFF"
+                        BorderBrush="#88FFF4DF"
+                        BorderThickness="1"
+                        CornerRadius="8">
+                    <Viewbox Width="25" Height="25" Margin="7">
+                        <Path Data="{StaticResource RoofGeometryGableIconGeometry}"
+                              Fill="Transparent"
+                              Stroke="{StaticResource RoofGeometryHeaderTextBrush}"
+                              StrokeThickness="1.7"
+                              StrokeStartLineCap="Round"
+                              StrokeEndLineCap="Round"
+                              StrokeLineJoin="Round" />
+                    </Viewbox>
+                </Border>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock FontSize="21"
+                               FontWeight="Bold"
+                               Foreground="{StaticResource RoofGeometryHeaderTextBrush}"
+                               Text="{Binding WindowTitle}" />
+                    <TextBlock Margin="0,2,0,0"
+                               Foreground="{StaticResource RoofGeometryHeaderSecondaryTextBrush}"
+                               Text="{Binding WindowDescription}" />
+                </StackPanel>
             </StackPanel>
-        </ScrollViewer>
+        </Border>
 
-        <TextBlock Grid.Row="2"
-                   Margin="0,12,0,0"
-                   MinHeight="20"
-                   Foreground="{DynamicResource SettingsValidationBrush}"
-                   Text="{Binding ValidationMessage}"
-                   TextWrapping="Wrap" />
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="680" MinWidth="640" />
+                <ColumnDefinition Width="12" />
+                <ColumnDefinition Width="*" MinWidth="600" />
+            </Grid.ColumnDefinitions>
 
-        <StackPanel x:Name="FooterPanel"
-                    Grid.Row="3" Margin="0,10,0,0"
-                    HorizontalAlignment="Right" Orientation="Horizontal">
-            <Button x:Name="CancelButton"
-                    Margin="0,0,10,0"
-                    Click="CancelButton_Click"
-                    IsCancel="True"
-                    Style="{DynamicResource SettingsSecondaryButtonStyle}"
-                    Content="{localization:Loc AutomaticPurlin_Cancel}" />
-            <Button x:Name="PreviewButton"
-                    Margin="0,0,10,0"
-                    Click="PreviewButton_Click"
-                    IsEnabled="{Binding CanPreview}"
-                    Style="{DynamicResource SettingsPrimaryButtonStyle}"
-                    Content="{localization:Loc AutomaticPurlin_Preview}" />
-            <Button x:Name="ApplyButton"
-                    Click="ApplyButton_Click"
-                    IsEnabled="{Binding CanApply}"
-                    Content="{localization:Loc AutomaticPurlin_Apply}">
-                <Button.Style>
-                    <Style TargetType="Button"
-                           BasedOn="{StaticResource SettingsPrimaryButtonStyle}">
-                        <Setter Property="Visibility" Value="Collapsed" />
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding IsProductionEdit}" Value="True">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                    <Border Style="{StaticResource PurlinValidatedCardStyle}"
+                            ui:PurlinFieldValidation.HasError="{Binding ReferencePlaneHasFieldError}">
+                        <StackPanel>
+                            <TextBlock Style="{DynamicResource SettingsSectionTitleStyle}"
+                                       Text="{localization:Loc AutomaticPurlin_ReferenceSection}" />
+                            <TextBlock Margin="0,2,0,6"
+                                       Style="{DynamicResource SettingsDescriptionStyle}"
+                                       Text="{Binding DatumPersistenceStatus}" />
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="10" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="10" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Margin="0,0,0,3"
+                                               Text="{localization:Loc AutomaticPurlin_ReferenceKind}" />
+                                    <ComboBox Style="{StaticResource PurlinComboBoxStyle}"
+                                              ItemsSource="{Binding ReferenceKinds}"
+                                              DisplayMemberPath="Label"
+                                              SelectedValuePath="Kind"
+                                              SelectedValue="{Binding ReferenceKind, Mode=TwoWay}" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Margin="0,0,0,3"
+                                               Text="{localization:Loc AutomaticPurlin_ReferenceRelativeElevation}" />
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBox Style="{StaticResource PurlinValidatedTextBoxStyle}"
+                                                 ui:PurlinFieldValidation.HasError="{Binding RelativeReferenceHasError}"
+                                                 ui:PurlinFieldValidation.ErrorText="{Binding RelativeReferenceErrorText}"
+                                                 Text="{Binding RelativeReferenceText, UpdateSourceTrigger=PropertyChanged}" />
+                                        <TextBlock Grid.Column="1" Margin="6,0,0,0"
+                                                   VerticalAlignment="Center"
+                                                   Text="{localization:Loc AutomaticPurlin_UnitMetres}" />
+                                    </Grid>
+                                    <TextBlock Tag="PurlinFieldValidationHint"
+                                               Style="{StaticResource PurlinFieldValidationHintStyle}"
+                                               Text="{Binding RelativeReferenceErrorText}" />
+                                </StackPanel>
+                                <StackPanel x:Name="LocalReferencePanel"
+                                            Grid.Column="4"
+                                            ToolTip="{localization:Loc AutomaticPurlin_ReferenceLocalZHelp}"
+                                            Visibility="{Binding IsLocalReferencePositionVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                    <TextBlock Margin="0,0,0,3"
+                                               Text="{localization:Loc AutomaticPurlin_ReferenceLocalZ}" />
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBox Style="{StaticResource PurlinValidatedTextBoxStyle}"
+                                                 ui:PurlinFieldValidation.HasError="{Binding ReferenceLocalZHasError}"
+                                                 ui:PurlinFieldValidation.ErrorText="{Binding ReferenceLocalZErrorText}"
+                                                 ToolTip="{localization:Loc AutomaticPurlin_ReferenceLocalZHelp}"
+                                                 Text="{Binding ReferenceLocalZText, UpdateSourceTrigger=PropertyChanged}" />
+                                        <TextBlock Grid.Column="1" Margin="6,0,0,0"
+                                                   VerticalAlignment="Center"
+                                                   Text="{localization:Loc AutomaticPurlin_UnitMillimetres}" />
+                                    </Grid>
+                                    <TextBlock Tag="PurlinFieldValidationHint"
+                                               Style="{StaticResource PurlinFieldValidationHintStyle}"
+                                               Text="{Binding ReferenceLocalZErrorText}" />
+                                </StackPanel>
+                            </Grid>
+
+                            <Border Margin="0,8,0,0"
+                                    Padding="8,6"
+                                    Background="{DynamicResource SettingsPanelBackgroundBrush}"
+                                    BorderBrush="{DynamicResource SettingsBorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="4">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <TextBlock FontSize="11"
+                                                   Foreground="{DynamicResource SettingsTextSecondaryBrush}"
+                                                   Text="{localization:Loc AutomaticPurlin_RoofInfoType}" />
+                                        <TextBlock FontWeight="SemiBold"
+                                                   Text="{Binding RoofInfoTypeText}" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1">
+                                        <TextBlock FontSize="11"
+                                                   Foreground="{DynamicResource SettingsTextSecondaryBrush}"
+                                                   Text="{localization:Loc AutomaticPurlin_RoofInfoPitch}" />
+                                        <TextBlock FontWeight="SemiBold"
+                                                   Text="{Binding RoofInfoPitchText}" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="2">
+                                        <TextBlock FontSize="11"
+                                                   Foreground="{DynamicResource SettingsTextSecondaryBrush}"
+                                                   Text="{localization:Loc AutomaticPurlin_RoofInfoHeight}" />
+                                        <TextBlock FontWeight="SemiBold"
+                                                   Text="{Binding RoofInfoHeightText}" />
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+
+
+                <DockPanel Grid.Row="1" Margin="0,6,0,0" LastChildFill="True">
+                    <Button x:Name="AddRowButton"
+                            DockPanel.Dock="Right"
+                            Margin="6,0,0,0"
+                            VerticalAlignment="Top"
+                            Click="AddRowButton_Click"
+                            Style="{StaticResource PurlinAddTabButtonStyle}"
+                            Content="+"
+                            ToolTip="{localization:Loc AutomaticPurlin_Add}"
+                            AutomationProperties.Name="{localization:Loc AutomaticPurlin_Add}" />
+                    <TabControl x:Name="ElementEditorsTabControl"
+                                ItemsSource="{Binding EditorTabs}"
+                                SelectedItem="{Binding SelectedEditorTab, Mode=TwoWay}"
+                                Style="{StaticResource PurlinElementTabControlStyle}"
+                                ItemContainerStyle="{StaticResource PurlinDynamicTabItemStyle}"
+                                ContentTemplateSelector="{StaticResource EditorTabContentSelector}">
+                        <TabControl.Template>
+                            <ControlTemplate TargetType="TabControl">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="*" />
+                                    </Grid.RowDefinitions>
+                                    <ScrollViewer Grid.Row="0"
+                                                  HorizontalScrollBarVisibility="Auto"
+                                                  VerticalScrollBarVisibility="Disabled"
+                                                  Padding="0,0,0,2">
+                                        <TabPanel IsItemsHost="True"
+                                                  Margin="0,0,0,0"
+                                                  KeyboardNavigation.TabIndex="1" />
+                                    </ScrollViewer>
+                                    <Border Grid.Row="1"
+                                            Background="Transparent"
+                                            BorderBrush="{DynamicResource SettingsBorderBrush}"
+                                            BorderThickness="1,0,1,1"
+                                            CornerRadius="0,0,4,4"
+                                            Padding="0,6,0,0">
+                                        <ContentPresenter ContentSource="SelectedContent" />
+                                    </Border>
+                                </Grid>
+                            </ControlTemplate>
+                        </TabControl.Template>
+
+                        <TabControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type ui:AutomaticPurlinEditorTabViewModel}">
+                                <StackPanel Orientation="Horizontal"
+                                            AutomationProperties.Name="{Binding AutomationName}">
+                                    <TextBlock Margin="0,0,4,0"
+                                               FontWeight="Bold"
+                                               Foreground="{DynamicResource SettingsValidationBrush}"
+                                               Text="{localization:Loc AutomaticPurlin_TabErrorGlyph}">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Visibility" Value="Collapsed" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding HasError}" Value="True">
+                                                        <Setter Property="Visibility" Value="Visible" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                    <TextBlock Text="{Binding Title}" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </TabControl.ItemTemplate>
+                    </TabControl>
+                </DockPanel>
+
+            </Grid>
+
+            <Border Grid.Column="2"
+                     Style="{DynamicResource SettingsCardStyle}"
+                    Background="{StaticResource RoofGeometrySchematicBackgroundBrush}"
+                     Padding="8">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top"
+                               Margin="0,0,0,6"
+                               Style="{DynamicResource SettingsSectionTitleStyle}"
+                               Text="{localization:Loc AutomaticPurlin_Schematic}" />
+                    <TextBlock DockPanel.Dock="Top"
+                               Margin="0,0,0,6"
+                               FontWeight="SemiBold"
+                               Foreground="#8B1E1E"
+                               TextWrapping="Wrap"
+                               Text="{Binding SchematicStaleMessage}">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsSchematicStale}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <ui:AutomaticPurlinRoofSectionView x:Name="RoofSectionView"
+                                                       Presentation="{Binding SectionPresentation}" />
+                </DockPanel>
+            </Border>
+        </Grid>
+
+        <Border x:Name="FooterBand"
+                Grid.Row="2"
+                MinHeight="68"
+                Margin="0,10,0,0"
+                Background="{StaticResource WoodOakDarkBrush}"
+                BorderBrush="#321708"
+                BorderThickness="1"
+                CornerRadius="8">
+            <Grid Margin="12,8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" Margin="0,0,12,0" VerticalAlignment="Center">
+                    <StackPanel x:Name="NoRafterWarningPanel">
+                        <StackPanel.Style>
+                            <Style TargetType="StackPanel">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ShowNoRafterFooterWarning}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </StackPanel.Style>
+                        <TextBlock FontWeight="SemiBold"
+                                   Foreground="{StaticResource RoofGeometryHeaderTextBrush}"
+                                   Text="{Binding NoRafterWarningTitle}"
+                                   TextWrapping="Wrap" />
+                        <TextBlock Margin="0,2,0,4"
+                                   Foreground="{StaticResource RoofGeometryHeaderSecondaryTextBrush}"
+                                   Text="{Binding NoRafterWarningDetail}"
+                                   TextWrapping="Wrap" />
+                        <Button x:Name="EnterRafterDimensionsButton"
+                                HorizontalAlignment="Left"
+                                MinWidth="0"
+                                Padding="10,3"
+                                Click="EnterRafterDimensionsButton_Click"
+                                Style="{StaticResource SettingsSecondaryButtonStyle}"
+                                Content="{Binding EnterRafterDimensionsActionText}" />
+                    </StackPanel>
+                    <StackPanel x:Name="MissingActualTransitionPanel">
+                        <StackPanel.Style>
+                            <Style TargetType="StackPanel">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ShowMissingActualTransitionWarning}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </StackPanel.Style>
+                        <TextBlock FontWeight="SemiBold"
+                                   Foreground="{StaticResource RoofGeometryHeaderTextBrush}"
+                                   Text="{Binding MissingActualTransitionTitle}"
+                                   TextWrapping="Wrap" />
+                        <TextBlock Margin="0,2,0,4"
+                                   Foreground="{StaticResource RoofGeometryHeaderSecondaryTextBrush}"
+                                   Text="{Binding MissingActualTransitionDetail}"
+                                   TextWrapping="Wrap" />
+                        <StackPanel Orientation="Horizontal">
+                            <Button x:Name="ConfirmStoredManualRafterButton"
+                                    HorizontalAlignment="Left"
+                                    MinWidth="0"
+                                    Margin="0,0,8,0"
+                                    Padding="10,3"
+                                    Click="ConfirmStoredManualRafterButton_Click"
+                                    Style="{StaticResource SettingsSecondaryButtonStyle}"
+                                    Content="{Binding ConfirmStoredManualRafterActionText}" />
+                            <Button x:Name="EnterDifferentManualRafterButton"
+                                    HorizontalAlignment="Left"
+                                    MinWidth="0"
+                                    Padding="10,3"
+                                    Click="EnterRafterDimensionsButton_Click"
+                                    Style="{StaticResource SettingsSecondaryButtonStyle}"
+                                    Content="{Binding EnterRafterDimensionsActionText}" />
+                        </StackPanel>
+                    </StackPanel>
+                    <StackPanel x:Name="RafterSourceConflictPanel">
+                        <StackPanel.Style>
+                            <Style TargetType="StackPanel">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ShowRafterSourceConflictWarning}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </StackPanel.Style>
+                        <TextBlock FontWeight="SemiBold"
+                                   Foreground="{StaticResource RoofGeometryHeaderTextBrush}"
+                                   Text="{Binding RafterSourceConflictFooterText}"
+                                   TextWrapping="Wrap" />
+                        <Button x:Name="ResolveRafterSourceConflictButton"
+                                Margin="0,4,0,0"
+                                HorizontalAlignment="Left"
+                                MinWidth="0"
+                                Padding="10,3"
+                                Click="ResolveRafterSourceConflictButton_Click"
+                                Style="{StaticResource SettingsSecondaryButtonStyle}"
+                                Content="{Binding ResolveRafterSourceConflictActionText}" />
+                    </StackPanel>
+                    <TextBlock x:Name="PersistedManualRafterInvalidText"
+                               Foreground="{StaticResource RoofGeometryHeaderTextBrush}"
+                               Text="{Binding PersistedManualRafterInvalidFooterText}"
+                               TextWrapping="Wrap">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ShowPersistedManualRafterInvalidWarning}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <TextBlock x:Name="ProvisionalManualRafterInfoText"
+                               Foreground="{StaticResource RoofGeometryHeaderSecondaryTextBrush}"
+                               Text="{Binding ProvisionalManualRafterFooterInfoText}"
+                               TextWrapping="Wrap">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ShowProvisionalManualRafterFooterInfo}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <TextBlock x:Name="ManualRafterInfoText"
+                               Foreground="{StaticResource RoofGeometryHeaderTextBrush}"
+                               Text="{Binding ManualRafterFooterInfoText}"
+                               TextWrapping="Wrap">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ShowManualRafterFooterInfo}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <TextBlock x:Name="ValidationMessageText"
+                               MinHeight="22"
+                               MaxHeight="56"
+                               Margin="0,4,0,0"
+                               Foreground="{StaticResource RoofGeometryHeaderTextBrush}"
+                               Text="{Binding ValidationMessage}"
+                               TextWrapping="Wrap"
+                               ToolTip="{Binding ValidationMessage}">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
                                 <Setter Property="Visibility" Value="Visible" />
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </Button.Style>
-            </Button>
-        </StackPanel>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ShowNoRafterFooterWarning}" Value="True">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </StackPanel>
+                <StackPanel x:Name="FooterPanel"
+                            Grid.Column="1"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center"
+                            Orientation="Horizontal">
+                    <Button x:Name="CancelButton"
+                            Margin="0,0,10,0"
+                            Click="CancelButton_Click"
+                            IsCancel="True"
+                            Style="{StaticResource SettingsSecondaryButtonStyle}"
+                            Content="{localization:Loc AutomaticPurlin_Cancel}" />
+                    <Button x:Name="PreviewButton"
+                            Margin="0,0,10,0"
+                            Click="PreviewButton_Click"
+                            IsEnabled="{Binding CanPreview}"
+                            Style="{StaticResource SettingsPrimaryButtonStyle}"
+                            Content="{localization:Loc AutomaticPurlin_Preview}" />
+                    <Button x:Name="ApplyButton"
+                            Click="ApplyButton_Click"
+                            IsEnabled="{Binding CanApply}"
+                            Content="{localization:Loc AutomaticPurlin_Apply}">
+                        <Button.Style>
+                            <Style TargetType="Button"
+                                   BasedOn="{StaticResource SettingsPrimaryButtonStyle}">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsProductionEdit}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Popup x:Name="PinnedTechnicalTooltipPopup"
+               AllowsTransparency="True"
+               Placement="Bottom"
+               StaysOpen="True"
+               PopupAnimation="Fade">
+            <Border Background="{DynamicResource SettingsPanelBackgroundBrush}"
+                    BorderBrush="{DynamicResource SettingsBorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="6"
+                    Padding="10"
+                    MaxWidth="300">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="8" ShadowDepth="2" Opacity="0.35" Color="#5A3A1A" />
+                </Border.Effect>
+                <ContentPresenter x:Name="PinnedTechnicalTooltipPresenter"
+                                  ContentTemplate="{StaticResource PurlinElevationTooltipTemplate}" />
+            </Border>
+        </Popup>
+
     </Grid>
 </Window>

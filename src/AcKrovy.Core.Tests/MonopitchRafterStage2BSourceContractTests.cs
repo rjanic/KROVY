@@ -22,7 +22,7 @@ public sealed class MonopitchRafterStage2BSourceContractTests
         var selection = Segment(
             Workflow,
             "private static bool TrySelectCurrentRoof(",
-            "private static RoofRafterCreationResult TryCreateRafters(");
+            "private static RoofRafterCreationResult TryReplaceRafters(");
 
         Assert.Contains("restored.Geometry is not SimpleGableRoofGeometry and", selection);
         Assert.Contains("not MonopitchRoofGeometry", selection);
@@ -70,17 +70,19 @@ public sealed class MonopitchRafterStage2BSourceContractTests
         var run = Segment(
             Workflow,
             "public static void Run(Document document)",
-            "private static bool TrySelectCurrentRoof(");
+            "private static bool TryRecoverExistingRecipe(");
         var normalDialogPath = run.IndexOf(
             "var defaultProfile = TimberElementDefaultProfileStore.Load();",
             StringComparison.Ordinal);
         var dialog = run.IndexOf("AcApp.ShowModalWindow(dialog)", StringComparison.Ordinal);
         var acceptedGuard = run.IndexOf("if (!accepted || dialog.Request is null)", StringComparison.Ordinal);
-        var createCall = run.IndexOf("var result = TryCreateRafters(", StringComparison.Ordinal);
-        var beforeAcceptedCreate = run[normalDialogPath..createCall];
+        var applyCall = run.IndexOf("var result = isEdit", StringComparison.Ordinal);
+        var beforeAcceptedCreate = run[normalDialogPath..applyCall];
 
         Assert.True(normalDialogPath >= 0 && dialog > normalDialogPath && acceptedGuard > dialog);
-        Assert.True(createCall > acceptedGuard);
+        Assert.True(applyCall > acceptedGuard);
+        Assert.Contains("TryReplaceRafters(", run);
+        Assert.Contains("TryCreateRafters(", run);
         Assert.DoesNotContain("LockDocument", beforeAcceptedCreate);
         Assert.DoesNotContain("OpenMode.ForWrite", beforeAcceptedCreate);
         Assert.DoesNotContain("AppendEntity", beforeAcceptedCreate);

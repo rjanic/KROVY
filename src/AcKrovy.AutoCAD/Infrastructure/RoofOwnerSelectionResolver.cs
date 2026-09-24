@@ -165,6 +165,30 @@ internal static class RoofOwnerSelectionResolver
             return true;
         }
 
+        var structural = RoofStructuralGeneratedStore.Read(selected);
+        if (structural.Data is not null &&
+            TryResolveHandleToPolyline(
+                database,
+                transaction,
+                structural.Data.RoofOwnerReference,
+                out ownerId,
+                out _))
+        {
+            return true;
+        }
+
+        var purlin = RoofAutomaticPurlinGeneratedStore.Read(selected);
+        if (purlin.Data is not null &&
+            TryResolveHandleToPolyline(
+                database,
+                transaction,
+                purlin.Data.RoofOwnerReference,
+                out ownerId,
+                out _))
+        {
+            return true;
+        }
+
         if (!TryReadAnnotationSourceHandle(selected, out var sourceHandle) ||
             !TryResolveHandleToEntity(database, transaction, sourceHandle, out var sourceEntity) ||
             sourceEntity is null)
@@ -185,11 +209,35 @@ internal static class RoofOwnerSelectionResolver
         }
 
         var sourceTimber = RoofGeneratedTimberStore.Read(sourceEntity);
-        return sourceTimber.Data is not null &&
+        if (sourceTimber.Data is not null &&
+            TryResolveHandleToPolyline(
+                database,
+                transaction,
+                sourceTimber.Data.RoofOwnerReference,
+                out ownerId,
+                out _))
+        {
+            return true;
+        }
+
+        var sourceStructural = RoofStructuralGeneratedStore.Read(sourceEntity);
+        if (sourceStructural.Data is not null &&
+            TryResolveHandleToPolyline(
+                database,
+                transaction,
+                sourceStructural.Data.RoofOwnerReference,
+                out ownerId,
+                out _))
+        {
+            return true;
+        }
+
+        var sourcePurlin = RoofAutomaticPurlinGeneratedStore.Read(sourceEntity);
+        return sourcePurlin.Data is not null &&
                TryResolveHandleToPolyline(
                    database,
                    transaction,
-                   sourceTimber.Data.RoofOwnerReference,
+                   sourcePurlin.Data.RoofOwnerReference,
                    out ownerId,
                    out _);
     }

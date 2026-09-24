@@ -24,54 +24,57 @@ internal static class RoofRafterCommandWorkflow
             return;
         }
 
-        if (selectedRoof.ExistingGeneratedRafterCount > 0)
+        var defaultProfile = TimberElementDefaultProfileStore.Load();
+        var rafterSettings = AutoCadRoofRafterSpacingStore.ReadEffective(
+            document.Database,
+            out _);
+        var isEdit = selectedRoof.ExistingGeneratedRafterCount > 0;
+        RoofRafterPreferences workingPreferences;
+        if (isEdit)
         {
-            // Ordinary generated rafters can predate the explicit structural
-            // Hip/Valley materializer. Reconcile that independent desired set
-            // before retaining the existing ordinary-set replacement guard.
-            if (selectedRoof.Geometry is HipRoofGeometry)
-            {
-                var structural = RoofAutomaticStructuralRafterMaterializationService.Materialize(
+            if (!TryRecoverExistingRecipe(
                     document,
-                    selectedRoof.OwnerId);
-                if (!structural.IsSuccess)
-                {
-                    editor.WriteMessage(UiStrings.GetString(
-                        "Command_RoofRafters_GenerationFailed"));
-                    return;
-                }
+                    selectedRoof.OwnerId,
+                    selectedRoof.OwnerReference,
+                    out var recoveredRecipe))
+            {
+                editor.WriteMessage(UiStrings.GetString(
+                    "Command_RoofRafters_RecipeAmbiguous"));
+                return;
             }
 
-            editor.WriteMessage(UiStrings.Format(
-                UiStrings.GetString("Command_RoofRafters_ExistingFoundFormat"),
-                selectedRoof.ExistingGeneratedRafterCount));
             if (selectedRoof.GeneratedSetIsStale)
             {
                 editor.WriteMessage(UiStrings.GetString("Command_RoofRafters_ExistingStale"));
             }
-            editor.WriteMessage(UiStrings.GetString("Command_RoofRafters_ReplacementDeferred"));
-            return;
+
+            // Authoritative roof recipe — never global TimberElementDefaults /
+            // remembered CREATE preferences when a recoverable set exists.
+            workingPreferences = new RoofRafterPreferences(
+                recoveredRecipe.WidthMm,
+                recoveredRecipe.HeightMm,
+                recoveredRecipe.MaximumSpacingMm,
+                recoveredRecipe.Material);
+        }
+        else
+        {
+            var canonicalRafterDefaults = TimberElementDefaults.For(
+                TimberElementType.Rafter,
+                defaultProfile);
+            var uiPreferences = SettingsUiPreferencesStore.Load();
+            var remembered = uiPreferences.AutomaticRafterPreferences ??
+                RoofRafterPreferences.CreateFirstUse(canonicalRafterDefaults.Material);
+            workingPreferences = remembered with
+            {
+                MaximumSpacingMm = rafterSettings.DefaultAutomaticSpacingMm,
+            };
         }
 
-        var defaultProfile = TimberElementDefaultProfileStore.Load();
-        var canonicalRafterDefaults = TimberElementDefaults.For(
-            TimberElementType.Rafter,
-            defaultProfile);
-        var uiPreferences = SettingsUiPreferencesStore.Load();
-        var remembered = uiPreferences.AutomaticRafterPreferences ??
-            RoofRafterPreferences.CreateFirstUse(canonicalRafterDefaults.Material);
-        var rafterSettings = AutoCadRoofRafterSpacingStore.ReadEffective(
-            document.Database,
-            out _);
-        var workingPreferences = remembered with
-        {
-            MaximumSpacingMm = rafterSettings.DefaultAutomaticSpacingMm,
-        };
         var dialog = new RoofRafterWindow(
             selectedRoof.Geometry,
             workingPreferences,
             rafterSettings.MinimumAutomaticSpacingMm,
-            uiPreferences.Theme,
+            SettingsUiPreferencesStore.Load().Theme,
             minimumAutomaticLengthMm: rafterSettings.MinimumAutomaticLengthMm);
         SettingsWindowOwner.TryAssign(dialog, TryGetAutoCadMainWindowHandle());
         using var preview = new RoofRafterTransientPreviewController(
@@ -103,17 +106,28 @@ internal static class RoofRafterCommandWorkflow
             return;
         }
 
-        var result = TryCreateRafters(
-            document,
-            selectedRoof.OwnerId,
-            selectedRoof.OwnerReference,
-            selectedRoof.Geometry.Kind,
-            dialog.Request,
-            rafterSettings.MinimumAutomaticSpacingMm,
-            rafterSettings.MinimumAutomaticLengthMm,
-            defaultProfile);
+        var result = isEdit
+            ? TryReplaceRafters(
+                document,
+                selectedRoof.OwnerId,
+                selectedRoof.OwnerReference,
+                selectedRoof.Geometry.Kind,
+                dialog.Request,
+                rafterSettings.MinimumAutomaticSpacingMm,
+                rafterSettings.MinimumAutomaticLengthMm,
+                defaultProfile)
+            : TryCreateRafters(
+                document,
+                selectedRoof.OwnerId,
+                selectedRoof.OwnerReference,
+                selectedRoof.Geometry.Kind,
+                dialog.Request,
+                rafterSettings.MinimumAutomaticSpacingMm,
+                rafterSettings.MinimumAutomaticLengthMm,
+                defaultProfile);
         if (result.IsSuccess)
         {
+            var uiPreferences = SettingsUiPreferencesStore.Load();
             SettingsUiPreferencesStore.Save(uiPreferences with
             {
                 AutomaticRafterPreferences = dialog.Request.ToPreferences(),
@@ -124,6 +138,39 @@ internal static class RoofRafterCommandWorkflow
                 UiStrings.GetString("Command_RoofRafters_CreatedFormat"),
                 result.CreatedCount)
             : UiStrings.GetString(result.FailureMessageKey));
+    }
+
+    private static bool TryRecoverExistingRecipe(
+        Document document,
+        ObjectId ownerId,
+        string expectedOwnerReference,
+        out RoofRafterGenerationRecipe recipe)
+    {
+        recipe = default!;
+        using var transaction = document.Database.TransactionManager.StartTransaction();
+        if (transaction.GetObject(ownerId, OpenMode.ForRead) is not Polyline owner ||
+            !string.Equals(
+                owner.Handle.ToString(),
+                expectedOwnerReference,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        var generatedIds = RoofGeneratedTimberStore.FindByOwner(
+            document.Database,
+            transaction,
+            expectedOwnerReference);
+        if (generatedIds.Count == 0)
+        {
+            return false;
+        }
+
+        return RoofGeneratedRafterSetService.TryRecoverRecipe(
+            document.Database,
+            transaction,
+            generatedIds,
+            out recipe);
     }
 
     private static bool TrySelectCurrentRoof(
@@ -213,6 +260,187 @@ internal static class RoofRafterCommandWorkflow
                     generatedIds,
                     restored.Geometry));
             return true;
+        }
+    }
+
+    private static RoofRafterCreationResult TryReplaceRafters(
+        Document document,
+        ObjectId ownerId,
+        string expectedOwnerReference,
+        RoofKind expectedRoofKind,
+        RoofRafterCreationRequest request,
+        double minimumAutomaticSpacingMm,
+        double minimumAutomaticLengthMm,
+        TimberElementDefaultProfile defaultProfile)
+    {
+        try
+        {
+            var layerProfile = ElementLayerProfileStore.Load();
+            using var documentLock = document.LockDocument();
+            using var transaction = document.Database.TransactionManager.StartTransaction();
+            if (transaction.GetObject(ownerId, OpenMode.ForRead) is not Polyline owner ||
+                !string.Equals(
+                    owner.Handle.ToString(),
+                    expectedOwnerReference,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return RoofRafterCreationResult.Failure("Command_RoofRafters_SourceChanged");
+            }
+
+            var sourceInput = RoofPolylineExtractor.Extract(owner);
+            var validation = RoofFootprintValidator.Validate(sourceInput);
+            var stored = RoofDefinitionStore.Read(owner);
+            if (!validation.IsValid || validation.Footprint is null || stored.Data is null)
+            {
+                return RoofRafterCreationResult.Failure("Command_RoofRafters_SourceChanged");
+            }
+
+            var restored = RoofDefinitionPersistence.Restore(
+                sourceInput,
+                validation.Footprint,
+                stored.Data);
+            if (!restored.IsValid || restored.Geometry is null)
+            {
+                var errorKey = restored.Error == RoofDefinitionRestoreError.StaleFootprint
+                    ? "Command_Roof_PersistedStale"
+                    : "Command_RoofRafters_SourceChanged";
+                return RoofRafterCreationResult.Failure(errorKey);
+            }
+            if (restored.Geometry.Kind != expectedRoofKind)
+            {
+                return RoofRafterCreationResult.Failure("Command_RoofRafters_SourceChanged");
+            }
+            if (restored.Geometry is not SimpleGableRoofGeometry and
+                not MonopitchRoofGeometry and
+                not HipRoofGeometry)
+            {
+                return RoofRafterCreationResult.Failure("Command_RoofRafters_SourceChanged");
+            }
+
+            var existingIds = RoofGeneratedTimberStore.FindByOwner(
+                document.Database,
+                transaction,
+                expectedOwnerReference);
+            if (existingIds.Count == 0)
+            {
+                // EDIT requires an existing ordinary set; CREATE owns empty-set materialization.
+                return RoofRafterCreationResult.Failure("Command_RoofRafters_SourceChanged");
+            }
+
+            var inputError = RoofRafterRequestValidator.ValidateAutomaticInputs(
+                request.WidthMm,
+                request.HeightMm,
+                request.MaximumSpacingMm,
+                minimumAutomaticSpacingMm,
+                request.Material);
+            if (inputError != RoofRafterRequestValidationError.None)
+            {
+                return RoofRafterCreationResult.Failure("Command_RoofRafters_InvalidSpacing");
+            }
+
+            if (!RoofRafterLengthRules.IsValidMinimumLength(minimumAutomaticLengthMm))
+            {
+                return RoofRafterCreationResult.Failure("Command_RoofRafters_GenerationFailed");
+            }
+
+            var currentValidation = restored.Geometry is HipRoofGeometry hipGeometry
+                ? RoofRafterRequestValidator.ValidateHip(
+                    hipGeometry,
+                    request.WidthMm,
+                    request.HeightMm,
+                    request.MaximumSpacingMm,
+                    request.Material.Trim(),
+                    minimumAutomaticLengthMm)
+                : RoofRafterRequestValidator.Validate(
+                    restored.Geometry,
+                    request.WidthMm,
+                    request.HeightMm,
+                    request.MaximumSpacingMm,
+                    minimumAutomaticSpacingMm,
+                    request.Material,
+                    minimumAutomaticLengthMm);
+            if (!currentValidation.IsValid || currentValidation.Layout is null)
+            {
+                return RoofRafterCreationResult.Failure(
+                    currentValidation.Error == RoofRafterRequestValidationError.InvalidMaximumSpacing
+                        ? "Command_RoofRafters_InvalidSpacing"
+                        : "Command_RoofRafters_GenerationFailed");
+            }
+
+            if (!TimberMaterialCatalog.TryGetItem(request.Material, out _))
+            {
+                return RoofRafterCreationResult.Failure("Command_RoofRafters_GenerationFailed");
+            }
+
+            if (!RoofRafterMaterializationRules.IsConsistent(
+                    restored.Geometry,
+                    currentValidation.Layout))
+            {
+                return RoofRafterCreationResult.Failure("Command_RoofRafters_GenerationFailed");
+            }
+
+            var editedRecipe = new RoofRafterGenerationRecipe(
+                request.WidthMm,
+                request.HeightMm,
+                request.MaximumSpacingMm,
+                request.Material);
+            var outcome = RoofGeneratedRafterSetService.TryReplaceWithEditedRecipe(
+                document.Database,
+                transaction,
+                document.Editor,
+                owner,
+                restored.Geometry,
+                editedRecipe,
+                defaultProfile,
+                layerProfile,
+                out _,
+                out _);
+            if (outcome == RoofGeneratedRafterSetService.ReplacementOutcome.SkippedAmbiguousRecipe)
+            {
+                return RoofRafterCreationResult.Failure("Command_RoofRafters_RecipeAmbiguous");
+            }
+            if (outcome != RoofGeneratedRafterSetService.ReplacementOutcome.Replaced)
+            {
+                return RoofRafterCreationResult.Failure(
+                    outcome == RoofGeneratedRafterSetService.ReplacementOutcome.SkippedInvalidLayout
+                        ? "Command_RoofRafters_InvalidSpacing"
+                        : "Command_RoofRafters_GenerationFailed");
+            }
+
+            var automaticStructuralRafterCount = 0;
+            if (restored.Geometry is HipRoofGeometry automaticRafterHipGeometry)
+            {
+                var structuralRafters =
+                    RoofAutomaticStructuralRafterMaterializationService.MaterializeInTransaction(
+                        document,
+                        transaction,
+                        owner,
+                        expectedOwnerReference,
+                        sourceInput,
+                        automaticRafterHipGeometry,
+                        defaultProfile,
+                        layerProfile);
+                if (!structuralRafters.IsSuccess)
+                {
+                    throw new InvalidOperationException(
+                        "Automatic Hip/Valley rafter materialization failed: " +
+                        structuralRafters.Result);
+                }
+
+                automaticStructuralRafterCount = structuralRafters.Actual;
+            }
+
+            transaction.Commit();
+            return RoofRafterCreationResult.Success(
+                currentValidation.Layout.Rafters.Count + automaticStructuralRafterCount);
+        }
+        catch (RoofRafterMaterializationPhaseException)
+        {
+            return RoofRafterCreationResult.Failure("Command_RoofRafters_GenerationFailed");
+        }
+        catch (System.Exception)
+        {
+            return RoofRafterCreationResult.Failure("Command_RoofRafters_GenerationFailed");
         }
     }
 

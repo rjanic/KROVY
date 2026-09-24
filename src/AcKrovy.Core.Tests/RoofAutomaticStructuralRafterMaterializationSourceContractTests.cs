@@ -74,38 +74,48 @@ public sealed class RoofAutomaticStructuralRafterMaterializationSourceContractTe
     [Fact]
     public void ProductionRafterCommand_ComposesOrdinaryAndStructuralRaftersInOneTransaction()
     {
-        var ordinary = Workflow.IndexOf(
+        var create = Member(
+            Workflow,
+            "private static RoofRafterCreationResult TryCreateRafters(",
+            "private static bool IsGeneratedSetStale(");
+        var ordinary = create.IndexOf(
             "RoofGeneratedRafterSetService.Materialize(",
             StringComparison.Ordinal);
-        var structural = Workflow.IndexOf(
+        var structural = create.IndexOf(
             "RoofAutomaticStructuralRafterMaterializationService.MaterializeInTransaction(",
             StringComparison.Ordinal);
-        var commit = Workflow.IndexOf("transaction.Commit();", StringComparison.Ordinal);
+        var commit = create.IndexOf("transaction.Commit();", StringComparison.Ordinal);
 
         Assert.True(ordinary >= 0 && structural > ordinary && commit > structural);
-        Assert.Contains("if (!structuralRafters.IsSuccess)", Workflow);
-        Assert.Contains("currentValidation.Layout.Rafters.Count + automaticStructuralRafterCount", Workflow);
-        Assert.Equal(1, Count(Workflow, "transaction.Commit();"));
+        Assert.Contains("if (!structuralRafters.IsSuccess)", create);
+        Assert.Contains("currentValidation.Layout.Rafters.Count + automaticStructuralRafterCount", create);
+        Assert.Equal(1, Count(create, "transaction.Commit();"));
     }
 
     [Fact]
-    public void ExistingOrdinaryHipSet_ReconcilesStructuralSetBeforeReplacementDeferredReturn()
+    public void ExistingOrdinaryHipSet_OpensEditAndReconcilesStructuralOnApply()
     {
-        var existingGuard = Member(
+        var run = Member(
             Workflow,
-            "if (selectedRoof.ExistingGeneratedRafterCount > 0)",
-            "var defaultProfile = TimberElementDefaultProfileStore.Load();");
+            "public static void Run(",
+            "private static bool TryRecoverExistingRecipe(");
+        Assert.Contains("var isEdit = selectedRoof.ExistingGeneratedRafterCount > 0", run);
+        Assert.Contains("TryRecoverExistingRecipe(", run);
+        Assert.Contains("TryReplaceRafters(", run);
+        Assert.DoesNotContain(
+            "RoofAutomaticStructuralRafterMaterializationService.Materialize(",
+            run);
+        Assert.DoesNotContain("Command_RoofRafters_ReplacementDeferred", run);
 
-        Assert.Contains("selectedRoof.Geometry is HipRoofGeometry", existingGuard);
-        Assert.Contains(
-            "RoofAutomaticStructuralRafterMaterializationService.Materialize(",
-            existingGuard);
-        Assert.Contains("if (!structural.IsSuccess)", existingGuard);
+        var replace = Member(
+            Workflow,
+            "private static RoofRafterCreationResult TryReplaceRafters(",
+            "private static RoofRafterCreationResult TryCreateRafters(");
         AssertOrdered(
-            existingGuard,
-            "RoofAutomaticStructuralRafterMaterializationService.Materialize(",
-            "Command_RoofRafters_ExistingFoundFormat",
-            "Command_RoofRafters_ReplacementDeferred");
+            replace,
+            "TryReplaceWithEditedRecipe(",
+            "RoofAutomaticStructuralRafterMaterializationService.MaterializeInTransaction(",
+            "transaction.Commit();");
     }
 
     [Fact]

@@ -22,7 +22,8 @@ internal static class RoofAutomaticPurlinProductionApplyService
         RoofRelativeElevationDatum datum,
         RoofAutomaticPurlinPlan previewPlan,
         TimberElementDefaultProfile defaultProfile,
-        AcKrovy.Cad.Abstractions.Layers.ElementLayerProfile layerProfile)
+        AcKrovy.Cad.Abstractions.Layers.ElementLayerProfile layerProfile,
+        double rafterHeightMm)
     {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(layout);
@@ -30,6 +31,10 @@ internal static class RoofAutomaticPurlinProductionApplyService
         ArgumentNullException.ThrowIfNull(previewPlan);
         ArgumentNullException.ThrowIfNull(defaultProfile);
         ArgumentNullException.ThrowIfNull(layerProfile);
+        if (!double.IsFinite(rafterHeightMm) || rafterHeightMm <= 0d)
+        {
+            return RoofAutomaticPurlinApplyResult.Failure("invalid-authoritative-rafter-height");
+        }
 
         try
         {
@@ -126,7 +131,9 @@ internal static class RoofAutomaticPurlinProductionApplyService
                     datumValidation.Datum,
                     defaultProfile,
                     layerProfile,
-                    previewPlan);
+                    previewPlan,
+                    includeWallPlates: layoutValidation.Layout.WallPlateEnabled,
+                    authoritativeRafterHeightMm: rafterHeightMm);
             if (!materialization.IsSuccess)
             {
                 return RoofAutomaticPurlinApplyResult.Failure(
@@ -159,9 +166,32 @@ internal static class RoofAutomaticPurlinProductionApplyService
             var layoutReadback = RoofPurlinLayoutStore.Read(owner);
             var datumReadback = RoofRelativeElevationDatumStore.Read(owner);
             if (layoutReadback.Data is null ||
-                !LayoutsEqual(layoutReadback.Data, layoutValidation.Layout) ||
+                !RoofPurlinLayoutPersistenceRules.AreEquivalentForOwnerWrite(
+                    layoutReadback.Data,
+                    layoutValidation.Layout) ||
                 datumReadback.Data != datumValidation.Datum)
             {
+#if DEBUG
+                var writtenWp = RoofPurlinLayoutPersistenceRules.ResolveWallPlatePlacement(
+                    layoutValidation.Layout);
+                var readWp = layoutReadback.Data is null
+                    ? null
+                    : RoofPurlinLayoutPersistenceRules.ResolveWallPlatePlacement(
+                        layoutReadback.Data);
+                System.Diagnostics.Debug.WriteLine(
+                    "ROOF_PURLIN_APPLY_POSTCONDITION" +
+                    $" owner={ownerReference}" +
+                    $" layoutExists={(layoutReadback.Exists ? "1" : "0")}" +
+                    $" layoutError={layoutReadback.Error}" +
+                    $" writtenPlace={writtenWp.PlacementValueMm.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)}" +
+                    $" writtenLowerEdge={layoutValidation.Layout.WallPlateLowerEdgeHeightMm.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)}" +
+                    $" readPlace={(readWp?.PlacementValueMm.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) ?? "-")}" +
+                    $" readLowerEdge={(layoutReadback.Data?.WallPlateLowerEdgeHeightMm.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) ?? "-")}" +
+                    $" layoutEquivalent={(layoutReadback.Data is not null && RoofPurlinLayoutPersistenceRules.AreEquivalentForOwnerWrite(layoutReadback.Data, layoutValidation.Layout) ? "1" : "0")}" +
+                    $" datumEquivalent={(datumReadback.Data == datumValidation.Datum ? "1" : "0")}" +
+                    $" writtenDatumLocalZ={datumValidation.Datum.ReferenceLocalZMm.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)}" +
+                    $" readDatumLocalZ={(datumReadback.Data?.ReferenceLocalZMm.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) ?? "-")}");
+#endif
                 return RoofAutomaticPurlinApplyResult.Failure(
                     "owner-metadata-postcondition-failed",
                     ownerReference,
@@ -187,7 +217,8 @@ internal static class RoofAutomaticPurlinProductionApplyService
         RoofAutomaticPurlinLayout desired) =>
         !stored.Exists
             ? RoofAutomaticPurlinOwnerWriteResult.Created
-            : stored.Data is not null && LayoutsEqual(stored.Data, desired)
+            : stored.Data is not null &&
+              RoofPurlinLayoutPersistenceRules.AreEquivalentForOwnerWrite(stored.Data, desired)
                 ? RoofAutomaticPurlinOwnerWriteResult.Unchanged
                 : RoofAutomaticPurlinOwnerWriteResult.Updated;
 
@@ -199,12 +230,6 @@ internal static class RoofAutomaticPurlinProductionApplyService
             : stored.Data == desired
                 ? RoofAutomaticPurlinOwnerWriteResult.Unchanged
                 : RoofAutomaticPurlinOwnerWriteResult.Updated;
-
-    private static bool LayoutsEqual(
-        RoofAutomaticPurlinLayout first,
-        RoofAutomaticPurlinLayout second) =>
-        first.RidgeEnabled == second.RidgeEnabled &&
-        first.IntermediateItems.SequenceEqual(second.IntermediateItems);
 }
 
 internal enum RoofAutomaticPurlinOwnerWriteResult

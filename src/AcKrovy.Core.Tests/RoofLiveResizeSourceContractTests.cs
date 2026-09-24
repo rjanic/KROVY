@@ -116,18 +116,23 @@ public sealed class RoofLiveResizeSourceContractTests
     }
 
     [Fact]
-    public void Stage6ExistingSet_RemainsSafeAndCanReportStaleLayout()
+    public void Stage6ExistingSet_OpensEditFromRecoveredRecipeInsteadOfDeferredReturn()
     {
-        Assert.Contains("Command_RoofRafters_ExistingFoundFormat", RafterWorkflow);
-        Assert.Contains("Command_RoofRafters_ExistingStale", RafterWorkflow);
-        Assert.Contains("Command_RoofRafters_ReplacementDeferred", RafterWorkflow);
+        Assert.Contains("var isEdit = selectedRoof.ExistingGeneratedRafterCount > 0", RafterWorkflow);
+        Assert.Contains("TryRecoverExistingRecipe(", RafterWorkflow);
+        Assert.Contains("Command_RoofRafters_RecipeAmbiguous", RafterWorkflow);
+        Assert.Contains("TryReplaceRafters(", RafterWorkflow);
+        Assert.Contains("TryReplaceWithEditedRecipe(", RafterWorkflow);
         Assert.Contains("RoofGeneratedRafterSetService.IsGeneratedSetStale(", RafterWorkflow);
         Assert.Contains("GeneratedSetIsStale", RafterWorkflow);
+        Assert.Contains("Command_RoofRafters_ExistingStale", RafterWorkflow);
+        Assert.Contains("Command_RoofRafters_ReplacementDeferred", RafterWorkflow);
         Assert.DoesNotContain(".Erase(", RafterWorkflow);
-        Assert.DoesNotContain("SimpleGableRafterLayoutSolver.Solve(", Segment(
+        var createGuard = Segment(
             RafterWorkflow,
-            "if (selectedRoof.ExistingGeneratedRafterCount > 0)",
-            "var defaultProfile = TimberElementDefaultProfileStore.Load();"));
+            "private static RoofRafterCreationResult TryCreateRafters(",
+            "private static bool IsGeneratedSetStale(");
+        Assert.Contains("Command_RoofRafters_ReplacementDeferred", createGuard);
     }
 
     [Fact]

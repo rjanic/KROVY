@@ -82,6 +82,7 @@ public sealed class MonopitchRafterStage2CSourceContractTests
         Assert.Contains("CreateButton.IsEnabled = validation.IsValid", Window);
         Assert.DoesNotContain("_geometry.Kind == RoofKind.Monopitch", Window);
         Assert.Contains("ExistingGeneratedRafterCount > 0", Workflow);
+        Assert.Contains("TryReplaceWithEditedRecipe(", Workflow);
         Assert.Contains("Command_RoofRafters_ReplacementDeferred", Workflow);
         Assert.DoesNotContain("System.Timers", Workflow + Materializer);
         Assert.DoesNotContain("DispatcherTimer", Workflow + Materializer);

@@ -301,8 +301,20 @@ internal static class RoofEditStateCommandWorkflow
             TimberElementDefaultProfileStore.Load(),
             ElementLayerProfileStore.Load(),
             rebuildReason: "edit-state");
-        return outcome is
-            RoofGeneratedRafterSetService.ReplacementOutcome.Replaced or
-            RoofGeneratedRafterSetService.ReplacementOutcome.NotApplicable;
+        if (outcome is not
+            (RoofGeneratedRafterSetService.ReplacementOutcome.Replaced or
+             RoofGeneratedRafterSetService.ReplacementOutcome.NotApplicable))
+        {
+            return false;
+        }
+
+        var purlinLive =
+            RoofAutomaticPurlinLiveRegenerationService.TryRegenerateInTransaction(
+                document,
+                transaction,
+                owner,
+                trigger: "EditState",
+                editor: document.Editor);
+        return purlinLive.IsSuccess;
     }
 }

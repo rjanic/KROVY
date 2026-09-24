@@ -7,8 +7,11 @@ public readonly record struct RoofFaceUnitNormal(double X, double Y, double Z)
 }
 
 /// <summary>
-/// Physical rafter section at one point of its centroidal longitudinal axis.
-/// Section height is measured along <see cref="FaceNormal"/>, never along WCS Z.
+/// Physical rafter section at one fixed horizontal station.
+/// <see cref="UpperSurfacePoint"/> lies on the mathematical UPPER roof face;
+/// <see cref="CenterlinePoint"/> is the timber centroid at the same XY;
+/// section height is perpendicular to <see cref="FaceNormal"/> and appears as
+/// vertical span height / n_z at that station.
 /// </summary>
 public sealed record RoofRafterPhysicalSection(
     RoofPoint3D CenterlinePoint,

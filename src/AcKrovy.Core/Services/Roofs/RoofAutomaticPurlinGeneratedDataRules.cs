@@ -5,6 +5,7 @@ namespace AcKrovy.Core.Services.Roofs;
 /// <summary>CAD-neutral schema-1 validation and token rules for generated purlins.</summary>
 public static class RoofAutomaticPurlinGeneratedDataRules
 {
+    public const string WallPlateToken = "WallPlate";
     public const string RidgeToken = "Ridge";
     public const string IntermediateToken = "Intermediate";
 
@@ -16,6 +17,15 @@ public static class RoofAutomaticPurlinGeneratedDataRules
         string? ownerReference,
         RoofAutomaticPurlinGeneratedKey? generatedKey)
     {
+        if (generatedKey is RoofAutomaticPurlinWallPlateKey wallPlate)
+        {
+            return ValidateWallPlateStored(
+                RoofAutomaticPurlinGeneratedDataSchema.CurrentVersion,
+                ownerReference,
+                WallPlateToken,
+                wallPlate.BoundaryEdgeId);
+        }
+
         if (generatedKey is RoofAutomaticPurlinRidgeKey ridge)
         {
             if (ridge.StructuralKey is null ||
@@ -80,6 +90,33 @@ public static class RoofAutomaticPurlinGeneratedDataRules
         return keyError == RoofAutomaticPurlinGeneratedDataError.None
             ? Valid(normalizedOwner, canonicalKey)
             : Invalid(keyError);
+    }
+
+    public static RoofAutomaticPurlinGeneratedDataValidationResult ValidateWallPlateStored(
+        int schemaVersion,
+        string? ownerReference,
+        string? roleToken,
+        int boundaryEdgeId)
+    {
+        if (schemaVersion != RoofAutomaticPurlinGeneratedDataSchema.CurrentVersion)
+        {
+            return Invalid(RoofAutomaticPurlinGeneratedDataError.UnsupportedSchemaVersion);
+        }
+
+        if (!string.Equals(roleToken, WallPlateToken, StringComparison.Ordinal))
+        {
+            return Invalid(RoofAutomaticPurlinGeneratedDataError.UnsupportedRole);
+        }
+
+        var commonError = ValidateCommon(ownerReference, out var normalizedOwner);
+        if (commonError != RoofAutomaticPurlinGeneratedDataError.None)
+        {
+            return Invalid(commonError);
+        }
+
+        return boundaryEdgeId > 0
+            ? Valid(normalizedOwner, new RoofAutomaticPurlinWallPlateKey(boundaryEdgeId))
+            : Invalid(RoofAutomaticPurlinGeneratedDataError.InvalidWallPlateBoundaryEdgeId);
     }
 
     public static RoofAutomaticPurlinGeneratedDataValidationResult ValidateRidgeStored(
@@ -187,6 +224,7 @@ public static class RoofAutomaticPurlinGeneratedDataRules
 
     public static string FormatRole(RoofAutomaticPurlinGeneratorRole role) => role switch
     {
+        RoofAutomaticPurlinGeneratorRole.WallPlate => WallPlateToken,
         RoofAutomaticPurlinGeneratorRole.Ridge => RidgeToken,
         RoofAutomaticPurlinGeneratorRole.Intermediate => IntermediateToken,
         _ => string.Empty,
@@ -198,11 +236,12 @@ public static class RoofAutomaticPurlinGeneratedDataRules
     {
         role = token switch
         {
+            WallPlateToken => RoofAutomaticPurlinGeneratorRole.WallPlate,
             RidgeToken => RoofAutomaticPurlinGeneratorRole.Ridge,
             IntermediateToken => RoofAutomaticPurlinGeneratorRole.Intermediate,
             _ => default,
         };
-        return token is RidgeToken or IntermediateToken;
+        return token is WallPlateToken or RidgeToken or IntermediateToken;
     }
 
     private static RoofAutomaticPurlinGeneratedDataError ValidateIntermediateKey(

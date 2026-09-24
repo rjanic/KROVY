@@ -6,6 +6,40 @@ namespace AcKrovy.Core.Tests;
 
 public sealed class RoofAutomaticPurlinPersistenceRulesTests
 {
+    [Fact]
+    public void GeneratedWallPlateRoundtrip_PreservesOwnerAndBoundaryIdentity()
+    {
+        var original = new RoofAutomaticPurlinWallPlateKey(27);
+        var created = RoofAutomaticPurlinGeneratedDataRules.Create("00af", original);
+        var read = RoofAutomaticPurlinGeneratedDataRules.ValidateWallPlateStored(
+            RoofAutomaticPurlinGeneratedDataSchema.CurrentVersion,
+            created.Data!.RoofOwnerReference,
+            RoofAutomaticPurlinGeneratedDataRules.WallPlateToken,
+            original.BoundaryEdgeId);
+
+        Assert.True(read.IsValid, read.Error.ToString());
+        Assert.Equal("AF", read.Data!.RoofOwnerReference);
+        Assert.Equal(RoofAutomaticPurlinGeneratorRole.WallPlate, read.Data.GeneratorRole);
+        Assert.Equal(original, read.Data.GeneratedKey);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void GeneratedWallPlate_RejectsNonPositiveBoundaryIdentity(int boundaryEdgeId)
+    {
+        var result = RoofAutomaticPurlinGeneratedDataRules.ValidateWallPlateStored(
+            RoofAutomaticPurlinGeneratedDataSchema.CurrentVersion,
+            "AF",
+            RoofAutomaticPurlinGeneratedDataRules.WallPlateToken,
+            boundaryEdgeId);
+
+        Assert.False(result.IsValid);
+        Assert.Equal(
+            RoofAutomaticPurlinGeneratedDataError.InvalidWallPlateBoundaryEdgeId,
+            result.Error);
+    }
+
     private const string LayoutIdA = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
     private const string LayoutIdB = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
 
@@ -13,7 +47,467 @@ public sealed class RoofAutomaticPurlinPersistenceRulesTests
     public void EmptyLayout_IsTheMissingSectionInMemoryDefault()
     {
         Assert.False(RoofAutomaticPurlinLayout.Empty.RidgeEnabled);
+        Assert.False(RoofAutomaticPurlinLayout.Empty.WallPlateEnabled);
+        Assert.Equal(0d, RoofAutomaticPurlinLayout.Empty.WallPlateLowerEdgeHeightMm);
         Assert.Empty(RoofAutomaticPurlinLayout.Empty.IntermediateItems);
+    }
+
+    [Fact]
+    public void LegacySchemaOneLayoutWithoutWallPlateField_DefaultsToFalse()
+    {
+        var result = RoofPurlinLayoutPersistenceRules.ValidateStored(
+            RoofPurlinLayoutSchema.Version1,
+            1,
+            Array.Empty<RoofPurlinLayoutStoredItem>());
+
+        Assert.True(result.IsValid, result.Error.ToString());
+        Assert.False(result.Layout!.WallPlateEnabled);
+        Assert.Equal(0d, result.Layout.WallPlateLowerEdgeHeightMm);
+    }
+
+    [Fact]
+    public void LegacySchemaOneLayoutWithWallPlateFlagOnly_DefaultsLowerEdgeToZero()
+    {
+        var result = RoofPurlinLayoutPersistenceRules.ValidateStored(
+            RoofPurlinLayoutSchema.Version1,
+            0,
+            Array.Empty<RoofPurlinLayoutStoredItem>(),
+            wallPlateEnabledValue: 1);
+
+        Assert.True(result.IsValid, result.Error.ToString());
+        Assert.True(result.Layout!.WallPlateEnabled);
+        Assert.Equal(0d, result.Layout.WallPlateLowerEdgeHeightMm);
+    }
+
+    [Fact]
+    public void WallPlateEnabled_RoundtripPreservesTrueWithoutSchemaChange()
+    {
+        var layout = RoofAutomaticPurlinLayout.Empty with { WallPlateEnabled = true };
+
+        var result = RoofPurlinLayoutPersistenceRules.ValidateForWrite(layout);
+
+        Assert.True(result.IsValid, result.Error.ToString());
+        Assert.True(result.Layout!.WallPlateEnabled);
+        Assert.Equal(0d, result.Layout.WallPlateLowerEdgeHeightMm);
+        Assert.Equal(3, RoofPurlinLayoutSchema.CurrentVersion);
+    }
+
+    [Fact]
+    public void WallPlateLowerEdgeHeight_RoundtripPreservesValueWithoutSchemaBump()
+    {
+        var layout = RoofAutomaticPurlinLayout.Empty with
+        {
+            WallPlateEnabled = true,
+            WallPlateLowerEdgeHeightMm = 1000d,
+        };
+
+        var result = RoofPurlinLayoutPersistenceRules.ValidateForWrite(layout);
+
+        Assert.True(result.IsValid, result.Error.ToString());
+        Assert.True(result.Layout!.WallPlateEnabled);
+        Assert.Equal(1000d, result.Layout.WallPlateLowerEdgeHeightMm);
+        Assert.Equal(
+            RoofAutomaticPurlinPlacementMode.BottomEdgeHeightAboveReference,
+            result.Layout.WallPlatePlacement!.PlacementMode);
+        Assert.Equal(1000d, result.Layout.WallPlatePlacement.PlacementValueMm);
+        Assert.Equal(3, RoofPurlinLayoutSchema.CurrentVersion);
+    }
+
+    [Theory]
+    [InlineData(357.417d)]
+    [InlineData(596.285d)]
+    public void WallPlateBottom_RelativeZeroPlace_ExplicitLowerEdge_RoundTripsExact(
+        double lowerEdgeMm)
+    {
+        var seating = new RoofAutomaticPurlinSeatingDepth(
+            RoofAutomaticPurlinSeatingDepthMode.PercentOfRafterHeight,
+            25d);
+        var layout = new RoofAutomaticPurlinLayout(
+            false,
+            [
+                new(
+                    LayoutIdB,
+                    true,
+                    RoofAutomaticPurlinPlacementMode.BottomEdgeHeightAboveReference,
+                    lowerEdgeMm >= 500d ? 1476.681d : 1010d,
+                    SeatingDepth: seating,
+                    WidthMm: 160d,
+                    HeightMm: 220d),
+            ])
+        {
+            WallPlateEnabled = true,
+            WallPlateLowerEdgeHeightMm = lowerEdgeMm,
+            WallPlatePlacement = new RoofAutomaticPurlinLayoutItem(
+                RoofAutomaticPurlinLayoutItemIdentity.WallPlatePlacementId,
+                true,
+                RoofAutomaticPurlinPlacementMode.BottomEdgeHeightAboveReference,
+                0d,
+                SeatingDepth: seating,
+                WidthMm: 140d,
+                HeightMm: 140d),
+        };
+
+        var written = RoofPurlinLayoutPersistenceRules.ValidateForWrite(layout);
+        Assert.True(written.IsValid, written.Error.ToString());
+        Assert.Equal(0d, written.Layout!.WallPlatePlacement!.PlacementValueMm, 9);
+        Assert.Equal(lowerEdgeMm, written.Layout.WallPlateLowerEdgeHeightMm, 3);
+
+        var storedWallPlate = RoofPurlinLayoutPersistenceRules.ToStoredWallPlatePlacement(
+            written.Layout.WallPlatePlacement);
+        var reread = RoofPurlinLayoutPersistenceRules.ValidateStored(
+            RoofPurlinLayoutSchema.CurrentVersion,
+            ridgeEnabledValue: 0,
+            items:
+            [
+                new(
+                    LayoutIdB,
+                    1,
+                    RoofPurlinLayoutPersistenceRules.BottomEdgeHeightAboveReferenceToken,
+                    written.Layout.IntermediateItems[0].PlacementValueMm,
+                    RoofPurlinLayoutPersistenceRules.NoReferenceRidgeToken,
+                    0,
+                    0,
+                    RoofPurlinLayoutPersistenceRules.PercentOfRafterHeightToken,
+                    25d,
+                    160d,
+                    220d),
+            ],
+            wallPlateEnabledValue: 1,
+            wallPlateLowerEdgeHeightMm: written.Layout.WallPlateLowerEdgeHeightMm,
+            wallPlatePlacementItem: storedWallPlate,
+            sectionDimensions: new RoofPurlinLayoutStoredSectionDimensions(140d, 140d, 0d, 0d),
+            wallPlateLowerEdgeHeightExplicit: true);
+        Assert.True(reread.IsValid, reread.Error.ToString());
+        Assert.Equal(0d, reread.Layout!.WallPlatePlacement!.PlacementValueMm, 9);
+        Assert.Equal(lowerEdgeMm, reread.Layout.WallPlateLowerEdgeHeightMm, 3);
+        Assert.True(
+            RoofPurlinLayoutPersistenceRules.AreEquivalentForOwnerWrite(
+                written.Layout,
+                reread.Layout));
+    }
+
+    [Fact]
+    public void LegacyFullPlacementWithoutExplicitLowerEdge_FallsBackToPlace()
+    {
+        var storedWallPlate = new RoofPurlinLayoutStoredItem(
+            RoofAutomaticPurlinLayoutItemIdentity.WallPlatePlacementId,
+            1,
+            RoofPurlinLayoutPersistenceRules.BottomEdgeHeightAboveReferenceToken,
+            900d,
+            RoofPurlinLayoutPersistenceRules.NoReferenceRidgeToken,
+            0,
+            0,
+            RoofPurlinLayoutPersistenceRules.PercentOfRafterHeightToken,
+            25d);
+        var reread = RoofPurlinLayoutPersistenceRules.ValidateStored(
+            RoofPurlinLayoutSchema.CurrentVersion,
+            ridgeEnabledValue: 0,
+            items: Array.Empty<RoofPurlinLayoutStoredItem>(),
+            wallPlateEnabledValue: 1,
+            wallPlateLowerEdgeHeightMm: 0d,
+            wallPlatePlacementItem: storedWallPlate,
+            wallPlateLowerEdgeHeightExplicit: false);
+        Assert.True(reread.IsValid, reread.Error.ToString());
+        Assert.Equal(900d, reread.Layout!.WallPlatePlacement!.PlacementValueMm, 9);
+        Assert.Equal(900d, reread.Layout.WallPlateLowerEdgeHeightMm, 9);
+    }
+
+    [Theory]
+    [InlineData(-250d)]
+    [InlineData(0d)]
+    [InlineData(1000d)]
+    public void ExplicitLowerEdge_PreservesSignedAndZeroBottomEdge(double placeAndLowerEdgeMm)
+    {
+        var layout = new RoofAutomaticPurlinLayout(false, Array.Empty<RoofAutomaticPurlinLayoutItem>())
+        {
+            WallPlateEnabled = true,
+            WallPlateLowerEdgeHeightMm = placeAndLowerEdgeMm,
+            WallPlatePlacement = new RoofAutomaticPurlinLayoutItem(
+                RoofAutomaticPurlinLayoutItemIdentity.WallPlatePlacementId,
+                true,
+                RoofAutomaticPurlinPlacementMode.BottomEdgeHeightAboveReference,
+                placeAndLowerEdgeMm),
+        };
+
+        var written = RoofPurlinLayoutPersistenceRules.ValidateForWrite(layout);
+        Assert.True(written.IsValid, written.Error.ToString());
+        Assert.Equal(placeAndLowerEdgeMm, written.Layout!.WallPlatePlacement!.PlacementValueMm, 9);
+        Assert.Equal(placeAndLowerEdgeMm, written.Layout.WallPlateLowerEdgeHeightMm, 9);
+
+        var reread = RoofPurlinLayoutPersistenceRules.ValidateStored(
+            RoofPurlinLayoutSchema.CurrentVersion,
+            0,
+            Array.Empty<RoofPurlinLayoutStoredItem>(),
+            1,
+            written.Layout.WallPlateLowerEdgeHeightMm,
+            RoofPurlinLayoutPersistenceRules.ToStoredWallPlatePlacement(
+                written.Layout.WallPlatePlacement),
+            wallPlateLowerEdgeHeightExplicit: true);
+        Assert.True(reread.IsValid, reread.Error.ToString());
+        Assert.True(
+            RoofPurlinLayoutPersistenceRules.AreEquivalentForOwnerWrite(
+                written.Layout,
+                reread.Layout!));
+    }
+
+    [Fact]
+    public void WallPlateBottom_RelativeZeroPlace_PreservesLowerEdgeBootstrapStash()
+    {
+        var seating = new RoofAutomaticPurlinSeatingDepth(
+            RoofAutomaticPurlinSeatingDepthMode.PercentOfRafterHeight,
+            25d);
+        var layout = new RoofAutomaticPurlinLayout(false, Array.Empty<RoofAutomaticPurlinLayoutItem>())
+        {
+            WallPlateEnabled = true,
+            WallPlateLowerEdgeHeightMm = 596.285d,
+            WallPlatePlacement = new RoofAutomaticPurlinLayoutItem(
+                RoofAutomaticPurlinLayoutItemIdentity.WallPlatePlacementId,
+                true,
+                RoofAutomaticPurlinPlacementMode.BottomEdgeHeightAboveReference,
+                0d,
+                SeatingDepth: seating,
+                WidthMm: 140d,
+                HeightMm: 140d),
+        };
+
+        var written = RoofPurlinLayoutPersistenceRules.ValidateForWrite(layout);
+        Assert.True(written.IsValid, written.Error.ToString());
+        Assert.Equal(0d, written.Layout!.WallPlatePlacement!.PlacementValueMm, 9);
+        Assert.Equal(596.285d, written.Layout.WallPlateLowerEdgeHeightMm, 3);
+
+        var storedWallPlate = RoofPurlinLayoutPersistenceRules.ToStoredWallPlatePlacement(
+            written.Layout.WallPlatePlacement);
+        var reread = RoofPurlinLayoutPersistenceRules.ValidateStored(
+            RoofPurlinLayoutSchema.CurrentVersion,
+            ridgeEnabledValue: 0,
+            items: Array.Empty<RoofPurlinLayoutStoredItem>(),
+            wallPlateEnabledValue: 1,
+            wallPlateLowerEdgeHeightMm: written.Layout.WallPlateLowerEdgeHeightMm,
+            wallPlatePlacementItem: storedWallPlate,
+            sectionDimensions: new RoofPurlinLayoutStoredSectionDimensions(140d, 140d, 0d, 0d),
+            wallPlateLowerEdgeHeightExplicit: true);
+        Assert.True(reread.IsValid, reread.Error.ToString());
+        Assert.Equal(0d, reread.Layout!.WallPlatePlacement!.PlacementValueMm, 9);
+        Assert.Equal(596.285d, reread.Layout.WallPlateLowerEdgeHeightMm, 3);
+        Assert.True(
+            RoofPurlinLayoutPersistenceRules.AreEquivalentForOwnerWrite(
+                written.Layout,
+                reread.Layout));
+    }
+
+    [Fact]
+    public void LegacyLayoutWithoutSectionDimensions_StillValidatesWithoutSchemaBump()
+    {
+        var items = new[]
+        {
+            Stored(LayoutIdA, elevation: 1200d),
+        };
+        var result = RoofPurlinLayoutPersistenceRules.ValidateStored(
+            RoofPurlinLayoutSchema.CurrentVersion,
+            ridgeEnabledValue: 1,
+            items,
+            wallPlateEnabledValue: 1,
+            wallPlateLowerEdgeHeightMm: 900d);
+
+        Assert.True(result.IsValid, result.Error.ToString());
+        Assert.True(result.Layout!.RidgeEnabled);
+        Assert.True(result.Layout.WallPlateEnabled);
+        Assert.Equal(900d, result.Layout.WallPlateLowerEdgeHeightMm);
+        Assert.Null(result.Layout.RidgeWidthMm);
+        Assert.Null(result.Layout.RidgeHeightMm);
+        Assert.Null(result.Layout.WallPlatePlacement!.WidthMm);
+        Assert.Null(result.Layout.WallPlatePlacement.HeightMm);
+        Assert.Null(result.Layout.IntermediateItems[0].WidthMm);
+        Assert.Null(result.Layout.IntermediateItems[0].HeightMm);
+        Assert.Equal(3, RoofPurlinLayoutSchema.CurrentVersion);
+        Assert.False(RoofPurlinLayoutPersistenceRules.HasPersistedSectionDimensions(result.Layout));
+    }
+
+    [Fact]
+    public void SectionDimensions_RoundtripPreservesOverridesWithoutSchemaBump()
+    {
+        var layout = new RoofAutomaticPurlinLayout(
+            true,
+            [
+                new RoofAutomaticPurlinLayoutItem(
+                    LayoutIdA,
+                    true,
+                    RoofAutomaticPurlinPlacementMode.BottomEdgeHeightAboveReference,
+                    800d,
+                    WidthMm: 120d,
+                    HeightMm: 180d),
+                new RoofAutomaticPurlinLayoutItem(
+                    LayoutIdB,
+                    true,
+                    RoofAutomaticPurlinPlacementMode.BottomEdgeHeightAboveReference,
+                    1100d),
+            ])
+        {
+            WallPlateEnabled = true,
+            WallPlateLowerEdgeHeightMm = 500d,
+            WallPlatePlacement = new RoofAutomaticPurlinLayoutItem(
+                RoofAutomaticPurlinLayoutItemIdentity.WallPlatePlacementId,
+                true,
+                RoofAutomaticPurlinPlacementMode.BottomEdgeHeightAboveReference,
+                500d,
+                WidthMm: 140d,
+                HeightMm: 160d),
+            RidgeWidthMm = 100d,
+            RidgeHeightMm = 200d,
+        };
+
+        var result = RoofPurlinLayoutPersistenceRules.ValidateForWrite(layout);
+
+        Assert.True(result.IsValid, result.Error.ToString());
+        Assert.Equal(3, RoofPurlinLayoutSchema.CurrentVersion);
+        Assert.True(RoofPurlinLayoutPersistenceRules.HasPersistedSectionDimensions(result.Layout!));
+        Assert.Equal(140d, result.Layout!.WallPlatePlacement!.WidthMm);
+        Assert.Equal(160d, result.Layout.WallPlatePlacement.HeightMm);
+        Assert.Equal(100d, result.Layout.RidgeWidthMm);
+        Assert.Equal(200d, result.Layout.RidgeHeightMm);
+        Assert.Equal(120d, result.Layout.IntermediateItems[0].WidthMm);
+        Assert.Equal(180d, result.Layout.IntermediateItems[0].HeightMm);
+        Assert.Null(result.Layout.IntermediateItems[1].WidthMm);
+        Assert.Null(result.Layout.IntermediateItems[1].HeightMm);
+
+        var storedItems = new[]
+        {
+            new RoofPurlinLayoutStoredItem(
+                LayoutIdA,
+                1,
+                RoofPurlinLayoutPersistenceRules.BottomEdgeHeightAboveReferenceToken,
+                800d,
+                RoofPurlinLayoutPersistenceRules.NoReferenceRidgeToken,
+                0,
+                0,
+                RoofPurlinLayoutPersistenceRules.NoSeatingDepthToken,
+                0d,
+                120d,
+                180d),
+            new RoofPurlinLayoutStoredItem(
+                LayoutIdB,
+                1,
+                RoofPurlinLayoutPersistenceRules.BottomEdgeHeightAboveReferenceToken,
+                1100d,
+                RoofPurlinLayoutPersistenceRules.NoReferenceRidgeToken,
+                0,
+                0,
+                RoofPurlinLayoutPersistenceRules.NoSeatingDepthToken,
+                0d),
+        };
+        var sectionDimensions = new RoofPurlinLayoutStoredSectionDimensions(140d, 160d, 100d, 200d);
+        var reread = RoofPurlinLayoutPersistenceRules.ValidateStored(
+            RoofPurlinLayoutSchema.CurrentVersion,
+            1,
+            storedItems,
+            wallPlateEnabledValue: 1,
+            wallPlateLowerEdgeHeightMm: 500d,
+            sectionDimensions: sectionDimensions);
+
+        Assert.True(reread.IsValid, reread.Error.ToString());
+        Assert.Equal(result.Layout!.RidgeEnabled, reread.Layout!.RidgeEnabled);
+        Assert.Equal(result.Layout.WallPlateEnabled, reread.Layout.WallPlateEnabled);
+        Assert.Equal(result.Layout.WallPlateLowerEdgeHeightMm, reread.Layout.WallPlateLowerEdgeHeightMm);
+        Assert.Equal(result.Layout.WallPlatePlacement, reread.Layout.WallPlatePlacement);
+        Assert.Equal(result.Layout.RidgeWidthMm, reread.Layout.RidgeWidthMm);
+        Assert.Equal(result.Layout.RidgeHeightMm, reread.Layout.RidgeHeightMm);
+        Assert.Equal(result.Layout.IntermediateItems, reread.Layout.IntermediateItems);
+    }
+
+    [Theory]
+    [InlineData(-1d)]
+    [InlineData(double.NaN)]
+    [InlineData(double.PositiveInfinity)]
+    public void SectionDimensions_RejectInvalidStoredValues(double invalid)
+    {
+        var result = RoofPurlinLayoutPersistenceRules.ValidateStored(
+            RoofPurlinLayoutSchema.CurrentVersion,
+            0,
+            Array.Empty<RoofPurlinLayoutStoredItem>(),
+            sectionDimensions: new RoofPurlinLayoutStoredSectionDimensions(invalid, 140d, 0d, 0d));
+
+        Assert.False(result.IsValid);
+        Assert.Equal(RoofPurlinLayoutPersistenceError.InvalidSectionDimension, result.Error);
+    }
+
+    [Fact]
+    public void WallPlatePlanDistancePlacement_RoundtripPreservesSharedModeWithoutSchemaBump()
+    {
+        var seating = new RoofAutomaticPurlinSeatingDepth(
+            RoofAutomaticPurlinSeatingDepthMode.PercentOfRafterHeight,
+            25d);
+        var layout = RoofAutomaticPurlinLayout.Empty with
+        {
+            WallPlateEnabled = true,
+            WallPlatePlacement = new RoofAutomaticPurlinLayoutItem(
+                RoofAutomaticPurlinLayoutItemIdentity.WallPlatePlacementId,
+                true,
+                RoofAutomaticPurlinPlacementMode.PlanDistanceFromEave,
+                1500d,
+                SeatingDepth: seating),
+        };
+
+        var result = RoofPurlinLayoutPersistenceRules.ValidateForWrite(layout);
+
+        Assert.True(result.IsValid, result.Error.ToString());
+        Assert.Equal(0d, result.Layout!.WallPlateLowerEdgeHeightMm);
+        Assert.Equal(
+            RoofAutomaticPurlinPlacementMode.PlanDistanceFromEave,
+            result.Layout.WallPlatePlacement!.PlacementMode);
+        Assert.Equal(1500d, result.Layout.WallPlatePlacement.PlacementValueMm);
+        Assert.Equal(seating, result.Layout.WallPlatePlacement.SeatingDepth);
+        Assert.Equal(3, RoofPurlinLayoutSchema.CurrentVersion);
+    }
+
+    [Fact]
+    public void LegacyLowerEdgeOnly_MapsToBottomEdgeSharedPlacement()
+    {
+        var result = RoofPurlinLayoutPersistenceRules.ValidateStored(
+            RoofPurlinLayoutSchema.CurrentVersion,
+            0,
+            Array.Empty<RoofPurlinLayoutStoredItem>(),
+            wallPlateEnabledValue: 1,
+            wallPlateLowerEdgeHeightMm: 900d);
+
+        Assert.True(result.IsValid, result.Error.ToString());
+        Assert.Equal(900d, result.Layout!.WallPlateLowerEdgeHeightMm);
+        Assert.Equal(
+            RoofAutomaticPurlinPlacementMode.BottomEdgeHeightAboveReference,
+            result.Layout.WallPlatePlacement!.PlacementMode);
+        Assert.Equal(900d, result.Layout.WallPlatePlacement.PlacementValueMm);
+        Assert.Null(result.Layout.WallPlatePlacement.SeatingDepth);
+    }
+
+    [Theory]
+    [InlineData(double.NaN)]
+    [InlineData(double.PositiveInfinity)]
+    [InlineData(-1d)]
+    public void Layout_InvalidWallPlateLowerEdgeHeightFails(double value)
+    {
+        var result = RoofPurlinLayoutPersistenceRules.ValidateStored(
+            RoofPurlinLayoutSchema.CurrentVersion,
+            0,
+            Array.Empty<RoofPurlinLayoutStoredItem>(),
+            wallPlateEnabledValue: 1,
+            wallPlateLowerEdgeHeightMm: value);
+
+        Assert.False(result.IsValid);
+        Assert.Equal(RoofPurlinLayoutPersistenceError.InvalidWallPlateLowerEdgeHeight, result.Error);
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(2)]
+    public void Layout_InvalidWallPlateBooleanFails(int value)
+    {
+        var result = RoofPurlinLayoutPersistenceRules.ValidateStored(
+            RoofPurlinLayoutSchema.CurrentVersion,
+            0,
+            Array.Empty<RoofPurlinLayoutStoredItem>(),
+            value);
+
+        Assert.False(result.IsValid);
+        Assert.Equal(RoofPurlinLayoutPersistenceError.InvalidWallPlateEnabled, result.Error);
     }
 
     [Theory]
@@ -118,9 +612,7 @@ public sealed class RoofAutomaticPurlinPersistenceRulesTests
     [InlineData(double.NaN)]
     [InlineData(double.PositiveInfinity)]
     [InlineData(double.NegativeInfinity)]
-    [InlineData(0d)]
-    [InlineData(-1d)]
-    public void Layout_NonfiniteOrNonpositivePlacementFails(double elevation)
+    public void Layout_NonfinitePlacementFails(double elevation)
     {
         AssertLayoutError(
             RoofPurlinLayoutPersistenceError.InvalidPlacementValue,
@@ -128,10 +620,37 @@ public sealed class RoofAutomaticPurlinPersistenceRulesTests
             [Stored(LayoutIdA, elevation: elevation)]);
     }
 
+    [Theory]
+    [InlineData(0d)]
+    [InlineData(-200d)]
+    public void Layout_BottomEdge_AllowsZeroAndNegativeSignedOffset(double elevation)
+    {
+        var result = RoofPurlinLayoutPersistenceRules.ValidateStored(
+            1,
+            0,
+            [Stored(LayoutIdA, elevation: elevation)]);
+        Assert.True(result.IsValid, result.Error.ToString());
+        Assert.Equal(elevation, result.Layout!.IntermediateItems[0].PlacementValueMm);
+    }
+
+    [Fact]
+    public void Layout_PlanDistance_StillRejectsNonPositive()
+    {
+        AssertLayoutError(
+            RoofPurlinLayoutPersistenceError.InvalidPlacementValue,
+            0,
+            [Stored(LayoutIdA, elevation: -1d) with
+            {
+                PlacementToken = RoofPurlinLayoutPersistenceRules.PlanDistanceFromEaveToken,
+                SeatingDepthToken = RoofPurlinLayoutPersistenceRules.PercentOfRafterHeightToken,
+                SeatingDepthValue = 25d,
+            }]);
+    }
+
     [Fact]
     public void Layout_UnsupportedSchemaFails()
     {
-        var result = RoofPurlinLayoutPersistenceRules.ValidateStored(2, 0, []);
+        var result = RoofPurlinLayoutPersistenceRules.ValidateStored(4, 0, []);
         Assert.Equal(RoofPurlinLayoutPersistenceError.UnsupportedSchemaVersion, result.Error);
         Assert.Null(result.Layout);
     }
@@ -194,10 +713,9 @@ public sealed class RoofAutomaticPurlinPersistenceRulesTests
     }
 
     [Theory]
-    [InlineData(0d)]
-    [InlineData(100d)]
     [InlineData(101d)]
-    public void PercentSeating_OutsideOpenIntervalFailsClosed(double value)
+    [InlineData(-1d)]
+    public void PercentSeating_OutsideAllowedRangeFailsClosed(double value)
     {
         AssertLayoutError(
             RoofPurlinLayoutPersistenceError.InvalidSeatingDepth,
@@ -209,6 +727,45 @@ public sealed class RoofAutomaticPurlinPersistenceRulesTests
                     RoofPurlinLayoutPersistenceRules.PercentOfRafterHeightToken,
                 SeatingDepthValue = value,
             }]);
+    }
+
+    [Fact]
+    public void PercentSeating_OneHundredIsAccepted()
+    {
+        var result = RoofPurlinLayoutPersistenceRules.ValidateForWrite(
+            new RoofAutomaticPurlinLayout(
+                false,
+                [
+                    new(
+                        LayoutIdA,
+                        true,
+                        RoofAutomaticPurlinPlacementMode.PlanDistanceFromEave,
+                        1800d,
+                        SeatingDepth: new RoofAutomaticPurlinSeatingDepth(
+                            RoofAutomaticPurlinSeatingDepthMode.PercentOfRafterHeight,
+                            100d)),
+                ]));
+
+        Assert.True(result.IsValid, result.Error.ToString());
+    }
+
+    [Fact]
+    public void PercentSeating_ZeroIsAccepted()
+    {
+        var result = RoofPurlinLayoutPersistenceRules.ValidateForWrite(
+            new RoofAutomaticPurlinLayout(
+                false,
+                [
+                    new(
+                        LayoutIdA,
+                        true,
+                        RoofAutomaticPurlinPlacementMode.PlanDistanceFromEave,
+                        1800d,
+                        SeatingDepth: new RoofAutomaticPurlinSeatingDepth(
+                            RoofAutomaticPurlinSeatingDepthMode.PercentOfRafterHeight,
+                            0d)),
+                ]));
+        Assert.True(result.IsValid, result.Error.ToString());
     }
 
     [Fact]

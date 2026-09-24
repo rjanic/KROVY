@@ -163,7 +163,8 @@ internal static class RoofDisplayService
         ObjectId ownerId,
         string ownerReference,
         IReadOnlyList<RoofDisplayEdge> expectedEdges,
-        string generationSignature)
+        string generationSignature,
+        bool syncAssemblyGroup = true)
     {
         var inspection = Inspect(
             database,
@@ -192,11 +193,14 @@ internal static class RoofDisplayService
                 }
                 ApplyDisplayLayer(database, transaction, currentLine, currentData.Role);
             }
-            RoofDisplayGroupService.EnsureGroup(
-                database,
-                transaction,
-                ownerId,
-                inspection.ChildIds);
+            if (syncAssemblyGroup)
+            {
+                RoofDisplayGroupService.EnsureGroup(
+                    database,
+                    transaction,
+                    ownerId,
+                    inspection.ChildIds);
+            }
             EnsureAllDisplayBehindTimber(database, transaction);
             return true;
         }
@@ -260,11 +264,14 @@ internal static class RoofDisplayService
                     generationSignature));
         }
 
-        RoofDisplayGroupService.EnsureGroup(
-            database,
-            transaction,
-            ownerId,
-            newChildIds);
+        if (syncAssemblyGroup)
+        {
+            RoofDisplayGroupService.EnsureGroup(
+                database,
+                transaction,
+                ownerId,
+                newChildIds);
+        }
         EnsureAllDisplayBehindTimber(database, transaction);
 
         return true;

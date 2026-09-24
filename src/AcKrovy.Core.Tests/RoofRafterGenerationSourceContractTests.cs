@@ -32,13 +32,16 @@ public sealed class RoofRafterGenerationSourceContractTests
         var selection = Segment(
             Workflow,
             "private static bool TrySelectCurrentRoof",
-            "private static RoofRafterCreationResult TryCreateRafters");
+            "private static RoofRafterCreationResult TryReplaceRafters");
         Assert.Contains("RoofDefinitionStore.Read(owner)", selection);
         Assert.Contains("RoofDefinitionPersistence.Restore(", selection);
         Assert.Contains("RoofDefinitionRestoreError.StaleFootprint", selection);
         Assert.Contains("OpenMode.ForRead", selection);
         Assert.DoesNotContain("OpenMode.ForWrite", selection);
         Assert.DoesNotContain("transaction.Commit", selection);
+        Assert.True(
+            Workflow.IndexOf("new RoofRafterWindow(", StringComparison.Ordinal) <
+            Workflow.IndexOf("TryReplaceRafters(", StringComparison.Ordinal));
         Assert.True(
             Workflow.IndexOf("new RoofRafterWindow(", StringComparison.Ordinal) <
             Workflow.IndexOf("TryCreateRafters(", StringComparison.Ordinal));
@@ -103,13 +106,16 @@ public sealed class RoofRafterGenerationSourceContractTests
     }
 
     [Fact]
-    public void ExistingSetDiscoveryIsReadOnlyAndReplacementIsSafelyDeferred()
+    public void ExistingSetDiscoveryIsReadOnlyAndEditReplacesDeferredGuard()
     {
         var discovery = Segment(Store, "public static IReadOnlyList<ObjectId> FindByOwner", "private static List<TypedValue> ReadForeignXData");
         Assert.Contains("BlockTableRecord.ModelSpace", discovery);
         Assert.Contains("OpenMode.ForRead", discovery);
         Assert.DoesNotContain("OpenMode.ForWrite", discovery);
         Assert.DoesNotContain(".Erase(", discovery);
+        Assert.Contains("TryRecoverExistingRecipe(", Workflow);
+        Assert.Contains("TryReplaceWithEditedRecipe(", Workflow + Replacement);
+        Assert.Contains("Command_RoofRafters_RecipeAmbiguous", Workflow);
         Assert.Contains("Command_RoofRafters_ReplacementDeferred", Workflow);
         Assert.Contains("Command_RoofRafters_ExistingStale", Workflow);
         Assert.Contains("RoofGeneratedRafterSetService.IsGeneratedSetStale(", Workflow);
@@ -124,7 +130,16 @@ public sealed class RoofRafterGenerationSourceContractTests
         Assert.DoesNotContain("ConfirmYesNo", Workflow);
         Assert.Contains("RoofRafterTransientPreviewController", Workflow);
         Assert.Contains("preview.Refresh(dialog.PreviewLayout)", Workflow);
-        Assert.Equal(1, Count(Workflow, "transaction.Commit();"));
+        var create = Segment(
+            Workflow,
+            "private static RoofRafterCreationResult TryCreateRafters(",
+            "private static bool IsGeneratedSetStale(");
+        var replace = Segment(
+            Workflow,
+            "private static RoofRafterCreationResult TryReplaceRafters(",
+            "private static RoofRafterCreationResult TryCreateRafters(");
+        Assert.Equal(1, Count(create, "transaction.Commit();"));
+        Assert.Equal(1, Count(replace, "transaction.Commit();"));
     }
 
     [Fact]

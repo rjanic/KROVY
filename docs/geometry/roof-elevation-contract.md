@@ -347,7 +347,7 @@ Rozlíšenie polí dátumu vs. placement:
 |------|--------|
 | `ReferenceLocalZMm` | Lokálne Z referenčnej roviny v strešnom rámci (mm) |
 | `ReferenceRelativeElevationMm` | Architektonická relatívna výška **priradená** tej referenčnej rovine (mm) |
-| `PlacementValueMm` | **Offset** fyzického spodku **nad** `ReferenceLocalZMm` (mm), nie samostatný „absolútny“ display string |
+| `PlacementValueMm` | **Podpísaný offset** fyzického spodku voči `ReferenceLocalZMm` (mm). Kladné = nad dátumom, záporné = pod dátumom. Nie je to samostatný „absolútny“ display string. |
 
 Dôsledok pre zobrazenú relatívnu výšku spodku:
 
@@ -355,8 +355,20 @@ Dôsledok pre zobrazenú relatívnu výšku spodku:
 BottomRelativeElevationMm = ReferenceRelativeElevationMm + PlacementValueMm
 ```
 
+Príklad (elevovaný ExplicitLocalPlane):
+
+```
+ReferenceLocalZMm = 1000
+ReferenceRelativeElevationMm = 0
+PlacementValueMm = -200
+→ PhysicalBottomLocalZ = 800
+→ DisplayedBottomRelativeZ = -200
+```
+
+Záporný vstup **nie je** záporná fyzická elevácia — je to offset voči zvolenému dátumu. Fyzické medze strechy (`ValidateElevation` na slice LocalZ, seating, pitch, hranice) ostávajú autoritou; UI/persistencia **nesmú** zamietnuť platný záporný offset iba preto, že je číselne &lt; 0.
+
 - Keď `ReferenceRelativeElevationMm = 0` (bežné SourceEave / WallPlateBottom fixtúry), `PlacementValueMm` **číselne súhlasí** so zobrazeným Bottom relative (v mm pred formátovaním na metre).
-- Keď `ReferenceRelativeElevationMm ≠ 0`, `PlacementValueMm` **nie je** priamo absolútna zobrazená relatívna výška; je to offset nad dátumom. Produktová sémantika sa týmto **nemení** — len sa dokumentuje.
+- Keď `ReferenceRelativeElevationMm ≠ 0`, `PlacementValueMm` **nie je** priamo absolútna zobrazená relatívna výška; je to offset nad/pod dátumom. Produktová sémantika sa týmto **nemení** — len sa dokumentuje.
 
 Ďalšie pravidlá:
 

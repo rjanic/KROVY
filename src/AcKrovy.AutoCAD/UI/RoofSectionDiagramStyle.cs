@@ -52,6 +52,25 @@ internal static class RoofSectionDiagramStyle
     public static Pen CreateReferencePen(Brush brush) =>
         new(brush, ReferenceStrokeThickness) { DashStyle = DashStyles.Dash };
 
+    /// <summary>Technical member centerline (dash-dot), distinct from the reference datum dash.</summary>
+    public const double MemberCenterAxisStrokeThickness = 1.1d;
+
+    public static Brush MemberCenterAxisBrush { get; } =
+        FrozenBrush(Color.FromRgb(0x5A, 0x5A, 0x5A));
+
+    public static Brush MemberCenterPointBrush { get; } =
+        FrozenBrush(Color.FromRgb(0x3A, 0x3A, 0x3A));
+
+    public const double MemberCenterPointRadiusPx = 2.0d;
+
+    public static Pen CreateMemberCenterAxisPen(Brush? brush = null) =>
+        new(brush ?? MemberCenterAxisBrush, MemberCenterAxisStrokeThickness)
+        {
+            DashStyle = DashStyles.DashDot,
+            StartLineCap = PenLineCap.Flat,
+            EndLineCap = PenLineCap.Flat,
+        };
+
     public static Pen CreateDimensionPen(Brush brush) =>
         new(brush, DimensionStrokeThickness);
 

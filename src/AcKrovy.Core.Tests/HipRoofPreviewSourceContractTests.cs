@@ -38,6 +38,10 @@ public sealed class HipRoofPreviewSourceContractTests
         Assert.Contains("new HipRoofPreviewWindow(", Workflow);
         Assert.Contains("{localization:Loc RoofGeometryWindow_MonopitchSlope}", Window);
         Assert.Contains("x:Name=\"ApplyButton\"", Window);
+        Assert.Contains("x:Name=\"ValidationPanel\"", Window);
+        Assert.Contains("x:Name=\"ValidationIcon\"", Window);
+        Assert.Contains("Binding=\"{Binding HasValidationMessage}\"", Window);
+        Assert.Contains("Value=\"#B8860B\"", Window);
         Assert.Contains("Content=\"{Binding PrimaryActionText}\"", Window);
         Assert.Contains("HipRoofDialogMode.Edit ? \"EditWindow_Apply\"", ViewModel);
         Assert.Contains(": \"RoofGeometryWindow_Create\"", ViewModel);

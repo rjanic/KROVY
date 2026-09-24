@@ -59,6 +59,27 @@ public sealed class AutoCadAutomaticPurlinDialogCommands
             }
 
             var defaultProfile = TimberElementDefaultProfileStore.Load();
+            if (!TryResolveRafterDefaults(
+                    document,
+                    selection.ObjectId,
+                    snapshot.OwnerHandle,
+                    defaultProfile,
+                    out var rafterDefaults,
+                    out var rafterSource))
+            {
+                editor.WriteMessage(
+                    "\n" + UiStrings.GetString(
+                        "AutomaticPurlin_RafterRecipeAmbiguous",
+                        culture));
+#if DEBUG
+                System.Diagnostics.Debug.WriteLine(
+                    "ROOF_PURLIN_RAFTER_SOURCE" +
+                    $" owner={snapshot.OwnerHandle}" +
+                    " result=rafter-recipe-ambiguous");
+#endif
+                return;
+            }
+
             var viewModel = new AutomaticPurlinDialogViewModel(
                 snapshot.Geometry,
                 snapshot.BoundaryProvenance,
@@ -67,15 +88,28 @@ public sealed class AutoCadAutomaticPurlinDialogCommands
                 snapshot.Datum,
                 snapshot.DatumExists,
                 TimberElementDefaults.For(TimberElementType.Purlin, defaultProfile),
-                TimberElementDefaults.For(TimberElementType.Rafter, defaultProfile),
+                TimberElementDefaults.For(TimberElementType.WallPlate, defaultProfile),
+                rafterDefaults,
                 culture,
-                AutomaticPurlinDialogMode.ReadOnlyPreview);
-            window = new AutomaticPurlinDialogWindow(
-                viewModel,
-                SettingsUiPreferencesStore.Load().Theme);
-            SettingsWindowOwner.TryAssign(
-                window,
-                TryGetAutoCadMainWindowHandle());
+                AutomaticPurlinDialogMode.ReadOnlyPreview,
+                existingAutomaticPurlinCount: 0,
+                snapshot.StoredDatumLoadError,
+                rafterSource);
+            if (snapshot.StoredDatumLoadError ==
+                RoofRelativeElevationDatumError.InconsistentSourceEaveLocalZ)
+            {
+                editor.WriteMessage(
+                    "\nROOF_RELATIVE_DATUM" +
+                    $" owner={snapshot.OwnerHandle}" +
+                    " result=invalid" +
+                    " reason=InconsistentSourceEaveLocalZ");
+                editor.WriteMessage(
+                    "\n" + UiStrings.GetString(
+                        "AutomaticPurlin_DatumInconsistentSourceEave",
+                        culture));
+            }
+            var theme = SettingsUiPreferencesStore.Load().Theme;
+            Rect? restoreBounds = null;
 
             void RefreshPreview(object? sender, EventArgs args)
             {
@@ -100,6 +134,8 @@ public sealed class AutoCadAutomaticPurlinDialogCommands
 
                 var ridgeCount = plan.Items.Count(item =>
                     item.GeneratorRole == RoofAutomaticPurlinGeneratorRole.Ridge);
+                var wallPlateCount = plan.Items.Count(item =>
+                    item.GeneratorRole == RoofAutomaticPurlinGeneratorRole.WallPlate);
                 var intermediateCount = plan.Items.Count(item =>
                     item.GeneratorRole == RoofAutomaticPurlinGeneratorRole.Intermediate);
                 if (plan.Items.Count > 0)
@@ -123,6 +159,7 @@ public sealed class AutoCadAutomaticPurlinDialogCommands
                 WritePreviewDiagnostic(
                     $"ROOF_PURLIN_PREVIEW owner={snapshot.OwnerHandle}" +
                     $" boundaryIdentity={BoundaryIdentityToken(snapshot.BoundaryResolution.Source)}" +
+                    $" wallPlate={wallPlateCount.ToString(CultureInfo.InvariantCulture)}" +
                     $" ridge={ridgeCount.ToString(CultureInfo.InvariantCulture)}" +
                     $" intermediate={intermediateCount.ToString(CultureInfo.InvariantCulture)}" +
                     $" total={plan.Items.Count.ToString(CultureInfo.InvariantCulture)} result=ok");
@@ -136,29 +173,67 @@ public sealed class AutoCadAutomaticPurlinDialogCommands
                 }
 
                 lastPreviewDiagnostic = message;
-                editor.WriteMessage("\n" + message);
+                // Debug only — Editor.WriteMessage tips over the open WPF dialog.
+                System.Diagnostics.Debug.WriteLine(message);
             }
 
-            void CloseForDocumentDestruction(object sender, DocumentCollectionEventArgs args)
+            while (true)
             {
-                if (!ReferenceEquals(args.Document, document) || window.IsClosed)
+                window = new AutomaticPurlinDialogWindow(viewModel, theme);
+                if (restoreBounds is { } bounds)
                 {
-                    return;
+                    window.ApplyRestoreBounds(bounds);
                 }
 
-                _ = window.Dispatcher.BeginInvoke(new Action(window.Close));
-            }
+                SettingsWindowOwner.TryAssign(
+                    window,
+                    TryGetAutoCadMainWindowHandle());
+                AutomaticPurlinDialogWindow activeWindow = window;
 
-            window.PreviewRequested += RefreshPreview;
-            AcApplication.DocumentManager.DocumentToBeDestroyed += CloseForDocumentDestruction;
-            try
-            {
-                _ = AcApplication.ShowModalWindow(window);
-            }
-            finally
-            {
-                window.PreviewRequested -= RefreshPreview;
-                AcApplication.DocumentManager.DocumentToBeDestroyed -= CloseForDocumentDestruction;
+                void CloseForDocumentDestruction(object sender, DocumentCollectionEventArgs args)
+                {
+                    if (!ReferenceEquals(args.Document, document) || activeWindow.IsClosed)
+                    {
+                        return;
+                    }
+
+                    _ = activeWindow.Dispatcher.BeginInvoke(new Action(activeWindow.Close));
+                }
+
+                activeWindow.PreviewRequested += RefreshPreview;
+                AcApplication.DocumentManager.DocumentToBeDestroyed += CloseForDocumentDestruction;
+                var suspendedForCadPreview = false;
+                try
+                {
+                    _ = AcApplication.ShowModalWindow(activeWindow);
+                    suspendedForCadPreview = activeWindow.IsSuspendedForCadPreview;
+                    if (suspendedForCadPreview)
+                    {
+                        restoreBounds = activeWindow.SavedRestoreBounds;
+                        try
+                        {
+                            RefreshPreview(activeWindow, EventArgs.Empty);
+                            _ = editor.GetString(
+                                "\n" + UiStrings.GetString(
+                                    "AutomaticPurlin_PreviewReturnPrompt",
+                                    culture));
+                        }
+                        catch (System.Exception)
+                        {
+                            // finally-safe: always return to the same ViewModel dialog.
+                        }
+                    }
+                }
+                finally
+                {
+                    activeWindow.PreviewRequested -= RefreshPreview;
+                    AcApplication.DocumentManager.DocumentToBeDestroyed -= CloseForDocumentDestruction;
+                }
+
+                if (!suspendedForCadPreview)
+                {
+                    break;
+                }
             }
         }
         catch (System.Exception exception)
@@ -231,9 +306,17 @@ public sealed class AutoCadAutomaticPurlinDialogCommands
         }
 
         var datumRead = RoofRelativeElevationDatumStore.Read(owner);
+        RoofRelativeElevationDatumError? storedDatumLoadError = null;
         if (datumRead.Exists && datumRead.Data is null)
         {
-            return null;
+            if (datumRead.Error == RoofRelativeElevationDatumError.InconsistentSourceEaveLocalZ)
+            {
+                storedDatumLoadError = datumRead.Error;
+            }
+            else
+            {
+                return null;
+            }
         }
 
         var boundaryRead = RoofBoundaryIdentityStore.Read(owner);
@@ -249,7 +332,51 @@ public sealed class AutoCadAutomaticPurlinDialogCommands
             layoutRead.Exists,
             datumRead.Data,
             datumRead.Exists,
-            RoofPolylineExtractor.GetSourceElevation(owner));
+            RoofPolylineExtractor.GetSourceElevation(owner),
+            storedDatumLoadError);
+    }
+
+    private static bool TryResolveRafterDefaults(
+        Document document,
+        ObjectId ownerId,
+        string ownerHandle,
+        TimberElementDefaultProfile defaultProfile,
+        out TimberElementData rafterDefaults,
+        out AutomaticPurlinRafterDimensionSource rafterSource)
+    {
+        rafterDefaults = default!;
+        rafterSource = AutomaticPurlinRafterDimensionSource.UnresolvedProfileSeed;
+        using var transaction = document.Database.TransactionManager.StartOpenCloseTransaction();
+        if (!AutoCadObjectIdAccess.TryGetObject<Polyline>(
+                transaction,
+                ownerId,
+                OpenMode.ForRead,
+                out var owner,
+                document.Database) ||
+            owner is null)
+        {
+            return false;
+        }
+
+        if (!RoofAutomaticPurlinRafterDimensionsResolver.TryResolve(
+                document.Database,
+                transaction,
+                ownerHandle,
+                defaultProfile,
+                out var resolution,
+                out _,
+                document.Editor))
+        {
+            return false;
+        }
+
+        rafterDefaults = resolution.ApplyToProfileDefaults(
+            TimberElementDefaults.For(TimberElementType.Rafter, defaultProfile));
+        rafterSource = resolution.Source ==
+            RoofAutomaticPurlinRafterDimensionsResolver.SourceKind.RecoveredRoofRecipe
+                ? AutomaticPurlinRafterDimensionSource.RecoveredRoofRecipe
+                : AutomaticPurlinRafterDimensionSource.UnresolvedProfileSeed;
+        return true;
     }
 
     private static string BoundaryIdentityToken(RoofBoundaryIdentityPreviewSource source) =>
@@ -294,7 +421,8 @@ public sealed class AutoCadAutomaticPurlinDialogCommands
         bool LayoutExists,
         RoofRelativeElevationDatum? Datum,
         bool DatumExists,
-        double SourceElevation)
+        double SourceElevation,
+        RoofRelativeElevationDatumError? StoredDatumLoadError = null)
     {
         public RoofBoundaryIdentityProvenanceResult? BoundaryProvenance =>
             BoundaryResolution.Provenance;

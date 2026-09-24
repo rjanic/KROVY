@@ -15,13 +15,54 @@ public static class RoofAutomaticPurlinMaterializationRules
             throw new ArgumentNullException(nameof(defaultProfile));
         }
 
+        var defaults = TimberElementDefaults.For(TimberElementType.Purlin, defaultProfile);
+        return CreateTimberDataCore(
+            defaults,
+            TimberElementType.Purlin,
+            defaults.WidthMm,
+            defaults.HeightMm,
+            elementId);
+    }
+
+    public static TimberElementData CreateTimberData(
+        TimberElementDefaultProfile defaultProfile,
+        RoofAutomaticPurlinPlanItem item,
+        string elementId)
+    {
+        if (defaultProfile is null)
+        {
+            throw new ArgumentNullException(nameof(defaultProfile));
+        }
+
+        if (!IsValidDesiredItem(item))
+        {
+            throw new ArgumentException("A valid automatic-purlin plan item is required.", nameof(item));
+        }
+
+        return CreateTimberDataCore(
+            TimberElementDefaults.For(item.ElementType, defaultProfile),
+            item.ElementType,
+            item.WidthMm,
+            item.HeightMm,
+            elementId);
+    }
+
+    private static TimberElementData CreateTimberDataCore(
+        TimberElementData defaults,
+        TimberElementType elementType,
+        double widthMm,
+        double heightMm,
+        string elementId)
+    {
         // PrepareForWrite so desired-state equality matches the persisted readback
         // after the first successful materialization write.
         return TimberElementDataVersioning.PrepareForWrite(
-            TimberElementDefaults.For(TimberElementType.Purlin, defaultProfile) with
+            defaults with
             {
                 ElementId = elementId,
-                ElementType = TimberElementType.Purlin,
+                ElementType = elementType,
+                WidthMm = widthMm,
+                HeightMm = heightMm,
                 SlopeDegrees = 0d,
                 AnnotationMode = TimberAnnotationMode.NoAnnotations,
                 LengthCalculationMode = LengthCalculationMode.PlanLength,
@@ -31,9 +72,10 @@ public static class RoofAutomaticPurlinMaterializationRules
 
     public static bool IsValidDesiredItem(RoofAutomaticPurlinPlanItem? item)
     {
-        if (item is null ||
-            item.GeneratedKey is null ||
-            item.ElementType != TimberElementType.Purlin)
+        if (item is null || item.GeneratedKey is null ||
+            !IsMatchingTimberType(item.GeneratedKey, item.ElementType) ||
+            !IsFinite(item.WidthMm) || item.WidthMm <= 0d ||
+            !IsFinite(item.HeightMm) || item.HeightMm <= 0d)
         {
             return false;
         }
@@ -116,6 +158,16 @@ public static class RoofAutomaticPurlinMaterializationRules
 
     private static bool IsFinite(double value) =>
         !double.IsNaN(value) && !double.IsInfinity(value);
+
+    public static bool IsMatchingTimberType(
+        RoofAutomaticPurlinGeneratedKey key,
+        TimberElementType type) => key switch
+        {
+            RoofAutomaticPurlinWallPlateKey => type == TimberElementType.WallPlate,
+            RoofAutomaticPurlinRidgeKey or RoofAutomaticPurlinIntermediateKey =>
+                type == TimberElementType.Purlin,
+            _ => false,
+        };
 
     private static RoofAutomaticPurlinReconciliationResult Invalid(
         RoofAutomaticPurlinReconciliationError error,

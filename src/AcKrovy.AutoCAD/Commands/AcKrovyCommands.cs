@@ -776,6 +776,19 @@ public sealed class AcKrovyCommands
                 continue;
             }
 
+            if (RoofGeneratedOrdinaryRafterMetadataGuard.BlocksRecipeDefiningWrite(
+                    entity,
+                    original,
+                    merged))
+            {
+                skipped++;
+                editor.WriteMessage(
+                    "\n" + UiStrings.GetString(
+                        RoofGeneratedOrdinaryRafterMetadataGuard.LocalizationKey,
+                        uiCulture));
+                continue;
+            }
+
             previousElementIdById.TryAdd(id, original.ElementId);
             metadataStore.Write(entity, merged);
             layerService.ApplyLayerForTimberType(entity, merged.ElementType, layerProfile);
@@ -1396,6 +1409,20 @@ public sealed class AcKrovyCommands
             if (dialog.UseDefaultCuttingAllowanceByType)
             {
                 merged = TimberElementDefaultApplicator.ApplyCuttingAllowance(merged, defaultProfile);
+            }
+
+            if (RoofGeneratedOrdinaryRafterMetadataGuard.IsOrdinaryGeneratedRafter(entity) &&
+                (!hadExistingData ||
+                 RoofGeneratedRafterRecipeMetadataRules.MutatesRecipeDefiningFields(
+                     original,
+                     merged)))
+            {
+                skipped++;
+                editor.WriteMessage(
+                    "\n" + UiStrings.GetString(
+                        RoofGeneratedOrdinaryRafterMetadataGuard.LocalizationKey,
+                        uiCulture));
+                continue;
             }
 
             previousElementIdById[id] = original.ElementId;

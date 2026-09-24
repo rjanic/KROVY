@@ -9,9 +9,13 @@ public sealed class RoofAutomaticPurlinPersistenceAutoCadSourceContractTests
         ReadInfrastructure("RoofAutomaticPurlinGeneratedStore.cs");
     private static readonly string DatumStore =
         ReadInfrastructure("RoofRelativeElevationDatumStore.cs");
+    private static readonly string RelativeDatumRules = ReadCoreRules(
+        "RoofRelativeElevationDatumRules.cs");
+    private static readonly string RelativeDatumModel = ReadCoreModel(
+        "RoofRelativeElevationDatum.cs");
 
     [Fact]
-    public void LayoutStore_UsesDedicatedExactTypedSchemaOnePayload()
+    public void LayoutStore_UsesDedicatedTypedSchemaOnePayloadWithOptionalWallPlateFlag()
     {
         Assert.Contains("DECORAIR_ACADKROVY_ROOF_PURLIN_LAYOUT", LayoutStore);
         Assert.Contains("DxfCode.ExtendedDataRegAppName", LayoutStore);
@@ -26,7 +30,9 @@ public sealed class RoofAutomaticPurlinPersistenceAutoCadSourceContractTests
         AssertOrdered(
             encode,
             "new(DxfRegAppNameCode, RegAppName)",
-            "checked((short)RoofPurlinLayoutSchema.CurrentVersion)",
+            "checked((short)(writeRafterProfile",
+            "RoofPurlinLayoutSchema.CurrentVersion",
+            "RoofPurlinLayoutSchema.Version1",
             "checked((short)(canonical.RidgeEnabled",
             "new(DxfInt32Code, canonical.IntermediateItems.Count)",
             "item.LayoutItemId",
@@ -35,6 +41,76 @@ public sealed class RoofAutomaticPurlinPersistenceAutoCadSourceContractTests
             "item.PlacementValueMm",
             "item.ReferenceRidgeKey",
             "item.SeatingDepth");
+        Assert.Contains("var writeRafterProfile", encode);
+        Assert.Contains("writeWallPlate", LayoutStore);
+        Assert.Contains("ResolveWallPlatePlacement", LayoutStore);
+        Assert.Contains("OptionalWallPlatePlacementValueCount", LayoutStore);
+        Assert.Contains("OptionalWallPlateLegacyValueCount", LayoutStore);
+        Assert.Contains("OptionalWallPlateFlagValueCount", LayoutStore);
+        Assert.Contains("OptionalSectionDimensionsFixedValueCount", LayoutStore);
+        Assert.Contains("SectionDimensionsTrailerMarker", LayoutStore);
+        Assert.Contains("TryDecodeSectionDimensionsTrailer", LayoutStore);
+        Assert.Contains("RafterProfileTrailerMarker", LayoutStore);
+        Assert.Contains("TryDecodeRafterProfileTrailerSchema2", LayoutStore);
+        Assert.Contains("TryDecodeRafterProfileTrailerSchema3", LayoutStore);
+        Assert.Contains("OptionalRafterProfileSchema3ValueCount", LayoutStore);
+        Assert.Contains("AcknowledgedActualKind", LayoutStore);
+        Assert.Contains("HasPersistedSectionDimensions", LayoutStore);
+        Assert.Contains("HasPersistedRafterProfile", LayoutStore);
+        Assert.Contains("ToStoredSectionDimension", LayoutStore);
+        Assert.Contains("short wallPlateEnabled = 0", LayoutStore);
+        Assert.Contains("var wallPlateLowerEdgeHeightMm = 0d", LayoutStore);
+        Assert.Contains("wallPlatePlacementItem", LayoutStore);
+        Assert.Contains("sectionDimensions", LayoutStore);
+        Assert.Contains("rafterProfile", LayoutStore);
+        Assert.Contains("ToStoredWallPlatePlacement", LayoutStore);
+        Assert.Contains("RoofPurlinLayoutSchema.CurrentVersion", LayoutStore);
+        Assert.DoesNotContain("CurrentVersion = 2", LayoutStore);
+        Assert.DoesNotContain("CurrentVersion = 3", LayoutStore);
+    }
+
+    [Fact]
+    public void EncodePayload_FullWallPlatePlacementBranch_PersistsExplicitLowerEdgeHeight()
+    {
+        // Extended trailer: flag + 7 placement fields + LowerEdge Real.
+        // Schema version unchanged; length discriminates legacy vs extended.
+        var encode = Member(
+            LayoutStore,
+            "internal static IReadOnlyList<TypedValue> EncodePayload",
+            "public static void Write(");
+        Assert.Contains("ToStoredWallPlatePlacement(wallPlatePlacement)", encode);
+        Assert.Contains("new TypedValue(DxfRealCode, stored.PlacementValueMm)", encode);
+        Assert.Contains(
+            "new TypedValue(DxfRealCode, canonical.WallPlateLowerEdgeHeightMm)",
+            encode);
+        Assert.Contains("canUseLegacySingleReal", encode);
+        Assert.Contains("OptionalWallPlatePlacementWithLowerEdgeValueCount", LayoutStore);
+        Assert.Contains("wallPlateLowerEdgeHeightExplicit", LayoutStore);
+        // Legacy full-placement length (flag+7) remains decodable without explicit LowerEdge.
+        Assert.Contains("OptionalWallPlatePlacementValueCount", LayoutStore);
+        Assert.Contains("var wallPlateLowerEdgeHeightMm = 0d", LayoutStore);
+    }
+
+    [Fact]
+    public void ProductionWorkflow_EmitsWallPlateLowerEdgeDiagnostics()
+    {
+        var workflow = File.ReadAllText(Path.Combine(
+            RepositoryRoot(),
+            "src",
+            "AcKrovy.AutoCAD",
+            "Infrastructure",
+            "RoofAutomaticPurlinCommandWorkflow.cs"));
+        Assert.Contains("ROOF_PURLIN_LAYOUT", workflow);
+        Assert.Contains("wallPlatePlacementMode=", workflow);
+        Assert.Contains("wallPlatePlacementValueMm=", workflow);
+        Assert.Contains("wallPlateLowerEdgeMm=", workflow);
+        Assert.Contains("ROOF_PURLIN_MEMBER", workflow);
+        Assert.Contains("placementMode=", workflow);
+        Assert.Contains("configuredLowerEdgeMm=", workflow);
+        Assert.Contains("seatingDepth=", workflow);
+        Assert.Contains("bottomRelative=", workflow);
+        Assert.Contains("centerRelative=", workflow);
+        Assert.Contains("topRelative=", workflow);
     }
 
     [Fact]
@@ -45,6 +121,7 @@ public sealed class RoofAutomaticPurlinPersistenceAutoCadSourceContractTests
             GeneratedStore);
         Assert.Contains("private const int RidgeValueCount = 6", GeneratedStore);
         Assert.Contains("private const int IntermediateValueCount = 8", GeneratedStore);
+        Assert.Contains("private const int WallPlateValueCount = 5", GeneratedStore);
         var encode = Member(
             GeneratedStore,
             "internal static IReadOnlyList<TypedValue> EncodePayload",
@@ -55,6 +132,10 @@ public sealed class RoofAutomaticPurlinPersistenceAutoCadSourceContractTests
             "checked((short)RoofAutomaticPurlinGeneratedDataSchema.CurrentVersion)",
             "new(DxfAsciiStringCode, canonical.RoofOwnerReference)",
             "FormatRole(canonical.GeneratorRole)");
+        AssertOrdered(
+            encode,
+            "case RoofAutomaticPurlinWallPlateKey",
+            "wallPlate.BoundaryEdgeId");
         AssertOrdered(
             encode,
             "case RoofAutomaticPurlinRidgeKey",
@@ -105,6 +186,16 @@ public sealed class RoofAutomaticPurlinPersistenceAutoCadSourceContractTests
         Assert.DoesNotContain("EnsureRegAppRegistered", read);
         Assert.DoesNotContain("UpgradeOpen", read);
         Assert.DoesNotContain(".XData =", read);
+    }
+
+    [Fact]
+    public void RelativeDatumValidate_RejectsInconsistentSourceEaveLocalZ()
+    {
+        Assert.Contains("InconsistentSourceEaveLocalZ", RelativeDatumModel);
+        Assert.Contains("InconsistentSourceEaveLocalZ", RelativeDatumRules);
+        Assert.Contains("SourceEavePlane", RelativeDatumRules);
+        Assert.Contains("referenceLocalZMm != 0d", RelativeDatumRules);
+        Assert.Contains("IsInconsistentSourceEaveLocalZ", RelativeDatumRules);
     }
 
     [Fact]
@@ -233,6 +324,24 @@ public sealed class RoofAutomaticPurlinPersistenceAutoCadSourceContractTests
             "src",
             "AcKrovy.AutoCAD",
             "Infrastructure",
+            fileName));
+
+    private static string ReadCoreRules(string fileName) =>
+        File.ReadAllText(Path.Combine(
+            RepositoryRoot(),
+            "src",
+            "AcKrovy.Core",
+            "Services",
+            "Roofs",
+            fileName));
+
+    private static string ReadCoreModel(string fileName) =>
+        File.ReadAllText(Path.Combine(
+            RepositoryRoot(),
+            "src",
+            "AcKrovy.Core",
+            "Models",
+            "Roofs",
             fileName));
 
     private static string RepositoryRoot()

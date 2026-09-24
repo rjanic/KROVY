@@ -15,6 +15,7 @@ internal sealed class HipRoofPreviewViewModel : INotifyPropertyChanged
     private readonly HipRoofDialogMode _mode;
     private string _slopeText;
     private string _validationMessage = string.Empty;
+    private bool _hasSessionValidation;
     private HipRoofGeometry? _geometry;
 
     internal HipRoofPreviewViewModel(RoofFootprint footprint, CultureInfo? culture = null)
@@ -61,6 +62,8 @@ internal sealed class HipRoofPreviewViewModel : INotifyPropertyChanged
     }
 
     public string ValidationMessage => _validationMessage;
+    public bool HasValidationMessage => !string.IsNullOrWhiteSpace(_validationMessage);
+    public bool HasSessionValidation => _hasSessionValidation;
     public bool CanPreview => _geometry is not null;
     public bool CanApply => _geometry is not null;
 
@@ -68,6 +71,26 @@ internal sealed class HipRoofPreviewViewModel : INotifyPropertyChanged
     {
         geometry = _geometry;
         return geometry is not null;
+    }
+
+    /// <summary>
+    /// Surfaces a workflow-level validation (e.g. Purlin preflight) without clearing
+    /// the currently proposed geometry so Apply remains available for a corrected pitch.
+    /// </summary>
+    internal void SetSessionValidation(string resourceKey)
+    {
+        if (string.IsNullOrWhiteSpace(resourceKey))
+        {
+            return;
+        }
+
+        _hasSessionValidation = true;
+        _validationMessage = TrimDisplayMessage(UiStrings.GetString(resourceKey, _culture));
+        OnPropertyChanged(nameof(ValidationMessage));
+        OnPropertyChanged(nameof(HasValidationMessage));
+        OnPropertyChanged(nameof(HasSessionValidation));
+        OnPropertyChanged(nameof(CanPreview));
+        OnPropertyChanged(nameof(CanApply));
     }
 
     private void Recalculate()
@@ -104,13 +127,19 @@ internal sealed class HipRoofPreviewViewModel : INotifyPropertyChanged
 
     private void SetValidation(string? resourceKey)
     {
+        _hasSessionValidation = false;
         _validationMessage = resourceKey is null
             ? string.Empty
-            : UiStrings.GetString(resourceKey, _culture);
+            : TrimDisplayMessage(UiStrings.GetString(resourceKey, _culture));
         OnPropertyChanged(nameof(ValidationMessage));
+        OnPropertyChanged(nameof(HasValidationMessage));
+        OnPropertyChanged(nameof(HasSessionValidation));
         OnPropertyChanged(nameof(CanPreview));
         OnPropertyChanged(nameof(CanApply));
     }
+
+    private static string TrimDisplayMessage(string message) =>
+        message.TrimStart('\r', '\n').TrimEnd();
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));

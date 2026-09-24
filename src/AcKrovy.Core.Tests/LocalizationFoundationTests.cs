@@ -313,7 +313,12 @@ public sealed class LocalizationFoundationTests
         Assert.Equal("Recalculer selon la pente", result.LengthMode);
         Assert.Equal("ACAD KROVY – liste de débit des bois", result.ReportTitle);
         Assert.Equal("Total : {0} éléments", result.ReportTotalFormat);
-        Assert.Equal("\nACAD KROVY : données attribuées à 3 éléments. Ignorés : 1.", result.AssignResult);
+        // Leading newline may be LF (&#xA;) or CRLF when the .resx stores a physical
+        // multiline value on Windows; normalize before asserting French content.
+        var assignNormalized = result.AssignResult.Replace("\r\n", "\n").Replace('\r', '\n');
+        Assert.Equal(
+            "\nACAD KROVY : données attribuées à 3 éléments. Ignorés : 1.",
+            assignNormalized);
     }
 
     [Fact]

@@ -39,43 +39,82 @@ public sealed class RoofRafterPhysicalGeometryTests
     }
 
     [Fact]
-    public void RafterSection_UsesRoofNormalForUpperAndLowerSurfaces()
+    public void RafterSection_UsesFixedHorizontalStationVerticalSpan()
     {
         var normal = NormalForPitch(30d);
-        var center = new RoofPoint3D(10d, 20d, 1000d);
+        var upper = new RoofPoint3D(10d, 20d, 1000d);
+        var verticalHalf = 160d / (2d * Math.Cos(Math.PI / 6d));
 
         Assert.True(RoofRafterPhysicalGeometry.TryCreateRafterSection(
-            center, normal, 160d, out var section));
+            upper, normal, 160d, out var section));
 
-        Assert.Equal(center.X - normal.X * 80d, section!.LowerSurfacePoint.X, 10);
-        Assert.Equal(center.Y - normal.Y * 80d, section.LowerSurfacePoint.Y, 10);
-        Assert.Equal(1000d - Math.Cos(Math.PI / 6d) * 80d,
-            section.LowerSurfacePoint.Z, 10);
-        Assert.Equal(1000d + Math.Cos(Math.PI / 6d) * 80d,
-            section.UpperSurfacePoint.Z, 10);
+        Assert.Equal(upper.X, section!.LowerSurfacePoint.X, 10);
+        Assert.Equal(upper.Y, section.LowerSurfacePoint.Y, 10);
+        Assert.Equal(1000d, section.UpperSurfacePoint.Z, 10);
+        Assert.Equal(1000d - verticalHalf, section.CenterlinePoint.Z, 10);
+        Assert.Equal(1000d - 2d * verticalHalf, section.LowerSurfacePoint.Z, 10);
     }
 
     [Fact]
-    public void PercentSeating_NumericalThirtyDegreeFixtureIsExact()
+    public void PercentSeating_FortyFiveDegreeHostOuterCornerFixture()
     {
-        var depth = 160d * 25d / 100d;
-        var result = Placement(1000d, 30d, 160d, 220d, depth);
+        // Independent CAD: upper face at outer station 630, H=125, D=31.25, pitch 45°.
+        // Top = 630 - (125-31.25)/cos45 = 497.417479…
+        var depth = 125d * 25d / 100d;
+        var upperAtAxis = new RoofPoint3D(0d, 0d, 700d);
+        var result = RoofRafterPhysicalGeometry.CreatePurlinPlacement(
+            upperAtAxis,
+            NormalForPitch(45d),
+            125d,
+            140d,
+            depth,
+            Datum(0d),
+            purlinWidthMm: 140d);
         var placement = Assert.IsType<RoofPurlinPhysicalPlacement>(result.Placement);
 
-        Assert.Equal(40d, placement.SeatingDepthMm, 10);
-        Assert.Equal(930.7179676972449d, placement.RafterLowerSurfaceLocalZMm, 9);
-        Assert.Equal(1069.282032302755d, placement.RafterUpperSurfaceLocalZMm, 9);
-        Assert.Equal(965.3589838486224d, placement.PurlinTopLocalZMm, 9);
-        Assert.Equal(855.3589838486224d, placement.PurlinCenterLocalZMm, 9);
-        Assert.Equal(745.3589838486224d, placement.PurlinBottomLocalZMm, 9);
+        Assert.Equal(31.25d, placement.SeatingDepthMm, 10);
+        Assert.Equal(497.4174785275226d, placement.PurlinTopLocalZMm, 6);
+        Assert.Equal(427.4174785275226d, placement.PurlinCenterLocalZMm, 6);
+        Assert.Equal(357.4174785275226d, placement.PurlinBottomLocalZMm, 6);
+        Assert.Equal(700d, placement.RafterUpperSurfaceLocalZMm, 9);
     }
 
     [Fact]
-    public void AbsoluteSeating_UsesSameNormalProjectedFormula()
+    public void InverseUpperFaceFromSeatedBottom_MatchesCreatePurlinPlacementHostFixture()
+    {
+        // Independent CAD: Bottom=0, H_wp=140, W=140, H=125, D=31.25, pitch 45°
+        // → axisUpper = 140 + 93.75/cos45 + 70 = 342.582521…
+        Assert.True(RoofRafterPhysicalGeometry.TryResolveUpperFaceLocalZFromSeatedBottom(
+            bottomLocalZMm: 0d,
+            purlinHeightMm: 140d,
+            purlinWidthMm: 140d,
+            rafterHeightMm: 125d,
+            seatingDepthMm: 31.25d,
+            pitchDegrees: 45d,
+            out var upperFace));
+        Assert.Equal(342.5825214724774d, upperFace, 6);
+
+        var placement = Assert.IsType<RoofPurlinPhysicalPlacement>(
+            RoofRafterPhysicalGeometry.CreatePurlinPlacement(
+                new RoofPoint3D(0d, 0d, upperFace),
+                NormalForPitch(45d),
+                125d,
+                140d,
+                31.25d,
+                Datum(0d),
+                purlinWidthMm: 140d).Placement);
+        Assert.Equal(0d, placement.PurlinBottomLocalZMm, 6);
+        Assert.Equal(70d, placement.PurlinCenterLocalZMm, 6);
+        Assert.Equal(140d, placement.PurlinTopLocalZMm, 6);
+        Assert.Equal(upperFace, placement.RafterUpperSurfaceLocalZMm, 6);
+    }
+
+    [Fact]
+    public void AbsoluteSeating_UsesFixedHorizontalRemainingCover()
     {
         var result = Placement(1000d, 45d, 180d, 240d, 35d);
         var placement = Assert.IsType<RoofPurlinPhysicalPlacement>(result.Placement);
-        var expectedTop = 1000d + Math.Cos(Math.PI / 4d) * (35d - 90d);
+        var expectedTop = 1000d - (180d - 35d) / Math.Cos(Math.PI / 4d);
 
         Assert.Equal(35d, placement.SeatingDepthMm, 10);
         Assert.Equal(expectedTop, placement.PurlinTopLocalZMm, 10);
@@ -84,9 +123,7 @@ public sealed class RoofRafterPhysicalGeometryTests
     }
 
     [Theory]
-    [InlineData(0d)]
     [InlineData(-1d)]
-    [InlineData(160d)]
     [InlineData(161d)]
     [InlineData(double.NaN)]
     [InlineData(double.PositiveInfinity)]
@@ -97,6 +134,33 @@ public sealed class RoofRafterPhysicalGeometryTests
         Assert.False(result.IsValid);
         Assert.Null(result.Placement);
         Assert.Equal(RoofPurlinPhysicalPlacementError.InvalidSeatingDepth, result.Error);
+    }
+
+    [Fact]
+    public void FullHeightSeating_PlacesPurlinTopAtRafterUpperSurface()
+    {
+        var result = Placement(1000d, 30d, 160d, 220d, 160d);
+        Assert.True(result.IsValid, result.Error.ToString());
+        var placement = Assert.IsType<RoofPurlinPhysicalPlacement>(result.Placement);
+        Assert.Equal(160d, placement.SeatingDepthMm, 9);
+        Assert.Equal(
+            placement.RafterUpperSurfaceLocalZMm,
+            placement.PurlinTopLocalZMm,
+            9);
+    }
+
+    [Fact]
+    public void ZeroSeating_PlacesPurlinTopAtRafterLowerSurface()
+    {
+        var result = Placement(1000d, 30d, 160d, 220d, 0d);
+        Assert.True(result.IsValid, result.Error.ToString());
+        var placement = Assert.IsType<RoofPurlinPhysicalPlacement>(result.Placement);
+        Assert.Equal(0d, placement.SeatingDepthMm, 9);
+        Assert.Equal(
+            placement.RafterLowerSurfaceLocalZMm,
+            placement.PurlinTopLocalZMm,
+            9);
+        Assert.True(placement.PurlinBottomLocalZMm < placement.PurlinTopLocalZMm);
     }
 
     [Fact]
@@ -134,13 +198,13 @@ public sealed class RoofRafterPhysicalGeometryTests
     }
 
     private static RoofPurlinPhysicalPlacementResult Placement(
-        double centerZ,
+        double upperFaceZ,
         double pitchDegrees,
         double rafterHeightMm,
         double purlinHeightMm,
         double seatingDepthMm,
         double datumLocalZ = 0d) => RoofRafterPhysicalGeometry.CreatePurlinPlacement(
-            new RoofPoint3D(0d, 0d, centerZ),
+            new RoofPoint3D(0d, 0d, upperFaceZ),
             NormalForPitch(pitchDegrees),
             rafterHeightMm,
             purlinHeightMm,

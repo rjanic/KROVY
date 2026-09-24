@@ -32,6 +32,16 @@ public static class RoofRelativeElevationDatumRules
             return Invalid(RoofRelativeElevationDatumError.InvalidReferenceLocalZ);
         }
 
+        // Source eave is the roof-local upper rafter face at the eave. Topology places
+        // that face at Z = 0, so SourceEavePlane requires ReferenceLocalZMm = 0.
+        // Non-zero LocalZ is ambiguous (legacy defective dialog state) and must not be
+        // accepted or normalized here.
+        if (referenceKind == RoofRelativeElevationReferenceKind.SourceEavePlane &&
+            referenceLocalZMm != 0d)
+        {
+            return Invalid(RoofRelativeElevationDatumError.InconsistentSourceEaveLocalZ);
+        }
+
         return new RoofRelativeElevationDatumValidationResult(
             true,
             new RoofRelativeElevationDatum(
@@ -40,6 +50,17 @@ public static class RoofRelativeElevationDatumRules
                 referenceLocalZMm),
             RoofRelativeElevationDatumError.None);
     }
+
+    /// <summary>
+    /// True when a stored SourceEavePlane payload is schema-shaped but violates the
+    /// LocalZ = 0 contract. Used by host load paths to fail closed without rewriting XData.
+    /// </summary>
+    public static bool IsInconsistentSourceEaveLocalZ(
+        RoofRelativeElevationReferenceKind referenceKind,
+        double referenceLocalZMm) =>
+        referenceKind == RoofRelativeElevationReferenceKind.SourceEavePlane &&
+        IsFinite(referenceLocalZMm) &&
+        referenceLocalZMm != 0d;
 
     public static double ToRelativeElevationMm(
         RoofRelativeElevationDatum datum,
@@ -80,20 +101,39 @@ public static class RoofRelativeElevationDatumRules
                (relativeElevationMm - datum.ReferenceRelativeElevationMm);
     }
 
-    public static string FormatMetres(double relativeElevationMm)
+    public static string FormatMetres(double relativeElevationMm) =>
+        FormatMetres(relativeElevationMm, CultureInfo.InvariantCulture);
+
+    /// <summary>
+    /// Formats relative elevation as signed metres with exactly three decimals.
+    /// After rounding, a zero magnitude is always <c>±0.000</c> / <c>±0,000</c>
+    /// (never <c>+0.000</c> or <c>-0.000</c>). Uses the culture decimal separator.
+    /// </summary>
+    public static string FormatMetres(double relativeElevationMm, CultureInfo? culture)
     {
         if (!IsFinite(relativeElevationMm))
         {
             throw new ArgumentOutOfRangeException(nameof(relativeElevationMm));
         }
 
+        culture ??= CultureInfo.InvariantCulture;
         var metres = relativeElevationMm / 1000d;
-        if (Math.Abs(metres) < 0.0005d)
+        var rounded = Math.Round(metres, 3, MidpointRounding.AwayFromZero);
+        var separator = culture.NumberFormat.NumberDecimalSeparator;
+        if (rounded == 0d)
         {
-            return "±0.000";
+            return "±0" + separator + "000";
         }
 
-        return metres.ToString("+0.000;-0.000", CultureInfo.InvariantCulture);
+        var magnitude = Math.Abs(rounded).ToString("0.000", culture);
+        return (rounded > 0d ? "+" : "-") + magnitude;
+    }
+
+    /// <summary>Formats relative elevation including the metre unit for tooltip lines.</summary>
+    public static string FormatMetresWithUnit(double relativeElevationMm, CultureInfo? culture)
+    {
+        culture ??= CultureInfo.InvariantCulture;
+        return FormatMetres(relativeElevationMm, culture) + " m";
     }
 
     /// <summary>Parses editable architectural metres and returns millimetres.</summary>
@@ -104,6 +144,21 @@ public static class RoofRelativeElevationDatumRules
     {
         millimetres = 0d;
         var value = (text ?? string.Empty).Trim();
+        if (value.StartsWith("±0", StringComparison.Ordinal))
+        {
+            var core = value;
+            if (core.EndsWith(" m", StringComparison.OrdinalIgnoreCase))
+            {
+                core = core.Substring(0, core.Length - 2).TrimEnd();
+            }
+
+            if (string.Equals(core, "±0.000", StringComparison.Ordinal) ||
+                string.Equals(core, "±0,000", StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
         if (string.Equals(value, "±0.000", StringComparison.Ordinal) ||
             string.Equals(value, "±0,000", StringComparison.Ordinal))
         {

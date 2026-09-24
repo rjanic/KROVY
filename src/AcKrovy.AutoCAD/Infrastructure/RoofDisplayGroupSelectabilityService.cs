@@ -172,6 +172,13 @@ internal static class RoofDisplayGroupSelectabilityService
         Transaction transaction,
         ObjectId ownerId)
     {
+        // Verbose per-group membership dump — opt-in only (ACKROVY_ROOF_GROUP_DIAG=1).
+        // Integrity repair / selectability still run; this path is diagnostic noise.
+        if (!IsRoofGroupMembershipDiagEnabled())
+        {
+            return;
+        }
+
         if (!TryResolveOwnerHandle(database, transaction, ownerId, out var ownerHandle))
         {
             return;
@@ -193,6 +200,13 @@ internal static class RoofDisplayGroupSelectabilityService
                 observation.IsCanonical,
                 observation.IsStaleKrovyDuplicate);
         }
+    }
+
+    private static bool IsRoofGroupMembershipDiagEnabled()
+    {
+        var value = Environment.GetEnvironmentVariable("ACKROVY_ROOF_GROUP_DIAG");
+        return string.Equals(value, "1", StringComparison.Ordinal) ||
+               string.Equals(value, "true", StringComparison.OrdinalIgnoreCase);
     }
 
     private static void WriteSelectabilityDiag(

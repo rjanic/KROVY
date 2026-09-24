@@ -107,7 +107,7 @@ public sealed class RoofRafterPermanentCreateDiagnosticsSourceContractTests
         Assert.Contains("RoofRafterRequestValidator.ValidateHip", workflow);
         Assert.Contains("TimberMaterialCatalog.TryGetItem", workflow);
         Assert.Contains("RoofRafterMaterializationRules.IsConsistent", workflow);
-        Assert.Equal(1, Count(workflow, "transaction.Commit();"));
+        Assert.Equal(2, Count(workflow, "transaction.Commit();"));
     }
 
     [Fact]

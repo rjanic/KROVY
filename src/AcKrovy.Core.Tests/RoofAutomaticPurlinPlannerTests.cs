@@ -23,6 +23,932 @@ public sealed class RoofAutomaticPurlinPlannerTests
         yield return ["Reflex hexagon", Points((0, 0), (9000, 0), (7000, 4000), (10000, 8000), (3000, 10000), (-1000, 5000)), 0, new[] { 6, 5, 4, 3 }];
     }
 
+    [Fact]
+    public void WallPlatePlanningPath_RemainsCadNeutral()
+    {
+        var forbidden = new[] { "Autodesk", "AcMgd", "AcDbMgd", "AcCoreMgd", "Brics", "ZWCAD", "ODA", "Teigha" };
+        var references = typeof(RoofAutomaticPurlinPlanner).Assembly.GetReferencedAssemblies();
+
+        Assert.DoesNotContain(references, reference => forbidden.Any(token =>
+            reference.Name!.Contains(token, StringComparison.OrdinalIgnoreCase)));
+    }
+
+    [Theory]
+    [MemberData(nameof(FixtureMatrix))]
+    public void WallPlatePlan_EmitsOneDeterministicMemberPerCanonicalEave(
+        string name,
+        RoofPoint2D[] points,
+        int _,
+        int[] expectedBandCounts)
+    {
+        Assert.NotNull(expectedBandCounts);
+        var solved = Solve(points);
+        var input = PlanningInput() with
+        {
+            WallPlatesEnabled = true,
+            WallPlateWidthMm = 140d,
+            WallPlateHeightMm = 140d,
+            RafterHeightMm = 160d,
+        };
+        var result = RoofAutomaticPurlinPlanner.Create(
+            solved.Geometry,
+            solved.Provenance,
+            RoofAutomaticPurlinLayout.Empty,
+            input);
+
+        Assert.True(result.IsValid, name + ": " + result.Error);
+        var plan = Assert.IsType<RoofAutomaticPurlinPlan>(result.Plan);
+        Assert.Equal(solved.Geometry.Topology.BoundaryVertexCount, plan.Items.Count);
+        Assert.Equal(plan.Items.Count, plan.Items.Select(item => item.GeneratedKey).Distinct().Count());
+
+        var expectedSeating = (double?)null;
+        foreach (var item in plan.Items)
+        {
+            Assert.Equal(RoofAutomaticPurlinGeneratorRole.WallPlate, item.GeneratorRole);
+            Assert.Equal(TimberElementType.WallPlate, item.ElementType);
+            Assert.Equal(140d, item.WidthMm);
+            Assert.Equal(140d, item.HeightMm);
+            Assert.True(item.LengthMm > RoofAutomaticPurlinPlanner.CoordinateToleranceMm);
+            Assert.Equal(item.Segment3D.Start.Z, item.Segment3D.End.Z, 9);
+
+            var key = Assert.IsType<RoofAutomaticPurlinWallPlateKey>(item.GeneratedKey);
+            var provenance = Assert.Single(
+                solved.Provenance.EdgeProvenance,
+                edge => edge.BoundaryEdgeId == key.BoundaryEdgeId);
+            var face = Assert.Single(
+                solved.Geometry.Topology.Faces,
+                candidate => candidate.SourceEdgeIndex == provenance.NormalizedBoundaryEdgeIndex);
+            var eaveStart = solved.Geometry.Topology.Nodes[face.BoundaryNodeIndices[0]];
+            var eaveEnd = solved.Geometry.Topology.Nodes[face.BoundaryNodeIndices[1]];
+            AssertWallPlateParallelToEave(item.Segment3D, eaveStart, eaveEnd);
+            AssertWallPlateInwardOfEave(item.Segment3D, eaveStart, eaveEnd);
+
+            var elevation = Assert.IsType<RoofPurlinElevationProfile>(item.ElevationProfile);
+            Assert.Equal(0d, elevation.BottomRelativeElevationMm, 9);
+            Assert.Equal(70d, elevation.CenterRelativeElevationMm, 9);
+            Assert.Equal(140d, elevation.TopRelativeElevationMm, 9);
+            Assert.Equal(expectedSeating, elevation.SeatingDepthMm);
+            Assert.Equal(70d, item.Segment3D.Start.Z, 9);
+            Assert.Null(item.PhysicalPlacement);
+            AssertHipOrValleyEndpoints(item, solved);
+        }
+
+        var repeated = RoofAutomaticPurlinPlanner.Create(
+            solved.Geometry,
+            solved.Provenance,
+            RoofAutomaticPurlinLayout.Empty,
+            input);
+        Assert.True(repeated.IsValid);
+        Assert.Equal(plan.Items, repeated.Plan!.Items);
+    }
+
+    [Theory]
+    [InlineData(0d, 0d, 70d, 140d)]
+    [InlineData(900d, 900d, 970d, 1040d)]
+    public void WallPlatePlan_UsesConfiguredLowerEdgeRelativeElevation(
+        double lowerEdgeHeightMm,
+        double expectedBottomRelativeMm,
+        double expectedCenterRelativeMm,
+        double expectedTopRelativeMm)
+    {
+        var solved = Solve(Points((0, 0), (10000, 0), (10000, 6000), (0, 6000)));
+        var datum = new RoofRelativeElevationDatum(
+            RoofRelativeElevationReferenceKind.SourceEavePlane,
+            0d,
+            0d);
+        var layout = RoofAutomaticPurlinLayout.Empty with
+        {
+            WallPlateEnabled = true,
+            WallPlateLowerEdgeHeightMm = lowerEdgeHeightMm,
+        };
+        var input = new RoofAutomaticPurlinPlanningInput(datum, 220d, 160d)
+        {
+            WallPlatesEnabled = true,
+            WallPlateWidthMm = 140d,
+            WallPlateHeightMm = 140d,
+        };
+
+        var result = RoofAutomaticPurlinPlanner.Create(
+            solved.Geometry,
+            solved.Provenance,
+            layout,
+            input);
+
+        Assert.True(result.IsValid, result.Error.ToString());
+        Assert.Equal(4, result.Plan!.Items.Count);
+        Assert.All(result.Plan.Items, item =>
+        {
+            var elevation = Assert.IsType<RoofPurlinElevationProfile>(item.ElevationProfile);
+            Assert.Equal(expectedBottomRelativeMm, elevation.BottomRelativeElevationMm, 9);
+            Assert.Equal(expectedCenterRelativeMm, elevation.CenterRelativeElevationMm, 9);
+            Assert.Equal(expectedTopRelativeMm, elevation.TopRelativeElevationMm, 9);
+            Assert.Equal(expectedCenterRelativeMm, item.Segment3D.Start.Z, 9);
+            Assert.Equal(expectedCenterRelativeMm, item.Segment3D.End.Z, 9);
+            Assert.Null(elevation.SeatingDepthMm);
+            Assert.Null(item.PhysicalPlacement);
+
+            var key = Assert.IsType<RoofAutomaticPurlinWallPlateKey>(item.GeneratedKey);
+            var provenance = Assert.Single(
+                solved.Provenance.EdgeProvenance,
+                edge => edge.BoundaryEdgeId == key.BoundaryEdgeId);
+            var face = Assert.Single(
+                solved.Geometry.Topology.Faces,
+                candidate => candidate.SourceEdgeIndex == provenance.NormalizedBoundaryEdgeIndex);
+            var eaveStart = solved.Geometry.Topology.Nodes[face.BoundaryNodeIndices[0]];
+            var eaveEnd = solved.Geometry.Topology.Nodes[face.BoundaryNodeIndices[1]];
+            AssertWallPlateParallelToEave(item.Segment3D, eaveStart, eaveEnd);
+            AssertWallPlateInwardOfEave(item.Segment3D, eaveStart, eaveEnd);
+            Assert.NotEqual(eaveStart.X, item.Segment3D.Start.X);
+        });
+    }
+
+    [Fact]
+    public void WallPlatePlan_LowerEdgeChangeMovesInRoofPlaneAndKeepsGeneratedKeys()
+    {
+        var solved = Solve(Points((0, 0), (10000, 0), (10000, 6000), (0, 6000)));
+        var input = PlanningInput() with
+        {
+            WallPlatesEnabled = true,
+            WallPlateWidthMm = 140d,
+            WallPlateHeightMm = 140d,
+            RafterHeightMm = 160d,
+        };
+        var atZero = RoofAutomaticPurlinPlanner.Create(
+            solved.Geometry,
+            solved.Provenance,
+            RoofAutomaticPurlinLayout.Empty with
+            {
+                WallPlateEnabled = true,
+                WallPlateLowerEdgeHeightMm = 0d,
+            },
+            input);
+        var atNineHundred = RoofAutomaticPurlinPlanner.Create(
+            solved.Geometry,
+            solved.Provenance,
+            RoofAutomaticPurlinLayout.Empty with
+            {
+                WallPlateEnabled = true,
+                WallPlateLowerEdgeHeightMm = 900d,
+            },
+            input);
+
+        Assert.True(atZero.IsValid, atZero.Error.ToString());
+        Assert.True(atNineHundred.IsValid, atNineHundred.Error.ToString());
+        Assert.Equal(4, atZero.Plan!.Items.Count);
+        Assert.Equal(
+            atZero.Plan.Items.Select(item => item.GeneratedKey),
+            atNineHundred.Plan!.Items.Select(item => item.GeneratedKey));
+        Assert.All(
+            atZero.Plan.Items.Zip(atNineHundred.Plan.Items),
+            pair =>
+            {
+                Assert.Equal(70d, pair.First.Segment3D.Start.Z, 9);
+                Assert.Equal(970d, pair.Second.Segment3D.Start.Z, 9);
+                Assert.NotEqual(pair.First.Segment3D.Start.X, pair.Second.Segment3D.Start.X);
+                Assert.NotEqual(pair.First.Segment3D.Start.Y, pair.Second.Segment3D.Start.Y);
+                Assert.False(IsVerticalOnlyTranslation(pair.First.Segment3D, pair.Second.Segment3D));
+
+                var midLow = Midpoint(pair.First.Segment3D);
+                var midHigh = Midpoint(pair.Second.Segment3D);
+                var key = Assert.IsType<RoofAutomaticPurlinWallPlateKey>(pair.First.GeneratedKey);
+                var provenance = Assert.Single(
+                    solved.Provenance.EdgeProvenance,
+                    edge => edge.BoundaryEdgeId == key.BoundaryEdgeId);
+                var face = Assert.Single(
+                    solved.Geometry.Topology.Faces,
+                    candidate => candidate.SourceEdgeIndex == provenance.NormalizedBoundaryEdgeIndex);
+                var eaveStart = solved.Geometry.Topology.Nodes[face.BoundaryNodeIndices[0]];
+                var eaveEnd = solved.Geometry.Topology.Nodes[face.BoundaryNodeIndices[1]];
+                Assert.True(
+                    PlanDistanceFromEave(midHigh, eaveStart, eaveEnd) >
+                    PlanDistanceFromEave(midLow, eaveStart, eaveEnd) +
+                    RoofAutomaticPurlinPlanner.CoordinateToleranceMm);
+                Assert.True(pair.Second.LengthMm < pair.First.LengthMm);
+            });
+    }
+
+    [Fact]
+    public void WallPlatePlan_PlanDistanceFromEave_UsesSharedSeatingContract()
+    {
+        var solved = Solve(Points((0, 0), (10000, 0), (10000, 6000), (0, 6000)));
+        const double planDistanceMm = 1500d;
+        const double memberHeightMm = 140d;
+        const double rafterHeightMm = 160d;
+        var seating = new RoofAutomaticPurlinSeatingDepth(
+            RoofAutomaticPurlinSeatingDepthMode.PercentOfRafterHeight,
+            RoofAutomaticPurlinPlanner.DefaultWallPlateSeatingPercent);
+        var wallPlate = RoofAutomaticPurlinPlanner.Create(
+            solved.Geometry,
+            solved.Provenance,
+            RoofAutomaticPurlinLayout.Empty with
+            {
+                WallPlateEnabled = true,
+                WallPlatePlacement = new RoofAutomaticPurlinLayoutItem(
+                    RoofAutomaticPurlinLayoutItemIdentity.WallPlatePlacementId,
+                    true,
+                    RoofAutomaticPurlinPlacementMode.PlanDistanceFromEave,
+                    planDistanceMm,
+                    SeatingDepth: seating),
+            },
+            new RoofAutomaticPurlinPlanningInput(
+                new RoofRelativeElevationDatum(
+                    RoofRelativeElevationReferenceKind.SourceEavePlane,
+                    0d,
+                    0d),
+                memberHeightMm,
+                rafterHeightMm)
+            {
+                WallPlatesEnabled = true,
+                WallPlateWidthMm = 140d,
+                WallPlateHeightMm = memberHeightMm,
+                PurlinWidthMm = 140d,
+            });
+        var intermediate = RoofAutomaticPurlinPlanner.Create(
+            solved.Geometry,
+            solved.Provenance,
+            new RoofAutomaticPurlinLayout(
+                false,
+                [
+                    new RoofAutomaticPurlinLayoutItem(
+                        LayoutIdA,
+                        true,
+                        RoofAutomaticPurlinPlacementMode.PlanDistanceFromEave,
+                        planDistanceMm,
+                        SeatingDepth: seating),
+                ]),
+            new RoofAutomaticPurlinPlanningInput(
+                new RoofRelativeElevationDatum(
+                    RoofRelativeElevationReferenceKind.SourceEavePlane,
+                    0d,
+                    0d),
+                memberHeightMm,
+                rafterHeightMm)
+            {
+                PurlinWidthMm = 140d,
+            });
+
+        Assert.True(wallPlate.IsValid, wallPlate.Error.ToString());
+        Assert.True(intermediate.IsValid, intermediate.Error.ToString());
+        var expectedSeating = rafterHeightMm * seating.Value / 100d;
+        Assert.Equal(4, wallPlate.Plan!.Items.Count);
+        Assert.Equal(4, intermediate.Plan!.Items.Count);
+        var wallByFace = wallPlate.Plan.Items
+            .ToDictionary(item => Assert.IsType<RoofAutomaticPurlinWallPlateKey>(item.GeneratedKey).BoundaryEdgeId);
+        foreach (var purlin in intermediate.Plan.Items)
+        {
+            var key = Assert.IsType<RoofAutomaticPurlinIntermediateKey>(purlin.GeneratedKey);
+            var wall = wallByFace[key.SourceFaceBoundaryEdgeId];
+            Assert.Equal(wall.Segment3D.Start.X, purlin.Segment3D.Start.X, 6);
+            Assert.Equal(wall.Segment3D.Start.Y, purlin.Segment3D.Start.Y, 6);
+            Assert.Equal(wall.Segment3D.End.X, purlin.Segment3D.End.X, 6);
+            Assert.Equal(wall.Segment3D.End.Y, purlin.Segment3D.End.Y, 6);
+            Assert.Equal(wall.Segment3D.Start.Z, purlin.Segment3D.Start.Z, 6);
+            Assert.Equal(expectedSeating, wall.ElevationProfile!.SeatingDepthMm);
+            Assert.Equal(expectedSeating, purlin.ElevationProfile!.SeatingDepthMm);
+            Assert.NotNull(wall.PhysicalPlacement);
+        }
+    }
+
+    [Fact]
+    public void WallPlateBottomDatum_RelativeZero_AnchorsWallPlateBottomAxisTop()
+    {
+        var solved = Solve(Points((0, 0), (10000, 0), (10000, 6000), (0, 6000)));
+        const double wallPlateHeightMm = 140d;
+        const double rafterHeightMm = 160d;
+        var layout = WallPlatePlanDistanceLayout(500d);
+        var requested = new RoofRelativeElevationDatum(
+            RoofRelativeElevationReferenceKind.WallPlateBottom,
+            0d,
+            0d);
+        var input = WallPlateBottomPlanningInput(requested, wallPlateHeightMm, rafterHeightMm);
+
+        var resolved = RoofAutomaticPurlinPlanner.ResolveEffectiveDatum(
+            solved.Geometry,
+            solved.Provenance,
+            layout,
+            input);
+        var result = RoofAutomaticPurlinPlanner.Create(
+            solved.Geometry,
+            solved.Provenance,
+            layout,
+            input);
+
+        Assert.True(resolved.IsValid, resolved.Error.ToString());
+        Assert.NotNull(resolved.Datum);
+        Assert.True(double.IsFinite(resolved.WallPlateBottomLocalZMm!.Value));
+        Assert.Equal(
+            resolved.WallPlateBottomLocalZMm!.Value,
+            resolved.Datum!.ReferenceLocalZMm,
+            9);
+        Assert.True(result.IsValid, result.Error.ToString());
+        Assert.All(
+            result.Plan!.Items.Where(item =>
+                item.GeneratorRole == RoofAutomaticPurlinGeneratorRole.WallPlate),
+            item =>
+            {
+                var elevation = Assert.IsType<RoofPurlinElevationProfile>(item.ElevationProfile);
+                Assert.Equal(resolved.WallPlateBottomLocalZMm.Value, elevation.BottomLocalZMm, 9);
+                Assert.Equal(0d, elevation.BottomRelativeElevationMm, 9);
+                Assert.Equal(wallPlateHeightMm / 2d, elevation.CenterRelativeElevationMm, 9);
+                Assert.Equal(wallPlateHeightMm, elevation.TopRelativeElevationMm, 9);
+            });
+    }
+
+    [Fact]
+    public void WallPlateBottomDatum_RoofPlaneRelativeEqualsPhysicalMinusWallPlateBottom()
+    {
+        var solved = Solve(Points((0, 0), (10000, 0), (10000, 6000), (0, 6000)));
+        const double planDistanceMm = 500d;
+        var layout = WallPlatePlanDistanceLayout(planDistanceMm);
+        var input = WallPlateBottomPlanningInput(
+            new RoofRelativeElevationDatum(
+                RoofRelativeElevationReferenceKind.WallPlateBottom,
+                0d,
+                0d),
+            140d,
+            160d);
+
+        var result = RoofAutomaticPurlinPlanner.Create(
+            solved.Geometry,
+            solved.Provenance,
+            layout,
+            input);
+
+        Assert.True(result.IsValid, result.Error.ToString());
+        var wall = result.Plan!.Items.First(item =>
+            item.GeneratorRole == RoofAutomaticPurlinGeneratorRole.WallPlate);
+        var physical = Assert.IsType<RoofPurlinPhysicalPlacement>(wall.PhysicalPlacement);
+        var roofPlaneLocalZMm = planDistanceMm * Math.Tan(Math.PI / 6d);
+        var effectiveDatum = new RoofRelativeElevationDatum(
+            RoofRelativeElevationReferenceKind.WallPlateBottom,
+            0d,
+            wall.ElevationProfile!.BottomLocalZMm);
+        var roofPlaneRelativeMm = RoofRelativeElevationDatumRules.ToRelativeElevationMm(
+            effectiveDatum,
+            roofPlaneLocalZMm);
+
+        Assert.Equal(roofPlaneLocalZMm, physical.RafterSection.UpperSurfacePoint.Z, 8);
+        Assert.Equal(roofPlaneLocalZMm, physical.RafterUpperSurfaceLocalZMm, 8);
+        Assert.Equal(
+            roofPlaneLocalZMm - wall.ElevationProfile.BottomLocalZMm,
+            roofPlaneRelativeMm,
+            8);
+        Assert.True(
+            RoofAutomaticPurlinRoofPlaneRules.TryResolveFromPlanItem(
+                wall,
+                solved.Geometry.PrimarySlopeDegrees,
+                160d,
+                out var memberRoofPlaneRelativeMm));
+        Assert.Equal(roofPlaneRelativeMm, memberRoofPlaneRelativeMm, 6);
+    }
+
+    [Fact]
+    public void WallPlateBottomDatum_IntermediateBottomEdgeIsAnchorPlusConfiguredHeight()
+    {
+        var solved = Solve(Points((0, 0), (10000, 0), (10000, 6000), (0, 6000)));
+        const double intermediateBottomAboveMm = 800d;
+        var layout = WallPlatePlanDistanceLayout(
+            500d,
+            [
+                new RoofAutomaticPurlinLayoutItem(
+                    LayoutIdA,
+                    true,
+                    RoofAutomaticPurlinPlacementMode.BottomEdgeHeightAboveReference,
+                    intermediateBottomAboveMm),
+            ]);
+        var input = WallPlateBottomPlanningInput(
+            new RoofRelativeElevationDatum(
+                RoofRelativeElevationReferenceKind.WallPlateBottom,
+                0d,
+                0d),
+            140d,
+            160d) with
+        {
+            PurlinHeightMm = 220d,
+        };
+
+        var result = RoofAutomaticPurlinPlanner.Create(
+            solved.Geometry,
+            solved.Provenance,
+            layout,
+            input);
+
+        Assert.True(result.IsValid, result.Error.ToString());
+        var wallBottom = result.Plan!.Items
+            .First(item => item.GeneratorRole == RoofAutomaticPurlinGeneratorRole.WallPlate)
+            .ElevationProfile!.BottomLocalZMm;
+        Assert.All(
+            result.Plan.Items.Where(item =>
+                item.GeneratorRole == RoofAutomaticPurlinGeneratorRole.WallPlate),
+            item => Assert.Equal(wallBottom, item.ElevationProfile!.BottomLocalZMm, 9));
+        Assert.All(
+            result.Plan.Items.Where(item =>
+                item.GeneratorRole == RoofAutomaticPurlinGeneratorRole.Intermediate),
+            item =>
+            {
+                var elevation = Assert.IsType<RoofPurlinElevationProfile>(item.ElevationProfile);
+                Assert.Equal(wallBottom + intermediateBottomAboveMm, elevation.BottomLocalZMm, 9);
+                Assert.Equal(intermediateBottomAboveMm, elevation.BottomRelativeElevationMm, 9);
+            });
+    }
+
+    [Fact]
+    public void SectionOverrideHeight_ShiftsBottomEdgeAxisAndStampsPlanItemDimensions()
+    {
+        var solved = Solve(Points((0, 0), (10000, 0), (10000, 6000), (0, 6000)));
+        const double bottomAboveMm = 800d;
+        const double overrideHeightMm = 300d;
+        const double overrideWidthMm = 110d;
+        var layout = new RoofAutomaticPurlinLayout(
+            false,
+            [
+                new RoofAutomaticPurlinLayoutItem(
+                    LayoutIdA,
+                    true,
+                    RoofAutomaticPurlinPlacementMode.BottomEdgeHeightAboveReference,
+                    bottomAboveMm,
+                    WidthMm: overrideWidthMm,
+                    HeightMm: overrideHeightMm),
+            ]);
+        var input = PlanningInput() with
+        {
+            PurlinWidthMm = 160d,
+            PurlinHeightMm = 220d,
+        };
+
+        var result = RoofAutomaticPurlinPlanner.Create(
+            solved.Geometry,
+            solved.Provenance,
+            layout,
+            input);
+
+        Assert.True(result.IsValid, result.Error.ToString());
+        var intermediates = result.Plan!.Items
+            .Where(item => item.GeneratorRole == RoofAutomaticPurlinGeneratorRole.Intermediate)
+            .ToArray();
+        Assert.NotEmpty(intermediates);
+        Assert.All(
+            intermediates,
+            item =>
+            {
+                Assert.Equal(overrideWidthMm, item.WidthMm);
+                Assert.Equal(overrideHeightMm, item.HeightMm);
+                var elevation = Assert.IsType<RoofPurlinElevationProfile>(item.ElevationProfile);
+                Assert.Equal(bottomAboveMm, elevation.BottomRelativeElevationMm, 9);
+                Assert.Equal(bottomAboveMm + overrideHeightMm / 2d, elevation.CenterRelativeElevationMm, 9);
+                Assert.Equal(bottomAboveMm + overrideHeightMm, elevation.TopRelativeElevationMm, 9);
+            });
+    }
+
+    [Fact]
+    public void SectionOverrideChange_KeepsGeneratedKeysStable()
+    {
+        var solved = Solve(Points((0, 0), (10000, 0), (10000, 6000), (0, 6000)));
+        var seating = new RoofAutomaticPurlinSeatingDepth(
+            RoofAutomaticPurlinSeatingDepthMode.PercentOfRafterHeight,
+            25d);
+        var baseLayout = new RoofAutomaticPurlinLayout(
+            true,
+            [
+                new RoofAutomaticPurlinLayoutItem(
+                    LayoutIdA,
+                    true,
+                    RoofAutomaticPurlinPlacementMode.PlanDistanceFromEave,
+                    1500d,
+                    SeatingDepth: seating),
+            ])
+        {
+            WallPlateEnabled = true,
+            WallPlatePlacement = new RoofAutomaticPurlinLayoutItem(
+                RoofAutomaticPurlinLayoutItemIdentity.WallPlatePlacementId,
+                true,
+                RoofAutomaticPurlinPlacementMode.PlanDistanceFromEave,
+                500d,
+                SeatingDepth: seating),
+        };
+        var overridden = baseLayout with
+        {
+            RidgeWidthMm = 90d,
+            RidgeHeightMm = 210d,
+            WallPlatePlacement = baseLayout.WallPlatePlacement! with
+            {
+                WidthMm = 130d,
+                HeightMm = 150d,
+            },
+            IntermediateItems =
+            [
+                new RoofAutomaticPurlinLayoutItem(
+                    LayoutIdA,
+                    true,
+                    RoofAutomaticPurlinPlacementMode.PlanDistanceFromEave,
+                    1500d,
+                    SeatingDepth: seating,
+                    WidthMm: 100d,
+                    HeightMm: 240d),
+            ],
+        };
+        var input = PlanningInput() with
+        {
+            WallPlatesEnabled = true,
+            WallPlateWidthMm = 140d,
+            WallPlateHeightMm = 140d,
+            PurlinWidthMm = 160d,
+            PurlinHeightMm = 220d,
+            RafterHeightMm = 160d,
+        };
+
+        var without = RoofAutomaticPurlinPlanner.Create(
+            solved.Geometry,
+            solved.Provenance,
+            baseLayout,
+            input);
+        var with = RoofAutomaticPurlinPlanner.Create(
+            solved.Geometry,
+            solved.Provenance,
+            overridden,
+            input);
+
+        Assert.True(without.IsValid, without.Error.ToString());
+        Assert.True(with.IsValid, with.Error.ToString());
+        Assert.Equal(
+            without.Plan!.Items.Select(item => item.GeneratedKey),
+            with.Plan!.Items.Select(item => item.GeneratedKey));
+        Assert.Contains(
+            with.Plan.Items,
+            item => item.GeneratorRole == RoofAutomaticPurlinGeneratorRole.Ridge &&
+                    item.WidthMm == 90d &&
+                    item.HeightMm == 210d);
+        Assert.Contains(
+            with.Plan.Items,
+            item => item.GeneratorRole == RoofAutomaticPurlinGeneratorRole.WallPlate &&
+                    item.WidthMm == 130d &&
+                    item.HeightMm == 150d);
+        Assert.Contains(
+            with.Plan.Items,
+            item => item.GeneratorRole == RoofAutomaticPurlinGeneratorRole.Intermediate &&
+                    item.WidthMm == 100d &&
+                    item.HeightMm == 240d);
+    }
+
+    [Fact]
+    public void WallPlateBottomDatum_MovingWallPlateUpdatesAnchorAndKeepsRelativeRequest()
+    {
+        var solved = Solve(Points((0, 0), (10000, 0), (10000, 6000), (0, 6000)));
+        const double intermediateBottomAboveMm = 800d;
+        var input = WallPlateBottomPlanningInput(
+            new RoofRelativeElevationDatum(
+                RoofRelativeElevationReferenceKind.WallPlateBottom,
+                0d,
+                0d),
+            140d,
+            160d) with
+        {
+            PurlinHeightMm = 220d,
+        };
+
+        RoofAutomaticPurlinPlanResult PlanAt(double planDistanceMm) =>
+            RoofAutomaticPurlinPlanner.Create(
+                solved.Geometry,
+                solved.Provenance,
+                WallPlatePlanDistanceLayout(
+                    planDistanceMm,
+                    [
+                        new RoofAutomaticPurlinLayoutItem(
+                            LayoutIdA,
+                            true,
+                            RoofAutomaticPurlinPlacementMode.BottomEdgeHeightAboveReference,
+                            intermediateBottomAboveMm),
+                    ]),
+                input);
+
+        var near = PlanAt(500d);
+        var far = PlanAt(1500d);
+        Assert.True(near.IsValid, near.Error.ToString());
+        Assert.True(far.IsValid, far.Error.ToString());
+
+        var nearWallBottom = near.Plan!.Items
+            .First(item => item.GeneratorRole == RoofAutomaticPurlinGeneratorRole.WallPlate)
+            .ElevationProfile!.BottomLocalZMm;
+        var farWallBottom = far.Plan!.Items
+            .First(item => item.GeneratorRole == RoofAutomaticPurlinGeneratorRole.WallPlate)
+            .ElevationProfile!.BottomLocalZMm;
+        Assert.True(Math.Abs(farWallBottom - nearWallBottom) > 1d);
+
+        var nearIntermediate = near.Plan.Items
+            .Where(item => item.GeneratorRole == RoofAutomaticPurlinGeneratorRole.Intermediate)
+            .ToArray();
+        var farIntermediate = far.Plan.Items
+            .Where(item => item.GeneratorRole == RoofAutomaticPurlinGeneratorRole.Intermediate)
+            .ToArray();
+        Assert.Equal(
+            nearIntermediate.Select(item => item.GeneratedKey),
+            farIntermediate.Select(item => item.GeneratedKey));
+        Assert.All(nearIntermediate, item =>
+        {
+            Assert.Equal(intermediateBottomAboveMm, item.ElevationProfile!.BottomRelativeElevationMm, 9);
+            Assert.Equal(nearWallBottom + intermediateBottomAboveMm, item.ElevationProfile.BottomLocalZMm, 9);
+        });
+        Assert.All(farIntermediate, item =>
+        {
+            Assert.Equal(intermediateBottomAboveMm, item.ElevationProfile!.BottomRelativeElevationMm, 9);
+            Assert.Equal(farWallBottom + intermediateBottomAboveMm, item.ElevationProfile.BottomLocalZMm, 9);
+            Assert.True(
+                Math.Abs(item.ElevationProfile.BottomLocalZMm - nearWallBottom - intermediateBottomAboveMm) >
+                1d);
+        });
+    }
+
+    [Fact]
+    public void WallPlateBottomDatum_RelativeReference1000_ShiftsDisplayedElevations()
+    {
+        var solved = Solve(Points((0, 0), (10000, 0), (10000, 6000), (0, 6000)));
+        const double relativeReferenceMm = 1000d;
+        const double wallPlateHeightMm = 140d;
+        const double intermediateBottomAboveMm = 800d;
+        var layout = WallPlatePlanDistanceLayout(
+            500d,
+            [
+                new RoofAutomaticPurlinLayoutItem(
+                    LayoutIdA,
+                    true,
+                    RoofAutomaticPurlinPlacementMode.BottomEdgeHeightAboveReference,
+                    intermediateBottomAboveMm),
+            ]);
+        var input = WallPlateBottomPlanningInput(
+            new RoofRelativeElevationDatum(
+                RoofRelativeElevationReferenceKind.WallPlateBottom,
+                relativeReferenceMm,
+                0d),
+            wallPlateHeightMm,
+            160d) with
+        {
+            PurlinHeightMm = 220d,
+        };
+
+        var result = RoofAutomaticPurlinPlanner.Create(
+            solved.Geometry,
+            solved.Provenance,
+            layout,
+            input);
+
+        Assert.True(result.IsValid, result.Error.ToString());
+        Assert.All(
+            result.Plan!.Items.Where(item =>
+                item.GeneratorRole == RoofAutomaticPurlinGeneratorRole.WallPlate),
+            item =>
+            {
+                var elevation = Assert.IsType<RoofPurlinElevationProfile>(item.ElevationProfile);
+                Assert.Equal(relativeReferenceMm, elevation.BottomRelativeElevationMm, 9);
+                Assert.Equal(relativeReferenceMm + wallPlateHeightMm / 2d, elevation.CenterRelativeElevationMm, 9);
+                Assert.Equal(relativeReferenceMm + wallPlateHeightMm, elevation.TopRelativeElevationMm, 9);
+            });
+        Assert.All(
+            result.Plan.Items.Where(item =>
+                item.GeneratorRole == RoofAutomaticPurlinGeneratorRole.Intermediate),
+            item =>
+            {
+                Assert.Equal(
+                    relativeReferenceMm + intermediateBottomAboveMm,
+                    item.ElevationProfile!.BottomRelativeElevationMm,
+                    9);
+            });
+    }
+
+    [Fact]
+    public void WallPlateBottomDatum_CreateIsDeterministicForPreviewApplyParity()
+    {
+        var solved = Solve(Points((0, 0), (10000, 0), (10000, 6000), (0, 6000)));
+        var layout = WallPlatePlanDistanceLayout(
+            500d,
+            [
+                new RoofAutomaticPurlinLayoutItem(
+                    LayoutIdA,
+                    true,
+                    RoofAutomaticPurlinPlacementMode.BottomEdgeHeightAboveReference,
+                    800d),
+            ]);
+        var input = WallPlateBottomPlanningInput(
+            new RoofRelativeElevationDatum(
+                RoofRelativeElevationReferenceKind.WallPlateBottom,
+                0d,
+                999d),
+            140d,
+            160d) with
+        {
+            PurlinHeightMm = 220d,
+        };
+
+        var first = RoofAutomaticPurlinPlanner.Create(
+            solved.Geometry,
+            solved.Provenance,
+            layout,
+            input);
+        var second = RoofAutomaticPurlinPlanner.Create(
+            solved.Geometry,
+            solved.Provenance,
+            layout,
+            input);
+
+        Assert.True(first.IsValid, first.Error.ToString());
+        Assert.True(second.IsValid, second.Error.ToString());
+        Assert.Equal(first.Plan!.Items, second.Plan!.Items);
+        Assert.All(
+            first.Plan.Items.Where(item =>
+                item.GeneratorRole == RoofAutomaticPurlinGeneratorRole.WallPlate),
+            item => Assert.Equal(0d, item.ElevationProfile!.BottomRelativeElevationMm, 9));
+    }
+
+    [Fact]
+    public void SourceEavePlane_DoesNotReanchorToWallPlateBottom()
+    {
+        var solved = Solve(Points((0, 0), (10000, 0), (10000, 6000), (0, 6000)));
+        var layout = WallPlatePlanDistanceLayout(500d);
+        var datum = new RoofRelativeElevationDatum(
+            RoofRelativeElevationReferenceKind.SourceEavePlane,
+            0d,
+            0d);
+        var input = WallPlateBottomPlanningInput(datum, 140d, 160d);
+
+        var resolved = RoofAutomaticPurlinPlanner.ResolveEffectiveDatum(
+            solved.Geometry,
+            solved.Provenance,
+            layout,
+            input);
+        var result = RoofAutomaticPurlinPlanner.Create(
+            solved.Geometry,
+            solved.Provenance,
+            layout,
+            input);
+
+        Assert.True(resolved.IsValid, resolved.Error.ToString());
+        Assert.Null(resolved.WallPlateBottomLocalZMm);
+        Assert.Equal(0d, resolved.Datum!.ReferenceLocalZMm, 9);
+        Assert.True(result.IsValid, result.Error.ToString());
+        Assert.All(
+            result.Plan!.Items.Where(item =>
+                item.GeneratorRole == RoofAutomaticPurlinGeneratorRole.WallPlate),
+            item =>
+            {
+                // SourceEave LocalZ=0 ⇒ relatives equal locals; bottoms may sit below eave.
+                Assert.Equal(
+                    item.ElevationProfile!.BottomLocalZMm,
+                    item.ElevationProfile.BottomRelativeElevationMm,
+                    9);
+                Assert.NotEqual(0d, item.ElevationProfile.BottomRelativeElevationMm);
+            });
+    }
+
+    [Fact]
+    public void SourceEavePlane_NonZeroLocalZ_ResolveAndCreateFailClosed()
+    {
+        var solved = Solve(Points((0, 0), (10000, 0), (10000, 6000), (0, 6000)));
+        var layout = WallPlatePlanDistanceLayout(500d);
+        var datum = new RoofRelativeElevationDatum(
+            RoofRelativeElevationReferenceKind.SourceEavePlane,
+            0d,
+            386.394d);
+        var input = WallPlateBottomPlanningInput(datum, 140d, 160d);
+
+        var resolved = RoofAutomaticPurlinPlanner.ResolveEffectiveDatum(
+            solved.Geometry,
+            solved.Provenance,
+            layout,
+            input);
+        var result = RoofAutomaticPurlinPlanner.Create(
+            solved.Geometry,
+            solved.Provenance,
+            layout,
+            input);
+
+        Assert.False(resolved.IsValid);
+        Assert.Equal(
+            RoofAutomaticPurlinPlanError.InvalidRelativeElevationDatum,
+            resolved.Error);
+        Assert.False(result.IsValid);
+        Assert.Equal(
+            RoofAutomaticPurlinPlanError.InvalidRelativeElevationDatum,
+            result.Error);
+    }
+
+    private static RoofAutomaticPurlinLayout WallPlatePlanDistanceLayout(
+        double planDistanceMm,
+        IReadOnlyList<RoofAutomaticPurlinLayoutItem>? intermediateItems = null) =>
+        new(
+            false,
+            intermediateItems ?? Array.Empty<RoofAutomaticPurlinLayoutItem>())
+        {
+            WallPlateEnabled = true,
+            WallPlatePlacement = new RoofAutomaticPurlinLayoutItem(
+                RoofAutomaticPurlinLayoutItemIdentity.WallPlatePlacementId,
+                true,
+                RoofAutomaticPurlinPlacementMode.PlanDistanceFromEave,
+                planDistanceMm,
+                SeatingDepth: new RoofAutomaticPurlinSeatingDepth(
+                    RoofAutomaticPurlinSeatingDepthMode.PercentOfRafterHeight,
+                    RoofAutomaticPurlinPlanner.DefaultWallPlateSeatingPercent)),
+        };
+
+    private static RoofAutomaticPurlinPlanningInput WallPlateBottomPlanningInput(
+        RoofRelativeElevationDatum datum,
+        double wallPlateHeightMm,
+        double rafterHeightMm) =>
+        new(datum, wallPlateHeightMm, rafterHeightMm)
+        {
+            WallPlatesEnabled = true,
+            WallPlateWidthMm = 140d,
+            WallPlateHeightMm = wallPlateHeightMm,
+            PurlinWidthMm = 140d,
+        };
+
+    [Fact]
+    public void WallPlateDisabled_IgnoresStoredLowerEdgeElevation()
+    {
+        var solved = Solve(Points((0, 0), (10000, 0), (10000, 6000), (0, 6000)));
+        var layout = RoofAutomaticPurlinLayout.Empty with
+        {
+            WallPlateEnabled = false,
+            WallPlateLowerEdgeHeightMm = 1000d,
+        };
+        var input = PlanningInput() with { WallPlatesEnabled = false };
+
+        var result = RoofAutomaticPurlinPlanner.Create(
+            solved.Geometry,
+            solved.Provenance,
+            layout,
+            input);
+
+        Assert.True(result.IsValid, result.Error.ToString());
+        Assert.Empty(result.Plan!.Items);
+    }
+
+    [Fact]
+    public void WallPlateAndRidge_LowerEdgeChangeDoesNotAlterRidgeGeometry()
+    {
+        var solved = Solve(Points((0, 0), (10000, 0), (10000, 6000), (0, 6000)));
+        var input = PlanningInput() with
+        {
+            WallPlatesEnabled = true,
+            WallPlateWidthMm = 140d,
+            WallPlateHeightMm = 140d,
+            RafterHeightMm = 160d,
+        };
+        var withZero = RoofAutomaticPurlinPlanner.Create(
+            solved.Geometry,
+            solved.Provenance,
+            new RoofAutomaticPurlinLayout(true, Array.Empty<RoofAutomaticPurlinLayoutItem>())
+            {
+                WallPlateEnabled = true,
+                WallPlateLowerEdgeHeightMm = 0d,
+            },
+            input);
+        var withThousand = RoofAutomaticPurlinPlanner.Create(
+            solved.Geometry,
+            solved.Provenance,
+            new RoofAutomaticPurlinLayout(true, Array.Empty<RoofAutomaticPurlinLayoutItem>())
+            {
+                WallPlateEnabled = true,
+                WallPlateLowerEdgeHeightMm = 900d,
+            },
+            input);
+
+        Assert.True(withZero.IsValid, withZero.Error.ToString());
+        Assert.True(withThousand.IsValid, withThousand.Error.ToString());
+        var ridgesZero = withZero.Plan!.Items
+            .Where(item => item.GeneratorRole == RoofAutomaticPurlinGeneratorRole.Ridge)
+            .ToArray();
+        var ridgesThousand = withThousand.Plan!.Items
+            .Where(item => item.GeneratorRole == RoofAutomaticPurlinGeneratorRole.Ridge)
+            .ToArray();
+        Assert.NotEmpty(ridgesZero);
+        Assert.Equal(ridgesZero, ridgesThousand);
+    }
+
+    [Fact]
+    public void WallPlateKey_UsesPersistedBoundaryIdentityInsteadOfTopologyOrder()
+    {
+        var points = Points((0, 0), (10000, 0), (10000, 6000), (0, 6000));
+        var solved = Solve(points, [41, 7, 99, 13]);
+        var input = PlanningInput() with
+        {
+            WallPlatesEnabled = true,
+            WallPlateHeightMm = 140d,
+            RafterHeightMm = 160d,
+        };
+
+        var result = RoofAutomaticPurlinPlanner.Create(
+            solved.Geometry,
+            solved.Provenance,
+            RoofAutomaticPurlinLayout.Empty,
+            input);
+
+        Assert.True(result.IsValid, result.Error.ToString());
+        Assert.Equal(
+            new[] { 7, 13, 41, 99 },
+            result.Plan!.Items
+                .Select(item => Assert.IsType<RoofAutomaticPurlinWallPlateKey>(item.GeneratedKey).BoundaryEdgeId)
+                .OrderBy(id => id));
+    }
+
     [Theory]
     [MemberData(nameof(FixtureMatrix))]
     public void RidgePolicy_EmitsOnlyHorizontalStructuralRidges(
@@ -51,8 +977,15 @@ public sealed class RoofAutomaticPurlinPlannerTests
             Assert.Null(item.LayoutItemId);
             var key = Assert.IsType<RoofAutomaticPurlinRidgeKey>(item.GeneratedKey);
             var source = Assert.Single(eligible, edge => edge.StructuralIdentity == key.StructuralKey);
-            Assert.Equal(source.Segment3D, item.Segment3D);
-            Assert.Equal(source.Length3dMm, item.LengthMm);
+            Assert.Equal(source.Segment3D.Start.X, item.Segment3D.Start.X, 8);
+            Assert.Equal(source.Segment3D.Start.Y, item.Segment3D.Start.Y, 8);
+            Assert.Equal(source.Segment3D.End.X, item.Segment3D.End.X, 8);
+            Assert.Equal(source.Segment3D.End.Y, item.Segment3D.End.Y, 8);
+            Assert.Equal(source.Length3dMm, item.LengthMm, 8);
+            var physical = Assert.IsType<RoofPurlinPhysicalPlacement>(item.PhysicalPlacement);
+            Assert.Equal(physical.PurlinCenterLocalZMm, item.Segment3D.Start.Z, 8);
+            Assert.Equal(physical.PurlinCenterLocalZMm, item.Segment3D.End.Z, 8);
+            Assert.NotNull(item.ElevationProfile!.SeatingDepthMm);
         });
         Assert.DoesNotContain(structural.Edges.Where(edge =>
                 edge.StructuralRole == RoofStructuralRole.Ridge &&
@@ -238,9 +1171,7 @@ public sealed class RoofAutomaticPurlinPlannerTests
     [Theory]
     [InlineData(double.NaN, RoofAutomaticPurlinPlanError.InvalidPlacementValue)]
     [InlineData(double.PositiveInfinity, RoofAutomaticPurlinPlanError.InvalidPlacementValue)]
-    [InlineData(0d, RoofAutomaticPurlinPlanError.InvalidPlacementValue)]
-    [InlineData(-1d, RoofAutomaticPurlinPlanError.InvalidPlacementValue)]
-    public void InvalidOrNonpositivePlacement_FailsAtomically(
+    public void InvalidNonFinitePlacement_FailsAtomically(
         double elevation,
         RoofAutomaticPurlinPlanError expected)
     {
@@ -250,6 +1181,33 @@ public sealed class RoofAutomaticPurlinPlannerTests
         Assert.False(result.IsValid);
         Assert.Null(result.Plan);
         Assert.Equal(expected, result.Error);
+    }
+
+    [Fact]
+    public void BottomEdge_NegativeCenterSeed_RejectedByPhysicalRoofBoundsNotSignGuard()
+    {
+        // HeightItem encodes BottomEdge as centerLocalZ - 1 mm (purlin height 2 mm).
+        // center=-1 ⇒ PlacementValueMm=-2 ⇒ surface LocalZ=-1 → outside roof.
+        var solved = Solve((RoofPoint2D[])FixtureMatrix().First()[1]);
+        var result = Create(solved, IntermediateLayout(LayoutIdA, -1d));
+
+        Assert.False(result.IsValid);
+        Assert.Null(result.Plan);
+        Assert.True(
+            result.Error is
+                RoofAutomaticPurlinPlanError.ElevationOutsideRoof or
+                RoofAutomaticPurlinPlanError.ImpossiblePhysicalPlacement or
+                RoofAutomaticPurlinPlanError.CriticalEventElevation,
+            result.Error.ToString());
+    }
+
+    [Fact]
+    public void BottomEdge_ZeroCenterSeed_IsAllowedAtEavePlane()
+    {
+        // center=0 ⇒ PlacementValueMm=-1 ⇒ surface LocalZ=0 (eave) is inside the roof domain.
+        var solved = Solve((RoofPoint2D[])FixtureMatrix().First()[1]);
+        var result = Create(solved, IntermediateLayout(LayoutIdA, 0d));
+        Assert.True(result.IsValid, result.Error.ToString());
     }
 
     [Fact]
@@ -513,10 +1471,8 @@ public sealed class RoofAutomaticPurlinPlannerTests
 
     [Theory]
     [InlineData(RoofAutomaticPurlinSeatingDepthMode.None, 25d)]
-    [InlineData(RoofAutomaticPurlinSeatingDepthMode.PercentOfRafterHeight, 0d)]
-    [InlineData(RoofAutomaticPurlinSeatingDepthMode.PercentOfRafterHeight, 100d)]
-    [InlineData(RoofAutomaticPurlinSeatingDepthMode.AbsoluteMm, 0d)]
-    [InlineData(RoofAutomaticPurlinSeatingDepthMode.AbsoluteMm, 160d)]
+    [InlineData(RoofAutomaticPurlinSeatingDepthMode.PercentOfRafterHeight, 101d)]
+    [InlineData(RoofAutomaticPurlinSeatingDepthMode.AbsoluteMm, 161d)]
     public void DistanceMode_InvalidSeatingFailsWithoutPartialPlan(
         RoofAutomaticPurlinSeatingDepthMode mode,
         double value)
@@ -538,6 +1494,317 @@ public sealed class RoofAutomaticPurlinPlannerTests
         Assert.False(result.IsValid);
         Assert.Null(result.Plan);
         Assert.Equal(RoofAutomaticPurlinPlanError.InvalidSeatingDepth, result.Error);
+    }
+
+    [Theory]
+    [InlineData(RoofAutomaticPurlinSeatingDepthMode.PercentOfRafterHeight, 0d, 0d)]
+    [InlineData(RoofAutomaticPurlinSeatingDepthMode.AbsoluteMm, 0d, 0d)]
+    public void DistanceMode_ZeroSeatingKeepsMembersWithZeroPenetration(
+        RoofAutomaticPurlinSeatingDepthMode mode,
+        double value,
+        double expectedDepthMm)
+    {
+        var solved = Solve(Points((0, 0), (10000, 0), (10000, 6000), (0, 6000)));
+        var item = DistanceItem(
+            RoofAutomaticPurlinPlacementMode.PlanDistanceFromEave,
+            1800d) with
+        {
+            SeatingDepth = new RoofAutomaticPurlinSeatingDepth(mode, value),
+            WidthMm = 160d,
+            HeightMm = 220d,
+        };
+        var layout = new RoofAutomaticPurlinLayout(true, [item])
+        {
+            WallPlateEnabled = true,
+            WallPlatePlacement = new RoofAutomaticPurlinLayoutItem(
+                RoofAutomaticPurlinLayoutItemIdentity.WallPlatePlacementId,
+                true,
+                RoofAutomaticPurlinPlacementMode.PlanDistanceFromEave,
+                500d,
+                SeatingDepth: new RoofAutomaticPurlinSeatingDepth(mode, value),
+                WidthMm: 140d,
+                HeightMm: 140d),
+            RidgeWidthMm = 160d,
+            RidgeHeightMm = 220d,
+            RidgeSeatingDepth = new RoofAutomaticPurlinSeatingDepth(mode, value),
+        };
+
+        var result = RoofAutomaticPurlinPlanner.Create(
+            solved.Geometry,
+            solved.Provenance,
+            layout,
+            PlanningInput() with
+            {
+                WallPlatesEnabled = true,
+                WallPlateWidthMm = 140d,
+                WallPlateHeightMm = 140d,
+            });
+
+        Assert.True(result.IsValid, result.Error.ToString());
+        var plan = Assert.IsType<RoofAutomaticPurlinPlan>(result.Plan);
+        Assert.Equal(4, plan.Items.Count(i => i.GeneratorRole == RoofAutomaticPurlinGeneratorRole.WallPlate));
+        Assert.Single(plan.Items, i => i.GeneratorRole == RoofAutomaticPurlinGeneratorRole.Ridge);
+        Assert.Equal(4, plan.Items.Count(i => i.GeneratorRole == RoofAutomaticPurlinGeneratorRole.Intermediate));
+        var pitchRad = solved.Geometry.PrimarySlopeDegrees * Math.PI / 180d;
+        var tanPitch = Math.Tan(pitchRad);
+        Assert.All(plan.Items, member =>
+        {
+            Assert.Equal(expectedDepthMm, member.ElevationProfile!.SeatingDepthMm);
+            Assert.True(member.LengthMm > 0d);
+            var physical = Assert.IsType<RoofPurlinPhysicalPlacement>(member.PhysicalPlacement);
+            Assert.Equal(expectedDepthMm, physical.SeatingDepthMm, 9);
+            // Outer-corner seating: at 0% Top = axis lower − (W/2)·tan(pitch).
+            Assert.Equal(
+                physical.RafterLowerSurfaceLocalZMm - (member.WidthMm / 2d) * tanPitch,
+                physical.PurlinTopLocalZMm,
+                9);
+        });
+    }
+
+    [Theory]
+    [InlineData(RoofAutomaticPurlinSeatingDepthMode.PercentOfRafterHeight, 100d, 160d)]
+    [InlineData(RoofAutomaticPurlinSeatingDepthMode.AbsoluteMm, 160d, 160d)]
+    public void DistanceMode_FullSeatingKeepsMembersWithTopAtRafterUpperSurface(
+        RoofAutomaticPurlinSeatingDepthMode mode,
+        double value,
+        double expectedDepthMm)
+    {
+        var solved = Solve(Points((0, 0), (10000, 0), (10000, 6000), (0, 6000)));
+        var item = DistanceItem(
+            RoofAutomaticPurlinPlacementMode.PlanDistanceFromEave,
+            1800d) with
+        {
+            SeatingDepth = new RoofAutomaticPurlinSeatingDepth(mode, value),
+            WidthMm = 160d,
+            HeightMm = 220d,
+        };
+        var layout = new RoofAutomaticPurlinLayout(true, [item])
+        {
+            WallPlateEnabled = true,
+            WallPlatePlacement = new RoofAutomaticPurlinLayoutItem(
+                RoofAutomaticPurlinLayoutItemIdentity.WallPlatePlacementId,
+                true,
+                RoofAutomaticPurlinPlacementMode.PlanDistanceFromEave,
+                500d,
+                SeatingDepth: new RoofAutomaticPurlinSeatingDepth(mode, value),
+                WidthMm: 140d,
+                HeightMm: 140d),
+            RidgeWidthMm = 160d,
+            RidgeHeightMm = 220d,
+            RidgeSeatingDepth = new RoofAutomaticPurlinSeatingDepth(mode, value),
+        };
+
+        var result = RoofAutomaticPurlinPlanner.Create(
+            solved.Geometry,
+            solved.Provenance,
+            layout,
+            PlanningInput() with
+            {
+                WallPlatesEnabled = true,
+                WallPlateWidthMm = 140d,
+                WallPlateHeightMm = 140d,
+            });
+
+        Assert.True(result.IsValid, result.Error.ToString());
+        var plan = Assert.IsType<RoofAutomaticPurlinPlan>(result.Plan);
+        Assert.Equal(4, plan.Items.Count(i => i.GeneratorRole == RoofAutomaticPurlinGeneratorRole.WallPlate));
+        Assert.Single(plan.Items, i => i.GeneratorRole == RoofAutomaticPurlinGeneratorRole.Ridge);
+        Assert.Equal(4, plan.Items.Count(i => i.GeneratorRole == RoofAutomaticPurlinGeneratorRole.Intermediate));
+        var pitchRad = solved.Geometry.PrimarySlopeDegrees * Math.PI / 180d;
+        var tanPitch = Math.Tan(pitchRad);
+        Assert.All(plan.Items, member =>
+        {
+            Assert.Equal(expectedDepthMm, member.ElevationProfile!.SeatingDepthMm);
+            Assert.True(member.LengthMm > 0d);
+            var physical = Assert.IsType<RoofPurlinPhysicalPlacement>(member.PhysicalPlacement);
+            Assert.Equal(expectedDepthMm, physical.SeatingDepthMm, 9);
+            // Outer-corner seating: at 100% Top = axis upper − (W/2)·tan(pitch).
+            Assert.Equal(
+                physical.RafterUpperSurfaceLocalZMm - (member.WidthMm / 2d) * tanPitch,
+                physical.PurlinTopLocalZMm,
+                9);
+        });
+    }
+
+    [Theory]
+    [InlineData(0d)]
+    [InlineData(50d)]
+    [InlineData(100d)]
+    public void InclusivePercentSeating_InterpolatesTopAcrossRafterDepth(double percent)
+    {
+        var solved = Solve(Points((0, 0), (10000, 0), (10000, 6000), (0, 6000)));
+        var layout = new RoofAutomaticPurlinLayout(true,
+        [
+            DistanceItem(
+                RoofAutomaticPurlinPlacementMode.PlanDistanceFromEave,
+                1800d) with
+            {
+                SeatingDepth = new RoofAutomaticPurlinSeatingDepth(
+                    RoofAutomaticPurlinSeatingDepthMode.PercentOfRafterHeight,
+                    percent),
+                WidthMm = 160d,
+                HeightMm = 220d,
+            },
+        ])
+        {
+            WallPlateEnabled = true,
+            WallPlatePlacement = new RoofAutomaticPurlinLayoutItem(
+                RoofAutomaticPurlinLayoutItemIdentity.WallPlatePlacementId,
+                true,
+                RoofAutomaticPurlinPlacementMode.PlanDistanceFromEave,
+                500d,
+                SeatingDepth: new RoofAutomaticPurlinSeatingDepth(
+                    RoofAutomaticPurlinSeatingDepthMode.PercentOfRafterHeight,
+                    percent),
+                WidthMm: 140d,
+                HeightMm: 140d),
+            RidgeWidthMm = 160d,
+            RidgeHeightMm = 220d,
+            RidgeSeatingDepth = new RoofAutomaticPurlinSeatingDepth(
+                RoofAutomaticPurlinSeatingDepthMode.PercentOfRafterHeight,
+                percent),
+        };
+
+        var result = RoofAutomaticPurlinPlanner.Create(
+            solved.Geometry,
+            solved.Provenance,
+            layout,
+            PlanningInput() with
+            {
+                WallPlatesEnabled = true,
+                WallPlateWidthMm = 140d,
+                WallPlateHeightMm = 140d,
+            });
+
+        Assert.True(result.IsValid, result.Error.ToString());
+        var plan = Assert.IsType<RoofAutomaticPurlinPlan>(result.Plan);
+        var p = percent / 100d;
+        var tanPitch = Math.Tan(solved.Geometry.PrimarySlopeDegrees * Math.PI / 180d);
+        Assert.All(plan.Items, member =>
+        {
+            var physical = Assert.IsType<RoofPurlinPhysicalPlacement>(member.PhysicalPlacement);
+            var expectedTop =
+                physical.RafterLowerSurfaceLocalZMm +
+                p * (physical.RafterUpperSurfaceLocalZMm - physical.RafterLowerSurfaceLocalZMm) -
+                (member.WidthMm / 2d) * tanPitch;
+            Assert.Equal(expectedTop, physical.PurlinTopLocalZMm, 8);
+            Assert.Equal(160d * p, physical.SeatingDepthMm, 8);
+        });
+    }
+
+    [Fact]
+    public void FullAndZeroPercent_PreserveGeneratedKeysAndPreviewCount()
+    {
+        var solved = Solve(Points((0, 0), (10000, 0), (10000, 6000), (0, 6000)));
+        var itemId = RoofAutomaticPurlinLayoutItemIdentity.Create();
+        RoofAutomaticPurlinLayout LayoutAt(double percent) => new(
+            true,
+            [
+                new(
+                    itemId,
+                    true,
+                    RoofAutomaticPurlinPlacementMode.PlanDistanceFromEave,
+                    1800d,
+                    SeatingDepth: new RoofAutomaticPurlinSeatingDepth(
+                        RoofAutomaticPurlinSeatingDepthMode.PercentOfRafterHeight,
+                        percent),
+                    WidthMm: 160d,
+                    HeightMm: 220d),
+            ])
+        {
+            WallPlateEnabled = true,
+            WallPlatePlacement = new RoofAutomaticPurlinLayoutItem(
+                RoofAutomaticPurlinLayoutItemIdentity.WallPlatePlacementId,
+                true,
+                RoofAutomaticPurlinPlacementMode.PlanDistanceFromEave,
+                500d,
+                SeatingDepth: new RoofAutomaticPurlinSeatingDepth(
+                    RoofAutomaticPurlinSeatingDepthMode.PercentOfRafterHeight,
+                    percent),
+                WidthMm: 140d,
+                HeightMm: 140d),
+            RidgeWidthMm = 160d,
+            RidgeHeightMm = 220d,
+            RidgeSeatingDepth = new RoofAutomaticPurlinSeatingDepth(
+                RoofAutomaticPurlinSeatingDepthMode.PercentOfRafterHeight,
+                percent),
+        };
+
+        var at25 = RoofAutomaticPurlinPlanner.Create(
+            solved.Geometry, solved.Provenance, LayoutAt(25d),
+            PlanningInput() with { WallPlatesEnabled = true, WallPlateWidthMm = 140d, WallPlateHeightMm = 140d });
+        var at0 = RoofAutomaticPurlinPlanner.Create(
+            solved.Geometry, solved.Provenance, LayoutAt(0d),
+            PlanningInput() with { WallPlatesEnabled = true, WallPlateWidthMm = 140d, WallPlateHeightMm = 140d });
+        var at100 = RoofAutomaticPurlinPlanner.Create(
+            solved.Geometry, solved.Provenance, LayoutAt(100d),
+            PlanningInput() with { WallPlatesEnabled = true, WallPlateWidthMm = 140d, WallPlateHeightMm = 140d });
+
+        Assert.True(at25.IsValid && at0.IsValid && at100.IsValid);
+        Assert.Equal(at25.Plan!.Items.Count, at0.Plan!.Items.Count);
+        Assert.Equal(at25.Plan.Items.Count, at100.Plan!.Items.Count);
+        Assert.Equal(
+            at25.Plan.Items.Select(item => item.GeneratedKey),
+            at0.Plan.Items.Select(item => item.GeneratedKey));
+        Assert.Equal(
+            at25.Plan.Items.Select(item => item.GeneratedKey),
+            at100.Plan.Items.Select(item => item.GeneratedKey));
+    }
+
+    [Fact]
+    public void ZeroSeating_PreservesGeneratedKeysWhenChangingFromTwentyFivePercent()
+    {
+        var solved = Solve(Points((0, 0), (10000, 0), (10000, 6000), (0, 6000)));
+        var itemId = RoofAutomaticPurlinLayoutItemIdentity.Create();
+        RoofAutomaticPurlinLayout LayoutAt(double percent) => new(
+            true,
+            [
+                new(
+                    itemId,
+                    true,
+                    RoofAutomaticPurlinPlacementMode.PlanDistanceFromEave,
+                    1800d,
+                    SeatingDepth: new RoofAutomaticPurlinSeatingDepth(
+                        RoofAutomaticPurlinSeatingDepthMode.PercentOfRafterHeight,
+                        percent),
+                    WidthMm: 160d,
+                    HeightMm: 220d),
+            ])
+        {
+            WallPlateEnabled = true,
+            WallPlatePlacement = new RoofAutomaticPurlinLayoutItem(
+                RoofAutomaticPurlinLayoutItemIdentity.WallPlatePlacementId,
+                true,
+                RoofAutomaticPurlinPlacementMode.PlanDistanceFromEave,
+                500d,
+                SeatingDepth: new RoofAutomaticPurlinSeatingDepth(
+                    RoofAutomaticPurlinSeatingDepthMode.PercentOfRafterHeight,
+                    percent),
+                WidthMm: 140d,
+                HeightMm: 140d),
+            RidgeWidthMm = 160d,
+            RidgeHeightMm = 220d,
+            RidgeSeatingDepth = new RoofAutomaticPurlinSeatingDepth(
+                RoofAutomaticPurlinSeatingDepthMode.PercentOfRafterHeight,
+                percent),
+        };
+
+        var input = PlanningInput() with
+        {
+            WallPlatesEnabled = true,
+            WallPlateWidthMm = 140d,
+            WallPlateHeightMm = 140d,
+        };
+        var at25 = RoofAutomaticPurlinPlanner.Create(
+            solved.Geometry, solved.Provenance, LayoutAt(25d), input);
+        var at0 = RoofAutomaticPurlinPlanner.Create(
+            solved.Geometry, solved.Provenance, LayoutAt(0d), input);
+        Assert.True(at25.IsValid, at25.Error.ToString());
+        Assert.True(at0.IsValid, at0.Error.ToString());
+        Assert.Equal(
+            at25.Plan!.Items.Select(item => item.GeneratedKey),
+            at0.Plan!.Items.Select(item => item.GeneratedKey));
+        Assert.All(at0.Plan.Items, item => Assert.Equal(0d, item.ElevationProfile!.SeatingDepthMm));
     }
 
     [Fact]
@@ -607,14 +1874,19 @@ public sealed class RoofAutomaticPurlinPlannerTests
         {
             var physical = Assert.IsType<RoofPurlinPhysicalPlacement>(plannedItem.PhysicalPlacement);
             Assert.Equal(40d, physical.SeatingDepthMm, 9);
-            Assert.Equal(resolution.RoofSurfaceLocalZMm.Value, physical.RafterCenterLocalZMm, 8);
+            Assert.Equal(resolution.RoofSurfaceLocalZMm.Value, physical.RafterUpperSurfaceLocalZMm, 8);
             Assert.Equal(
-                resolution.RoofSurfaceLocalZMm.Value - 80d * Math.Cos(Math.PI / 6d),
+                resolution.RoofSurfaceLocalZMm.Value - 160d / (2d * Math.Cos(Math.PI / 6d)),
+                physical.RafterCenterLocalZMm,
+                8);
+            Assert.Equal(
+                resolution.RoofSurfaceLocalZMm.Value - 160d / Math.Cos(Math.PI / 6d),
                 physical.RafterLowerSurfaceLocalZMm,
                 8);
             Assert.Equal(
-                resolution.RoofSurfaceLocalZMm.Value +
-                Math.Cos(Math.PI / 6d) * (40d - 80d),
+                resolution.RoofSurfaceLocalZMm.Value -
+                (plannedItem.WidthMm / 2d) * Math.Tan(Math.PI / 6d) -
+                (160d - 40d) / Math.Cos(Math.PI / 6d),
                 physical.PurlinTopLocalZMm,
                 8);
         });
@@ -677,14 +1949,16 @@ public sealed class RoofAutomaticPurlinPlannerTests
 
         Assert.True(result.IsValid, result.Error.ToString());
         Assert.NotEmpty(result.Plan!.Items);
-        var expectedRafterCenter = solved.Geometry.RiseMm -
+        var expectedRafterUpper = solved.Geometry.RiseMm -
             500d * Math.Tan(Math.PI / 6d);
-        var expectedPurlinTop = expectedRafterCenter +
-            Math.Cos(Math.PI / 6d) * (40d - 80d);
+        var halfWidthRun = 160d / 2d; // default purlin width
+        var expectedPurlinTop = expectedRafterUpper -
+            halfWidthRun * Math.Tan(Math.PI / 6d) -
+            (160d - 40d) / Math.Cos(Math.PI / 6d);
         Assert.All(result.Plan.Items, planned =>
         {
             var physical = Assert.IsType<RoofPurlinPhysicalPlacement>(planned.PhysicalPlacement);
-            Assert.Equal(expectedRafterCenter, physical.RafterCenterLocalZMm, 8);
+            Assert.Equal(expectedRafterUpper, physical.RafterUpperSurfaceLocalZMm, 8);
             Assert.Equal(expectedPurlinTop, physical.PurlinTopLocalZMm, 8);
             Assert.Equal(expectedPurlinTop - 110d, planned.Segment3D.Start.Z, 8);
             Assert.Equal(planned.Segment3D.Start.Z, planned.Segment3D.End.Z, 10);
@@ -832,8 +2106,11 @@ public sealed class RoofAutomaticPurlinPlannerTests
             new RoofAutomaticPurlinLayout(false, [item]),
             input);
         Assert.True(preview.IsValid, preview.Error.ToString());
-        var roofCenter = 1000d * Math.Tan(Math.PI / 6d);
-        var expectedTop = roofCenter + Math.Cos(Math.PI / 6d) * (40d - 80d);
+        var roofUpper = 1000d * Math.Tan(Math.PI / 6d);
+        var halfWidthRun = 160d / 2d;
+        var expectedTop = roofUpper -
+            halfWidthRun * Math.Tan(Math.PI / 6d) -
+            (160d - 40d) / Math.Cos(Math.PI / 6d);
         Assert.All(preview.Plan!.Items, planned =>
         {
             var profile = Assert.IsType<RoofPurlinElevationProfile>(planned.ElevationProfile);
@@ -842,10 +2119,10 @@ public sealed class RoofAutomaticPurlinPlannerTests
             Assert.Equal(expectedTop - 110d, profile.CenterLocalZMm, 8);
             Assert.Equal(expectedTop, profile.TopLocalZMm, 8);
             Assert.Equal(40d, profile.SeatingDepthMm);
-            Assert.Equal(roofCenter, physical.RafterCenterLocalZMm, 8);
+            Assert.Equal(roofUpper, physical.RafterUpperSurfaceLocalZMm, 8);
             Assert.Equal(physical.PurlinCenterLocalZMm, planned.Segment3D.Start.Z, 8);
             Assert.Equal(physical.PurlinCenterLocalZMm, planned.Segment3D.End.Z, 8);
-            Assert.NotEqual(roofCenter, planned.Segment3D.Start.Z);
+            Assert.NotEqual(roofUpper, planned.Segment3D.Start.Z);
         });
         Assert.Single(preview.Plan.Items.Select(planned => planned.Segment3D.Start.Z)
             .DistinctBy(value => Math.Round(value, 9)));
@@ -1078,6 +2355,84 @@ public sealed class RoofAutomaticPurlinPlannerTests
 
     private static RoofPoint2D[] Points(params (double X, double Y)[] points) =>
         points.Select(point => new RoofPoint2D(point.X, point.Y)).ToArray();
+
+    private static RoofPoint3D Midpoint(RoofSegment3D segment) => new(
+        (segment.Start.X + segment.End.X) / 2d,
+        (segment.Start.Y + segment.End.Y) / 2d,
+        (segment.Start.Z + segment.End.Z) / 2d);
+
+    private static bool IsVerticalOnlyTranslation(RoofSegment3D first, RoofSegment3D second) =>
+        Math.Abs(first.Start.X - second.Start.X) <= RoofAutomaticPurlinPlanner.CoordinateToleranceMm &&
+        Math.Abs(first.Start.Y - second.Start.Y) <= RoofAutomaticPurlinPlanner.CoordinateToleranceMm &&
+        Math.Abs(first.End.X - second.End.X) <= RoofAutomaticPurlinPlanner.CoordinateToleranceMm &&
+        Math.Abs(first.End.Y - second.End.Y) <= RoofAutomaticPurlinPlanner.CoordinateToleranceMm &&
+        Math.Abs(first.Start.Z - second.Start.Z) > RoofAutomaticPurlinPlanner.CoordinateToleranceMm;
+
+    private static double PlanDistanceFromEave(
+        RoofPoint3D point,
+        RoofPoint3D eaveStart,
+        RoofPoint3D eaveEnd)
+    {
+        var dx = eaveEnd.X - eaveStart.X;
+        var dy = eaveEnd.Y - eaveStart.Y;
+        var length = Math.Sqrt(dx * dx + dy * dy);
+        Assert.True(length > RoofAutomaticPurlinPlanner.CoordinateToleranceMm);
+        var inwardX = -dy / length;
+        var inwardY = dx / length;
+        // Face cycles are CCW; inward (into the roof) is left of the eave direction.
+        return (point.X - eaveStart.X) * inwardX + (point.Y - eaveStart.Y) * inwardY;
+    }
+
+    private static void AssertWallPlateParallelToEave(
+        RoofSegment3D segment,
+        RoofPoint3D eaveStart,
+        RoofPoint3D eaveEnd)
+    {
+        var eaveDx = eaveEnd.X - eaveStart.X;
+        var eaveDy = eaveEnd.Y - eaveStart.Y;
+        var segDx = segment.End.X - segment.Start.X;
+        var segDy = segment.End.Y - segment.Start.Y;
+        var cross = eaveDx * segDy - eaveDy * segDx;
+        Assert.True(
+            Math.Abs(cross) <= 1e-3 * Math.Max(1d, Math.Abs(eaveDx) + Math.Abs(eaveDy) + Math.Abs(segDx) + Math.Abs(segDy)),
+            $"WallPlate not parallel to eave: cross={cross}");
+    }
+
+    private static void AssertWallPlateInwardOfEave(
+        RoofSegment3D segment,
+        RoofPoint3D eaveStart,
+        RoofPoint3D eaveEnd)
+    {
+        var mid = Midpoint(segment);
+        Assert.True(
+            PlanDistanceFromEave(mid, eaveStart, eaveEnd) >
+            RoofAutomaticPurlinPlanner.CoordinateToleranceMm);
+        Assert.False(
+            Math.Abs(segment.Start.X - eaveStart.X) <= RoofAutomaticPurlinPlanner.CoordinateToleranceMm &&
+            Math.Abs(segment.Start.Y - eaveStart.Y) <= RoofAutomaticPurlinPlanner.CoordinateToleranceMm &&
+            Math.Abs(segment.End.X - eaveEnd.X) <= RoofAutomaticPurlinPlanner.CoordinateToleranceMm &&
+            Math.Abs(segment.End.Y - eaveEnd.Y) <= RoofAutomaticPurlinPlanner.CoordinateToleranceMm);
+    }
+
+    private static void AssertHipOrValleyEndpoints(RoofAutomaticPurlinPlanItem item, SolvedFixture solved)
+    {
+        var key = Assert.IsType<RoofAutomaticPurlinWallPlateKey>(item.GeneratedKey);
+        _ = key;
+        var mid = Midpoint(item.Segment3D);
+        Assert.True(mid.Z > RoofAutomaticPurlinPlanner.CoordinateToleranceMm);
+        Assert.All(
+            solved.Geometry.Topology.Edges.Where(edge => edge.Kind == RoofTopologyEdgeKind.Eave),
+            eave =>
+            {
+                var start = solved.Geometry.Topology.Nodes[eave.StartNodeIndex];
+                var end = solved.Geometry.Topology.Nodes[eave.EndNodeIndex];
+                var onEave =
+                    Math.Abs(item.Segment3D.Start.X - start.X) <= 1d &&
+                    Math.Abs(item.Segment3D.Start.Y - start.Y) <= 1d;
+                Assert.False(onEave);
+                _ = end;
+            });
+    }
 
     private sealed record SolvedFixture(
         HipRoofGeometry Geometry,

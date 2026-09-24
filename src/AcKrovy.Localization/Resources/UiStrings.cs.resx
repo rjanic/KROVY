@@ -33,20 +33,73 @@
   <data name="Report_Column_VolumeM3" xml:space="preserve"><value>Objem [m³]</value></data>
   <data name="Report_TotalFormat" xml:space="preserve"><value>Celkem: {0} prvků</value></data>
   <data name="Message_DialogTitle" xml:space="preserve"><value>ACAD KROVY</value></data>
-  <data name="Message_PluginLoaded" xml:space="preserve"><value>&#xA;ACAD KROVY {0} načteno. Do pásu karet bude přidána karta ACAD KROVY. Seznam příkazů zobrazíte pomocí AK_HELP, klasický panel malých ikon pomocí AK_TOOLBAR.</value></data>
-  <data name="Help_CommandOverview" xml:space="preserve"><value>&#xA;ACAD KROVY {0}&#xA;&#xA;PRVKY KROVU&#xA;  AK_KROKVA      – rychle přiřadí typ Krokev&#xA;  AK_POMURNICA   – rychle přiřadí typ Pozednice&#xA;  AK_VAZNICA     – rychle přiřadí typ Vaznice&#xA;  AK_STLPIK      – rychle přiřadí typ Sloupek&#xA;  AK_KLIESTINA   – rychle přiřadí typ Kleština / hambálek&#xA;  AK_VZPERA      – rychle přiřadí typ Vzpěra&#xA;  AK_VAZNYTRAM   – rychle přiřadí typ Vazný trám&#xA;&#xA;DATA A VÝKAZY&#xA;  AK_ASSIGN      – přiřadí data vybraným čarám nebo křivkám&#xA;  AK_EDIT        – hromadně upraví zaškrtnuté hodnoty&#xA;  AK_FLIPSLOPE   – obrátí směr spádu vybraného prvku nebo jeho anotace&#xA;  AK_INSPECT     – zobrazí data jednoho prvku&#xA;  AK_REPORT      – vloží tabulku z vybraných prvků&#xA;  AK_REPORTALL   – vloží tabulku ze všech prvků&#xA;  AK_RECALC      – zkontroluje výpočty všech prvků&#xA;  AK_RENUMBER   – vědomě přečísluje všechny položky podle řezné délky&#xA;  AK_RIBBON      – zobrazí nebo obnoví kartu ACAD KROVY v pásu karet&#xA;  AK_TOOLBAR     – zobrazí nebo skryje klasický plovoucí panel malých ikon&#xA;  AK_SETTINGS    – nastaví hladiny a barvy jednotlivých typů prvků&#xA;  AK_APPLYLAYERS – promítne aktuální nastavení hladin do výkresu&#xA;&#xA;POPISY VE VÝKRESU&#xA;  AK_LABELS      – vytvoří nebo obnoví popisy všech prvků&#xA;  AK_LABELSELECTED – vytvoří nebo obnoví popisy vybraných prvků&#xA;  AK_LABELSHOW   – zobrazí hladinu KROV_POPIS&#xA;  AK_LABELHIDE   – skryje hladinu KROV_POPIS&#xA;&#xA;STŘECHA&#xA;  AK_ROOF            – vytvoří sedlovou střechu&#xA;  AK_ROOF_RAFTERS    – vytvoří automatické krokve&#xA;  AK_ROOF_UNLOCK     – odemkne ruční úpravy generovaného řeziva&#xA;  AK_ROOF_LOCK       – zamkne ochranu generovaného řeziva&#xA;  AK_ROOF_RESET_EDITS – vrátí ruční úpravy na kanonickou geometrii&#xA;&#xA;Tip: po přiřazení, úpravě nebo změně geometrie se popis obnoví automaticky. AK_LABELS a AK_RECALC lze použít k ruční kontrole.</value></data>
-  <data name="Command_Ribbon_Ready" xml:space="preserve"><value>&#xA;ACAD KROVY: karta pásu karet je připravena.</value></data>
-  <data name="Command_Ribbon_Pending" xml:space="preserve"><value>&#xA;ACAD KROVY: pás karet ještě není připraven, karta bude za chvíli přidána.</value></data>
-  <data name="Command_Toolbar_Shown" xml:space="preserve"><value>&#xA;ACAD KROVY: klasický panel ikon je zobrazen.</value></data>
-  <data name="Command_Toolbar_Hidden" xml:space="preserve"><value>&#xA;ACAD KROVY: klasický panel ikon je skryt.</value></data>
-  <data name="Command_Settings_SaveFailedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: nastavení se nepodařilo uložit: {0}</value></data>
-  <data name="Command_Settings_Saved" xml:space="preserve"><value>&#xA;ACAD KROVY: nastavení bylo uloženo.</value></data>
-  <data name="Command_Settings_PromptApplyAllowances" xml:space="preserve"><value>&#xA;Vyberte prvky, na které chcete použít nové výrobní přídavky: </value></data>
-  <data name="Command_Settings_SelectionCancelled" xml:space="preserve"><value>&#xA;ACAD KROVY: výběr byl zrušen, existující prvky nebyly změněny.</value></data>
-  <data name="Command_Labels_PromptSelected" xml:space="preserve"><value>&#xA;Vyberte prvky, pro které chcete vytvořit nebo obnovit popisy: </value></data>
-  <data name="Command_Labels_UpdatedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: obnovené popisy: {0}. Nové: {1}. Přeskočené: {2}.</value></data>
-  <data name="Command_Labels_RefreshFailedFormat" xml:space="preserve"><value>&#xA;Popis prvku {0} nebyl vytvořen nebo obnoven: {1}</value></data>
-  <data name="Command_Labels_IntentionPrompt" xml:space="preserve"><value>&#xA;AK_LABEL&#xA;[Chybějící/Vybrat/Obnovit vše] &lt;Chybějící&gt;: </value></data>
+  <data name="Message_PluginLoaded" xml:space="preserve"><value>
+ACAD KROVY {0} načteno. Do pásu karet bude přidána karta ACAD KROVY. Seznam příkazů zobrazíte pomocí AK_HELP, klasický panel malých ikon pomocí AK_TOOLBAR.</value></data>
+  <data name="Help_CommandOverview" xml:space="preserve"><value>
+ACAD KROVY {0}
+
+PRVKY KROVU
+  AK_KROKVA      – rychle přiřadí typ Krokev
+  AK_POMURNICA   – rychle přiřadí typ Pozednice
+  AK_VAZNICA     – rychle přiřadí typ Vaznice
+  AK_STLPIK      – rychle přiřadí typ Sloupek
+  AK_KLIESTINA   – rychle přiřadí typ Kleština / hambálek
+  AK_VZPERA      – rychle přiřadí typ Vzpěra
+  AK_VAZNYTRAM   – rychle přiřadí typ Vazný trám
+
+DATA A VÝKAZY
+  AK_ASSIGN      – přiřadí data vybraným čarám nebo křivkám
+  AK_EDIT        – hromadně upraví zaškrtnuté hodnoty
+  AK_FLIPSLOPE   – obrátí směr spádu vybraného prvku nebo jeho anotace
+  AK_INSPECT     – zobrazí data jednoho prvku
+  AK_REPORT      – vloží tabulku z vybraných prvků
+  AK_REPORTALL   – vloží tabulku ze všech prvků
+  AK_RECALC      – zkontroluje výpočty všech prvků
+  AK_RENUMBER   – vědomě přečísluje všechny položky podle řezné délky
+  AK_RIBBON      – zobrazí nebo obnoví kartu ACAD KROVY v pásu karet
+  AK_TOOLBAR     – zobrazí nebo skryje klasický plovoucí panel malých ikon
+  AK_SETTINGS    – nastaví hladiny a barvy jednotlivých typů prvků
+  AK_APPLYLAYERS – promítne aktuální nastavení hladin do výkresu
+
+POPISY VE VÝKRESU
+  AK_LABELS      – vytvoří nebo obnoví popisy všech prvků
+  AK_LABELSELECTED – vytvoří nebo obnoví popisy vybraných prvků
+  AK_LABELSHOW   – zobrazí hladinu KROV_POPIS
+  AK_LABELHIDE   – skryje hladinu KROV_POPIS
+
+STŘECHA
+  AK_ROOF            – vytvoří sedlovou střechu
+  AK_ROOF_RAFTERS    – vytvoří automatické krokve
+  AK_ROOF_UNLOCK     – odemkne ruční úpravy generovaného řeziva
+  AK_ROOF_LOCK       – zamkne ochranu generovaného řeziva
+  AK_ROOF_RESET_EDITS – vrátí ruční úpravy na kanonickou geometrii
+
+Tip: po přiřazení, úpravě nebo změně geometrie se popis obnoví automaticky. AK_LABELS a AK_RECALC lze použít k ruční kontrole.</value></data>
+  <data name="Command_Ribbon_Ready" xml:space="preserve"><value>
+ACAD KROVY: karta pásu karet je připravena.</value></data>
+  <data name="Command_Ribbon_Pending" xml:space="preserve"><value>
+ACAD KROVY: pás karet ještě není připraven, karta bude za chvíli přidána.</value></data>
+  <data name="Command_Toolbar_Shown" xml:space="preserve"><value>
+ACAD KROVY: klasický panel ikon je zobrazen.</value></data>
+  <data name="Command_Toolbar_Hidden" xml:space="preserve"><value>
+ACAD KROVY: klasický panel ikon je skryt.</value></data>
+  <data name="Command_Settings_SaveFailedFormat" xml:space="preserve"><value>
+ACAD KROVY: nastavení se nepodařilo uložit: {0}</value></data>
+  <data name="Command_Settings_Saved" xml:space="preserve"><value>
+ACAD KROVY: nastavení bylo uloženo.</value></data>
+  <data name="Command_Settings_PromptApplyAllowances" xml:space="preserve"><value>
+Vyberte prvky, na které chcete použít nové výrobní přídavky: </value></data>
+  <data name="Command_Settings_SelectionCancelled" xml:space="preserve"><value>
+ACAD KROVY: výběr byl zrušen, existující prvky nebyly změněny.</value></data>
+  <data name="Command_Labels_PromptSelected" xml:space="preserve"><value>
+Vyberte prvky, pro které chcete vytvořit nebo obnovit popisy: </value></data>
+  <data name="Command_Labels_UpdatedFormat" xml:space="preserve"><value>
+ACAD KROVY: obnovené popisy: {0}. Nové: {1}. Přeskočené: {2}.</value></data>
+  <data name="Command_Labels_RefreshFailedFormat" xml:space="preserve"><value>
+Popis prvku {0} nebyl vytvořen nebo obnoven: {1}</value></data>
+  <data name="Command_Labels_IntentionPrompt" xml:space="preserve"><value>
+AK_LABEL
+[Chybějící/Vybrat/Obnovit vše] &lt;Chybějící&gt;: </value></data>
   <data name="Command_Labels_KeywordMissingLocal" xml:space="preserve"><value>Chybějící</value></data>
   <data name="Command_Labels_KeywordSelectLocal" xml:space="preserve"><value>Vybrat</value></data>
   <data name="Command_Labels_KeywordAllLocal" xml:space="preserve"><value>ObnovitVse</value></data>
@@ -54,7 +107,9 @@
   <data name="Command_Labels_KeywordSelect" xml:space="preserve"><value>Vybrat</value></data>
   <data name="Command_Labels_KeywordAll" xml:space="preserve"><value>Obnovit vše</value></data>
   <data name="Command_Labels_ResetAllTitle" xml:space="preserve"><value>Obnovit všechny popisy</value></data>
-  <data name="Command_Labels_ResetAllWarning" xml:space="preserve"><value>Všechny popisy KROVY v aktuálním výkresu budou obnoveny do základní polohy.&#xA;Ruční úpravy popisů, například ROTATE, MOVE nebo úpravy gripů, budou odstraněny.&#xA;Prvky KROVY se nezmění.</value></data>
+  <data name="Command_Labels_ResetAllWarning" xml:space="preserve"><value>Všechny popisy KROVY v aktuálním výkresu budou obnoveny do základní polohy.
+Ruční úpravy popisů, například ROTATE, MOVE nebo úpravy gripů, budou odstraněny.
+Prvky KROVY se nezmění.</value></data>
   <data name="AkLabelResetAllConfirm_Confirm" xml:space="preserve"><value>Obnovit vše</value></data>
   <data name="AkLabelResetAllProgress_Title" xml:space="preserve"><value>ACAD KROVY – obnovení popisů</value></data>
   <data name="AkLabelResetAllProgress_Status" xml:space="preserve"><value>Obnovují se popisy…</value></data>
@@ -62,27 +117,53 @@
   <data name="AkLabelResetAllProgress_ProcessedFormat" xml:space="preserve"><value>Zpracováno: {0}</value></data>
   <data name="AkLabelResetAllProgress_ElapsedFormat" xml:space="preserve"><value>Uplynulý čas: {0}</value></data>
   <data name="AkLabelResetAllProgress_EtaFormat" xml:space="preserve"><value>Zbývá přibližně: {0}</value></data>
-  <data name="Command_Labels_Cancelled" xml:space="preserve"><value>&#xA;ACAD KROVY: příkaz AK_LABEL byl zrušen, výkres nebyl změněn.</value></data>
-  <data name="Command_Labels_NoOwnedSelection" xml:space="preserve"><value>&#xA;ACAD KROVY: ve výběru není žádná vlastnická KROVY anotace.</value></data>
-  <data name="Command_Labels_PromptSelectAnnotations" xml:space="preserve"><value>&#xA;Označte KROVY popisy pro kanonický reset: </value></data>
-  <data name="Command_Edit_Prompt" xml:space="preserve"><value>&#xA;Vyberte inteligentní prvky krovu k úpravě: </value></data>
-  <data name="Command_Edit_NoData" xml:space="preserve"><value>&#xA;Vybraný objekt nemá data ACAD KROVY. Nejprve použijte AK_ASSIGN nebo ikonu typu prvku.</value></data>
-  <data name="Command_Edit_NoChanges" xml:space="preserve"><value>&#xA;ACAD KROVY: nebyla vybrána žádná změna.</value></data>
+  <data name="Command_Labels_Cancelled" xml:space="preserve"><value>
+ACAD KROVY: příkaz AK_LABEL byl zrušen, výkres nebyl změněn.</value></data>
+  <data name="Command_Labels_NoOwnedSelection" xml:space="preserve"><value>
+ACAD KROVY: ve výběru není žádná vlastnická KROVY anotace.</value></data>
+  <data name="Command_Labels_PromptSelectAnnotations" xml:space="preserve"><value>
+Označte KROVY popisy pro kanonický reset: </value></data>
+  <data name="Command_Edit_Prompt" xml:space="preserve"><value>
+Vyberte inteligentní prvky krovu k úpravě: </value></data>
+  <data name="Command_Edit_NoData" xml:space="preserve"><value>
+Vybraný objekt nemá data ACAD KROVY. Nejprve použijte AK_ASSIGN nebo ikonu typu prvku.</value></data>
+  <data name="Command_Edit_NoChanges" xml:space="preserve"><value>
+ACAD KROVY: nebyla vybrána žádná změna.</value></data>
   <data name="Command_Edit_TitleSingleFormat" xml:space="preserve"><value>ACAD KROVY – úprava prvku – {0} – {1}</value></data>
   <data name="Command_Edit_TitleMultipleFormat" xml:space="preserve"><value>ACAD KROVY – úprava {0} prvků</value></data>
-  <data name="Command_Edit_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: upravené prvky: {0}. Přeskočené: {1}.</value></data>
-  <data name="Command_FlipSlope_Prompt" xml:space="preserve"><value>&#xA;Vyberte dřevěný prvek nebo jeho označení sklonu pro obrácení směru: </value></data>
-  <data name="Command_FlipSlope_NotTimberOrAnnotation" xml:space="preserve"><value>&#xA;ACAD KROVY: vybraný objekt není dřevěný prvek ani jeho anotace sklonu.</value></data>
-  <data name="Command_FlipSlope_Horizontal" xml:space="preserve"><value>&#xA;ACAD KROVY: vodorovný prvek nemá směr spádu.</value></data>
-  <data name="Command_FlipSlope_PostPerpendicular" xml:space="preserve"><value>&#xA;ACAD KROVY: směr sklonu sloupku se nemění; jeho označení zůstává 90°.</value></data>
-  <data name="Command_FlipSlope_ResultReversed" xml:space="preserve"><value>&#xA;ACAD KROVY: směr spádu byl obrácen.</value></data>
-  <data name="Command_FlipSlope_ResultNormal" xml:space="preserve"><value>&#xA;ACAD KROVY: směr spádu byl nastaven na normální.</value></data>
-  <data name="Command_Inspect_Prompt" xml:space="preserve"><value>&#xA;Vyberte prvek ACAD KROVY: </value></data>
-  <data name="Command_Inspect_NoData" xml:space="preserve"><value>&#xA;Tento objekt nemá data ACAD KROVY.</value></data>
+  <data name="Command_Edit_ResultFormat" xml:space="preserve"><value>
+ACAD KROVY: upravené prvky: {0}. Přeskočené: {1}.</value></data>
+  <data name="Command_FlipSlope_Prompt" xml:space="preserve"><value>
+Vyberte dřevěný prvek nebo jeho označení sklonu pro obrácení směru: </value></data>
+  <data name="Command_FlipSlope_NotTimberOrAnnotation" xml:space="preserve"><value>
+ACAD KROVY: vybraný objekt není dřevěný prvek ani jeho anotace sklonu.</value></data>
+  <data name="Command_FlipSlope_Horizontal" xml:space="preserve"><value>
+ACAD KROVY: vodorovný prvek nemá směr spádu.</value></data>
+  <data name="Command_FlipSlope_PostPerpendicular" xml:space="preserve"><value>
+ACAD KROVY: směr sklonu sloupku se nemění; jeho označení zůstává 90°.</value></data>
+  <data name="Command_FlipSlope_ResultReversed" xml:space="preserve"><value>
+ACAD KROVY: směr spádu byl obrácen.</value></data>
+  <data name="Command_FlipSlope_ResultNormal" xml:space="preserve"><value>
+ACAD KROVY: směr spádu byl nastaven na normální.</value></data>
+  <data name="Command_Inspect_Prompt" xml:space="preserve"><value>
+Vyberte prvek ACAD KROVY: </value></data>
+  <data name="Command_Inspect_NoData" xml:space="preserve"><value>
+Tento objekt nemá data ACAD KROVY.</value></data>
   <data name="Command_Inspect_AllowanceDefault" xml:space="preserve"><value>aktuální výchozí hodnota podle typu</value></data>
   <data name="Command_Inspect_AllowanceIndividual" xml:space="preserve"><value>individuální hodnota prvku</value></data>
-  <data name="Command_Inspect_SummaryFormat" xml:space="preserve"><value>&#xA;{0} | {1}&#xA;  Průřez: {2:0} × {3:0} mm&#xA;  Půdorysná délka: {4:0.###} m&#xA;  Skutečná délka: {5:0.###} m&#xA;  Řezná délka: {6:0.###} m&#xA;  Objem: {7:0.0000} m³</value></data>
-  <data name="Command_Inspect_FootprintSummaryFormat" xml:space="preserve"><value>&#xA;{0} | {1}&#xA;  Průřez: {2:0} × {3:0} mm&#xA;  Skutečná délka: {4:0.###} m&#xA;  Řezná délka: {5:0.###} m&#xA;  Objem: {6:0.0000} m³</value></data>
+  <data name="Command_Inspect_SummaryFormat" xml:space="preserve"><value>
+{0} | {1}
+  Průřez: {2:0} × {3:0} mm
+  Půdorysná délka: {4:0.###} m
+  Skutečná délka: {5:0.###} m
+  Řezná délka: {6:0.###} m
+  Objem: {7:0.0000} m³</value></data>
+  <data name="Command_Inspect_FootprintSummaryFormat" xml:space="preserve"><value>
+{0} | {1}
+  Průřez: {2:0} × {3:0} mm
+  Skutečná délka: {4:0.###} m
+  Řezná délka: {5:0.###} m
+  Objem: {6:0.0000} m³</value></data>
   <data name="Dialog_Inspect_Item" xml:space="preserve"><value>Označení</value></data>
   <data name="Dialog_Inspect_ElementType" xml:space="preserve"><value>Typ prvku</value></data>
   <data name="Dialog_Inspect_Material" xml:space="preserve"><value>Materiál</value></data>
@@ -101,41 +182,76 @@
   <data name="Message_No" xml:space="preserve"><value>Ne</value></data>
   <data name="Message_DirectionNormal" xml:space="preserve"><value>Normální</value></data>
   <data name="Message_DirectionReversed" xml:space="preserve"><value>Obrácený</value></data>
-  <data name="Command_Report_PromptSelection" xml:space="preserve"><value>&#xA;Vyberte prvky pro výkaz: </value></data>
-  <data name="Command_Report_NoneFound" xml:space="preserve"><value>&#xA;Nebyly nalezeny žádné prvky ACAD KROVY.</value></data>
-  <data name="Command_Report_ElementSkippedFormat" xml:space="preserve"><value>&#xA;Přeskočený prvek {0}: {1}</value></data>
-  <data name="Command_Report_NoValidElements" xml:space="preserve"><value>&#xA;Výběr neobsahuje platné prvky ACAD KROVY.</value></data>
-  <data name="Command_Report_PromptInsertionPoint" xml:space="preserve"><value>&#xA;Určete bod vložení výkazu: </value></data>
-  <data name="Command_Report_InsertedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: vložen výkaz z {0} prvků. Přeskočené: {1}. Objem: {2:0.0000} m³.</value></data>
-  <data name="Command_Recalc_ElementErrorFormat" xml:space="preserve"><value>&#xA;Chyba v prvku {0}: {1}</value></data>
-  <data name="Command_Recalc_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: přepočítané prvky: {0}, chyby: {1}. Obnovené popisy: {2}. Přeskočené: {3}.</value></data>
-  <data name="Command_Assign_Prompt" xml:space="preserve"><value>&#xA;Vyberte čáry nebo křivky, kterým chcete přiřadit data: </value></data>
-  <data name="Command_Assign_PromptTypeFormat" xml:space="preserve"><value>&#xA;Vyberte čáry nebo křivky pro prvek {0}: </value></data>
-  <data name="Command_Assign_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: data přiřazena k {0} prvkům. Přeskočené: {1}.</value></data>
-  <data name="Command_PostFootprint_EdgePrompt" xml:space="preserve"><value>&#xA;Vyberte stranu půdorysu sloupku: </value></data>
-  <data name="Command_PostFootprint_PolylineOnly" xml:space="preserve"><value>&#xA;Vyberte obdélníkovou lightweight Polyline nebo jednu LINE ze čtyřstranného obdélníku.</value></data>
-  <data name="Command_PostFootprint_InvalidGeometry" xml:space="preserve"><value>&#xA;Polyline musí být uzavřený obdélník se čtyřmi přímými stranami bez oblouků v půdorysné rovině.</value></data>
-  <data name="Command_PostFootprint_AmbiguousPick" xml:space="preserve"><value>&#xA;Výběr strany je u rohu nejednoznačný. Klikněte dále od rohu.</value></data>
-  <data name="Command_PostFootprint_PickTooFar" xml:space="preserve"><value>&#xA;Kliknutí je příliš daleko od strany obdélníku. Vyberte stranu znovu.</value></data>
-  <data name="Command_PostFootprint_AssignRedirect" xml:space="preserve"><value>&#xA;Pro typ Sloupek vyberte stranu obdélníkové polyline nebo jednu ze čtyř LINE.</value></data>
-  <data name="Command_PostFootprint_AssignedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: Sloupek přiřazen – {0:0} × {1:0} mm, ruční délka {2:0} mm.</value></data>
-  <data name="Command_PostFootprint_LineNotFound" xml:space="preserve"><value>&#xA;Nepodařilo se najít uzavřený obdélník ze čtyř geometricky spojených LINE.</value></data>
-  <data name="Command_PostFootprint_LineAmbiguous" xml:space="preserve"><value>&#xA;Geometrie LINE je nejednoznačná: vybraná čára patří do více možných obdélníků.</value></data>
-  <data name="Command_PostFootprint_LineBranching" xml:space="preserve"><value>&#xA;Geometrie LINE obsahuje větvení. Každý roh obdélníku musí spojovat přesně dvě strany.</value></data>
-  <data name="Command_PostFootprint_LineNotRectangle" xml:space="preserve"><value>&#xA;Čtyři spojené LINE netvoří platný obdélník.</value></data>
-  <data name="Command_PostFootprint_LineDuplicate" xml:space="preserve"><value>&#xA;Geometrie obsahuje překrývající se nebo duplicitní LINE.</value></data>
-  <data name="Command_PostFootprint_UnsupportedPlane" xml:space="preserve"><value>&#xA;Čáry musí ležet ve stejné podporované půdorysné rovině a výšce.</value></data>
-  <data name="Command_Layers_ElementSkippedFormat" xml:space="preserve"><value>&#xA;Při nastavování hladiny byl přeskočen prvek: {0}</value></data>
-  <data name="Command_Layers_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: prvky přesunuté do hladin: {0}. Přeskočené: {1}.</value></data>
-  <data name="Warning_Linetype_FallbackFormat" xml:space="preserve"><value>&#xA;Typ čáry „{0}“ se nepodařilo načíst. Byl použit {1}.</value></data>
-  <data name="Warning_ExistingLayerPreservedFormat" xml:space="preserve"><value>&#xA;Hladina „{0}“ již existuje s jinými vlastnostmi. Aby se nezměnily existující objekty, hladina nebyla upravena. Použijte Použít na vše nebo nový název hladiny.</value></data>
-  <data name="Command_Settings_ApplyElementSkippedFormat" xml:space="preserve"><value>&#xA;Při použití nastavení byl přeskočen prvek: {0}</value></data>
-  <data name="Command_Settings_ApplyResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: výrobní přídavky použity na {0} prvků. Přeskočené: {1}.</value></data>
-  <data name="Command_Labels_Shown" xml:space="preserve"><value>&#xA;ACAD KROVY: popisy v hladině KROV_POPIS jsou zobrazeny.</value></data>
-  <data name="Command_Labels_Hidden" xml:space="preserve"><value>&#xA;ACAD KROVY: popisy v hladině KROV_POPIS jsou skryty.</value></data>
-  <data name="Command_Labels_LayerMissing" xml:space="preserve"><value>&#xA;ACAD KROVY: hladina KROV_POPIS ve výkresu ještě neexistuje.</value></data>
-  <data name="Command_Prompt_RemoveSelection" xml:space="preserve"><value>&#xA;Odeberte z výběru: </value></data>
-  <data name="Warning_LiveRefreshSkippedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: automatická aktualizace prvků byla přeskočena: {0}</value></data>
+  <data name="Command_Report_PromptSelection" xml:space="preserve"><value>
+Vyberte prvky pro výkaz: </value></data>
+  <data name="Command_Report_NoneFound" xml:space="preserve"><value>
+Nebyly nalezeny žádné prvky ACAD KROVY.</value></data>
+  <data name="Command_Report_ElementSkippedFormat" xml:space="preserve"><value>
+Přeskočený prvek {0}: {1}</value></data>
+  <data name="Command_Report_NoValidElements" xml:space="preserve"><value>
+Výběr neobsahuje platné prvky ACAD KROVY.</value></data>
+  <data name="Command_Report_PromptInsertionPoint" xml:space="preserve"><value>
+Určete bod vložení výkazu: </value></data>
+  <data name="Command_Report_InsertedFormat" xml:space="preserve"><value>
+ACAD KROVY: vložen výkaz z {0} prvků. Přeskočené: {1}. Objem: {2:0.0000} m³.</value></data>
+  <data name="Command_Recalc_ElementErrorFormat" xml:space="preserve"><value>
+Chyba v prvku {0}: {1}</value></data>
+  <data name="Command_Recalc_ResultFormat" xml:space="preserve"><value>
+ACAD KROVY: přepočítané prvky: {0}, chyby: {1}. Obnovené popisy: {2}. Přeskočené: {3}.</value></data>
+  <data name="Command_Assign_Prompt" xml:space="preserve"><value>
+Vyberte čáry nebo křivky, kterým chcete přiřadit data: </value></data>
+  <data name="Command_Assign_PromptTypeFormat" xml:space="preserve"><value>
+Vyberte čáry nebo křivky pro prvek {0}: </value></data>
+  <data name="Command_Assign_ResultFormat" xml:space="preserve"><value>
+ACAD KROVY: data přiřazena k {0} prvkům. Přeskočené: {1}.</value></data>
+  <data name="Command_PostFootprint_EdgePrompt" xml:space="preserve"><value>
+Vyberte stranu půdorysu sloupku: </value></data>
+  <data name="Command_PostFootprint_PolylineOnly" xml:space="preserve"><value>
+Vyberte obdélníkovou lightweight Polyline nebo jednu LINE ze čtyřstranného obdélníku.</value></data>
+  <data name="Command_PostFootprint_InvalidGeometry" xml:space="preserve"><value>
+Polyline musí být uzavřený obdélník se čtyřmi přímými stranami bez oblouků v půdorysné rovině.</value></data>
+  <data name="Command_PostFootprint_AmbiguousPick" xml:space="preserve"><value>
+Výběr strany je u rohu nejednoznačný. Klikněte dále od rohu.</value></data>
+  <data name="Command_PostFootprint_PickTooFar" xml:space="preserve"><value>
+Kliknutí je příliš daleko od strany obdélníku. Vyberte stranu znovu.</value></data>
+  <data name="Command_PostFootprint_AssignRedirect" xml:space="preserve"><value>
+Pro typ Sloupek vyberte stranu obdélníkové polyline nebo jednu ze čtyř LINE.</value></data>
+  <data name="Command_PostFootprint_AssignedFormat" xml:space="preserve"><value>
+ACAD KROVY: Sloupek přiřazen – {0:0} × {1:0} mm, ruční délka {2:0} mm.</value></data>
+  <data name="Command_PostFootprint_LineNotFound" xml:space="preserve"><value>
+Nepodařilo se najít uzavřený obdélník ze čtyř geometricky spojených LINE.</value></data>
+  <data name="Command_PostFootprint_LineAmbiguous" xml:space="preserve"><value>
+Geometrie LINE je nejednoznačná: vybraná čára patří do více možných obdélníků.</value></data>
+  <data name="Command_PostFootprint_LineBranching" xml:space="preserve"><value>
+Geometrie LINE obsahuje větvení. Každý roh obdélníku musí spojovat přesně dvě strany.</value></data>
+  <data name="Command_PostFootprint_LineNotRectangle" xml:space="preserve"><value>
+Čtyři spojené LINE netvoří platný obdélník.</value></data>
+  <data name="Command_PostFootprint_LineDuplicate" xml:space="preserve"><value>
+Geometrie obsahuje překrývající se nebo duplicitní LINE.</value></data>
+  <data name="Command_PostFootprint_UnsupportedPlane" xml:space="preserve"><value>
+Čáry musí ležet ve stejné podporované půdorysné rovině a výšce.</value></data>
+  <data name="Command_Layers_ElementSkippedFormat" xml:space="preserve"><value>
+Při nastavování hladiny byl přeskočen prvek: {0}</value></data>
+  <data name="Command_Layers_ResultFormat" xml:space="preserve"><value>
+ACAD KROVY: prvky přesunuté do hladin: {0}. Přeskočené: {1}.</value></data>
+  <data name="Warning_Linetype_FallbackFormat" xml:space="preserve"><value>
+Typ čáry „{0}“ se nepodařilo načíst. Byl použit {1}.</value></data>
+  <data name="Warning_ExistingLayerPreservedFormat" xml:space="preserve"><value>
+Hladina „{0}“ již existuje s jinými vlastnostmi. Aby se nezměnily existující objekty, hladina nebyla upravena. Použijte Použít na vše nebo nový název hladiny.</value></data>
+  <data name="Command_Settings_ApplyElementSkippedFormat" xml:space="preserve"><value>
+Při použití nastavení byl přeskočen prvek: {0}</value></data>
+  <data name="Command_Settings_ApplyResultFormat" xml:space="preserve"><value>
+ACAD KROVY: výrobní přídavky použity na {0} prvků. Přeskočené: {1}.</value></data>
+  <data name="Command_Labels_Shown" xml:space="preserve"><value>
+ACAD KROVY: popisy v hladině KROV_POPIS jsou zobrazeny.</value></data>
+  <data name="Command_Labels_Hidden" xml:space="preserve"><value>
+ACAD KROVY: popisy v hladině KROV_POPIS jsou skryty.</value></data>
+  <data name="Command_Labels_LayerMissing" xml:space="preserve"><value>
+ACAD KROVY: hladina KROV_POPIS ve výkresu ještě neexistuje.</value></data>
+  <data name="Command_Prompt_RemoveSelection" xml:space="preserve"><value>
+Odeberte z výběru: </value></data>
+  <data name="Warning_LiveRefreshSkippedFormat" xml:space="preserve"><value>
+ACAD KROVY: automatická aktualizace prvků byla přeskočena: {0}</value></data>
   <data name="Dialog_Edit_FieldWidth" xml:space="preserve"><value>šířka</value></data>
   <data name="Dialog_Edit_FieldHeight" xml:space="preserve"><value>výška</value></data>
   <data name="Dialog_Edit_FieldCuttingAllowance" xml:space="preserve"><value>výrobní přídavek</value></data>
@@ -286,10 +402,14 @@
   <data name="CommandUi_Labels_Tooltip" xml:space="preserve"><value>Hlavní klik obnoví chybějící popisy. Šipka nabízí Chybějící / Vybrat / Obnovit vše.</value></data>
   <data name="CommandUi_Toolbar_Label" xml:space="preserve"><value>Klasický panel</value></data>
   <data name="CommandUi_Toolbar_Tooltip" xml:space="preserve"><value>Zobrazí nebo skryje klasický plovoucí panel malých ikon.</value></data>
-  <data name="Command_Renumber_ConfirmPrompt" xml:space="preserve"><value>&#xA;Přečíslovat všechny položky podle výrobní délky od nejkratší po nejdelší? [Ano/Ne] &lt;Ne&gt;: </value></data>
-  <data name="Command_Renumber_NoElements" xml:space="preserve"><value>&#xA;ACAD KROVY: v aktuálním výkresu nebyly nalezeny žádné platné inteligentní prvky.</value></data>
-  <data name="Command_Renumber_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: zpracovaných prvků {0}, unikátních výrobních položek {1}, přečíslovaných typů {2}, změněných označení {3}.</value></data>
-  <data name="Command_Renumber_FailedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: přečíslování selhalo a nebyly uloženy žádné změny. {0}</value></data>
+  <data name="Command_Renumber_ConfirmPrompt" xml:space="preserve"><value>
+Přečíslovat všechny položky podle výrobní délky od nejkratší po nejdelší? [Ano/Ne] &lt;Ne&gt;: </value></data>
+  <data name="Command_Renumber_NoElements" xml:space="preserve"><value>
+ACAD KROVY: v aktuálním výkresu nebyly nalezeny žádné platné inteligentní prvky.</value></data>
+  <data name="Command_Renumber_ResultFormat" xml:space="preserve"><value>
+ACAD KROVY: zpracovaných prvků {0}, unikátních výrobních položek {1}, přečíslovaných typů {2}, změněných označení {3}.</value></data>
+  <data name="Command_Renumber_FailedFormat" xml:space="preserve"><value>
+ACAD KROVY: přečíslování selhalo a nebyly uloženy žádné změny. {0}</value></data>
   <data name="CommandUi_Renumber_Label" xml:space="preserve"><value>Přečíslovat</value></data>
   <data name="CommandUi_Renumber_Tooltip" xml:space="preserve"><value>Explicitně přečísluje všechny výrobní položky podle řezné délky.</value></data>
   <data name="Error_Renumber_EntityUnavailable" xml:space="preserve"><value>Prvek přestal být během přečíslování dostupný.</value></data>
@@ -307,8 +427,10 @@
   <data name="ElementType_ValleyRafter" xml:space="preserve"><value>Úžlabní krokev</value></data>
   <data name="CommandUi_Custom_Label" xml:space="preserve"><value>Vlastní prvek</value></data>
   <data name="CommandUi_Custom_Tooltip" xml:space="preserve"><value>Přiřadí čáře opakovaně použitelný vlastní typ dřevěného prvku.</value></data>
-  <data name="Command_Custom_PromptSelection" xml:space="preserve"><value>&#xA;Vyberte LINE nebo LWPOLYLINE pro vlastní prvek: </value></data>
-  <data name="Command_Custom_CatalogSaveFailedFormat" xml:space="preserve"><value>&#xA;Definici vlastního prvku se nepodařilo uložit. {0}</value></data>
+  <data name="Command_Custom_PromptSelection" xml:space="preserve"><value>
+Vyberte LINE nebo LWPOLYLINE pro vlastní prvek: </value></data>
+  <data name="Command_Custom_CatalogSaveFailedFormat" xml:space="preserve"><value>
+Definici vlastního prvku se nepodařilo uložit. {0}</value></data>
   <data name="CustomWindow_Title" xml:space="preserve"><value>ACAD KROVY – vlastní prvek</value></data>
   <data name="CustomWindow_Heading" xml:space="preserve"><value>Definice vlastního prvku</value></data>
   <data name="CustomWindow_UseExisting" xml:space="preserve"><value>Použít existující definici</value></data>
@@ -318,8 +440,10 @@
   <data name="CustomWindow_Continue" xml:space="preserve"><value>Pokračovat</value></data>
   <data name="CustomWindow_SelectDefinition" xml:space="preserve"><value>Vyberte existující definici vlastního prvku.</value></data>
   <data name="CustomWindow_InvalidDefinition" xml:space="preserve"><value>Zadejte název a jedinečný prefix s 1 až 8 písmeny A–Z.</value></data>
-  <data name="Help_CustomCommandLine" xml:space="preserve"><value>&#xA;  AK_CUSTOM      – přiřadí opakovaně použitelný vlastní typ prvku</value></data>
-  <data name="Command_Custom_AmbiguousDefinitionsFormat" xml:space="preserve"><value>&#xA;Vlastní definice obsahují nejednoznačný prefix. {0}</value></data>
+  <data name="Help_CustomCommandLine" xml:space="preserve"><value>
+  AK_CUSTOM      – přiřadí opakovaně použitelný vlastní typ prvku</value></data>
+  <data name="Command_Custom_AmbiguousDefinitionsFormat" xml:space="preserve"><value>
+Vlastní definice obsahují nejednoznačný prefix. {0}</value></data>
   <data name="EditWindow_RenameCustomDefinition" xml:space="preserve"><value>Upravit název definice</value></data>
   <data name="CustomRenameWindow_Title" xml:space="preserve"><value>ACAD KROVY – přejmenování definice</value></data>
   <data name="CustomRenameWindow_Heading" xml:space="preserve"><value>Nový název vlastní definice</value></data>
@@ -330,7 +454,8 @@
   <data name="SettingsWindow_Annotation_Tab" xml:space="preserve"><value>Popis / kótování</value></data>
   <data name="SettingsWindow_Annotation_Description" xml:space="preserve"><value>Zvolte výchozí způsob hlavní anotace prvků. Uložení pro nové prvky nemění existující prvky; další akce použijí režim na výběr nebo na všechny inteligentní prvky.</value></data>
   <data name="SettingsWindow_Annotation_DefaultMode" xml:space="preserve"><value>Výchozí režim</value></data>
-  <data name="Help_AnnotationModesLine" xml:space="preserve"><value>&#xA;  AK_SETTINGS    – nastaví také režim hlavní anotace pro nové, vybrané nebo všechny prvky</value></data>
+  <data name="Help_AnnotationModesLine" xml:space="preserve"><value>
+  AK_SETTINGS    – nastaví také režim hlavní anotace pro nové, vybrané nebo všechny prvky</value></data>
   <data name="SettingsWindow_Annotation_ItemStyle" xml:space="preserve"><value>Styl čísla položky</value></data>
   <data name="ItemNumberLeaderStyle_Plain" xml:space="preserve"><value>Bez rámečku</value></data>
   <data name="ItemNumberLeaderStyle_Circle" xml:space="preserve"><value>Kruh</value></data>
@@ -358,7 +483,8 @@
   <data name="Common_Cancel" xml:space="preserve"><value>Zrušit</value></data>
   <data name="Common_Close" xml:space="preserve"><value>Zavřít</value></data>
   <data name="Common_Unknown" xml:space="preserve"><value>Neznámé</value></data>
-  <data name="Command_UnexpectedFailure" xml:space="preserve"><value>&#xA;ACAD KROVY: příkaz selhal. Podrobnosti jsou v diagnostickém protokolu.</value></data>
+  <data name="Command_UnexpectedFailure" xml:space="preserve"><value>
+ACAD KROVY: příkaz selhal. Podrobnosti jsou v diagnostickém protokolu.</value></data>
   <data name="SelectSimilarWindow_Title" xml:space="preserve"><value>ACAD KROVY – vybrat podobné</value></data>
   <data name="SelectSimilarWindow_Heading" xml:space="preserve"><value>Kritéria podobnosti</value></data>
   <data name="SelectSimilarWindow_Description" xml:space="preserve"><value>Vyberte vlastnosti, které se mají shodovat se vzorovým prvkem.</value></data>
@@ -371,10 +497,14 @@
   <data name="SelectSimilarWindow_ToleranceMm" xml:space="preserve"><value>Tolerance výrobní délky [mm]</value></data>
   <data name="SelectSimilarWindow_InvalidTolerance" xml:space="preserve"><value>Zadejte nezáporné číslo.</value></data>
   <data name="SelectSimilarWindow_Select" xml:space="preserve"><value>Vybrat</value></data>
-  <data name="Command_SelectSimilar_PromptSeed" xml:space="preserve"><value>&#xA;Vyberte jeden inteligentní dřevěný prvek jako vzor: </value></data>
-  <data name="Command_SelectSimilar_SelectOne" xml:space="preserve"><value>&#xA;ACAD KROVY: vyberte přesně jeden vzorový prvek.</value></data>
-  <data name="Command_SelectSimilar_InvalidSeed" xml:space="preserve"><value>&#xA;ACAD KROVY: vybraný objekt není platný inteligentní dřevěný prvek.</value></data>
-  <data name="Command_SelectSimilar_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: vybráno podobných prvků: {0}.</value></data>
+  <data name="Command_SelectSimilar_PromptSeed" xml:space="preserve"><value>
+Vyberte jeden inteligentní dřevěný prvek jako vzor: </value></data>
+  <data name="Command_SelectSimilar_SelectOne" xml:space="preserve"><value>
+ACAD KROVY: vyberte přesně jeden vzorový prvek.</value></data>
+  <data name="Command_SelectSimilar_InvalidSeed" xml:space="preserve"><value>
+ACAD KROVY: vybraný objekt není platný inteligentní dřevěný prvek.</value></data>
+  <data name="Command_SelectSimilar_ResultFormat" xml:space="preserve"><value>
+ACAD KROVY: vybráno podobných prvků: {0}.</value></data>
   <data name="CsvExportWindow_Title" xml:space="preserve"><value>ACAD KROVY – export CSV</value></data>
   <data name="CsvExportWindow_Heading" xml:space="preserve"><value>Export výrobního výkazu</value></data>
   <data name="CsvExportWindow_Description" xml:space="preserve"><value>Vyberte zdroj prvků a podobu CSV výstupu.</value></data>
@@ -386,10 +516,14 @@
   <data name="CsvExportWindow_Individual" xml:space="preserve"><value>Jednotlivé prvky</value></data>
   <data name="CsvExportWindow_Summarized" xml:space="preserve"><value>Souhrnný výkaz</value></data>
   <data name="CsvExportWindow_Continue" xml:space="preserve"><value>Pokračovat</value></data>
-  <data name="Command_ExportCsv_PromptSelection" xml:space="preserve"><value>&#xA;Vyberte objekty pro export CSV: </value></data>
-  <data name="Command_ExportCsv_NoValidElements" xml:space="preserve"><value>&#xA;ACAD KROVY: nebyly nalezeny žádné platné inteligentní prvky pro export.</value></data>
-  <data name="Command_ExportCsv_WriteFailedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: soubor CSV se nepodařilo zapsat. {0}</value></data>
-  <data name="Command_ExportCsv_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: CSV vytvořeno: {0}. Řádků: {1}, přeskočených objektů: {2}.</value></data>
+  <data name="Command_ExportCsv_PromptSelection" xml:space="preserve"><value>
+Vyberte objekty pro export CSV: </value></data>
+  <data name="Command_ExportCsv_NoValidElements" xml:space="preserve"><value>
+ACAD KROVY: nebyly nalezeny žádné platné inteligentní prvky pro export.</value></data>
+  <data name="Command_ExportCsv_WriteFailedFormat" xml:space="preserve"><value>
+ACAD KROVY: soubor CSV se nepodařilo zapsat. {0}</value></data>
+  <data name="Command_ExportCsv_ResultFormat" xml:space="preserve"><value>
+ACAD KROVY: CSV vytvořeno: {0}. Řádků: {1}, přeskočených objektů: {2}.</value></data>
   <data name="CsvExport_SaveDialogTitle" xml:space="preserve"><value>Uložit výkaz ACAD KROVY jako CSV</value></data>
   <data name="CsvExport_SaveDialogFilter" xml:space="preserve"><value>Soubory CSV (*.csv)|*.csv</value></data>
   <data name="Csv_Header_ElementId" xml:space="preserve"><value>Položka</value></data>
@@ -421,7 +555,10 @@
   <data name="DiagnosticsWindow_StateRecovered" xml:space="preserve"><value>Poškozený soubor zálohován; použity výchozí hodnoty</value></data>
   <data name="DiagnosticsWindow_StateMemoryOnly" xml:space="preserve"><value>Záloha selhala; výchozí hodnoty pouze v paměti</value></data>
   <data name="DiagnosticsWindow_StateSaveFailed" xml:space="preserve"><value>Uložení selhalo</value></data>
-  <data name="Help_ProductivityCommands" xml:space="preserve"><value>&#xA;  AK_SELECTSIMILAR – vybere podobné inteligentní prvky&#xA;  AK_EXPORTCSV     – exportuje výrobní výkaz do CSV&#xA;  AK_DIAGNOSTICS   – zobrazí diagnostický souhrn</value></data>
+  <data name="Help_ProductivityCommands" xml:space="preserve"><value>
+  AK_SELECTSIMILAR – vybere podobné inteligentní prvky
+  AK_EXPORTCSV     – exportuje výrobní výkaz do CSV
+  AK_DIAGNOSTICS   – zobrazí diagnostický souhrn</value></data>
   <data name="DiagnosticsLevel_Information" xml:space="preserve"><value>Informace</value></data>
   <data name="DiagnosticsLevel_Warning" xml:space="preserve"><value>Upozornění</value></data>
   <data name="DiagnosticsLevel_Error" xml:space="preserve"><value>Chyba</value></data>
@@ -510,20 +647,34 @@
   <data name="Ribbon_Panel_Roofs" xml:space="preserve"><value>Střechy</value></data>
   <data name="CommandUi_Roof_Label" xml:space="preserve"><value>Střecha</value></data>
   <data name="CommandUi_Roof_Tooltip" xml:space="preserve"><value>Ověří uzavřený půdorysný obrys střechy.</value></data>
-  <data name="Command_Roof_Prompt" xml:space="preserve"><value>&#xA;Vyber obrys nebo část střechy: </value></data>
-  <data name="Command_Roof_PolylineOnly" xml:space="preserve"><value>&#xA;Vybrat lze pouze lightweight Polyline.</value></data>
-  <data name="Command_Roof_ErrorOpen" xml:space="preserve"><value>&#xA;Obrys střechy musí být uzavřený.</value></data>
-  <data name="Command_Roof_ErrorCurved" xml:space="preserve"><value>&#xA;Obloukové segmenty obrysu střechy zatím nejsou podporovány.</value></data>
-  <data name="Command_Roof_ErrorNonPlanar" xml:space="preserve"><value>&#xA;Obrys střechy musí ležet v podporované půdorysné rovině XY.</value></data>
-  <data name="Command_Roof_ErrorFewVertices" xml:space="preserve"><value>&#xA;Obrys střechy musí mít alespoň tři jedinečné vrcholy.</value></data>
-  <data name="Command_Roof_ErrorNonFinite" xml:space="preserve"><value>&#xA;Obrys střechy obsahuje neplatnou souřadnici.</value></data>
-  <data name="Command_Roof_ErrorDuplicateVertex" xml:space="preserve"><value>&#xA;Obrys střechy obsahuje dva po sobě jdoucí duplicitní vrcholy.</value></data>
-  <data name="Command_Roof_ErrorZeroLengthEdge" xml:space="preserve"><value>&#xA;Obrys střechy obsahuje nulovou nebo příliš krátkou hranu.</value></data>
-  <data name="Command_Roof_ErrorSelfIntersection" xml:space="preserve"><value>&#xA;Obrys střechy se protíná sám se sebou.</value></data>
-  <data name="Command_Roof_ErrorDegenerate" xml:space="preserve"><value>&#xA;Obrys střechy je degenerovaný nebo má příliš malou plochu.</value></data>
-  <data name="Command_Roof_ErrorCollinearVertex" xml:space="preserve"><value>&#xA;Obrys střechy obsahuje nadbytečný kolineární vrchol.</value></data>
-  <data name="Command_Roof_ErrorUnsupported" xml:space="preserve"><value>&#xA;Obrys střechy obsahuje nepodporovanou geometrii.</value></data>
-  <data name="Command_Roof_AcceptedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: Obrys střechy přijat – {0} vrcholů, plocha {1:0.###} m², zdrojová orientace {2}; kanonická orientace proti směru hodinových ručiček.</value></data>
+  <data name="Command_Roof_Prompt" xml:space="preserve"><value>
+Vyber obrys nebo část střechy: </value></data>
+  <data name="Command_Roof_PolylineOnly" xml:space="preserve"><value>
+Vybrat lze pouze lightweight Polyline.</value></data>
+  <data name="Command_Roof_ErrorOpen" xml:space="preserve"><value>
+Obrys střechy musí být uzavřený.</value></data>
+  <data name="Command_Roof_ErrorCurved" xml:space="preserve"><value>
+Obloukové segmenty obrysu střechy zatím nejsou podporovány.</value></data>
+  <data name="Command_Roof_ErrorNonPlanar" xml:space="preserve"><value>
+Obrys střechy musí ležet v podporované půdorysné rovině XY.</value></data>
+  <data name="Command_Roof_ErrorFewVertices" xml:space="preserve"><value>
+Obrys střechy musí mít alespoň tři jedinečné vrcholy.</value></data>
+  <data name="Command_Roof_ErrorNonFinite" xml:space="preserve"><value>
+Obrys střechy obsahuje neplatnou souřadnici.</value></data>
+  <data name="Command_Roof_ErrorDuplicateVertex" xml:space="preserve"><value>
+Obrys střechy obsahuje dva po sobě jdoucí duplicitní vrcholy.</value></data>
+  <data name="Command_Roof_ErrorZeroLengthEdge" xml:space="preserve"><value>
+Obrys střechy obsahuje nulovou nebo příliš krátkou hranu.</value></data>
+  <data name="Command_Roof_ErrorSelfIntersection" xml:space="preserve"><value>
+Obrys střechy se protíná sám se sebou.</value></data>
+  <data name="Command_Roof_ErrorDegenerate" xml:space="preserve"><value>
+Obrys střechy je degenerovaný nebo má příliš malou plochu.</value></data>
+  <data name="Command_Roof_ErrorCollinearVertex" xml:space="preserve"><value>
+Obrys střechy obsahuje nadbytečný kolineární vrchol.</value></data>
+  <data name="Command_Roof_ErrorUnsupported" xml:space="preserve"><value>
+Obrys střechy obsahuje nepodporovanou geometrii.</value></data>
+  <data name="Command_Roof_AcceptedFormat" xml:space="preserve"><value>
+ACAD KROVY: Obrys střechy přijat – {0} vrcholů, plocha {1:0.###} m², zdrojová orientace {2}; kanonická orientace proti směru hodinových ručiček.</value></data>
   <data name="Command_Roof_OrientationClockwise" xml:space="preserve"><value>ve směru hodinových ručiček</value></data>
   <data name="Command_Roof_OrientationCounterClockwise" xml:space="preserve"><value>proti směru hodinových ručiček</value></data>
   <data name="Command_Roof_OpenLoopNotificationTitle" xml:space="preserve"><value>Obrys střechy není uzavřený</value></data>
@@ -538,67 +689,121 @@
   <data name="Command_Roof_InvalidDirectionNotificationBody" xml:space="preserve"><value>Zadejte směr rovnoběžný s jednou stranou obdélníku.</value></data>
   <data name="Command_Roof_InvalidSlopeNotificationTitle" xml:space="preserve"><value>Nevhodný sklon střechy</value></data>
   <data name="Command_Roof_InvalidSlopeNotificationBody" xml:space="preserve"><value>Zadejte sklon větší než 0° a menší než 90°.</value></data>
-  <data name="Command_Roof_SlopePrompt" xml:space="preserve"><value>&#xA;Zadejte sklon střechy ve stupních: </value></data>
-  <data name="Command_RoofAsym_Face0SlopePrompt" xml:space="preserve"><value>&#xA;Zadejte sklon první střešní roviny ve stupních (modrá strana náhledu): </value></data>
-  <data name="Command_RoofAsym_Face1SlopePrompt" xml:space="preserve"><value>&#xA;Zadejte sklon druhé střešní roviny ve stupních (zelená strana náhledu): </value></data>
-  <data name="Command_RoofAsym_FacePreviewFormat" xml:space="preserve"><value>&#xA;Náhled: modrá první rovina = {0:0.###}°, zelená druhá rovina = {1:0.###}°.</value></data>
+  <data name="Command_Roof_SlopePrompt" xml:space="preserve"><value>
+Zadejte sklon střechy ve stupních: </value></data>
+  <data name="Command_RoofAsym_Face0SlopePrompt" xml:space="preserve"><value>
+Zadejte sklon první střešní roviny ve stupních (modrá strana náhledu): </value></data>
+  <data name="Command_RoofAsym_Face1SlopePrompt" xml:space="preserve"><value>
+Zadejte sklon druhé střešní roviny ve stupních (zelená strana náhledu): </value></data>
+  <data name="Command_RoofAsym_FacePreviewFormat" xml:space="preserve"><value>
+Náhled: modrá první rovina = {0:0.###}°, zelená druhá rovina = {1:0.###}°.</value></data>
   <data name="RoofRafterWindow_RoofSlopesValueFormat" xml:space="preserve"><value>První {0:0.###}° / druhá {1:0.###}°</value></data>
-  <data name="Command_Roof_RidgeDirectionStartPrompt" xml:space="preserve"><value>&#xA;Určete první bod směru hřebene: </value></data>
-  <data name="Command_Roof_RidgeDirectionEndPrompt" xml:space="preserve"><value>&#xA;Určete druhý bod směru hřebene: </value></data>
-  <data name="Command_Roof_PreviewClosePrompt" xml:space="preserve"><value>&#xA;Dočasný náhled střechy je zobrazen. Stiskněte Enter nebo Esc pro zavření: </value></data>
-  <data name="Command_Roof_GeometryErrorFourSided" xml:space="preserve"><value>&#xA;Jednoduchá sedlová střecha vyžaduje čtyřvrcholový obrys.</value></data>
-  <data name="Command_Roof_GeometryErrorRectangular" xml:space="preserve"><value>&#xA;Jednoduchá sedlová střecha vyžaduje obdélníkový obrys.</value></data>
-  <data name="Command_Roof_GeometryErrorDirection" xml:space="preserve"><value>&#xA;Směr hřebene se musí shodovat s jednou osou obdélníku.</value></data>
-  <data name="Command_Roof_GeometryErrorSlope" xml:space="preserve"><value>&#xA;Sklon střechy musí být konečný, větší než 0° a menší než 90°.</value></data>
-  <data name="Command_Roof_GeometryErrorDimensions" xml:space="preserve"><value>&#xA;Rozměry obrysu střechy jsou příliš malé pro jednoduchou sedlovou střechu.</value></data>
-  <data name="Command_Roof_GeometryErrorNonFinite" xml:space="preserve"><value>&#xA;Výpočet geometrie střechy vytvořil nekonečnou nebo neplatnou hodnotu.</value></data>
-  <data name="Command_Roof_PersistConfirmPrompt" xml:space="preserve"><value>&#xA;Uložit definici a vytvořit trvalé zobrazení střechy? [Ano/Ne] &lt;Ne&gt;: </value></data>
-  <data name="Command_Roof_PersistedSaved" xml:space="preserve"><value>&#xA;Definice střechy byla uložena do vybraného obrysu.</value></data>
-  <data name="Command_Roof_PersistedLoaded" xml:space="preserve"><value>&#xA;Byla načtena uložená definice střechy.</value></data>
-  <data name="Command_Roof_PersistedInvalid" xml:space="preserve"><value>&#xA;Uložená definice střechy je neplatná nebo poškozená.</value></data>
-  <data name="Command_Roof_PersistedFutureSchema" xml:space="preserve"><value>&#xA;Definice střechy používá novější nepodporované schéma.</value></data>
-  <data name="Command_Roof_PersistedUnsupportedKind" xml:space="preserve"><value>&#xA;Uložený typ střechy není podporován.</value></data>
-  <data name="Command_Roof_PersistedStale" xml:space="preserve"><value>&#xA;Obrys střechy se od uložení změnil. Uložená definice nebyla použita.</value></data>
+  <data name="Command_Roof_RidgeDirectionStartPrompt" xml:space="preserve"><value>
+Určete první bod směru hřebene: </value></data>
+  <data name="Command_Roof_RidgeDirectionEndPrompt" xml:space="preserve"><value>
+Určete druhý bod směru hřebene: </value></data>
+  <data name="Command_Roof_PreviewClosePrompt" xml:space="preserve"><value>
+Dočasný náhled střechy je zobrazen. Stiskněte Enter nebo Esc pro zavření: </value></data>
+  <data name="Command_Roof_GeometryErrorFourSided" xml:space="preserve"><value>
+Jednoduchá sedlová střecha vyžaduje čtyřvrcholový obrys.</value></data>
+  <data name="Command_Roof_GeometryErrorRectangular" xml:space="preserve"><value>
+Jednoduchá sedlová střecha vyžaduje obdélníkový obrys.</value></data>
+  <data name="Command_Roof_GeometryErrorDirection" xml:space="preserve"><value>
+Směr hřebene se musí shodovat s jednou osou obdélníku.</value></data>
+  <data name="Command_Roof_GeometryErrorSlope" xml:space="preserve"><value>
+Sklon střechy musí být konečný, větší než 0° a menší než 90°.</value></data>
+  <data name="Command_Roof_GeometryErrorDimensions" xml:space="preserve"><value>
+Rozměry obrysu střechy jsou příliš malé pro jednoduchou sedlovou střechu.</value></data>
+  <data name="Command_Roof_GeometryErrorNonFinite" xml:space="preserve"><value>
+Výpočet geometrie střechy vytvořil nekonečnou nebo neplatnou hodnotu.</value></data>
+  <data name="Command_Roof_PersistConfirmPrompt" xml:space="preserve"><value>
+Uložit definici a vytvořit trvalé zobrazení střechy? [Ano/Ne] &lt;Ne&gt;: </value></data>
+  <data name="Command_Roof_PersistedSaved" xml:space="preserve"><value>
+Definice střechy byla uložena do vybraného obrysu.</value></data>
+  <data name="Command_Roof_PersistedLoaded" xml:space="preserve"><value>
+Byla načtena uložená definice střechy.</value></data>
+  <data name="Command_Roof_PersistedInvalid" xml:space="preserve"><value>
+Uložená definice střechy je neplatná nebo poškozená.</value></data>
+  <data name="Command_Roof_PersistedFutureSchema" xml:space="preserve"><value>
+Definice střechy používá novější nepodporované schéma.</value></data>
+  <data name="Command_Roof_PersistedUnsupportedKind" xml:space="preserve"><value>
+Uložený typ střechy není podporován.</value></data>
+  <data name="Command_Roof_PersistedStale" xml:space="preserve"><value>
+Obrys střechy se od uložení změnil. Uložená definice nebyla použita.</value></data>
   <data name="Command_Roof_UnsupportedStretchNotificationTitle" xml:space="preserve"><value>Tvar střechy už není podporovaný.</value></data>
   <data name="Command_Roof_UnsupportedStretchNotificationBody" xml:space="preserve"><value>Vraťte poslední změnu příkazem Zpět (U).</value></data>
   <data name="Command_Roof_UnsupportedStretchRecoveredNotificationTitle" xml:space="preserve"><value>Nepodporovaná změna střechy byla vrácena.</value></data>
   <data name="Command_Roof_UnsupportedStretchRecoveredNotificationBody" xml:space="preserve"><value>Obrys střechy byl obnoven na poslední podporovaný tvar.</value></data>
   <data name="Command_Roof_DisplayTamperNotificationTitle" xml:space="preserve"><value>Vyberte základní obrys střechy</value></data>
   <data name="Command_Roof_DisplayTamperNotificationBody" xml:space="preserve"><value>Tvar střechy upravte pomocí jejího obrysu. Ostatní prvky se aktualizují automaticky.</value></data>
-  <data name="Command_Roof_PersistFailed" xml:space="preserve"><value>&#xA;Definici střechy se nepodařilo uložit.</value></data>
-  <data name="Command_Roof_PersistSourceChanged" xml:space="preserve"><value>&#xA;Obrys střechy se během příkazu změnil. Definice nebyla uložena.</value></data>
-  <data name="Command_Roof_PersistConflict" xml:space="preserve"><value>&#xA;Obrys již obsahuje definici střechy. Existující data zůstala beze změny.</value></data>
-  <data name="Command_Roof_PersistedAndDisplaySaved" xml:space="preserve"><value>&#xA;Definice střechy a její trvalé zobrazení byly uloženy.</value></data>
-  <data name="Command_Roof_DisplayCurrent" xml:space="preserve"><value>&#xA;Trvalé zobrazení střechy je aktuální.</value></data>
-  <data name="Command_Roof_DisplayMissing" xml:space="preserve"><value>&#xA;Uložená střecha zatím nemá trvalé zobrazení.</value></data>
-  <data name="Command_Roof_DisplayStale" xml:space="preserve"><value>&#xA;Trvalé zobrazení střechy chybí, bylo změněno nebo je zastaralé.</value></data>
-  <data name="Command_Roof_DisplayCreatePrompt" xml:space="preserve"><value>&#xA;Vytvořit trvalé zobrazení střechy? [Ano/Ne] &lt;Ne&gt;: </value></data>
-  <data name="Command_Roof_DisplayUpdatePrompt" xml:space="preserve"><value>&#xA;Obnovit trvalé zobrazení střechy? [Ano/Ne] &lt;Ne&gt;: </value></data>
-  <data name="Command_Roof_DisplayCreated" xml:space="preserve"><value>&#xA;Trvalé zobrazení střechy bylo vytvořeno.</value></data>
-  <data name="Command_Roof_DisplayUpdated" xml:space="preserve"><value>&#xA;Trvalé zobrazení střechy bylo obnoveno.</value></data>
-  <data name="Command_Roof_DisplayFailed" xml:space="preserve"><value>&#xA;Trvalé zobrazení střechy se nepodařilo vytvořit nebo obnovit.</value></data>
-  <data name="Command_Roof_DisplayFutureSchema" xml:space="preserve"><value>&#xA;Trvalé zobrazení střechy používá novější nepodporované schéma a zůstalo nezměněno.</value></data>
-  <data name="Command_Roof_SelectionInvalid" xml:space="preserve"><value>&#xA;Vyber obrys nebo generovanou čáru střechy.</value></data>
-  <data name="Command_Roof_SelectionInvalidDisplay" xml:space="preserve"><value>&#xA;Vybraná část střechy má poškozená data zobrazení.</value></data>
-  <data name="Command_Roof_SelectionFutureDisplay" xml:space="preserve"><value>&#xA;Vybraná část střechy používá novější nepodporované schéma zobrazení.</value></data>
-  <data name="Command_Roof_SelectionOrphan" xml:space="preserve"><value>&#xA;Vybraná část střechy nemá dostupný platný zdrojový obrys.</value></data>
-  <data name="Command_Roof_GroupMissing" xml:space="preserve"><value>&#xA;Trvalé zobrazení střechy je platné, ale chybí skupina.</value></data>
-  <data name="Command_Roof_GroupRepairPrompt" xml:space="preserve"><value>&#xA;Obnovit skupinu střechy? [Ano/Ne] &lt;Ne&gt;: </value></data>
-  <data name="Command_Roof_GroupRepaired" xml:space="preserve"><value>&#xA;Výběrová skupina střechy byla obnovena.</value></data>
-  <data name="Command_RoofRafters_SelectPrompt" xml:space="preserve"><value>&#xA;Vyberte střechu pro vytvoření krokví: </value></data>
-  <data name="Command_RoofRafters_SpacingPrompt" xml:space="preserve"><value>&#xA;Zadejte maximální rozteč krokví v mm: </value></data>
-  <data name="Command_RoofRafters_InvalidSpacing" xml:space="preserve"><value>&#xA;Maximální rozteč krokví musí být konečné kladné číslo.</value></data>
-  <data name="Command_RoofRafters_InvalidDefaults" xml:space="preserve"><value>&#xA;Výchozí půdorysná šířka krokve je neplatná nebo se nevejde mezi štítové roviny.</value></data>
-  <data name="Command_RoofRafters_SummaryFormat" xml:space="preserve"><value>&#xA;Krokve: {3} ks, požadované maximum {0:0.###} mm, skutečná rozteč {1:0.###} mm, stanice {2}.</value></data>
-  <data name="Command_RoofRafters_CreatePrompt" xml:space="preserve"><value>&#xA;Vytvořit automatické krokve? [Ano/Ne] &lt;Ne&gt;: </value></data>
-  <data name="Command_RoofRafters_ExistingFoundFormat" xml:space="preserve"><value>&#xA;Střecha již obsahuje {0} automaticky vytvořených krokví.</value></data>
-  <data name="Command_RoofRafters_ReplacementDeferred" xml:space="preserve"><value>&#xA;Bezpečné nahrazení existujících automatických krokví bude doplněno v dalším kroku životního cyklu. Výkres zůstal beze změny.</value></data>
-  <data name="Command_RoofRafters_ExistingStale" xml:space="preserve"><value>&#xA;Existující automatické krokve už neodpovídají aktuální geometrii střechy.</value></data>
-  <data name="Command_RoofRafters_RecipeAmbiguous" xml:space="preserve"><value>&#xA;Automatické krokve nebyly obnoveny: původní recept generování není jednoznačný. Existující sada zůstala beze změny.</value></data>
-  <data name="Command_RoofRafters_CreatedFormat" xml:space="preserve"><value>&#xA;Vytvořeno inteligentních krokví: {0}.</value></data>
-  <data name="Command_RoofRafters_InvalidRoof" xml:space="preserve"><value>&#xA;Vybraná střecha nemá platnou uloženou definici SimpleGable.</value></data>
-  <data name="Command_RoofRafters_SourceChanged" xml:space="preserve"><value>&#xA;Zdrojový obrys střechy se změnil. Krokve nebyly vytvořeny.</value></data>
-  <data name="Command_RoofRafters_GenerationFailed" xml:space="preserve"><value>&#xA;Automatické krokve se nepodařilo vytvořit. Výkresová operace byla vrácena zpět.</value></data>
+  <data name="Command_Roof_PersistFailed" xml:space="preserve"><value>
+Definici střechy se nepodařilo uložit.</value></data>
+  <data name="Command_Roof_PersistSourceChanged" xml:space="preserve"><value>
+Obrys střechy se během příkazu změnil. Definice nebyla uložena.</value></data>
+  <data name="Command_Roof_PersistConflict" xml:space="preserve"><value>
+Obrys již obsahuje definici střechy. Existující data zůstala beze změny.</value></data>
+  <data name="Command_Roof_PersistedAndDisplaySaved" xml:space="preserve"><value>
+Definice střechy a její trvalé zobrazení byly uloženy.</value></data>
+  <data name="Command_Roof_DisplayCurrent" xml:space="preserve"><value>
+Trvalé zobrazení střechy je aktuální.</value></data>
+  <data name="Command_Roof_DisplayMissing" xml:space="preserve"><value>
+Uložená střecha zatím nemá trvalé zobrazení.</value></data>
+  <data name="Command_Roof_DisplayStale" xml:space="preserve"><value>
+Trvalé zobrazení střechy chybí, bylo změněno nebo je zastaralé.</value></data>
+  <data name="Command_Roof_DisplayCreatePrompt" xml:space="preserve"><value>
+Vytvořit trvalé zobrazení střechy? [Ano/Ne] &lt;Ne&gt;: </value></data>
+  <data name="Command_Roof_DisplayUpdatePrompt" xml:space="preserve"><value>
+Obnovit trvalé zobrazení střechy? [Ano/Ne] &lt;Ne&gt;: </value></data>
+  <data name="Command_Roof_DisplayCreated" xml:space="preserve"><value>
+Trvalé zobrazení střechy bylo vytvořeno.</value></data>
+  <data name="Command_Roof_DisplayUpdated" xml:space="preserve"><value>
+Trvalé zobrazení střechy bylo obnoveno.</value></data>
+  <data name="Command_Roof_DisplayFailed" xml:space="preserve"><value>
+Trvalé zobrazení střechy se nepodařilo vytvořit nebo obnovit.</value></data>
+  <data name="Command_Roof_DisplayFutureSchema" xml:space="preserve"><value>
+Trvalé zobrazení střechy používá novější nepodporované schéma a zůstalo nezměněno.</value></data>
+  <data name="Command_Roof_SelectionInvalid" xml:space="preserve"><value>
+Vyber obrys nebo generovanou čáru střechy.</value></data>
+  <data name="Command_Roof_SelectionInvalidDisplay" xml:space="preserve"><value>
+Vybraná část střechy má poškozená data zobrazení.</value></data>
+  <data name="Command_Roof_SelectionFutureDisplay" xml:space="preserve"><value>
+Vybraná část střechy používá novější nepodporované schéma zobrazení.</value></data>
+  <data name="Command_Roof_SelectionOrphan" xml:space="preserve"><value>
+Vybraná část střechy nemá dostupný platný zdrojový obrys.</value></data>
+  <data name="Command_Roof_GroupMissing" xml:space="preserve"><value>
+Trvalé zobrazení střechy je platné, ale chybí skupina.</value></data>
+  <data name="Command_Roof_GroupRepairPrompt" xml:space="preserve"><value>
+Obnovit skupinu střechy? [Ano/Ne] &lt;Ne&gt;: </value></data>
+  <data name="Command_Roof_GroupRepaired" xml:space="preserve"><value>
+Výběrová skupina střechy byla obnovena.</value></data>
+  <data name="Command_RoofRafters_SelectPrompt" xml:space="preserve"><value>
+Vyberte střechu pro vytvoření krokví: </value></data>
+  <data name="Command_RoofRafters_SpacingPrompt" xml:space="preserve"><value>
+Zadejte maximální rozteč krokví v mm: </value></data>
+  <data name="Command_RoofRafters_InvalidSpacing" xml:space="preserve"><value>
+Maximální rozteč krokví musí být konečné kladné číslo.</value></data>
+  <data name="Command_RoofRafters_InvalidDefaults" xml:space="preserve"><value>
+Výchozí půdorysná šířka krokve je neplatná nebo se nevejde mezi štítové roviny.</value></data>
+  <data name="Command_RoofRafters_SummaryFormat" xml:space="preserve"><value>
+Krokve: {3} ks, požadované maximum {0:0.###} mm, skutečná rozteč {1:0.###} mm, stanice {2}.</value></data>
+  <data name="Command_RoofRafters_CreatePrompt" xml:space="preserve"><value>
+Vytvořit automatické krokve? [Ano/Ne] &lt;Ne&gt;: </value></data>
+  <data name="Command_RoofRafters_ExistingFoundFormat" xml:space="preserve"><value>
+Střecha již obsahuje {0} automaticky vytvořených krokví.</value></data>
+  <data name="Command_RoofRafters_ReplacementDeferred" xml:space="preserve"><value>
+Bezpečné nahrazení existujících automatických krokví bude doplněno v dalším kroku životního cyklu. Výkres zůstal beze změny.</value></data>
+  <data name="Command_RoofRafters_ExistingStale" xml:space="preserve"><value>
+Existující automatické krokve už neodpovídají aktuální geometrii střechy.</value></data>
+  <data name="Command_RoofRafters_RecipeAmbiguous" xml:space="preserve"><value>
+Automatické krokve nebyly obnoveny: původní recept generování není jednoznačný. Existující sada zůstala beze změny.</value></data>
+  <data name="Command_RoofRafters_CreatedFormat" xml:space="preserve"><value>
+Vytvořeno inteligentních krokví: {0}.</value></data>
+  <data name="Command_RoofRafters_InvalidRoof" xml:space="preserve"><value>
+Vybraná střecha nemá platnou uloženou definici SimpleGable.</value></data>
+  <data name="Command_RoofRafters_SourceChanged" xml:space="preserve"><value>
+Zdrojový obrys střechy se změnil. Krokve nebyly vytvořeny.</value></data>
+  <data name="Command_RoofRafters_GenerationFailed" xml:space="preserve"><value>
+Automatické krokve se nepodařilo vytvořit. Výkresová operace byla vrácena zpět.</value></data>
   <data name="CommandUi_RoofMenu_Label" xml:space="preserve"><value>Střecha</value></data>
   <data name="CommandUi_RoofMenu_Tooltip" xml:space="preserve"><value>Vybere typ střechy.</value></data>
   <data name="CommandUi_RoofGable_Label" xml:space="preserve"><value>Sedlová střecha</value></data>
@@ -638,18 +843,27 @@
   <data name="RoofRafterWindow_InvalidMaterial" xml:space="preserve"><value>Vyberte platný materiál.</value></data>
   <data name="RoofRafterWindow_InvalidRoof" xml:space="preserve"><value>Rozložení krokví nelze pro tuto střechu vypočítat.</value></data>
   <data name="RoofRafterWindow_InvalidAutomaticSpacingFormat" xml:space="preserve"><value>Rozteč automatických krokví nesmí být menší než {0:0.###} mm.</value></data>
-  <data name="RoofRafterWindow_HipSummaryFormat" xml:space="preserve"><value>{0} krokví • pracovní rozteč {1:0.###} mm</value></data>  <data name="Command_RoofUnlock_SelectPrompt" xml:space="preserve"><value>&#xA;Vyberte střechu, kterou chcete odemknout: </value></data>
-  <data name="Command_RoofToggleLock_SelectPrompt" xml:space="preserve"><value>&#xA;Vyberte střechu pro zamknutí nebo odemknutí: </value></data>
-  <data name="Command_RoofUnlock_Unlocked" xml:space="preserve"><value>&#xA;Střecha je odemčená. Generované řezivo lze upravovat podporovanými příkazy.</value></data>
-  <data name="Command_RoofUnlock_AlreadyUnlocked" xml:space="preserve"><value>&#xA;Střecha je již odemčená.</value></data>
+  <data name="RoofRafterWindow_HipSummaryFormat" xml:space="preserve"><value>{0} krokví • pracovní rozteč {1:0.###} mm</value></data>  <data name="Command_RoofUnlock_SelectPrompt" xml:space="preserve"><value>
+Vyberte střechu, kterou chcete odemknout: </value></data>
+  <data name="Command_RoofToggleLock_SelectPrompt" xml:space="preserve"><value>
+Vyberte střechu pro zamknutí nebo odemknutí: </value></data>
+  <data name="Command_RoofUnlock_Unlocked" xml:space="preserve"><value>
+Střecha je odemčená. Generované řezivo lze upravovat podporovanými příkazy.</value></data>
+  <data name="Command_RoofUnlock_AlreadyUnlocked" xml:space="preserve"><value>
+Střecha je již odemčená.</value></data>
   <data name="Command_RoofUnlock_UnlockedNotificationTitle" xml:space="preserve"><value>Střecha je odemčená</value></data>
   <data name="Command_RoofUnlock_UnlockedNotificationBody" xml:space="preserve"><value>Generované řezivo nyní přijímá podporované ruční úpravy.</value></data>
-  <data name="Command_RoofLock_Locked" xml:space="preserve"><value>&#xA;Střecha je zamčená. Přijaté ruční úpravy zůstaly zachovány.</value></data>
-  <data name="Command_RoofLock_AlreadyLocked" xml:space="preserve"><value>&#xA;Střecha je již zamčená.</value></data>
-  <data name="Command_RoofResetEdits_Reset" xml:space="preserve"><value>&#xA;Ruční úpravy generovaného řeziva byly vráceny.</value></data>
-  <data name="Command_RoofResetEdits_NoEdits" xml:space="preserve"><value>&#xA;Vybraná střecha nemá ruční úpravy.</value></data>
+  <data name="Command_RoofLock_Locked" xml:space="preserve"><value>
+Střecha je zamčená. Přijaté ruční úpravy zůstaly zachovány.</value></data>
+  <data name="Command_RoofLock_AlreadyLocked" xml:space="preserve"><value>
+Střecha je již zamčená.</value></data>
+  <data name="Command_RoofResetEdits_Reset" xml:space="preserve"><value>
+Ruční úpravy generovaného řeziva byly vráceny.</value></data>
+  <data name="Command_RoofResetEdits_NoEdits" xml:space="preserve"><value>
+Vybraná střecha nemá ruční úpravy.</value></data>
   <data name="Command_RoofEdit_SelectPrompt" xml:space="preserve"><value>Vyberte střechu: </value></data>
-  <data name="Command_RoofEdit_UpdatedFormat" xml:space="preserve"><value>&#xA;Střecha byla upravena.</value></data>
+  <data name="Command_RoofEdit_UpdatedFormat" xml:space="preserve"><value>
+Střecha byla upravena.</value></data>
   <data name="Command_Roof_LockedNotificationTitle" xml:space="preserve"><value>Střecha je zamčená</value></data>
   <data name="Command_Roof_LockedNotificationBody" xml:space="preserve"><value>Pro ruční úpravy ji nejprve odemkněte.</value></data>
   <data name="Command_Roof_UnsupportedMemberEditNotificationTitle" xml:space="preserve"><value>Úprava prvku nebyla podporována.</value></data>
@@ -759,9 +973,9 @@
   <data name="Command_AutomaticPurlin_ManualEditRestricted" xml:space="preserve">
     <value>\nAutomatické vaznice jsou řízeny rozložením střechy a momentálně je nelze upravovat pomocí AK_EDIT ani AK_ASSIGN.</value>
   </data>
-  <data name="AutomaticPurlin_Title" xml:space="preserve"><value>Automatické vaznice</value></data>
+  <data name="AutomaticPurlin_Title" xml:space="preserve"><value>Automatické vaznice a pozednice</value></data>
   <data name="AutomaticPurlin_Description" xml:space="preserve"><value>Upravte návrh rozložení a zkontrolujte dočasný náhled. Změny se v tomto kroku neukládají.</value></data>
-  <data name="AutomaticPurlin_ReferenceSection" xml:space="preserve"><value>Referenční výška</value></data>
+  <data name="AutomaticPurlin_ReferenceSection" xml:space="preserve"><value>Referenční rovina</value></data>
   <data name="AutomaticPurlin_DatumStored" xml:space="preserve"><value>Referenční výška je načtena z výkresu.</value></data>
   <data name="AutomaticPurlin_DatumMissing" xml:space="preserve"><value>Referenční výška není nastavena. Hodnoty níže slouží pouze pro tento náhled.</value></data>
   <data name="AutomaticPurlin_ReferenceKind" xml:space="preserve"><value>Typ reference</value></data>
@@ -785,10 +999,10 @@
   <data name="AutomaticPurlin_Enabled" xml:space="preserve"><value>Zapnuta</value></data>
   <data name="AutomaticPurlin_Remove" xml:space="preserve"><value>Odstranit</value></data>
   <data name="AutomaticPurlin_PlacementMode" xml:space="preserve"><value>Způsob umístění</value></data>
-  <data name="AutomaticPurlin_ModeBottomHeight" xml:space="preserve"><value>Výška spodní hrany nad referencí</value></data>
+  <data name="AutomaticPurlin_ModeBottomHeight" xml:space="preserve"><value>Výškový rozdíl DH vůči referenci</value></data>
   <data name="AutomaticPurlin_ModeEaveDistance" xml:space="preserve"><value>Půdorysná vzdálenost od okapu</value></data>
   <data name="AutomaticPurlin_ModeRidgeDistance" xml:space="preserve"><value>Půdorysná vzdálenost od hřebene</value></data>
-  <data name="AutomaticPurlin_ValueBottomHeight" xml:space="preserve"><value>Výška spodní hrany</value></data>
+  <data name="AutomaticPurlin_ValueBottomHeight" xml:space="preserve"><value>Výškový rozdíl DH vůči referenci</value></data>
   <data name="AutomaticPurlin_ValueEaveDistance" xml:space="preserve"><value>Vzdálenost od okapu</value></data>
   <data name="AutomaticPurlin_ValueRidgeDistance" xml:space="preserve"><value>Vzdálenost od hřebene</value></data>
   <data name="AutomaticPurlin_RidgeReference" xml:space="preserve"><value>Referenční hřeben</value></data>
@@ -814,11 +1028,12 @@
   <data name="AutomaticPurlin_ValidationBoundaryIdentity" xml:space="preserve"><value>Stabilní identita hranice chybí nebo je neplatná. Náhled ji nesmí vytvořit ani opravit.</value></data>
   <data name="AutomaticPurlin_ValidationDatum" xml:space="preserve"><value>Zadejte platnou referenční výšku v metrech a lokální polohu v milimetrech.</value></data>
   <data name="AutomaticPurlin_ValidationNoHorizontalRidge" xml:space="preserve"><value>Střecha nemá způsobilý vodorovný hřeben.</value></data>
-  <data name="AutomaticPurlin_ValidationValue" xml:space="preserve"><value>Hodnota umístění musí být konečné číslo větší než 0.</value></data>
-  <data name="AutomaticPurlin_ValidationSeating" xml:space="preserve"><value>Zapuštění musí být větší než 0 a menší než 100 % nebo výška krokve.</value></data>
+  <data name="AutomaticPurlin_ValidationValue" xml:space="preserve"><value>Hodnota umístění musí být konečné číslo. Pro výškový rozdíl DH jsou povoleny i záporné hodnoty; pro vzdálenost musí být hodnota větší než 0.</value></data>
+  <data name="AutomaticPurlin_ValidationSeating" xml:space="preserve"><value>Mimo rozsah</value></data>
   <data name="AutomaticPurlin_ValidationRidgeReference" xml:space="preserve"><value>Vyberte platný vodorovný referenční hřeben.</value></data>
   <data name="AutomaticPurlin_ValidationInclinedRidge" xml:space="preserve"><value>Nakloněný hřeben nelze použít jako referenci.</value></data>
   <data name="AutomaticPurlin_ValidationOutsideRoof" xml:space="preserve"><value>Umístění leží mimo střechu.</value></data>
+  <data name="AutomaticPurlin_ValidationPlacementModeConversion" xml:space="preserve"><value>Tento způsob umístění nedokáže reprezentovat aktuální fyzickou polohu s platným zapuštěním. Poslední platná geometrie zůstává; Použít je zakázáno.</value></data>
   <data name="AutomaticPurlin_ValidationCriticalElevation" xml:space="preserve"><value>Umístění se shoduje s kritickou výškou topologie.</value></data>
   <data name="AutomaticPurlin_ValidationLayout" xml:space="preserve"><value>Rozložení nelze zobrazit. Zkontrolujte jeho hodnoty.</value></data>
   <data name="AutomaticPurlin_CommandSelectRoof" xml:space="preserve"><value>Vyberte autoritativní uloženou zdrojovou křivku valbové střechy: </value></data>
@@ -838,4 +1053,123 @@
   <data name="AutomaticPurlin_SchematicSeatingHelp" xml:space="preserve"><value>Schematické znázornění zapuštění; rozhodující jsou číselné hodnoty.</value></data>
   <data name="AutomaticPurlin_SchematicRidgeUnresolved" xml:space="preserve"><value>Vyberte platný referenční hřeben.</value></data>
   <data name="AutomaticPurlin_SchematicNoSelection" xml:space="preserve"><value>Vyberte mezilehlou vaznici, aby se zobrazilo její umístění.</value></data>
+  <data name="AutomaticPurlin_SchematicStale" xml:space="preserve"><value>Schéma je zastaralé: zobrazuje poslední platnou geometrii, dokud není aktuální návrh platný.</value></data>
+
+  <data name="AutomaticPurlin_CommandInvalidSelection" xml:space="preserve"><value>Vyberte obrys nebo existující část střechy.</value></data>
+
+  <data name="AutomaticPurlin_Confirm" xml:space="preserve"><value>Potvrdit</value></data>
+
+  <data name="AutomaticPurlin_ConfirmStoredManualRafter" xml:space="preserve"><value>Potvrdit uložené ruční rozměry</value></data>
+
+  <data name="AutomaticPurlin_CurrentRoofPitchFormat" xml:space="preserve"><value>Aktuální sklon střechy: {0}°</value></data>
+
+  <data name="AutomaticPurlin_DatumInconsistentSourceEave" xml:space="preserve"><value>Uložená reference „Rovina okapu“ má neplatnou lokální Z (musí být 0). Původní záznam zůstává; vyberte referenci a použijte změny.</value></data>
+
+  <data name="AutomaticPurlin_EnterRafterDimensions" xml:space="preserve"><value>Zadat rozměry krokve</value></data>
+
+  <data name="AutomaticPurlin_Height" xml:space="preserve"><value>Výška</value></data>
+
+  <data name="AutomaticPurlin_ManualRafterDialogDescription" xml:space="preserve"><value>Zadejte šířku a výšku krokve v milimetrech. Tyto rozměry se použijí pro výpočet výšek a zapuštění; fyzická krokve se nevytvoří.</value></data>
+
+  <data name="AutomaticPurlin_ManualRafterDialogTitle" xml:space="preserve"><value>Rozměry krokve</value></data>
+
+  <data name="AutomaticPurlin_ManualRafterProfileInfoFormat" xml:space="preserve"><value>Používá se ručně zadaný průřez krokve: {0} × {1} mm.</value></data>
+
+  <data name="AutomaticPurlin_ManualRafterSelectFromDrawing" xml:space="preserve"><value>Vybrat z výkresu</value></data>
+
+  <data name="AutomaticPurlin_MissingActualTransitionDetail" xml:space="preserve"><value>Konfigurace používala skutečný průřez krokví. Potvrďte uložený ruční průřez, nebo zadejte jiné rozměry. Apply je zakázané, dokud nerozhodnete.</value></data>
+
+  <data name="AutomaticPurlin_MissingActualTransitionTitle" xml:space="preserve"><value>Skutečné krokve již nejsou k dispozici.</value></data>
+
+  <data name="AutomaticPurlin_NoRafterWarningDetail" xml:space="preserve"><value>Pro výpočet výšek a zapuštění zadejte rozměry krokve ručně.</value></data>
+
+  <data name="AutomaticPurlin_NoRafterWarningTitle" xml:space="preserve"><value>Střecha zatím neobsahuje žádnou krokvi.</value></data>
+
+  <data name="AutomaticPurlin_PersistedManualRafterInvalid" xml:space="preserve"><value>Uložený ruční průřez krokve je neplatný nebo neúplný. Zadejte platné rozměry W × H.</value></data>
+
+  <data name="AutomaticPurlin_PreviewReturnPrompt" xml:space="preserve"><value>Stiskněte Enter pro návrat do dialogu vaznic: </value></data>
+
+  <data name="AutomaticPurlin_ProvisionalManualRafterProfileInfoFormat" xml:space="preserve"><value>Předběžný (nepotvrzený) ruční průřez pro náhled: {0} × {1} mm.</value></data>
+
+  <data name="AutomaticPurlin_RafterRecipeAmbiguous" xml:space="preserve"><value>Rozměry automatických krokví střechy nejsou jednotné. Upravte je přes AK_ROOF_RAFTERS nebo vyberte krokev jako zdroj rozměru.</value></data>
+
+  <data name="AutomaticPurlin_RafterSourceConflictActualCaption" xml:space="preserve"><value>SKUTEČNÝ PRŮŘEZ KROKVÍ:</value></data>
+
+  <data name="AutomaticPurlin_RafterSourceConflictDescription" xml:space="preserve"><value>Uložený ruční průřez krokve se liší od skutečných krokví na střeše. Vyberte, který průřez se použije pro výpočty vaznic. Fyzické krokve se nezmění.</value></data>
+
+  <data name="AutomaticPurlin_RafterSourceConflictFooter" xml:space="preserve"><value>Ruční a skutečný průřez krokve se liší. Před použitím vyberte zdroj rozměrů.</value></data>
+
+  <data name="AutomaticPurlin_RafterSourceConflictKeepManual" xml:space="preserve"><value>Ponechat ruční rozměry</value></data>
+
+  <data name="AutomaticPurlin_RafterSourceConflictManualCaption" xml:space="preserve"><value>ULOŽENÝ RUČNÍ PRŮŘEZ:</value></data>
+
+  <data name="AutomaticPurlin_RafterSourceConflictProfileFormat" xml:space="preserve"><value>{0} × {1} mm</value></data>
+
+  <data name="AutomaticPurlin_RafterSourceConflictTitle" xml:space="preserve"><value>Konflikt průřezu krokve</value></data>
+
+  <data name="AutomaticPurlin_RafterSourceConflictUseActual" xml:space="preserve"><value>Použít skutečné rozměry</value></data>
+
+  <data name="AutomaticPurlin_ResolveRafterSourceConflict" xml:space="preserve"><value>Vybrat zdroj rozměrů</value></data>
+
+  <data name="AutomaticPurlin_RoofInfoHeight" xml:space="preserve"><value>Výška střechy</value></data>
+
+  <data name="AutomaticPurlin_RoofInfoPitch" xml:space="preserve"><value>Sklon střechy</value></data>
+
+  <data name="AutomaticPurlin_RoofInfoType" xml:space="preserve"><value>Typ střechy</value></data>
+
+  <data name="AutomaticPurlin_SectionAxisAbbrev" xml:space="preserve"><value>OS</value></data>
+
+  <data name="AutomaticPurlin_SectionBottomAbbrev" xml:space="preserve"><value>SH</value></data>
+
+  <data name="AutomaticPurlin_SectionTopAbbrev" xml:space="preserve"><value>HH</value></data>
+
+  <data name="AutomaticPurlin_SelectRafterCancelled" xml:space="preserve"><value>Výběr krokve byl zrušen. Rozměry zůstaly nezměněné.</value></data>
+
+  <data name="AutomaticPurlin_SelectRafterClickHint" xml:space="preserve"><value>↻ Klikni pro aktualizaci</value></data>
+
+  <data name="AutomaticPurlin_SelectRafterHint" xml:space="preserve"><value>Klikněte a vyberte krokev, ze které se převezmou rozměry.</value></data>
+
+  <data name="AutomaticPurlin_SelectRafterInvalid" xml:space="preserve"><value>Vyberte prvek typu Krokev s platnými rozměry šířky a výšky.</value></data>
+
+  <data name="AutomaticPurlin_SelectRafterPrompt" xml:space="preserve"><value>Vyberte libovolnou KROVY krokev jako zdroj rozměru: </value></data>
+
+  <data name="AutomaticPurlin_TabErrorFormat" xml:space="preserve"><value>{0} — obsahuje chyby</value></data>
+
+  <data name="AutomaticPurlin_TabErrorGlyph" xml:space="preserve"><value>⚠</value></data>
+
+  <data name="AutomaticPurlin_TabIntermediate" xml:space="preserve"><value>Mezilehlá vaznice</value></data>
+
+  <data name="AutomaticPurlin_TabRidge" xml:space="preserve"><value>Vrcholová vaznice</value></data>
+
+  <data name="AutomaticPurlin_TabWallPlate" xml:space="preserve"><value>Pozednice</value></data>
+
+  <data name="AutomaticPurlin_Tooltip_BottomDescription" xml:space="preserve"><value>Spodní hrana prvku, relativní výška vůči referenci.</value></data>
+
+  <data name="AutomaticPurlin_Tooltip_CenterDescription" xml:space="preserve"><value>Geometrická osa prvku, relativní výška vůči referenci.</value></data>
+
+  <data name="AutomaticPurlin_Tooltip_CurrentValueFormat" xml:space="preserve"><value>Aktuální hodnota: {0}</value></data>
+
+  <data name="AutomaticPurlin_Tooltip_RoofPlaneDescription" xml:space="preserve"><value>Výška horní plochy krokve ve svislé ose prvku, relativní výška vůči referenci.</value></data>
+
+  <data name="AutomaticPurlin_Tooltip_RoofPlaneRidgeDescription" xml:space="preserve"><value>Horní apex střechy v ose vrcholové vaznice, relativní výška vůči referenci.</value></data>
+
+  <data name="AutomaticPurlin_Tooltip_TopDescription" xml:space="preserve"><value>Horní hrana prvku, relativní výška vůči referenci.</value></data>
+
+  <data name="AutomaticPurlin_ValidationDimension" xml:space="preserve"><value>Šířka a výška musí být kladná konečná čísla v milimetrech.</value></data>
+
+  <data name="AutomaticPurlin_ValidationPlanDistanceRange" xml:space="preserve"><value>Půdorysná vzdálenost od okapu musí být alespoň 0 mm a menší než {0} mm pro tuto střechu.</value></data>
+
+  <data name="AutomaticPurlin_WallPlateLowerEdgeHeight" xml:space="preserve"><value>Výška spodní hrany Pozednice</value></data>
+
+  <data name="AutomaticPurlin_WallPlateSection" xml:space="preserve"><value>Pozednice</value></data>
+
+  <data name="AutomaticPurlin_Width" xml:space="preserve"><value>Šířka</value></data>
+
+  <data name="Command_RoofEdit_PurlinElevationOutsideRoof" xml:space="preserve"><value>
+Mezilehlá vaznice je při novém sklonu mimo střechu.
+Upravte její polohu nebo zvolte vhodný sklon střechy.</value></data>
+
+  <data name="Command_RoofEdit_PurlinLayoutIncompatible" xml:space="preserve"><value>
+Uložení vaznic není kompatibilní s novou geometrií střechy.
+Upravte vaznice nebo zvolte vhodnou geometrii.</value></data>
 </root>

@@ -305,6 +305,16 @@ internal static class RoofEditCommandWorkflow
                             restoredGeometry,
                             geometry,
                             out var failureMessageKey);
+                        if (outcome is null &&
+                            IsRecoverablePurlinEditValidation(failureMessageKey))
+                        {
+                            // Keep the same edit session: preserve entered pitch, show
+                            // the Purlin-specific message inline, and let Apply retry.
+                            viewModel.SetSessionValidation(failureMessageKey);
+                            dialog.FocusSlopeInput();
+                            continue;
+                        }
+
                         document.Editor.WriteMessage(UiStrings.GetString(
                             outcome is not null
                                 ? GetSoftReplacementMessage(outcome.Value)
@@ -325,6 +335,16 @@ internal static class RoofEditCommandWorkflow
             }
         }
     }
+
+    private static bool IsRecoverablePurlinEditValidation(string failureMessageKey) =>
+        string.Equals(
+            failureMessageKey,
+            RoofAutomaticPurlinLiveRegenerationService.LocalizationKeyElevationOutside,
+            StringComparison.Ordinal) ||
+        string.Equals(
+            failureMessageKey,
+            RoofAutomaticPurlinLiveRegenerationService.LocalizationKeyLayoutIncompatible,
+            StringComparison.Ordinal);
 
     /// <summary>
     /// Applies the edited geometry to the EXISTING roof. Re-validates the source,
@@ -404,6 +424,36 @@ internal static class RoofEditCommandWorkflow
             var defaultProfile = TimberElementDefaultProfileStore.Load();
             var layerProfile = ElementLayerProfileStore.Load();
 
+            // Only regenerate rafters when the physical geometry actually changed;
+            // an unchanged edit stays handle-preserving (freshness check short-circuits).
+            var geometryChanged = !string.Equals(
+                newGeometry.Signature,
+                selectionGeometry.Signature,
+                StringComparison.Ordinal);
+
+            if (geometryChanged &&
+                restored.Geometry is HipRoofGeometry proposedHipForPurlins)
+            {
+                var previousHipForPurlins = selectionGeometry as HipRoofGeometry;
+                var purlinPreflight =
+                    RoofAutomaticPurlinLiveRegenerationService
+                        .TryValidatePersistedLayoutForProposedGeometry(
+                            document.Database,
+                            transaction,
+                            owner,
+                            proposedHipForPurlins,
+                            defaultProfile,
+                            document.Editor,
+                            previousGeometry: previousHipForPurlins);
+                if (!purlinPreflight.IsSuccess)
+                {
+                    failureMessageKey = string.IsNullOrWhiteSpace(purlinPreflight.LocalizationKey)
+                        ? RoofAutomaticPurlinLiveRegenerationService.LocalizationKeyLayoutIncompatible
+                        : purlinPreflight.LocalizationKey;
+                    return null;
+                }
+            }
+
             if (newGeometry is not HipRoofGeometry &&
                 !RoofAttachedManualLifecycleService.TryRebaseForMonopitchSemanticMirror(
                         document,
@@ -422,24 +472,22 @@ internal static class RoofEditCommandWorkflow
             var sourceElevation = RoofPolylineExtractor.GetSourceElevation(owner);
             var edges = RoofWireframe.Create(restored.Geometry, sourceElevation);
             var signature = RoofWireframe.BuildGenerationSignature(edges);
+            // Defer EnsureGroup until the final TrySyncForOwner so an unexpected
+            // mid-edit failure does not leave AutoCAD GROUP membership dirty after
+            // ambient transaction abort (HOST: staleKrovyDuplicate).
             if (!RoofDisplayService.Rebuild(
                     document.Database,
                     transaction,
                     owner.ObjectId,
                     ownerReference,
                     edges,
-                    signature))
+                    signature,
+                    syncAssemblyGroup: false))
             {
                 failureMessageKey = "Command_Roof_DisplayFailed";
                 return null;
             }
 
-            // Only regenerate rafters when the physical geometry actually changed;
-            // an unchanged edit stays handle-preserving (freshness check short-circuits).
-            var geometryChanged = !string.Equals(
-                newGeometry.Signature,
-                selectionGeometry.Signature,
-                StringComparison.Ordinal);
             var outcome = RoofGeneratedRafterSetService.ReplacementOutcome.NotApplicable;
             RoofGeneratedAnchorResolutionContext? anchorResolutionContext = null;
             outcome = RoofGeneratedRafterSetService.TryReplaceForSupportedResize(
@@ -452,7 +500,8 @@ internal static class RoofEditCommandWorkflow
                 layerProfile,
                 out anchorResolutionContext,
                 forceRegenerateOnSourceResize: geometryChanged,
-                rebuildReason: "roof-edit");
+                rebuildReason: "roof-edit",
+                syncAssemblyGroup: false);
             if (outcome == RoofGeneratedRafterSetService.ReplacementOutcome.Failed)
             {
                 failureMessageKey = "Command_RoofRafters_GenerationFailed";
@@ -504,10 +553,33 @@ internal static class RoofEditCommandWorkflow
                         currentInput,
                         hipGeometryForStructural,
                         defaultProfile,
-                        layerProfile);
+                        layerProfile,
+                        syncAssemblyGroup: false);
                 if (!structural.IsSuccess)
                 {
                     failureMessageKey = "Command_RoofRafters_GenerationFailed";
+                    return null;
+                }
+            }
+
+            if (geometryChanged)
+            {
+                var previousHipForPurlins = selectionGeometry as HipRoofGeometry;
+                var purlinLive =
+                    RoofAutomaticPurlinLiveRegenerationService.TryRegenerateInTransaction(
+                        document,
+                        transaction,
+                        owner,
+                        trigger: "RoofEdit",
+                        defaultProfile,
+                        layerProfile,
+                        document.Editor,
+                        syncAssemblyGroup: false,
+                        previousGeometry: previousHipForPurlins);
+                if (!purlinLive.IsSuccess)
+                {
+                    failureMessageKey =
+                        RoofAutomaticPurlinLiveRegenerationService.LocalizationKeyLayoutIncompatible;
                     return null;
                 }
             }

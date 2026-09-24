@@ -47,7 +47,10 @@
     </LinearGradientBrush>
     <SolidColorBrush x:Key="SettingsFocusBrush" Color="#B57A45" />
     <SolidColorBrush x:Key="SettingsDisabledBrush" Color="#8E7968" />
-    <SolidColorBrush x:Key="SettingsValidationBrush" Color="#B64A3A" />
+    <SolidColorBrush x:Key="SettingsValidationBrush" Color="#C62828" />
+    <!-- Invalid field chrome: clear red border + subtle light-red fill (wood theme). -->
+    <SolidColorBrush x:Key="PurlinValidationBorderBrush" Color="#C62828" />
+    <SolidColorBrush x:Key="PurlinValidationBackgroundBrush" Color="#FDECEA" />
     <SolidColorBrush x:Key="SettingsInfoBackgroundBrush" Color="#FCFAF5" />
     <SolidColorBrush x:Key="SettingsInfoBorderBrush" Color="#D9CABB" />
     <SolidColorBrush x:Key="SettingsInfoTextBrush" Color="#725640" />

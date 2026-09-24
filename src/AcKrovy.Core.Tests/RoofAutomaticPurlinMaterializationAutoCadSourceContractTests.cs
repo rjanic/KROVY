@@ -159,6 +159,35 @@ public sealed class RoofAutomaticPurlinMaterializationAutoCadSourceContractTests
     }
 
     [Fact]
+    public void WallPlateMaterialization_UsesCorePlanTypeDimensionsAndRoleMetadata()
+    {
+        Assert.Contains("bool includeWallPlates = false", Service);
+        Assert.Contains("WallPlatesEnabled = includeWallPlates", Service);
+        Assert.Contains("includeWallPlates: storedLayout.Data.WallPlateEnabled", Service);
+        Assert.Contains("WallPlateWidthMm = wallPlateDefaults.WidthMm", Service);
+        Assert.Contains("WallPlateHeightMm = wallPlateDefaults.HeightMm", Service);
+        Assert.Contains("CreateTimberData(\n                defaultProfile,\n                item,", Service.Replace("\r\n", "\n"));
+        Assert.Contains("layerProfile.GetStyle(item.ElementType)", Service);
+        Assert.Contains("member.Item.ElementType", Service);
+        Assert.Contains("IsMatchingTimberType", Service);
+        Assert.Contains("expected.Item.ElementType", Service);
+        Assert.DoesNotContain("RoofStructuralGeneratedStore.Write", Service);
+    }
+
+    [Fact]
+    public void PlanEntityParity_PostconditionIncludesTypeDimensionsOwnerGeometryAndIdentity()
+    {
+        Assert.Contains("timber != expected.TimberData", Service);
+        Assert.Contains("generated != expected.GeneratedData", Service);
+        Assert.Contains("line.StartPoint", Service);
+        Assert.Contains("line.EndPoint", Service);
+        Assert.Contains("timber.ElementId", Service);
+        Assert.Contains("left.WidthMm", Service);
+        Assert.Contains("left.HeightMm", Service);
+        Assert.Contains("postScan.MatchingIds.Count == desired.Count", Service);
+    }
+
+    [Fact]
     public void ElementIdAllocation_UsesGlobalOwnersSelfExclusionAndBatchReservation()
     {
         Assert.Contains("ReadElementIdOwners", Service);
@@ -266,6 +295,7 @@ public sealed class RoofAutomaticPurlinMaterializationAutoCadSourceContractTests
         Assert.StartsWith("#if DEBUG", Commands);
         Assert.EndsWith("#endif\n", Commands.Replace("\r\n", "\n"));
         Assert.Contains("AK_DEBUG_PURLIN_MATERIALIZE", Commands);
+        Assert.Contains("includeWallPlates: true", Commands);
         AssertOrdered(
             Commands,
             "RoofAutomaticPurlinMaterializationService.PrepareInTransaction",
@@ -279,7 +309,7 @@ public sealed class RoofAutomaticPurlinMaterializationAutoCadSourceContractTests
     }
 
     [Fact]
-    public void MaterializationService_HasOnlyDebugProofAndProductionApplyCallers()
+    public void MaterializationService_HasOnlyDebugProofProductionApplyAndLiveRegenCallers()
     {
         var callers = Directory.GetFiles(
                 Path.Combine(RepositoryRoot(), "src", "AcKrovy.AutoCAD"),
@@ -293,20 +323,48 @@ public sealed class RoofAutomaticPurlinMaterializationAutoCadSourceContractTests
                 StringComparison.Ordinal))
             .ToArray();
 
-        Assert.Equal(2, callers.Length);
+        Assert.Equal(3, callers.Length);
         var debug = Assert.Single(callers, caller => caller.Path.EndsWith(
             "AutoCadAutomaticPurlinMaterializationCommands.cs",
             StringComparison.OrdinalIgnoreCase));
         var production = Assert.Single(callers, caller => caller.Path.EndsWith(
             "RoofAutomaticPurlinProductionApplyService.cs",
             StringComparison.OrdinalIgnoreCase));
+        var live = Assert.Single(callers, caller => caller.Path.EndsWith(
+            "RoofAutomaticPurlinLiveRegenerationService.cs",
+            StringComparison.OrdinalIgnoreCase));
         Assert.StartsWith("#if DEBUG", debug.Source);
-        Assert.DoesNotContain("#if DEBUG", production.Source);
+        // Production Apply may include DEBUG-only XData readback diagnostics.
+        // RELEASE must still enforce the postcondition and must not mutate inside #if DEBUG.
+        var debugDirective = production.Source.IndexOf("#if DEBUG", StringComparison.Ordinal);
+        Assert.True(debugDirective >= 0);
+        var debugEnd = production.Source.IndexOf("#endif", debugDirective, StringComparison.Ordinal);
+        Assert.True(debugEnd > debugDirective);
+        var debugBlock = production.Source.Substring(debugDirective, debugEnd - debugDirective);
+        Assert.Contains("ROOF_PURLIN_APPLY_POSTCONDITION", debugBlock);
+        Assert.Contains("Debug.WriteLine", debugBlock);
+        Assert.DoesNotContain("RoofPurlinLayoutStore.Write", debugBlock);
+        Assert.DoesNotContain("RoofRelativeElevationDatumStore.Write", debugBlock);
+        Assert.DoesNotContain("transaction.Commit", debugBlock);
+        Assert.DoesNotContain("UpgradeOpen", debugBlock);
+        var postconditionFailure = production.Source.IndexOf(
+            "owner-metadata-postcondition-failed",
+            StringComparison.Ordinal);
+        Assert.True(postconditionFailure > debugEnd);
+        Assert.Contains(
+            "AreEquivalentForOwnerWrite",
+            production.Source);
+        Assert.DoesNotContain("ShowModalWindow", live.Source);
+        Assert.Contains("RoofPurlinLayoutStore.Read(owner)", live.Source);
     }
 
     [Fact]
     public void DebugCommand_EmitsDeterministicHostProofFields()
     {
+        Assert.Contains("type={member.ElementType}", Commands);
+        Assert.Contains("width={Format(member.WidthMm)}", Commands);
+        Assert.Contains("height={Format(member.HeightMm)}", Commands);
+        Assert.Contains("wallPlate={result.WallPlate", Commands);
         Assert.Contains("ROOF_PURLIN_LAYOUT", Commands);
         Assert.Contains("ROOF_PURLIN_MEMBER", Commands);
         Assert.Contains("ROOF_PURLIN_MATERIALIZE", Commands);

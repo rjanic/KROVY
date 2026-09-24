@@ -33,20 +33,73 @@
   <data name="Report_Column_VolumeM3" xml:space="preserve"><value>Objętość [m³]</value></data>
   <data name="Report_TotalFormat" xml:space="preserve"><value>Razem: {0} elementów</value></data>
   <data name="Message_DialogTitle" xml:space="preserve"><value>ACAD KROVY</value></data>
-  <data name="Message_PluginLoaded" xml:space="preserve"><value>&#xA;Wczytano ACAD KROVY {0}. Karta ACAD KROVY zostanie dodana do wstążki. Wpisz AK_HELP, aby wyświetlić listę poleceń, lub AK_TOOLBAR, aby wyświetlić klasyczny pasek małych ikon.</value></data>
-  <data name="Help_CommandOverview" xml:space="preserve"><value>&#xA;ACAD KROVY {0}&#xA;&#xA;ELEMENTY WIĘŹBY&#xA;  AK_KROKVA      – szybko przypisuje typ Krokiew&#xA;  AK_POMURNICA   – szybko przypisuje typ Murłata&#xA;  AK_VAZNICA     – szybko przypisuje typ Płatew&#xA;  AK_STLPIK      – szybko przypisuje typ Słup&#xA;  AK_KLIESTINA   – szybko przypisuje typ Jętka&#xA;  AK_VZPERA      – szybko przypisuje typ Zastrzał&#xA;  AK_VAZNYTRAM   – szybko przypisuje typ Belka wiązarowa&#xA;&#xA;DANE I ZESTAWIENIA&#xA;  AK_ASSIGN      – przypisuje dane do wybranych linii lub polilinii&#xA;  AK_EDIT        – zbiorczo edytuje zaznaczone wartości&#xA;  AK_FLIPSLOPE   – odwraca kierunek spadku elementu lub jego opisu&#xA;  AK_INSPECT     – wyświetla dane jednego elementu&#xA;  AK_REPORT      – wstawia tabelę z wybranych elementów&#xA;  AK_REPORTALL   – wstawia tabelę ze wszystkich elementów&#xA;  AK_RECALC      – sprawdza obliczenia wszystkich elementów&#xA;  AK_RENUMBER   – jawnie przenumerowuje wszystkie pozycje według długości cięcia&#xA;  AK_RIBBON      – wyświetla lub odświeża kartę ACAD KROVY na wstążce&#xA;  AK_TOOLBAR     – wyświetla lub ukrywa klasyczny pływający pasek małych ikon&#xA;  AK_SETTINGS    – konfiguruje warstwy i kolory poszczególnych typów elementów&#xA;  AK_APPLYLAYERS – stosuje bieżące ustawienia warstw w rysunku&#xA;&#xA;OPISY W RYSUNKU&#xA;  AK_LABELS      – tworzy lub odświeża opisy wszystkich elementów&#xA;  AK_LABELSELECTED – tworzy lub odświeża opisy wybranych elementów&#xA;  AK_LABELSHOW   – wyświetla warstwę KROV_POPIS&#xA;  AK_LABELHIDE   – ukrywa warstwę KROV_POPIS&#xA;&#xA;DACH&#xA;  AK_ROOF            – tworzy dach dwuspadowy&#xA;  AK_ROOF_RAFTERS    – tworzy automatyczne krokwie&#xA;  AK_ROOF_UNLOCK     – odblokowuje ręczne zmiany wygenerowanego drewna&#xA;  AK_ROOF_LOCK       – blokuje ochronę wygenerowanego drewna&#xA;  AK_ROOF_RESET_EDITS – przywraca ręczne zmiany do geometrii kanonicznej&#xA;&#xA;Wskazówka: opis jest odświeżany automatycznie po przypisaniu, edycji lub zmianie geometrii. AK_LABELS i AK_RECALC umożliwiają kontrolę ręczną.</value></data>
-  <data name="Command_Ribbon_Ready" xml:space="preserve"><value>&#xA;ACAD KROVY: karta wstążki jest gotowa.</value></data>
-  <data name="Command_Ribbon_Pending" xml:space="preserve"><value>&#xA;ACAD KROVY: wstążka nie jest jeszcze gotowa; karta zostanie wkrótce dodana.</value></data>
-  <data name="Command_Toolbar_Shown" xml:space="preserve"><value>&#xA;ACAD KROVY: klasyczny pasek ikon jest widoczny.</value></data>
-  <data name="Command_Toolbar_Hidden" xml:space="preserve"><value>&#xA;ACAD KROVY: klasyczny pasek ikon jest ukryty.</value></data>
-  <data name="Command_Settings_SaveFailedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: nie udało się zapisać ustawień: {0}</value></data>
-  <data name="Command_Settings_Saved" xml:space="preserve"><value>&#xA;ACAD KROVY: ustawienia zostały zapisane.</value></data>
-  <data name="Command_Settings_PromptApplyAllowances" xml:space="preserve"><value>&#xA;Wybierz elementy, do których chcesz zastosować nowe naddatki na cięcie: </value></data>
-  <data name="Command_Settings_SelectionCancelled" xml:space="preserve"><value>&#xA;ACAD KROVY: anulowano wybór; istniejące elementy nie zostały zmienione.</value></data>
-  <data name="Command_Labels_PromptSelected" xml:space="preserve"><value>&#xA;Wybierz elementy, których opisy chcesz utworzyć lub odświeżyć: </value></data>
-  <data name="Command_Labels_UpdatedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: odświeżone opisy: {0}. Nowe: {1}. Pominięte: {2}.</value></data>
-  <data name="Command_Labels_RefreshFailedFormat" xml:space="preserve"><value>&#xA;Nie utworzono ani nie odświeżono opisu elementu {0}: {1}</value></data>
-  <data name="Command_Labels_IntentionPrompt" xml:space="preserve"><value>&#xA;AK_LABEL&#xA;[Brakujące/Wybierz/Przywróć wszystkie] &lt;Brakujące&gt;: </value></data>
+  <data name="Message_PluginLoaded" xml:space="preserve"><value>
+Wczytano ACAD KROVY {0}. Karta ACAD KROVY zostanie dodana do wstążki. Wpisz AK_HELP, aby wyświetlić listę poleceń, lub AK_TOOLBAR, aby wyświetlić klasyczny pasek małych ikon.</value></data>
+  <data name="Help_CommandOverview" xml:space="preserve"><value>
+ACAD KROVY {0}
+
+ELEMENTY WIĘŹBY
+  AK_KROKVA      – szybko przypisuje typ Krokiew
+  AK_POMURNICA   – szybko przypisuje typ Murłata
+  AK_VAZNICA     – szybko przypisuje typ Płatew
+  AK_STLPIK      – szybko przypisuje typ Słup
+  AK_KLIESTINA   – szybko przypisuje typ Jętka
+  AK_VZPERA      – szybko przypisuje typ Zastrzał
+  AK_VAZNYTRAM   – szybko przypisuje typ Belka wiązarowa
+
+DANE I ZESTAWIENIA
+  AK_ASSIGN      – przypisuje dane do wybranych linii lub polilinii
+  AK_EDIT        – zbiorczo edytuje zaznaczone wartości
+  AK_FLIPSLOPE   – odwraca kierunek spadku elementu lub jego opisu
+  AK_INSPECT     – wyświetla dane jednego elementu
+  AK_REPORT      – wstawia tabelę z wybranych elementów
+  AK_REPORTALL   – wstawia tabelę ze wszystkich elementów
+  AK_RECALC      – sprawdza obliczenia wszystkich elementów
+  AK_RENUMBER   – jawnie przenumerowuje wszystkie pozycje według długości cięcia
+  AK_RIBBON      – wyświetla lub odświeża kartę ACAD KROVY na wstążce
+  AK_TOOLBAR     – wyświetla lub ukrywa klasyczny pływający pasek małych ikon
+  AK_SETTINGS    – konfiguruje warstwy i kolory poszczególnych typów elementów
+  AK_APPLYLAYERS – stosuje bieżące ustawienia warstw w rysunku
+
+OPISY W RYSUNKU
+  AK_LABELS      – tworzy lub odświeża opisy wszystkich elementów
+  AK_LABELSELECTED – tworzy lub odświeża opisy wybranych elementów
+  AK_LABELSHOW   – wyświetla warstwę KROV_POPIS
+  AK_LABELHIDE   – ukrywa warstwę KROV_POPIS
+
+DACH
+  AK_ROOF            – tworzy dach dwuspadowy
+  AK_ROOF_RAFTERS    – tworzy automatyczne krokwie
+  AK_ROOF_UNLOCK     – odblokowuje ręczne zmiany wygenerowanego drewna
+  AK_ROOF_LOCK       – blokuje ochronę wygenerowanego drewna
+  AK_ROOF_RESET_EDITS – przywraca ręczne zmiany do geometrii kanonicznej
+
+Wskazówka: opis jest odświeżany automatycznie po przypisaniu, edycji lub zmianie geometrii. AK_LABELS i AK_RECALC umożliwiają kontrolę ręczną.</value></data>
+  <data name="Command_Ribbon_Ready" xml:space="preserve"><value>
+ACAD KROVY: karta wstążki jest gotowa.</value></data>
+  <data name="Command_Ribbon_Pending" xml:space="preserve"><value>
+ACAD KROVY: wstążka nie jest jeszcze gotowa; karta zostanie wkrótce dodana.</value></data>
+  <data name="Command_Toolbar_Shown" xml:space="preserve"><value>
+ACAD KROVY: klasyczny pasek ikon jest widoczny.</value></data>
+  <data name="Command_Toolbar_Hidden" xml:space="preserve"><value>
+ACAD KROVY: klasyczny pasek ikon jest ukryty.</value></data>
+  <data name="Command_Settings_SaveFailedFormat" xml:space="preserve"><value>
+ACAD KROVY: nie udało się zapisać ustawień: {0}</value></data>
+  <data name="Command_Settings_Saved" xml:space="preserve"><value>
+ACAD KROVY: ustawienia zostały zapisane.</value></data>
+  <data name="Command_Settings_PromptApplyAllowances" xml:space="preserve"><value>
+Wybierz elementy, do których chcesz zastosować nowe naddatki na cięcie: </value></data>
+  <data name="Command_Settings_SelectionCancelled" xml:space="preserve"><value>
+ACAD KROVY: anulowano wybór; istniejące elementy nie zostały zmienione.</value></data>
+  <data name="Command_Labels_PromptSelected" xml:space="preserve"><value>
+Wybierz elementy, których opisy chcesz utworzyć lub odświeżyć: </value></data>
+  <data name="Command_Labels_UpdatedFormat" xml:space="preserve"><value>
+ACAD KROVY: odświeżone opisy: {0}. Nowe: {1}. Pominięte: {2}.</value></data>
+  <data name="Command_Labels_RefreshFailedFormat" xml:space="preserve"><value>
+Nie utworzono ani nie odświeżono opisu elementu {0}: {1}</value></data>
+  <data name="Command_Labels_IntentionPrompt" xml:space="preserve"><value>
+AK_LABEL
+[Brakujące/Wybierz/Przywróć wszystkie] &lt;Brakujące&gt;: </value></data>
   <data name="Command_Labels_KeywordMissingLocal" xml:space="preserve"><value>Brakujące</value></data>
   <data name="Command_Labels_KeywordSelectLocal" xml:space="preserve"><value>Wybierz</value></data>
   <data name="Command_Labels_KeywordAllLocal" xml:space="preserve"><value>PrzywrocWszystkie</value></data>
@@ -54,7 +107,9 @@
   <data name="Command_Labels_KeywordSelect" xml:space="preserve"><value>Wybierz</value></data>
   <data name="Command_Labels_KeywordAll" xml:space="preserve"><value>Przywróć wszystkie</value></data>
   <data name="Command_Labels_ResetAllTitle" xml:space="preserve"><value>Przywróć wszystkie opisy</value></data>
-  <data name="Command_Labels_ResetAllWarning" xml:space="preserve"><value>Wszystkie opisy KROVY w bieżącym rysunku zostaną przywrócone do pozycji podstawowej.&#xA;Ręczne zmiany opisów, na przykład ROTATE, MOVE lub uchwyty, zostaną usunięte.&#xA;Elementy KROVY nie ulegną zmianie.</value></data>
+  <data name="Command_Labels_ResetAllWarning" xml:space="preserve"><value>Wszystkie opisy KROVY w bieżącym rysunku zostaną przywrócone do pozycji podstawowej.
+Ręczne zmiany opisów, na przykład ROTATE, MOVE lub uchwyty, zostaną usunięte.
+Elementy KROVY nie ulegną zmianie.</value></data>
   <data name="AkLabelResetAllConfirm_Confirm" xml:space="preserve"><value>Przywróć wszystkie</value></data>
   <data name="AkLabelResetAllProgress_Title" xml:space="preserve"><value>ACAD KROVY – przywracanie opisów</value></data>
   <data name="AkLabelResetAllProgress_Status" xml:space="preserve"><value>Trwa przywracanie opisów…</value></data>
@@ -62,27 +117,53 @@
   <data name="AkLabelResetAllProgress_ProcessedFormat" xml:space="preserve"><value>Przetworzono: {0}</value></data>
   <data name="AkLabelResetAllProgress_ElapsedFormat" xml:space="preserve"><value>Czas: {0}</value></data>
   <data name="AkLabelResetAllProgress_EtaFormat" xml:space="preserve"><value>Pozostało ok.: {0}</value></data>
-  <data name="Command_Labels_Cancelled" xml:space="preserve"><value>&#xA;ACAD KROVY: polecenie AK_LABEL zostało anulowane; rysunek nie został zmieniony.</value></data>
-  <data name="Command_Labels_NoOwnedSelection" xml:space="preserve"><value>&#xA;ACAD KROVY: zaznaczenie nie zawiera żadnej własnej adnotacji KROVY.</value></data>
-  <data name="Command_Labels_PromptSelectAnnotations" xml:space="preserve"><value>&#xA;Wybierz opisy KROVY do kanonicznego resetu: </value></data>
-  <data name="Command_Edit_Prompt" xml:space="preserve"><value>&#xA;Wybierz inteligentne elementy więźby do edycji: </value></data>
-  <data name="Command_Edit_NoData" xml:space="preserve"><value>&#xA;Wybrany obiekt nie zawiera danych ACAD KROVY. Najpierw użyj AK_ASSIGN lub ikony typu elementu.</value></data>
-  <data name="Command_Edit_NoChanges" xml:space="preserve"><value>&#xA;ACAD KROVY: nie wybrano żadnej zmiany.</value></data>
+  <data name="Command_Labels_Cancelled" xml:space="preserve"><value>
+ACAD KROVY: polecenie AK_LABEL zostało anulowane; rysunek nie został zmieniony.</value></data>
+  <data name="Command_Labels_NoOwnedSelection" xml:space="preserve"><value>
+ACAD KROVY: zaznaczenie nie zawiera żadnej własnej adnotacji KROVY.</value></data>
+  <data name="Command_Labels_PromptSelectAnnotations" xml:space="preserve"><value>
+Wybierz opisy KROVY do kanonicznego resetu: </value></data>
+  <data name="Command_Edit_Prompt" xml:space="preserve"><value>
+Wybierz inteligentne elementy więźby do edycji: </value></data>
+  <data name="Command_Edit_NoData" xml:space="preserve"><value>
+Wybrany obiekt nie zawiera danych ACAD KROVY. Najpierw użyj AK_ASSIGN lub ikony typu elementu.</value></data>
+  <data name="Command_Edit_NoChanges" xml:space="preserve"><value>
+ACAD KROVY: nie wybrano żadnej zmiany.</value></data>
   <data name="Command_Edit_TitleSingleFormat" xml:space="preserve"><value>ACAD KROVY – edycja elementu – {0} – {1}</value></data>
   <data name="Command_Edit_TitleMultipleFormat" xml:space="preserve"><value>ACAD KROVY – edycja {0} elementów</value></data>
-  <data name="Command_Edit_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: zaktualizowane elementy: {0}. Pominięte: {1}.</value></data>
-  <data name="Command_FlipSlope_Prompt" xml:space="preserve"><value>&#xA;Wybierz element drewniany lub jego oznaczenie spadku, aby odwrócić kierunek: </value></data>
-  <data name="Command_FlipSlope_NotTimberOrAnnotation" xml:space="preserve"><value>&#xA;ACAD KROVY: wybrany obiekt nie jest elementem drewnianym ani jego oznaczeniem spadku.</value></data>
-  <data name="Command_FlipSlope_Horizontal" xml:space="preserve"><value>&#xA;ACAD KROVY: element poziomy nie ma kierunku spadku.</value></data>
-  <data name="Command_FlipSlope_PostPerpendicular" xml:space="preserve"><value>&#xA;ACAD KROVY: kierunek spadku słupa nie jest zmieniany; jego oznaczenie pozostaje 90°.</value></data>
-  <data name="Command_FlipSlope_ResultReversed" xml:space="preserve"><value>&#xA;ACAD KROVY: kierunek spadku został odwrócony.</value></data>
-  <data name="Command_FlipSlope_ResultNormal" xml:space="preserve"><value>&#xA;ACAD KROVY: ustawiono normalny kierunek spadku.</value></data>
-  <data name="Command_Inspect_Prompt" xml:space="preserve"><value>&#xA;Wybierz element ACAD KROVY: </value></data>
-  <data name="Command_Inspect_NoData" xml:space="preserve"><value>&#xA;Ten obiekt nie zawiera danych ACAD KROVY.</value></data>
+  <data name="Command_Edit_ResultFormat" xml:space="preserve"><value>
+ACAD KROVY: zaktualizowane elementy: {0}. Pominięte: {1}.</value></data>
+  <data name="Command_FlipSlope_Prompt" xml:space="preserve"><value>
+Wybierz element drewniany lub jego oznaczenie spadku, aby odwrócić kierunek: </value></data>
+  <data name="Command_FlipSlope_NotTimberOrAnnotation" xml:space="preserve"><value>
+ACAD KROVY: wybrany obiekt nie jest elementem drewnianym ani jego oznaczeniem spadku.</value></data>
+  <data name="Command_FlipSlope_Horizontal" xml:space="preserve"><value>
+ACAD KROVY: element poziomy nie ma kierunku spadku.</value></data>
+  <data name="Command_FlipSlope_PostPerpendicular" xml:space="preserve"><value>
+ACAD KROVY: kierunek spadku słupa nie jest zmieniany; jego oznaczenie pozostaje 90°.</value></data>
+  <data name="Command_FlipSlope_ResultReversed" xml:space="preserve"><value>
+ACAD KROVY: kierunek spadku został odwrócony.</value></data>
+  <data name="Command_FlipSlope_ResultNormal" xml:space="preserve"><value>
+ACAD KROVY: ustawiono normalny kierunek spadku.</value></data>
+  <data name="Command_Inspect_Prompt" xml:space="preserve"><value>
+Wybierz element ACAD KROVY: </value></data>
+  <data name="Command_Inspect_NoData" xml:space="preserve"><value>
+Ten obiekt nie zawiera danych ACAD KROVY.</value></data>
   <data name="Command_Inspect_AllowanceDefault" xml:space="preserve"><value>bieżąca wartość domyślna według typu</value></data>
   <data name="Command_Inspect_AllowanceIndividual" xml:space="preserve"><value>indywidualna wartość elementu</value></data>
-  <data name="Command_Inspect_SummaryFormat" xml:space="preserve"><value>&#xA;{0} | {1}&#xA;  Przekrój: {2:0} × {3:0} mm&#xA;  Długość w rzucie: {4:0.###} m&#xA;  Długość rzeczywista: {5:0.###} m&#xA;  Długość cięcia: {6:0.###} m&#xA;  Objętość: {7:0.0000} m³</value></data>
-  <data name="Command_Inspect_FootprintSummaryFormat" xml:space="preserve"><value>&#xA;{0} | {1}&#xA;  Przekrój: {2:0} × {3:0} mm&#xA;  Długość rzeczywista: {4:0.###} m&#xA;  Długość cięcia: {5:0.###} m&#xA;  Objętość: {6:0.0000} m³</value></data>
+  <data name="Command_Inspect_SummaryFormat" xml:space="preserve"><value>
+{0} | {1}
+  Przekrój: {2:0} × {3:0} mm
+  Długość w rzucie: {4:0.###} m
+  Długość rzeczywista: {5:0.###} m
+  Długość cięcia: {6:0.###} m
+  Objętość: {7:0.0000} m³</value></data>
+  <data name="Command_Inspect_FootprintSummaryFormat" xml:space="preserve"><value>
+{0} | {1}
+  Przekrój: {2:0} × {3:0} mm
+  Długość rzeczywista: {4:0.###} m
+  Długość cięcia: {5:0.###} m
+  Objętość: {6:0.0000} m³</value></data>
   <data name="Dialog_Inspect_Item" xml:space="preserve"><value>Pozycja</value></data>
   <data name="Dialog_Inspect_ElementType" xml:space="preserve"><value>Typ elementu</value></data>
   <data name="Dialog_Inspect_Material" xml:space="preserve"><value>Materiał</value></data>
@@ -101,41 +182,76 @@
   <data name="Message_No" xml:space="preserve"><value>Nie</value></data>
   <data name="Message_DirectionNormal" xml:space="preserve"><value>Normalny</value></data>
   <data name="Message_DirectionReversed" xml:space="preserve"><value>Odwrócony</value></data>
-  <data name="Command_Report_PromptSelection" xml:space="preserve"><value>&#xA;Wybierz elementy do zestawienia: </value></data>
-  <data name="Command_Report_NoneFound" xml:space="preserve"><value>&#xA;Nie znaleziono żadnych elementów ACAD KROVY.</value></data>
-  <data name="Command_Report_ElementSkippedFormat" xml:space="preserve"><value>&#xA;Pominięty element {0}: {1}</value></data>
-  <data name="Command_Report_NoValidElements" xml:space="preserve"><value>&#xA;Wybór nie zawiera prawidłowych elementów ACAD KROVY.</value></data>
-  <data name="Command_Report_PromptInsertionPoint" xml:space="preserve"><value>&#xA;Wskaż punkt wstawienia zestawienia: </value></data>
-  <data name="Command_Report_InsertedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: wstawiono zestawienie dla {0} elementów. Pominięte: {1}. Objętość: {2:0.0000} m³.</value></data>
-  <data name="Command_Recalc_ElementErrorFormat" xml:space="preserve"><value>&#xA;Błąd w elemencie {0}: {1}</value></data>
-  <data name="Command_Recalc_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: przeliczone elementy: {0}, błędy: {1}. Odświeżone opisy: {2}. Pominięte: {3}.</value></data>
-  <data name="Command_Assign_Prompt" xml:space="preserve"><value>&#xA;Wybierz linie lub polilinie, do których chcesz przypisać dane: </value></data>
-  <data name="Command_Assign_PromptTypeFormat" xml:space="preserve"><value>&#xA;Wybierz linie lub polilinie dla elementu {0}: </value></data>
-  <data name="Command_Assign_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: przypisano dane do {0} elementów. Pominięte: {1}.</value></data>
-  <data name="Command_PostFootprint_EdgePrompt" xml:space="preserve"><value>&#xA;Wybierz krawędź rzutu słupa: </value></data>
-  <data name="Command_PostFootprint_PolylineOnly" xml:space="preserve"><value>&#xA;Wybierz prostokątną lekką polilinię albo jedną LINE z prostokąta złożonego z czterech boków.</value></data>
-  <data name="Command_PostFootprint_InvalidGeometry" xml:space="preserve"><value>&#xA;Polilinia musi być zamkniętym prostokątem z czterema prostymi krawędziami bez łuków w płaszczyźnie rzutu.</value></data>
-  <data name="Command_PostFootprint_AmbiguousPick" xml:space="preserve"><value>&#xA;Wybór krawędzi przy narożniku jest niejednoznaczny. Kliknij dalej od narożnika.</value></data>
-  <data name="Command_PostFootprint_PickTooFar" xml:space="preserve"><value>&#xA;Kliknięcie jest zbyt daleko od krawędzi prostokąta. Wybierz krawędź ponownie.</value></data>
-  <data name="Command_PostFootprint_AssignRedirect" xml:space="preserve"><value>&#xA;Dla słupa wybierz krawędź prostokątnej polilinii albo jedną z czterech LINE.</value></data>
-  <data name="Command_PostFootprint_AssignedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: przypisano słup – {0:0} × {1:0} mm, długość ręczna {2:0} mm.</value></data>
-  <data name="Command_PostFootprint_LineNotFound" xml:space="preserve"><value>&#xA;Nie znaleziono zamkniętego prostokąta z czterech geometrycznie połączonych obiektów LINE.</value></data>
-  <data name="Command_PostFootprint_LineAmbiguous" xml:space="preserve"><value>&#xA;Geometria LINE jest niejednoznaczna: wybrana linia należy do więcej niż jednego możliwego prostokąta.</value></data>
-  <data name="Command_PostFootprint_LineBranching" xml:space="preserve"><value>&#xA;Geometria LINE ma rozgałęzienie. W każdym narożniku prostokąta muszą łączyć się dokładnie dwie krawędzie.</value></data>
-  <data name="Command_PostFootprint_LineNotRectangle" xml:space="preserve"><value>&#xA;Cztery połączone obiekty LINE nie tworzą prawidłowego prostokąta.</value></data>
-  <data name="Command_PostFootprint_LineDuplicate" xml:space="preserve"><value>&#xA;Geometria zawiera nakładający się lub zduplikowany obiekt LINE.</value></data>
-  <data name="Command_PostFootprint_UnsupportedPlane" xml:space="preserve"><value>&#xA;Linie muszą leżeć w tej samej obsługiwanej płaszczyźnie rzutu i na tej samej wysokości.</value></data>
-  <data name="Command_Layers_ElementSkippedFormat" xml:space="preserve"><value>&#xA;Pominięto element podczas ustawiania warstwy: {0}</value></data>
-  <data name="Command_Layers_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: elementy przeniesione na warstwy: {0}. Pominięte: {1}.</value></data>
-  <data name="Warning_Linetype_FallbackFormat" xml:space="preserve"><value>&#xA;Nie udało się wczytać typu linii „{0}”. Użyto {1}.</value></data>
-  <data name="Warning_ExistingLayerPreservedFormat" xml:space="preserve"><value>&#xA;Warstwa „{0}” już istnieje z innymi właściwościami. Aby zachować istniejące obiekty, warstwa nie została zmieniona. Użyj Zastosuj do wszystkich lub nowej nazwy warstwy.</value></data>
-  <data name="Command_Settings_ApplyElementSkippedFormat" xml:space="preserve"><value>&#xA;Pominięto element podczas stosowania ustawień: {0}</value></data>
-  <data name="Command_Settings_ApplyResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: zastosowano naddatki na cięcie do {0} elementów. Pominięte: {1}.</value></data>
-  <data name="Command_Labels_Shown" xml:space="preserve"><value>&#xA;ACAD KROVY: opisy na warstwie KROV_POPIS są widoczne.</value></data>
-  <data name="Command_Labels_Hidden" xml:space="preserve"><value>&#xA;ACAD KROVY: opisy na warstwie KROV_POPIS są ukryte.</value></data>
-  <data name="Command_Labels_LayerMissing" xml:space="preserve"><value>&#xA;ACAD KROVY: warstwa KROV_POPIS nie istnieje jeszcze w rysunku.</value></data>
-  <data name="Command_Prompt_RemoveSelection" xml:space="preserve"><value>&#xA;Usuń z wyboru: </value></data>
-  <data name="Warning_LiveRefreshSkippedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: pominięto automatyczne odświeżenie elementów: {0}</value></data>
+  <data name="Command_Report_PromptSelection" xml:space="preserve"><value>
+Wybierz elementy do zestawienia: </value></data>
+  <data name="Command_Report_NoneFound" xml:space="preserve"><value>
+Nie znaleziono żadnych elementów ACAD KROVY.</value></data>
+  <data name="Command_Report_ElementSkippedFormat" xml:space="preserve"><value>
+Pominięty element {0}: {1}</value></data>
+  <data name="Command_Report_NoValidElements" xml:space="preserve"><value>
+Wybór nie zawiera prawidłowych elementów ACAD KROVY.</value></data>
+  <data name="Command_Report_PromptInsertionPoint" xml:space="preserve"><value>
+Wskaż punkt wstawienia zestawienia: </value></data>
+  <data name="Command_Report_InsertedFormat" xml:space="preserve"><value>
+ACAD KROVY: wstawiono zestawienie dla {0} elementów. Pominięte: {1}. Objętość: {2:0.0000} m³.</value></data>
+  <data name="Command_Recalc_ElementErrorFormat" xml:space="preserve"><value>
+Błąd w elemencie {0}: {1}</value></data>
+  <data name="Command_Recalc_ResultFormat" xml:space="preserve"><value>
+ACAD KROVY: przeliczone elementy: {0}, błędy: {1}. Odświeżone opisy: {2}. Pominięte: {3}.</value></data>
+  <data name="Command_Assign_Prompt" xml:space="preserve"><value>
+Wybierz linie lub polilinie, do których chcesz przypisać dane: </value></data>
+  <data name="Command_Assign_PromptTypeFormat" xml:space="preserve"><value>
+Wybierz linie lub polilinie dla elementu {0}: </value></data>
+  <data name="Command_Assign_ResultFormat" xml:space="preserve"><value>
+ACAD KROVY: przypisano dane do {0} elementów. Pominięte: {1}.</value></data>
+  <data name="Command_PostFootprint_EdgePrompt" xml:space="preserve"><value>
+Wybierz krawędź rzutu słupa: </value></data>
+  <data name="Command_PostFootprint_PolylineOnly" xml:space="preserve"><value>
+Wybierz prostokątną lekką polilinię albo jedną LINE z prostokąta złożonego z czterech boków.</value></data>
+  <data name="Command_PostFootprint_InvalidGeometry" xml:space="preserve"><value>
+Polilinia musi być zamkniętym prostokątem z czterema prostymi krawędziami bez łuków w płaszczyźnie rzutu.</value></data>
+  <data name="Command_PostFootprint_AmbiguousPick" xml:space="preserve"><value>
+Wybór krawędzi przy narożniku jest niejednoznaczny. Kliknij dalej od narożnika.</value></data>
+  <data name="Command_PostFootprint_PickTooFar" xml:space="preserve"><value>
+Kliknięcie jest zbyt daleko od krawędzi prostokąta. Wybierz krawędź ponownie.</value></data>
+  <data name="Command_PostFootprint_AssignRedirect" xml:space="preserve"><value>
+Dla słupa wybierz krawędź prostokątnej polilinii albo jedną z czterech LINE.</value></data>
+  <data name="Command_PostFootprint_AssignedFormat" xml:space="preserve"><value>
+ACAD KROVY: przypisano słup – {0:0} × {1:0} mm, długość ręczna {2:0} mm.</value></data>
+  <data name="Command_PostFootprint_LineNotFound" xml:space="preserve"><value>
+Nie znaleziono zamkniętego prostokąta z czterech geometrycznie połączonych obiektów LINE.</value></data>
+  <data name="Command_PostFootprint_LineAmbiguous" xml:space="preserve"><value>
+Geometria LINE jest niejednoznaczna: wybrana linia należy do więcej niż jednego możliwego prostokąta.</value></data>
+  <data name="Command_PostFootprint_LineBranching" xml:space="preserve"><value>
+Geometria LINE ma rozgałęzienie. W każdym narożniku prostokąta muszą łączyć się dokładnie dwie krawędzie.</value></data>
+  <data name="Command_PostFootprint_LineNotRectangle" xml:space="preserve"><value>
+Cztery połączone obiekty LINE nie tworzą prawidłowego prostokąta.</value></data>
+  <data name="Command_PostFootprint_LineDuplicate" xml:space="preserve"><value>
+Geometria zawiera nakładający się lub zduplikowany obiekt LINE.</value></data>
+  <data name="Command_PostFootprint_UnsupportedPlane" xml:space="preserve"><value>
+Linie muszą leżeć w tej samej obsługiwanej płaszczyźnie rzutu i na tej samej wysokości.</value></data>
+  <data name="Command_Layers_ElementSkippedFormat" xml:space="preserve"><value>
+Pominięto element podczas ustawiania warstwy: {0}</value></data>
+  <data name="Command_Layers_ResultFormat" xml:space="preserve"><value>
+ACAD KROVY: elementy przeniesione na warstwy: {0}. Pominięte: {1}.</value></data>
+  <data name="Warning_Linetype_FallbackFormat" xml:space="preserve"><value>
+Nie udało się wczytać typu linii „{0}”. Użyto {1}.</value></data>
+  <data name="Warning_ExistingLayerPreservedFormat" xml:space="preserve"><value>
+Warstwa „{0}” już istnieje z innymi właściwościami. Aby zachować istniejące obiekty, warstwa nie została zmieniona. Użyj Zastosuj do wszystkich lub nowej nazwy warstwy.</value></data>
+  <data name="Command_Settings_ApplyElementSkippedFormat" xml:space="preserve"><value>
+Pominięto element podczas stosowania ustawień: {0}</value></data>
+  <data name="Command_Settings_ApplyResultFormat" xml:space="preserve"><value>
+ACAD KROVY: zastosowano naddatki na cięcie do {0} elementów. Pominięte: {1}.</value></data>
+  <data name="Command_Labels_Shown" xml:space="preserve"><value>
+ACAD KROVY: opisy na warstwie KROV_POPIS są widoczne.</value></data>
+  <data name="Command_Labels_Hidden" xml:space="preserve"><value>
+ACAD KROVY: opisy na warstwie KROV_POPIS są ukryte.</value></data>
+  <data name="Command_Labels_LayerMissing" xml:space="preserve"><value>
+ACAD KROVY: warstwa KROV_POPIS nie istnieje jeszcze w rysunku.</value></data>
+  <data name="Command_Prompt_RemoveSelection" xml:space="preserve"><value>
+Usuń z wyboru: </value></data>
+  <data name="Warning_LiveRefreshSkippedFormat" xml:space="preserve"><value>
+ACAD KROVY: pominięto automatyczne odświeżenie elementów: {0}</value></data>
   <data name="Dialog_Edit_FieldWidth" xml:space="preserve"><value>szerokość</value></data>
   <data name="Dialog_Edit_FieldHeight" xml:space="preserve"><value>wysokość</value></data>
   <data name="Dialog_Edit_FieldCuttingAllowance" xml:space="preserve"><value>naddatek na cięcie</value></data>
@@ -286,10 +402,14 @@
   <data name="CommandUi_Labels_Tooltip" xml:space="preserve"><value>Główne kliknięcie odtwarza brakujące opisy. Strzałka wybiera Brakujące / Wybierz / Przywróć wszystkie.</value></data>
   <data name="CommandUi_Toolbar_Label" xml:space="preserve"><value>Klasyczny pasek</value></data>
   <data name="CommandUi_Toolbar_Tooltip" xml:space="preserve"><value>Wyświetla lub ukrywa klasyczny pływający pasek małych ikon.</value></data>
-  <data name="Command_Renumber_ConfirmPrompt" xml:space="preserve"><value>&#xA;Przenumerować wszystkie pozycje według długości cięcia od najkrótszej do najdłuższej? [Tak/Nie] &lt;Nie&gt;: </value></data>
-  <data name="Command_Renumber_NoElements" xml:space="preserve"><value>&#xA;ACAD KROVY: w bieżącym rysunku nie znaleziono prawidłowych inteligentnych elementów.</value></data>
-  <data name="Command_Renumber_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: przetworzone elementy {0}, unikalne pozycje produkcyjne {1}, przenumerowane typy elementów {2}, zmienione oznaczenia {3}.</value></data>
-  <data name="Command_Renumber_FailedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: przenumerowanie nie powiodło się i nie zapisano żadnych zmian. {0}</value></data>
+  <data name="Command_Renumber_ConfirmPrompt" xml:space="preserve"><value>
+Przenumerować wszystkie pozycje według długości cięcia od najkrótszej do najdłuższej? [Tak/Nie] &lt;Nie&gt;: </value></data>
+  <data name="Command_Renumber_NoElements" xml:space="preserve"><value>
+ACAD KROVY: w bieżącym rysunku nie znaleziono prawidłowych inteligentnych elementów.</value></data>
+  <data name="Command_Renumber_ResultFormat" xml:space="preserve"><value>
+ACAD KROVY: przetworzone elementy {0}, unikalne pozycje produkcyjne {1}, przenumerowane typy elementów {2}, zmienione oznaczenia {3}.</value></data>
+  <data name="Command_Renumber_FailedFormat" xml:space="preserve"><value>
+ACAD KROVY: przenumerowanie nie powiodło się i nie zapisano żadnych zmian. {0}</value></data>
   <data name="CommandUi_Renumber_Label" xml:space="preserve"><value>Przenumeruj</value></data>
   <data name="CommandUi_Renumber_Tooltip" xml:space="preserve"><value>Jawnie przenumerowuje wszystkie pozycje produkcyjne według długości cięcia.</value></data>
   <data name="Error_Renumber_EntityUnavailable" xml:space="preserve"><value>Element przestał być dostępny podczas przenumerowania.</value></data>
@@ -307,8 +427,10 @@
   <data name="ElementType_ValleyRafter" xml:space="preserve"><value>Krokiew koszowa</value></data>
   <data name="CommandUi_Custom_Label" xml:space="preserve"><value>Własny element</value></data>
   <data name="CommandUi_Custom_Tooltip" xml:space="preserve"><value>Przypisuje do linii wielokrotnego użytku niestandardowy typ elementu drewnianego.</value></data>
-  <data name="Command_Custom_PromptSelection" xml:space="preserve"><value>&#xA;Wybierz LINE lub LWPOLYLINE dla elementu niestandardowego: </value></data>
-  <data name="Command_Custom_CatalogSaveFailedFormat" xml:space="preserve"><value>&#xA;Nie udało się zapisać definicji elementu niestandardowego. {0}</value></data>
+  <data name="Command_Custom_PromptSelection" xml:space="preserve"><value>
+Wybierz LINE lub LWPOLYLINE dla elementu niestandardowego: </value></data>
+  <data name="Command_Custom_CatalogSaveFailedFormat" xml:space="preserve"><value>
+Nie udało się zapisać definicji elementu niestandardowego. {0}</value></data>
   <data name="CustomWindow_Title" xml:space="preserve"><value>ACAD KROVY – element niestandardowy</value></data>
   <data name="CustomWindow_Heading" xml:space="preserve"><value>Definicja elementu niestandardowego</value></data>
   <data name="CustomWindow_UseExisting" xml:space="preserve"><value>Użyj istniejącej definicji</value></data>
@@ -318,8 +440,10 @@
   <data name="CustomWindow_Continue" xml:space="preserve"><value>Kontynuuj</value></data>
   <data name="CustomWindow_SelectDefinition" xml:space="preserve"><value>Wybierz istniejącą definicję elementu niestandardowego.</value></data>
   <data name="CustomWindow_InvalidDefinition" xml:space="preserve"><value>Wprowadź nazwę i unikalny prefiks zawierający od 1 do 8 liter A–Z.</value></data>
-  <data name="Help_CustomCommandLine" xml:space="preserve"><value>&#xA;  AK_CUSTOM      – przypisuje własny typ elementu wielokrotnego użytku</value></data>
-  <data name="Command_Custom_AmbiguousDefinitionsFormat" xml:space="preserve"><value>&#xA;Definicje niestandardowe zawierają niejednoznaczny prefiks. {0}</value></data>
+  <data name="Help_CustomCommandLine" xml:space="preserve"><value>
+  AK_CUSTOM      – przypisuje własny typ elementu wielokrotnego użytku</value></data>
+  <data name="Command_Custom_AmbiguousDefinitionsFormat" xml:space="preserve"><value>
+Definicje niestandardowe zawierają niejednoznaczny prefiks. {0}</value></data>
   <data name="EditWindow_RenameCustomDefinition" xml:space="preserve"><value>Edytuj nazwę definicji</value></data>
   <data name="CustomRenameWindow_Title" xml:space="preserve"><value>ACAD KROVY – zmiana nazwy definicji</value></data>
   <data name="CustomRenameWindow_Heading" xml:space="preserve"><value>Nowa nazwa definicji niestandardowej</value></data>
@@ -330,7 +454,8 @@
   <data name="SettingsWindow_Annotation_Tab" xml:space="preserve"><value>Opis / wymiarowanie</value></data>
   <data name="SettingsWindow_Annotation_Description" xml:space="preserve"><value>Wybierz domyślny sposób głównej adnotacji. Zapis dla nowych elementów nie zmienia istniejących elementów; pozostałe akcje stosują tryb do wyboru lub wszystkich inteligentnych elementów.</value></data>
   <data name="SettingsWindow_Annotation_DefaultMode" xml:space="preserve"><value>Tryb domyślny</value></data>
-  <data name="Help_AnnotationModesLine" xml:space="preserve"><value>&#xA;  AK_SETTINGS    – ustawia też tryb głównej adnotacji dla nowych, wybranych lub wszystkich elementów</value></data>
+  <data name="Help_AnnotationModesLine" xml:space="preserve"><value>
+  AK_SETTINGS    – ustawia też tryb głównej adnotacji dla nowych, wybranych lub wszystkich elementów</value></data>
   <data name="SettingsWindow_Annotation_ItemStyle" xml:space="preserve"><value>Styl numeru pozycji</value></data>
   <data name="ItemNumberLeaderStyle_Plain" xml:space="preserve"><value>Bez ramki</value></data>
   <data name="ItemNumberLeaderStyle_Circle" xml:space="preserve"><value>Okrąg</value></data>
@@ -358,7 +483,8 @@
   <data name="Common_Cancel" xml:space="preserve"><value>Anuluj</value></data>
   <data name="Common_Close" xml:space="preserve"><value>Zamknij</value></data>
   <data name="Common_Unknown" xml:space="preserve"><value>Nieznane</value></data>
-  <data name="Command_UnexpectedFailure" xml:space="preserve"><value>&#xA;ACAD KROVY: polecenie nie powiodło się. Szczegóły są w dzienniku diagnostycznym.</value></data>
+  <data name="Command_UnexpectedFailure" xml:space="preserve"><value>
+ACAD KROVY: polecenie nie powiodło się. Szczegóły są w dzienniku diagnostycznym.</value></data>
   <data name="SelectSimilarWindow_Title" xml:space="preserve"><value>ACAD KROVY – wybierz podobne</value></data>
   <data name="SelectSimilarWindow_Heading" xml:space="preserve"><value>Kryteria podobieństwa</value></data>
   <data name="SelectSimilarWindow_Description" xml:space="preserve"><value>Wybierz właściwości, które muszą być zgodne z elementem wzorcowym.</value></data>
@@ -371,10 +497,14 @@
   <data name="SelectSimilarWindow_ToleranceMm" xml:space="preserve"><value>Tolerancja długości cięcia [mm]</value></data>
   <data name="SelectSimilarWindow_InvalidTolerance" xml:space="preserve"><value>Wprowadź liczbę nieujemną.</value></data>
   <data name="SelectSimilarWindow_Select" xml:space="preserve"><value>Wybierz</value></data>
-  <data name="Command_SelectSimilar_PromptSeed" xml:space="preserve"><value>&#xA;Wybierz jeden inteligentny element drewniany jako wzorzec: </value></data>
-  <data name="Command_SelectSimilar_SelectOne" xml:space="preserve"><value>&#xA;ACAD KROVY: wybierz dokładnie jeden element wzorcowy.</value></data>
-  <data name="Command_SelectSimilar_InvalidSeed" xml:space="preserve"><value>&#xA;ACAD KROVY: wybrany obiekt nie jest prawidłowym inteligentnym elementem drewnianym.</value></data>
-  <data name="Command_SelectSimilar_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: wybrano podobnych elementów: {0}.</value></data>
+  <data name="Command_SelectSimilar_PromptSeed" xml:space="preserve"><value>
+Wybierz jeden inteligentny element drewniany jako wzorzec: </value></data>
+  <data name="Command_SelectSimilar_SelectOne" xml:space="preserve"><value>
+ACAD KROVY: wybierz dokładnie jeden element wzorcowy.</value></data>
+  <data name="Command_SelectSimilar_InvalidSeed" xml:space="preserve"><value>
+ACAD KROVY: wybrany obiekt nie jest prawidłowym inteligentnym elementem drewnianym.</value></data>
+  <data name="Command_SelectSimilar_ResultFormat" xml:space="preserve"><value>
+ACAD KROVY: wybrano podobnych elementów: {0}.</value></data>
   <data name="CsvExportWindow_Title" xml:space="preserve"><value>ACAD KROVY – eksport CSV</value></data>
   <data name="CsvExportWindow_Heading" xml:space="preserve"><value>Eksport zestawienia produkcyjnego</value></data>
   <data name="CsvExportWindow_Description" xml:space="preserve"><value>Wybierz źródło elementów i tryb pliku CSV.</value></data>
@@ -386,10 +516,14 @@
   <data name="CsvExportWindow_Individual" xml:space="preserve"><value>Pojedyncze elementy</value></data>
   <data name="CsvExportWindow_Summarized" xml:space="preserve"><value>Zestawienie zbiorcze</value></data>
   <data name="CsvExportWindow_Continue" xml:space="preserve"><value>Kontynuuj</value></data>
-  <data name="Command_ExportCsv_PromptSelection" xml:space="preserve"><value>&#xA;Wybierz obiekty do eksportu CSV: </value></data>
-  <data name="Command_ExportCsv_NoValidElements" xml:space="preserve"><value>&#xA;ACAD KROVY: nie znaleziono prawidłowych inteligentnych elementów do eksportu.</value></data>
-  <data name="Command_ExportCsv_WriteFailedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: nie można zapisać pliku CSV. {0}</value></data>
-  <data name="Command_ExportCsv_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: utworzono CSV: {0}. Wiersze: {1}, pominięte obiekty: {2}.</value></data>
+  <data name="Command_ExportCsv_PromptSelection" xml:space="preserve"><value>
+Wybierz obiekty do eksportu CSV: </value></data>
+  <data name="Command_ExportCsv_NoValidElements" xml:space="preserve"><value>
+ACAD KROVY: nie znaleziono prawidłowych inteligentnych elementów do eksportu.</value></data>
+  <data name="Command_ExportCsv_WriteFailedFormat" xml:space="preserve"><value>
+ACAD KROVY: nie można zapisać pliku CSV. {0}</value></data>
+  <data name="Command_ExportCsv_ResultFormat" xml:space="preserve"><value>
+ACAD KROVY: utworzono CSV: {0}. Wiersze: {1}, pominięte obiekty: {2}.</value></data>
   <data name="CsvExport_SaveDialogTitle" xml:space="preserve"><value>Zapisz zestawienie ACAD KROVY jako CSV</value></data>
   <data name="CsvExport_SaveDialogFilter" xml:space="preserve"><value>Pliki CSV (*.csv)|*.csv</value></data>
   <data name="Csv_Header_ElementId" xml:space="preserve"><value>Pozycja</value></data>
@@ -421,7 +555,10 @@
   <data name="DiagnosticsWindow_StateRecovered" xml:space="preserve"><value>Uszkodzony plik zapisano jako kopię; aktywne wartości domyślne</value></data>
   <data name="DiagnosticsWindow_StateMemoryOnly" xml:space="preserve"><value>Kopia nie powiodła się; wartości domyślne tylko w pamięci</value></data>
   <data name="DiagnosticsWindow_StateSaveFailed" xml:space="preserve"><value>Zapis nie powiódł się</value></data>
-  <data name="Help_ProductivityCommands" xml:space="preserve"><value>&#xA;  AK_SELECTSIMILAR – wybiera podobne inteligentne elementy&#xA;  AK_EXPORTCSV     – eksportuje zestawienie produkcyjne do CSV&#xA;  AK_DIAGNOSTICS   – wyświetla podsumowanie diagnostyczne</value></data>
+  <data name="Help_ProductivityCommands" xml:space="preserve"><value>
+  AK_SELECTSIMILAR – wybiera podobne inteligentne elementy
+  AK_EXPORTCSV     – eksportuje zestawienie produkcyjne do CSV
+  AK_DIAGNOSTICS   – wyświetla podsumowanie diagnostyczne</value></data>
   <data name="DiagnosticsLevel_Information" xml:space="preserve"><value>Informacja</value></data>
   <data name="DiagnosticsLevel_Warning" xml:space="preserve"><value>Ostrzeżenie</value></data>
   <data name="DiagnosticsLevel_Error" xml:space="preserve"><value>Błąd</value></data>
@@ -510,20 +647,34 @@
   <data name="Ribbon_Panel_Roofs" xml:space="preserve"><value>Dachy</value></data>
   <data name="CommandUi_Roof_Label" xml:space="preserve"><value>Dach</value></data>
   <data name="CommandUi_Roof_Tooltip" xml:space="preserve"><value>Sprawdza zamknięty obrys dachu w rzucie.</value></data>
-  <data name="Command_Roof_Prompt" xml:space="preserve"><value>&#xA;Wybierz obrys lub dowolną część dachu: </value></data>
-  <data name="Command_Roof_PolylineOnly" xml:space="preserve"><value>&#xA;Można wybrać tylko lekką polilinię.</value></data>
-  <data name="Command_Roof_ErrorOpen" xml:space="preserve"><value>&#xA;Obrys dachu musi być zamknięty.</value></data>
-  <data name="Command_Roof_ErrorCurved" xml:space="preserve"><value>&#xA;Zakrzywione segmenty obrysu dachu nie są jeszcze obsługiwane.</value></data>
-  <data name="Command_Roof_ErrorNonPlanar" xml:space="preserve"><value>&#xA;Obrys dachu musi leżeć w obsługiwanej płaszczyźnie rzutu XY.</value></data>
-  <data name="Command_Roof_ErrorFewVertices" xml:space="preserve"><value>&#xA;Obrys dachu musi mieć co najmniej trzy unikalne wierzchołki.</value></data>
-  <data name="Command_Roof_ErrorNonFinite" xml:space="preserve"><value>&#xA;Obrys dachu zawiera nieprawidłową współrzędną.</value></data>
-  <data name="Command_Roof_ErrorDuplicateVertex" xml:space="preserve"><value>&#xA;Obrys dachu zawiera kolejne zduplikowane wierzchołki.</value></data>
-  <data name="Command_Roof_ErrorZeroLengthEdge" xml:space="preserve"><value>&#xA;Obrys dachu zawiera krawędź o zerowej lub zbyt małej długości.</value></data>
-  <data name="Command_Roof_ErrorSelfIntersection" xml:space="preserve"><value>&#xA;Obrys dachu przecina sam siebie.</value></data>
-  <data name="Command_Roof_ErrorDegenerate" xml:space="preserve"><value>&#xA;Obrys dachu jest zdegenerowany lub ma zbyt małe pole.</value></data>
-  <data name="Command_Roof_ErrorCollinearVertex" xml:space="preserve"><value>&#xA;Obrys dachu zawiera zbędny współliniowy wierzchołek.</value></data>
-  <data name="Command_Roof_ErrorUnsupported" xml:space="preserve"><value>&#xA;Obrys dachu zawiera nieobsługiwaną geometrię.</value></data>
-  <data name="Command_Roof_AcceptedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: Obrys dachu zaakceptowany – {0} wierzchołków, pole {1:0.###} m², orientacja źródłowa {2}; orientacja kanoniczna przeciwnie do ruchu wskazówek zegara.</value></data>
+  <data name="Command_Roof_Prompt" xml:space="preserve"><value>
+Wybierz obrys lub dowolną część dachu: </value></data>
+  <data name="Command_Roof_PolylineOnly" xml:space="preserve"><value>
+Można wybrać tylko lekką polilinię.</value></data>
+  <data name="Command_Roof_ErrorOpen" xml:space="preserve"><value>
+Obrys dachu musi być zamknięty.</value></data>
+  <data name="Command_Roof_ErrorCurved" xml:space="preserve"><value>
+Zakrzywione segmenty obrysu dachu nie są jeszcze obsługiwane.</value></data>
+  <data name="Command_Roof_ErrorNonPlanar" xml:space="preserve"><value>
+Obrys dachu musi leżeć w obsługiwanej płaszczyźnie rzutu XY.</value></data>
+  <data name="Command_Roof_ErrorFewVertices" xml:space="preserve"><value>
+Obrys dachu musi mieć co najmniej trzy unikalne wierzchołki.</value></data>
+  <data name="Command_Roof_ErrorNonFinite" xml:space="preserve"><value>
+Obrys dachu zawiera nieprawidłową współrzędną.</value></data>
+  <data name="Command_Roof_ErrorDuplicateVertex" xml:space="preserve"><value>
+Obrys dachu zawiera kolejne zduplikowane wierzchołki.</value></data>
+  <data name="Command_Roof_ErrorZeroLengthEdge" xml:space="preserve"><value>
+Obrys dachu zawiera krawędź o zerowej lub zbyt małej długości.</value></data>
+  <data name="Command_Roof_ErrorSelfIntersection" xml:space="preserve"><value>
+Obrys dachu przecina sam siebie.</value></data>
+  <data name="Command_Roof_ErrorDegenerate" xml:space="preserve"><value>
+Obrys dachu jest zdegenerowany lub ma zbyt małe pole.</value></data>
+  <data name="Command_Roof_ErrorCollinearVertex" xml:space="preserve"><value>
+Obrys dachu zawiera zbędny współliniowy wierzchołek.</value></data>
+  <data name="Command_Roof_ErrorUnsupported" xml:space="preserve"><value>
+Obrys dachu zawiera nieobsługiwaną geometrię.</value></data>
+  <data name="Command_Roof_AcceptedFormat" xml:space="preserve"><value>
+ACAD KROVY: Obrys dachu zaakceptowany – {0} wierzchołków, pole {1:0.###} m², orientacja źródłowa {2}; orientacja kanoniczna przeciwnie do ruchu wskazówek zegara.</value></data>
   <data name="Command_Roof_OrientationClockwise" xml:space="preserve"><value>zgodnie z ruchem wskazówek zegara</value></data>
   <data name="Command_Roof_OrientationCounterClockwise" xml:space="preserve"><value>przeciwnie do ruchu wskazówek zegara</value></data>
   <data name="Command_Roof_OpenLoopNotificationTitle" xml:space="preserve"><value>Obrys dachu nie jest zamknięty</value></data>
@@ -538,67 +689,121 @@
   <data name="Command_Roof_InvalidDirectionNotificationBody" xml:space="preserve"><value>Wskaż kierunek równoległy do jednego boku prostokąta.</value></data>
   <data name="Command_Roof_InvalidSlopeNotificationTitle" xml:space="preserve"><value>Nieprawidłowe nachylenie dachu</value></data>
   <data name="Command_Roof_InvalidSlopeNotificationBody" xml:space="preserve"><value>Wprowadź nachylenie większe niż 0° i mniejsze niż 90°.</value></data>
-  <data name="Command_Roof_SlopePrompt" xml:space="preserve"><value>&#xA;Podaj kąt nachylenia dachu w stopniach: </value></data>
-  <data name="Command_RoofAsym_Face0SlopePrompt" xml:space="preserve"><value>&#xA;Podaj nachylenie pierwszej połaci w stopniach (niebieska strona podglądu): </value></data>
-  <data name="Command_RoofAsym_Face1SlopePrompt" xml:space="preserve"><value>&#xA;Podaj nachylenie drugiej połaci w stopniach (zielona strona podglądu): </value></data>
-  <data name="Command_RoofAsym_FacePreviewFormat" xml:space="preserve"><value>&#xA;Podgląd: niebieska pierwsza połać = {0:0.###}°, zielona druga połać = {1:0.###}°.</value></data>
+  <data name="Command_Roof_SlopePrompt" xml:space="preserve"><value>
+Podaj kąt nachylenia dachu w stopniach: </value></data>
+  <data name="Command_RoofAsym_Face0SlopePrompt" xml:space="preserve"><value>
+Podaj nachylenie pierwszej połaci w stopniach (niebieska strona podglądu): </value></data>
+  <data name="Command_RoofAsym_Face1SlopePrompt" xml:space="preserve"><value>
+Podaj nachylenie drugiej połaci w stopniach (zielona strona podglądu): </value></data>
+  <data name="Command_RoofAsym_FacePreviewFormat" xml:space="preserve"><value>
+Podgląd: niebieska pierwsza połać = {0:0.###}°, zielona druga połać = {1:0.###}°.</value></data>
   <data name="RoofRafterWindow_RoofSlopesValueFormat" xml:space="preserve"><value>Pierwsza {0:0.###}° / druga {1:0.###}°</value></data>
-  <data name="Command_Roof_RidgeDirectionStartPrompt" xml:space="preserve"><value>&#xA;Wskaż pierwszy punkt kierunku kalenicy: </value></data>
-  <data name="Command_Roof_RidgeDirectionEndPrompt" xml:space="preserve"><value>&#xA;Wskaż drugi punkt kierunku kalenicy: </value></data>
-  <data name="Command_Roof_PreviewClosePrompt" xml:space="preserve"><value>&#xA;Wyświetlono tymczasowy podgląd dachu. Naciśnij Enter lub Esc, aby go zamknąć: </value></data>
-  <data name="Command_Roof_GeometryErrorFourSided" xml:space="preserve"><value>&#xA;Prosty dach dwuspadowy wymaga obrysu z czterema wierzchołkami.</value></data>
-  <data name="Command_Roof_GeometryErrorRectangular" xml:space="preserve"><value>&#xA;Prosty dach dwuspadowy wymaga prostokątnego obrysu.</value></data>
-  <data name="Command_Roof_GeometryErrorDirection" xml:space="preserve"><value>&#xA;Kierunek kalenicy musi odpowiadać jednej osi prostokąta.</value></data>
-  <data name="Command_Roof_GeometryErrorSlope" xml:space="preserve"><value>&#xA;Kąt nachylenia dachu musi być skończony, większy niż 0° i mniejszy niż 90°.</value></data>
-  <data name="Command_Roof_GeometryErrorDimensions" xml:space="preserve"><value>&#xA;Wymiary obrysu dachu są zbyt małe dla prostego dachu dwuspadowego.</value></data>
-  <data name="Command_Roof_GeometryErrorNonFinite" xml:space="preserve"><value>&#xA;Obliczenie geometrii dachu zwróciło nieskończoną lub nieprawidłową wartość.</value></data>
-  <data name="Command_Roof_PersistConfirmPrompt" xml:space="preserve"><value>&#xA;Zapisać definicję i utworzyć trwałe przedstawienie dachu? [Tak/Nie] &lt;Nie&gt;: </value></data>
-  <data name="Command_Roof_PersistedSaved" xml:space="preserve"><value>&#xA;Definicja dachu została zapisana na wybranym obrysie.</value></data>
-  <data name="Command_Roof_PersistedLoaded" xml:space="preserve"><value>&#xA;Wczytano zapisaną definicję dachu.</value></data>
-  <data name="Command_Roof_PersistedInvalid" xml:space="preserve"><value>&#xA;Zapisana definicja dachu jest nieprawidłowa lub uszkodzona.</value></data>
-  <data name="Command_Roof_PersistedFutureSchema" xml:space="preserve"><value>&#xA;Definicja dachu używa nowszego, nieobsługiwanego schematu.</value></data>
-  <data name="Command_Roof_PersistedUnsupportedKind" xml:space="preserve"><value>&#xA;Zapisany typ dachu nie jest obsługiwany.</value></data>
-  <data name="Command_Roof_PersistedStale" xml:space="preserve"><value>&#xA;Obrys dachu zmienił się po zapisaniu. Zapisana definicja nie została użyta.</value></data>
+  <data name="Command_Roof_RidgeDirectionStartPrompt" xml:space="preserve"><value>
+Wskaż pierwszy punkt kierunku kalenicy: </value></data>
+  <data name="Command_Roof_RidgeDirectionEndPrompt" xml:space="preserve"><value>
+Wskaż drugi punkt kierunku kalenicy: </value></data>
+  <data name="Command_Roof_PreviewClosePrompt" xml:space="preserve"><value>
+Wyświetlono tymczasowy podgląd dachu. Naciśnij Enter lub Esc, aby go zamknąć: </value></data>
+  <data name="Command_Roof_GeometryErrorFourSided" xml:space="preserve"><value>
+Prosty dach dwuspadowy wymaga obrysu z czterema wierzchołkami.</value></data>
+  <data name="Command_Roof_GeometryErrorRectangular" xml:space="preserve"><value>
+Prosty dach dwuspadowy wymaga prostokątnego obrysu.</value></data>
+  <data name="Command_Roof_GeometryErrorDirection" xml:space="preserve"><value>
+Kierunek kalenicy musi odpowiadać jednej osi prostokąta.</value></data>
+  <data name="Command_Roof_GeometryErrorSlope" xml:space="preserve"><value>
+Kąt nachylenia dachu musi być skończony, większy niż 0° i mniejszy niż 90°.</value></data>
+  <data name="Command_Roof_GeometryErrorDimensions" xml:space="preserve"><value>
+Wymiary obrysu dachu są zbyt małe dla prostego dachu dwuspadowego.</value></data>
+  <data name="Command_Roof_GeometryErrorNonFinite" xml:space="preserve"><value>
+Obliczenie geometrii dachu zwróciło nieskończoną lub nieprawidłową wartość.</value></data>
+  <data name="Command_Roof_PersistConfirmPrompt" xml:space="preserve"><value>
+Zapisać definicję i utworzyć trwałe przedstawienie dachu? [Tak/Nie] &lt;Nie&gt;: </value></data>
+  <data name="Command_Roof_PersistedSaved" xml:space="preserve"><value>
+Definicja dachu została zapisana na wybranym obrysie.</value></data>
+  <data name="Command_Roof_PersistedLoaded" xml:space="preserve"><value>
+Wczytano zapisaną definicję dachu.</value></data>
+  <data name="Command_Roof_PersistedInvalid" xml:space="preserve"><value>
+Zapisana definicja dachu jest nieprawidłowa lub uszkodzona.</value></data>
+  <data name="Command_Roof_PersistedFutureSchema" xml:space="preserve"><value>
+Definicja dachu używa nowszego, nieobsługiwanego schematu.</value></data>
+  <data name="Command_Roof_PersistedUnsupportedKind" xml:space="preserve"><value>
+Zapisany typ dachu nie jest obsługiwany.</value></data>
+  <data name="Command_Roof_PersistedStale" xml:space="preserve"><value>
+Obrys dachu zmienił się po zapisaniu. Zapisana definicja nie została użyta.</value></data>
   <data name="Command_Roof_UnsupportedStretchNotificationTitle" xml:space="preserve"><value>Kształt dachu nie jest już obsługiwany.</value></data>
   <data name="Command_Roof_UnsupportedStretchNotificationBody" xml:space="preserve"><value>Cofnij ostatnią zmianę poleceniem Cofnij (U).</value></data>
   <data name="Command_Roof_UnsupportedStretchRecoveredNotificationTitle" xml:space="preserve"><value>Nieobsługiwana zmiana dachu została przywrócona.</value></data>
   <data name="Command_Roof_UnsupportedStretchRecoveredNotificationBody" xml:space="preserve"><value>Obrys dachu został przywrócony do ostatniego obsługiwanego kształtu.</value></data>
   <data name="Command_Roof_DisplayTamperNotificationTitle" xml:space="preserve"><value>Wybierz podstawowy obrys dachu</value></data>
   <data name="Command_Roof_DisplayTamperNotificationBody" xml:space="preserve"><value>Kształt dachu edytuj za pomocą jego obrysu. Pozostałe elementy aktualizują się automatycznie.</value></data>
-  <data name="Command_Roof_PersistFailed" xml:space="preserve"><value>&#xA;Nie udało się zapisać definicji dachu.</value></data>
-  <data name="Command_Roof_PersistSourceChanged" xml:space="preserve"><value>&#xA;Obrys dachu zmienił się podczas polecenia. Definicja nie została zapisana.</value></data>
-  <data name="Command_Roof_PersistConflict" xml:space="preserve"><value>&#xA;Obrys zawiera już definicję dachu. Istniejące dane pozostały bez zmian.</value></data>
-  <data name="Command_Roof_PersistedAndDisplaySaved" xml:space="preserve"><value>&#xA;Definicja dachu i jej trwałe przedstawienie zostały zapisane.</value></data>
-  <data name="Command_Roof_DisplayCurrent" xml:space="preserve"><value>&#xA;Trwałe przedstawienie dachu jest aktualne.</value></data>
-  <data name="Command_Roof_DisplayMissing" xml:space="preserve"><value>&#xA;Zapisany dach nie ma jeszcze trwałego przedstawienia.</value></data>
-  <data name="Command_Roof_DisplayStale" xml:space="preserve"><value>&#xA;Trwałego przedstawienia dachu brakuje, zostało zmienione lub jest nieaktualne.</value></data>
-  <data name="Command_Roof_DisplayCreatePrompt" xml:space="preserve"><value>&#xA;Utworzyć trwałe przedstawienie dachu? [Tak/Nie] &lt;Nie&gt;: </value></data>
-  <data name="Command_Roof_DisplayUpdatePrompt" xml:space="preserve"><value>&#xA;Wygenerować ponownie trwałe przedstawienie dachu? [Tak/Nie] &lt;Nie&gt;: </value></data>
-  <data name="Command_Roof_DisplayCreated" xml:space="preserve"><value>&#xA;Trwałe przedstawienie dachu zostało utworzone.</value></data>
-  <data name="Command_Roof_DisplayUpdated" xml:space="preserve"><value>&#xA;Trwałe przedstawienie dachu zostało wygenerowane ponownie.</value></data>
-  <data name="Command_Roof_DisplayFailed" xml:space="preserve"><value>&#xA;Nie udało się utworzyć ani ponownie wygenerować trwałego przedstawienia dachu.</value></data>
-  <data name="Command_Roof_DisplayFutureSchema" xml:space="preserve"><value>&#xA;Trwałe przedstawienie dachu używa nowszego, nieobsługiwanego schematu i pozostało bez zmian.</value></data>
-  <data name="Command_Roof_SelectionInvalid" xml:space="preserve"><value>&#xA;Wybierz obrys lub wygenerowaną linię dachu.</value></data>
-  <data name="Command_Roof_SelectionInvalidDisplay" xml:space="preserve"><value>&#xA;Wybrana część dachu ma uszkodzone dane przedstawienia.</value></data>
-  <data name="Command_Roof_SelectionFutureDisplay" xml:space="preserve"><value>&#xA;Wybrana część dachu używa nowszego, nieobsługiwanego schematu przedstawienia.</value></data>
-  <data name="Command_Roof_SelectionOrphan" xml:space="preserve"><value>&#xA;Wybrana część dachu nie ma dostępnego prawidłowego obrysu źródłowego.</value></data>
-  <data name="Command_Roof_GroupMissing" xml:space="preserve"><value>&#xA;Trwałe przedstawienie dachu jest prawidłowe, ale brakuje grupy.</value></data>
-  <data name="Command_Roof_GroupRepairPrompt" xml:space="preserve"><value>&#xA;Przywrócić grupę dachu? [Tak/Nie] &lt;Nie&gt;: </value></data>
-  <data name="Command_Roof_GroupRepaired" xml:space="preserve"><value>&#xA;Grupa wyboru dachu została naprawiona.</value></data>
-  <data name="Command_RoofRafters_SelectPrompt" xml:space="preserve"><value>&#xA;Wybierz dach do utworzenia krokwi: </value></data>
-  <data name="Command_RoofRafters_SpacingPrompt" xml:space="preserve"><value>&#xA;Podaj maksymalny rozstaw krokwi w mm: </value></data>
-  <data name="Command_RoofRafters_InvalidSpacing" xml:space="preserve"><value>&#xA;Maksymalny rozstaw krokwi musi być skończoną liczbą dodatnią.</value></data>
-  <data name="Command_RoofRafters_InvalidDefaults" xml:space="preserve"><value>&#xA;Domyślna szerokość krokwi w rzucie jest nieprawidłowa albo nie mieści się między płaszczyznami szczytowymi.</value></data>
-  <data name="Command_RoofRafters_SummaryFormat" xml:space="preserve"><value>&#xA;Krokwie: {3}, wymagane maksimum {0:0.###} mm, rzeczywisty rozstaw {1:0.###} mm, stanowiska {2}.</value></data>
-  <data name="Command_RoofRafters_CreatePrompt" xml:space="preserve"><value>&#xA;Utworzyć automatyczne krokwie? [Tak/Nie] &lt;Nie&gt;: </value></data>
-  <data name="Command_RoofRafters_ExistingFoundFormat" xml:space="preserve"><value>&#xA;Dach zawiera już {0} automatycznie utworzonych krokwi.</value></data>
-  <data name="Command_RoofRafters_ReplacementDeferred" xml:space="preserve"><value>&#xA;Bezpieczna wymiana istniejących automatycznych krokwi zostanie dodana w następnym kroku cyklu życia. Rysunek pozostał bez zmian.</value></data>
-  <data name="Command_RoofRafters_ExistingStale" xml:space="preserve"><value>&#xA;Istniejące automatyczne krokwie nie odpowiadają już bieżącej geometrii dachu.</value></data>
-  <data name="Command_RoofRafters_RecipeAmbiguous" xml:space="preserve"><value>&#xA;Automatyczne krokwie nie zostały odtworzone: oryginalna receptura generowania jest niejednoznaczna. Istniejący zestaw pozostał bez zmian.</value></data>
-  <data name="Command_RoofRafters_CreatedFormat" xml:space="preserve"><value>&#xA;Utworzono inteligentnych krokwi: {0}.</value></data>
-  <data name="Command_RoofRafters_InvalidRoof" xml:space="preserve"><value>&#xA;Wybrany dach nie ma poprawnej zapisanej definicji SimpleGable.</value></data>
-  <data name="Command_RoofRafters_SourceChanged" xml:space="preserve"><value>&#xA;Obrys źródłowy dachu uległ zmianie. Krokwie nie zostały utworzone.</value></data>
-  <data name="Command_RoofRafters_GenerationFailed" xml:space="preserve"><value>&#xA;Nie udało się utworzyć automatycznych krokwi. Operacja na rysunku została wycofana.</value></data>
+  <data name="Command_Roof_PersistFailed" xml:space="preserve"><value>
+Nie udało się zapisać definicji dachu.</value></data>
+  <data name="Command_Roof_PersistSourceChanged" xml:space="preserve"><value>
+Obrys dachu zmienił się podczas polecenia. Definicja nie została zapisana.</value></data>
+  <data name="Command_Roof_PersistConflict" xml:space="preserve"><value>
+Obrys zawiera już definicję dachu. Istniejące dane pozostały bez zmian.</value></data>
+  <data name="Command_Roof_PersistedAndDisplaySaved" xml:space="preserve"><value>
+Definicja dachu i jej trwałe przedstawienie zostały zapisane.</value></data>
+  <data name="Command_Roof_DisplayCurrent" xml:space="preserve"><value>
+Trwałe przedstawienie dachu jest aktualne.</value></data>
+  <data name="Command_Roof_DisplayMissing" xml:space="preserve"><value>
+Zapisany dach nie ma jeszcze trwałego przedstawienia.</value></data>
+  <data name="Command_Roof_DisplayStale" xml:space="preserve"><value>
+Trwałego przedstawienia dachu brakuje, zostało zmienione lub jest nieaktualne.</value></data>
+  <data name="Command_Roof_DisplayCreatePrompt" xml:space="preserve"><value>
+Utworzyć trwałe przedstawienie dachu? [Tak/Nie] &lt;Nie&gt;: </value></data>
+  <data name="Command_Roof_DisplayUpdatePrompt" xml:space="preserve"><value>
+Wygenerować ponownie trwałe przedstawienie dachu? [Tak/Nie] &lt;Nie&gt;: </value></data>
+  <data name="Command_Roof_DisplayCreated" xml:space="preserve"><value>
+Trwałe przedstawienie dachu zostało utworzone.</value></data>
+  <data name="Command_Roof_DisplayUpdated" xml:space="preserve"><value>
+Trwałe przedstawienie dachu zostało wygenerowane ponownie.</value></data>
+  <data name="Command_Roof_DisplayFailed" xml:space="preserve"><value>
+Nie udało się utworzyć ani ponownie wygenerować trwałego przedstawienia dachu.</value></data>
+  <data name="Command_Roof_DisplayFutureSchema" xml:space="preserve"><value>
+Trwałe przedstawienie dachu używa nowszego, nieobsługiwanego schematu i pozostało bez zmian.</value></data>
+  <data name="Command_Roof_SelectionInvalid" xml:space="preserve"><value>
+Wybierz obrys lub wygenerowaną linię dachu.</value></data>
+  <data name="Command_Roof_SelectionInvalidDisplay" xml:space="preserve"><value>
+Wybrana część dachu ma uszkodzone dane przedstawienia.</value></data>
+  <data name="Command_Roof_SelectionFutureDisplay" xml:space="preserve"><value>
+Wybrana część dachu używa nowszego, nieobsługiwanego schematu przedstawienia.</value></data>
+  <data name="Command_Roof_SelectionOrphan" xml:space="preserve"><value>
+Wybrana część dachu nie ma dostępnego prawidłowego obrysu źródłowego.</value></data>
+  <data name="Command_Roof_GroupMissing" xml:space="preserve"><value>
+Trwałe przedstawienie dachu jest prawidłowe, ale brakuje grupy.</value></data>
+  <data name="Command_Roof_GroupRepairPrompt" xml:space="preserve"><value>
+Przywrócić grupę dachu? [Tak/Nie] &lt;Nie&gt;: </value></data>
+  <data name="Command_Roof_GroupRepaired" xml:space="preserve"><value>
+Grupa wyboru dachu została naprawiona.</value></data>
+  <data name="Command_RoofRafters_SelectPrompt" xml:space="preserve"><value>
+Wybierz dach do utworzenia krokwi: </value></data>
+  <data name="Command_RoofRafters_SpacingPrompt" xml:space="preserve"><value>
+Podaj maksymalny rozstaw krokwi w mm: </value></data>
+  <data name="Command_RoofRafters_InvalidSpacing" xml:space="preserve"><value>
+Maksymalny rozstaw krokwi musi być skończoną liczbą dodatnią.</value></data>
+  <data name="Command_RoofRafters_InvalidDefaults" xml:space="preserve"><value>
+Domyślna szerokość krokwi w rzucie jest nieprawidłowa albo nie mieści się między płaszczyznami szczytowymi.</value></data>
+  <data name="Command_RoofRafters_SummaryFormat" xml:space="preserve"><value>
+Krokwie: {3}, wymagane maksimum {0:0.###} mm, rzeczywisty rozstaw {1:0.###} mm, stanowiska {2}.</value></data>
+  <data name="Command_RoofRafters_CreatePrompt" xml:space="preserve"><value>
+Utworzyć automatyczne krokwie? [Tak/Nie] &lt;Nie&gt;: </value></data>
+  <data name="Command_RoofRafters_ExistingFoundFormat" xml:space="preserve"><value>
+Dach zawiera już {0} automatycznie utworzonych krokwi.</value></data>
+  <data name="Command_RoofRafters_ReplacementDeferred" xml:space="preserve"><value>
+Bezpieczna wymiana istniejących automatycznych krokwi zostanie dodana w następnym kroku cyklu życia. Rysunek pozostał bez zmian.</value></data>
+  <data name="Command_RoofRafters_ExistingStale" xml:space="preserve"><value>
+Istniejące automatyczne krokwie nie odpowiadają już bieżącej geometrii dachu.</value></data>
+  <data name="Command_RoofRafters_RecipeAmbiguous" xml:space="preserve"><value>
+Automatyczne krokwie nie zostały odtworzone: oryginalna receptura generowania jest niejednoznaczna. Istniejący zestaw pozostał bez zmian.</value></data>
+  <data name="Command_RoofRafters_CreatedFormat" xml:space="preserve"><value>
+Utworzono inteligentnych krokwi: {0}.</value></data>
+  <data name="Command_RoofRafters_InvalidRoof" xml:space="preserve"><value>
+Wybrany dach nie ma poprawnej zapisanej definicji SimpleGable.</value></data>
+  <data name="Command_RoofRafters_SourceChanged" xml:space="preserve"><value>
+Obrys źródłowy dachu uległ zmianie. Krokwie nie zostały utworzone.</value></data>
+  <data name="Command_RoofRafters_GenerationFailed" xml:space="preserve"><value>
+Nie udało się utworzyć automatycznych krokwi. Operacja na rysunku została wycofana.</value></data>
   <data name="CommandUi_RoofMenu_Label" xml:space="preserve"><value>Dach</value></data>
   <data name="CommandUi_RoofMenu_Tooltip" xml:space="preserve"><value>Wybiera typ dachu.</value></data>
   <data name="CommandUi_RoofGable_Label" xml:space="preserve"><value>Dach dwuspadowy</value></data>
@@ -638,18 +843,27 @@
   <data name="RoofRafterWindow_InvalidMaterial" xml:space="preserve"><value>Wybierz prawidłowy materiał.</value></data>
   <data name="RoofRafterWindow_InvalidRoof" xml:space="preserve"><value>Nie można obliczyć układu krokwi dla tego dachu.</value></data>
   <data name="RoofRafterWindow_InvalidAutomaticSpacingFormat" xml:space="preserve"><value>Rozstaw automatycznych krokwi nie może być mniejszy niż {0:0.###} mm.</value></data>
-  <data name="RoofRafterWindow_HipSummaryFormat" xml:space="preserve"><value>{0} krokwi • rozstaw roboczy {1:0.###} mm</value></data>  <data name="Command_RoofUnlock_SelectPrompt" xml:space="preserve"><value>&#xA;Wybierz dach do odblokowania: </value></data>
-  <data name="Command_RoofToggleLock_SelectPrompt" xml:space="preserve"><value>&#xA;Wybierz dach do zablokowania lub odblokowania: </value></data>
-  <data name="Command_RoofUnlock_Unlocked" xml:space="preserve"><value>&#xA;Dach jest odblokowany. Wygenerowane drewno można edytować obsługiwanymi poleceniami.</value></data>
-  <data name="Command_RoofUnlock_AlreadyUnlocked" xml:space="preserve"><value>&#xA;Dach jest już odblokowany.</value></data>
+  <data name="RoofRafterWindow_HipSummaryFormat" xml:space="preserve"><value>{0} krokwi • rozstaw roboczy {1:0.###} mm</value></data>  <data name="Command_RoofUnlock_SelectPrompt" xml:space="preserve"><value>
+Wybierz dach do odblokowania: </value></data>
+  <data name="Command_RoofToggleLock_SelectPrompt" xml:space="preserve"><value>
+Wybierz dach do zablokowania lub odblokowania: </value></data>
+  <data name="Command_RoofUnlock_Unlocked" xml:space="preserve"><value>
+Dach jest odblokowany. Wygenerowane drewno można edytować obsługiwanymi poleceniami.</value></data>
+  <data name="Command_RoofUnlock_AlreadyUnlocked" xml:space="preserve"><value>
+Dach jest już odblokowany.</value></data>
   <data name="Command_RoofUnlock_UnlockedNotificationTitle" xml:space="preserve"><value>Dach odblokowany</value></data>
   <data name="Command_RoofUnlock_UnlockedNotificationBody" xml:space="preserve"><value>Wygenerowane drewno przyjmuje teraz obsługiwane ręczne zmiany.</value></data>
-  <data name="Command_RoofLock_Locked" xml:space="preserve"><value>&#xA;Dach jest zablokowany. Przyjęte ręczne zmiany zostały zachowane.</value></data>
-  <data name="Command_RoofLock_AlreadyLocked" xml:space="preserve"><value>&#xA;Dach jest już zablokowany.</value></data>
-  <data name="Command_RoofResetEdits_Reset" xml:space="preserve"><value>&#xA;Ręczne zmiany wygenerowanego drewna zostały przywrócone.</value></data>
-  <data name="Command_RoofResetEdits_NoEdits" xml:space="preserve"><value>&#xA;Wybrany dach nie ma ręcznych zmian.</value></data>
+  <data name="Command_RoofLock_Locked" xml:space="preserve"><value>
+Dach jest zablokowany. Przyjęte ręczne zmiany zostały zachowane.</value></data>
+  <data name="Command_RoofLock_AlreadyLocked" xml:space="preserve"><value>
+Dach jest już zablokowany.</value></data>
+  <data name="Command_RoofResetEdits_Reset" xml:space="preserve"><value>
+Ręczne zmiany wygenerowanego drewna zostały przywrócone.</value></data>
+  <data name="Command_RoofResetEdits_NoEdits" xml:space="preserve"><value>
+Wybrany dach nie ma ręcznych zmian.</value></data>
   <data name="Command_RoofEdit_SelectPrompt" xml:space="preserve"><value>Wybierz dach: </value></data>
-  <data name="Command_RoofEdit_UpdatedFormat" xml:space="preserve"><value>&#xA;Dach zaktualizowano.</value></data>
+  <data name="Command_RoofEdit_UpdatedFormat" xml:space="preserve"><value>
+Dach zaktualizowano.</value></data>
   <data name="Command_Roof_LockedNotificationTitle" xml:space="preserve"><value>Dach jest zablokowany</value></data>
   <data name="Command_Roof_LockedNotificationBody" xml:space="preserve"><value>Przed ręczną edycją najpierw go odblokuj.</value></data>
   <data name="Command_Roof_UnsupportedMemberEditNotificationTitle" xml:space="preserve"><value>Edycja elementu nie była obsługiwana.</value></data>
@@ -759,9 +973,9 @@
   <data name="Command_AutomaticPurlin_ManualEditRestricted" xml:space="preserve">
     <value>\nAutomatyczne płatwie są sterowane przez układ dachu i obecnie nie można ich edytować za pomocą AK_EDIT ani AK_ASSIGN.</value>
   </data>
-  <data name="AutomaticPurlin_Title" xml:space="preserve"><value>Automatyczne płatwie</value></data>
+  <data name="AutomaticPurlin_Title" xml:space="preserve"><value>Automatyczne płatwie i murłaty</value></data>
   <data name="AutomaticPurlin_Description" xml:space="preserve"><value>Edytuj szkic układu i sprawdź jego tymczasowy podgląd. Zmiany nie są zapisywane na tym etapie.</value></data>
-  <data name="AutomaticPurlin_ReferenceSection" xml:space="preserve"><value>Wysokość odniesienia</value></data>
+  <data name="AutomaticPurlin_ReferenceSection" xml:space="preserve"><value>Płaszczyzna odniesienia</value></data>
   <data name="AutomaticPurlin_DatumStored" xml:space="preserve"><value>Wysokość odniesienia została wczytana z rysunku.</value></data>
   <data name="AutomaticPurlin_DatumMissing" xml:space="preserve"><value>Wysokość odniesienia nie jest ustawiona. Poniższe wartości dotyczą tylko tego podglądu.</value></data>
   <data name="AutomaticPurlin_ReferenceKind" xml:space="preserve"><value>Rodzaj odniesienia</value></data>
@@ -785,10 +999,10 @@
   <data name="AutomaticPurlin_Enabled" xml:space="preserve"><value>Włączona</value></data>
   <data name="AutomaticPurlin_Remove" xml:space="preserve"><value>Usuń</value></data>
   <data name="AutomaticPurlin_PlacementMode" xml:space="preserve"><value>Sposób rozmieszczenia</value></data>
-  <data name="AutomaticPurlin_ModeBottomHeight" xml:space="preserve"><value>Wysokość dolnej krawędzi nad odniesieniem</value></data>
+  <data name="AutomaticPurlin_ModeBottomHeight" xml:space="preserve"><value>Różnica wysokości DK względem odniesienia</value></data>
   <data name="AutomaticPurlin_ModeEaveDistance" xml:space="preserve"><value>Odległość w rzucie od okapu</value></data>
   <data name="AutomaticPurlin_ModeRidgeDistance" xml:space="preserve"><value>Odległość w rzucie od kalenicy</value></data>
-  <data name="AutomaticPurlin_ValueBottomHeight" xml:space="preserve"><value>Wysokość dolnej krawędzi</value></data>
+  <data name="AutomaticPurlin_ValueBottomHeight" xml:space="preserve"><value>Różnica wysokości DK względem odniesienia</value></data>
   <data name="AutomaticPurlin_ValueEaveDistance" xml:space="preserve"><value>Odległość od okapu</value></data>
   <data name="AutomaticPurlin_ValueRidgeDistance" xml:space="preserve"><value>Odległość od kalenicy</value></data>
   <data name="AutomaticPurlin_RidgeReference" xml:space="preserve"><value>Kalenica odniesienia</value></data>
@@ -814,11 +1028,12 @@
   <data name="AutomaticPurlin_ValidationBoundaryIdentity" xml:space="preserve"><value>Brakuje stabilnej tożsamości granicy lub jest ona nieprawidłowa. Podgląd nie może jej tworzyć ani naprawiać.</value></data>
   <data name="AutomaticPurlin_ValidationDatum" xml:space="preserve"><value>Wprowadź prawidłową wysokość odniesienia w metrach i lokalne położenie w milimetrach.</value></data>
   <data name="AutomaticPurlin_ValidationNoHorizontalRidge" xml:space="preserve"><value>Dach nie ma odpowiedniej poziomej kalenicy.</value></data>
-  <data name="AutomaticPurlin_ValidationValue" xml:space="preserve"><value>Wartość rozmieszczenia musi być skończoną liczbą większą od 0.</value></data>
-  <data name="AutomaticPurlin_ValidationSeating" xml:space="preserve"><value>Osadzenie musi być większe od 0 i mniejsze niż 100% lub wysokość krokwi.</value></data>
+  <data name="AutomaticPurlin_ValidationValue" xml:space="preserve"><value>Wartość rozmieszczenia musi być skończoną liczbą. Dla różnicy wysokości DK dozwolone są wartości ze znakiem; tryby odległości wymagają wartości większej niż 0.</value></data>
+  <data name="AutomaticPurlin_ValidationSeating" xml:space="preserve"><value>Poza zakresem</value></data>
   <data name="AutomaticPurlin_ValidationRidgeReference" xml:space="preserve"><value>Wybierz prawidłową poziomą kalenicę odniesienia.</value></data>
   <data name="AutomaticPurlin_ValidationInclinedRidge" xml:space="preserve"><value>Pochyłej kalenicy nie można użyć jako odniesienia.</value></data>
   <data name="AutomaticPurlin_ValidationOutsideRoof" xml:space="preserve"><value>Położenie znajduje się poza dachem.</value></data>
+  <data name="AutomaticPurlin_ValidationPlacementModeConversion" xml:space="preserve"><value>Ten sposób umieszczenia nie może reprezentować bieżącej pozycji fizycznej przy prawidłowym osadzeniu. Ostatnia prawidłowa geometria zostaje zachowana; Zastosuj jest wyłączone.</value></data>
   <data name="AutomaticPurlin_ValidationCriticalElevation" xml:space="preserve"><value>Położenie pokrywa się z krytyczną wysokością topologii.</value></data>
   <data name="AutomaticPurlin_ValidationLayout" xml:space="preserve"><value>Nie można wyświetlić układu. Sprawdź jego wartości.</value></data>
   <data name="AutomaticPurlin_CommandSelectRoof" xml:space="preserve"><value>Wybierz autorytatywną zapisaną polilinię źródłową dachu kopertowego: </value></data>
@@ -838,4 +1053,123 @@
   <data name="AutomaticPurlin_SchematicSeatingHelp" xml:space="preserve"><value>Schematyczne przedstawienie oparcia; wartości liczbowe pozostają miarodajne.</value></data>
   <data name="AutomaticPurlin_SchematicRidgeUnresolved" xml:space="preserve"><value>Wybierz prawidłową kalenicę odniesienia.</value></data>
   <data name="AutomaticPurlin_SchematicNoSelection" xml:space="preserve"><value>Wybierz płatew pośrednią, aby wyświetlić jej położenie.</value></data>
+  <data name="AutomaticPurlin_SchematicStale" xml:space="preserve"><value>Schemat jest nieaktualny: pokazuje ostatnią prawidłową geometrię, dopóki bieżący projekt nie będzie prawidłowy.</value></data>
+
+  <data name="AutomaticPurlin_CommandInvalidSelection" xml:space="preserve"><value>Wybierz obrys lub istniejącą część dachu.</value></data>
+
+  <data name="AutomaticPurlin_Confirm" xml:space="preserve"><value>Potwierdź</value></data>
+
+  <data name="AutomaticPurlin_ConfirmStoredManualRafter" xml:space="preserve"><value>Potwierdź zapisane wymiary ręczne</value></data>
+
+  <data name="AutomaticPurlin_CurrentRoofPitchFormat" xml:space="preserve"><value>Aktualny spadek dachu: {0}°</value></data>
+
+  <data name="AutomaticPurlin_DatumInconsistentSourceEave" xml:space="preserve"><value>Zapisane odniesienie „płaszczyzna okapu” ma nieprawidłowe lokalne Z (musi być 0). Oryginalny zapis pozostaje; wybierz odniesienie i zastosuj zmiany.</value></data>
+
+  <data name="AutomaticPurlin_EnterRafterDimensions" xml:space="preserve"><value>Wprowadź wymiary krokwi</value></data>
+
+  <data name="AutomaticPurlin_Height" xml:space="preserve"><value>Wysokość</value></data>
+
+  <data name="AutomaticPurlin_ManualRafterDialogDescription" xml:space="preserve"><value>Wprowadź szerokość i wysokość krokwi w milimetrach. Wymiary te są używane do obliczeń wysokości i osadzenia; fizyczna krokiew nie jest tworzona.</value></data>
+
+  <data name="AutomaticPurlin_ManualRafterDialogTitle" xml:space="preserve"><value>Wymiary krokwi</value></data>
+
+  <data name="AutomaticPurlin_ManualRafterProfileInfoFormat" xml:space="preserve"><value>Używany jest ręcznie wprowadzony przekrój krokwi: {0} × {1} mm.</value></data>
+
+  <data name="AutomaticPurlin_ManualRafterSelectFromDrawing" xml:space="preserve"><value>Wybierz z rysunku</value></data>
+
+  <data name="AutomaticPurlin_MissingActualTransitionDetail" xml:space="preserve"><value>Ta konfiguracja preferowała rzeczywisty przekrój krokwi. Potwierdź zapisany ręczny przekrój lub wprowadź inne wymiary. Apply pozostaje wyłączone do czasu decyzji.</value></data>
+
+  <data name="AutomaticPurlin_MissingActualTransitionTitle" xml:space="preserve"><value>Rzeczywiste krokwie nie są już dostępne.</value></data>
+
+  <data name="AutomaticPurlin_NoRafterWarningDetail" xml:space="preserve"><value>Aby obliczyć wysokości i osadzenie, wprowadź wymiary krokwi ręcznie.</value></data>
+
+  <data name="AutomaticPurlin_NoRafterWarningTitle" xml:space="preserve"><value>Dach nie zawiera jeszcze żadnej krokwi.</value></data>
+
+  <data name="AutomaticPurlin_PersistedManualRafterInvalid" xml:space="preserve"><value>Zapisany ręczny przekrój krokwi jest nieprawidłowy lub niekompletny. Podaj prawidłowe wymiary S × W.</value></data>
+
+  <data name="AutomaticPurlin_PreviewReturnPrompt" xml:space="preserve"><value>Naciśnij Enter, aby wrócić do okna płatwi: </value></data>
+
+  <data name="AutomaticPurlin_ProvisionalManualRafterProfileInfoFormat" xml:space="preserve"><value>Tymczasowy (niepotwierdzony) ręczny przekrój do podglądu: {0} × {1} mm.</value></data>
+
+  <data name="AutomaticPurlin_RafterRecipeAmbiguous" xml:space="preserve"><value>Wymiary automatycznych krokwi dachu nie są jednolite. Edytuj je przez AK_ROOF_RAFTERS lub wybierz krokiew jako źródło wymiaru.</value></data>
+
+  <data name="AutomaticPurlin_RafterSourceConflictActualCaption" xml:space="preserve"><value>RZECZYWISTY PRZEKRÓJ KROKWI:</value></data>
+
+  <data name="AutomaticPurlin_RafterSourceConflictDescription" xml:space="preserve"><value>Zapisany ręczny przekrój krokwi różni się od rzeczywistych krokwi na dachu. Wybierz, który przekrój ma sterować obliczeniami płatwi. Fizyczne krokwie nie zostaną zmienione.</value></data>
+
+  <data name="AutomaticPurlin_RafterSourceConflictFooter" xml:space="preserve"><value>Ręczny i rzeczywisty przekrój krokwi różnią się. Przed zastosowaniem wybierz źródło wymiarów.</value></data>
+
+  <data name="AutomaticPurlin_RafterSourceConflictKeepManual" xml:space="preserve"><value>Zachowaj wymiary ręczne</value></data>
+
+  <data name="AutomaticPurlin_RafterSourceConflictManualCaption" xml:space="preserve"><value>ZAPISANY RĘCZNY PRZEKRÓJ:</value></data>
+
+  <data name="AutomaticPurlin_RafterSourceConflictProfileFormat" xml:space="preserve"><value>{0} × {1} mm</value></data>
+
+  <data name="AutomaticPurlin_RafterSourceConflictTitle" xml:space="preserve"><value>Konflikt przekroju krokwi</value></data>
+
+  <data name="AutomaticPurlin_RafterSourceConflictUseActual" xml:space="preserve"><value>Użyj rzeczywistych wymiarów</value></data>
+
+  <data name="AutomaticPurlin_ResolveRafterSourceConflict" xml:space="preserve"><value>Wybierz źródło wymiarów</value></data>
+
+  <data name="AutomaticPurlin_RoofInfoHeight" xml:space="preserve"><value>Wysokość dachu</value></data>
+
+  <data name="AutomaticPurlin_RoofInfoPitch" xml:space="preserve"><value>Spadek dachu</value></data>
+
+  <data name="AutomaticPurlin_RoofInfoType" xml:space="preserve"><value>Typ dachu</value></data>
+
+  <data name="AutomaticPurlin_SectionAxisAbbrev" xml:space="preserve"><value>Oś</value></data>
+
+  <data name="AutomaticPurlin_SectionBottomAbbrev" xml:space="preserve"><value>DK</value></data>
+
+  <data name="AutomaticPurlin_SectionTopAbbrev" xml:space="preserve"><value>GK</value></data>
+
+  <data name="AutomaticPurlin_SelectRafterCancelled" xml:space="preserve"><value>Wybór krokwi anulowano. Wymiary pozostały bez zmian.</value></data>
+
+  <data name="AutomaticPurlin_SelectRafterClickHint" xml:space="preserve"><value>↻ Kliknij, aby zaktualizować</value></data>
+
+  <data name="AutomaticPurlin_SelectRafterHint" xml:space="preserve"><value>Kliknij i wybierz krokiew, z której zostaną przejęte wymiary.</value></data>
+
+  <data name="AutomaticPurlin_SelectRafterInvalid" xml:space="preserve"><value>Wybierz element typu Krokiew z poprawną szerokością i wysokością.</value></data>
+
+  <data name="AutomaticPurlin_SelectRafterPrompt" xml:space="preserve"><value>Wybierz dowolną krokiew KROVY jako źródło wymiaru: </value></data>
+
+  <data name="AutomaticPurlin_TabErrorFormat" xml:space="preserve"><value>{0} — zawiera błędy</value></data>
+
+  <data name="AutomaticPurlin_TabErrorGlyph" xml:space="preserve"><value>⚠</value></data>
+
+  <data name="AutomaticPurlin_TabIntermediate" xml:space="preserve"><value>Płatew pośrednia</value></data>
+
+  <data name="AutomaticPurlin_TabRidge" xml:space="preserve"><value>Płatew kalenicowa</value></data>
+
+  <data name="AutomaticPurlin_TabWallPlate" xml:space="preserve"><value>Murłata</value></data>
+
+  <data name="AutomaticPurlin_Tooltip_BottomDescription" xml:space="preserve"><value>Dolna krawędź elementu, wysokość względna wobec referencji.</value></data>
+
+  <data name="AutomaticPurlin_Tooltip_CenterDescription" xml:space="preserve"><value>Oś geometryczna elementu, wysokość względna wobec referencji.</value></data>
+
+  <data name="AutomaticPurlin_Tooltip_CurrentValueFormat" xml:space="preserve"><value>Aktualna wartość: {0}</value></data>
+
+  <data name="AutomaticPurlin_Tooltip_RoofPlaneDescription" xml:space="preserve"><value>Wysokość górnej płaszczyzny krokwi w pionowej osi elementu, względem referencji.</value></data>
+
+  <data name="AutomaticPurlin_Tooltip_RoofPlaneRidgeDescription" xml:space="preserve"><value>Górny wierzchołek dachu w osi płatwi kalenicowej, wysokość względna wobec referencji.</value></data>
+
+  <data name="AutomaticPurlin_Tooltip_TopDescription" xml:space="preserve"><value>Górna krawędź elementu, wysokość względna wobec referencji.</value></data>
+
+  <data name="AutomaticPurlin_ValidationDimension" xml:space="preserve"><value>Szerokość i wysokość muszą być dodatnimi skończonymi wartościami w milimetrach.</value></data>
+
+  <data name="AutomaticPurlin_ValidationPlanDistanceRange" xml:space="preserve"><value>Odległość w rzucie od okapu musi wynosić co najmniej 0 mm i mniej niż {0} mm dla tego dachu.</value></data>
+
+  <data name="AutomaticPurlin_WallPlateLowerEdgeHeight" xml:space="preserve"><value>Wysokość dolnej krawędzi murłaty</value></data>
+
+  <data name="AutomaticPurlin_WallPlateSection" xml:space="preserve"><value>Murłaty</value></data>
+
+  <data name="AutomaticPurlin_Width" xml:space="preserve"><value>Szerokość</value></data>
+
+  <data name="Command_RoofEdit_PurlinElevationOutsideRoof" xml:space="preserve"><value>
+Płatew pośrednia przy nowym spadku znajduje się poza dachem.
+Zmień jej położenie lub wybierz odpowiedni spadek dachu.</value></data>
+
+  <data name="Command_RoofEdit_PurlinLayoutIncompatible" xml:space="preserve"><value>
+Zapisany układ płatwi nie jest zgodny z nową geometrią dachu.
+Dostosuj płatwie lub wybierz odpowiednią geometrię.</value></data>
 </root>

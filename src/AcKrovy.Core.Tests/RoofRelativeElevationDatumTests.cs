@@ -22,6 +22,8 @@ public sealed class RoofRelativeElevationDatumTests
 
     [Theory]
     [InlineData(0d, "±0.000")]
+    [InlineData(0.4d, "±0.000")]
+    [InlineData(-0.4d, "±0.000")]
     [InlineData(3580d, "+3.580")]
     [InlineData(4300d, "+4.300")]
     [InlineData(-250d, "-0.250")]
@@ -29,6 +31,44 @@ public sealed class RoofRelativeElevationDatumTests
         double millimetres,
         string expected) =>
         Assert.Equal(expected, RoofRelativeElevationDatumRules.FormatMetres(millimetres));
+
+    [Theory]
+    [InlineData(0d, "sk-SK", "±0,000")]
+    [InlineData(343d, "sk-SK", "+0,343")]
+    [InlineData(-125d, "sk-SK", "-0,125")]
+    [InlineData(0.4d, "sk-SK", "±0,000")]
+    [InlineData(-0.4d, "sk-SK", "±0,000")]
+    [InlineData(0d, "en-US", "±0.000")]
+    [InlineData(343d, "en-US", "+0.343")]
+    public void Formatter_UsesCultureDecimalSeparatorAndNeverSignedZero(
+        double millimetres,
+        string cultureName,
+        string expected)
+    {
+        var actual = RoofRelativeElevationDatumRules.FormatMetres(
+            millimetres,
+            CultureInfo.GetCultureInfo(cultureName));
+        Assert.Equal(expected, actual);
+        Assert.DoesNotContain("+0.000", actual, StringComparison.Ordinal);
+        Assert.DoesNotContain("-0.000", actual, StringComparison.Ordinal);
+        Assert.DoesNotContain("+0,000", actual, StringComparison.Ordinal);
+        Assert.DoesNotContain("-0,000", actual, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Formatter_WithUnit_AppendsMetreSuffix()
+    {
+        Assert.Equal(
+            "+0,343 m",
+            RoofRelativeElevationDatumRules.FormatMetresWithUnit(
+                343d,
+                CultureInfo.GetCultureInfo("sk-SK")));
+        Assert.Equal(
+            "±0,000 m",
+            RoofRelativeElevationDatumRules.FormatMetresWithUnit(
+                0d,
+                CultureInfo.GetCultureInfo("sk-SK")));
+    }
 
     [Theory]
     [InlineData("+3.580", "sk-SK", 3580d)]
@@ -65,6 +105,48 @@ public sealed class RoofRelativeElevationDatumTests
         Assert.False(firstWcs.SequenceEqual(translatedWcs));
         Assert.Equal(firstRelative, translatedRelative);
         Assert.Equal(new[] { 4080d, 4190d, 4300d }, firstRelative);
+    }
+
+    [Fact]
+    public void SourceEavePlane_NonZeroLocalZ_FailsClosedWithoutNormalization()
+    {
+        var result = RoofRelativeElevationDatumRules.Validate(
+            RoofRelativeElevationDatumSchema.CurrentVersion,
+            RoofRelativeElevationReferenceKind.SourceEavePlane,
+            0d,
+            386.394d);
+
+        Assert.False(result.IsValid);
+        Assert.Null(result.Datum);
+        Assert.Equal(
+            RoofRelativeElevationDatumError.InconsistentSourceEaveLocalZ,
+            result.Error);
+        Assert.True(RoofRelativeElevationDatumRules.IsInconsistentSourceEaveLocalZ(
+            RoofRelativeElevationReferenceKind.SourceEavePlane,
+            386.394d));
+        Assert.False(RoofRelativeElevationDatumRules.IsInconsistentSourceEaveLocalZ(
+            RoofRelativeElevationReferenceKind.SourceEavePlane,
+            0d));
+        Assert.False(RoofRelativeElevationDatumRules.IsInconsistentSourceEaveLocalZ(
+            RoofRelativeElevationReferenceKind.ExplicitLocalPlane,
+            500d));
+    }
+
+    [Theory]
+    [InlineData(-250d)]
+    [InlineData(0d)]
+    [InlineData(1000d)]
+    public void SourceEavePlane_ZeroLocalZ_AcceptsAnyFiniteRelativeElevation(double relativeMm)
+    {
+        var result = RoofRelativeElevationDatumRules.Validate(
+            RoofRelativeElevationDatumSchema.CurrentVersion,
+            RoofRelativeElevationReferenceKind.SourceEavePlane,
+            relativeMm,
+            0d);
+
+        Assert.True(result.IsValid);
+        Assert.Equal(0d, result.Datum!.ReferenceLocalZMm);
+        Assert.Equal(relativeMm, result.Datum.ReferenceRelativeElevationMm);
     }
 
     [Theory]

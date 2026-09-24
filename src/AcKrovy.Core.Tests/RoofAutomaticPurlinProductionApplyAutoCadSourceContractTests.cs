@@ -14,6 +14,13 @@ public sealed class RoofAutomaticPurlinProductionApplyAutoCadSourceContractTests
     private static readonly string Materializer = ReadAutoCad(
         "Infrastructure",
         "RoofAutomaticPurlinMaterializationService.cs");
+    private static readonly string PersistenceRules = File.ReadAllText(Path.Combine(
+        RepositoryRoot(),
+        "src",
+        "AcKrovy.Core",
+        "Services",
+        "Roofs",
+        "RoofPurlinLayoutPersistenceRules.cs"));
     private static readonly string CommandCatalog = File.ReadAllText(Path.Combine(
         RepositoryRoot(),
         "src",
@@ -76,11 +83,45 @@ public sealed class RoofAutomaticPurlinProductionApplyAutoCadSourceContractTests
     [Fact]
     public void UnchangedOwnerMetadata_IsNotRewritten()
     {
-        Assert.Contains("LayoutsEqual(stored.Data, desired)", ApplyService);
+        Assert.Contains(
+            "AreEquivalentForOwnerWrite(stored.Data, desired)",
+            ApplyService);
         Assert.Contains("stored.Data == desired", ApplyService);
         Assert.Contains("layoutWrite != RoofAutomaticPurlinOwnerWriteResult.Unchanged", ApplyService);
         Assert.Contains("datumWrite != RoofAutomaticPurlinOwnerWriteResult.Unchanged", ApplyService);
         Assert.Contains("owner-metadata-postcondition-failed", ApplyService);
+        Assert.Contains("AreEquivalentForOwnerWrite", ApplyService);
+        Assert.Contains("ManualRafterWidthMm", PersistenceRules);
+        Assert.Contains("RafterSourcePolicy", PersistenceRules);
+        Assert.Contains("AcknowledgedActualKind", PersistenceRules);
+    }
+
+    [Fact]
+    public void WallPlateLowerEdgeHeightChange_IsPartOfLayoutEqualityAndOwnerWrite()
+    {
+        Assert.Contains("WallPlateLowerEdgeHeightMm", PersistenceRules);
+        Assert.Contains("AreEquivalentForOwnerWrite", PersistenceRules);
+        Assert.Contains("ResolveWallPlatePlacement", PersistenceRules);
+        Assert.Contains("RoofPurlinLayoutStore.Write(owner, transaction, layoutValidation.Layout)", ApplyService);
+        Assert.Contains(
+            "includeWallPlates: layoutValidation.Layout.WallPlateEnabled",
+            ApplyService);
+        Assert.Contains(
+            "MaterializePreparedInTransaction(\n" +
+            "                    document,\n" +
+            "                    transaction,\n" +
+            "                    owner,\n" +
+            "                    preparation,\n" +
+            "                    layoutValidation.Layout,",
+            ApplyService.Replace("\r\n", "\n"));
+        AssertOrdered(
+            Member(
+                Materializer,
+                "private static RoofAutomaticPurlinMaterializationResult Reconcile(",
+                "private static bool TryReadExisting("),
+            "var geometryChanged =",
+            "member.Existing.Line.StartPoint = member.Start",
+            "member.Existing.Line.EndPoint = member.End");
     }
 
     [Fact]
@@ -89,14 +130,14 @@ public sealed class RoofAutomaticPurlinProductionApplyAutoCadSourceContractTests
         var handler = Member(
             Workflow,
             "void ApplyRequested(",
-            "void WritePreviewDiagnostic");
+            "void CloseForDocumentDestruction");
         AssertOrdered(
             handler,
             "previewSession?.Dispose()",
             "RoofAutomaticPurlinProductionApplyService.Apply",
             "if (!result.IsSuccess)",
-            "window.CompleteSuccessfulApply()");
-        Assert.Contains("window.CompleteFailedApply()", handler);
+            "activeWindow.CompleteSuccessfulApply()");
+        Assert.Contains("activeWindow.CompleteFailedApply()", handler);
         Assert.Contains("finally\n        {\n            previewSession?.Dispose()", Workflow.Replace("\r\n", "\n"));
     }
 
@@ -126,13 +167,27 @@ public sealed class RoofAutomaticPurlinProductionApplyAutoCadSourceContractTests
         Assert.Contains("ROOF_PURLIN_APPLY", Workflow);
         foreach (var field in new[]
                  {
-                     "owner=", "desired=", "actual=", "ridge=", "intermediate=",
+                     "owner=", "desired=", "actual=", "wallPlate=", "ridge=", "intermediate=",
                      "created=", "existing=", "updated=", "staleRemoved=",
                      "groupCanonical=", "result=",
                  })
         {
             Assert.Contains(field, Workflow);
         }
+    }
+
+    [Fact]
+    public void ProductionApplyUsesPersistedWallPlateFlagAndNotDebugCommandCode()
+    {
+        Assert.Contains(
+            "includeWallPlates: layoutValidation.Layout.WallPlateEnabled",
+            ApplyService);
+        Assert.Contains("first.WallPlateEnabled == second.WallPlateEnabled", PersistenceRules);
+        Assert.Contains("WallPlatesEnabled = WallPlateEnabled", ReadAutoCad(
+            "UI",
+            "AutomaticPurlinDialogViewModel.cs"));
+        Assert.DoesNotContain("AK_DEBUG_PURLIN_MATERIALIZE", Workflow + ApplyService);
+        Assert.DoesNotContain("AutoCadAutomaticPurlinMaterializationCommands", Workflow + ApplyService);
     }
 
     private static void AssertOrdered(string source, params string[] values)

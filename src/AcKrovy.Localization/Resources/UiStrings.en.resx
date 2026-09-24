@@ -33,20 +33,73 @@
   <data name="Report_Column_VolumeM3" xml:space="preserve"><value>Volume [m³]</value></data>
   <data name="Report_TotalFormat" xml:space="preserve"><value>Total: {0} elements</value></data>
   <data name="Message_DialogTitle" xml:space="preserve"><value>ACAD KROVY</value></data>
-  <data name="Message_PluginLoaded" xml:space="preserve"><value>&#xA;ACAD KROVY {0} loaded. The ACAD KROVY tab will be added to the Ribbon. Enter AK_HELP for the command list or AK_TOOLBAR for the classic toolbar with small icons.</value></data>
-  <data name="Help_CommandOverview" xml:space="preserve"><value>&#xA;ACAD KROVY {0}&#xA;&#xA;ROOF-FRAMING ELEMENTS&#xA;  AK_KROKVA      – quickly assigns the Rafter type&#xA;  AK_POMURNICA   – quickly assigns the Wall plate type&#xA;  AK_VAZNICA     – quickly assigns the Purlin type&#xA;  AK_STLPIK      – quickly assigns the Post type&#xA;  AK_KLIESTINA   – quickly assigns the Collar tie type&#xA;  AK_VZPERA      – quickly assigns the Brace type&#xA;  AK_VAZNYTRAM   – quickly assigns the Tie beam type&#xA;&#xA;DATA AND SCHEDULES&#xA;  AK_ASSIGN      – assigns data to selected lines or polylines&#xA;  AK_EDIT        – batch-edits the checked values&#xA;  AK_FLIPSLOPE   – reverses the slope direction of an element or its annotation&#xA;  AK_INSPECT     – displays the data of one element&#xA;  AK_REPORT      – inserts a table for selected elements&#xA;  AK_REPORTALL   – inserts a table for all elements&#xA;  AK_RECALC      – checks the calculations of all elements&#xA;  AK_RENUMBER   – explicitly renumbers all items by cutting length&#xA;  AK_RIBBON      – displays or refreshes the ACAD KROVY Ribbon tab&#xA;  AK_TOOLBAR     – displays or hides the classic floating toolbar with small icons&#xA;  AK_SETTINGS    – configures layers and colors for each roof-framing element type&#xA;  AK_APPLYLAYERS – applies the current layer settings to the drawing&#xA;&#xA;DRAWING LABELS&#xA;  AK_LABELS      – creates or refreshes labels for all roof-framing elements&#xA;  AK_LABELSELECTED – creates or refreshes labels for selected roof-framing elements&#xA;  AK_LABELSHOW   – displays the KROV_POPIS layer&#xA;  AK_LABELHIDE   – hides the KROV_POPIS layer&#xA;&#xA;ROOF&#xA;  AK_ROOF            – creates a gable roof&#xA;  AK_ROOF_RAFTERS    – creates automatic rafters&#xA;  AK_ROOF_UNLOCK     – unlocks manual edits of generated timber&#xA;  AK_ROOF_LOCK       – locks generated-timber protection&#xA;  AK_ROOF_RESET_EDITS – resets manual edits to canonical geometry&#xA;&#xA;Tip: labels refresh automatically after assignment, editing, or geometry changes. Use AK_LABELS and AK_RECALC for a manual check.</value></data>
-  <data name="Command_Ribbon_Ready" xml:space="preserve"><value>&#xA;ACAD KROVY: the Ribbon tab is ready.</value></data>
-  <data name="Command_Ribbon_Pending" xml:space="preserve"><value>&#xA;ACAD KROVY: the Ribbon is not ready yet; the tab will be added shortly.</value></data>
-  <data name="Command_Toolbar_Shown" xml:space="preserve"><value>&#xA;ACAD KROVY: the classic icon toolbar is visible.</value></data>
-  <data name="Command_Toolbar_Hidden" xml:space="preserve"><value>&#xA;ACAD KROVY: the classic icon toolbar is hidden.</value></data>
-  <data name="Command_Settings_SaveFailedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: settings could not be saved: {0}</value></data>
-  <data name="Command_Settings_Saved" xml:space="preserve"><value>&#xA;ACAD KROVY: settings were saved.</value></data>
-  <data name="Command_Settings_PromptApplyAllowances" xml:space="preserve"><value>&#xA;Select the elements to which you want to apply the new cutting allowances: </value></data>
-  <data name="Command_Settings_SelectionCancelled" xml:space="preserve"><value>&#xA;ACAD KROVY: selection was cancelled; existing elements were not changed.</value></data>
-  <data name="Command_Labels_PromptSelected" xml:space="preserve"><value>&#xA;Select the elements whose labels you want to create or refresh: </value></data>
-  <data name="Command_Labels_UpdatedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: labels refreshed: {0}. New: {1}. Skipped: {2}.</value></data>
-  <data name="Command_Labels_RefreshFailedFormat" xml:space="preserve"><value>&#xA;The label for element {0} was not created or refreshed: {1}</value></data>
-  <data name="Command_Labels_IntentionPrompt" xml:space="preserve"><value>&#xA;AK_LABEL&#xA;[Missing/Select/All] &lt;Missing&gt;: </value></data>
+  <data name="Message_PluginLoaded" xml:space="preserve"><value>
+ACAD KROVY {0} loaded. The ACAD KROVY tab will be added to the Ribbon. Enter AK_HELP for the command list or AK_TOOLBAR for the classic toolbar with small icons.</value></data>
+  <data name="Help_CommandOverview" xml:space="preserve"><value>
+ACAD KROVY {0}
+
+ROOF-FRAMING ELEMENTS
+  AK_KROKVA      – quickly assigns the Rafter type
+  AK_POMURNICA   – quickly assigns the Wall plate type
+  AK_VAZNICA     – quickly assigns the Purlin type
+  AK_STLPIK      – quickly assigns the Post type
+  AK_KLIESTINA   – quickly assigns the Collar tie type
+  AK_VZPERA      – quickly assigns the Brace type
+  AK_VAZNYTRAM   – quickly assigns the Tie beam type
+
+DATA AND SCHEDULES
+  AK_ASSIGN      – assigns data to selected lines or polylines
+  AK_EDIT        – batch-edits the checked values
+  AK_FLIPSLOPE   – reverses the slope direction of an element or its annotation
+  AK_INSPECT     – displays the data of one element
+  AK_REPORT      – inserts a table for selected elements
+  AK_REPORTALL   – inserts a table for all elements
+  AK_RECALC      – checks the calculations of all elements
+  AK_RENUMBER   – explicitly renumbers all items by cutting length
+  AK_RIBBON      – displays or refreshes the ACAD KROVY Ribbon tab
+  AK_TOOLBAR     – displays or hides the classic floating toolbar with small icons
+  AK_SETTINGS    – configures layers and colors for each roof-framing element type
+  AK_APPLYLAYERS – applies the current layer settings to the drawing
+
+DRAWING LABELS
+  AK_LABELS      – creates or refreshes labels for all roof-framing elements
+  AK_LABELSELECTED – creates or refreshes labels for selected roof-framing elements
+  AK_LABELSHOW   – displays the KROV_POPIS layer
+  AK_LABELHIDE   – hides the KROV_POPIS layer
+
+ROOF
+  AK_ROOF            – creates a gable roof
+  AK_ROOF_RAFTERS    – creates automatic rafters
+  AK_ROOF_UNLOCK     – unlocks manual edits of generated timber
+  AK_ROOF_LOCK       – locks generated-timber protection
+  AK_ROOF_RESET_EDITS – resets manual edits to canonical geometry
+
+Tip: labels refresh automatically after assignment, editing, or geometry changes. Use AK_LABELS and AK_RECALC for a manual check.</value></data>
+  <data name="Command_Ribbon_Ready" xml:space="preserve"><value>
+ACAD KROVY: the Ribbon tab is ready.</value></data>
+  <data name="Command_Ribbon_Pending" xml:space="preserve"><value>
+ACAD KROVY: the Ribbon is not ready yet; the tab will be added shortly.</value></data>
+  <data name="Command_Toolbar_Shown" xml:space="preserve"><value>
+ACAD KROVY: the classic icon toolbar is visible.</value></data>
+  <data name="Command_Toolbar_Hidden" xml:space="preserve"><value>
+ACAD KROVY: the classic icon toolbar is hidden.</value></data>
+  <data name="Command_Settings_SaveFailedFormat" xml:space="preserve"><value>
+ACAD KROVY: settings could not be saved: {0}</value></data>
+  <data name="Command_Settings_Saved" xml:space="preserve"><value>
+ACAD KROVY: settings were saved.</value></data>
+  <data name="Command_Settings_PromptApplyAllowances" xml:space="preserve"><value>
+Select the elements to which you want to apply the new cutting allowances: </value></data>
+  <data name="Command_Settings_SelectionCancelled" xml:space="preserve"><value>
+ACAD KROVY: selection was cancelled; existing elements were not changed.</value></data>
+  <data name="Command_Labels_PromptSelected" xml:space="preserve"><value>
+Select the elements whose labels you want to create or refresh: </value></data>
+  <data name="Command_Labels_UpdatedFormat" xml:space="preserve"><value>
+ACAD KROVY: labels refreshed: {0}. New: {1}. Skipped: {2}.</value></data>
+  <data name="Command_Labels_RefreshFailedFormat" xml:space="preserve"><value>
+The label for element {0} was not created or refreshed: {1}</value></data>
+  <data name="Command_Labels_IntentionPrompt" xml:space="preserve"><value>
+AK_LABEL
+[Missing/Select/All] &lt;Missing&gt;: </value></data>
   <data name="Command_Labels_KeywordMissingLocal" xml:space="preserve"><value>Missing</value></data>
   <data name="Command_Labels_KeywordSelectLocal" xml:space="preserve"><value>Select</value></data>
   <data name="Command_Labels_KeywordAllLocal" xml:space="preserve"><value>All</value></data>
@@ -54,7 +107,9 @@
   <data name="Command_Labels_KeywordSelect" xml:space="preserve"><value>Select</value></data>
   <data name="Command_Labels_KeywordAll" xml:space="preserve"><value>All</value></data>
   <data name="Command_Labels_ResetAllTitle" xml:space="preserve"><value>Reset all labels</value></data>
-  <data name="Command_Labels_ResetAllWarning" xml:space="preserve"><value>All KROVY labels in the current drawing will be restored to their base position.&#xA;Manual label edits such as ROTATE, MOVE, or grip changes will be removed.&#xA;KROVY elements will not change.</value></data>
+  <data name="Command_Labels_ResetAllWarning" xml:space="preserve"><value>All KROVY labels in the current drawing will be restored to their base position.
+Manual label edits such as ROTATE, MOVE, or grip changes will be removed.
+KROVY elements will not change.</value></data>
   <data name="AkLabelResetAllConfirm_Confirm" xml:space="preserve"><value>Restore all</value></data>
   <data name="AkLabelResetAllProgress_Title" xml:space="preserve"><value>ACAD KROVY – restoring labels</value></data>
   <data name="AkLabelResetAllProgress_Status" xml:space="preserve"><value>Restoring labels…</value></data>
@@ -62,27 +117,53 @@
   <data name="AkLabelResetAllProgress_ProcessedFormat" xml:space="preserve"><value>Processed: {0}</value></data>
   <data name="AkLabelResetAllProgress_ElapsedFormat" xml:space="preserve"><value>Elapsed: {0}</value></data>
   <data name="AkLabelResetAllProgress_EtaFormat" xml:space="preserve"><value>About {0} remaining</value></data>
-  <data name="Command_Labels_Cancelled" xml:space="preserve"><value>&#xA;ACAD KROVY: AK_LABEL was cancelled; the drawing was not changed.</value></data>
-  <data name="Command_Labels_NoOwnedSelection" xml:space="preserve"><value>&#xA;ACAD KROVY: the selection contains no owned KROVY annotation.</value></data>
-  <data name="Command_Labels_PromptSelectAnnotations" xml:space="preserve"><value>&#xA;Select KROVY annotations for canonical reset: </value></data>
-  <data name="Command_Edit_Prompt" xml:space="preserve"><value>&#xA;Select smart roof-framing elements to edit: </value></data>
-  <data name="Command_Edit_NoData" xml:space="preserve"><value>&#xA;The selected object has no ACAD KROVY data. Use AK_ASSIGN or an element-type icon first.</value></data>
-  <data name="Command_Edit_NoChanges" xml:space="preserve"><value>&#xA;ACAD KROVY: no change was selected.</value></data>
+  <data name="Command_Labels_Cancelled" xml:space="preserve"><value>
+ACAD KROVY: AK_LABEL was cancelled; the drawing was not changed.</value></data>
+  <data name="Command_Labels_NoOwnedSelection" xml:space="preserve"><value>
+ACAD KROVY: the selection contains no owned KROVY annotation.</value></data>
+  <data name="Command_Labels_PromptSelectAnnotations" xml:space="preserve"><value>
+Select KROVY annotations for canonical reset: </value></data>
+  <data name="Command_Edit_Prompt" xml:space="preserve"><value>
+Select smart roof-framing elements to edit: </value></data>
+  <data name="Command_Edit_NoData" xml:space="preserve"><value>
+The selected object has no ACAD KROVY data. Use AK_ASSIGN or an element-type icon first.</value></data>
+  <data name="Command_Edit_NoChanges" xml:space="preserve"><value>
+ACAD KROVY: no change was selected.</value></data>
   <data name="Command_Edit_TitleSingleFormat" xml:space="preserve"><value>ACAD KROVY – edit element – {0} – {1}</value></data>
   <data name="Command_Edit_TitleMultipleFormat" xml:space="preserve"><value>ACAD KROVY – edit {0} elements</value></data>
-  <data name="Command_Edit_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: elements updated: {0}. Skipped: {1}.</value></data>
-  <data name="Command_FlipSlope_Prompt" xml:space="preserve"><value>&#xA;Select a timber element or its slope annotation to reverse the direction: </value></data>
-  <data name="Command_FlipSlope_NotTimberOrAnnotation" xml:space="preserve"><value>&#xA;ACAD KROVY: the selected object is neither a timber element nor its slope annotation.</value></data>
-  <data name="Command_FlipSlope_Horizontal" xml:space="preserve"><value>&#xA;ACAD KROVY: a horizontal element has no slope direction.</value></data>
-  <data name="Command_FlipSlope_PostPerpendicular" xml:space="preserve"><value>&#xA;ACAD KROVY: a Post's slope direction is not changed; its annotation remains 90°.</value></data>
-  <data name="Command_FlipSlope_ResultReversed" xml:space="preserve"><value>&#xA;ACAD KROVY: the slope direction was reversed.</value></data>
-  <data name="Command_FlipSlope_ResultNormal" xml:space="preserve"><value>&#xA;ACAD KROVY: the slope direction was set to normal.</value></data>
-  <data name="Command_Inspect_Prompt" xml:space="preserve"><value>&#xA;Select an ACAD KROVY element: </value></data>
-  <data name="Command_Inspect_NoData" xml:space="preserve"><value>&#xA;This object has no ACAD KROVY data.</value></data>
+  <data name="Command_Edit_ResultFormat" xml:space="preserve"><value>
+ACAD KROVY: elements updated: {0}. Skipped: {1}.</value></data>
+  <data name="Command_FlipSlope_Prompt" xml:space="preserve"><value>
+Select a timber element or its slope annotation to reverse the direction: </value></data>
+  <data name="Command_FlipSlope_NotTimberOrAnnotation" xml:space="preserve"><value>
+ACAD KROVY: the selected object is neither a timber element nor its slope annotation.</value></data>
+  <data name="Command_FlipSlope_Horizontal" xml:space="preserve"><value>
+ACAD KROVY: a horizontal element has no slope direction.</value></data>
+  <data name="Command_FlipSlope_PostPerpendicular" xml:space="preserve"><value>
+ACAD KROVY: a Post's slope direction is not changed; its annotation remains 90°.</value></data>
+  <data name="Command_FlipSlope_ResultReversed" xml:space="preserve"><value>
+ACAD KROVY: the slope direction was reversed.</value></data>
+  <data name="Command_FlipSlope_ResultNormal" xml:space="preserve"><value>
+ACAD KROVY: the slope direction was set to normal.</value></data>
+  <data name="Command_Inspect_Prompt" xml:space="preserve"><value>
+Select an ACAD KROVY element: </value></data>
+  <data name="Command_Inspect_NoData" xml:space="preserve"><value>
+This object has no ACAD KROVY data.</value></data>
   <data name="Command_Inspect_AllowanceDefault" xml:space="preserve"><value>current type default</value></data>
   <data name="Command_Inspect_AllowanceIndividual" xml:space="preserve"><value>individual element value</value></data>
-  <data name="Command_Inspect_SummaryFormat" xml:space="preserve"><value>&#xA;{0} | {1}&#xA;  Cross-section: {2:0} × {3:0} mm&#xA;  Plan length: {4:0.###} m&#xA;  Actual length: {5:0.###} m&#xA;  Cutting length: {6:0.###} m&#xA;  Volume: {7:0.0000} m³</value></data>
-  <data name="Command_Inspect_FootprintSummaryFormat" xml:space="preserve"><value>&#xA;{0} | {1}&#xA;  Cross-section: {2:0} × {3:0} mm&#xA;  Actual length: {4:0.###} m&#xA;  Cutting length: {5:0.###} m&#xA;  Volume: {6:0.0000} m³</value></data>
+  <data name="Command_Inspect_SummaryFormat" xml:space="preserve"><value>
+{0} | {1}
+  Cross-section: {2:0} × {3:0} mm
+  Plan length: {4:0.###} m
+  Actual length: {5:0.###} m
+  Cutting length: {6:0.###} m
+  Volume: {7:0.0000} m³</value></data>
+  <data name="Command_Inspect_FootprintSummaryFormat" xml:space="preserve"><value>
+{0} | {1}
+  Cross-section: {2:0} × {3:0} mm
+  Actual length: {4:0.###} m
+  Cutting length: {5:0.###} m
+  Volume: {6:0.0000} m³</value></data>
   <data name="Dialog_Inspect_Item" xml:space="preserve"><value>Item</value></data>
   <data name="Dialog_Inspect_ElementType" xml:space="preserve"><value>Element type</value></data>
   <data name="Dialog_Inspect_Material" xml:space="preserve"><value>Material</value></data>
@@ -101,41 +182,76 @@
   <data name="Message_No" xml:space="preserve"><value>No</value></data>
   <data name="Message_DirectionNormal" xml:space="preserve"><value>Normal</value></data>
   <data name="Message_DirectionReversed" xml:space="preserve"><value>Reversed</value></data>
-  <data name="Command_Report_PromptSelection" xml:space="preserve"><value>&#xA;Select elements for the schedule: </value></data>
-  <data name="Command_Report_NoneFound" xml:space="preserve"><value>&#xA;No ACAD KROVY elements were found.</value></data>
-  <data name="Command_Report_ElementSkippedFormat" xml:space="preserve"><value>&#xA;Skipped element {0}: {1}</value></data>
-  <data name="Command_Report_NoValidElements" xml:space="preserve"><value>&#xA;The selection contains no valid ACAD KROVY elements.</value></data>
-  <data name="Command_Report_PromptInsertionPoint" xml:space="preserve"><value>&#xA;Specify the schedule insertion point: </value></data>
-  <data name="Command_Report_InsertedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: schedule inserted for {0} elements. Skipped: {1}. Volume: {2:0.0000} m³.</value></data>
-  <data name="Command_Recalc_ElementErrorFormat" xml:space="preserve"><value>&#xA;Error in element {0}: {1}</value></data>
-  <data name="Command_Recalc_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: elements recalculated: {0}, errors: {1}. Labels refreshed: {2}. Skipped: {3}.</value></data>
-  <data name="Command_Assign_Prompt" xml:space="preserve"><value>&#xA;Select lines or polylines to which you want to assign data: </value></data>
-  <data name="Command_Assign_PromptTypeFormat" xml:space="preserve"><value>&#xA;Select lines or polylines for element {0}: </value></data>
-  <data name="Command_Assign_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: data assigned to {0} elements. Skipped: {1}.</value></data>
-  <data name="Command_PostFootprint_EdgePrompt" xml:space="preserve"><value>&#xA;Select an edge of the Post footprint: </value></data>
-  <data name="Command_PostFootprint_PolylineOnly" xml:space="preserve"><value>&#xA;Select a rectangular lightweight Polyline or one LINE from a four-edge rectangle.</value></data>
-  <data name="Command_PostFootprint_InvalidGeometry" xml:space="preserve"><value>&#xA;The polyline must be a closed rectangle with four straight, non-arc edges in the plan plane.</value></data>
-  <data name="Command_PostFootprint_AmbiguousPick" xml:space="preserve"><value>&#xA;The edge selection is ambiguous near the corner. Click farther from the corner.</value></data>
-  <data name="Command_PostFootprint_PickTooFar" xml:space="preserve"><value>&#xA;The click is too far from a rectangle edge. Select the edge again.</value></data>
-  <data name="Command_PostFootprint_AssignRedirect" xml:space="preserve"><value>&#xA;For a Post, select an edge of a rectangular polyline or one of four LINE entities.</value></data>
-  <data name="Command_PostFootprint_AssignedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: Post assigned – {0:0} × {1:0} mm, manual length {2:0} mm.</value></data>
-  <data name="Command_PostFootprint_LineNotFound" xml:space="preserve"><value>&#xA;A closed rectangle made of four geometrically connected LINE entities could not be found.</value></data>
-  <data name="Command_PostFootprint_LineAmbiguous" xml:space="preserve"><value>&#xA;The LINE geometry is ambiguous: the selected line belongs to more than one possible rectangle.</value></data>
-  <data name="Command_PostFootprint_LineBranching" xml:space="preserve"><value>&#xA;The LINE geometry branches. Each rectangle corner must connect exactly two edges.</value></data>
-  <data name="Command_PostFootprint_LineNotRectangle" xml:space="preserve"><value>&#xA;The four connected LINE entities do not form a valid rectangle.</value></data>
-  <data name="Command_PostFootprint_LineDuplicate" xml:space="preserve"><value>&#xA;The geometry contains an overlapping or duplicate LINE entity.</value></data>
-  <data name="Command_PostFootprint_UnsupportedPlane" xml:space="preserve"><value>&#xA;The lines must lie in the same supported plan plane and elevation.</value></data>
-  <data name="Command_Layers_ElementSkippedFormat" xml:space="preserve"><value>&#xA;Element skipped while setting its layer: {0}</value></data>
-  <data name="Command_Layers_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: elements moved to layers: {0}. Skipped: {1}.</value></data>
-  <data name="Warning_Linetype_FallbackFormat" xml:space="preserve"><value>&#xA;Could not load linetype “{0}”. {1} was used.</value></data>
-  <data name="Warning_ExistingLayerPreservedFormat" xml:space="preserve"><value>&#xA;Layer “{0}” already exists with different properties. The layer was not changed to preserve existing objects. Use Apply to all or a new layer name.</value></data>
-  <data name="Command_Settings_ApplyElementSkippedFormat" xml:space="preserve"><value>&#xA;Element skipped while applying settings: {0}</value></data>
-  <data name="Command_Settings_ApplyResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: cutting allowances applied to {0} elements. Skipped: {1}.</value></data>
-  <data name="Command_Labels_Shown" xml:space="preserve"><value>&#xA;ACAD KROVY: labels on layer KROV_POPIS are visible.</value></data>
-  <data name="Command_Labels_Hidden" xml:space="preserve"><value>&#xA;ACAD KROVY: labels on layer KROV_POPIS are hidden.</value></data>
-  <data name="Command_Labels_LayerMissing" xml:space="preserve"><value>&#xA;ACAD KROVY: layer KROV_POPIS does not yet exist in the drawing.</value></data>
-  <data name="Command_Prompt_RemoveSelection" xml:space="preserve"><value>&#xA;Remove from selection: </value></data>
-  <data name="Warning_LiveRefreshSkippedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: automatic element refresh was skipped: {0}</value></data>
+  <data name="Command_Report_PromptSelection" xml:space="preserve"><value>
+Select elements for the schedule: </value></data>
+  <data name="Command_Report_NoneFound" xml:space="preserve"><value>
+No ACAD KROVY elements were found.</value></data>
+  <data name="Command_Report_ElementSkippedFormat" xml:space="preserve"><value>
+Skipped element {0}: {1}</value></data>
+  <data name="Command_Report_NoValidElements" xml:space="preserve"><value>
+The selection contains no valid ACAD KROVY elements.</value></data>
+  <data name="Command_Report_PromptInsertionPoint" xml:space="preserve"><value>
+Specify the schedule insertion point: </value></data>
+  <data name="Command_Report_InsertedFormat" xml:space="preserve"><value>
+ACAD KROVY: schedule inserted for {0} elements. Skipped: {1}. Volume: {2:0.0000} m³.</value></data>
+  <data name="Command_Recalc_ElementErrorFormat" xml:space="preserve"><value>
+Error in element {0}: {1}</value></data>
+  <data name="Command_Recalc_ResultFormat" xml:space="preserve"><value>
+ACAD KROVY: elements recalculated: {0}, errors: {1}. Labels refreshed: {2}. Skipped: {3}.</value></data>
+  <data name="Command_Assign_Prompt" xml:space="preserve"><value>
+Select lines or polylines to which you want to assign data: </value></data>
+  <data name="Command_Assign_PromptTypeFormat" xml:space="preserve"><value>
+Select lines or polylines for element {0}: </value></data>
+  <data name="Command_Assign_ResultFormat" xml:space="preserve"><value>
+ACAD KROVY: data assigned to {0} elements. Skipped: {1}.</value></data>
+  <data name="Command_PostFootprint_EdgePrompt" xml:space="preserve"><value>
+Select an edge of the Post footprint: </value></data>
+  <data name="Command_PostFootprint_PolylineOnly" xml:space="preserve"><value>
+Select a rectangular lightweight Polyline or one LINE from a four-edge rectangle.</value></data>
+  <data name="Command_PostFootprint_InvalidGeometry" xml:space="preserve"><value>
+The polyline must be a closed rectangle with four straight, non-arc edges in the plan plane.</value></data>
+  <data name="Command_PostFootprint_AmbiguousPick" xml:space="preserve"><value>
+The edge selection is ambiguous near the corner. Click farther from the corner.</value></data>
+  <data name="Command_PostFootprint_PickTooFar" xml:space="preserve"><value>
+The click is too far from a rectangle edge. Select the edge again.</value></data>
+  <data name="Command_PostFootprint_AssignRedirect" xml:space="preserve"><value>
+For a Post, select an edge of a rectangular polyline or one of four LINE entities.</value></data>
+  <data name="Command_PostFootprint_AssignedFormat" xml:space="preserve"><value>
+ACAD KROVY: Post assigned – {0:0} × {1:0} mm, manual length {2:0} mm.</value></data>
+  <data name="Command_PostFootprint_LineNotFound" xml:space="preserve"><value>
+A closed rectangle made of four geometrically connected LINE entities could not be found.</value></data>
+  <data name="Command_PostFootprint_LineAmbiguous" xml:space="preserve"><value>
+The LINE geometry is ambiguous: the selected line belongs to more than one possible rectangle.</value></data>
+  <data name="Command_PostFootprint_LineBranching" xml:space="preserve"><value>
+The LINE geometry branches. Each rectangle corner must connect exactly two edges.</value></data>
+  <data name="Command_PostFootprint_LineNotRectangle" xml:space="preserve"><value>
+The four connected LINE entities do not form a valid rectangle.</value></data>
+  <data name="Command_PostFootprint_LineDuplicate" xml:space="preserve"><value>
+The geometry contains an overlapping or duplicate LINE entity.</value></data>
+  <data name="Command_PostFootprint_UnsupportedPlane" xml:space="preserve"><value>
+The lines must lie in the same supported plan plane and elevation.</value></data>
+  <data name="Command_Layers_ElementSkippedFormat" xml:space="preserve"><value>
+Element skipped while setting its layer: {0}</value></data>
+  <data name="Command_Layers_ResultFormat" xml:space="preserve"><value>
+ACAD KROVY: elements moved to layers: {0}. Skipped: {1}.</value></data>
+  <data name="Warning_Linetype_FallbackFormat" xml:space="preserve"><value>
+Could not load linetype “{0}”. {1} was used.</value></data>
+  <data name="Warning_ExistingLayerPreservedFormat" xml:space="preserve"><value>
+Layer “{0}” already exists with different properties. The layer was not changed to preserve existing objects. Use Apply to all or a new layer name.</value></data>
+  <data name="Command_Settings_ApplyElementSkippedFormat" xml:space="preserve"><value>
+Element skipped while applying settings: {0}</value></data>
+  <data name="Command_Settings_ApplyResultFormat" xml:space="preserve"><value>
+ACAD KROVY: cutting allowances applied to {0} elements. Skipped: {1}.</value></data>
+  <data name="Command_Labels_Shown" xml:space="preserve"><value>
+ACAD KROVY: labels on layer KROV_POPIS are visible.</value></data>
+  <data name="Command_Labels_Hidden" xml:space="preserve"><value>
+ACAD KROVY: labels on layer KROV_POPIS are hidden.</value></data>
+  <data name="Command_Labels_LayerMissing" xml:space="preserve"><value>
+ACAD KROVY: layer KROV_POPIS does not yet exist in the drawing.</value></data>
+  <data name="Command_Prompt_RemoveSelection" xml:space="preserve"><value>
+Remove from selection: </value></data>
+  <data name="Warning_LiveRefreshSkippedFormat" xml:space="preserve"><value>
+ACAD KROVY: automatic element refresh was skipped: {0}</value></data>
   <data name="Dialog_Edit_FieldWidth" xml:space="preserve"><value>width</value></data>
   <data name="Dialog_Edit_FieldHeight" xml:space="preserve"><value>height</value></data>
   <data name="Dialog_Edit_FieldCuttingAllowance" xml:space="preserve"><value>cutting allowance</value></data>
@@ -286,10 +402,14 @@
   <data name="CommandUi_Labels_Tooltip" xml:space="preserve"><value>Main click restores missing labels. The arrow chooses Missing / Select / All.</value></data>
   <data name="CommandUi_Toolbar_Label" xml:space="preserve"><value>Classic toolbar</value></data>
   <data name="CommandUi_Toolbar_Tooltip" xml:space="preserve"><value>Displays or hides the classic floating toolbar with small icons.</value></data>
-  <data name="Command_Renumber_ConfirmPrompt" xml:space="preserve"><value>&#xA;Renumber all items by cutting length from shortest to longest? [Yes/No] &lt;No&gt;: </value></data>
-  <data name="Command_Renumber_NoElements" xml:space="preserve"><value>&#xA;ACAD KROVY: no valid intelligent elements were found in the current drawing.</value></data>
-  <data name="Command_Renumber_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: processed elements {0}, unique production items {1}, renumbered element types {2}, changed item identifiers {3}.</value></data>
-  <data name="Command_Renumber_FailedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: renumbering failed and no changes were saved. {0}</value></data>
+  <data name="Command_Renumber_ConfirmPrompt" xml:space="preserve"><value>
+Renumber all items by cutting length from shortest to longest? [Yes/No] &lt;No&gt;: </value></data>
+  <data name="Command_Renumber_NoElements" xml:space="preserve"><value>
+ACAD KROVY: no valid intelligent elements were found in the current drawing.</value></data>
+  <data name="Command_Renumber_ResultFormat" xml:space="preserve"><value>
+ACAD KROVY: processed elements {0}, unique production items {1}, renumbered element types {2}, changed item identifiers {3}.</value></data>
+  <data name="Command_Renumber_FailedFormat" xml:space="preserve"><value>
+ACAD KROVY: renumbering failed and no changes were saved. {0}</value></data>
   <data name="CommandUi_Renumber_Label" xml:space="preserve"><value>Renumber</value></data>
   <data name="CommandUi_Renumber_Tooltip" xml:space="preserve"><value>Explicitly renumbers all production items by cutting length.</value></data>
   <data name="Error_Renumber_EntityUnavailable" xml:space="preserve"><value>An element became unavailable during renumbering.</value></data>
@@ -307,8 +427,10 @@
   <data name="ElementType_ValleyRafter" xml:space="preserve"><value>Valley rafter</value></data>
   <data name="CommandUi_Custom_Label" xml:space="preserve"><value>Custom element</value></data>
   <data name="CommandUi_Custom_Tooltip" xml:space="preserve"><value>Assigns a reusable custom timber element type to a line.</value></data>
-  <data name="Command_Custom_PromptSelection" xml:space="preserve"><value>&#xA;Select LINE or LWPOLYLINE for the custom element: </value></data>
-  <data name="Command_Custom_CatalogSaveFailedFormat" xml:space="preserve"><value>&#xA;The custom element definition could not be saved. {0}</value></data>
+  <data name="Command_Custom_PromptSelection" xml:space="preserve"><value>
+Select LINE or LWPOLYLINE for the custom element: </value></data>
+  <data name="Command_Custom_CatalogSaveFailedFormat" xml:space="preserve"><value>
+The custom element definition could not be saved. {0}</value></data>
   <data name="CustomWindow_Title" xml:space="preserve"><value>ACAD KROVY – custom element</value></data>
   <data name="CustomWindow_Heading" xml:space="preserve"><value>Custom element definition</value></data>
   <data name="CustomWindow_UseExisting" xml:space="preserve"><value>Use an existing definition</value></data>
@@ -318,8 +440,10 @@
   <data name="CustomWindow_Continue" xml:space="preserve"><value>Continue</value></data>
   <data name="CustomWindow_SelectDefinition" xml:space="preserve"><value>Select an existing custom element definition.</value></data>
   <data name="CustomWindow_InvalidDefinition" xml:space="preserve"><value>Enter a name and a unique prefix containing 1 to 8 letters A–Z.</value></data>
-  <data name="Help_CustomCommandLine" xml:space="preserve"><value>&#xA;  AK_CUSTOM      – assigns a reusable custom element type</value></data>
-  <data name="Command_Custom_AmbiguousDefinitionsFormat" xml:space="preserve"><value>&#xA;Custom definitions contain an ambiguous prefix. {0}</value></data>
+  <data name="Help_CustomCommandLine" xml:space="preserve"><value>
+  AK_CUSTOM      – assigns a reusable custom element type</value></data>
+  <data name="Command_Custom_AmbiguousDefinitionsFormat" xml:space="preserve"><value>
+Custom definitions contain an ambiguous prefix. {0}</value></data>
   <data name="EditWindow_RenameCustomDefinition" xml:space="preserve"><value>Edit definition name</value></data>
   <data name="CustomRenameWindow_Title" xml:space="preserve"><value>ACAD KROVY – rename definition</value></data>
   <data name="CustomRenameWindow_Heading" xml:space="preserve"><value>New custom definition name</value></data>
@@ -330,7 +454,8 @@
   <data name="SettingsWindow_Annotation_Tab" xml:space="preserve"><value>Label / dimension</value></data>
   <data name="SettingsWindow_Annotation_Description" xml:space="preserve"><value>Choose the default main annotation style. Saving for new elements does not change existing elements; the other actions apply the mode to the selection or to all intelligent elements.</value></data>
   <data name="SettingsWindow_Annotation_DefaultMode" xml:space="preserve"><value>Default mode</value></data>
-  <data name="Help_AnnotationModesLine" xml:space="preserve"><value>&#xA;  AK_SETTINGS    – also sets the main annotation mode for new, selected, or all elements</value></data>
+  <data name="Help_AnnotationModesLine" xml:space="preserve"><value>
+  AK_SETTINGS    – also sets the main annotation mode for new, selected, or all elements</value></data>
   <data name="SettingsWindow_Annotation_ItemStyle" xml:space="preserve"><value>Item number style</value></data>
   <data name="ItemNumberLeaderStyle_Plain" xml:space="preserve"><value>No frame</value></data>
   <data name="ItemNumberLeaderStyle_Circle" xml:space="preserve"><value>Circle</value></data>
@@ -358,7 +483,8 @@
   <data name="Common_Cancel" xml:space="preserve"><value>Cancel</value></data>
   <data name="Common_Close" xml:space="preserve"><value>Close</value></data>
   <data name="Common_Unknown" xml:space="preserve"><value>Unknown</value></data>
-  <data name="Command_UnexpectedFailure" xml:space="preserve"><value>&#xA;ACAD KROVY: the command failed. Details are available in the diagnostic log.</value></data>
+  <data name="Command_UnexpectedFailure" xml:space="preserve"><value>
+ACAD KROVY: the command failed. Details are available in the diagnostic log.</value></data>
   <data name="SelectSimilarWindow_Title" xml:space="preserve"><value>ACAD KROVY – select similar</value></data>
   <data name="SelectSimilarWindow_Heading" xml:space="preserve"><value>Similarity criteria</value></data>
   <data name="SelectSimilarWindow_Description" xml:space="preserve"><value>Select the properties that must match the sample element.</value></data>
@@ -371,10 +497,14 @@
   <data name="SelectSimilarWindow_ToleranceMm" xml:space="preserve"><value>Cutting-length tolerance [mm]</value></data>
   <data name="SelectSimilarWindow_InvalidTolerance" xml:space="preserve"><value>Enter a nonnegative number.</value></data>
   <data name="SelectSimilarWindow_Select" xml:space="preserve"><value>Select</value></data>
-  <data name="Command_SelectSimilar_PromptSeed" xml:space="preserve"><value>&#xA;Select one smart timber element as the sample: </value></data>
-  <data name="Command_SelectSimilar_SelectOne" xml:space="preserve"><value>&#xA;ACAD KROVY: select exactly one sample element.</value></data>
-  <data name="Command_SelectSimilar_InvalidSeed" xml:space="preserve"><value>&#xA;ACAD KROVY: the selected object is not a valid smart timber element.</value></data>
-  <data name="Command_SelectSimilar_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: similar elements selected: {0}.</value></data>
+  <data name="Command_SelectSimilar_PromptSeed" xml:space="preserve"><value>
+Select one smart timber element as the sample: </value></data>
+  <data name="Command_SelectSimilar_SelectOne" xml:space="preserve"><value>
+ACAD KROVY: select exactly one sample element.</value></data>
+  <data name="Command_SelectSimilar_InvalidSeed" xml:space="preserve"><value>
+ACAD KROVY: the selected object is not a valid smart timber element.</value></data>
+  <data name="Command_SelectSimilar_ResultFormat" xml:space="preserve"><value>
+ACAD KROVY: similar elements selected: {0}.</value></data>
   <data name="CsvExportWindow_Title" xml:space="preserve"><value>ACAD KROVY – CSV export</value></data>
   <data name="CsvExportWindow_Heading" xml:space="preserve"><value>Export manufacturing schedule</value></data>
   <data name="CsvExportWindow_Description" xml:space="preserve"><value>Select the element source and CSV output mode.</value></data>
@@ -386,10 +516,14 @@
   <data name="CsvExportWindow_Individual" xml:space="preserve"><value>Individual elements</value></data>
   <data name="CsvExportWindow_Summarized" xml:space="preserve"><value>Summarized schedule</value></data>
   <data name="CsvExportWindow_Continue" xml:space="preserve"><value>Continue</value></data>
-  <data name="Command_ExportCsv_PromptSelection" xml:space="preserve"><value>&#xA;Select objects for CSV export: </value></data>
-  <data name="Command_ExportCsv_NoValidElements" xml:space="preserve"><value>&#xA;ACAD KROVY: no valid smart elements were found for export.</value></data>
-  <data name="Command_ExportCsv_WriteFailedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: the CSV file could not be written. {0}</value></data>
-  <data name="Command_ExportCsv_ResultFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: CSV created: {0}. Rows: {1}, skipped objects: {2}.</value></data>
+  <data name="Command_ExportCsv_PromptSelection" xml:space="preserve"><value>
+Select objects for CSV export: </value></data>
+  <data name="Command_ExportCsv_NoValidElements" xml:space="preserve"><value>
+ACAD KROVY: no valid smart elements were found for export.</value></data>
+  <data name="Command_ExportCsv_WriteFailedFormat" xml:space="preserve"><value>
+ACAD KROVY: the CSV file could not be written. {0}</value></data>
+  <data name="Command_ExportCsv_ResultFormat" xml:space="preserve"><value>
+ACAD KROVY: CSV created: {0}. Rows: {1}, skipped objects: {2}.</value></data>
   <data name="CsvExport_SaveDialogTitle" xml:space="preserve"><value>Save ACAD KROVY schedule as CSV</value></data>
   <data name="CsvExport_SaveDialogFilter" xml:space="preserve"><value>CSV files (*.csv)|*.csv</value></data>
   <data name="Csv_Header_ElementId" xml:space="preserve"><value>Item</value></data>
@@ -421,7 +555,10 @@
   <data name="DiagnosticsWindow_StateRecovered" xml:space="preserve"><value>Corrupt file backed up; defaults active</value></data>
   <data name="DiagnosticsWindow_StateMemoryOnly" xml:space="preserve"><value>Backup failed; defaults are memory-only</value></data>
   <data name="DiagnosticsWindow_StateSaveFailed" xml:space="preserve"><value>Save failed</value></data>
-  <data name="Help_ProductivityCommands" xml:space="preserve"><value>&#xA;  AK_SELECTSIMILAR – selects similar smart elements&#xA;  AK_EXPORTCSV     – exports a manufacturing schedule to CSV&#xA;  AK_DIAGNOSTICS   – displays a diagnostic summary</value></data>
+  <data name="Help_ProductivityCommands" xml:space="preserve"><value>
+  AK_SELECTSIMILAR – selects similar smart elements
+  AK_EXPORTCSV     – exports a manufacturing schedule to CSV
+  AK_DIAGNOSTICS   – displays a diagnostic summary</value></data>
   <data name="DiagnosticsLevel_Information" xml:space="preserve"><value>Information</value></data>
   <data name="DiagnosticsLevel_Warning" xml:space="preserve"><value>Warning</value></data>
   <data name="DiagnosticsLevel_Error" xml:space="preserve"><value>Error</value></data>
@@ -510,20 +647,34 @@
   <data name="Ribbon_Panel_Roofs" xml:space="preserve"><value>Roofs</value></data>
   <data name="CommandUi_Roof_Label" xml:space="preserve"><value>Roof</value></data>
   <data name="CommandUi_Roof_Tooltip" xml:space="preserve"><value>Validates a closed plan footprint for a roof.</value></data>
-  <data name="Command_Roof_Prompt" xml:space="preserve"><value>&#xA;Select the roof outline or any roof part: </value></data>
-  <data name="Command_Roof_PolylineOnly" xml:space="preserve"><value>&#xA;Only a lightweight Polyline can be selected.</value></data>
-  <data name="Command_Roof_ErrorOpen" xml:space="preserve"><value>&#xA;The roof footprint must be closed.</value></data>
-  <data name="Command_Roof_ErrorCurved" xml:space="preserve"><value>&#xA;Curved roof-footprint segments are not supported yet.</value></data>
-  <data name="Command_Roof_ErrorNonPlanar" xml:space="preserve"><value>&#xA;The roof footprint must lie in the supported XY plan plane.</value></data>
-  <data name="Command_Roof_ErrorFewVertices" xml:space="preserve"><value>&#xA;The roof footprint must have at least three unique vertices.</value></data>
-  <data name="Command_Roof_ErrorNonFinite" xml:space="preserve"><value>&#xA;The roof footprint contains an invalid coordinate.</value></data>
-  <data name="Command_Roof_ErrorDuplicateVertex" xml:space="preserve"><value>&#xA;The roof footprint contains consecutive duplicate vertices.</value></data>
-  <data name="Command_Roof_ErrorZeroLengthEdge" xml:space="preserve"><value>&#xA;The roof footprint contains a zero-length or excessively short edge.</value></data>
-  <data name="Command_Roof_ErrorSelfIntersection" xml:space="preserve"><value>&#xA;The roof footprint intersects itself.</value></data>
-  <data name="Command_Roof_ErrorDegenerate" xml:space="preserve"><value>&#xA;The roof footprint is degenerate or has too little area.</value></data>
-  <data name="Command_Roof_ErrorCollinearVertex" xml:space="preserve"><value>&#xA;The roof footprint contains a redundant collinear vertex.</value></data>
-  <data name="Command_Roof_ErrorUnsupported" xml:space="preserve"><value>&#xA;The roof footprint contains unsupported geometry.</value></data>
-  <data name="Command_Roof_AcceptedFormat" xml:space="preserve"><value>&#xA;ACAD KROVY: Roof footprint accepted – {0} vertices, area {1:0.###} m², source orientation {2}; canonical orientation counter-clockwise.</value></data>
+  <data name="Command_Roof_Prompt" xml:space="preserve"><value>
+Select the roof outline or any roof part: </value></data>
+  <data name="Command_Roof_PolylineOnly" xml:space="preserve"><value>
+Only a lightweight Polyline can be selected.</value></data>
+  <data name="Command_Roof_ErrorOpen" xml:space="preserve"><value>
+The roof footprint must be closed.</value></data>
+  <data name="Command_Roof_ErrorCurved" xml:space="preserve"><value>
+Curved roof-footprint segments are not supported yet.</value></data>
+  <data name="Command_Roof_ErrorNonPlanar" xml:space="preserve"><value>
+The roof footprint must lie in the supported XY plan plane.</value></data>
+  <data name="Command_Roof_ErrorFewVertices" xml:space="preserve"><value>
+The roof footprint must have at least three unique vertices.</value></data>
+  <data name="Command_Roof_ErrorNonFinite" xml:space="preserve"><value>
+The roof footprint contains an invalid coordinate.</value></data>
+  <data name="Command_Roof_ErrorDuplicateVertex" xml:space="preserve"><value>
+The roof footprint contains consecutive duplicate vertices.</value></data>
+  <data name="Command_Roof_ErrorZeroLengthEdge" xml:space="preserve"><value>
+The roof footprint contains a zero-length or excessively short edge.</value></data>
+  <data name="Command_Roof_ErrorSelfIntersection" xml:space="preserve"><value>
+The roof footprint intersects itself.</value></data>
+  <data name="Command_Roof_ErrorDegenerate" xml:space="preserve"><value>
+The roof footprint is degenerate or has too little area.</value></data>
+  <data name="Command_Roof_ErrorCollinearVertex" xml:space="preserve"><value>
+The roof footprint contains a redundant collinear vertex.</value></data>
+  <data name="Command_Roof_ErrorUnsupported" xml:space="preserve"><value>
+The roof footprint contains unsupported geometry.</value></data>
+  <data name="Command_Roof_AcceptedFormat" xml:space="preserve"><value>
+ACAD KROVY: Roof footprint accepted – {0} vertices, area {1:0.###} m², source orientation {2}; canonical orientation counter-clockwise.</value></data>
   <data name="Command_Roof_OrientationClockwise" xml:space="preserve"><value>clockwise</value></data>
   <data name="Command_Roof_OrientationCounterClockwise" xml:space="preserve"><value>counter-clockwise</value></data>
   <data name="Command_Roof_OpenLoopNotificationTitle" xml:space="preserve"><value>Roof footprint is not closed</value></data>
@@ -538,67 +689,121 @@
   <data name="Command_Roof_InvalidDirectionNotificationBody" xml:space="preserve"><value>Specify a direction parallel to one side of the rectangle.</value></data>
   <data name="Command_Roof_InvalidSlopeNotificationTitle" xml:space="preserve"><value>Invalid roof slope</value></data>
   <data name="Command_Roof_InvalidSlopeNotificationBody" xml:space="preserve"><value>Enter a slope greater than 0° and less than 90°.</value></data>
-  <data name="Command_Roof_SlopePrompt" xml:space="preserve"><value>&#xA;Enter the roof slope in degrees: </value></data>
-  <data name="Command_RoofAsym_Face0SlopePrompt" xml:space="preserve"><value>&#xA;Enter the first roof-plane slope in degrees (blue preview side): </value></data>
-  <data name="Command_RoofAsym_Face1SlopePrompt" xml:space="preserve"><value>&#xA;Enter the second roof-plane slope in degrees (green preview side): </value></data>
-  <data name="Command_RoofAsym_FacePreviewFormat" xml:space="preserve"><value>&#xA;Preview: blue first plane = {0:0.###}°, green second plane = {1:0.###}°.</value></data>
+  <data name="Command_Roof_SlopePrompt" xml:space="preserve"><value>
+Enter the roof slope in degrees: </value></data>
+  <data name="Command_RoofAsym_Face0SlopePrompt" xml:space="preserve"><value>
+Enter the first roof-plane slope in degrees (blue preview side): </value></data>
+  <data name="Command_RoofAsym_Face1SlopePrompt" xml:space="preserve"><value>
+Enter the second roof-plane slope in degrees (green preview side): </value></data>
+  <data name="Command_RoofAsym_FacePreviewFormat" xml:space="preserve"><value>
+Preview: blue first plane = {0:0.###}°, green second plane = {1:0.###}°.</value></data>
   <data name="RoofRafterWindow_RoofSlopesValueFormat" xml:space="preserve"><value>First {0:0.###}° / second {1:0.###}°</value></data>
-  <data name="Command_Roof_RidgeDirectionStartPrompt" xml:space="preserve"><value>&#xA;Specify the first point of the ridge direction: </value></data>
-  <data name="Command_Roof_RidgeDirectionEndPrompt" xml:space="preserve"><value>&#xA;Specify the second point of the ridge direction: </value></data>
-  <data name="Command_Roof_PreviewClosePrompt" xml:space="preserve"><value>&#xA;The transient roof preview is displayed. Press Enter or Esc to close it: </value></data>
-  <data name="Command_Roof_GeometryErrorFourSided" xml:space="preserve"><value>&#xA;A simple gable roof requires a four-vertex footprint.</value></data>
-  <data name="Command_Roof_GeometryErrorRectangular" xml:space="preserve"><value>&#xA;A simple gable roof requires a rectangular footprint.</value></data>
-  <data name="Command_Roof_GeometryErrorDirection" xml:space="preserve"><value>&#xA;The ridge direction must match one axis of the rectangle.</value></data>
-  <data name="Command_Roof_GeometryErrorSlope" xml:space="preserve"><value>&#xA;The roof slope must be finite, greater than 0°, and less than 90°.</value></data>
-  <data name="Command_Roof_GeometryErrorDimensions" xml:space="preserve"><value>&#xA;The roof-footprint dimensions are too small for a simple gable roof.</value></data>
-  <data name="Command_Roof_GeometryErrorNonFinite" xml:space="preserve"><value>&#xA;The roof-geometry calculation produced an infinite or invalid value.</value></data>
-  <data name="Command_Roof_PersistConfirmPrompt" xml:space="preserve"><value>&#xA;Save the definition and create the permanent roof display? [Yes/No] &lt;No&gt;: </value></data>
-  <data name="Command_Roof_PersistedSaved" xml:space="preserve"><value>&#xA;The roof definition was saved on the selected footprint.</value></data>
-  <data name="Command_Roof_PersistedLoaded" xml:space="preserve"><value>&#xA;The saved roof definition was loaded.</value></data>
-  <data name="Command_Roof_PersistedInvalid" xml:space="preserve"><value>&#xA;The saved roof definition is invalid or damaged.</value></data>
-  <data name="Command_Roof_PersistedFutureSchema" xml:space="preserve"><value>&#xA;The roof definition uses a newer unsupported schema.</value></data>
-  <data name="Command_Roof_PersistedUnsupportedKind" xml:space="preserve"><value>&#xA;The saved roof type is not supported.</value></data>
-  <data name="Command_Roof_PersistedStale" xml:space="preserve"><value>&#xA;The roof footprint changed after it was saved. The saved definition was not used.</value></data>
+  <data name="Command_Roof_RidgeDirectionStartPrompt" xml:space="preserve"><value>
+Specify the first point of the ridge direction: </value></data>
+  <data name="Command_Roof_RidgeDirectionEndPrompt" xml:space="preserve"><value>
+Specify the second point of the ridge direction: </value></data>
+  <data name="Command_Roof_PreviewClosePrompt" xml:space="preserve"><value>
+The transient roof preview is displayed. Press Enter or Esc to close it: </value></data>
+  <data name="Command_Roof_GeometryErrorFourSided" xml:space="preserve"><value>
+A simple gable roof requires a four-vertex footprint.</value></data>
+  <data name="Command_Roof_GeometryErrorRectangular" xml:space="preserve"><value>
+A simple gable roof requires a rectangular footprint.</value></data>
+  <data name="Command_Roof_GeometryErrorDirection" xml:space="preserve"><value>
+The ridge direction must match one axis of the rectangle.</value></data>
+  <data name="Command_Roof_GeometryErrorSlope" xml:space="preserve"><value>
+The roof slope must be finite, greater than 0°, and less than 90°.</value></data>
+  <data name="Command_Roof_GeometryErrorDimensions" xml:space="preserve"><value>
+The roof-footprint dimensions are too small for a simple gable roof.</value></data>
+  <data name="Command_Roof_GeometryErrorNonFinite" xml:space="preserve"><value>
+The roof-geometry calculation produced an infinite or invalid value.</value></data>
+  <data name="Command_Roof_PersistConfirmPrompt" xml:space="preserve"><value>
+Save the definition and create the permanent roof display? [Yes/No] &lt;No&gt;: </value></data>
+  <data name="Command_Roof_PersistedSaved" xml:space="preserve"><value>
+The roof definition was saved on the selected footprint.</value></data>
+  <data name="Command_Roof_PersistedLoaded" xml:space="preserve"><value>
+The saved roof definition was loaded.</value></data>
+  <data name="Command_Roof_PersistedInvalid" xml:space="preserve"><value>
+The saved roof definition is invalid or damaged.</value></data>
+  <data name="Command_Roof_PersistedFutureSchema" xml:space="preserve"><value>
+The roof definition uses a newer unsupported schema.</value></data>
+  <data name="Command_Roof_PersistedUnsupportedKind" xml:space="preserve"><value>
+The saved roof type is not supported.</value></data>
+  <data name="Command_Roof_PersistedStale" xml:space="preserve"><value>
+The roof footprint changed after it was saved. The saved definition was not used.</value></data>
   <data name="Command_Roof_UnsupportedStretchNotificationTitle" xml:space="preserve"><value>The roof shape is no longer supported.</value></data>
   <data name="Command_Roof_UnsupportedStretchNotificationBody" xml:space="preserve"><value>Undo the last change with Undo (U).</value></data>
   <data name="Command_Roof_UnsupportedStretchRecoveredNotificationTitle" xml:space="preserve"><value>Unsupported roof change was restored.</value></data>
   <data name="Command_Roof_UnsupportedStretchRecoveredNotificationBody" xml:space="preserve"><value>The roof outline was restored to the last supported shape.</value></data>
   <data name="Command_Roof_DisplayTamperNotificationTitle" xml:space="preserve"><value>Select the roof outline</value></data>
   <data name="Command_Roof_DisplayTamperNotificationBody" xml:space="preserve"><value>Edit the roof shape using its outline. The other elements update automatically.</value></data>
-  <data name="Command_Roof_PersistFailed" xml:space="preserve"><value>&#xA;The roof definition could not be saved.</value></data>
-  <data name="Command_Roof_PersistSourceChanged" xml:space="preserve"><value>&#xA;The roof footprint changed during the command. The definition was not saved.</value></data>
-  <data name="Command_Roof_PersistConflict" xml:space="preserve"><value>&#xA;The footprint already contains a roof definition. Existing data was left unchanged.</value></data>
-  <data name="Command_Roof_PersistedAndDisplaySaved" xml:space="preserve"><value>&#xA;The roof definition and its permanent display were saved.</value></data>
-  <data name="Command_Roof_DisplayCurrent" xml:space="preserve"><value>&#xA;The permanent roof display is current.</value></data>
-  <data name="Command_Roof_DisplayMissing" xml:space="preserve"><value>&#xA;The saved roof does not yet have a permanent display.</value></data>
-  <data name="Command_Roof_DisplayStale" xml:space="preserve"><value>&#xA;The permanent roof display is missing, modified, or out of date.</value></data>
-  <data name="Command_Roof_DisplayCreatePrompt" xml:space="preserve"><value>&#xA;Create the permanent roof display? [Yes/No] &lt;No&gt;: </value></data>
-  <data name="Command_Roof_DisplayUpdatePrompt" xml:space="preserve"><value>&#xA;Regenerate the permanent roof display? [Yes/No] &lt;No&gt;: </value></data>
-  <data name="Command_Roof_DisplayCreated" xml:space="preserve"><value>&#xA;The permanent roof display was created.</value></data>
-  <data name="Command_Roof_DisplayUpdated" xml:space="preserve"><value>&#xA;The permanent roof display was regenerated.</value></data>
-  <data name="Command_Roof_DisplayFailed" xml:space="preserve"><value>&#xA;The permanent roof display could not be created or regenerated.</value></data>
-  <data name="Command_Roof_DisplayFutureSchema" xml:space="preserve"><value>&#xA;The permanent roof display uses a newer unsupported schema and was left unchanged.</value></data>
-  <data name="Command_Roof_SelectionInvalid" xml:space="preserve"><value>&#xA;Select a roof outline or generated roof line.</value></data>
-  <data name="Command_Roof_SelectionInvalidDisplay" xml:space="preserve"><value>&#xA;The selected roof part has damaged display data.</value></data>
-  <data name="Command_Roof_SelectionFutureDisplay" xml:space="preserve"><value>&#xA;The selected roof part uses a newer unsupported display schema.</value></data>
-  <data name="Command_Roof_SelectionOrphan" xml:space="preserve"><value>&#xA;The selected roof part has no available valid source outline.</value></data>
-  <data name="Command_Roof_GroupMissing" xml:space="preserve"><value>&#xA;The permanent roof display is valid, but the group is missing.</value></data>
-  <data name="Command_Roof_GroupRepairPrompt" xml:space="preserve"><value>&#xA;Restore the roof group? [Yes/No] &lt;No&gt;: </value></data>
-  <data name="Command_Roof_GroupRepaired" xml:space="preserve"><value>&#xA;The roof selection group was repaired.</value></data>
-  <data name="Command_RoofRafters_SelectPrompt" xml:space="preserve"><value>&#xA;Select a roof for rafter creation: </value></data>
-  <data name="Command_RoofRafters_SpacingPrompt" xml:space="preserve"><value>&#xA;Enter the maximum rafter spacing in mm: </value></data>
-  <data name="Command_RoofRafters_InvalidSpacing" xml:space="preserve"><value>&#xA;Maximum rafter spacing must be a finite positive number.</value></data>
-  <data name="Command_RoofRafters_InvalidDefaults" xml:space="preserve"><value>&#xA;The default rafter plan width is invalid or does not fit between the gable planes.</value></data>
-  <data name="Command_RoofRafters_SummaryFormat" xml:space="preserve"><value>&#xA;Rafters: {3}, requested maximum {0:0.###} mm, actual spacing {1:0.###} mm, stations {2}.</value></data>
-  <data name="Command_RoofRafters_CreatePrompt" xml:space="preserve"><value>&#xA;Create automatic rafters? [Yes/No] &lt;No&gt;: </value></data>
-  <data name="Command_RoofRafters_ExistingFoundFormat" xml:space="preserve"><value>&#xA;The roof already has {0} automatically generated rafters.</value></data>
-  <data name="Command_RoofRafters_ReplacementDeferred" xml:space="preserve"><value>&#xA;Safe replacement of existing automatic rafters is deferred to the next lifecycle step. The drawing remains unchanged.</value></data>
-  <data name="Command_RoofRafters_ExistingStale" xml:space="preserve"><value>&#xA;Existing automatic rafters no longer match the current roof geometry.</value></data>
-  <data name="Command_RoofRafters_RecipeAmbiguous" xml:space="preserve"><value>&#xA;Automatic rafters were not regenerated: the original generation recipe is ambiguous. The existing set was left unchanged.</value></data>
-  <data name="Command_RoofRafters_CreatedFormat" xml:space="preserve"><value>&#xA;Intelligent rafters created: {0}.</value></data>
-  <data name="Command_RoofRafters_InvalidRoof" xml:space="preserve"><value>&#xA;The selected roof has no valid persisted SimpleGable definition.</value></data>
-  <data name="Command_RoofRafters_SourceChanged" xml:space="preserve"><value>&#xA;The roof source footprint changed. No rafters were created.</value></data>
-  <data name="Command_RoofRafters_GenerationFailed" xml:space="preserve"><value>&#xA;Automatic rafters could not be created. The drawing operation was rolled back.</value></data>
+  <data name="Command_Roof_PersistFailed" xml:space="preserve"><value>
+The roof definition could not be saved.</value></data>
+  <data name="Command_Roof_PersistSourceChanged" xml:space="preserve"><value>
+The roof footprint changed during the command. The definition was not saved.</value></data>
+  <data name="Command_Roof_PersistConflict" xml:space="preserve"><value>
+The footprint already contains a roof definition. Existing data was left unchanged.</value></data>
+  <data name="Command_Roof_PersistedAndDisplaySaved" xml:space="preserve"><value>
+The roof definition and its permanent display were saved.</value></data>
+  <data name="Command_Roof_DisplayCurrent" xml:space="preserve"><value>
+The permanent roof display is current.</value></data>
+  <data name="Command_Roof_DisplayMissing" xml:space="preserve"><value>
+The saved roof does not yet have a permanent display.</value></data>
+  <data name="Command_Roof_DisplayStale" xml:space="preserve"><value>
+The permanent roof display is missing, modified, or out of date.</value></data>
+  <data name="Command_Roof_DisplayCreatePrompt" xml:space="preserve"><value>
+Create the permanent roof display? [Yes/No] &lt;No&gt;: </value></data>
+  <data name="Command_Roof_DisplayUpdatePrompt" xml:space="preserve"><value>
+Regenerate the permanent roof display? [Yes/No] &lt;No&gt;: </value></data>
+  <data name="Command_Roof_DisplayCreated" xml:space="preserve"><value>
+The permanent roof display was created.</value></data>
+  <data name="Command_Roof_DisplayUpdated" xml:space="preserve"><value>
+The permanent roof display was regenerated.</value></data>
+  <data name="Command_Roof_DisplayFailed" xml:space="preserve"><value>
+The permanent roof display could not be created or regenerated.</value></data>
+  <data name="Command_Roof_DisplayFutureSchema" xml:space="preserve"><value>
+The permanent roof display uses a newer unsupported schema and was left unchanged.</value></data>
+  <data name="Command_Roof_SelectionInvalid" xml:space="preserve"><value>
+Select a roof outline or generated roof line.</value></data>
+  <data name="Command_Roof_SelectionInvalidDisplay" xml:space="preserve"><value>
+The selected roof part has damaged display data.</value></data>
+  <data name="Command_Roof_SelectionFutureDisplay" xml:space="preserve"><value>
+The selected roof part uses a newer unsupported display schema.</value></data>
+  <data name="Command_Roof_SelectionOrphan" xml:space="preserve"><value>
+The selected roof part has no available valid source outline.</value></data>
+  <data name="Command_Roof_GroupMissing" xml:space="preserve"><value>
+The permanent roof display is valid, but the group is missing.</value></data>
+  <data name="Command_Roof_GroupRepairPrompt" xml:space="preserve"><value>
+Restore the roof group? [Yes/No] &lt;No&gt;: </value></data>
+  <data name="Command_Roof_GroupRepaired" xml:space="preserve"><value>
+The roof selection group was repaired.</value></data>
+  <data name="Command_RoofRafters_SelectPrompt" xml:space="preserve"><value>
+Select a roof for rafter creation: </value></data>
+  <data name="Command_RoofRafters_SpacingPrompt" xml:space="preserve"><value>
+Enter the maximum rafter spacing in mm: </value></data>
+  <data name="Command_RoofRafters_InvalidSpacing" xml:space="preserve"><value>
+Maximum rafter spacing must be a finite positive number.</value></data>
+  <data name="Command_RoofRafters_InvalidDefaults" xml:space="preserve"><value>
+The default rafter plan width is invalid or does not fit between the gable planes.</value></data>
+  <data name="Command_RoofRafters_SummaryFormat" xml:space="preserve"><value>
+Rafters: {3}, requested maximum {0:0.###} mm, actual spacing {1:0.###} mm, stations {2}.</value></data>
+  <data name="Command_RoofRafters_CreatePrompt" xml:space="preserve"><value>
+Create automatic rafters? [Yes/No] &lt;No&gt;: </value></data>
+  <data name="Command_RoofRafters_ExistingFoundFormat" xml:space="preserve"><value>
+The roof already has {0} automatically generated rafters.</value></data>
+  <data name="Command_RoofRafters_ReplacementDeferred" xml:space="preserve"><value>
+Safe replacement of existing automatic rafters is deferred to the next lifecycle step. The drawing remains unchanged.</value></data>
+  <data name="Command_RoofRafters_ExistingStale" xml:space="preserve"><value>
+Existing automatic rafters no longer match the current roof geometry.</value></data>
+  <data name="Command_RoofRafters_RecipeAmbiguous" xml:space="preserve"><value>
+Automatic rafters were not regenerated: the original generation recipe is ambiguous. The existing set was left unchanged.</value></data>
+  <data name="Command_RoofRafters_CreatedFormat" xml:space="preserve"><value>
+Intelligent rafters created: {0}.</value></data>
+  <data name="Command_RoofRafters_InvalidRoof" xml:space="preserve"><value>
+The selected roof has no valid persisted SimpleGable definition.</value></data>
+  <data name="Command_RoofRafters_SourceChanged" xml:space="preserve"><value>
+The roof source footprint changed. No rafters were created.</value></data>
+  <data name="Command_RoofRafters_GenerationFailed" xml:space="preserve"><value>
+Automatic rafters could not be created. The drawing operation was rolled back.</value></data>
   <data name="CommandUi_RoofMenu_Label" xml:space="preserve"><value>Roof</value></data>
   <data name="CommandUi_RoofMenu_Tooltip" xml:space="preserve"><value>Select a roof type.</value></data>
   <data name="CommandUi_RoofGable_Label" xml:space="preserve"><value>Gable roof</value></data>
@@ -638,18 +843,27 @@
   <data name="RoofRafterWindow_InvalidMaterial" xml:space="preserve"><value>Select a valid material.</value></data>
   <data name="RoofRafterWindow_InvalidRoof" xml:space="preserve"><value>The rafter layout cannot be calculated for this roof.</value></data>
   <data name="RoofRafterWindow_InvalidAutomaticSpacingFormat" xml:space="preserve"><value>Automatic rafter spacing must not be less than {0:0.###} mm.</value></data>
-  <data name="RoofRafterWindow_HipSummaryFormat" xml:space="preserve"><value>{0} rafters • working spacing {1:0.###} mm</value></data>  <data name="Command_RoofUnlock_SelectPrompt" xml:space="preserve"><value>&#xA;Select a roof to unlock: </value></data>
-  <data name="Command_RoofToggleLock_SelectPrompt" xml:space="preserve"><value>&#xA;Select a roof to lock or unlock: </value></data>
-  <data name="Command_RoofUnlock_Unlocked" xml:space="preserve"><value>&#xA;The roof is unlocked. Generated timber can be edited with supported commands.</value></data>
-  <data name="Command_RoofUnlock_AlreadyUnlocked" xml:space="preserve"><value>&#xA;The roof is already unlocked.</value></data>
+  <data name="RoofRafterWindow_HipSummaryFormat" xml:space="preserve"><value>{0} rafters • working spacing {1:0.###} mm</value></data>  <data name="Command_RoofUnlock_SelectPrompt" xml:space="preserve"><value>
+Select a roof to unlock: </value></data>
+  <data name="Command_RoofToggleLock_SelectPrompt" xml:space="preserve"><value>
+Select a roof to lock or unlock: </value></data>
+  <data name="Command_RoofUnlock_Unlocked" xml:space="preserve"><value>
+The roof is unlocked. Generated timber can be edited with supported commands.</value></data>
+  <data name="Command_RoofUnlock_AlreadyUnlocked" xml:space="preserve"><value>
+The roof is already unlocked.</value></data>
   <data name="Command_RoofUnlock_UnlockedNotificationTitle" xml:space="preserve"><value>Roof unlocked</value></data>
   <data name="Command_RoofUnlock_UnlockedNotificationBody" xml:space="preserve"><value>Generated timber now accepts supported manual edits.</value></data>
-  <data name="Command_RoofLock_Locked" xml:space="preserve"><value>&#xA;The roof is locked. Accepted manual edits were kept.</value></data>
-  <data name="Command_RoofLock_AlreadyLocked" xml:space="preserve"><value>&#xA;The roof is already locked.</value></data>
-  <data name="Command_RoofResetEdits_Reset" xml:space="preserve"><value>&#xA;Manual generated-timber edits were reset.</value></data>
-  <data name="Command_RoofResetEdits_NoEdits" xml:space="preserve"><value>&#xA;The selected roof has no manual edits.</value></data>
+  <data name="Command_RoofLock_Locked" xml:space="preserve"><value>
+The roof is locked. Accepted manual edits were kept.</value></data>
+  <data name="Command_RoofLock_AlreadyLocked" xml:space="preserve"><value>
+The roof is already locked.</value></data>
+  <data name="Command_RoofResetEdits_Reset" xml:space="preserve"><value>
+Manual generated-timber edits were reset.</value></data>
+  <data name="Command_RoofResetEdits_NoEdits" xml:space="preserve"><value>
+The selected roof has no manual edits.</value></data>
   <data name="Command_RoofEdit_SelectPrompt" xml:space="preserve"><value>Select roof: </value></data>
-  <data name="Command_RoofEdit_UpdatedFormat" xml:space="preserve"><value>&#xA;Roof updated.</value></data>
+  <data name="Command_RoofEdit_UpdatedFormat" xml:space="preserve"><value>
+Roof updated.</value></data>
   <data name="Command_Roof_LockedNotificationTitle" xml:space="preserve"><value>The roof is locked</value></data>
   <data name="Command_Roof_LockedNotificationBody" xml:space="preserve"><value>Unlock it before making manual edits.</value></data>
   <data name="Command_Roof_UnsupportedMemberEditNotificationTitle" xml:space="preserve"><value>The member edit was not supported.</value></data>
@@ -759,9 +973,9 @@
   <data name="Command_AutomaticPurlin_ManualEditRestricted" xml:space="preserve">
     <value>\nAutomatic purlins are controlled by the roof layout and cannot currently be edited through AK_EDIT or AK_ASSIGN.</value>
   </data>
-  <data name="AutomaticPurlin_Title" xml:space="preserve"><value>Automatic purlins</value></data>
+  <data name="AutomaticPurlin_Title" xml:space="preserve"><value>Automatic purlins and wall plates</value></data>
   <data name="AutomaticPurlin_Description" xml:space="preserve"><value>Edit the layout draft and inspect its transient preview. Changes are not saved in this step.</value></data>
-  <data name="AutomaticPurlin_ReferenceSection" xml:space="preserve"><value>Reference elevation</value></data>
+  <data name="AutomaticPurlin_ReferenceSection" xml:space="preserve"><value>Reference plane</value></data>
   <data name="AutomaticPurlin_DatumStored" xml:space="preserve"><value>The reference elevation was loaded from the drawing.</value></data>
   <data name="AutomaticPurlin_DatumMissing" xml:space="preserve"><value>The reference elevation is not set. The values below apply only to this preview.</value></data>
   <data name="AutomaticPurlin_ReferenceKind" xml:space="preserve"><value>Reference kind</value></data>
@@ -785,10 +999,10 @@
   <data name="AutomaticPurlin_Enabled" xml:space="preserve"><value>Enabled</value></data>
   <data name="AutomaticPurlin_Remove" xml:space="preserve"><value>Remove</value></data>
   <data name="AutomaticPurlin_PlacementMode" xml:space="preserve"><value>Placement mode</value></data>
-  <data name="AutomaticPurlin_ModeBottomHeight" xml:space="preserve"><value>Bottom edge height above reference</value></data>
+  <data name="AutomaticPurlin_ModeBottomHeight" xml:space="preserve"><value>Bottom-edge height difference vs reference</value></data>
   <data name="AutomaticPurlin_ModeEaveDistance" xml:space="preserve"><value>Plan distance from eave</value></data>
   <data name="AutomaticPurlin_ModeRidgeDistance" xml:space="preserve"><value>Plan distance from ridge</value></data>
-  <data name="AutomaticPurlin_ValueBottomHeight" xml:space="preserve"><value>Bottom edge height</value></data>
+  <data name="AutomaticPurlin_ValueBottomHeight" xml:space="preserve"><value>Bottom-edge height difference vs reference</value></data>
   <data name="AutomaticPurlin_ValueEaveDistance" xml:space="preserve"><value>Distance from eave</value></data>
   <data name="AutomaticPurlin_ValueRidgeDistance" xml:space="preserve"><value>Distance from ridge</value></data>
   <data name="AutomaticPurlin_RidgeReference" xml:space="preserve"><value>Reference ridge</value></data>
@@ -814,11 +1028,12 @@
   <data name="AutomaticPurlin_ValidationBoundaryIdentity" xml:space="preserve"><value>Stable boundary identity is missing or invalid. Preview must not create or repair it.</value></data>
   <data name="AutomaticPurlin_ValidationDatum" xml:space="preserve"><value>Enter a valid reference elevation in metres and local position in millimetres.</value></data>
   <data name="AutomaticPurlin_ValidationNoHorizontalRidge" xml:space="preserve"><value>The roof has no eligible horizontal ridge.</value></data>
-  <data name="AutomaticPurlin_ValidationValue" xml:space="preserve"><value>The placement value must be a finite number greater than 0.</value></data>
-  <data name="AutomaticPurlin_ValidationSeating" xml:space="preserve"><value>Seating must be greater than 0 and less than 100% or the rafter height.</value></data>
+  <data name="AutomaticPurlin_ValidationValue" xml:space="preserve"><value>The placement value must be a finite number. Signed values are allowed for bottom-edge height difference; distance modes require a value greater than 0.</value></data>
+  <data name="AutomaticPurlin_ValidationSeating" xml:space="preserve"><value>Out of range</value></data>
   <data name="AutomaticPurlin_ValidationRidgeReference" xml:space="preserve"><value>Select a valid horizontal reference ridge.</value></data>
   <data name="AutomaticPurlin_ValidationInclinedRidge" xml:space="preserve"><value>An inclined ridge cannot be used as the reference.</value></data>
   <data name="AutomaticPurlin_ValidationOutsideRoof" xml:space="preserve"><value>The placement lies outside the roof.</value></data>
+  <data name="AutomaticPurlin_ValidationPlacementModeConversion" xml:space="preserve"><value>This placement mode cannot represent the current physical position with valid seating. The last valid geometry is retained; Apply is disabled.</value></data>
   <data name="AutomaticPurlin_ValidationCriticalElevation" xml:space="preserve"><value>The placement coincides with a critical topology elevation.</value></data>
   <data name="AutomaticPurlin_ValidationLayout" xml:space="preserve"><value>The layout cannot be previewed. Check its values.</value></data>
   <data name="AutomaticPurlin_CommandSelectRoof" xml:space="preserve"><value>Select an authoritative persisted Hip roof source Polyline: </value></data>
@@ -838,4 +1053,123 @@
   <data name="AutomaticPurlin_SchematicSeatingHelp" xml:space="preserve"><value>Schematic seating indication; the numerical values remain authoritative.</value></data>
   <data name="AutomaticPurlin_SchematicRidgeUnresolved" xml:space="preserve"><value>Select a valid reference ridge.</value></data>
   <data name="AutomaticPurlin_SchematicNoSelection" xml:space="preserve"><value>Select an intermediate purlin to show its placement.</value></data>
+  <data name="AutomaticPurlin_SchematicStale" xml:space="preserve"><value>Schematic is stale: showing the last valid geometry until the current draft is valid.</value></data>
+
+  <data name="AutomaticPurlin_CommandInvalidSelection" xml:space="preserve"><value>Select the outline or an existing part of the roof.</value></data>
+
+  <data name="AutomaticPurlin_Confirm" xml:space="preserve"><value>Confirm</value></data>
+
+  <data name="AutomaticPurlin_ConfirmStoredManualRafter" xml:space="preserve"><value>Confirm stored manual dimensions</value></data>
+
+  <data name="AutomaticPurlin_CurrentRoofPitchFormat" xml:space="preserve"><value>Current roof pitch: {0}°</value></data>
+
+  <data name="AutomaticPurlin_DatumInconsistentSourceEave" xml:space="preserve"><value>Stored “source eave plane” reference has an invalid local Z (must be 0). The original record is kept; select a reference and Apply to resolve.</value></data>
+
+  <data name="AutomaticPurlin_EnterRafterDimensions" xml:space="preserve"><value>Enter rafter dimensions</value></data>
+
+  <data name="AutomaticPurlin_Height" xml:space="preserve"><value>Height</value></data>
+
+  <data name="AutomaticPurlin_ManualRafterDialogDescription" xml:space="preserve"><value>Enter rafter width and height in millimetres. These dimensions are used for elevation and seating calculations; no physical rafter is created.</value></data>
+
+  <data name="AutomaticPurlin_ManualRafterDialogTitle" xml:space="preserve"><value>Rafter dimensions</value></data>
+
+  <data name="AutomaticPurlin_ManualRafterProfileInfoFormat" xml:space="preserve"><value>Using manually entered rafter section: {0} × {1} mm.</value></data>
+
+  <data name="AutomaticPurlin_ManualRafterSelectFromDrawing" xml:space="preserve"><value>Select from drawing</value></data>
+
+  <data name="AutomaticPurlin_MissingActualTransitionDetail" xml:space="preserve"><value>This configuration preferred the actual rafter section. Confirm the stored manual section, or enter different dimensions. Apply stays disabled until you decide.</value></data>
+
+  <data name="AutomaticPurlin_MissingActualTransitionTitle" xml:space="preserve"><value>Actual rafters are no longer available.</value></data>
+
+  <data name="AutomaticPurlin_NoRafterWarningDetail" xml:space="preserve"><value>Enter rafter dimensions manually to calculate elevations and seating.</value></data>
+
+  <data name="AutomaticPurlin_NoRafterWarningTitle" xml:space="preserve"><value>The roof does not contain any rafters yet.</value></data>
+
+  <data name="AutomaticPurlin_PersistedManualRafterInvalid" xml:space="preserve"><value>The stored manual rafter section is invalid or incomplete. Enter valid W × H dimensions.</value></data>
+
+  <data name="AutomaticPurlin_PreviewReturnPrompt" xml:space="preserve"><value>Press Enter to return to the purlin dialog: </value></data>
+
+  <data name="AutomaticPurlin_ProvisionalManualRafterProfileInfoFormat" xml:space="preserve"><value>Provisional (unconfirmed) manual section for preview: {0} × {1} mm.</value></data>
+
+  <data name="AutomaticPurlin_RafterRecipeAmbiguous" xml:space="preserve"><value>Automatic roof rafter dimensions are not uniform. Edit them with AK_ROOF_RAFTERS or select a rafter as the dimension source.</value></data>
+
+  <data name="AutomaticPurlin_RafterSourceConflictActualCaption" xml:space="preserve"><value>ACTUAL ROOF RAFTER PROFILE:</value></data>
+
+  <data name="AutomaticPurlin_RafterSourceConflictDescription" xml:space="preserve"><value>The stored manual rafter section differs from the actual roof rafters. Choose which section drives purlin calculations. Physical rafters are not modified.</value></data>
+
+  <data name="AutomaticPurlin_RafterSourceConflictFooter" xml:space="preserve"><value>Manual and actual rafter sections differ. Choose a dimension source before Apply.</value></data>
+
+  <data name="AutomaticPurlin_RafterSourceConflictKeepManual" xml:space="preserve"><value>Keep manual dimensions</value></data>
+
+  <data name="AutomaticPurlin_RafterSourceConflictManualCaption" xml:space="preserve"><value>STORED MANUAL PROFILE:</value></data>
+
+  <data name="AutomaticPurlin_RafterSourceConflictProfileFormat" xml:space="preserve"><value>{0} × {1} mm</value></data>
+
+  <data name="AutomaticPurlin_RafterSourceConflictTitle" xml:space="preserve"><value>Rafter section conflict</value></data>
+
+  <data name="AutomaticPurlin_RafterSourceConflictUseActual" xml:space="preserve"><value>Use actual rafter dimensions</value></data>
+
+  <data name="AutomaticPurlin_ResolveRafterSourceConflict" xml:space="preserve"><value>Choose dimension source</value></data>
+
+  <data name="AutomaticPurlin_RoofInfoHeight" xml:space="preserve"><value>Roof height</value></data>
+
+  <data name="AutomaticPurlin_RoofInfoPitch" xml:space="preserve"><value>Roof pitch</value></data>
+
+  <data name="AutomaticPurlin_RoofInfoType" xml:space="preserve"><value>Roof type</value></data>
+
+  <data name="AutomaticPurlin_SectionAxisAbbrev" xml:space="preserve"><value>Axis</value></data>
+
+  <data name="AutomaticPurlin_SectionBottomAbbrev" xml:space="preserve"><value>BE</value></data>
+
+  <data name="AutomaticPurlin_SectionTopAbbrev" xml:space="preserve"><value>TE</value></data>
+
+  <data name="AutomaticPurlin_SelectRafterCancelled" xml:space="preserve"><value>Rafter selection was cancelled. Dimensions were left unchanged.</value></data>
+
+  <data name="AutomaticPurlin_SelectRafterClickHint" xml:space="preserve"><value>↻ Click to update</value></data>
+
+  <data name="AutomaticPurlin_SelectRafterHint" xml:space="preserve"><value>Click and select a rafter from which dimensions will be taken.</value></data>
+
+  <data name="AutomaticPurlin_SelectRafterInvalid" xml:space="preserve"><value>Select a Rafter element with valid width and height.</value></data>
+
+  <data name="AutomaticPurlin_SelectRafterPrompt" xml:space="preserve"><value>Select any KROVY rafter as the dimension source: </value></data>
+
+  <data name="AutomaticPurlin_TabErrorFormat" xml:space="preserve"><value>{0} — has errors</value></data>
+
+  <data name="AutomaticPurlin_TabErrorGlyph" xml:space="preserve"><value>⚠</value></data>
+
+  <data name="AutomaticPurlin_TabIntermediate" xml:space="preserve"><value>Intermediate purlin</value></data>
+
+  <data name="AutomaticPurlin_TabRidge" xml:space="preserve"><value>Ridge purlin</value></data>
+
+  <data name="AutomaticPurlin_TabWallPlate" xml:space="preserve"><value>Wall plate</value></data>
+
+  <data name="AutomaticPurlin_Tooltip_BottomDescription" xml:space="preserve"><value>Bottom edge of the member, relative elevation to the reference.</value></data>
+
+  <data name="AutomaticPurlin_Tooltip_CenterDescription" xml:space="preserve"><value>Geometric axis of the member, relative elevation to the reference.</value></data>
+
+  <data name="AutomaticPurlin_Tooltip_CurrentValueFormat" xml:space="preserve"><value>Current value: {0}</value></data>
+
+  <data name="AutomaticPurlin_Tooltip_RoofPlaneDescription" xml:space="preserve"><value>Elevation of the upper rafter face on the member vertical axis, relative to the reference.</value></data>
+
+  <data name="AutomaticPurlin_Tooltip_RoofPlaneRidgeDescription" xml:space="preserve"><value>Upper roof apex on the ridge-purlin axis, relative elevation to the reference.</value></data>
+
+  <data name="AutomaticPurlin_Tooltip_TopDescription" xml:space="preserve"><value>Top edge of the member, relative elevation to the reference.</value></data>
+
+  <data name="AutomaticPurlin_ValidationDimension" xml:space="preserve"><value>Width and height must be positive finite millimetre values.</value></data>
+
+  <data name="AutomaticPurlin_ValidationPlanDistanceRange" xml:space="preserve"><value>Plan distance from eave must be at least 0 mm and less than {0} mm for this roof.</value></data>
+
+  <data name="AutomaticPurlin_WallPlateLowerEdgeHeight" xml:space="preserve"><value>Wall plate lower edge height</value></data>
+
+  <data name="AutomaticPurlin_WallPlateSection" xml:space="preserve"><value>Wall plates</value></data>
+
+  <data name="AutomaticPurlin_Width" xml:space="preserve"><value>Width</value></data>
+
+  <data name="Command_RoofEdit_PurlinElevationOutsideRoof" xml:space="preserve"><value>
+An intermediate purlin is outside the roof at the new pitch.
+Adjust its position or choose a suitable roof pitch.</value></data>
+
+  <data name="Command_RoofEdit_PurlinLayoutIncompatible" xml:space="preserve"><value>
+The saved purlin layout is not compatible with the new roof geometry.
+Adjust the purlins or choose a suitable geometry.</value></data>
 </root>

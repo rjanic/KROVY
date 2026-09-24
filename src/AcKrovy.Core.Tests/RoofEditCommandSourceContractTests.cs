@@ -181,6 +181,10 @@ public sealed class RoofEditCommandSourceContractTests
         Assert.Contains("HipRoofPreviewDialogAction.Preview", edit);
         Assert.Contains("HipRoofPreviewDialogAction.Apply", edit);
         Assert.Contains("TryApply(", edit);
+        Assert.Contains("IsRecoverablePurlinEditValidation(", edit);
+        Assert.Contains("SetSessionValidation(", edit);
+        Assert.Contains("FocusSlopeInput(", edit);
+        Assert.Contains("continue;", edit);
         Assert.DoesNotContain("PickRidgeDirection", edit);
         Assert.DoesNotContain("GableRoofGeometryViewModel", edit);
         Assert.DoesNotContain("RoofDefinitionStore.Write", edit);
@@ -188,6 +192,8 @@ public sealed class RoofEditCommandSourceContractTests
         Assert.DoesNotContain("transaction.Commit", edit);
         Assert.Contains("HipRoofDialogMode.Edit ? \"EditWindow_Apply\"", HipViewModel);
         Assert.Contains("CanApply => _geometry is not null", HipViewModel);
+        Assert.Contains("SetSessionValidation(", HipViewModel);
+        Assert.Contains("HasSessionValidation", HipViewModel);
     }
 
     [Fact]

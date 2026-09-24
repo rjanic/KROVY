@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Windows;
+using System.Windows.Threading;
 using AcKrovy.Localization;
 
 namespace AcKrovy.AutoCAD.UI;
@@ -21,6 +22,26 @@ public partial class HipRoofPreviewWindow : Window
     internal bool IsClosed => _closed;
 
     internal void PrepareForInteraction() => RequestedAction = HipRoofPreviewDialogAction.None;
+
+    /// <summary>
+    /// Focuses the pitch field and selects its current value so the user can type a
+    /// replacement angle immediately after a recoverable Apply validation failure.
+    /// </summary>
+    internal void FocusSlopeInput()
+    {
+        _ = Dispatcher.BeginInvoke(
+            DispatcherPriority.Input,
+            new Action(() =>
+            {
+                if (!SlopeTextBox.IsVisible)
+                {
+                    return;
+                }
+
+                _ = SlopeTextBox.Focus();
+                SlopeTextBox.SelectAll();
+            }));
+    }
 
     protected override void OnClosing(CancelEventArgs e)
     {

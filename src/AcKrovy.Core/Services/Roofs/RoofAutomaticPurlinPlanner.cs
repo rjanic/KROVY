@@ -13,12 +13,89 @@ public static class RoofAutomaticPurlinPlanner
     public const double CoordinateToleranceMm =
         SimpleGableRoofGeometryTolerance.CoordinateToleranceMm;
 
+    /// <summary>
+    /// Product seating for WallPlate matches Intermediate Purlin plan-distance:
+    /// 25% of rafter height into the rafter section.
+    /// </summary>
+    public const double DefaultWallPlateSeatingPercent = 25d;
+
     public static RoofAutomaticPurlinPlanResult Create(
         HipRoofGeometry? geometry,
         RoofBoundaryIdentityProvenanceResult? boundaryProvenance,
         RoofAutomaticPurlinLayout? layout,
         RoofAutomaticPurlinPlanningInput? planningInput) =>
         CreateCore(geometry, boundaryProvenance, layout, planningInput);
+
+    /// <summary>
+    /// Resolves the planning datum. When reference kind is WallPlateBottom and wall
+    /// plates are enabled, WallPlate geometry is placed against a bootstrap eave
+    /// datum first; the resulting lower-edge local Z becomes ReferenceLocalZMm.
+    /// </summary>
+    public static RoofAutomaticPurlinEffectiveDatumResult ResolveEffectiveDatum(
+        HipRoofGeometry? geometry,
+        RoofBoundaryIdentityProvenanceResult? boundaryProvenance,
+        RoofAutomaticPurlinLayout? layout,
+        RoofAutomaticPurlinPlanningInput? planningInput)
+    {
+        if (geometry is null ||
+            boundaryProvenance is null ||
+            !boundaryProvenance.IsValid ||
+            layout is null ||
+            planningInput?.RelativeElevationDatum is null)
+        {
+            return new RoofAutomaticPurlinEffectiveDatumResult(
+                false,
+                null,
+                null,
+                RoofAutomaticPurlinPlanError.InvalidRelativeElevationDatum);
+        }
+
+        var requested = planningInput.RelativeElevationDatum;
+        if (requested.ReferenceKind != RoofRelativeElevationReferenceKind.WallPlateBottom ||
+            !planningInput.WallPlatesEnabled)
+        {
+            var validated = RoofRelativeElevationDatumRules.Validate(
+                RoofRelativeElevationDatumSchema.CurrentVersion,
+                requested.ReferenceKind,
+                requested.ReferenceRelativeElevationMm,
+                requested.ReferenceLocalZMm);
+            if (!validated.IsValid || validated.Datum is null)
+            {
+                return new RoofAutomaticPurlinEffectiveDatumResult(
+                    false,
+                    null,
+                    null,
+                    RoofAutomaticPurlinPlanError.InvalidRelativeElevationDatum);
+            }
+
+            return new RoofAutomaticPurlinEffectiveDatumResult(
+                true,
+                validated.Datum,
+                null,
+                RoofAutomaticPurlinPlanError.None);
+        }
+
+        var anchor = TryResolveWallPlateBottomLocalZMm(
+            geometry,
+            boundaryProvenance,
+            layout,
+            planningInput,
+            out var bottomLocalZMm,
+            out var error);
+        if (!anchor)
+        {
+            return new RoofAutomaticPurlinEffectiveDatumResult(false, null, null, error);
+        }
+
+        return new RoofAutomaticPurlinEffectiveDatumResult(
+            true,
+            new RoofRelativeElevationDatum(
+                RoofRelativeElevationReferenceKind.WallPlateBottom,
+                requested.ReferenceRelativeElevationMm,
+                bottomLocalZMm),
+            bottomLocalZMm,
+            RoofAutomaticPurlinPlanError.None);
+    }
 
     private static RoofAutomaticPurlinPlanResult CreateCore(
         HipRoofGeometry? geometry,
@@ -51,11 +128,44 @@ public static class RoofAutomaticPurlinPlanner
             return Invalid(RoofAutomaticPurlinPlanError.InvalidRelativeElevationDatum);
         }
 
-        if (!IsFinite(planningInput.PurlinHeightMm) || planningInput.PurlinHeightMm <= 0d ||
+        if (!IsFinite(planningInput.PurlinWidthMm) || planningInput.PurlinWidthMm <= 0d ||
+            !IsFinite(planningInput.PurlinHeightMm) || planningInput.PurlinHeightMm <= 0d ||
             !IsFinite(planningInput.RafterHeightMm) || planningInput.RafterHeightMm <= 0d)
         {
             return Invalid(RoofAutomaticPurlinPlanError.InvalidPhysicalSection);
         }
+
+        if (planningInput.WallPlatesEnabled &&
+            (!IsFinite(planningInput.WallPlateWidthMm) || planningInput.WallPlateWidthMm <= 0d ||
+             !IsFinite(planningInput.WallPlateHeightMm) || planningInput.WallPlateHeightMm <= 0d))
+        {
+            return Invalid(RoofAutomaticPurlinPlanError.InvalidPhysicalSection);
+        }
+
+        // WallPlateBottom product may persist WP BottomEdge Place=0 (relative zero)
+        // with SourceEave-absolute bottom in WallPlateLowerEdgeHeightMm. Expand before
+        // ResolveEffectiveDatum / bootstrap so Core seating formulas stay unchanged.
+        if (planningInput.RelativeElevationDatum.ReferenceKind ==
+            RoofRelativeElevationReferenceKind.WallPlateBottom)
+        {
+            layout = RoofAutomaticPurlinPitchAdaptationRules
+                .PrepareWallPlateBottomEdgeZeroForBootstrapPlanning(layout);
+        }
+
+        var effectiveDatumResult = ResolveEffectiveDatum(
+            geometry,
+            boundaryProvenance,
+            layout,
+            planningInput);
+        if (!effectiveDatumResult.IsValid || effectiveDatumResult.Datum is null)
+        {
+            return Invalid(effectiveDatumResult.Error);
+        }
+
+        planningInput = planningInput with
+        {
+            RelativeElevationDatum = effectiveDatumResult.Datum,
+        };
 
         var topology = geometry.Topology;
         if (!HasValidCoordinates(topology))
@@ -105,7 +215,23 @@ public static class RoofAutomaticPurlinPlanner
 
         IReadOnlyDictionary<int, RoofFaceUnitNormal>? faceNormals = null;
         var commonNormalZ = 0d;
-        if (normalizedItems.Any(item => item.Enabled && IsSeatingDriven(item.PlacementMode)))
+        var wallPlatePlacement = planningInput.WallPlatesEnabled
+            ? RoofPurlinLayoutPersistenceRules.ResolveWallPlatePlacement(layout)
+            : null;
+        if (wallPlatePlacement is not null)
+        {
+            planningInput = ApplyWallPlateSectionOverrides(planningInput, wallPlatePlacement);
+        }
+
+        var needsFaceNormals =
+            (wallPlatePlacement is not null &&
+             (IsSeatingDriven(wallPlatePlacement.PlacementMode) ||
+              wallPlatePlacement.SeatingDepth is not null)) ||
+            normalizedItems.Any(item =>
+                item.Enabled &&
+                (IsSeatingDriven(item.PlacementMode) || item.SeatingDepth is not null)) ||
+            layout.RidgeEnabled;
+        if (needsFaceNormals)
         {
             // Current Hip topology has one uniform pitch, so every upward face normal
             // has the same Z component and one plan setback yields one horizontal
@@ -118,12 +244,53 @@ public static class RoofAutomaticPurlinPlanner
         }
 
         var items = new List<RoofAutomaticPurlinPlanItem>();
+        if (planningInput.WallPlatesEnabled)
+        {
+            // When the architectural datum is anchored to WallPlate bottom, physical
+            // WallPlate placement must use the bootstrap eave datum to avoid a cycle.
+            // Relative elevations are then rebased onto the resolved WallPlateBottom datum.
+            var wallPlatePlacementInput =
+                planningInput.RelativeElevationDatum.ReferenceKind ==
+                RoofRelativeElevationReferenceKind.WallPlateBottom
+                    ? planningInput with
+                    {
+                        RelativeElevationDatum = CreateWallPlateBootstrapDatum(),
+                    }
+                    : planningInput;
+            var wallPlateResult = AddWallPlates(
+                geometry,
+                boundaryProvenance,
+                wallPlatePlacement!,
+                wallPlatePlacementInput,
+                faceNormals,
+                commonNormalZ,
+                items);
+            if (wallPlateResult is not null)
+            {
+                return wallPlateResult;
+            }
+
+            if (planningInput.RelativeElevationDatum.ReferenceKind ==
+                RoofRelativeElevationReferenceKind.WallPlateBottom)
+            {
+                var rebaseError = RebaseWallPlateRelativeElevations(
+                    items,
+                    planningInput.RelativeElevationDatum);
+                if (rebaseError != RoofAutomaticPurlinPlanError.None)
+                {
+                    return Invalid(rebaseError);
+                }
+            }
+        }
+
         if (layout.RidgeEnabled)
         {
             var ridgeResult = AddHorizontalRidges(
                 geometry,
                 boundaryProvenance,
+                layout,
                 planningInput,
+                commonNormalZ,
                 items);
             if (ridgeResult is not null)
             {
@@ -135,11 +302,12 @@ public static class RoofAutomaticPurlinPlanner
                      .Where(candidate => candidate.Enabled)
                      .OrderBy(candidate => candidate.LayoutItemId, StringComparer.Ordinal))
         {
+            var itemPlanningInput = ApplyPurlinSectionOverrides(planningInput, item);
             var placement = ResolvePlacementCore(
                 geometry,
                 boundaryProvenance,
                 item,
-                planningInput);
+                itemPlanningInput);
             if (!placement.IsValid || placement.RoofSurfaceLocalZMm is null)
             {
                 return Invalid(placement.Error, item.LayoutItemId);
@@ -148,7 +316,7 @@ public static class RoofAutomaticPurlinPlanner
             var sliceLocalZMm = placement.RoofSurfaceLocalZMm.Value;
             var centerLocalZMm = sliceLocalZMm;
             RoofPurlinElevationProfile elevationProfile;
-            if (IsSeatingDriven(item.PlacementMode))
+            if (IsSeatingDriven(item.PlacementMode) || placement.SeatingDepthMm is not null)
             {
                 if (faceNormals is null || faceNormals.Count == 0 ||
                     placement.SeatingDepthMm is not { } seatingDepthMm)
@@ -162,10 +330,11 @@ public static class RoofAutomaticPurlinPlanner
                 var physical = RoofRafterPhysicalGeometry.CreatePurlinPlacement(
                     new RoofPoint3D(0d, 0d, sliceLocalZMm),
                     representativeNormal,
-                    planningInput.RafterHeightMm,
-                    planningInput.PurlinHeightMm,
+                    itemPlanningInput.RafterHeightMm,
+                    itemPlanningInput.PurlinHeightMm,
                     seatingDepthMm,
-                    planningInput.RelativeElevationDatum);
+                    itemPlanningInput.RelativeElevationDatum,
+                    itemPlanningInput.PurlinWidthMm);
                 if (!physical.IsValid || physical.Placement is null)
                 {
                     return Invalid(
@@ -175,17 +344,17 @@ public static class RoofAutomaticPurlinPlanner
 
                 centerLocalZMm = physical.Placement.PurlinCenterLocalZMm;
                 elevationProfile = CreateElevationProfile(
-                    planningInput.RelativeElevationDatum,
+                    itemPlanningInput.RelativeElevationDatum,
                     centerLocalZMm,
-                    planningInput.PurlinHeightMm,
+                    itemPlanningInput.PurlinHeightMm,
                     seatingDepthMm);
             }
             else
             {
                 elevationProfile = CreateElevationProfile(
-                    planningInput.RelativeElevationDatum,
+                    itemPlanningInput.RelativeElevationDatum,
                     centerLocalZMm,
-                    planningInput.PurlinHeightMm,
+                    itemPlanningInput.PurlinHeightMm,
                     null);
             }
 
@@ -203,7 +372,7 @@ public static class RoofAutomaticPurlinPlanner
                 centerLocalZMm,
                 elevationProfile,
                 faceNormals,
-                planningInput,
+                itemPlanningInput,
                 placement.SeatingDepthMm,
                 items);
             if (sliceResult is not null)
@@ -260,7 +429,9 @@ public static class RoofAutomaticPurlinPlanner
     {
         if (geometry is null || item is null || planningInput is null ||
             planningInput.RelativeElevationDatum is null ||
-            !IsFinite(item.PlacementValueMm) || item.PlacementValueMm <= 0d ||
+            !RoofPurlinLayoutPersistenceRules.IsValidPlacementValueMm(
+                item.PlacementMode,
+                item.PlacementValueMm) ||
             !IsFinite(planningInput.PurlinHeightMm) || planningInput.PurlinHeightMm <= 0d ||
             !IsFinite(planningInput.RafterHeightMm) || planningInput.RafterHeightMm <= 0d)
         {
@@ -286,16 +457,66 @@ public static class RoofAutomaticPurlinPlanner
         switch (item.PlacementMode)
         {
             case RoofAutomaticPurlinPlacementMode.BottomEdgeHeightAboveReference:
-                if (item.ReferenceRidgeKey is not null || item.SeatingDepth is not null)
+                if (item.ReferenceRidgeKey is not null)
                 {
-                    return PlacementInvalid(RoofAutomaticPurlinPlanError.InvalidLayout);
+                    return PlacementInvalid(RoofAutomaticPurlinPlanError.InvalidReferenceRidge);
+                }
+
+                double? bottomSeat = null;
+                if (item.SeatingDepth is not null)
+                {
+                    if (!TryResolveSeatingDepth(
+                            item.SeatingDepth,
+                            planningInput.RafterHeightMm,
+                            out var resolvedBottomSeat))
+                    {
+                        return PlacementInvalid(RoofAutomaticPurlinPlanError.InvalidSeatingDepth);
+                    }
+
+                    bottomSeat = resolvedBottomSeat;
+                }
+
+                // Requested bottom edge is a signed offset in roof-local Z:
+                // BottomLocal = ReferenceLocalZ + PlacementValueMm (negative = below datum).
+                var bottomLocalZMm =
+                    planningInput.RelativeElevationDatum.ReferenceLocalZMm +
+                    item.PlacementValueMm;
+                var centerFromBottomLocalZMm =
+                    bottomLocalZMm + planningInput.PurlinHeightMm / 2d;
+
+                if (bottomSeat is null)
+                {
+                    // No seating: historical contract — RoofSurfaceLocalZMm is the timber
+                    // center elevation used as the horizontal roof-plane slice.
+                    return new RoofAutomaticPurlinPlacementResolution(
+                        true,
+                        centerFromBottomLocalZMm,
+                        null,
+                        null,
+                        RoofAutomaticPurlinPlanError.None);
+                }
+
+                // With seating: RoofSurfaceLocalZMm must be the mathematical UPPER face at
+                // the member axis. Passing the timber center here previously made
+                // CreatePurlinPlacement treat center as upper face and seat the wall plate
+                // below the reference (HOST: Bottom ≈ −233 mm for requested 0).
+                if (!RoofRafterPhysicalGeometry.TryResolveUpperFaceLocalZFromSeatedBottom(
+                        bottomLocalZMm,
+                        planningInput.PurlinHeightMm,
+                        planningInput.PurlinWidthMm,
+                        planningInput.RafterHeightMm,
+                        bottomSeat.Value,
+                        geometry.Topology.PitchDegrees,
+                        out var upperFaceLocalZMm))
+                {
+                    return PlacementInvalid(
+                        RoofAutomaticPurlinPlanError.ImpossiblePhysicalPlacement);
                 }
 
                 return new RoofAutomaticPurlinPlacementResolution(
                     true,
-                    planningInput.RelativeElevationDatum.ReferenceLocalZMm +
-                    item.PlacementValueMm + planningInput.PurlinHeightMm / 2d,
-                    null,
+                    upperFaceLocalZMm,
+                    bottomSeat,
                     null,
                     RoofAutomaticPurlinPlanError.None);
 
@@ -313,9 +534,21 @@ public static class RoofAutomaticPurlinPlanner
                     return PlacementInvalid(RoofAutomaticPurlinPlanError.InvalidSeatingDepth);
                 }
 
+                var eaveSurfaceLocalZMm =
+                    item.PlacementValueMm *
+                    Math.Tan(geometry.Topology.PitchDegrees * Math.PI / 180d);
+                if (!TryResolvePlanDistanceFromEaveExclusiveMaxMm(
+                        geometry,
+                        out var maxPlanDistanceMm) ||
+                    item.PlacementValueMm >= maxPlanDistanceMm ||
+                    eaveSurfaceLocalZMm >= geometry.RiseMm)
+                {
+                    return PlacementInvalid(RoofAutomaticPurlinPlanError.ElevationOutsideRoof);
+                }
+
                 return new RoofAutomaticPurlinPlacementResolution(
                     true,
-                    item.PlacementValueMm * Math.Tan(geometry.Topology.PitchDegrees * Math.PI / 180d),
+                    eaveSurfaceLocalZMm,
                     eaveSeat,
                     null,
                     RoofAutomaticPurlinPlanError.None);
@@ -396,14 +629,15 @@ public static class RoofAutomaticPurlinPlanner
         out double depthMm)
     {
         depthMm = 0d;
-        if (seating is null || !IsFinite(seating.Value) || seating.Value <= 0d)
+        // 0 is a valid zero-penetration seating; only negative / non-finite values fail.
+        if (seating is null || !IsFinite(seating.Value) || seating.Value < 0d)
         {
             return false;
         }
 
         if (seating.Mode == RoofAutomaticPurlinSeatingDepthMode.AbsoluteMm)
         {
-            if (!IsFinite(rafterHeightMm) || rafterHeightMm <= 0d || seating.Value >= rafterHeightMm)
+            if (!IsFinite(rafterHeightMm) || rafterHeightMm <= 0d || seating.Value > rafterHeightMm)
             {
                 return false;
             }
@@ -412,8 +646,9 @@ public static class RoofAutomaticPurlinPlanner
             return true;
         }
 
+        // Percent: inclusive 0..100 → depth 0..rafterHeight.
         if (seating.Mode != RoofAutomaticPurlinSeatingDepthMode.PercentOfRafterHeight ||
-            seating.Value >= 100d || !IsFinite(rafterHeightMm) || rafterHeightMm <= 0d)
+            seating.Value > 100d || !IsFinite(rafterHeightMm) || rafterHeightMm <= 0d)
         {
             return false;
         }
@@ -446,7 +681,9 @@ public static class RoofAutomaticPurlinPlanner
     private static RoofAutomaticPurlinPlanResult? AddHorizontalRidges(
         HipRoofGeometry geometry,
         RoofBoundaryIdentityProvenanceResult boundaryProvenance,
+        RoofAutomaticPurlinLayout layout,
         RoofAutomaticPurlinPlanningInput planningInput,
+        double commonNormalZ,
         ICollection<RoofAutomaticPurlinPlanItem> items)
     {
         var resolution = RoofStructuralEdgeIdentityResolver.Resolve(
@@ -474,6 +711,36 @@ public static class RoofAutomaticPurlinPlanner
             return Invalid(error, duplicateGeneratedKey: duplicate);
         }
 
+        var ridgeWidthMm = ResolvePositiveOrDefault(
+            layout.RidgeWidthMm,
+            planningInput.PurlinWidthMm);
+        var ridgeHeightMm = ResolvePositiveOrDefault(
+            layout.RidgeHeightMm,
+            planningInput.PurlinHeightMm);
+        double? ridgeSeatingDepthMm = null;
+        if (layout.RidgeSeatingDepth is not null)
+        {
+            if (!TryResolveSeatingDepth(
+                    layout.RidgeSeatingDepth,
+                    planningInput.RafterHeightMm,
+                    out var resolvedRidgeSeat))
+            {
+                return Invalid(RoofAutomaticPurlinPlanError.InvalidSeatingDepth);
+            }
+
+            ridgeSeatingDepthMm = resolvedRidgeSeat;
+        }
+        else
+        {
+            ridgeSeatingDepthMm =
+                planningInput.RafterHeightMm * DefaultWallPlateSeatingPercent / 100d;
+        }
+
+        // Ridge contact uses the midpoint of the TOP edge: travel seatingDepth along the
+        // rafter normal from the lower surface so 0%→lower edge and 100%→upper edge.
+        var horizontalLength = Math.Sqrt(Math.Max(0d, 1d - commonNormalZ * commonNormalZ));
+        var representativeNormal = new RoofFaceUnitNormal(horizontalLength, 0d, commonNormalZ);
+
         foreach (var edge in resolution.Edges.Where(edge =>
                      edge.StructuralRole == RoofStructuralRole.Ridge &&
                      Math.Abs(edge.Segment3D.Start.Z - edge.Segment3D.End.Z) <=
@@ -484,18 +751,338 @@ public static class RoofAutomaticPurlinPlanner
                 return Invalid(RoofAutomaticPurlinPlanError.ZeroLengthSegment);
             }
 
+            var ridgeMid = new RoofPoint3D(
+                (edge.Segment3D.Start.X + edge.Segment3D.End.X) / 2d,
+                (edge.Segment3D.Start.Y + edge.Segment3D.End.Y) / 2d,
+                edge.Segment3D.Start.Z);
+            var physical = RoofRafterPhysicalGeometry.CreatePurlinPlacement(
+                ridgeMid,
+                representativeNormal,
+                planningInput.RafterHeightMm,
+                ridgeHeightMm,
+                ridgeSeatingDepthMm!.Value,
+                planningInput.RelativeElevationDatum,
+                ridgeWidthMm);
+            if (!physical.IsValid || physical.Placement is null)
+            {
+                return Invalid(RoofAutomaticPurlinPlanError.ImpossiblePhysicalPlacement);
+            }
+
+            var centerLocalZMm = physical.Placement.PurlinCenterLocalZMm;
+            var elevationProfile = CreateElevationProfile(
+                planningInput.RelativeElevationDatum,
+                centerLocalZMm,
+                ridgeHeightMm,
+                ridgeSeatingDepthMm);
+            var seatedSegment = new RoofSegment3D(
+                new RoofPoint3D(edge.Segment3D.Start.X, edge.Segment3D.Start.Y, centerLocalZMm),
+                new RoofPoint3D(edge.Segment3D.End.X, edge.Segment3D.End.Y, centerLocalZMm));
+
             items.Add(new RoofAutomaticPurlinPlanItem(
                 new RoofAutomaticPurlinRidgeKey(edge.StructuralIdentity),
                 TimberElementType.Purlin,
-                edge.Segment3D,
-                CreateElevationProfile(
-                    planningInput.RelativeElevationDatum,
-                    edge.Segment3D.Start.Z,
-                    planningInput.PurlinHeightMm,
-                    null)));
+                seatedSegment,
+                ridgeWidthMm,
+                ridgeHeightMm,
+                elevationProfile,
+                physical.Placement));
         }
 
         return null;
+    }
+
+    private static RoofRelativeElevationDatum CreateWallPlateBootstrapDatum() =>
+        new(
+            RoofRelativeElevationReferenceKind.SourceEavePlane,
+            0d,
+            0d);
+
+    private static RoofAutomaticPurlinPlanningInput ApplyWallPlateSectionOverrides(
+        RoofAutomaticPurlinPlanningInput planningInput,
+        RoofAutomaticPurlinLayoutItem wallPlatePlacement) =>
+        planningInput with
+        {
+            WallPlateWidthMm = ResolvePositiveOrDefault(
+                wallPlatePlacement.WidthMm,
+                planningInput.WallPlateWidthMm),
+            WallPlateHeightMm = ResolvePositiveOrDefault(
+                wallPlatePlacement.HeightMm,
+                planningInput.WallPlateHeightMm),
+        };
+
+    private static RoofAutomaticPurlinPlanningInput ApplyPurlinSectionOverrides(
+        RoofAutomaticPurlinPlanningInput planningInput,
+        RoofAutomaticPurlinLayoutItem item) =>
+        planningInput with
+        {
+            PurlinWidthMm = ResolvePositiveOrDefault(item.WidthMm, planningInput.PurlinWidthMm),
+            PurlinHeightMm = ResolvePositiveOrDefault(item.HeightMm, planningInput.PurlinHeightMm),
+        };
+
+    private static double ResolvePositiveOrDefault(double? overrideMm, double defaultMm) =>
+        overrideMm is > 0d ? overrideMm.Value : defaultMm;
+
+    private static bool TryResolveWallPlateBottomLocalZMm(
+        HipRoofGeometry geometry,
+        RoofBoundaryIdentityProvenanceResult boundaryProvenance,
+        RoofAutomaticPurlinLayout layout,
+        RoofAutomaticPurlinPlanningInput planningInput,
+        out double bottomLocalZMm,
+        out RoofAutomaticPurlinPlanError error)
+    {
+        bottomLocalZMm = 0d;
+        error = RoofAutomaticPurlinPlanError.None;
+        if (!planningInput.WallPlatesEnabled ||
+            !IsFinite(planningInput.WallPlateWidthMm) || planningInput.WallPlateWidthMm <= 0d ||
+            !IsFinite(planningInput.WallPlateHeightMm) || planningInput.WallPlateHeightMm <= 0d ||
+            !IsFinite(planningInput.RafterHeightMm) || planningInput.RafterHeightMm <= 0d)
+        {
+            error = RoofAutomaticPurlinPlanError.InvalidPhysicalSection;
+            return false;
+        }
+
+        var topology = geometry.Topology;
+        if (!HasValidCoordinates(topology) ||
+            !HasCompleteBoundaryProvenance(topology, boundaryProvenance))
+        {
+            error = RoofAutomaticPurlinPlanError.InvalidGeometry;
+            return false;
+        }
+
+        var wallPlatePlacement = RoofPurlinLayoutPersistenceRules.ResolveWallPlatePlacement(layout);
+        planningInput = ApplyWallPlateSectionOverrides(planningInput, wallPlatePlacement);
+        IReadOnlyDictionary<int, RoofFaceUnitNormal>? faceNormals = null;
+        var commonNormalZ = 0d;
+        if (IsSeatingDriven(wallPlatePlacement.PlacementMode) ||
+            wallPlatePlacement.SeatingDepth is not null)
+        {
+            error = TryCreateFaceNormals(topology, out faceNormals, out commonNormalZ);
+            if (error != RoofAutomaticPurlinPlanError.None)
+            {
+                return false;
+            }
+        }
+
+        var bootstrapInput = planningInput with
+        {
+            RelativeElevationDatum = CreateWallPlateBootstrapDatum(),
+        };
+        var items = new List<RoofAutomaticPurlinPlanItem>();
+        var wallPlateResult = AddWallPlates(
+            geometry,
+            boundaryProvenance,
+            wallPlatePlacement,
+            bootstrapInput,
+            faceNormals,
+            commonNormalZ,
+            items);
+        if (wallPlateResult is not null)
+        {
+            error = wallPlateResult.Error;
+            return false;
+        }
+
+        if (items.Count == 0)
+        {
+            error = RoofAutomaticPurlinPlanError.InvalidRelativeElevationDatum;
+            return false;
+        }
+
+        bottomLocalZMm = items[0].ElevationProfile!.BottomLocalZMm;
+        foreach (var item in items)
+        {
+            var bottom = item.ElevationProfile!.BottomLocalZMm;
+            if (Math.Abs(bottom - bottomLocalZMm) > CoordinateToleranceMm)
+            {
+                error = RoofAutomaticPurlinPlanError.InconsistentFaceNormalVerticalComponent;
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static RoofAutomaticPurlinPlanError RebaseWallPlateRelativeElevations(
+        IList<RoofAutomaticPurlinPlanItem> items,
+        RoofRelativeElevationDatum datum)
+    {
+        for (var index = 0; index < items.Count; index++)
+        {
+            var item = items[index];
+            if (item.GeneratorRole != RoofAutomaticPurlinGeneratorRole.WallPlate ||
+                item.ElevationProfile is null)
+            {
+                continue;
+            }
+
+            var profile = item.ElevationProfile;
+            var rebuiltProfile = CreateElevationProfile(
+                datum,
+                profile.CenterLocalZMm,
+                item.HeightMm,
+                profile.SeatingDepthMm);
+            RoofPurlinPhysicalPlacement? rebuiltPhysical = null;
+            if (item.PhysicalPlacement is { } physical)
+            {
+                // CreatePurlinPlacement expects the mathematical UPPER rafter face at the
+                // member axis — never the centroid section point.
+                var physicalResult = RoofRafterPhysicalGeometry.CreatePurlinPlacement(
+                    physical.RafterSection.UpperSurfacePoint,
+                    physical.RafterSection.FaceNormal,
+                    physical.RafterSection.HeightMm,
+                    item.HeightMm,
+                    physical.SeatingDepthMm,
+                    datum,
+                    item.WidthMm);
+                if (!physicalResult.IsValid || physicalResult.Placement is null)
+                {
+                    return RoofAutomaticPurlinPlanError.ImpossiblePhysicalPlacement;
+                }
+
+                rebuiltPhysical = physicalResult.Placement;
+            }
+
+            items[index] = item with
+            {
+                ElevationProfile = rebuiltProfile,
+                PhysicalPlacement = rebuiltPhysical,
+            };
+        }
+
+        return RoofAutomaticPurlinPlanError.None;
+    }
+
+    /// <summary>
+    /// Emits one wall plate per canonical source-eave face using the same
+    /// <see cref="ResolvePlacement"/> + roof-plane slice path as Intermediate Purlin.
+    /// </summary>
+    private static RoofAutomaticPurlinPlanResult? AddWallPlates(
+        HipRoofGeometry geometry,
+        RoofBoundaryIdentityProvenanceResult boundaryProvenance,
+        RoofAutomaticPurlinLayoutItem wallPlatePlacement,
+        RoofAutomaticPurlinPlanningInput planningInput,
+        IReadOnlyDictionary<int, RoofFaceUnitNormal>? faceNormals,
+        double commonNormalZ,
+        ICollection<RoofAutomaticPurlinPlanItem> items)
+    {
+        var topology = geometry.Topology;
+        var resolveInput = planningInput with
+        {
+            // Bottom-edge center/width must use WallPlate section, not Purlin defaults.
+            PurlinHeightMm = planningInput.WallPlateHeightMm,
+            PurlinWidthMm = planningInput.WallPlateWidthMm,
+        };
+        var placement = ResolvePlacementCore(
+            geometry,
+            boundaryProvenance,
+            wallPlatePlacement,
+            resolveInput);
+        if (!placement.IsValid || placement.RoofSurfaceLocalZMm is null)
+        {
+            return Invalid(placement.Error);
+        }
+
+        var sliceLocalZMm = placement.RoofSurfaceLocalZMm.Value;
+        var centerLocalZMm = sliceLocalZMm;
+        RoofPurlinElevationProfile elevationProfile;
+        double? seatingDepthMm = placement.SeatingDepthMm;
+        if (IsSeatingDriven(wallPlatePlacement.PlacementMode) || seatingDepthMm is not null)
+        {
+            if (faceNormals is null || faceNormals.Count == 0 ||
+                seatingDepthMm is not { } seating)
+            {
+                return Invalid(RoofAutomaticPurlinPlanError.MissingFaceNormal);
+            }
+
+            var representativeNormal = new RoofFaceUnitNormal(
+                Math.Sqrt(Math.Max(0d, 1d - commonNormalZ * commonNormalZ)),
+                0d,
+                commonNormalZ);
+            var physical = RoofRafterPhysicalGeometry.CreatePurlinPlacement(
+                new RoofPoint3D(0d, 0d, sliceLocalZMm),
+                representativeNormal,
+                planningInput.RafterHeightMm,
+                planningInput.WallPlateHeightMm,
+                seating,
+                planningInput.RelativeElevationDatum,
+                planningInput.WallPlateWidthMm);
+            if (!physical.IsValid || physical.Placement is null)
+            {
+                return Invalid(RoofAutomaticPurlinPlanError.ImpossiblePhysicalPlacement);
+            }
+
+            centerLocalZMm = physical.Placement.PurlinCenterLocalZMm;
+            elevationProfile = CreateElevationProfile(
+                planningInput.RelativeElevationDatum,
+                centerLocalZMm,
+                planningInput.WallPlateHeightMm,
+                seating);
+        }
+        else
+        {
+            seatingDepthMm = null;
+            elevationProfile = CreateElevationProfile(
+                planningInput.RelativeElevationDatum,
+                centerLocalZMm,
+                planningInput.WallPlateHeightMm,
+                null);
+        }
+
+        var validationError = ValidateElevation(topology, geometry.RiseMm, sliceLocalZMm);
+        if (validationError != RoofAutomaticPurlinPlanError.None)
+        {
+            return Invalid(validationError);
+        }
+
+        return AddHorizontalRoofPlaneSlices(
+            topology,
+            boundaryProvenance,
+            failedLayoutItemId: null,
+            sliceLocalZMm,
+            centerLocalZMm,
+            elevationProfile,
+            faceNormals,
+            planningInput.WallPlateWidthMm,
+            planningInput.WallPlateHeightMm,
+            TimberElementType.WallPlate,
+            planningInput.RafterHeightMm,
+            planningInput.RelativeElevationDatum,
+            seatingDepthMm,
+            requireSegmentOnEveryFace: true,
+            oneSegmentPerFace: true,
+            (sourceFaceBoundaryEdgeId, _, _) =>
+                new RoofAutomaticPurlinWallPlateKey(sourceFaceBoundaryEdgeId),
+            items);
+    }
+
+    /// <summary>
+    /// Exclusive upper bound for <see cref="RoofAutomaticPurlinPlacementMode.PlanDistanceFromEave"/>:
+    /// axis elevation Z = d·tan(pitch) must stay strictly below roof rise. Returns false when the
+    /// pitch/rise cannot form a finite positive interval.
+    /// </summary>
+    public static bool TryResolvePlanDistanceFromEaveExclusiveMaxMm(
+        HipRoofGeometry? geometry,
+        out double maxExclusivePlanDistanceMm)
+    {
+        maxExclusivePlanDistanceMm = 0d;
+        if (geometry is null ||
+            !IsFinite(geometry.RiseMm) ||
+            geometry.RiseMm <= 0d ||
+            !IsFinite(geometry.Topology.PitchDegrees) ||
+            geometry.Topology.PitchDegrees <= 0d ||
+            geometry.Topology.PitchDegrees >= 90d)
+        {
+            return false;
+        }
+
+        var tanPitch = Math.Tan(geometry.Topology.PitchDegrees * Math.PI / 180d);
+        if (!IsFinite(tanPitch) || tanPitch <= 0d)
+        {
+            return false;
+        }
+
+        maxExclusivePlanDistanceMm = geometry.RiseMm / tanPitch;
+        return IsFinite(maxExclusivePlanDistanceMm) && maxExclusivePlanDistanceMm > 0d;
     }
 
     private static RoofAutomaticPurlinPlanError ValidateElevation(
@@ -508,7 +1095,7 @@ public static class RoofAutomaticPurlinPlanner
             return RoofAutomaticPurlinPlanError.InvalidElevation;
         }
 
-        if (elevationMm <= 0d || elevationMm >= riseMm)
+        if (elevationMm < 0d || elevationMm >= riseMm)
         {
             return RoofAutomaticPurlinPlanError.ElevationOutsideRoof;
         }
@@ -529,6 +1116,53 @@ public static class RoofAutomaticPurlinPlanner
         IReadOnlyDictionary<int, RoofFaceUnitNormal>? faceNormals,
         RoofAutomaticPurlinPlanningInput planningInput,
         double? seatingDepthMm,
+        ICollection<RoofAutomaticPurlinPlanItem> items) =>
+        AddHorizontalRoofPlaneSlices(
+            topology,
+            boundaryProvenance,
+            layoutItem.LayoutItemId,
+            sliceLocalZMm,
+            centerLocalZMm,
+            elevationProfile,
+            faceNormals,
+            planningInput.PurlinWidthMm,
+            planningInput.PurlinHeightMm,
+            TimberElementType.Purlin,
+            planningInput.RafterHeightMm,
+            planningInput.RelativeElevationDatum,
+            seatingDepthMm,
+            requireSegmentOnEveryFace: false,
+            oneSegmentPerFace: false,
+            (sourceFaceBoundaryEdgeId, endpointA, endpointB) =>
+                new RoofAutomaticPurlinIntermediateKey(
+                    layoutItem.LayoutItemId,
+                    sourceFaceBoundaryEdgeId,
+                    endpointA,
+                    endpointB),
+            items);
+
+    /// <summary>
+    /// Shared roof-plane longitudinal-member placement: horizontal Z-slice of each face
+    /// clipped by Hip/Valley/Ridge boundaries, optional 25%-class seating via
+    /// <see cref="RoofRafterPhysicalGeometry.CreatePurlinPlacement"/>.
+    /// </summary>
+    private static RoofAutomaticPurlinPlanResult? AddHorizontalRoofPlaneSlices(
+        RoofTopology topology,
+        RoofBoundaryIdentityProvenanceResult boundaryProvenance,
+        string? failedLayoutItemId,
+        double sliceLocalZMm,
+        double centerLocalZMm,
+        RoofPurlinElevationProfile elevationProfile,
+        IReadOnlyDictionary<int, RoofFaceUnitNormal>? faceNormals,
+        double memberWidthMm,
+        double memberHeightMm,
+        TimberElementType elementType,
+        double rafterHeightMm,
+        RoofRelativeElevationDatum datum,
+        double? seatingDepthMm,
+        bool requireSegmentOnEveryFace,
+        bool oneSegmentPerFace,
+        Func<int, RoofAutomaticPurlinBoundaryKey, RoofAutomaticPurlinBoundaryKey, RoofAutomaticPurlinGeneratedKey> createKey,
         ICollection<RoofAutomaticPurlinPlanItem> items)
     {
         var edgeLookup = new Dictionary<(int A, int B), RoofTopologyEdge>();
@@ -539,13 +1173,13 @@ public static class RoofAutomaticPurlinPlanner
             {
                 return Invalid(
                     RoofAutomaticPurlinPlanError.InvalidGeometry,
-                    layoutItem.LayoutItemId);
+                    failedLayoutItemId);
             }
 
             edgeLookup.Add(key, edge);
         }
 
-        foreach (var face in topology.Faces)
+        foreach (var face in topology.Faces.OrderBy(candidate => candidate.SourceEdgeIndex))
         {
             if (!RoofBoundaryIdentityProvenanceResolver.TryResolveNormalizedBoundaryEdge(
                     boundaryProvenance,
@@ -554,7 +1188,7 @@ public static class RoofAutomaticPurlinPlanner
             {
                 return Invalid(
                     RoofAutomaticPurlinPlanError.UnresolvedFaceBoundaryIdentity,
-                    layoutItem.LayoutItemId);
+                    failedLayoutItemId);
             }
 
             var intersections = new List<SliceIntersection>();
@@ -563,7 +1197,7 @@ public static class RoofAutomaticPurlinPlanner
             {
                 return Invalid(
                     RoofAutomaticPurlinPlanError.InvalidGeometry,
-                    layoutItem.LayoutItemId);
+                    failedLayoutItemId);
             }
 
             var eaveStart = topology.Nodes[cycle[0]];
@@ -575,7 +1209,7 @@ public static class RoofAutomaticPurlinPlanner
             {
                 return Invalid(
                     RoofAutomaticPurlinPlanError.InvalidGeometry,
-                    layoutItem.LayoutItemId);
+                    failedLayoutItemId);
             }
 
             var unitX = eaveDx / eaveLength;
@@ -602,7 +1236,7 @@ public static class RoofAutomaticPurlinPlanner
                 {
                     return Invalid(
                         RoofAutomaticPurlinPlanError.UnresolvedFaceBoundaryIdentity,
-                        layoutItem.LayoutItemId);
+                        failedLayoutItemId);
                 }
 
                 var fraction = (sliceLocalZMm - start.Z) / (end.Z - start.Z);
@@ -616,7 +1250,7 @@ public static class RoofAutomaticPurlinPlanner
                 {
                     return Invalid(
                         RoofAutomaticPurlinPlanError.InvalidCoordinate,
-                        layoutItem.LayoutItemId);
+                        failedLayoutItemId);
                 }
 
                 intersections.Add(new SliceIntersection(point, station, boundaryKey));
@@ -624,6 +1258,47 @@ public static class RoofAutomaticPurlinPlanner
 
             if (intersections.Count == 0)
             {
+                // Plan distance 0 → axis elevation at the source eave (Z≈0). Horizontal
+                // face slices need a strict crossing of Z, so place along the source-eave
+                // edge instead of failing closed.
+                if (sliceLocalZMm <= CoordinateToleranceMm)
+                {
+                    var eaveResult = TryAddSourceEaveSegment(
+                        topology,
+                        boundaryProvenance,
+                        edgeLookup,
+                        face,
+                        cycle,
+                        eaveStart,
+                        eaveEnd,
+                        failedLayoutItemId,
+                        sliceLocalZMm,
+                        centerLocalZMm,
+                        elevationProfile,
+                        faceNormals,
+                        memberWidthMm,
+                        memberHeightMm,
+                        elementType,
+                        rafterHeightMm,
+                        datum,
+                        seatingDepthMm,
+                        createKey,
+                        items);
+                    if (eaveResult is not null)
+                    {
+                        return eaveResult;
+                    }
+
+                    continue;
+                }
+
+                if (requireSegmentOnEveryFace)
+                {
+                    return Invalid(
+                        RoofAutomaticPurlinPlanError.ElevationOutsideRoof,
+                        failedLayoutItemId);
+                }
+
                 continue;
             }
 
@@ -631,30 +1306,45 @@ public static class RoofAutomaticPurlinPlanner
             {
                 return Invalid(
                     RoofAutomaticPurlinPlanError.InvalidFaceIntersection,
-                    layoutItem.LayoutItemId);
+                    failedLayoutItemId);
             }
 
             var ordered = intersections
                 .OrderBy(intersection => intersection.StationMm)
                 .ThenBy(intersection => intersection.BoundaryKey, BoundaryKeyComparer.Instance)
                 .ToArray();
-            for (var index = 0; index < ordered.Length; index += 2)
+            var intervalStarts = Enumerable.Range(0, ordered.Length / 2)
+                .Select(pairIndex => pairIndex * 2)
+                .ToArray();
+            if (oneSegmentPerFace && intervalStarts.Length > 1)
             {
-                var first = ordered[index];
-                var second = ordered[index + 1];
+                intervalStarts =
+                [
+                    intervalStarts
+                        .OrderBy(pairIndex =>
+                            (ordered[pairIndex].StationMm + ordered[pairIndex + 1].StationMm) / 2d)
+                        .ThenBy(pairIndex => ordered[pairIndex].BoundaryKey, BoundaryKeyComparer.Instance)
+                        .First()
+                ];
+            }
+
+            foreach (var pairIndex in intervalStarts)
+            {
+                var first = ordered[pairIndex];
+                var second = ordered[pairIndex + 1];
                 var segment = new RoofSegment3D(first.Point, second.Point);
                 if (!IsFinite(segment.LengthMm))
                 {
                     return Invalid(
                         RoofAutomaticPurlinPlanError.InvalidCoordinate,
-                        layoutItem.LayoutItemId);
+                        failedLayoutItemId);
                 }
 
                 if (segment.LengthMm <= CoordinateToleranceMm)
                 {
                     return Invalid(
                         RoofAutomaticPurlinPlanError.ZeroLengthSegment,
-                        layoutItem.LayoutItemId);
+                        failedLayoutItemId);
                 }
 
                 var endpointKeys = new[] { first.BoundaryKey, second.BoundaryKey }
@@ -668,45 +1358,162 @@ public static class RoofAutomaticPurlinPlanner
                     {
                         return Invalid(
                             RoofAutomaticPurlinPlanError.MissingFaceNormal,
-                            layoutItem.LayoutItemId);
+                            failedLayoutItemId);
                     }
 
-                    var rafterCenter = new RoofPoint3D(
+                    // sliceLocalZMm is the mathematical UPPER roof-face elevation at the
+                    // member plan station (SourceEave / topology face), not the centroid.
+                    var upperFaceAtAxis = new RoofPoint3D(
                         (first.Point.X + second.Point.X) / 2d,
                         (first.Point.Y + second.Point.Y) / 2d,
                         sliceLocalZMm);
                     var physical = RoofRafterPhysicalGeometry.CreatePurlinPlacement(
-                        rafterCenter,
+                        upperFaceAtAxis,
                         faceNormal,
-                        planningInput.RafterHeightMm,
-                        planningInput.PurlinHeightMm,
+                        rafterHeightMm,
+                        memberHeightMm,
                         seating,
-                        planningInput.RelativeElevationDatum);
+                        datum,
+                        memberWidthMm);
                     if (!physical.IsValid || physical.Placement is null ||
                         Math.Abs(physical.Placement.PurlinCenterLocalZMm - centerLocalZMm) >
-                        CoordinateToleranceMm)
+                        CoordinateToleranceMm * (1d + Math.Abs(rafterHeightMm)))
                     {
                         return Invalid(
                             RoofAutomaticPurlinPlanError.ImpossiblePhysicalPlacement,
-                            layoutItem.LayoutItemId);
+                            failedLayoutItemId);
                     }
 
                     physicalPlacement = physical.Placement;
                 }
 
                 items.Add(new RoofAutomaticPurlinPlanItem(
-                    new RoofAutomaticPurlinIntermediateKey(
-                        layoutItem.LayoutItemId,
-                        sourceFace.BoundaryEdgeId,
-                        endpointKeys[0],
-                        endpointKeys[1]),
-                    TimberElementType.Purlin,
+                    createKey(sourceFace.BoundaryEdgeId, endpointKeys[0], endpointKeys[1]),
+                    elementType,
                     segment,
+                    memberWidthMm,
+                    memberHeightMm,
                     elevationProfile,
                     physicalPlacement));
             }
         }
 
+        return null;
+    }
+
+    /// <summary>
+    /// Places one longitudinal member along the face source-eave edge when the plan
+    /// station is at the eave (axis elevation Z≈0). Used by plan-distance 0 so the
+    /// outer seating corner may overhang the eave by half the member width.
+    /// </summary>
+    private static RoofAutomaticPurlinPlanResult? TryAddSourceEaveSegment(
+        RoofTopology topology,
+        RoofBoundaryIdentityProvenanceResult boundaryProvenance,
+        IReadOnlyDictionary<(int A, int B), RoofTopologyEdge> edgeLookup,
+        RoofTopologyFace face,
+        IReadOnlyList<int> cycle,
+        RoofPoint3D eaveStart,
+        RoofPoint3D eaveEnd,
+        string? failedLayoutItemId,
+        double sliceLocalZMm,
+        double centerLocalZMm,
+        RoofPurlinElevationProfile elevationProfile,
+        IReadOnlyDictionary<int, RoofFaceUnitNormal>? faceNormals,
+        double memberWidthMm,
+        double memberHeightMm,
+        TimberElementType elementType,
+        double rafterHeightMm,
+        RoofRelativeElevationDatum datum,
+        double? seatingDepthMm,
+        Func<int, RoofAutomaticPurlinBoundaryKey, RoofAutomaticPurlinBoundaryKey, RoofAutomaticPurlinGeneratedKey> createKey,
+        ICollection<RoofAutomaticPurlinPlanItem> items)
+    {
+        if (!RoofBoundaryIdentityProvenanceResolver.TryResolveNormalizedBoundaryEdge(
+                boundaryProvenance,
+                face.SourceEdgeIndex,
+                out var sourceFace))
+        {
+            return Invalid(
+                RoofAutomaticPurlinPlanError.UnresolvedFaceBoundaryIdentity,
+                failedLayoutItemId);
+        }
+
+        var startIndex = cycle[0];
+        var endIndex = cycle[1];
+        if (!edgeLookup.TryGetValue(NodePair(startIndex, endIndex), out var eaveEdge) ||
+            !TryCreateBoundaryKey(topology, boundaryProvenance, eaveEdge, out var eaveKey))
+        {
+            return Invalid(
+                RoofAutomaticPurlinPlanError.UnresolvedFaceBoundaryIdentity,
+                failedLayoutItemId);
+        }
+
+        var start = new RoofPoint3D(eaveStart.X, eaveStart.Y, centerLocalZMm);
+        var end = new RoofPoint3D(eaveEnd.X, eaveEnd.Y, centerLocalZMm);
+        var segment = new RoofSegment3D(start, end);
+        if (!IsFinite(segment.LengthMm))
+        {
+            return Invalid(
+                RoofAutomaticPurlinPlanError.InvalidCoordinate,
+                failedLayoutItemId);
+        }
+
+        if (segment.LengthMm <= CoordinateToleranceMm)
+        {
+            return Invalid(
+                RoofAutomaticPurlinPlanError.ZeroLengthSegment,
+                failedLayoutItemId);
+        }
+
+        RoofPurlinPhysicalPlacement? physicalPlacement = null;
+        var profile = elevationProfile;
+        if (seatingDepthMm is { } seating)
+        {
+            if (faceNormals is null ||
+                !faceNormals.TryGetValue(face.SourceEdgeIndex, out var faceNormal))
+            {
+                return Invalid(
+                    RoofAutomaticPurlinPlanError.MissingFaceNormal,
+                    failedLayoutItemId);
+            }
+
+            var upperFaceAtAxis = new RoofPoint3D(
+                (eaveStart.X + eaveEnd.X) / 2d,
+                (eaveStart.Y + eaveEnd.Y) / 2d,
+                sliceLocalZMm);
+            var physical = RoofRafterPhysicalGeometry.CreatePurlinPlacement(
+                upperFaceAtAxis,
+                faceNormal,
+                rafterHeightMm,
+                memberHeightMm,
+                seating,
+                datum,
+                memberWidthMm);
+            if (!physical.IsValid || physical.Placement is null)
+            {
+                return Invalid(
+                    RoofAutomaticPurlinPlanError.ImpossiblePhysicalPlacement,
+                    failedLayoutItemId);
+            }
+
+            physicalPlacement = physical.Placement;
+            var seatedCenterZ = physical.Placement.PurlinCenterLocalZMm;
+            profile = CreateElevationProfile(datum, seatedCenterZ, memberHeightMm, seating);
+            segment = new RoofSegment3D(
+                new RoofPoint3D(eaveStart.X, eaveStart.Y, seatedCenterZ),
+                new RoofPoint3D(eaveEnd.X, eaveEnd.Y, seatedCenterZ));
+        }
+
+        // Eave endpoints share the same eave boundary key; intermediate keys still need
+        // two ordered endpoint slots, so reuse the single eave identity for both.
+        items.Add(new RoofAutomaticPurlinPlanItem(
+            createKey(sourceFace.BoundaryEdgeId, eaveKey, eaveKey),
+            elementType,
+            segment,
+            memberWidthMm,
+            memberHeightMm,
+            profile,
+            physicalPlacement));
         return null;
     }
 

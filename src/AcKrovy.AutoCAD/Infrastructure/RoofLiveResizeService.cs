@@ -1373,11 +1373,19 @@ internal static class RoofLiveResizeService
             {
                 foreach (var ownerId in ownerIds)
                 {
-                    var result = TryApplyResize(document, transaction, ownerId, globalCommandName);
+                    var result = TryApplyResize(
+                        document,
+                        transaction,
+                        ownerId,
+                        globalCommandName,
+                        out var failureMessageKey);
                     if (result == ResizeApplyResult.HardFailure)
                     {
                         document.Editor.WriteMessage(
-                            UiStrings.GetString("Command_RoofRafters_GenerationFailed"));
+                            UiStrings.GetString(
+                                string.IsNullOrWhiteSpace(failureMessageKey)
+                                    ? "Command_RoofRafters_GenerationFailed"
+                                    : failureMessageKey));
                         return;
                     }
 
@@ -1407,9 +1415,22 @@ internal static class RoofLiveResizeService
         Document document,
         Transaction transaction,
         ObjectId ownerId,
-        string? globalCommandName)
+        string? globalCommandName) =>
+        TryApplyResize(
+            document,
+            transaction,
+            ownerId,
+            globalCommandName,
+            out _);
+
+    private static ResizeApplyResult TryApplyResize(
+        Document document,
+        Transaction transaction,
+        ObjectId ownerId,
+        string? globalCommandName,
+        out string failureMessageKey)
     {
-        _ = globalCommandName;
+        failureMessageKey = "Command_RoofRafters_GenerationFailed";
         var database = document.Database;
         if (!AutoCadObjectIdAccess.TryGetObject<Polyline>(
                 transaction,
@@ -1460,6 +1481,32 @@ internal static class RoofLiveResizeService
             return ResizeApplyResult.Skipped;
         }
 
+        var defaultProfile = TimberElementDefaultProfileStore.Load();
+        var layerProfile = ElementLayerProfileStore.Load();
+
+        // Dry-run persisted automatic purlins against the proposed geometry before
+        // definition/display/timber mutation. Absolute placements that no longer fit
+        // reject the resize without clamping or rewriting the layout.
+        if (classification.Geometry is HipRoofGeometry proposedHipForPurlins)
+        {
+            var purlinPreflight =
+                RoofAutomaticPurlinLiveRegenerationService
+                    .TryValidatePersistedLayoutForProposedGeometry(
+                        database,
+                        transaction,
+                        owner,
+                        proposedHipForPurlins,
+                        defaultProfile,
+                        document.Editor);
+            if (!purlinPreflight.IsSuccess)
+            {
+                failureMessageKey = string.IsNullOrWhiteSpace(purlinPreflight.LocalizationKey)
+                    ? RoofAutomaticPurlinLiveRegenerationService.LocalizationKeyLayoutIncompatible
+                    : purlinPreflight.LocalizationKey;
+                return ResizeApplyResult.HardFailure;
+            }
+        }
+
         var isHip = classification.Geometry is HipRoofGeometry;
         var updated = isHip
             ? RoofDefinitionPersistence.UpdateGeometry(
@@ -1483,7 +1530,8 @@ internal static class RoofLiveResizeService
                 owner.ObjectId,
                 owner.Handle.ToString(),
                 edges,
-                signature))
+                signature,
+                syncAssemblyGroup: false))
         {
             return ResizeApplyResult.HardFailure;
         }
@@ -1498,12 +1546,13 @@ internal static class RoofLiveResizeService
             document.Editor,
             owner,
             classification.Geometry,
-            TimberElementDefaultProfileStore.Load(),
-            ElementLayerProfileStore.Load(),
+            defaultProfile,
+            layerProfile,
             out var anchorResolutionContext,
             out var generatedReplayPlan,
             forceRegenerateOnSourceResize: true,
-            rebuildReason: "source-resize");
+            rebuildReason: "source-resize",
+            syncAssemblyGroup: false);
         if (rafterOutcome == RoofGeneratedRafterSetService.ReplacementOutcome.Failed)
         {
             return ResizeApplyResult.HardFailure;
@@ -1559,13 +1608,39 @@ internal static class RoofLiveResizeService
                         ownerReference,
                         input,
                         hipGeometryForStructural,
-                        TimberElementDefaultProfileStore.Load(),
-                        ElementLayerProfileStore.Load());
+                        defaultProfile,
+                        layerProfile,
+                        syncAssemblyGroup: false);
                 if (!structural.IsSuccess)
                 {
                     return ResizeApplyResult.HardFailure;
                 }
             }
+        }
+
+        var purlinLive =
+            RoofAutomaticPurlinLiveRegenerationService.TryRegenerateInTransaction(
+                document,
+                transaction,
+                owner,
+                trigger: ResolvePurlinLiveTrigger(globalCommandName),
+                defaultProfile,
+                layerProfile,
+                editor: document.Editor,
+                syncAssemblyGroup: false);
+        if (!purlinLive.IsSuccess)
+        {
+            failureMessageKey =
+                RoofAutomaticPurlinLiveRegenerationService.LocalizationKeyLayoutIncompatible;
+            return ResizeApplyResult.HardFailure;
+        }
+
+        if (!RoofAssemblyGroupSyncService.TrySyncForOwner(
+                document,
+                transaction,
+                owner.ObjectId))
+        {
+            return ResizeApplyResult.HardFailure;
         }
 
         RoofUnlockIndicatorService.Sync(database, transaction, owner);
@@ -1626,6 +1701,22 @@ internal static class RoofLiveResizeService
 #endif
         RoofDisplayService.EnsureAllDisplayBehindTimber(database, transaction);
         return ResizeApplyResult.Applied;
+    }
+
+    private static string ResolvePurlinLiveTrigger(string? globalCommandName)
+    {
+        if (LiveGeometryCommandRules.IsGripStretchCommand(globalCommandName))
+        {
+            return "GripStretch";
+        }
+
+        var normalized = LiveGeometryCommandRules.NormalizeCommandName(globalCommandName);
+        if (normalized.Equals("STRETCH", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Stretch";
+        }
+
+        return "SupportedResize";
     }
 
     private static IReadOnlyCollection<ObjectId> TryAcceptRigidGroupTransforms(

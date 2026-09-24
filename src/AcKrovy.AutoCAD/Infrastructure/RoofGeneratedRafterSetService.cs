@@ -84,7 +84,8 @@ internal static class RoofGeneratedRafterSetService
         TimberElementDefaultProfile defaultProfile,
         ElementLayerProfile layerProfile,
         bool forceRegenerateOnSourceResize = false,
-        string rebuildReason = "source-change")
+        string rebuildReason = "source-change",
+        bool syncAssemblyGroup = true)
     {
         return TryReplaceForSupportedResize(
             database,
@@ -97,7 +98,8 @@ internal static class RoofGeneratedRafterSetService
             out _,
             out _,
             forceRegenerateOnSourceResize,
-            rebuildReason);
+            rebuildReason,
+            syncAssemblyGroup);
     }
 
     public static ReplacementOutcome TryReplaceForSupportedResize(
@@ -110,7 +112,8 @@ internal static class RoofGeneratedRafterSetService
         ElementLayerProfile layerProfile,
         out RoofGeneratedAnchorResolutionContext? anchorResolutionContext,
         bool forceRegenerateOnSourceResize = false,
-        string rebuildReason = "source-change")
+        string rebuildReason = "source-change",
+        bool syncAssemblyGroup = true)
     {
         return TryReplaceForSupportedResize(
             database,
@@ -123,7 +126,8 @@ internal static class RoofGeneratedRafterSetService
             out anchorResolutionContext,
             out _,
             forceRegenerateOnSourceResize,
-            rebuildReason);
+            rebuildReason,
+            syncAssemblyGroup);
     }
 
     public static ReplacementOutcome TryReplaceForSupportedResize(
@@ -137,7 +141,8 @@ internal static class RoofGeneratedRafterSetService
         out RoofGeneratedAnchorResolutionContext? anchorResolutionContext,
         out RoofGeneratedMemberReplayPlan? replayPlan,
         bool forceRegenerateOnSourceResize = false,
-        string rebuildReason = "source-change")
+        string rebuildReason = "source-change",
+        bool syncAssemblyGroup = true)
     {
         anchorResolutionContext = null;
         replayPlan = null;
@@ -155,48 +160,17 @@ internal static class RoofGeneratedRafterSetService
             editor,
             $"TryReplace ownerHandle={ownerReference} reason={rebuildReason} geometrySig={geometry.Signature}");
 #endif
-        var existingIds = RoofGeneratedTimberStore.FindByOwner(
-            database,
-            transaction,
-            ownerReference);
-        if (existingIds.Count == 0)
-        {
-#if DEBUG
-            RoofGeneratedTimberCopyOwnershipDiagService.WriteReplaceDiag(
-                editor,
-                "branch=FindByOwnerEmpty -> NotApplicable");
-#endif
-            return ReplacementOutcome.NotApplicable;
-        }
-
-#if DEBUG
-        RoofGeneratedTimberCopyOwnershipDiagService.WriteReplaceDiag(
-            editor,
-            $"FindByOwnerCount={existingIds.Count}");
-#endif
-        if (!TryCollectGeneratedMembers(
+        if (!TryPrepareExistingOrdinarySet(
                 database,
                 transaction,
-                existingIds,
-                out var members) ||
-            !RoofGeneratedTimberOwnershipRules.HasUniqueMemberStations(members))
-        {
-            // Same-DWG COPY without remappable owner soft-pointers can leave two
-            // physical sets claiming one JSON owner. Never erase in that state.
-#if DEBUG
-            RoofGeneratedTimberCopyOwnershipDiagService.WriteReplaceDiag(
-                editor,
-                $"branch=OwnershipAmbiguousOrUnreadable memberCount={members.Count} uniqueStations={RoofGeneratedTimberOwnershipRules.HasUniqueMemberStations(members)} -> SkippedAmbiguousRecipe");
-            RoofGeneratedCopyLifecycleDiag.WriteResizeTrace(
                 editor,
                 ownerReference,
-                existingIds.Count,
-                members.Count,
-                RoofGeneratedTimberOwnershipRules.HasUniqueMemberStations(members),
-                RoofGeneratedCopyLifecycleDiag.DescribeDuplicateStations(members),
-                nameof(ReplacementOutcome.SkippedAmbiguousRecipe));
-#endif
-            return ReplacementOutcome.SkippedAmbiguousRecipe;
+                out var existingIds,
+                out var members))
+        {
+            return existingIds.Count == 0
+                ? ReplacementOutcome.NotApplicable
+                : ReplacementOutcome.SkippedAmbiguousRecipe;
         }
 
         if (!forceRegenerateOnSourceResize &&
@@ -220,6 +194,180 @@ internal static class RoofGeneratedRafterSetService
             return ReplacementOutcome.SkippedAmbiguousRecipe;
         }
 
+        return ReplacePreparedSetWithRecipe(
+            database,
+            transaction,
+            editor,
+            owner,
+            ownerReference,
+            geometry,
+            recipe,
+            existingIds,
+            members,
+            defaultProfile,
+            layerProfile,
+            out anchorResolutionContext,
+            out replayPlan,
+            rebuildReason,
+            syncAssemblyGroup);
+    }
+
+    /// <summary>
+    /// Explicit AK_ROOF_RAFTERS EDIT replacement: erase/materialize the ordinary
+    /// generated set using the validated edited recipe while preserving reserved
+    /// ElementIds and override replay from the current set.
+    /// </summary>
+    public static ReplacementOutcome TryReplaceWithEditedRecipe(
+        Database database,
+        Transaction transaction,
+        Editor editor,
+        Polyline owner,
+        IRoofGeometry geometry,
+        RoofRafterGenerationRecipe editedRecipe,
+        TimberElementDefaultProfile defaultProfile,
+        ElementLayerProfile layerProfile,
+        out RoofGeneratedAnchorResolutionContext? anchorResolutionContext,
+        out RoofGeneratedMemberReplayPlan? replayPlan)
+    {
+        anchorResolutionContext = null;
+        replayPlan = null;
+        ArgumentNullException.ThrowIfNull(database);
+        ArgumentNullException.ThrowIfNull(transaction);
+        ArgumentNullException.ThrowIfNull(editor);
+        ArgumentNullException.ThrowIfNull(owner);
+        ArgumentNullException.ThrowIfNull(geometry);
+        ArgumentNullException.ThrowIfNull(editedRecipe);
+        ArgumentNullException.ThrowIfNull(defaultProfile);
+        ArgumentNullException.ThrowIfNull(layerProfile);
+
+        if (!RoofRafterGenerationRecipeRules.IsValid(editedRecipe))
+        {
+            return ReplacementOutcome.SkippedInvalidLayout;
+        }
+
+        var ownerReference = owner.Handle.ToString();
+#if DEBUG
+        RoofGeneratedTimberCopyOwnershipDiagService.WriteReplaceDiag(
+            editor,
+            $"TryReplaceEdited ownerHandle={ownerReference} recipeW={editedRecipe.WidthMm} recipeH={editedRecipe.HeightMm} spacing={editedRecipe.MaximumSpacingMm}");
+#endif
+        if (!TryPrepareExistingOrdinarySet(
+                database,
+                transaction,
+                editor,
+                ownerReference,
+                out var existingIds,
+                out var members))
+        {
+            return existingIds.Count == 0
+                ? ReplacementOutcome.NotApplicable
+                : ReplacementOutcome.SkippedAmbiguousRecipe;
+        }
+
+        // Ambiguous live set must never be erased, even when the dialog already
+        // recovered a recipe earlier. Re-check before any mutation.
+        if (!TryRecoverRecipe(database, transaction, existingIds, out _))
+        {
+#if DEBUG
+            RoofGeneratedTimberCopyOwnershipDiagService.WriteReplaceDiag(
+                editor,
+                "branch=EditedRecipeUnifyFailed -> SkippedAmbiguousRecipe");
+#endif
+            return ReplacementOutcome.SkippedAmbiguousRecipe;
+        }
+
+        return ReplacePreparedSetWithRecipe(
+            database,
+            transaction,
+            editor,
+            owner,
+            ownerReference,
+            geometry,
+            editedRecipe,
+            existingIds,
+            members,
+            defaultProfile,
+            layerProfile,
+            out anchorResolutionContext,
+            out replayPlan,
+            rebuildReason: "rafter-edit");
+    }
+
+    private static bool TryPrepareExistingOrdinarySet(
+        Database database,
+        Transaction transaction,
+        Editor editor,
+        string ownerReference,
+        out IReadOnlyList<ObjectId> existingIds,
+        out List<RoofGeneratedTimberData> members)
+    {
+        members = [];
+        existingIds = RoofGeneratedTimberStore.FindByOwner(
+            database,
+            transaction,
+            ownerReference);
+        if (existingIds.Count == 0)
+        {
+#if DEBUG
+            RoofGeneratedTimberCopyOwnershipDiagService.WriteReplaceDiag(
+                editor,
+                "branch=FindByOwnerEmpty -> NotApplicable");
+#endif
+            return false;
+        }
+
+#if DEBUG
+        RoofGeneratedTimberCopyOwnershipDiagService.WriteReplaceDiag(
+            editor,
+            $"FindByOwnerCount={existingIds.Count}");
+#endif
+        if (!TryCollectGeneratedMembers(
+                database,
+                transaction,
+                existingIds,
+                out members) ||
+            !RoofGeneratedTimberOwnershipRules.HasUniqueMemberStations(members))
+        {
+            // Same-DWG COPY without remappable owner soft-pointers can leave two
+            // physical sets claiming one JSON owner. Never erase in that state.
+#if DEBUG
+            RoofGeneratedTimberCopyOwnershipDiagService.WriteReplaceDiag(
+                editor,
+                $"branch=OwnershipAmbiguousOrUnreadable memberCount={members.Count} uniqueStations={RoofGeneratedTimberOwnershipRules.HasUniqueMemberStations(members)} -> SkippedAmbiguousRecipe");
+            RoofGeneratedCopyLifecycleDiag.WriteResizeTrace(
+                editor,
+                ownerReference,
+                existingIds.Count,
+                members.Count,
+                RoofGeneratedTimberOwnershipRules.HasUniqueMemberStations(members),
+                RoofGeneratedCopyLifecycleDiag.DescribeDuplicateStations(members),
+                nameof(ReplacementOutcome.SkippedAmbiguousRecipe));
+#endif
+            return false;
+        }
+
+        return true;
+    }
+
+    private static ReplacementOutcome ReplacePreparedSetWithRecipe(
+        Database database,
+        Transaction transaction,
+        Editor editor,
+        Polyline owner,
+        string ownerReference,
+        IRoofGeometry geometry,
+        RoofRafterGenerationRecipe recipe,
+        IReadOnlyList<ObjectId> existingIds,
+        List<RoofGeneratedTimberData> members,
+        TimberElementDefaultProfile defaultProfile,
+        ElementLayerProfile layerProfile,
+        out RoofGeneratedAnchorResolutionContext? anchorResolutionContext,
+        out RoofGeneratedMemberReplayPlan? replayPlan,
+        string rebuildReason,
+        bool syncAssemblyGroup = true)
+    {
+        anchorResolutionContext = null;
+        replayPlan = null;
         var layoutResult = RoofRafterLayoutSolver.Solve(
             geometry,
             AutoCadRoofRafterSpacingStore.CreateLayoutParameters(
@@ -267,7 +415,8 @@ internal static class RoofGeneratedRafterSetService
                 defaultProfile,
                 layerProfile,
                 reservedElementIds,
-                replayPlan);
+                replayPlan,
+                syncAssemblyGroup: syncAssemblyGroup);
             var created = materialized.Created;
 #if DEBUG
             WriteOverrideDomainDiagnostics(
@@ -304,6 +453,9 @@ internal static class RoofGeneratedRafterSetService
             RoofGeneratedTimberCopyOwnershipDiagService.WriteReplaceDiag(
                 editor,
                 $"branch=Replaced reason={rebuildReason} oldCount={existingIds.Count} newCount={layoutResult.Layout.Rafters.Count} uniqueKeys={RoofGeneratedTimberOwnershipRules.HasUniqueMemberStations(members).ToString().ToLowerInvariant()} recipeW={recipe.WidthMm} recipeH={recipe.HeightMm} spacing={recipe.MaximumSpacingMm} anchorContext={(anchorResolutionContext is null ? "unavailable" : "ready")}");
+#else
+            _ = members;
+            _ = rebuildReason;
 #endif
             return ReplacementOutcome.Replaced;
         }

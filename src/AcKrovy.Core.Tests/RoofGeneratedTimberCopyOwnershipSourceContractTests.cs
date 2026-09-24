@@ -118,6 +118,7 @@ public sealed class RoofGeneratedTimberCopyOwnershipSourceContractTests
         Assert.Contains("RoofGeneratedTimberStore.FindByOwner(", Workflow);
         Assert.Contains("expectedOwnerReference", Workflow);
         Assert.Contains("RoofGeneratedRafterSetService.IsGeneratedSetStale(", Workflow);
+        Assert.Contains("TryReplaceWithEditedRecipe(", Workflow);
         Assert.Contains("Command_RoofRafters_ReplacementDeferred", Workflow);
     }
 
