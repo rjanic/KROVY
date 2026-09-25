@@ -1157,6 +1157,7 @@ Dach aktualisiert.</value></data>
 
   <data name="AutomaticPurlin_ValidationDimension" xml:space="preserve"><value>Breite und Höhe müssen positive endliche Millimeterwerte sein.</value></data>
 
+  <data name="AutomaticPurlin_ValidationWallPlateMinPlanDistance" xml:space="preserve"><value>Der Grundrissabstand der Mauerlatte-Achse vom Trauf muss mindestens {0} mm betragen (die Hälfte der Breite {1} mm).</value></data>
   <data name="AutomaticPurlin_ValidationPlanDistanceRange" xml:space="preserve"><value>Der Grundrissabstand von der Traufe muss mindestens 0 mm und kleiner als {0} mm für dieses Dach sein.</value></data>
 
   <data name="AutomaticPurlin_WallPlateLowerEdgeHeight" xml:space="preserve"><value>Höhe der Unterkante der Mauerlatte</value></data>

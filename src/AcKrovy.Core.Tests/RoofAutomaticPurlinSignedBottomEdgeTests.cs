@@ -105,13 +105,24 @@ public sealed class RoofAutomaticPurlinSignedBottomEdgeTests
     {
         var solved = Solve(50d);
         // Far below eave LocalZ — offset -2000 from elevated 1000 ⇒ physical bottom -1000.
-        var result = PlanWallPlate(solved, ElevatedDatum(), placementOffsetMm: -2000d);
-        Assert.False(result.IsValid);
+        // WallPlate may fail first on min plan-distance (width/2) once the axis station
+        // resolves near the eave; Intermediate still hits pure geometric rejection.
+        var wallPlate = PlanWallPlate(solved, ElevatedDatum(), placementOffsetMm: -2000d);
+        Assert.False(wallPlate.IsValid);
         Assert.True(
-            result.Error is
+            wallPlate.Error is
+                RoofAutomaticPurlinPlanError.WallPlatePlanDistanceBelowMinimum or
                 RoofAutomaticPurlinPlanError.ElevationOutsideRoof or
                 RoofAutomaticPurlinPlanError.ImpossiblePhysicalPlacement,
-            result.Error.ToString());
+            wallPlate.Error.ToString());
+
+        var intermediate = PlanIntermediate(solved, ElevatedDatum(), placementOffsetMm: -2000d);
+        Assert.False(intermediate.IsValid);
+        Assert.True(
+            intermediate.Error is
+                RoofAutomaticPurlinPlanError.ElevationOutsideRoof or
+                RoofAutomaticPurlinPlanError.ImpossiblePhysicalPlacement,
+            intermediate.Error.ToString());
     }
 
     [Fact]

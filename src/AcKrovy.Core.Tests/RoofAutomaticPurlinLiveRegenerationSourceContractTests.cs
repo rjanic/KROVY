@@ -99,6 +99,7 @@ public sealed class RoofAutomaticPurlinLiveRegenerationSourceContractTests
         Assert.True(write > preflight);
         Assert.True(rebuild > write);
         Assert.Contains("if (!purlinPreflight.IsSuccess)", EditWorkflow);
+        Assert.Contains("WallPlatePlanDistanceBelowMinimum", LiveService);
         Assert.Contains("Command_RoofEdit_PurlinElevationOutsideRoof", LiveService);
         Assert.Contains("purlinPreflight.LocalizationKey", EditWorkflow);
         Assert.Contains("previousGeometry: previousHipForPurlins", EditWorkflow);

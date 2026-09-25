@@ -1157,6 +1157,7 @@ Toit mis à jour.</value></data>
 
   <data name="AutomaticPurlin_ValidationDimension" xml:space="preserve"><value>La largeur et la hauteur doivent être des valeurs millimétriques finies positives.</value></data>
 
+  <data name="AutomaticPurlin_ValidationWallPlateMinPlanDistance" xml:space="preserve"><value>La distance en plan de l'axe de la panne sablière depuis l'égout doit être d'au moins {0} mm (la moitié de la largeur {1} mm).</value></data>
   <data name="AutomaticPurlin_ValidationPlanDistanceRange" xml:space="preserve"><value>La distance en plan depuis l’égout doit être au moins 0 mm et inférieure à {0} mm pour ce toit.</value></data>
 
   <data name="AutomaticPurlin_WallPlateLowerEdgeHeight" xml:space="preserve"><value>Hauteur de l’arête inférieure de la sablière</value></data>

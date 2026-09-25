@@ -979,7 +979,24 @@ public static class RoofAutomaticPurlinPlanner
             resolveInput);
         if (!placement.IsValid || placement.RoofSurfaceLocalZMm is null)
         {
-            return Invalid(placement.Error);
+            return Invalid(
+                placement.Error,
+                RoofAutomaticPurlinLayoutItemIdentity.WallPlatePlacementId);
+        }
+
+        if (!RoofAutomaticPurlinWallPlatePlanDistanceRules.TryResolveAxisPlanDistanceFromEaveMm(
+                wallPlatePlacement.PlacementMode,
+                wallPlatePlacement.PlacementValueMm,
+                placement.RoofSurfaceLocalZMm,
+                geometry.Topology.PitchDegrees,
+                out var axisPlanDistanceMm) ||
+            !RoofAutomaticPurlinWallPlatePlanDistanceRules.IsPlanDistanceAtOrAboveMinimum(
+                axisPlanDistanceMm,
+                planningInput.WallPlateWidthMm))
+        {
+            return Invalid(
+                RoofAutomaticPurlinPlanError.WallPlatePlanDistanceBelowMinimum,
+                RoofAutomaticPurlinLayoutItemIdentity.WallPlatePlacementId);
         }
 
         var sliceLocalZMm = placement.RoofSurfaceLocalZMm.Value;

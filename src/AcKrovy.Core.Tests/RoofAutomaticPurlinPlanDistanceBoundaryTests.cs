@@ -13,7 +13,7 @@ public sealed class RoofAutomaticPurlinPlanDistanceBoundaryTests
     [InlineData(10000d, 6000d, 45d)]
     [InlineData(4000d, 3000d, 45d)]
     [InlineData(10000d, 6000d, 30d)]
-    public void PlanDistanceFromEave_Zero_IsValidAlongSourceEave(
+    public void PlanDistanceFromEave_Zero_IsBelowWallPlateMinimum(
         double widthMm,
         double depthMm,
         double pitchDegrees)
@@ -21,18 +21,29 @@ public sealed class RoofAutomaticPurlinPlanDistanceBoundaryTests
         var solved = Solve(widthMm, depthMm, pitchDegrees);
         var result = CreateWallPlateOnly(solved, planDistanceMm: 0d);
 
+        Assert.False(result.IsValid);
+        Assert.Equal(
+            RoofAutomaticPurlinPlanError.WallPlatePlanDistanceBelowMinimum,
+            result.Error);
+        Assert.Null(result.Plan);
+    }
+
+    [Theory]
+    [InlineData(10000d, 6000d, 45d)]
+    [InlineData(4000d, 3000d, 45d)]
+    [InlineData(10000d, 6000d, 30d)]
+    public void PlanDistanceFromEave_AtHalfWallPlateWidth_IsValid(
+        double widthMm,
+        double depthMm,
+        double pitchDegrees)
+    {
+        var solved = Solve(widthMm, depthMm, pitchDegrees);
+        var result = CreateWallPlateOnly(solved, planDistanceMm: 70d);
+
         Assert.True(result.IsValid, result.Error.ToString());
         Assert.NotNull(result.Plan);
         Assert.Equal(4, result.Plan!.Items.Count(item =>
             item.GeneratorRole == RoofAutomaticPurlinGeneratorRole.WallPlate));
-        Assert.All(
-            result.Plan.Items.Where(item =>
-                item.GeneratorRole == RoofAutomaticPurlinGeneratorRole.WallPlate),
-            item =>
-            {
-                Assert.NotNull(item.PhysicalPlacement);
-                Assert.NotNull(item.ElevationProfile);
-            });
     }
 
     [Theory]

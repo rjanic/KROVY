@@ -255,6 +255,7 @@ internal static class RoofAutomaticPurlinLiveRegenerationService
         error switch
         {
             RoofAutomaticPurlinPlanError.ElevationOutsideRoof or
+            RoofAutomaticPurlinPlanError.WallPlatePlanDistanceBelowMinimum or
             RoofAutomaticPurlinPlanError.ImpossiblePhysicalPlacement or
             RoofAutomaticPurlinPlanError.CriticalEventElevation =>
                 LocalizationKeyElevationOutside,

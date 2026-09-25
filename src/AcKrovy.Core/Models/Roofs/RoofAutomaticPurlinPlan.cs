@@ -155,6 +155,7 @@ public enum RoofAutomaticPurlinPlanError
     InconsistentFaceNormalVerticalComponent,
     ImpossiblePhysicalPlacement,
     ElevationOutsideRoof,
+    WallPlatePlanDistanceBelowMinimum,
     CriticalEventElevation,
     InvalidCoordinate,
     UnresolvedFaceBoundaryIdentity,

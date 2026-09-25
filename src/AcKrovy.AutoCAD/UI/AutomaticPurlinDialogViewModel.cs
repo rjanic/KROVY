@@ -41,6 +41,11 @@ internal sealed class AutomaticPurlinDialogViewModel : INotifyPropertyChanged
     private bool _isSchematicStale;
     private bool _placementModeConversionFailed;
     private bool _isRecalculating;
+    /// <summary>
+    /// When a field change nests inside Recalculate (e.g. LocalZ sync), queue one
+    /// follow-up pass so Width/Height edits are not dropped mid-validation.
+    /// </summary>
+    private bool _recalculateQueued;
     private int _suppressRowChangedDepth;
     private bool _hasInclinedRidge;
     private readonly double _loadedRelativeReferenceMm;
@@ -1733,9 +1738,23 @@ internal sealed class AutomaticPurlinDialogViewModel : INotifyPropertyChanged
     {
         if (_isRecalculating)
         {
+            // Width/Height (and other) edits that nest inside an in-flight pass must not
+            // be dropped — otherwise min-distance validation stays stale until another
+            // field (e.g. PlanDistance) forces a fresh Recalculate.
+            _recalculateQueued = true;
             return;
         }
 
+        do
+        {
+            _recalculateQueued = false;
+            RecalculateCore(raisePreviewChanged);
+        }
+        while (_recalculateQueued);
+    }
+
+    private void RecalculateCore(bool raisePreviewChanged)
+    {
         _isRecalculating = true;
         RoofRelativeElevationDatum? presentationDatum = null;
         RoofAutomaticPurlinLayout? presentationLayout = null;
@@ -1779,6 +1798,13 @@ internal sealed class AutomaticPurlinDialogViewModel : INotifyPropertyChanged
                             maxExclusiveMm.ToString("0.###", _culture));
                         OnPropertyChanged(nameof(ValidationMessage));
                     }
+                    else if (datumError ==
+                             RoofAutomaticPurlinPlanError.WallPlatePlanDistanceBelowMinimum)
+                    {
+                        _previewDiagnosticReason = datumError.ToString();
+                        _validationMessage = BuildWallPlateMinPlanDistanceValidationMessage();
+                        OnPropertyChanged(nameof(ValidationMessage));
+                    }
                     else
                     {
                         SetValidation(MapPlanError(datumError), datumError.ToString());
@@ -1820,22 +1846,11 @@ internal sealed class AutomaticPurlinDialogViewModel : INotifyPropertyChanged
 
             presentationLayout = layout;
 
-            var input = new RoofAutomaticPurlinPlanningInput(
-                datum,
-                PurlinHeightMm,
-                RafterHeightMm)
-            {
-                PurlinWidthMm = PurlinWidthMm,
-                WallPlatesEnabled = WallPlateEnabled,
-                WallPlateWidthMm = WallPlateWidthMm,
-                WallPlateHeightMm = WallPlateHeightMm,
-            };
-
             var result = RoofAutomaticPurlinPlanner.Create(
                 _geometry,
                 _boundaryProvenance,
                 layout,
-                input);
+                CreatePlanningInput(datum));
             if (!result.IsValid || result.Plan is null)
             {
                 _currentDraftIsValid = false;
@@ -1850,6 +1865,13 @@ internal sealed class AutomaticPurlinDialogViewModel : INotifyPropertyChanged
                         _culture,
                         Text("AutomaticPurlin_ValidationPlanDistanceRange"),
                         maxExclusiveMm.ToString("0.###", _culture));
+                    OnPropertyChanged(nameof(ValidationMessage));
+                }
+                else if (result.Error ==
+                         RoofAutomaticPurlinPlanError.WallPlatePlanDistanceBelowMinimum)
+                {
+                    _previewDiagnosticReason = result.Error.ToString();
+                    _validationMessage = BuildWallPlateMinPlanDistanceValidationMessage();
                     OnPropertyChanged(nameof(ValidationMessage));
                 }
                 else
@@ -1943,6 +1965,17 @@ internal sealed class AutomaticPurlinDialogViewModel : INotifyPropertyChanged
         RoofAutomaticPurlinPlanError? planError = null,
         string? failedLayoutItemId = null)
     {
+        if (planError == RoofAutomaticPurlinPlanError.WallPlatePlanDistanceBelowMinimum)
+        {
+            if (WallPlateEnabled)
+            {
+                WallPlateRow.SetPlacementValueError(BuildWallPlateMinPlanDistanceValidationMessage());
+            }
+
+            NotifyTabErrorPresentation();
+            return;
+        }
+
         if (planError is RoofAutomaticPurlinPlanError.ElevationOutsideRoof or
             RoofAutomaticPurlinPlanError.CriticalEventElevation)
         {
@@ -1991,14 +2024,7 @@ internal sealed class AutomaticPurlinDialogViewModel : INotifyPropertyChanged
             return;
         }
 
-        if (WallPlateEnabled &&
-            WallPlateRow.PlacementMode == RoofAutomaticPurlinPlacementMode.PlanDistanceFromEave &&
-            TryParseMillimetres(WallPlateRow.PlacementValueText, out var wallDistance) &&
-            wallDistance == 0d)
-        {
-            // Zero is accepted by Core; no field error.
-            return;
-        }
+        // WallPlate plan-distance zero (and any station below width/2) is rejected by Core.
     }
 
     private string BuildPlanDistanceRangeValidationMessage(RoofAutomaticPurlinPlanError error)
@@ -2021,6 +2047,43 @@ internal sealed class AutomaticPurlinDialogViewModel : INotifyPropertyChanged
 
         return Text("AutomaticPurlin_ValidationOutsideRoof");
     }
+
+    private string BuildWallPlateMinPlanDistanceValidationMessage()
+    {
+        var widthMm = ResolveDraftWallPlateWidthMm();
+        var minimumMm =
+            RoofAutomaticPurlinWallPlatePlanDistanceRules.ResolveMinimumPlanDistanceFromEaveMm(
+                widthMm);
+        return string.Format(
+            _culture,
+            Text("AutomaticPurlin_ValidationWallPlateMinPlanDistance"),
+            minimumMm.ToString("0.###", _culture),
+            widthMm.ToString("0.###", _culture));
+    }
+
+    /// <summary>
+    /// Planning input must use the live WallPlate Width/Height text, not the frozen
+    /// constructor defaults — otherwise min-distance validation ignores width edits.
+    /// </summary>
+    private RoofAutomaticPurlinPlanningInput CreatePlanningInput(
+        RoofRelativeElevationDatum datum) =>
+        new(datum, PurlinHeightMm, RafterHeightMm)
+        {
+            PurlinWidthMm = PurlinWidthMm,
+            WallPlatesEnabled = WallPlateEnabled,
+            WallPlateWidthMm = ResolveDraftWallPlateWidthMm(),
+            WallPlateHeightMm = ResolveDraftWallPlateHeightMm(),
+        };
+
+    private double ResolveDraftWallPlateWidthMm() =>
+        TryParseMillimetres(WallPlateRow.WidthText, out var widthMm) && widthMm > 0d
+            ? widthMm
+            : WallPlateWidthMm;
+
+    private double ResolveDraftWallPlateHeightMm() =>
+        TryParseMillimetres(WallPlateRow.HeightText, out var heightMm) && heightMm > 0d
+            ? heightMm
+            : WallPlateHeightMm;
 
     /// <summary>
     /// Strešná rovina from physical upper-rafter-face geometry (Core rules).
@@ -2161,16 +2224,7 @@ internal sealed class AutomaticPurlinDialogViewModel : INotifyPropertyChanged
                     _geometry,
                     _boundaryProvenance,
                     layout,
-                    new RoofAutomaticPurlinPlanningInput(
-                        requested,
-                        PurlinHeightMm,
-                        RafterHeightMm)
-                    {
-                        PurlinWidthMm = PurlinWidthMm,
-                        WallPlatesEnabled = true,
-                        WallPlateWidthMm = WallPlateWidthMm,
-                        WallPlateHeightMm = WallPlateHeightMm,
-                    });
+                    CreatePlanningInput(requested) with { WallPlatesEnabled = true });
                 if (!resolved.IsValid || resolved.Datum is null)
                 {
                     _lastDatumResolutionError = resolved.Error;
@@ -3082,6 +3136,8 @@ internal sealed class AutomaticPurlinDialogViewModel : INotifyPropertyChanged
             "AutomaticPurlin_ValidationSeating",
         RoofAutomaticPurlinPlanError.ElevationOutsideRoof =>
             "AutomaticPurlin_ValidationOutsideRoof",
+        RoofAutomaticPurlinPlanError.WallPlatePlanDistanceBelowMinimum =>
+            "AutomaticPurlin_ValidationWallPlateMinPlanDistance",
         RoofAutomaticPurlinPlanError.CriticalEventElevation =>
             "AutomaticPurlin_ValidationCriticalElevation",
         RoofAutomaticPurlinPlanError.InvalidBoundaryProvenance or
@@ -3843,9 +3899,25 @@ internal sealed class AutomaticPurlinRowViewModel : INotifyPropertyChanged
         }
 
         double? widthMm = null;
-        if (_widthEdited || _storedWidthMm is not null)
+        var resolvedWidth = _loadedWidthMm;
+        if (GeneratorRole == RoofAutomaticPurlinGeneratorRole.WallPlate)
         {
-            var resolvedWidth = _loadedWidthMm;
+            // WallPlate: always flow live WidthText so min plan-distance revalidates on
+            // width edits even when the row was seeded without a stored WidthMm.
+            if (TryParseValue(WidthText, out resolvedWidth) &&
+                double.IsFinite(resolvedWidth) &&
+                resolvedWidth > 0d)
+            {
+                widthMm = resolvedWidth;
+            }
+            else if (_widthEdited || _storedWidthMm is not null)
+            {
+                errorResourceKey = "AutomaticPurlin_ValidationDimension";
+                return false;
+            }
+        }
+        else if (_widthEdited || _storedWidthMm is not null)
+        {
             if ((_widthEdited && !TryParseValue(WidthText, out resolvedWidth)) ||
                 !double.IsFinite(resolvedWidth) ||
                 resolvedWidth <= 0d)
@@ -3858,9 +3930,23 @@ internal sealed class AutomaticPurlinRowViewModel : INotifyPropertyChanged
         }
 
         double? heightMm = null;
-        if (_heightEdited || _storedHeightMm is not null)
+        var resolvedHeight = _loadedHeightMm;
+        if (GeneratorRole == RoofAutomaticPurlinGeneratorRole.WallPlate)
         {
-            var resolvedHeight = _loadedHeightMm;
+            if (TryParseValue(HeightText, out resolvedHeight) &&
+                double.IsFinite(resolvedHeight) &&
+                resolvedHeight > 0d)
+            {
+                heightMm = resolvedHeight;
+            }
+            else if (_heightEdited || _storedHeightMm is not null)
+            {
+                errorResourceKey = "AutomaticPurlin_ValidationDimension";
+                return false;
+            }
+        }
+        else if (_heightEdited || _storedHeightMm is not null)
+        {
             if ((_heightEdited && !TryParseValue(HeightText, out resolvedHeight)) ||
                 !double.IsFinite(resolvedHeight) ||
                 resolvedHeight <= 0d)

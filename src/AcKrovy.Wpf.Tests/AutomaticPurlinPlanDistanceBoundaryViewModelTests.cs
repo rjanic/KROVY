@@ -80,24 +80,51 @@ public sealed class AutomaticPurlinPlanDistanceBoundaryViewModelTests
     }
 
     [Fact]
-    public void PlanDistanceZero_WallPlate_ProducesPreviewAndTechnicalValues()
+    public void PlanDistanceZero_WallPlate_IsInvalidAndRetainsLastValidPreview()
     {
         var (viewModel, _) = CreateHostLikeViewModel(pitchDegrees: 45d);
+        Assert.True(viewModel.TryGetPreviewPlan(out var validPlan) && validPlan is not null);
+        var validMemberCount = viewModel.SectionPresentation.Members.Count;
+
         viewModel.WallPlateRow.PlacementValueText = "0";
 
-        Assert.True(viewModel.CanPreview, viewModel.ValidationMessage);
-        Assert.True(string.IsNullOrEmpty(viewModel.ValidationMessage), viewModel.ValidationMessage);
-        Assert.False(viewModel.WallPlateRow.PlacementValueHasError);
-        Assert.True(viewModel.TryGetPreviewPlan(out var plan) && plan is not null);
-        Assert.Contains(
-            plan!.Items,
-            item => item.GeneratorRole == RoofAutomaticPurlinGeneratorRole.WallPlate);
-        Assert.NotEqual("—", viewModel.WallPlateRow.BottomRelative);
-        Assert.NotEqual("—", viewModel.WallPlateRow.TopRelative);
-        Assert.NotEqual("—", viewModel.WallPlateRow.RoofPlaneRelative);
-        Assert.Contains(
-            viewModel.SectionPresentation.Members,
-            member => member.Role == RoofAutomaticPurlinGeneratorRole.WallPlate);
+        Assert.False(string.IsNullOrEmpty(viewModel.ValidationMessage));
+        Assert.Contains("70", viewModel.ValidationMessage, StringComparison.Ordinal);
+        Assert.Contains("140", viewModel.ValidationMessage, StringComparison.Ordinal);
+        Assert.True(viewModel.WallPlateRow.PlacementValueHasError);
+        Assert.True(viewModel.CanPreview);
+        Assert.False(viewModel.CanApply);
+        Assert.True(viewModel.TryGetPreviewPlan(out var retained) && retained is not null);
+        Assert.Equal(validPlan!.Items.Count, retained!.Items.Count);
+        Assert.Equal(validMemberCount, viewModel.SectionPresentation.Members.Count);
+    }
+
+    [Theory]
+    [InlineData("69.999", false)]
+    [InlineData("70", true)]
+    [InlineData("70.001", true)]
+    public void WallPlateMinPlanDistance_Boundary_MatchesHalfWidth(
+        string distanceText,
+        bool expectValid)
+    {
+        var (viewModel, _) = CreateHostLikeViewModel(pitchDegrees: 45d);
+        viewModel.WallPlateRow.WidthText = "140";
+        viewModel.WallPlateRow.PlacementValueText = distanceText;
+
+        if (expectValid)
+        {
+            Assert.True(viewModel.CanPreview, viewModel.ValidationMessage);
+            Assert.True(string.IsNullOrEmpty(viewModel.ValidationMessage), viewModel.ValidationMessage);
+            Assert.False(viewModel.WallPlateRow.PlacementValueHasError);
+            Assert.True(viewModel.CanApply);
+        }
+        else
+        {
+            Assert.False(string.IsNullOrEmpty(viewModel.ValidationMessage));
+            Assert.True(viewModel.WallPlateRow.PlacementValueHasError);
+            Assert.False(viewModel.CanApply);
+            Assert.True(viewModel.CanPreview);
+        }
     }
 
     private static (AutomaticPurlinDialogViewModel ViewModel, HipRoofGeometry Geometry)

@@ -364,9 +364,10 @@ internal static class AutomaticPurlinSectionSvgTemplate
         a.ZMm <= b.ZMm ? a : b;
 
     /// <summary>
-    /// Visual rafter body corners: BuildRafters upper/lower slope edges with a PLUMB
-    /// eave termination. Seating authority remains the BuildRafters slope edges;
-    /// only the eave end face is changed from the perpendicular square cut.
+    /// Visual rafter body corners: BuildRafters upper/lower slope edges with PLUMB
+    /// terminations at both the eave and the ridge. Seating authority remains the
+    /// BuildRafters slope edges; only the end faces change from the perpendicular
+    /// square cut. Presentation-only — does not move the physical apex or ridge purlin.
     /// Order: upper0 → upper1 → lower1 → lower0 (same winding as BuildRafters).
     /// </summary>
     internal static bool TryCreatePlumbEaveRafterCorners(
@@ -384,20 +385,24 @@ internal static class AutomaticPurlinSectionSvgTemplate
         var lower1 = rafter.Corners[2];
         var lower0 = rafter.Corners[3];
 
-        // Eave tip = lower-Z end of the upper face (roof surface at the eave).
+        // Eave tip = lower-Z end of the upper face; ridge tip = higher-Z end.
         var upperEaveIs0 = upper0.ZMm <= upper1.ZMm;
         var upperEave = upperEaveIs0 ? upper0 : upper1;
+        var upperRidge = upperEaveIs0 ? upper1 : upper0;
         if (!TryEdgeLocalZAtX(lower0, lower1, upperEave.XMm, out var lowerAtEaveX) ||
-            !double.IsFinite(lowerAtEaveX))
+            !double.IsFinite(lowerAtEaveX) ||
+            !TryEdgeLocalZAtX(lower0, lower1, upperRidge.XMm, out var lowerAtRidgeX) ||
+            !double.IsFinite(lowerAtRidgeX))
         {
             return false;
         }
 
         var plumbLowerEave = new AutomaticPurlinSectionPointMm(upperEave.XMm, lowerAtEaveX);
-        // Replace only the lower corner that sits under the upper eave tip.
+        var plumbLowerRidge = new AutomaticPurlinSectionPointMm(upperRidge.XMm, lowerAtRidgeX);
+        // Replace both lower end corners with plumb tips under the upper tips.
         corners = upperEaveIs0
-            ? [upper0, upper1, lower1, plumbLowerEave]
-            : [upper0, upper1, plumbLowerEave, lower0];
+            ? [upper0, upper1, plumbLowerRidge, plumbLowerEave]
+            : [upper0, upper1, plumbLowerEave, plumbLowerRidge];
         return true;
     }
 

@@ -25,7 +25,7 @@ public sealed class AutomaticPurlinPlumbEaveTerminationTests
 
     public static IEnumerable<object[]> PitchAndHeight()
     {
-        foreach (var pitch in new[] { 30d, 45d })
+        foreach (var pitch in new[] { 30d, 45d, 55d })
         {
             foreach (var height in new[] { 100d, 125d, 160d })
             {
@@ -121,6 +121,154 @@ public sealed class AutomaticPurlinPlumbEaveTerminationTests
         // Mirror: same |X| eave tips, same Z.
         Assert.Equal(Math.Abs(leftUpperEave!.Value.XMm), Math.Abs(rightUpperEave!.Value.XMm), 3);
         Assert.Equal(leftUpperEave.Value.ZMm, rightUpperEave.Value.ZMm, 3);
+    }
+
+    [Theory]
+    [MemberData(nameof(PitchAndHeight))]
+    public void RenderedRidgeTermination_IsPlumb_AndLowerLiesOnBuildRaftersSlope(
+        double pitchDegrees,
+        double rafterHeightMm)
+    {
+        var presentation = CreatePresentation(pitchDegrees, rafterHeightMm, seatingPercent: 0d);
+        var scene = AutomaticPurlinSectionSvgTemplate.CreateMasterScene(
+            presentation,
+            (x, z) => new Point(x, -z));
+
+        AutomaticPurlinSectionPointMm? leftUpperRidge = null;
+        AutomaticPurlinSectionPointMm? rightUpperRidge = null;
+        AutomaticPurlinSectionPointMm? leftLowerRidge = null;
+        AutomaticPurlinSectionPointMm? rightLowerRidge = null;
+
+        foreach (var side in new[]
+                 {
+                     AutomaticPurlinSectionSide.Left,
+                     AutomaticPurlinSectionSide.Right,
+                 })
+        {
+            var rafter = Assert.Single(presentation.Rafters, r => r.Side == side);
+            Assert.True(
+                AutomaticPurlinSectionSvgTemplate.TryGetRenderedRafterViewPolygon(
+                    scene, side, out var rendered));
+            Assert.Equal(4, rendered.Count);
+
+            var buildUpperRidge = rafter.Corners[0].ZMm <= rafter.Corners[1].ZMm
+                ? rafter.Corners[1]
+                : rafter.Corners[0];
+            var buildUpperEave = rafter.Corners[0].ZMm <= rafter.Corners[1].ZMm
+                ? rafter.Corners[0]
+                : rafter.Corners[1];
+            var oldLowerRidge = rafter.Corners[0].ZMm <= rafter.Corners[1].ZMm
+                ? rafter.Corners[2]
+                : rafter.Corners[3];
+            var modelCorners = rendered
+                .Select(p => new AutomaticPurlinSectionPointMm(p.X, -p.Y))
+                .ToList();
+
+            var renderedUpperRidge = modelCorners
+                .Where(c => Math.Abs(c.XMm - buildUpperRidge.XMm) < 1d)
+                .OrderBy(c => Math.Abs(c.ZMm - buildUpperRidge.ZMm))
+                .First();
+            Assert.Equal(buildUpperRidge.XMm, renderedUpperRidge.XMm, 3);
+            Assert.Equal(buildUpperRidge.ZMm, renderedUpperRidge.ZMm, 3);
+
+            var renderedLowerRidge = modelCorners
+                .Where(c => Math.Abs(c.XMm - renderedUpperRidge.XMm) <= MaxMm)
+                .OrderBy(c => c.ZMm)
+                .First();
+            Assert.True(renderedLowerRidge.ZMm < renderedUpperRidge.ZMm);
+            Assert.Equal(renderedUpperRidge.XMm, renderedLowerRidge.XMm, 3);
+
+            var lowerOnSlope = EdgeZ(rafter.Corners[3], rafter.Corners[2], renderedUpperRidge.XMm);
+            Assert.Equal(lowerOnSlope, renderedLowerRidge.ZMm, 3);
+
+            // Eave tip still plumb and distinct from ridge tip.
+            var renderedUpperEave = modelCorners
+                .Where(c => Math.Abs(c.XMm - buildUpperEave.XMm) < 1d)
+                .OrderBy(c => Math.Abs(c.ZMm - buildUpperEave.ZMm))
+                .First();
+            var renderedLowerEave = modelCorners
+                .Where(c => Math.Abs(c.XMm - renderedUpperEave.XMm) <= MaxMm)
+                .OrderBy(c => c.ZMm)
+                .First();
+            Assert.Equal(renderedUpperEave.XMm, renderedLowerEave.XMm, 3);
+            Assert.NotEqual(renderedUpperEave.XMm, renderedUpperRidge.XMm, 1);
+
+            // Upper/lower slope mid-station thickness preserved (not end-face thickness).
+            var midX = (buildUpperEave.XMm + buildUpperRidge.XMm) / 2d;
+            var ox = rafter.Corners[3].XMm - rafter.Corners[0].XMm;
+            var oz = rafter.Corners[3].ZMm - rafter.Corners[0].ZMm;
+            Assert.Equal(rafterHeightMm, Math.Sqrt(ox * ox + oz * oz), 3);
+            Assert.Equal(
+                Math.Abs(
+                    EdgeZ(rafter.Corners[0], rafter.Corners[1], midX) -
+                    EdgeZ(rafter.Corners[3], rafter.Corners[2], midX)),
+                Math.Abs(
+                    EdgeZ(rafter.Corners[0], rafter.Corners[1], midX) -
+                    EdgeZ(rafter.Corners[3], rafter.Corners[2], midX)),
+                3);
+
+            _output.WriteLine(
+                $"{pitchDegrees}° H={rafterHeightMm} {side}: " +
+                $"OLD perp lowerRidge=({oldLowerRidge.XMm:F3},{oldLowerRidge.ZMm:F3}) " +
+                $"upperRidge=({renderedUpperRidge.XMm:F3},{renderedUpperRidge.ZMm:F3}) " +
+                $"plumbLowerRidge=({renderedLowerRidge.XMm:F3},{renderedLowerRidge.ZMm:F3})");
+
+            if (side == AutomaticPurlinSectionSide.Left)
+            {
+                leftUpperRidge = renderedUpperRidge;
+                leftLowerRidge = renderedLowerRidge;
+            }
+            else
+            {
+                rightUpperRidge = renderedUpperRidge;
+                rightLowerRidge = renderedLowerRidge;
+            }
+        }
+
+        Assert.NotNull(leftUpperRidge);
+        Assert.NotNull(rightUpperRidge);
+        Assert.NotNull(leftLowerRidge);
+        Assert.NotNull(rightLowerRidge);
+        // Symmetric hip: ridge tips mirror; no gap between plumb lowers and uppers (same X).
+        Assert.Equal(Math.Abs(leftUpperRidge!.Value.XMm), Math.Abs(rightUpperRidge!.Value.XMm), 3);
+        Assert.Equal(leftUpperRidge.Value.ZMm, rightUpperRidge.Value.ZMm, 3);
+        Assert.Equal(leftUpperRidge.Value.XMm, leftLowerRidge!.Value.XMm, 3);
+        Assert.Equal(rightUpperRidge.Value.XMm, rightLowerRidge!.Value.XMm, 3);
+
+        // Ridge purlin physical station unchanged (presentation-only tip).
+        var ridge = Assert.Single(
+            presentation.Members,
+            m => m.Role == RoofAutomaticPurlinGeneratorRole.Ridge);
+        Assert.True(Math.Abs(ridge.CenterXMm) < 1d);
+    }
+
+    [Fact]
+    public void HostFixture_OldVsNewRidgeCoordinates_Documented()
+    {
+        var presentation = CreatePresentation(45d, 125d, 0d);
+        var left = Assert.Single(
+            presentation.Rafters,
+            r => r.Side == AutomaticPurlinSectionSide.Left);
+        var upperEaveIs0 = left.Corners[0].ZMm <= left.Corners[1].ZMm;
+        var upperRidge = upperEaveIs0 ? left.Corners[1] : left.Corners[0];
+        var oldLowerRidge = upperEaveIs0 ? left.Corners[2] : left.Corners[3];
+        Assert.True(
+            AutomaticPurlinSectionSvgTemplate.TryCreatePlumbEaveRafterCorners(left, out var plumb));
+        var newLowerRidge = plumb.First(c =>
+            Math.Abs(c.XMm - upperRidge.XMm) <= MaxMm &&
+            Math.Abs(c.ZMm - upperRidge.ZMm) > 1d);
+        _output.WriteLine(
+            $"OLD perp lower ridge=({oldLowerRidge.XMm:F3},{oldLowerRidge.ZMm:F3})");
+        _output.WriteLine(
+            $"NEW plumb lower ridge=({newLowerRidge.XMm:F3},{newLowerRidge.ZMm:F3})");
+        _output.WriteLine(
+            $"upper ridge=({upperRidge.XMm:F3},{upperRidge.ZMm:F3})");
+        Assert.Equal(upperRidge.XMm, newLowerRidge.XMm, 3);
+        Assert.NotEqual(oldLowerRidge.XMm, newLowerRidge.XMm, 1);
+        Assert.Equal(
+            125d / Math.Cos(Math.PI / 4d),
+            Math.Abs(upperRidge.ZMm - newLowerRidge.ZMm),
+            3);
     }
 
     [Theory]

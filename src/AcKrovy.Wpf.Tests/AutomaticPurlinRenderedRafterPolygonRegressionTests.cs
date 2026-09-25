@@ -14,7 +14,7 @@ namespace AcKrovy.Wpf.Tests;
 
 /// <summary>
 /// Independent final-polygon regression: expected = BuildRafters slope edges with
-/// presentation-only plumb eave tip × viewport fit; actual = Geometry from
+/// presentation-only plumb eave and ridge tips × viewport fit; actual = Geometry from
 /// CreateMasterScene. Contact uses the extracted polygon only.
 /// </summary>
 public sealed class AutomaticPurlinRenderedRafterPolygonRegressionTests
@@ -123,7 +123,7 @@ public sealed class AutomaticPurlinRenderedRafterPolygonRegressionTests
     }
 
     /// <summary>
-    /// Independent expected plumb-eave quad (mirrors production rule without calling it).
+    /// Independent expected plumb eave+ridge quad (mirrors production rule without calling it).
     /// </summary>
     private static IReadOnlyList<AutomaticPurlinSectionPointMm> BuildExpectedPlumbEaveCorners(
         AutomaticPurlinSectionRafterMm rafter)
@@ -134,11 +134,16 @@ public sealed class AutomaticPurlinRenderedRafterPolygonRegressionTests
         var lower0 = rafter.Corners[3];
         var upperEaveIs0 = upper0.ZMm <= upper1.ZMm;
         var upperEave = upperEaveIs0 ? upper0 : upper1;
-        var lowerAtEaveX = EdgeZ(lower0, lower1, upperEave.XMm);
-        var plumb = new AutomaticPurlinSectionPointMm(upperEave.XMm, lowerAtEaveX);
+        var upperRidge = upperEaveIs0 ? upper1 : upper0;
+        var plumbEave = new AutomaticPurlinSectionPointMm(
+            upperEave.XMm,
+            EdgeZ(lower0, lower1, upperEave.XMm));
+        var plumbRidge = new AutomaticPurlinSectionPointMm(
+            upperRidge.XMm,
+            EdgeZ(lower0, lower1, upperRidge.XMm));
         return upperEaveIs0
-            ? [upper0, upper1, lower1, plumb]
-            : [upper0, upper1, plumb, lower0];
+            ? [upper0, upper1, plumbRidge, plumbEave]
+            : [upper0, upper1, plumbEave, plumbRidge];
     }
 
     [Theory]

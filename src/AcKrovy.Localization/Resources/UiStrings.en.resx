@@ -1157,6 +1157,7 @@ Roof updated.</value></data>
 
   <data name="AutomaticPurlin_ValidationDimension" xml:space="preserve"><value>Width and height must be positive finite millimetre values.</value></data>
 
+  <data name="AutomaticPurlin_ValidationWallPlateMinPlanDistance" xml:space="preserve"><value>The wall-plate axis plan distance from the eave must be at least {0} mm (half of the {1} mm width).</value></data>
   <data name="AutomaticPurlin_ValidationPlanDistanceRange" xml:space="preserve"><value>Plan distance from eave must be at least 0 mm and less than {0} mm for this roof.</value></data>
 
   <data name="AutomaticPurlin_WallPlateLowerEdgeHeight" xml:space="preserve"><value>Wall plate lower edge height</value></data>

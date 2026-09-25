@@ -1157,6 +1157,7 @@ Strecha bola upravená.</value></data>
 
   <data name="AutomaticPurlin_ValidationDimension" xml:space="preserve"><value>Šírka a výška musia byť kladné konečné čísla v milimetroch.</value></data>
 
+  <data name="AutomaticPurlin_ValidationWallPlateMinPlanDistance" xml:space="preserve"><value>Pôdorysná vzdialenosť osi pomúrnice od odkvapu musí byť aspoň {0} mm (polovica šírky {1} mm).</value></data>
   <data name="AutomaticPurlin_ValidationPlanDistanceRange" xml:space="preserve"><value>Pôdorysná vzdialenosť od odkvapu musí byť aspoň 0 mm a menšia ako {0} mm pre túto strechu.</value></data>
 
   <data name="AutomaticPurlin_WallPlateLowerEdgeHeight" xml:space="preserve"><value>Výška spodnej hrany Pomúrnice</value></data>
