@@ -32,7 +32,7 @@ public sealed class RoofDisplayTamperStretchSourceContractTests
         var inspect = Segment(
             ResizeService,
             "private static InspectionPlan Inspect(",
-            "private static void ApplyResizes");
+            "private static bool ApplyResizes");
         Assert.Contains("RoofDisplayStore.Read(entity).Exists", inspect);
         Assert.Contains("RoofOwnerSelectionResolver.Resolve(", inspect);
         Assert.Contains("displayTamperCandidates.Add(resolution.OwnerId)", inspect);
@@ -66,7 +66,10 @@ public sealed class RoofDisplayTamperStretchSourceContractTests
             "private static bool TryApplyDisplayTamper",
             "private static RoofSourceChangeClassification ClassifyOwner");
         Assert.Contains("RoofSourceChangeKind.RigidEquivalent", repair);
-        Assert.Contains("RoofWireframe.Create(", repair);
+        Assert.True(
+            repair.Contains("RoofWireframe.Create(", StringComparison.Ordinal) ||
+            repair.Contains("CreateOwnedDisplayEdges(", StringComparison.Ordinal) ||
+            repair.Contains("CreateOwnedHipOrLegacy(", StringComparison.Ordinal));
         Assert.Contains("RoofDisplayService.Rebuild(", repair);
         Assert.DoesNotContain("RoofKind.Hip", repair);
         Assert.DoesNotContain("RoofDefinitionStore.Write(", repair);
@@ -124,7 +127,7 @@ public sealed class RoofDisplayTamperStretchSourceContractTests
         var inspect = Segment(
             ResizeService,
             "private static InspectionPlan Inspect(",
-            "private static void ApplyResizes");
+            "private static bool ApplyResizes");
         Assert.Contains(
             "if (resizeOwners.Contains(ownerId) ||",
             inspect);
@@ -151,8 +154,8 @@ public sealed class RoofDisplayTamperStretchSourceContractTests
             "IReadOnlyCollection<ObjectId> displayTamperOwners = plan.DisplayTamperOwnerIds",
             "return plan.RelatedIds;");
         Assert.DoesNotContain("Command_Roof_UnsupportedStretchNotificationTitle", displayBranch);
-        // Recovered + fallback Unsupported + DisplayTamper = three Show call sites.
-        Assert.Equal(3, Count(process, "TransientNotificationService.Show("));
+        // Recovered + fallback Unsupported + DisplayTamper + Physical3D suspended = four Show call sites.
+        Assert.Equal(4, Count(process, "TransientNotificationService.Show("));
     }
 
     [Fact]
@@ -233,7 +236,7 @@ public sealed class RoofDisplayTamperStretchSourceContractTests
         Assert.DoesNotContain("MessageBox.Show", ResizeService + NotificationService);
         Assert.DoesNotContain("new Window(", ResizeService);
         Assert.DoesNotContain("TransientNotificationWindow", ResizeService);
-        Assert.Equal(3, Count(ResizeService, "TransientNotificationService.Show("));
+        Assert.Equal(4, Count(ResizeService, "TransientNotificationService.Show("));
         Assert.DoesNotContain("DatabaseReactor", ResizeService);
         Assert.DoesNotContain("ObjectOverrule", ResizeService);
         Assert.DoesNotContain("BeginDeepClone", ResizeService);

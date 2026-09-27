@@ -53,6 +53,7 @@ internal static class RoofCommandWorkflow
             string sourceReference;
             ObjectId ownerId;
             RoofDefinitionStoreReadResult storedDefinition;
+            var physical3DEnabled = false;
             using (var transaction = document.Database.TransactionManager.StartTransaction())
             {
                 var resolution = RoofOwnerSelectionResolver.Resolve(
@@ -83,6 +84,9 @@ internal static class RoofCommandWorkflow
                 sourceElevation = RoofPolylineExtractor.GetSourceElevation(polyline);
                 sourceReference = polyline.Handle.ToString();
                 storedDefinition = RoofDefinitionStore.Read(polyline);
+                physical3DEnabled =
+                    storedDefinition.Data?.Kind == RoofKind.Hip &&
+                    RoofPhysicalElevationStore.Read(polyline).Data?.Physical3DEnabled == true;
             }
 
             if (!validation.IsValid || validation.Footprint is null)
@@ -137,7 +141,10 @@ internal static class RoofCommandWorkflow
                 }
 #endif
 
-                var edges = RoofWireframe.Create(restored.Geometry, sourceElevation);
+                var edges = RoofWireframe.CreateOwnedHipOrLegacy(
+                    restored.Geometry,
+                    sourceElevation,
+                    physical3DEnabled);
                 var signature = RoofWireframe.BuildGenerationSignature(edges);
                 var display = InspectDisplay(
                     document.Database,
@@ -364,6 +371,7 @@ internal static class RoofCommandWorkflow
                             continue;
                         }
 
+                        _ = viewModel.TryGetElevationState(out var elevationState);
                         var data = RoofDefinitionPersistence.Create(
                             sourceInput,
                             footprint,
@@ -373,7 +381,13 @@ internal static class RoofCommandWorkflow
                             $"[AK_ROOF_HIP] persistence begin kind={data.Kind} token=Hip " +
                             $"slope={data.SlopeDegrees:R} vertices={footprint.Vertices.Count}");
 #endif
-                        if (TryPersist(document, ownerId, data, out var failureMessageKey))
+                        if (TryPersist(
+                                document,
+                                ownerId,
+                                data,
+                                geometry as HipRoofGeometry,
+                                elevationState,
+                                out var failureMessageKey))
                         {
                             document.Editor.WriteMessage(UiStrings.GetString(
                                 "Command_Roof_PersistedAndDisplaySaved"));
@@ -468,6 +482,21 @@ internal static class RoofCommandWorkflow
         Document document,
         ObjectId ownerId,
         RoofDefinitionData data,
+        out string failureMessageKey) =>
+        TryPersist(
+            document,
+            ownerId,
+            data,
+            hipGeometry: null,
+            elevationState: null,
+            out failureMessageKey);
+
+    private static bool TryPersist(
+        Document document,
+        ObjectId ownerId,
+        RoofDefinitionData data,
+        HipRoofGeometry? hipGeometry,
+        RoofAbsoluteElevationState? elevationState,
         out string failureMessageKey)
     {
         failureMessageKey = "Command_Roof_PersistFailed";
@@ -510,7 +539,11 @@ internal static class RoofCommandWorkflow
 
             RoofDefinitionStore.Write(owner, transaction, data);
             var sourceElevation = RoofPolylineExtractor.GetSourceElevation(owner);
-            var edges = RoofWireframe.Create(restored.Geometry, sourceElevation);
+            var physical3DEnabled = elevationState?.Physical3DEnabled == true;
+            var edges = RoofWireframe.CreateOwnedHipOrLegacy(
+                restored.Geometry,
+                sourceElevation,
+                physical3DEnabled);
             var signature = RoofWireframe.BuildGenerationSignature(edges);
             if (!RoofDisplayService.Rebuild(
                     document.Database,
@@ -522,6 +555,29 @@ internal static class RoofCommandWorkflow
             {
                 failureMessageKey = "Command_Roof_DisplayFutureSchema";
                 return false;
+            }
+
+            if (restored.Geometry is HipRoofGeometry restoredHip &&
+                current.Footprint is not null)
+            {
+                var elevation = elevationState ??
+                    RoofPhysical3DLifecycleService.ResolveElevationState(
+                        owner,
+                        current.Footprint,
+                        restoredHip);
+                var physical = RoofPhysical3DLifecycleService.ReconcileOwnerInTransaction(
+                    document.Database,
+                    transaction,
+                    owner.ObjectId,
+                    owner,
+                    current.Footprint,
+                    hipGeometry ?? restoredHip,
+                    elevation);
+                if (!physical.IsSuccess)
+                {
+                    failureMessageKey = physical.FailureKey ?? "Command_Roof_PersistFailed";
+                    return false;
+                }
             }
 
             transaction.Commit();
@@ -583,9 +639,10 @@ internal static class RoofCommandWorkflow
                 return false;
             }
 
-            var edges = RoofWireframe.Create(
-                restored.Geometry,
-                RoofPolylineExtractor.GetSourceElevation(owner));
+            var edges = RoofPhysical3DLifecycleService.CreateOwnedDisplayEdges(
+                owner,
+                validation.Footprint,
+                restored.Geometry);
             var signature = RoofWireframe.BuildGenerationSignature(edges);
             if (!RoofDisplayService.Rebuild(
                     document.Database,
@@ -596,6 +653,19 @@ internal static class RoofCommandWorkflow
                     signature))
             {
                 failureMessageKey = "Command_Roof_DisplayFutureSchema";
+                return false;
+            }
+
+            if (!RoofPhysical3DLifecycleService.TryReconcileRestoredOwnerInTransaction(
+                    document.Database,
+                    transaction,
+                    ownerId,
+                    owner,
+                    input,
+                    validation.Footprint,
+                    stored.Data))
+            {
+                failureMessageKey = "Command_Roof_DisplayFailed";
                 return false;
             }
 
@@ -641,9 +711,10 @@ internal static class RoofCommandWorkflow
                 return false;
             }
 
-            var edges = RoofWireframe.Create(
-                restored.Geometry,
-                RoofPolylineExtractor.GetSourceElevation(owner));
+            var edges = RoofPhysical3DLifecycleService.CreateOwnedDisplayEdges(
+                owner,
+                validation.Footprint,
+                restored.Geometry);
             var signature = RoofWireframe.BuildGenerationSignature(edges);
             var inspection = RoofDisplayService.Inspect(
                 document.Database,

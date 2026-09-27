@@ -124,7 +124,9 @@ public sealed class RoofPermanentDisplaySourceContractTests
         var rebuild = Segment(Workflow, "private static bool TryRebuildDisplay", "private static bool TryRehydrateGroup");
         Assert.Contains("RoofPolylineExtractor.Extract(owner)", rebuild);
         Assert.Contains("RoofDefinitionPersistence.Restore", rebuild);
-        Assert.Contains("RoofPolylineExtractor.GetSourceElevation(owner)", rebuild);
+        Assert.True(
+            rebuild.Contains("RoofPolylineExtractor.GetSourceElevation(owner)", StringComparison.Ordinal) ||
+            rebuild.Contains("CreateOwnedDisplayEdges(", StringComparison.Ordinal));
         Assert.Contains("owner.Handle.ToString()", rebuild);
         Assert.DoesNotContain("TransformBy", Service + Store + Workflow);
         Assert.DoesNotContain("Closed = true", Service + Store + Workflow);

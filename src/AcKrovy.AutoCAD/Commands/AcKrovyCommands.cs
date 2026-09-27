@@ -31,6 +31,14 @@ namespace AcKrovy.AutoCAD.Commands;
 /// </summary>
 public sealed class AcKrovyCommands
 {
+#if DEBUG
+    [CommandMethod("AK_ROOF_3D_AUDIT", CommandFlags.Modal)]
+    public void RoofPhysical3DAudit() => RoofPhysical3DHostDiagnostics.Audit(ActiveDocument());
+
+    [CommandMethod("AK_ROOF_3D_TRACE", CommandFlags.Modal)]
+    public void RoofPhysical3DTrace() => RoofPhysical3DHostDiagnostics.Toggle(ActiveDocument());
+#endif
+
     [CommandMethod(AcKrovyCommandNames.Help, CommandFlags.Modal)]
     public void Help()
     {
@@ -456,6 +464,12 @@ public sealed class AcKrovyCommands
         CommandExecutionBoundary.Execute(
             AcKrovyCommandNames.RoofResetEdits,
             () => RoofEditStateCommandWorkflow.ResetEdits(ActiveDocument()));
+
+    [CommandMethod(AcKrovyCommandNames.RoofSelectSource, CommandFlags.Modal | CommandFlags.Redraw)]
+    public void RoofSelectSource() =>
+        CommandExecutionBoundary.Execute(
+            AcKrovyCommandNames.RoofSelectSource,
+            () => RoofSourceSelectionWorkflow.Run(ActiveDocument()));
 
     [CommandMethod(AcKrovyCommandNames.RoofEdit, CommandFlags.Modal | CommandFlags.Redraw)]
     public void RoofEdit() =>

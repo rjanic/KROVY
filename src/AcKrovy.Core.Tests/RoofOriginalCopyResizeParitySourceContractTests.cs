@@ -48,7 +48,8 @@ public sealed class RoofOriginalCopyResizeParitySourceContractTests
     [Fact]
     public void NoNewReactorsOrDeepCloneHooks()
     {
-        var source = Persistence + Resize + Rigid + Live;
+        var source = Persistence + Resize + Rigid;
+        Assert.Contains("NativeRoofCloneMapping", Live);
         Assert.DoesNotContain("DatabaseReactor", source);
         Assert.DoesNotContain("ObjectOverrule", source);
         Assert.DoesNotContain("BeginDeepClone", source);

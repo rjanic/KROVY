@@ -82,10 +82,10 @@ public sealed class RoofRafterStretchRegenerationSourceContractTests
     {
         var apply = Segment(
             ResizeService,
-            "private static void ApplyResizes",
+            "private static bool ApplyResizes",
             "private static ResizeApplyResult TryApplyResize");
         Assert.Contains("ResizeApplyResult.HardFailure", apply);
-        Assert.Contains("return;", apply);
+        Assert.Contains("return false;", apply);
         Assert.Contains("Command_RoofRafters_GenerationFailed", apply);
         Assert.Contains("transaction.Commit()", apply);
     }

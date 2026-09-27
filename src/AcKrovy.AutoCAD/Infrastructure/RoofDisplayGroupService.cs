@@ -132,6 +132,9 @@ internal static class RoofDisplayGroupService
         // Append can leave duplicate ObjectId entries — HashSet equivalence alone is not
         // enough. Remove surplus/foreign copies, then append missing ids once.
         var expected = new HashSet<ObjectId>(memberIds);
+#if DEBUG
+        RoofPhysical3DHostDiagnostics.OwnerCounts(database, transaction, ownerId.Handle.ToString(), "group-sync-before");
+#endif
         var actual = group.GetAllEntityIds();
         var plan = RoofAssemblyGroupMembershipRules.PlanCanonicalization(actual, expected);
 
@@ -143,7 +146,7 @@ internal static class RoofDisplayGroupService
         {
             group.Remove(removeId);
 #if DEBUG
-            RoofGroupMutationDiag.Write(editor, name, "remove", groupObjectId, removeId.Handle.ToString(), "ensure-group");
+            RoofGroupMutationDiag.Write(database, editor, name, "remove", groupObjectId, removeId.Handle.ToString(), "ensure-group");
 #endif
         }
 
@@ -152,6 +155,9 @@ internal static class RoofDisplayGroupService
         // refresh the presence set immediately before Append so a stale GetAllEntityIds
         // snapshot used for planning cannot double-insert within this EnsureGroup call.
         var present = new HashSet<ObjectId>(group.GetAllEntityIds());
+#if DEBUG
+        RoofPhysical3DHostDiagnostics.OwnerCounts(database, transaction, ownerId.Handle.ToString(), "group-sync-before-append");
+#endif
         foreach (var addId in plan.AppendOnce)
         {
             if (!present.Add(addId))
@@ -161,7 +167,7 @@ internal static class RoofDisplayGroupService
 
             group.Append(addId);
 #if DEBUG
-            RoofGroupMutationDiag.Write(editor, name, "append", groupObjectId, addId.Handle.ToString(), "ensure-group");
+            RoofGroupMutationDiag.Write(database, editor, name, "append", groupObjectId, addId.Handle.ToString(), "ensure-group");
 #endif
         }
 
@@ -177,6 +183,7 @@ internal static class RoofDisplayGroupService
                 group.Remove(removeId);
 #if DEBUG
                 RoofGroupMutationDiag.Write(
+                    database,
                     editor,
                     name,
                     "remove",
@@ -198,6 +205,7 @@ internal static class RoofDisplayGroupService
 
 #if DEBUG
         var postActual = group.GetAllEntityIds();
+        RoofPhysical3DHostDiagnostics.OwnerCounts(database, transaction, ownerId.Handle.ToString(), "group-sync-after");
         var postCanonical = RoofAssemblyGroupMembershipRules.IsCanonicalMembership(
             postActual,
             expected);
@@ -354,7 +362,7 @@ internal static class RoofDisplayGroupService
                 group.Remove(timberId);
                 removedAny = true;
 #if DEBUG
-                RoofGroupMutationDiag.Write(editor, ownerName, "remove", groupObjectId, timberId.Handle.ToString(), "detach-before-erase");
+                RoofGroupMutationDiag.Write(database, editor, ownerName, "remove", groupObjectId, timberId.Handle.ToString(), "detach-before-erase");
 #endif
             }
 
@@ -396,7 +404,7 @@ internal static class RoofDisplayGroupService
                 group.Remove(memberId);
                 removed = true;
 #if DEBUG
-                RoofGroupMutationDiag.Write(editor, ownerName, "remove", groupObjectId, memberId.Handle.ToString(), "detach-before-erase");
+                RoofGroupMutationDiag.Write(database, editor, ownerName, "remove", groupObjectId, memberId.Handle.ToString(), "detach-before-erase");
 #endif
                 break;
             }
@@ -1276,6 +1284,7 @@ internal sealed record RoofGroupMembershipObservation(
 internal static class RoofGroupMutationDiag
 {
     public static void Write(
+        Database database,
         Autodesk.AutoCAD.EditorInput.Editor? editor,
         string owner,
         string operation,
@@ -1283,8 +1292,8 @@ internal static class RoofGroupMutationDiag
         string member,
         string stage)
     {
-        // Suppressed: per-entity append/remove tracing was too verbose during normal
-        // group sync. The compact ROOF_GROUP_UNDO_INVARIANT summary remains available.
+        // Detailed ObjectId mutations are emitted only when the HOST trace is enabled.
+        RoofPhysical3DHostDiagnostics.GroupMutation(database, owner, operation, groupObjectId, member, stage);
     }
 }
 

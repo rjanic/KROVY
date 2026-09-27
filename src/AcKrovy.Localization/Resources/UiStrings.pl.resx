@@ -732,6 +732,8 @@ Zapisany typ dachu nie jest obsługiwany.</value></data>
 Obrys dachu zmienił się po zapisaniu. Zapisana definicja nie została użyta.</value></data>
   <data name="Command_Roof_UnsupportedStretchNotificationTitle" xml:space="preserve"><value>Kształt dachu nie jest już obsługiwany.</value></data>
   <data name="Command_Roof_UnsupportedStretchNotificationBody" xml:space="preserve"><value>Cofnij ostatnią zmianę poleceniem Cofnij (U).</value></data>
+  <data name="Command_Roof_Physical3DSuspendedNotificationTitle" xml:space="preserve"><value>Fizyczny dach 3D wstrzymany</value></data>
+  <data name="Command_Roof_Physical3DSuspendedNotificationBody" xml:space="preserve"><value>Obrys nie jest już obsługiwanym prostokątem. Rzut 2D został zaktualizowany, a 3D odtworzy się automatycznie, gdy obrys znów będzie prostokątny.</value></data>
   <data name="Command_Roof_UnsupportedStretchRecoveredNotificationTitle" xml:space="preserve"><value>Nieobsługiwana zmiana dachu została przywrócona.</value></data>
   <data name="Command_Roof_UnsupportedStretchRecoveredNotificationBody" xml:space="preserve"><value>Obrys dachu został przywrócony do ostatniego obsługiwanego kształtu.</value></data>
   <data name="Command_Roof_DisplayTamperNotificationTitle" xml:space="preserve"><value>Wybierz podstawowy obrys dachu</value></data>
@@ -933,6 +935,18 @@ Dach zaktualizowano.</value></data>
   <data name="RoofGeometryWindow_ModeMonopitchSlope" xml:space="preserve"><value>Wprowadź nachylenie α</value></data>
   <data name="RoofGeometryWindow_ModeMonopitchHeight" xml:space="preserve"><value>Wprowadź różnicę wysokości okapów ΔH</value></data>
   <data name="RoofGeometryWindow_MonopitchSlope" xml:space="preserve"><value>Nachylenie α (°)</value></data>
+  <data name="RoofHip_ElevationSection" xml:space="preserve"><value>Względna wysokość dachu</value></data>
+  <data name="RoofHip_ModeEaveElevation" xml:space="preserve"><value>Podaj względną wysokość okapu</value></data>
+  <data name="RoofHip_ModeRidgeElevation" xml:space="preserve"><value>Podaj względną wysokość kalenicy</value></data>
+  <data name="RoofHip_EnteredEaveElevation" xml:space="preserve"><value>Względna wysokość okapu (m)</value></data>
+  <data name="RoofHip_EnteredRidgeElevation" xml:space="preserve"><value>Względna wysokość kalenicy (m)</value></data>
+  <data name="RoofHip_CalculatedEaveElevation" xml:space="preserve"><value>Obliczona wysokość okapu</value></data>
+  <data name="RoofHip_CalculatedRidgeElevation" xml:space="preserve"><value>Obliczona wysokość kalenicy</value></data>
+  <data name="RoofHip_Physical3DEnabled" xml:space="preserve"><value>Generuj fizyczny dach 3D</value></data>
+  <data name="RoofHip_DisplayVisibility" xml:space="preserve"><value>Wyświetlanie</value></data>
+  <data name="RoofHip_DisplayBoth" xml:space="preserve"><value>Oba</value></data>
+  <data name="RoofHip_DisplayPlan2D" xml:space="preserve"><value>Rzut 2D</value></data>
+  <data name="RoofHip_DisplayModel3D" xml:space="preserve"><value>Model 3D</value></data>
   <data name="RoofGeometryWindow_MonopitchHeightDifference" xml:space="preserve"><value>Różnica wysokości okapów ΔH (mm)</value></data>
   <data name="RoofGeometryWindow_MirrorMonopitch" xml:space="preserve"><value>Odbij dach jednospadowy (NISKI ↔ WYSOKI)</value></data>
   <data name="RoofGeometryWindow_SlopeDirection" xml:space="preserve"><value>Kierunek spadku WYSOKI → NISKI</value></data>
@@ -1173,4 +1187,6 @@ Zmień jej położenie lub wybierz odpowiedni spadek dachu.</value></data>
   <data name="Command_RoofEdit_PurlinLayoutIncompatible" xml:space="preserve"><value>
 Zapisany układ płatwi nie jest zgodny z nową geometrią dachu.
 Dostosuj płatwie lub wybierz odpowiednią geometrię.</value></data>
+  <data name="Command_RoofSelectSource_Prompt" xml:space="preserve"><value>
+Wybierz obrys lub część dachu, aby zaznaczyć obrys źródłowy: </value></data>
 </root>

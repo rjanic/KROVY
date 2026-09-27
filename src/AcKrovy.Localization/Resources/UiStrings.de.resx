@@ -732,6 +732,8 @@ Der gespeicherte Dachtyp wird nicht unterstützt.</value></data>
 Der Dachgrundriss wurde nach dem Speichern geändert. Die gespeicherte Definition wurde nicht verwendet.</value></data>
   <data name="Command_Roof_UnsupportedStretchNotificationTitle" xml:space="preserve"><value>Die Dachform wird nicht mehr unterstützt.</value></data>
   <data name="Command_Roof_UnsupportedStretchNotificationBody" xml:space="preserve"><value>Machen Sie die letzte Änderung mit Rückgängig (U) rückgängig.</value></data>
+  <data name="Command_Roof_Physical3DSuspendedNotificationTitle" xml:space="preserve"><value>Physisches 3D-Dach pausiert</value></data>
+  <data name="Command_Roof_Physical3DSuspendedNotificationBody" xml:space="preserve"><value>Der Grundriss ist kein unterstütztes Rechteck mehr. Der 2D-Grundriss wurde aktualisiert; 3D wird automatisch wiederhergestellt, sobald der Umriss wieder rechteckig ist.</value></data>
   <data name="Command_Roof_UnsupportedStretchRecoveredNotificationTitle" xml:space="preserve"><value>Nicht unterstützte Dachänderung wurde rückgängig gemacht.</value></data>
   <data name="Command_Roof_UnsupportedStretchRecoveredNotificationBody" xml:space="preserve"><value>Der Dachumriss wurde auf die letzte unterstützte Form zurückgesetzt.</value></data>
   <data name="Command_Roof_DisplayTamperNotificationTitle" xml:space="preserve"><value>Wählen Sie den Dachgrundriss aus</value></data>
@@ -933,6 +935,18 @@ Dach aktualisiert.</value></data>
   <data name="RoofGeometryWindow_ModeMonopitchSlope" xml:space="preserve"><value>Neigung α eingeben</value></data>
   <data name="RoofGeometryWindow_ModeMonopitchHeight" xml:space="preserve"><value>Traufhöhendifferenz ΔH eingeben</value></data>
   <data name="RoofGeometryWindow_MonopitchSlope" xml:space="preserve"><value>Neigung α (°)</value></data>
+  <data name="RoofHip_ElevationSection" xml:space="preserve"><value>Relative Dachhöhe</value></data>
+  <data name="RoofHip_ModeEaveElevation" xml:space="preserve"><value>Relative Traufhöhe angeben</value></data>
+  <data name="RoofHip_ModeRidgeElevation" xml:space="preserve"><value>Relative Firsthöhe angeben</value></data>
+  <data name="RoofHip_EnteredEaveElevation" xml:space="preserve"><value>Relative Traufhöhe (m)</value></data>
+  <data name="RoofHip_EnteredRidgeElevation" xml:space="preserve"><value>Relative Firsthöhe (m)</value></data>
+  <data name="RoofHip_CalculatedEaveElevation" xml:space="preserve"><value>Berechnete Traufhöhe</value></data>
+  <data name="RoofHip_CalculatedRidgeElevation" xml:space="preserve"><value>Berechnete Firsthöhe</value></data>
+  <data name="RoofHip_Physical3DEnabled" xml:space="preserve"><value>Physisches 3D-Dach erzeugen</value></data>
+  <data name="RoofHip_DisplayVisibility" xml:space="preserve"><value>Anzeige</value></data>
+  <data name="RoofHip_DisplayBoth" xml:space="preserve"><value>Beides</value></data>
+  <data name="RoofHip_DisplayPlan2D" xml:space="preserve"><value>2D-Grundriss</value></data>
+  <data name="RoofHip_DisplayModel3D" xml:space="preserve"><value>3D-Modell</value></data>
   <data name="RoofGeometryWindow_MonopitchHeightDifference" xml:space="preserve"><value>Traufhöhendifferenz ΔH (mm)</value></data>
   <data name="RoofGeometryWindow_MirrorMonopitch" xml:space="preserve"><value>Pultdach spiegeln (NIEDRIG ↔ HOCH)</value></data>
   <data name="RoofGeometryWindow_SlopeDirection" xml:space="preserve"><value>Gefällerichtung HOCH → NIEDRIG</value></data>
@@ -1173,4 +1187,6 @@ Passen Sie ihre Lage an oder wählen Sie eine geeignete Dachneigung.</value></da
   <data name="Command_RoofEdit_PurlinLayoutIncompatible" xml:space="preserve"><value>
 Die gespeicherte Pfettenanordnung ist mit der neuen Dachgeometrie nicht kompatibel.
 Passen Sie die Pfetten an oder wählen Sie eine geeignete Geometrie.</value></data>
+  <data name="Command_RoofSelectSource_Prompt" xml:space="preserve"><value>
+Umriss oder Dachteil wählen, um den Quellumriss auszuwählen: </value></data>
 </root>

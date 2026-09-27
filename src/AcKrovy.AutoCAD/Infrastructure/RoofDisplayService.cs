@@ -567,9 +567,10 @@ internal static class RoofDisplayService
             return false;
         }
 
-        edges = RoofWireframe.Create(
-            restored.Geometry,
-            RoofPolylineExtractor.GetSourceElevation(owner));
+        edges = RoofPhysical3DLifecycleService.CreateOwnedDisplayEdges(
+            owner,
+            validation.Footprint,
+            restored.Geometry);
         signature = RoofWireframe.BuildGenerationSignature(edges);
         return true;
     }

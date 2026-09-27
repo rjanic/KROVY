@@ -115,7 +115,9 @@ public sealed class RoofWholeRoofMirrorSourceContractTests
         Assert.Contains("ROOF_WHOLE_MIRROR_DETECT", Diag);
         Assert.Contains("ROOF_WHOLE_MIRROR_REBIND", Diag);
         Assert.Contains("ROOF_WHOLE_MIRROR_STAGE", Diag);
-        Assert.Contains("definition-equivalent-false", Rebind);
+        Assert.Contains("ROOF_NATIVE_CLONE_REBIND", Rebind);
+        Assert.Contains("committed=true", Rebind);
+        Assert.Contains("committed=false rollback=true", Rebind);
         Assert.Contains("isMirror", Rebind);
         Assert.Contains("isMirror);", Rebind);
     }

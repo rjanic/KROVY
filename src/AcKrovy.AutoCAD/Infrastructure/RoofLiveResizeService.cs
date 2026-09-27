@@ -110,7 +110,17 @@ internal static class RoofLiveResizeService
                     SourceHandledOwnersThisCommand.Add(ownerId);
                 }
 
-                ApplyResizes(document, plan.ResizeOwnerIds, globalCommandName);
+                var suspendedPhysical3D = ApplyResizes(
+                    document,
+                    plan.ResizeOwnerIds,
+                    globalCommandName);
+                // CommandEnded only — never during grip-drag event spam.
+                if (suspendedPhysical3D)
+                {
+                    TransientNotificationService.Show(
+                        "Command_Roof_Physical3DSuspendedNotificationTitle",
+                        "Command_Roof_Physical3DSuspendedNotificationBody");
+                }
             }
 
             if (plan.UnsupportedOwnerIds.Count > 0)
@@ -1357,7 +1367,7 @@ internal static class RoofLiveResizeService
         return true;
     }
 
-    private static void ApplyResizes(
+    private static bool ApplyResizes(
         Document document,
         IReadOnlyCollection<ObjectId> ownerIds,
         string? globalCommandName)
@@ -1369,6 +1379,7 @@ internal static class RoofLiveResizeService
             RoofRedoStateDiag.TraceTxn("apply-resizes", "begin");
 #endif
             var wrote = false;
+            var suspendedPhysical3D = false;
             try
             {
                 foreach (var ownerId in ownerIds)
@@ -1378,20 +1389,27 @@ internal static class RoofLiveResizeService
                         transaction,
                         ownerId,
                         globalCommandName,
-                        out var failureMessageKey);
+                        out var failureMessageKey,
+                        out var physical3DSuspended);
                     if (result == ResizeApplyResult.HardFailure)
                     {
+#if DEBUG
+                        document.Editor.WriteMessage(
+                            $"\n[AK_ROOF_PHYS3D] resize HardFailure key={failureMessageKey} " +
+                            $"cmd={globalCommandName}\n");
+#endif
                         document.Editor.WriteMessage(
                             UiStrings.GetString(
                                 string.IsNullOrWhiteSpace(failureMessageKey)
                                     ? "Command_RoofRafters_GenerationFailed"
                                     : failureMessageKey));
-                        return;
+                        return false;
                     }
 
                     if (result == ResizeApplyResult.Applied)
                     {
                         wrote = true;
+                        suspendedPhysical3D |= physical3DSuspended;
                     }
                 }
 
@@ -1407,7 +1425,10 @@ internal static class RoofLiveResizeService
             {
                 document.Editor.WriteMessage(
                     UiStrings.GetString("Command_RoofRafters_GenerationFailed"));
+                return false;
             }
+
+            return suspendedPhysical3D;
         }
     }
 
@@ -1421,6 +1442,7 @@ internal static class RoofLiveResizeService
             transaction,
             ownerId,
             globalCommandName,
+            out _,
             out _);
 
     private static ResizeApplyResult TryApplyResize(
@@ -1428,9 +1450,25 @@ internal static class RoofLiveResizeService
         Transaction transaction,
         ObjectId ownerId,
         string? globalCommandName,
-        out string failureMessageKey)
+        out string failureMessageKey) =>
+        TryApplyResize(
+            document,
+            transaction,
+            ownerId,
+            globalCommandName,
+            out failureMessageKey,
+            out _);
+
+    private static ResizeApplyResult TryApplyResize(
+        Document document,
+        Transaction transaction,
+        ObjectId ownerId,
+        string? globalCommandName,
+        out string failureMessageKey,
+        out bool physical3DSuspendedDueToIneligibility)
     {
         failureMessageKey = "Command_RoofRafters_GenerationFailed";
+        physical3DSuspendedDueToIneligibility = false;
         var database = document.Database;
         if (!AutoCadObjectIdAccess.TryGetObject<Polyline>(
                 transaction,
@@ -1520,9 +1558,18 @@ internal static class RoofLiveResizeService
                     classification.Geometry),
                 storedDefinition);
         RoofDefinitionStore.Write(owner, transaction, updated);
-        var edges = RoofWireframe.Create(
+        var sourceElevation = RoofPolylineExtractor.GetSourceElevation(owner);
+        var elevationState = classification.Geometry is HipRoofGeometry resizedHipForElev &&
+            validation.Footprint is not null
+            ? RoofPhysical3DLifecycleService.ResolveElevationState(
+                owner,
+                validation.Footprint,
+                resizedHipForElev)
+            : null;
+        var edges = RoofWireframe.CreateOwnedHipOrLegacy(
             classification.Geometry,
-            RoofPolylineExtractor.GetSourceElevation(owner));
+            sourceElevation,
+            elevationState?.Physical3DEnabled == true);
         var signature = RoofWireframe.BuildGenerationSignature(edges);
         if (!RoofDisplayService.Rebuild(
                 database,
@@ -1534,6 +1581,30 @@ internal static class RoofLiveResizeService
                 syncAssemblyGroup: false))
         {
             return ResizeApplyResult.HardFailure;
+        }
+
+        if (classification.Geometry is HipRoofGeometry resizedHip &&
+            validation.Footprint is not null)
+        {
+            var elevation = elevationState ??
+                RoofPhysical3DLifecycleService.ResolveElevationState(
+                    owner,
+                    validation.Footprint,
+                    resizedHip);
+            var physical = RoofPhysical3DLifecycleService.ReconcileOwnerInTransaction(
+                database,
+                transaction,
+                owner.ObjectId,
+                owner,
+                validation.Footprint,
+                resizedHip,
+                elevation);
+            if (!physical.IsSuccess)
+            {
+                return ResizeApplyResult.HardFailure;
+            }
+
+            physical3DSuspendedDueToIneligibility = physical.SuspendedDueToIneligibility;
         }
 
         var generatedMemberCount = RoofGeneratedTimberStore.FindByOwner(
@@ -1809,111 +1880,145 @@ internal static class RoofLiveResizeService
         IReadOnlyList<string> erasedSourceHandles,
         string? globalCommandName)
     {
+        if (LiveGeometryCommandRules.IsUndoRedoCommand(globalCommandName)) return false;
+        var wrote = false;
+        var restoredOwners = new List<ObjectId>();
         using (document.LockDocument())
-        using (var transaction = document.Database.TransactionManager.StartTransaction())
         {
-            var wrote = false;
-            var erasedSet = new HashSet<string>(erasedSourceHandles, StringComparer.OrdinalIgnoreCase);
-            foreach (var ownerId in ownerIds)
+            using (var transaction = document.Database.TransactionManager.StartTransaction())
             {
-                if (!RoofDisplayErasePreCommandMapService.TryGetSourceState(ownerId, out var state) ||
-                    !RoofDisplayErasePreCommandMapRules.ShouldRestoreLockedSourceErase(
-                        state.EditState,
-                        globalCommandName))
+                var erasedSet = new HashSet<string>(erasedSourceHandles, StringComparer.OrdinalIgnoreCase);
+                foreach (var ownerId in ownerIds)
                 {
-                    continue;
-                }
+                    if (!RoofDisplayErasePreCommandMapService.TryGetSourceState(ownerId, out var state) ||
+                        !RoofDisplayErasePreCommandMapRules.ShouldRestoreLockedSourceErase(
+                            state.EditState,
+                            globalCommandName))
+                    {
+                        continue;
+                    }
 
-                var displayErasedCount =
-                    RoofDisplayErasePreCommandMapService.CountErasedDisplaysForOwner(
-                        ownerId,
-                        erasedSet);
+                    var displayErasedCount =
+                        RoofDisplayErasePreCommandMapService.CountErasedDisplaysForOwner(
+                            ownerId,
+                            erasedSet);
 #if DEBUG
-                RoofGeneratedMemberManualEditDiag.WriteSourceEraseTamper(
-                    document.Editor,
-                    state.OwnerHandle,
-                    globalCommandName,
-                    ownerId.ToString(),
-                    state.OwnerHandle,
-                    state.EditState.ToString(),
-                    sourceErased: true,
-                    displayErasedCount,
-                    "LockedSourceEraseTamper",
-                    "restore-source");
+                    RoofPhysical3DHostDiagnostics.OwnerCounts(document.Database, transaction, state.OwnerHandle,
+                        "locked-source-repair-before-unerase");
+                    RoofGeneratedMemberManualEditDiag.WriteSourceEraseTamper(
+                        document.Editor,
+                        state.OwnerHandle,
+                        globalCommandName,
+                        ownerId.ToString(),
+                        state.OwnerHandle,
+                        state.EditState.ToString(),
+                        sourceErased: true,
+                        displayErasedCount,
+                        "LockedSourceEraseTamper",
+                        "restore-source");
 #else
-                _ = displayErasedCount;
+                    _ = displayErasedCount;
 #endif
 
-                if (!TryUnEraseLockedSource(
+                    if (!TryUnEraseLockedSource(
+                            document.Database,
+                            transaction,
+                            ownerId,
+                            state,
+                            out var sameObjectId,
+                            out var sameHandle))
+                    {
+#if DEBUG
+                        RoofGeneratedMemberManualEditDiag.WriteSourceEraseRepair(
+                            document.Editor,
+                            state.OwnerHandle,
+                            sourceRestored: false,
+                            sameObjectId: false,
+                            sameHandle: false,
+                            displayRebuilt: false,
+                            groupMembers: -1,
+                            canonical: false,
+                            result: "failed-unerase");
+#else
+                        _ = sameObjectId;
+                        _ = sameHandle;
+#endif
+                        return false; // Roll back the entire repair transaction.
+                    }
+
+#if DEBUG
+                    RoofPhysical3DHostDiagnostics.OwnerCounts(document.Database, transaction, state.OwnerHandle,
+                        "locked-source-repair-after-unerase");
+#endif
+                    var displayRebuilt = TryApplyDisplayTamper(
                         document.Database,
                         transaction,
-                        ownerId,
-                        state,
-                        out var sameObjectId,
-                        out var sameHandle))
-                {
+                        ownerId);
+                    if (!displayRebuilt ||
+                        !RoofPhysical3DLifecycleService.EnsureRestoredOwnerInTransaction(document.Database, transaction, ownerId) ||
+                        !RoofAssemblyGroupSyncService.TrySyncForOwner(document, transaction, ownerId) ||
+                        !TryValidateRestoredSourceGroup(document.Database, transaction, ownerId))
+                    {
 #if DEBUG
+                        RoofPhysical3DHostDiagnostics.OwnerCounts(document.Database, transaction, state.OwnerHandle,
+                            "locked-source-repair-failed:rollback");
+#endif
+                        return false;
+                    }
+                    SourceHandledOwnersThisCommand.Add(ownerId);
+                    restoredOwners.Add(ownerId);
+
+#if DEBUG
+                    var groupMembers = -1;
+                    var canonical = false;
+                    if (RoofDisplayGroupService.TryOpenCanonicalGroup(
+                            document.Database,
+                            transaction,
+                            ownerId,
+                            OpenMode.ForRead,
+                            out var group) && group is not null)
+                    {
+                        groupMembers = group.GetAllEntityIds().Length;
+                        canonical = true;
+                    }
+
                     RoofGeneratedMemberManualEditDiag.WriteSourceEraseRepair(
                         document.Editor,
                         state.OwnerHandle,
-                        sourceRestored: false,
-                        sameObjectId: false,
-                        sameHandle: false,
-                        displayRebuilt: false,
-                        groupMembers: -1,
-                        canonical: false,
-                        result: "failed-unerase");
+                        sourceRestored: true,
+                        sameObjectId,
+                        sameHandle,
+                        displayRebuilt,
+                        groupMembers,
+                        canonical,
+                        result: "Recovered|provisional-group");
+                    RoofPhysical3DHostDiagnostics.OwnerCounts(document.Database, transaction, state.OwnerHandle,
+                        "locked-source-repair-after-display-physical-group:provisional");
 #else
                     _ = sameObjectId;
                     _ = sameHandle;
+                    _ = displayRebuilt;
 #endif
-                    continue;
+                    wrote = true;
                 }
 
-                var displayRebuilt = TryApplyDisplayTamper(
-                    document.Database,
-                    transaction,
-                    ownerId);
-                SourceHandledOwnersThisCommand.Add(ownerId);
-
-#if DEBUG
-                var groupMembers = -1;
-                var canonical = false;
-                if (RoofDisplayGroupService.TryOpenCanonicalGroup(
-                        document.Database,
-                        transaction,
-                        ownerId,
-                        OpenMode.ForRead,
-                        out var group) && group is not null)
+                if (wrote)
                 {
-                    groupMembers = group.GetAllEntityIds().Length;
-                    canonical = true;
+                    transaction.Commit();
+#if DEBUG
+                    foreach (var ownerId in ownerIds)
+                        if (RoofDisplayErasePreCommandMapService.TryGetSourceState(ownerId, out var state))
+                            RoofPhysical3DHostDiagnostics.OwnerCounts(document, state.OwnerHandle,
+                                "locked-source-repair-committed");
+#endif
                 }
 
-                RoofGeneratedMemberManualEditDiag.WriteSourceEraseRepair(
-                    document.Editor,
-                    state.OwnerHandle,
-                    sourceRestored: true,
-                    sameObjectId,
-                    sameHandle,
-                    displayRebuilt,
-                    groupMembers,
-                    canonical,
-                    result: displayRebuilt ? "Recovered|ok" : "source-ok-display-failed");
-#else
-                _ = sameObjectId;
-                _ = sameHandle;
-                _ = displayRebuilt;
-#endif
-                wrote = true;
             }
-
-            if (wrote)
-            {
-                transaction.Commit();
-            }
-
-            return wrote;
+            // HOST: the source-repair group is canonical before Commit but gains a
+            // source slot at Commit. Finish normalization only after that transaction
+            // has closed, inside the same ERASE command/undo scope, never at Idle/UNDO.
+            return wrote && RoofAssemblyGroupSyncService.TryFinalizeRestoredSources(
+                document, restoredOwners, globalCommandName);
         }
     }
 
@@ -2313,6 +2418,15 @@ internal static class RoofLiveResizeService
         }
     }
 
+    private static bool TryValidateRestoredSourceGroup(Database database, Transaction transaction, ObjectId ownerId)
+    {
+        return AutoCadObjectIdAccess.TryGetObject<Polyline>(transaction, ownerId, OpenMode.ForRead,
+                   out var owner, database) && owner is not null &&
+               RoofDisplayService.TryCollectCurrentStructuralDisplayChildIds(database, transaction, owner,
+                   out var displayChildren) &&
+               RoofDisplayGroupService.Inspect(database, transaction, ownerId, displayChildren).IsCurrent;
+    }
+
     private static bool TryApplyDisplayTamper(
         Database database,
         Transaction transaction,
@@ -2337,9 +2451,9 @@ internal static class RoofLiveResizeService
             return false;
         }
 
-        var edges = RoofWireframe.Create(
-            classification.Geometry,
-            RoofPolylineExtractor.GetSourceElevation(owner));
+        var edges = RoofPhysical3DLifecycleService.CreateOwnedDisplayEdges(
+            owner,
+            classification.Geometry);
         var signature = RoofWireframe.BuildGenerationSignature(edges);
         return RoofDisplayService.Rebuild(
             database,
@@ -2384,9 +2498,10 @@ internal static class RoofLiveResizeService
             geometric.Kind == RoofSourceChangeKind.RigidEquivalent &&
             geometric.Geometry is HipRoofGeometry hipGeometry)
         {
-            var edges = RoofWireframe.Create(
-                hipGeometry,
-                RoofPolylineExtractor.GetSourceElevation(polyline));
+            var edges = RoofPhysical3DLifecycleService.CreateOwnedDisplayEdges(
+                polyline,
+                validation.Footprint,
+                hipGeometry);
             var signature = RoofWireframe.BuildGenerationSignature(edges);
             var display = RoofDisplayService.Inspect(
                 database,

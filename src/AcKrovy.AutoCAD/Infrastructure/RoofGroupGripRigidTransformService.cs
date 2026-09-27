@@ -160,8 +160,9 @@ internal static class RoofGroupGripRigidTransformService
             pair => pair.Key,
             pair => pair.Value.Segment);
 
-        var elevation = RoofPolylineExtractor.GetSourceElevation(owner);
-        var canonicalEdges = RoofWireframe.Create(classification.Geometry, elevation);
+        var canonicalEdges = RoofPhysical3DLifecycleService.CreateOwnedDisplayEdges(
+            owner,
+            classification.Geometry);
         var canonical = canonicalEdges.ToDictionary(edge => edge.Role, edge => edge.Segment);
 
         result = RoofRigidGroupTransformRules.TryClassifyTranslation(

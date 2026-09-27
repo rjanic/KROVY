@@ -121,7 +121,8 @@ public sealed class RoofLockedShapeChangeRejectionSourceContractTests
         // Unsupported owners are recovered (not regenerated).
         Assert.Contains("plan.UnsupportedOwnerIds", process);
         Assert.Contains("TryRecoverUnsupportedOwners(", process);
-        Assert.Contains("ApplyResizes(document, plan.ResizeOwnerIds", process);
+        Assert.Contains("ApplyResizes(", process);
+        Assert.Contains("plan.ResizeOwnerIds", process);
     }
 
     [Fact]

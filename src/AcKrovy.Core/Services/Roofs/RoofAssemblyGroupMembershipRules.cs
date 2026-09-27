@@ -7,6 +7,21 @@ namespace AcKrovy.Core.Services.Roofs;
 /// </summary>
 public static class RoofAssemblyGroupMembershipRules
 {
+    /// <summary>Retains the first exact member occurrence; returns only its surplus slot indices.</summary>
+    public static IReadOnlyList<int> SurplusMemberIndices<T>(IReadOnlyList<T> members, T member)
+        where T : notnull
+    {
+        var result = new List<int>();
+        var seen = false;
+        for (var i = 0; i < members.Count; i++)
+        {
+            if (!EqualityComparer<T>.Default.Equals(members[i], member)) continue;
+            if (seen) result.Add(i);
+            seen = true;
+        }
+        return result;
+    }
+
     public sealed record MembershipPlan<T>(
         IReadOnlyList<T> RemoveOnce,
         IReadOnlyList<T> AppendOnce)

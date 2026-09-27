@@ -732,6 +732,8 @@ The saved roof type is not supported.</value></data>
 The roof footprint changed after it was saved. The saved definition was not used.</value></data>
   <data name="Command_Roof_UnsupportedStretchNotificationTitle" xml:space="preserve"><value>The roof shape is no longer supported.</value></data>
   <data name="Command_Roof_UnsupportedStretchNotificationBody" xml:space="preserve"><value>Undo the last change with Undo (U).</value></data>
+  <data name="Command_Roof_Physical3DSuspendedNotificationTitle" xml:space="preserve"><value>Physical 3D roof paused</value></data>
+  <data name="Command_Roof_Physical3DSuspendedNotificationBody" xml:space="preserve"><value>The footprint is no longer a supported rectangle. The 2D plan was updated and 3D will restore automatically when the outline is rectangular again.</value></data>
   <data name="Command_Roof_UnsupportedStretchRecoveredNotificationTitle" xml:space="preserve"><value>Unsupported roof change was restored.</value></data>
   <data name="Command_Roof_UnsupportedStretchRecoveredNotificationBody" xml:space="preserve"><value>The roof outline was restored to the last supported shape.</value></data>
   <data name="Command_Roof_DisplayTamperNotificationTitle" xml:space="preserve"><value>Select the roof outline</value></data>
@@ -933,6 +935,18 @@ Roof updated.</value></data>
   <data name="RoofGeometryWindow_ModeMonopitchSlope" xml:space="preserve"><value>Enter slope α</value></data>
   <data name="RoofGeometryWindow_ModeMonopitchHeight" xml:space="preserve"><value>Enter eave height difference ΔH</value></data>
   <data name="RoofGeometryWindow_MonopitchSlope" xml:space="preserve"><value>Slope α (°)</value></data>
+  <data name="RoofHip_ElevationSection" xml:space="preserve"><value>Relative roof elevation</value></data>
+  <data name="RoofHip_ModeEaveElevation" xml:space="preserve"><value>Specify relative eave elevation</value></data>
+  <data name="RoofHip_ModeRidgeElevation" xml:space="preserve"><value>Specify relative ridge elevation</value></data>
+  <data name="RoofHip_EnteredEaveElevation" xml:space="preserve"><value>Relative eave elevation (m)</value></data>
+  <data name="RoofHip_EnteredRidgeElevation" xml:space="preserve"><value>Relative ridge elevation (m)</value></data>
+  <data name="RoofHip_CalculatedEaveElevation" xml:space="preserve"><value>Calculated eave elevation</value></data>
+  <data name="RoofHip_CalculatedRidgeElevation" xml:space="preserve"><value>Calculated ridge elevation</value></data>
+  <data name="RoofHip_Physical3DEnabled" xml:space="preserve"><value>Generate physical 3D roof</value></data>
+  <data name="RoofHip_DisplayVisibility" xml:space="preserve"><value>Display</value></data>
+  <data name="RoofHip_DisplayBoth" xml:space="preserve"><value>Both</value></data>
+  <data name="RoofHip_DisplayPlan2D" xml:space="preserve"><value>2D plan</value></data>
+  <data name="RoofHip_DisplayModel3D" xml:space="preserve"><value>3D model</value></data>
   <data name="RoofGeometryWindow_MonopitchHeightDifference" xml:space="preserve"><value>Eave height difference ΔH (mm)</value></data>
   <data name="RoofGeometryWindow_MirrorMonopitch" xml:space="preserve"><value>Mirror mono-pitch roof (LOW ↔ HIGH)</value></data>
   <data name="RoofGeometryWindow_SlopeDirection" xml:space="preserve"><value>Fall direction HIGH → LOW</value></data>
@@ -1173,4 +1187,6 @@ Adjust its position or choose a suitable roof pitch.</value></data>
   <data name="Command_RoofEdit_PurlinLayoutIncompatible" xml:space="preserve"><value>
 The saved purlin layout is not compatible with the new roof geometry.
 Adjust the purlins or choose a suitable geometry.</value></data>
+  <data name="Command_RoofSelectSource_Prompt" xml:space="preserve"><value>
+Select an outline or roof part to select the source footprint: </value></data>
 </root>

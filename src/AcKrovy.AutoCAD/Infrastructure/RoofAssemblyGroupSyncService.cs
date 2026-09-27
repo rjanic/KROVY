@@ -5,6 +5,105 @@ namespace AcKrovy.AutoCAD.Infrastructure;
 
 internal static class RoofAssemblyGroupSyncService
 {
+    public static bool TryFinalizeRestoredSources(Document document,
+        IReadOnlyCollection<ObjectId> ownerIds, string? globalCommandName)
+    {
+        // Called with the existing document lock after the source-repair transaction
+        // is disposed. Do not defer this work beyond the native command undo scope.
+        if (AcKrovy.Core.Services.LiveGeometryCommandRules.IsUndoRedoCommand(globalCommandName) ||
+            !AcKrovy.Core.Services.Roofs.RoofGeneratedMemberEditCommandRules.IsEraseCommand(globalCommandName))
+            return false;
+        var groupIds = new Dictionary<ObjectId, ObjectId>();
+        using (var transaction = document.Database.TransactionManager.StartTransaction())
+        {
+            var changed = false;
+            foreach (var ownerId in ownerIds.Distinct())
+            {
+                if (!RoofDisplayGroupService.TryOpenCanonicalGroup(document.Database, transaction,
+                        ownerId, OpenMode.ForRead, out var group) || group is null) return false;
+                groupIds.Add(ownerId, group.ObjectId);
+#if DEBUG
+                RoofPhysical3DHostDiagnostics.OwnerCounts(document.Database, transaction,
+                    ownerId.Handle.ToString(), "locked-source-group-finalize-before");
+#endif
+                if (!IsCurrent(document.Database, transaction, ownerId))
+                {
+                    if (!TryRemoveSurplusSourceSlots(document.Database, transaction, ownerId, group)) return false;
+                    changed = true;
+                }
+                if (!IsCurrent(document.Database, transaction, ownerId)) return false;
+#if DEBUG
+                RoofPhysical3DHostDiagnostics.OwnerCounts(document.Database, transaction,
+                    ownerId.Handle.ToString(), "locked-source-group-finalize-after:provisional");
+#endif
+            }
+            if (changed) transaction.Commit();
+        }
+        // Verify the committed, closed transaction, not only its provisional view.
+        using var verify = document.Database.TransactionManager.StartTransaction();
+        foreach (var ownerId in ownerIds.Distinct())
+        {
+#if DEBUG
+            RoofPhysical3DHostDiagnostics.OwnerCounts(document.Database, verify,
+                ownerId.Handle.ToString(), "locked-source-group-finalize-committed");
+#endif
+            if (!IsCurrent(document.Database, verify, ownerId) ||
+                !RoofDisplayGroupService.TryOpenCanonicalGroup(document.Database, verify,
+                    ownerId, OpenMode.ForRead, out var group) || group is null ||
+                group.ObjectId != groupIds[ownerId]) return false;
+#if DEBUG
+            if (RoofDisplayErasePreCommandMapService.TryGetSourceState(ownerId, out var state))
+                RoofGeneratedMemberManualEditDiag.WriteSourceEraseRepair(document.Editor, state.OwnerHandle,
+                    sourceRestored: !ownerId.IsErased, sameObjectId: ownerId == state.OwnerId,
+                    sameHandle: string.Equals(ownerId.Handle.ToString(), state.OwnerHandle, StringComparison.OrdinalIgnoreCase),
+                    displayRebuilt: true, groupMembers: group.GetAllEntityIds().Length, canonical: true,
+                    result: "Recovered|ok");
+#endif
+        }
+        return true;
+    }
+
+    private static bool IsCurrent(Database database, Transaction transaction, ObjectId ownerId) =>
+        AutoCadObjectIdAccess.TryGetObject<Polyline>(transaction, ownerId, OpenMode.ForRead,
+            out var owner, database) && owner is not null &&
+        RoofDisplayService.TryCollectCurrentStructuralDisplayChildIds(database, transaction, owner,
+            out var displayIds) && RoofDisplayGroupService.Inspect(database, transaction, ownerId, displayIds).IsCurrent;
+
+    private static bool TryRemoveSurplusSourceSlots(Database database, Transaction transaction,
+        ObjectId ownerId, Group group)
+    {
+        var before = group.GetAllEntityIds();
+        var surplus = AcKrovy.Core.Services.Roofs.RoofAssemblyGroupMembershipRules.SurplusMemberIndices(before, ownerId);
+        if (surplus.Count == 0 ||
+            !AutoCadObjectIdAccess.TryGetObject<Polyline>(transaction, ownerId, OpenMode.ForRead,
+                out var owner, database) || owner is null ||
+            !RoofDisplayService.TryCollectCurrentStructuralDisplayChildIds(database, transaction, owner,
+                out var displayIds) ||
+            !RoofAssemblyGroupMemberCollector.TryCollect(database, transaction, ownerId, displayIds,
+                out var collected) || collected is null) return false;
+        var uniqueBefore = new HashSet<ObjectId>(before);
+        // Fail closed for missing/foreign unique members or another kind of duplicate.
+        // This correction removes only surplus slots for the proven restored source.
+        if (!uniqueBefore.SetEquals(collected.MemberIds) ||
+            before.Length - uniqueBefore.Count != surplus.Count) return false;
+        group.UpgradeOpen();
+        foreach (var index in surplus.Reverse())
+        {
+            var current = group.GetAllEntityIds();
+            if (index >= current.Length || current[index] != ownerId ||
+                current.Count(id => id == ownerId) <= 1) return false;
+            group.RemoveAt(index);
+#if DEBUG
+            RoofPhysical3DHostDiagnostics.GroupMutation(database, ownerId.Handle.ToString(),
+                "remove-at-source-slot", group.Handle.ToString(), ownerId.Handle.ToString(),
+                "locked-source-group-finalize:index=" + index);
+#endif
+            var after = group.GetAllEntityIds();
+            if (after.Length != current.Length - 1 || !uniqueBefore.SetEquals(after)) return false;
+        }
+        return true;
+    }
+
     public static bool TrySyncForOwner(
         Document document,
         Transaction transaction,

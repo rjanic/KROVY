@@ -208,9 +208,9 @@ internal static class RoofUnsupportedStretchRecoveryService
             return RoofUnsupportedStretchRecoveryOutcome.HardFailure;
         }
 
-        var edges = RoofWireframe.Create(
-            restoredClassification.Geometry,
-            RoofPolylineExtractor.GetSourceElevation(owner));
+        var edges = RoofPhysical3DLifecycleService.CreateOwnedDisplayEdges(
+            owner,
+            restoredClassification.Geometry);
         var signature = RoofWireframe.BuildGenerationSignature(edges);
         if (!RoofDisplayService.Rebuild(
                 database,
@@ -461,9 +461,9 @@ internal static class RoofUnsupportedStretchRecoveryService
             // Locked generated tamper recovery must also ensure canonical display.
             if (classification.Geometry is not null)
             {
-                var edges = RoofWireframe.Create(
-                    classification.Geometry,
-                    RoofPolylineExtractor.GetSourceElevation(owner));
+                var edges = RoofPhysical3DLifecycleService.CreateOwnedDisplayEdges(
+                    owner,
+                    classification.Geometry);
                 var signature = RoofWireframe.BuildGenerationSignature(edges);
                 _ = RoofDisplayService.Rebuild(
                     database,

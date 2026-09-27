@@ -80,7 +80,7 @@ public sealed class RoofUnsupportedStretchRecoverySourceContractTests
     {
         var apply = RoofUxSourceContractText.Member(
             Resize,
-            "private static void ApplyResizes",
+            "private static bool ApplyResizes",
             "private static ResizeApplyResult TryApplyResize");
         var rigid = RoofUxSourceContractText.Member(
             Resize,
@@ -100,7 +100,7 @@ public sealed class RoofUnsupportedStretchRecoverySourceContractTests
         var batch = RoofUxSourceContractText.Member(
             Resize,
             "private static UnsupportedRecoveryBatchResult TryRecoverUnsupportedOwners",
-            "private static void ApplyResizes");
+            "private static bool ApplyResizes");
         Assert.Contains("All-or-nothing", batch);
         Assert.Contains("transaction.Commit()", batch);
         Assert.Contains("HardFailure", batch);
@@ -177,7 +177,7 @@ public sealed class RoofUnsupportedStretchRecoverySourceContractTests
         var batch = RoofUxSourceContractText.Member(
             Resize,
             "private static UnsupportedRecoveryBatchResult TryRecoverUnsupportedOwners",
-            "private static void ApplyResizes");
+            "private static bool ApplyResizes");
         Assert.Contains("StartTransaction()", batch);
         Assert.Contains("CanAttemptAssemblyRecovery", batch);
         Assert.Contains("transaction.Commit()", batch);

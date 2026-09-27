@@ -26,6 +26,7 @@ public sealed class PluginEntry : IExtensionApplication
             // ho preto bezpečne vytvorí pri najbližšom idle AutoCADu.
             AcKrovyRibbon.ScheduleCreation();
 #if DEBUG
+            RoofPhysical3DHostDiagnostics.Start();
             // Runtime discovery is deliberately subscribed before the production
             // lifecycle tracker so CommandEnded captures the native INSERT/EXPLODE
             // graph before any existing reconciliation runs. It is strictly read-only.
@@ -55,6 +56,7 @@ public sealed class PluginEntry : IExtensionApplication
     {
         RoofImportCommandEntryProtection.Stop();
 #if DEBUG
+        RoofPhysical3DHostDiagnostics.Stop();
         RoofImportDocumentLockVetoProbe.Stop();
         RoofImportRuntimeDiscoveryDiagnostics.Stop();
 #endif

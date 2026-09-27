@@ -53,7 +53,7 @@ public sealed class RoofUnsupportedStretchNotificationSourceContractTests
     {
         var apply = Segment(
             ResizeService,
-            "private static void ApplyResizes",
+            "private static bool ApplyResizes",
             "private static ResizeApplyResult TryApplyResize");
         var tryApply = Segment(
             ResizeService,
@@ -63,6 +63,9 @@ public sealed class RoofUnsupportedStretchNotificationSourceContractTests
         Assert.DoesNotContain("TransientNotificationService.Show(", apply + tryApply);
         Assert.DoesNotContain(
             "Command_Roof_UnsupportedStretchNotificationTitle",
+            apply + tryApply);
+        Assert.DoesNotContain(
+            "Command_Roof_Physical3DSuspendedNotificationTitle",
             apply + tryApply);
         Assert.Contains("RoofSourceChangeKind.RigidEquivalent", Persistence);
         Assert.Contains("RoofSourceChangeKind.SupportedResize", Persistence);
@@ -115,7 +118,8 @@ public sealed class RoofUnsupportedStretchNotificationSourceContractTests
         Assert.DoesNotContain("PromptKeywordOptions", ResizeService);
         Assert.DoesNotContain("new Window(", ResizeService);
         Assert.DoesNotContain("TransientNotificationWindow", ResizeService);
-        Assert.Equal(3, Count(ResizeService, "TransientNotificationService.Show("));
+        Assert.Equal(4, Count(ResizeService, "TransientNotificationService.Show("));
+        Assert.Contains("Command_Roof_Physical3DSuspendedNotificationTitle", ResizeService);
         Assert.DoesNotContain("DatabaseReactor", ResizeService);
         Assert.DoesNotContain("ObjectOverrule", ResizeService);
         Assert.DoesNotContain("BeginDeepClone", ResizeService);
@@ -148,6 +152,8 @@ public sealed class RoofUnsupportedStretchNotificationSourceContractTests
             "Command_Roof_UnsupportedStretchNotificationBody",
             "Command_Roof_UnsupportedStretchRecoveredNotificationTitle",
             "Command_Roof_UnsupportedStretchRecoveredNotificationBody",
+            "Command_Roof_Physical3DSuspendedNotificationTitle",
+            "Command_Roof_Physical3DSuspendedNotificationBody",
             "Command_Roof_OpenLoopNotificationTitle",
             "Command_Roof_OpenLoopNotificationBody",
         };

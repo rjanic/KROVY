@@ -177,6 +177,18 @@ internal static class RoofOwnerSelectionResolver
             return true;
         }
 
+        var physical3D = RoofPhysical3DGeneratedStore.Read(selected);
+        if (physical3D.Data is not null &&
+            TryResolveHandleToPolyline(
+                database,
+                transaction,
+                physical3D.Data.RoofOwnerReference,
+                out ownerId,
+                out _))
+        {
+            return true;
+        }
+
         var purlin = RoofAutomaticPurlinGeneratedStore.Read(selected);
         if (purlin.Data is not null &&
             TryResolveHandleToPolyline(
@@ -226,6 +238,18 @@ internal static class RoofOwnerSelectionResolver
                 database,
                 transaction,
                 sourceStructural.Data.RoofOwnerReference,
+                out ownerId,
+                out _))
+        {
+            return true;
+        }
+
+        var sourcePhysical3D = RoofPhysical3DGeneratedStore.Read(sourceEntity);
+        if (sourcePhysical3D.Data is not null &&
+            TryResolveHandleToPolyline(
+                database,
+                transaction,
+                sourcePhysical3D.Data.RoofOwnerReference,
                 out ownerId,
                 out _))
         {

@@ -50,7 +50,7 @@ public sealed class RoofGripStretchSourcePrecedenceSourceContractTests
         var inspect = Member(
             ResizeService,
             "private static InspectionPlan Inspect(",
-            "private static void ApplyResizes");
+            "private static bool ApplyResizes");
         Assert.Contains("SourceHandledOwnersThisCommand.Contains(ownerId)", inspect);
         Assert.Contains("resizeOwners.Contains(ownerId)", inspect);
         Assert.Contains("unsupportedOwners.Contains(ownerId)", inspect);
@@ -111,9 +111,10 @@ public sealed class RoofGripStretchSourcePrecedenceSourceContractTests
         Assert.Contains("FindByOwner(", Replacement);
         Assert.Contains("RoofGeneratedRafterCopyOwnershipRehydrationService.Process(", LiveGeometry);
         Assert.Contains("IsSameDwgCopyOwnershipCommand", Rehydration);
-        Assert.DoesNotContain("BeginDeepClone", ResizeService + LiveGeometry + Replacement);
-        Assert.DoesNotContain("EndDeepClone", ResizeService + LiveGeometry + Replacement);
-        Assert.DoesNotContain("IdMapping", ResizeService + LiveGeometry + Replacement);
+        Assert.DoesNotContain("BeginDeepClone", ResizeService + Replacement);
+        Assert.DoesNotContain("EndDeepClone", ResizeService + Replacement);
+        Assert.DoesNotContain("IdMapping", ResizeService + Replacement);
+        Assert.Contains("NativeRoofCloneMapping", LiveGeometry);
     }
 
     [Fact]

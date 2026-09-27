@@ -11,11 +11,8 @@ namespace AcKrovy.AutoCAD.Infrastructure;
 
 /// <summary>
 /// Deterministic whole-roof same-DWG COPY / MIRROR lifecycle.
-/// Detection is payload/event-based (never spatial): a RoofDefinition-bearing source
-/// Polyline that appeared in THIS COPY or MIRROR (Erase source = No) command, paired
-/// with its pre-command owner by decoded RoofDefinition payload equality, whose
-/// complete CURRENT physical owned assembly (ordinary generated + structural generated
-/// + AttachedManual) was appended with the inherited old-owner metadata. The branch
+/// Detection uses the exact command-scoped native IdMapping and pre-command owned
+/// assembly snapshot, never payload equality or spatial matching. The branch
 /// erases the transient generated clones, regenerates the canonical sets under the new
 /// owner through the shared materializers, rebinds AttachedManual clones by their
 /// logical anchor key, rebuilds display/annotations and syncs the canonical group.
@@ -48,20 +45,22 @@ internal static class RoofWholeRoofCopyRebindService
         OwnerCandidate NewOwnerCandidate,
         IReadOnlyList<AppendedGeneratedClone> GeneratedClones,
         IReadOnlyList<AppendedStructuralClone> StructuralClones,
-        IReadOnlyList<AppendedAttachedClone> AttachedManualClones);
+        IReadOnlyList<AppendedAttachedClone> AttachedManualClones,
+        IReadOnlyList<ObjectId> NativeDisposableClones);
 
     public static void Process(
         Document document,
         string? globalCommandName,
         IReadOnlyCollection<ObjectId> appendedTimberIds,
-        IReadOnlyCollection<ObjectId> appendedAnnotationIds)
+        IReadOnlyCollection<ObjectId> appendedAnnotationIds,
+        IReadOnlyList<RoofNativeCloneSnapshot.Clone> nativeClones)
     {
         var isCopy = LiveGeometryCommandRules.IsSameDwgCopyOwnershipCommand(globalCommandName);
         var isMirror = RoofGeneratedMemberEditCommandRules.IsMirrorCommand(globalCommandName);
         if (LiveGeometryCommandRules.IsUndoRedoCommand(globalCommandName) ||
             !(isCopy || isMirror) ||
             appendedTimberIds is null ||
-            appendedTimberIds.Count == 0)
+            nativeClones.Count == 0)
         {
             return;
         }
@@ -124,248 +123,22 @@ internal static class RoofWholeRoofCopyRebindService
                 var pairs = new List<WholeRoofPair>();
                 var consumedHandles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-                // Full-set candidates: pre-existing owners whose complete CURRENT
-                // physical assembly (suppressed members physically absent in BOTH the
-                // pre-command snapshot and the appended set) was appended with the
-                // inherited old-owner reference.
-                var fullSetOldOwners = owners
-                    .Where(owner => preOwnerHandles.Contains(owner.Handle))
-                    .Where(owner =>
-                    {
-                        var preGenerated = RoofGeneratedCopyPreCommandSnapshotService
-                            .GetPreCommandGeneratedHandlesByOwner(owner.Handle);
-                        var preStructural = RoofGeneratedCopyPreCommandSnapshotService
-                            .GetPreCommandStructuralGeneratedHandlesByOwner(owner.Handle);
-                        var preAttached = RoofGeneratedCopyPreCommandSnapshotService
-                            .GetPreCommandAttachedManualHandlesByOwner(owner.Handle);
-                        return RoofWholeRoofCopyIdentityRules.IsCompleteAssemblyClone(
-                            preGenerated.Count,
-                            preStructural.Count,
-                            preAttached.Count,
-                            appendedGenerated.Count(clone => string.Equals(
-                                clone.OwnerReference,
-                                owner.Handle,
-                                StringComparison.OrdinalIgnoreCase)),
-                            appendedStructural.Count(clone => string.Equals(
-                                clone.Data.RoofOwnerReference,
-                                owner.Handle,
-                                StringComparison.OrdinalIgnoreCase)),
-                            appendedAttached.Count(clone => string.Equals(
-                                clone.Data.RoofOwnerReference,
-                                owner.Handle,
-                                StringComparison.OrdinalIgnoreCase)));
-                    })
-                    .ToArray();
-
-#if DEBUG
-                if (isMirror && fullSetOldOwners.Length == 0)
+                // Native provenance outranks inherited XData and definition equality.
+                // It also supports identical roofs, repeated COPY destinations and a
+                // physical roof with no generated timber at all.
+                foreach (var native in nativeClones)
                 {
-                    foreach (var oldOwner in owners.Where(owner => preOwnerHandles.Contains(owner.Handle)))
-                    {
-                        var preGenerated = RoofGeneratedCopyPreCommandSnapshotService
-                            .GetPreCommandGeneratedHandlesByOwner(oldOwner.Handle);
-                        var preStructural = RoofGeneratedCopyPreCommandSnapshotService
-                            .GetPreCommandStructuralGeneratedHandlesByOwner(oldOwner.Handle);
-                        var preAttached = RoofGeneratedCopyPreCommandSnapshotService
-                            .GetPreCommandAttachedManualHandlesByOwner(oldOwner.Handle);
-                        var generatedClones = appendedGenerated.Count(clone => string.Equals(
-                            clone.OwnerReference,
-                            oldOwner.Handle,
-                            StringComparison.OrdinalIgnoreCase));
-                        var structuralClones = appendedStructural.Count(clone => string.Equals(
-                            clone.Data.RoofOwnerReference,
-                            oldOwner.Handle,
-                            StringComparison.OrdinalIgnoreCase));
-                        var attachedClones = appendedAttached.Count(clone => string.Equals(
-                            clone.Data.RoofOwnerReference,
-                            oldOwner.Handle,
-                            StringComparison.OrdinalIgnoreCase));
-                        if (generatedClones + structuralClones + attachedClones == 0)
-                        {
-                            continue;
-                        }
-
-                        RoofGeneratedCopyLifecycleDiag.WriteWholeMirrorStage(
-                            document.Editor,
-                            "candidate",
-                            oldOwner.Handle,
-                            newOwners.Length == 1 ? newOwners[0].Handle : "-",
-                            preGenerated.Count,
-                            generatedClones,
-                            preStructural.Count,
-                            structuralClones,
-                            preAttached.Count,
-                            attachedClones,
-                            "miss",
-                            "complete-assembly-predicate-false");
-                    }
-                }
-#endif
-
-                foreach (var oldOwner in fullSetOldOwners)
-                {
-                    var newCandidates = newOwners
-                        .Where(candidate => RoofWholeRoofCopyIdentityRules.DefinitionsEquivalent(
-                            candidate.Definition,
-                            oldOwner.Definition))
-                        .ToArray();
-                    var pairing = RoofWholeRoofCopyIdentityRules.ClassifyPairing(newCandidates.Length);
-                    if (pairing == RoofWholeRoofCopyIdentityRules.RoofWholeRoofCopyPairing.None)
-                    {
-                        // Complete timber set copied but its source Polyline was not
-                        // (or its definition is unreadable / rewritten before pairing):
-                        // not a whole-roof copy — the ordinary per-rafter path keeps its
-                        // existing semantics.
-#if DEBUG
-                        if (isMirror)
-                        {
-                            var preGenerated = RoofGeneratedCopyPreCommandSnapshotService
-                                .GetPreCommandGeneratedHandlesByOwner(oldOwner.Handle);
-                            var preStructural = RoofGeneratedCopyPreCommandSnapshotService
-                                .GetPreCommandStructuralGeneratedHandlesByOwner(oldOwner.Handle);
-                            var preAttached = RoofGeneratedCopyPreCommandSnapshotService
-                                .GetPreCommandAttachedManualHandlesByOwner(oldOwner.Handle);
-                            RoofGeneratedCopyLifecycleDiag.WriteWholeMirrorStage(
-                                document.Editor,
-                                "predicate",
-                                oldOwner.Handle,
-                                newOwners.Length == 1 ? newOwners[0].Handle : "-",
-                                preGenerated.Count,
-                                appendedGenerated.Count(clone => string.Equals(
-                                    clone.OwnerReference,
-                                    oldOwner.Handle,
-                                    StringComparison.OrdinalIgnoreCase)),
-                                preStructural.Count,
-                                appendedStructural.Count(clone => string.Equals(
-                                    clone.Data.RoofOwnerReference,
-                                    oldOwner.Handle,
-                                    StringComparison.OrdinalIgnoreCase)),
-                                preAttached.Count,
-                                appendedAttached.Count(clone => string.Equals(
-                                    clone.Data.RoofOwnerReference,
-                                    oldOwner.Handle,
-                                    StringComparison.OrdinalIgnoreCase)),
-                                "miss",
-                                "definition-equivalent-false");
-                        }
-#endif
-                        continue;
-                    }
-
-                    if (pairing == RoofWholeRoofCopyIdentityRules.RoofWholeRoofCopyPairing.Ambiguous)
-                    {
-                        // Two new owners match this old owner's definition: pairing is
-                        // not deterministic. Fail closed: consume the clones so they can
-                        // never be detached under the old owner, but do not rebind.
-                        var ambiguousGenerated = appendedGenerated
-                            .Where(clone => string.Equals(
-                                clone.OwnerReference,
-                                oldOwner.Handle,
-                                StringComparison.OrdinalIgnoreCase))
-                            .ToArray();
-                        var ambiguousAttached = appendedAttached
-                            .Where(clone => string.Equals(
-                                clone.Data.RoofOwnerReference,
-                                oldOwner.Handle,
-                                StringComparison.OrdinalIgnoreCase))
-                            .ToArray();
-                        var ambiguousStructural = appendedStructural
-                            .Where(clone => string.Equals(
-                                clone.Data.RoofOwnerReference,
-                                oldOwner.Handle,
-                                StringComparison.OrdinalIgnoreCase))
-                            .ToArray();
-                        foreach (var clone in ambiguousGenerated)
-                        {
-                            consumedHandles.Add(clone.Handle);
-                        }
-
-                        foreach (var clone in ambiguousStructural)
-                        {
-                            consumedHandles.Add(clone.Handle);
-                        }
-
-                        foreach (var clone in ambiguousAttached)
-                        {
-                            consumedHandles.Add(clone.Handle);
-                        }
-
-#if DEBUG
-                        RoofGeneratedCopyLifecycleDiag.WriteWholeCopyDetect(
-                            document.Editor,
-                            oldOwner.Handle,
-                            "-",
-                            ambiguousGenerated.Length,
-                            ambiguousStructural.Length,
-                            ambiguousAttached.Length,
-                            "ambiguous",
-                            isMirror);
-#endif
-                        continue;
-                    }
-
-                    var newOwner = newCandidates[0];
-                    if (pairs.Any(pair => string.Equals(
-                            pair.NewOwner,
-                            newOwner.Handle,
-                            StringComparison.OrdinalIgnoreCase)))
-                    {
-                        // Two distinct full-set old owners resolve to the same new
-                        // Polyline (identical twin definitions): fail closed for the
-                        // new owner; the first pair keeps the rebind.
-#if DEBUG
-                        RoofGeneratedCopyLifecycleDiag.WriteWholeCopyDetect(
-                            document.Editor,
-                            oldOwner.Handle,
-                            newOwner.Handle,
-                            0,
-                            0,
-                            0,
-                            "ambiguous",
-                            isMirror);
-#endif
-                        continue;
-                    }
-
-                    var generatedClones = appendedGenerated
-                        .Where(clone => string.Equals(
-                            clone.OwnerReference,
-                            oldOwner.Handle,
-                            StringComparison.OrdinalIgnoreCase))
-                        .ToArray();
-                    var attachedClones = appendedAttached
-                        .Where(clone => string.Equals(
-                            clone.Data.RoofOwnerReference,
-                            oldOwner.Handle,
-                            StringComparison.OrdinalIgnoreCase))
-                        .ToArray();
-                    var structuralClones = appendedStructural
-                        .Where(clone => string.Equals(
-                            clone.Data.RoofOwnerReference,
-                            oldOwner.Handle,
-                            StringComparison.OrdinalIgnoreCase))
-                        .ToArray();
-                    pairs.Add(new WholeRoofPair(
-                        oldOwner.Handle,
-                        newOwner.Handle,
-                        newOwner,
-                        generatedClones,
-                        structuralClones,
-                        attachedClones));
-                    foreach (var clone in generatedClones)
-                    {
-                        consumedHandles.Add(clone.Handle);
-                    }
-
-                    foreach (var clone in structuralClones)
-                    {
-                        consumedHandles.Add(clone.Handle);
-                    }
-
-                    foreach (var clone in attachedClones)
-                    {
-                        consumedHandles.Add(clone.Handle);
-                    }
+                    var candidate = newOwners.SingleOrDefault(owner => owner.PolylineId == native.OwnerId);
+                    if (candidate is null) continue;
+                    var destinations = native.Mapping.Values.ToHashSet();
+                    var generated = appendedGenerated.Where(clone => destinations.Contains(clone.Id)).ToArray();
+                    var structural = appendedStructural.Where(clone => destinations.Contains(clone.Id)).ToArray();
+                    var attached = appendedAttached.Where(clone => destinations.Contains(clone.Id)).ToArray();
+                    pairs.Add(new WholeRoofPair(native.Source.Handle, candidate.Handle, candidate,
+                        generated, structural, attached, native.Disposable));
+                    foreach (var handle in generated.Select(clone => clone.Handle)
+                                 .Concat(structural.Select(clone => clone.Handle))
+                                 .Concat(attached.Select(clone => clone.Handle))) consumedHandles.Add(handle);
                 }
 
                 if (consumedHandles.Count > 0)
@@ -416,6 +189,7 @@ internal static class RoofWholeRoofCopyRebindService
                         // the consumed clones keep their inherited metadata and are
                         // excluded from the per-rafter services.
 #if DEBUG
+                        document.Editor.WriteMessage($"\nROOF_NATIVE_CLONE_REBIND command={globalCommandName} oldOwner={pair.OldOwner} newOwner={pair.NewOwner} committed=false rollback=true stage={stage}");
                         RoofGeneratedCopyLifecycleDiag.WriteWholeCopyRebind(
                             document.Editor,
                             pair.OldOwner,
@@ -449,6 +223,14 @@ internal static class RoofWholeRoofCopyRebindService
                 transaction.Commit();
                 RoofGeneratedCopyPreCommandSnapshotService.MarkWholeRoofCopyRebindSucceeded(
                     pairs.Select(pair => pair.NewOwner));
+#if DEBUG
+                foreach (var pair in pairs)
+                {
+                    document.Editor.WriteMessage($"\nROOF_NATIVE_CLONE_REBIND command={globalCommandName} oldOwner={pair.OldOwner} newOwner={pair.NewOwner} disposableClones={pair.NativeDisposableClones.Count} committed=true");
+                    RoofPhysical3DHostDiagnostics.OwnerCounts(document, pair.NewOwner,
+                        "native-clone-rebind-committed:" + globalCommandName);
+                }
+#endif
             }
         }
         catch (System.Exception)
@@ -553,12 +335,13 @@ internal static class RoofWholeRoofCopyRebindService
             }
         }
 
-        if (cloneIds.Length > 0 || structuralCloneIds.Length > 0)
+        // Every accepted full roof gets one canonical display and physical set,
+        // including a roof without generated timber.
         {
-            // Stale cloned display lines (inherited old-owner reference, not in the
-            // pre-command display set) are removed so the old owner's display cannot be
-            // duplicated and the new owner's display rebuilds cleanly.
-            EraseStaleDisplayClones(document, transaction, pair.OldOwner);
+            // Consume only the mapped disposable display/physical clone IDs before
+            // creating the new owner's canonical sets.
+            stage = "native-generated-clone-cleanup";
+            if (!TryEraseNativeDisposableClones(database, transaction, pair)) return false;
 
             // Stale cloned annotations bound to the old owner's timber handles: removed
             // by command-lifecycle identity (appended during THIS command), never by
@@ -580,9 +363,8 @@ internal static class RoofWholeRoofCopyRebindService
                 appendedAnnotationIds,
                 pair.OldOwner);
 
-            // Transient generated clones are erased (detach-before-erase is not
-            // required: native COPY does not clone groups, so the clones are not group
-            // members).
+            // Erase this pair's mapped transient generated timber clones. Final group
+            // synchronization uses the new canonical assembly.
             EraseGeneratedClones(document, transaction, cloneIds);
             EraseGeneratedClones(document, transaction, structuralCloneIds);
 
@@ -619,7 +401,24 @@ internal static class RoofWholeRoofCopyRebindService
             // erased and the new owner is incomplete until Rebuild. Defer intermediate
             // group sync inside Materialize*/structural — one final TrySyncForOwner
             // runs after the complete new assembly exists (below).
-            var edges = RoofWireframe.Create(newOwner.Geometry, sourceElevation);
+            var elevationForDisplay = (RoofAbsoluteElevationState?)null;
+            if (newOwner.Geometry is HipRoofGeometry hipForDisplay)
+            {
+                var copiedValidation = RoofFootprintValidator.Validate(
+                    RoofPolylineExtractor.Extract(ownerPolyline));
+                if (copiedValidation.IsValid && copiedValidation.Footprint is not null)
+                {
+                    elevationForDisplay = RoofPhysical3DLifecycleService.ResolveElevationState(
+                        ownerPolyline,
+                        copiedValidation.Footprint,
+                        hipForDisplay);
+                }
+            }
+
+            var edges = RoofWireframe.CreateOwnedHipOrLegacy(
+                newOwner.Geometry,
+                sourceElevation,
+                elevationForDisplay?.Physical3DEnabled == true);
             var signature = RoofWireframe.BuildGenerationSignature(edges);
             if (!RoofDisplayService.Rebuild(
                     database,
@@ -631,6 +430,33 @@ internal static class RoofWholeRoofCopyRebindService
             {
                 stage = "display";
                 return false;
+            }
+
+            if (newOwner.Geometry is HipRoofGeometry copiedHip)
+            {
+                var copiedFootprint = RoofFootprintValidator.Validate(
+                    RoofPolylineExtractor.Extract(ownerPolyline));
+                if (copiedFootprint.IsValid && copiedFootprint.Footprint is not null)
+                {
+                    var elevation = elevationForDisplay ??
+                        RoofPhysical3DLifecycleService.ResolveElevationState(
+                            ownerPolyline,
+                            copiedFootprint.Footprint,
+                            copiedHip);
+                    var physical = RoofPhysical3DLifecycleService.ReconcileOwnerInTransaction(
+                        database,
+                        transaction,
+                        newOwner.PolylineId,
+                        ownerPolyline,
+                        copiedFootprint.Footprint,
+                        copiedHip,
+                        elevation);
+                    if (!physical.IsSuccess)
+                    {
+                        stage = "physical3d";
+                        return false;
+                    }
+                }
             }
 
             if (layout is not null)
@@ -1123,6 +949,25 @@ internal static class RoofWholeRoofCopyRebindService
         }
 
         return clones;
+    }
+
+    private static bool TryEraseNativeDisposableClones(Database database, Transaction transaction, WholeRoofPair pair)
+    {
+        foreach (var id in pair.NativeDisposableClones)
+        {
+            // IDs were captured from exact IsCloned mapping of pre-command owned
+            // generated sources. Never discover erase candidates by owner or shape.
+            if (id == pair.NewOwnerCandidate.PolylineId || id.IsNull || id.IsErased ||
+                !AutoCadObjectIdAccess.TryGetObject<Entity>(transaction, id, OpenMode.ForWrite,
+                    out var entity, database) || entity is null) return false;
+            var physical = RoofPhysical3DGeneratedStore.Read(entity).Data;
+            var display = RoofDisplayStore.Read(entity);
+            var reference = physical?.RoofOwnerReference ?? display.OwnerReference;
+            if (!string.Equals(reference, pair.OldOwner, StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(reference, pair.NewOwner, StringComparison.OrdinalIgnoreCase)) return false;
+            entity.Erase();
+        }
+        return true;
     }
 
     private static void EraseGeneratedClones(
@@ -1648,53 +1493,4 @@ internal static class RoofWholeRoofCopyRebindService
         return count;
     }
 
-    private static void EraseStaleDisplayClones(
-        Document document,
-        Transaction transaction,
-        string oldOwner)
-    {
-        var preDisplayHandles = new HashSet<string>(
-            RoofGeneratedCopyPreCommandSnapshotService.GetPreCommandDisplayHandlesByOwner(oldOwner),
-            StringComparer.OrdinalIgnoreCase);
-        var blockTable = (BlockTable)transaction.GetObject(document.Database.BlockTableId, OpenMode.ForRead);
-        var modelSpace = (BlockTableRecord)transaction.GetObject(
-            blockTable[BlockTableRecord.ModelSpace],
-            OpenMode.ForRead);
-        foreach (ObjectId id in modelSpace)
-        {
-            if (id.IsErased ||
-                !AutoCadObjectIdAccess.TryGetObject<Line>(
-                    transaction,
-                    id,
-                    OpenMode.ForRead,
-                    out var line,
-                    document.Database) ||
-                line is null)
-            {
-                continue;
-            }
-
-            var display = RoofDisplayStore.Read(line);
-            if (display.Data is null ||
-                !string.Equals(
-                    display.Data.OwnerReference,
-                    oldOwner,
-                    StringComparison.OrdinalIgnoreCase) ||
-                preDisplayHandles.Contains(line.Handle.ToString()))
-            {
-                continue;
-            }
-
-            if (AutoCadObjectIdAccess.TryGetObject<Entity>(
-                    transaction,
-                    id,
-                    OpenMode.ForWrite,
-                    out var writable,
-                    document.Database) &&
-                writable is not null)
-            {
-                writable.Erase();
-            }
-        }
-    }
 }

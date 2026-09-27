@@ -70,7 +70,9 @@ internal static class RoofGroupGripResizeAdoptionService
         }
 
         var elevation = RoofPolylineExtractor.GetSourceElevation(owner);
-        var expectedEdges = RoofWireframe.Create(classification.Geometry, elevation);
+        var expectedEdges = RoofPhysical3DLifecycleService.CreateOwnedDisplayEdges(
+            owner,
+            classification.Geometry);
         var expected = expectedEdges.ToDictionary(edge => edge.Role, edge => edge.Segment);
 
         RoofGroupGripGeometrySnapshotService.FreezeOwner(ownerId);

@@ -68,9 +68,11 @@ public sealed class RoofGeneratedRafterCopyRehydrationSourceContractTests
     }
 
     [Fact]
-    public void NoDeepCloneArchitectureAndSchemasUnchanged()
+    public void MemberRehydrationHasNoDeepCloneHookAndSchemasUnchanged()
     {
-        var source = LiveGeometry + Rehydration + Association + GeneratedStore + CommandRules;
+        // Whole-roof provenance now uses a read-only IdMapping observer in LiveGeometry.
+        var source = Rehydration + Association + GeneratedStore + CommandRules;
+        Assert.Contains("NativeRoofCloneMapping", LiveGeometry);
         Assert.DoesNotContain("BeginDeepClone", source);
         Assert.DoesNotContain("EndDeepClone", source);
         Assert.DoesNotContain("IdMapping", source);

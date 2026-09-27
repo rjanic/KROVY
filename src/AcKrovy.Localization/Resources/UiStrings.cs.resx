@@ -732,6 +732,8 @@ Uložený typ střechy není podporován.</value></data>
 Obrys střechy se od uložení změnil. Uložená definice nebyla použita.</value></data>
   <data name="Command_Roof_UnsupportedStretchNotificationTitle" xml:space="preserve"><value>Tvar střechy už není podporovaný.</value></data>
   <data name="Command_Roof_UnsupportedStretchNotificationBody" xml:space="preserve"><value>Vraťte poslední změnu příkazem Zpět (U).</value></data>
+  <data name="Command_Roof_Physical3DSuspendedNotificationTitle" xml:space="preserve"><value>Fyzická 3D střecha je pozastavena</value></data>
+  <data name="Command_Roof_Physical3DSuspendedNotificationBody" xml:space="preserve"><value>Půdorys už není podporovaný obdélník. 2D půdorys byl aktualizován a 3D se obnoví automaticky, až bude obrys opět obdélníkový.</value></data>
   <data name="Command_Roof_UnsupportedStretchRecoveredNotificationTitle" xml:space="preserve"><value>Nepodporovaná změna střechy byla vrácena.</value></data>
   <data name="Command_Roof_UnsupportedStretchRecoveredNotificationBody" xml:space="preserve"><value>Obrys střechy byl obnoven na poslední podporovaný tvar.</value></data>
   <data name="Command_Roof_DisplayTamperNotificationTitle" xml:space="preserve"><value>Vyberte základní obrys střechy</value></data>
@@ -933,6 +935,18 @@ Střecha byla upravena.</value></data>
   <data name="RoofGeometryWindow_ModeMonopitchSlope" xml:space="preserve"><value>Zadat sklon α</value></data>
   <data name="RoofGeometryWindow_ModeMonopitchHeight" xml:space="preserve"><value>Zadat převýšení okapů ΔH</value></data>
   <data name="RoofGeometryWindow_MonopitchSlope" xml:space="preserve"><value>Sklon α (°)</value></data>
+  <data name="RoofHip_ElevationSection" xml:space="preserve"><value>Relativní výška střechy</value></data>
+  <data name="RoofHip_ModeEaveElevation" xml:space="preserve"><value>Zadat relativní výšku okapu</value></data>
+  <data name="RoofHip_ModeRidgeElevation" xml:space="preserve"><value>Zadat relativní výšku hřebene</value></data>
+  <data name="RoofHip_EnteredEaveElevation" xml:space="preserve"><value>Relativní výška okapu (m)</value></data>
+  <data name="RoofHip_EnteredRidgeElevation" xml:space="preserve"><value>Relativní výška hřebene (m)</value></data>
+  <data name="RoofHip_CalculatedEaveElevation" xml:space="preserve"><value>Vypočítaná výška okapu</value></data>
+  <data name="RoofHip_CalculatedRidgeElevation" xml:space="preserve"><value>Vypočítaná výška hřebene</value></data>
+  <data name="RoofHip_Physical3DEnabled" xml:space="preserve"><value>Generovat fyzickou 3D střechu</value></data>
+  <data name="RoofHip_DisplayVisibility" xml:space="preserve"><value>Zobrazení</value></data>
+  <data name="RoofHip_DisplayBoth" xml:space="preserve"><value>Obojí</value></data>
+  <data name="RoofHip_DisplayPlan2D" xml:space="preserve"><value>2D půdorys</value></data>
+  <data name="RoofHip_DisplayModel3D" xml:space="preserve"><value>3D model</value></data>
   <data name="RoofGeometryWindow_MonopitchHeightDifference" xml:space="preserve"><value>Převýšení okapů ΔH (mm)</value></data>
   <data name="RoofGeometryWindow_MirrorMonopitch" xml:space="preserve"><value>Zrcadlit pultovou střechu (NÍZKÝ ↔ VYSOKÝ)</value></data>
   <data name="RoofGeometryWindow_SlopeDirection" xml:space="preserve"><value>Směr spádu VYSOKÝ → NÍZKÝ</value></data>
@@ -1173,4 +1187,6 @@ Upravte její polohu nebo zvolte vhodný sklon střechy.</value></data>
   <data name="Command_RoofEdit_PurlinLayoutIncompatible" xml:space="preserve"><value>
 Uložení vaznic není kompatibilní s novou geometrií střechy.
 Upravte vaznice nebo zvolte vhodnou geometrii.</value></data>
+  <data name="Command_RoofSelectSource_Prompt" xml:space="preserve"><value>
+Vyberte obrys nebo část střechy pro označení zdrojového obrysu: </value></data>
 </root>

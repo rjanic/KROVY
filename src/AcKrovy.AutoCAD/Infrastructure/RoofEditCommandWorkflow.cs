@@ -249,10 +249,25 @@ internal static class RoofEditCommandWorkflow
         double sourceElevation,
         HipRoofGeometry restoredGeometry)
     {
+        RoofAbsoluteElevationState? seedElevation = null;
+        using (var seedTransaction = document.Database.TransactionManager.StartTransaction())
+        {
+            if (seedTransaction.GetObject(ownerId, OpenMode.ForRead) is Polyline owner)
+            {
+                seedElevation = RoofPhysical3DLifecycleService.ResolveElevationState(
+                    owner,
+                    footprint,
+                    restoredGeometry);
+            }
+
+            seedTransaction.Commit();
+        }
+
         var viewModel = new HipRoofPreviewViewModel(
             footprint,
             restoredGeometry.PrimarySlopeDegrees,
-            HipRoofDialogMode.Edit);
+            HipRoofDialogMode.Edit,
+            seedElevation);
         var dialog = new HipRoofPreviewWindow(
             viewModel,
             SettingsUiPreferencesStore.Load().Theme);
@@ -298,12 +313,14 @@ internal static class RoofEditCommandWorkflow
                             continue;
                         }
 
+                        _ = viewModel.TryGetElevationState(out var elevationState);
                         var outcome = TryApply(
                             document,
                             ownerId,
                             ownerReference,
                             restoredGeometry,
                             geometry,
+                            elevationState,
                             out var failureMessageKey);
                         if (outcome is null &&
                             IsRecoverablePurlinEditValidation(failureMessageKey))
@@ -361,6 +378,23 @@ internal static class RoofEditCommandWorkflow
         string ownerReference,
         IRoofGeometry selectionGeometry,
         IRoofGeometry newGeometry,
+        out string failureMessageKey) =>
+        TryApply(
+            document,
+            ownerId,
+            ownerReference,
+            selectionGeometry,
+            newGeometry,
+            elevationState: null,
+            out failureMessageKey);
+
+    private static RoofGeneratedRafterSetService.ReplacementOutcome? TryApply(
+        Document document,
+        ObjectId ownerId,
+        string ownerReference,
+        IRoofGeometry selectionGeometry,
+        IRoofGeometry newGeometry,
+        RoofAbsoluteElevationState? elevationState,
         out string failureMessageKey)
     {
         failureMessageKey = "Command_Roof_PersistFailed";
@@ -470,7 +504,18 @@ internal static class RoofEditCommandWorkflow
             RoofDefinitionStore.Write(owner, transaction, data);
 
             var sourceElevation = RoofPolylineExtractor.GetSourceElevation(owner);
-            var edges = RoofWireframe.Create(restored.Geometry, sourceElevation);
+            var physical3DEnabled = elevationState?.Physical3DEnabled == true ||
+                (elevationState is null &&
+                 restored.Geometry is HipRoofGeometry hipForDisplayProbe &&
+                 current.Footprint is not null &&
+                 RoofPhysical3DLifecycleService.ResolveElevationState(
+                     owner,
+                     current.Footprint,
+                     hipForDisplayProbe).Physical3DEnabled);
+            var edges = RoofWireframe.CreateOwnedHipOrLegacy(
+                restored.Geometry,
+                sourceElevation,
+                physical3DEnabled);
             var signature = RoofWireframe.BuildGenerationSignature(edges);
             // Defer EnsureGroup until the final TrySyncForOwner so an unexpected
             // mid-edit failure does not leave AutoCAD GROUP membership dirty after
@@ -486,6 +531,29 @@ internal static class RoofEditCommandWorkflow
             {
                 failureMessageKey = "Command_Roof_DisplayFailed";
                 return null;
+            }
+
+            if (restored.Geometry is HipRoofGeometry restoredHip &&
+                current.Footprint is not null)
+            {
+                var elevation = elevationState ??
+                    RoofPhysical3DLifecycleService.ResolveElevationState(
+                        owner,
+                        current.Footprint,
+                        restoredHip);
+                var physical = RoofPhysical3DLifecycleService.ReconcileOwnerInTransaction(
+                    document.Database,
+                    transaction,
+                    owner.ObjectId,
+                    owner,
+                    current.Footprint,
+                    restoredHip,
+                    elevation);
+                if (!physical.IsSuccess)
+                {
+                    failureMessageKey = physical.FailureKey ?? "Command_Roof_PersistFailed";
+                    return null;
+                }
             }
 
             var outcome = RoofGeneratedRafterSetService.ReplacementOutcome.NotApplicable;
@@ -517,7 +585,7 @@ internal static class RoofEditCommandWorkflow
 
             if (outcome == RoofGeneratedRafterSetService.ReplacementOutcome.Replaced)
             {
-                var footprintVertices = current.Footprint.Vertices;
+                var footprintVertices = current.Footprint!.Vertices;
                 _ = RoofAttachedManualLifecycleService.ReplayAnchoredChildrenForOwner(
                     document,
                     transaction,

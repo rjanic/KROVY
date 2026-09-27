@@ -33,7 +33,8 @@ public sealed class RoofGeneratedCopySplitStretchSourceContractTests
         Assert.Contains("ROOF_GENERATED_COPY", Diag);
         Assert.Contains("ROOF_COPY_TRACE", Read("RoofGeneratedCopyLifecycleDiag.cs"));
         Assert.Contains("appendedTimberIds", Live);
-        Assert.DoesNotContain("BeginDeepClone", Rehydration + Live + OrphanRules);
+        Assert.DoesNotContain("BeginDeepClone", Rehydration + OrphanRules);
+        Assert.Contains("NativeRoofCloneMapping", Live);
         Assert.DoesNotContain("AK_ROOF_ATTACH", Manual + Rehydration);
         Assert.DoesNotContain("AK_ROOF_DETACH", Manual + Rehydration);
     }

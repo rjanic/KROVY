@@ -1103,12 +1103,16 @@ internal static class RoofGeneratedRafterCopyOwnershipRehydrationService
                 .Where(group => group.Count() > 1)
                 .Select(group => group.Key)
                 .ToArray();
+            // This roof may intentionally have no generated rafters. The generic
+            // HasUniqueMemberStations API rejects empty input; this diagnostic's
+            // expected empty assembly is valid without weakening non-empty checks.
+            var invariantUnique = unique || (expectedKeys.Count == 0 && actualKeys.Count == 0);
             RoofGeneratedCopyLifecycleDiag.WriteCopyInvariant(
                 document.Editor,
                 owner.OwnerReference,
                 expectedKeys.Count,
                 actualKeys.Count,
-                unique,
+                invariantUnique,
                 string.Join("|", RoofAttachedManualTimberStore.FindByOwner(
                         document.Database,
                         transaction,
@@ -1119,7 +1123,7 @@ internal static class RoofGeneratedRafterCopyOwnershipRehydrationService
                 wholeCopyRebind,
                 wholeCopyRebindSucceeded &&
                 expectedKeys.Count == actualKeys.Count &&
-                unique &&
+                invariantUnique &&
                 missing.Length == 0 &&
                 duplicate.Length == 0
                     ? "ok"

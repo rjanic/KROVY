@@ -34,16 +34,41 @@ public static class RoofWireframe
 
     public static IReadOnlyList<RoofDisplayEdge> Create(
         IRoofGeometry geometry,
-        double sourceElevation) => geometry switch
+        double sourceElevation) =>
+        Create(geometry, sourceElevation, RoofDisplayProjectionKind.SpatialLocalZ);
+
+    public static IReadOnlyList<RoofDisplayEdge> Create(
+        IRoofGeometry geometry,
+        double sourceElevation,
+        RoofDisplayProjectionKind projection) => geometry switch
     {
         SimpleGableRoofGeometry gable =>
             SimpleGableRoofWireframe.Create(gable, sourceElevation),
         MonopitchRoofGeometry monopitch =>
             MonopitchRoofWireframe.Create(monopitch, sourceElevation),
         HipRoofGeometry hip =>
-            HipRoofWireframe.Create(hip, sourceElevation),
+            HipRoofWireframe.Create(hip, sourceElevation, projection),
         _ => throw new ArgumentException("Unsupported roof geometry.", nameof(geometry)),
     };
+
+    /// <summary>
+    /// Owned Hip display edges: flattened drawing-plane projection when physical 3D is
+    /// enabled; otherwise legacy spatial local-Z wireframe.
+    /// </summary>
+    public static IReadOnlyList<RoofDisplayEdge> CreateOwnedHipOrLegacy(
+        IRoofGeometry geometry,
+        double sourceElevation,
+        bool physical3DEnabled)
+    {
+        var projection = geometry is HipRoofGeometry && physical3DEnabled
+            ? RoofDisplayProjectionKind.FlattenedDrawingPlane
+            : RoofDisplayProjectionKind.SpatialLocalZ;
+        var edges = Create(geometry, sourceElevation, projection);
+        // Physical3D plan: source polyline is the sole outer eave/perimeter.
+        return physical3DEnabled && geometry is HipRoofGeometry
+            ? RoofPhysical3DPlanDisplayRules.FilterOwnedPhysical3DPlanEdges(edges)
+            : edges;
+    }
 
     public static bool TryGetTopology(RoofKind kind, out RoofWireframeRoleTopology topology)
     {

@@ -71,8 +71,9 @@ public sealed class RoofGroupGripGeometrySnapshotSourceContractTests
         Assert.Contains("timing-case-C-transient-only", Adoption);
         Assert.Contains("HasMeaningfulDeltaFromExpected", Adoption + Rules);
         Assert.DoesNotContain("SendStringToExecute", Adoption + Snapshot + Live);
-        Assert.DoesNotContain("BeginDeepClone", Adoption + Snapshot + Live);
-        Assert.DoesNotContain("IdMapping", Adoption + Snapshot + Live);
+        Assert.DoesNotContain("BeginDeepClone", Adoption + Snapshot);
+        Assert.DoesNotContain("IdMapping", Adoption + Snapshot);
+        Assert.Contains("NativeRoofCloneMapping", Live);
     }
 
     [Fact]

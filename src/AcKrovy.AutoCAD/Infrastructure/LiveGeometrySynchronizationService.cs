@@ -82,6 +82,7 @@ internal static class LiveGeometrySynchronizationService
     private sealed class DocumentTracker : IDisposable
     {
         private readonly Document _document;
+        private readonly RoofNativeCloneSnapshot _nativeRoofClones = new();
         private readonly LiveGeometryRefreshCoordinator<ObjectId> _modifiedIds = new();
         private readonly LiveGeometryRefreshCoordinator<ObjectId> _appendedTimberIds = new();
         private readonly LiveGeometryRefreshCoordinator<ObjectId> _appendedRoofOwnerIds = new();
@@ -105,6 +106,7 @@ internal static class LiveGeometrySynchronizationService
         {
             _document = document;
             _document.Database.ObjectAppended += ObjectAppended;
+            _document.Database.BeginDeepCloneTranslation += NativeRoofCloneMapping;
             _document.Database.ObjectModified += ObjectModified;
             _document.Database.ObjectErased += ObjectErased;
             _document.CommandWillStart += CommandWillStart;
@@ -149,6 +151,7 @@ internal static class LiveGeometrySynchronizationService
 
             _isDisposed = true;
             _document.Database.ObjectAppended -= ObjectAppended;
+            _document.Database.BeginDeepCloneTranslation -= NativeRoofCloneMapping;
             _document.Database.ObjectModified -= ObjectModified;
             _document.Database.ObjectErased -= ObjectErased;
             _document.CommandWillStart -= CommandWillStart;
@@ -350,8 +353,19 @@ internal static class LiveGeometrySynchronizationService
             _erasedSourceHandles.TryAdd(handle);
         }
 
+        private void NativeRoofCloneMapping(object? sender, IdMappingEventArgs e)
+        {
+            if (_ignoreCurrentCommand || LiveGeometryCommandRules.IsUndoRedoCommand(_currentGlobalCommandName) ||
+                !(LiveGeometryCommandRules.IsSameDwgCopyOwnershipCommand(_currentGlobalCommandName) ||
+                  RoofGeneratedMemberEditCommandRules.IsMirrorCommand(_currentGlobalCommandName))) return;
+            // Copy IDs only. Metadata was captured before the native command; no
+            // writes or nested transaction in the native translation callback.
+            _nativeRoofClones.Observe(e.IdMapping);
+        }
+
         private void CommandWillStart(object? sender, CommandEventArgs e)
         {
+            _nativeRoofClones.Clear();
             var isUndoRedo = LiveGeometryCommandRules.IsUndoRedoCommand(e.GlobalCommandName);
             _ignoreCurrentCommand = IsAcKrovyCommand(e.GlobalCommandName) || isUndoRedo;
             _currentGlobalCommandName = e.GlobalCommandName;
@@ -400,6 +414,8 @@ internal static class LiveGeometrySynchronizationService
                  RoofGeneratedMemberEditCommandRules.IsMirrorCommand(e.GlobalCommandName)))
             {
                 RoofGeneratedCopyPreCommandSnapshotService.CaptureForCopy(_document);
+                try { _nativeRoofClones.Capture(_document.Database); }
+                catch (System.Exception) { _nativeRoofClones.Clear(); }
             }
 
             if (!isUndoRedo &&
@@ -538,6 +554,10 @@ internal static class LiveGeometrySynchronizationService
                 RoofUnsupportedStretchRecoverySnapshotService.Clear("CommandEnded", e.GlobalCommandName);
                 RoofDisplayErasePreCommandMapService.Clear("CommandEnded");
                 _currentGlobalCommandName = null;
+#if DEBUG
+                if (!isUndoRedo && !shouldIgnore)
+                    RoofPhysical3DHostDiagnostics.MaintenanceComplete(_document, e.GlobalCommandName);
+#endif
             }
         }
 
@@ -625,6 +645,7 @@ internal static class LiveGeometrySynchronizationService
 
         private void ClearPendingLiveGeometryState()
         {
+            _nativeRoofClones.Clear();
             _modifiedIds.Clear();
             _appendedTimberIds.Clear();
             _appendedRoofOwnerIds.Clear();
@@ -781,15 +802,11 @@ internal static class LiveGeometrySynchronizationService
             var nativeMirror =
                 RoofGeneratedMemberEditCommandRules.IsMirrorCommand(globalCommandName);
 
-            // HOST-proven MIRROR order: LiveResize SupportedResize on the NEW mirrored
-            // Hip owner runs UpdateGeometry and rewrites FootprintSignature /
-            // RigidFootprint / ridge axis BEFORE whole-roof pairing. That makes
-            // DefinitionsEquivalent fail silently (no DETECT) and all ordinary clones
-            // fall through to AttachedManual under the old owner. Run whole-roof rebind
-            // FIRST while the cloned RoofDefinition XData is still verbatim — the same
-            // order is safe for COPY (translation-invariant signatures already matched).
+            // Consume the exact native full-roof clones before resize or per-member
+            // ownership maintenance can reinterpret their inherited owner metadata.
             if (nativeCopy || nativeMirror)
             {
+                var nativeRoofClones = _nativeRoofClones.GetCompleteClones();
                 using (_modifiedIds.Suppress())
                 using (_appendedTimberIds.Suppress())
                 using (_appendedRoofOwnerIds.Suppress())
@@ -803,8 +820,15 @@ internal static class LiveGeometrySynchronizationService
                         _document,
                         globalCommandName,
                         appendedTimberIds,
-                        appendedAnnotationIds);
+                        appendedAnnotationIds,
+                        nativeRoofClones);
+                    _nativeRoofClones.Clear();
                 }
+                // This set was handled atomically by whole-roof rebind. A rollback
+                // must not be followed by independent resize/tamper writes for its
+                // native clones; success must not regenerate it a second time.
+                var nativeHandledIds = nativeRoofClones.SelectMany(clone => clone.Mapping.Values).ToHashSet();
+                ids = ids.Where(id => !nativeHandledIds.Contains(id)).ToArray();
             }
 
             // Suppress ObjectModified while SOURCE resize rebuilds display / regenerates
@@ -1071,6 +1095,14 @@ internal static class LiveGeometrySynchronizationService
                             document.Database,
                             transaction,
                             erasedSourceHandles);
+
+                        foreach (var erasedOwnerHandle in erasedSourceHandles)
+                        {
+                            RoofPhysical3DLifecycleService.CleanupStillErasedSourceInTransaction(
+                                document.Database,
+                                transaction,
+                                erasedOwnerHandle);
+                        }
 
                         var defaultProfile = TimberElementDefaultProfileStore.Load();
                         var roundingStepMm = defaultProfile.GetCuttingLengthRoundingStepMm();

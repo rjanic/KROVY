@@ -732,6 +732,8 @@ Le type de toit enregistré n'est pas pris en charge.</value></data>
 Le contour du toit a changé après l'enregistrement. La définition enregistrée n'a pas été utilisée.</value></data>
   <data name="Command_Roof_UnsupportedStretchNotificationTitle" xml:space="preserve"><value>La forme du toit n'est plus prise en charge.</value></data>
   <data name="Command_Roof_UnsupportedStretchNotificationBody" xml:space="preserve"><value>Annulez la dernière modification avec Annuler (U).</value></data>
+  <data name="Command_Roof_Physical3DSuspendedNotificationTitle" xml:space="preserve"><value>Toit 3D physique en pause</value></data>
+  <data name="Command_Roof_Physical3DSuspendedNotificationBody" xml:space="preserve"><value>L'emprise n'est plus un rectangle pris en charge. Le plan 2D a été mis à jour et le 3D sera restauré automatiquement lorsque le contour redeviendra rectangulaire.</value></data>
   <data name="Command_Roof_UnsupportedStretchRecoveredNotificationTitle" xml:space="preserve"><value>Modification de toit non prise en charge restaurée.</value></data>
   <data name="Command_Roof_UnsupportedStretchRecoveredNotificationBody" xml:space="preserve"><value>Le contour du toit a été restauré à la dernière forme prise en charge.</value></data>
   <data name="Command_Roof_DisplayTamperNotificationTitle" xml:space="preserve"><value>Sélectionnez le contour du toit</value></data>
@@ -933,6 +935,18 @@ Toit mis à jour.</value></data>
   <data name="RoofGeometryWindow_ModeMonopitchSlope" xml:space="preserve"><value>Saisir la pente α</value></data>
   <data name="RoofGeometryWindow_ModeMonopitchHeight" xml:space="preserve"><value>Saisir la différence de hauteur des égouts ΔH</value></data>
   <data name="RoofGeometryWindow_MonopitchSlope" xml:space="preserve"><value>Pente α (°)</value></data>
+  <data name="RoofHip_ElevationSection" xml:space="preserve"><value>Élévation relative du toit</value></data>
+  <data name="RoofHip_ModeEaveElevation" xml:space="preserve"><value>Spécifier l'élévation relative de l'égout</value></data>
+  <data name="RoofHip_ModeRidgeElevation" xml:space="preserve"><value>Spécifier l'élévation relative du faîte</value></data>
+  <data name="RoofHip_EnteredEaveElevation" xml:space="preserve"><value>Élévation relative de l'égout (m)</value></data>
+  <data name="RoofHip_EnteredRidgeElevation" xml:space="preserve"><value>Élévation relative du faîte (m)</value></data>
+  <data name="RoofHip_CalculatedEaveElevation" xml:space="preserve"><value>Élévation d'égout calculée</value></data>
+  <data name="RoofHip_CalculatedRidgeElevation" xml:space="preserve"><value>Élévation de faîte calculée</value></data>
+  <data name="RoofHip_Physical3DEnabled" xml:space="preserve"><value>Générer le toit 3D physique</value></data>
+  <data name="RoofHip_DisplayVisibility" xml:space="preserve"><value>Affichage</value></data>
+  <data name="RoofHip_DisplayBoth" xml:space="preserve"><value>Les deux</value></data>
+  <data name="RoofHip_DisplayPlan2D" xml:space="preserve"><value>Plan 2D</value></data>
+  <data name="RoofHip_DisplayModel3D" xml:space="preserve"><value>Modèle 3D</value></data>
   <data name="RoofGeometryWindow_MonopitchHeightDifference" xml:space="preserve"><value>Différence de hauteur des égouts ΔH (mm)</value></data>
   <data name="RoofGeometryWindow_MirrorMonopitch" xml:space="preserve"><value>Inverser la toiture monopente (BAS ↔ HAUT)</value></data>
   <data name="RoofGeometryWindow_SlopeDirection" xml:space="preserve"><value>Sens de pente HAUT → BAS</value></data>
@@ -1173,4 +1187,6 @@ Ajustez sa position ou choisissez une pente de toit adaptée.</value></data>
   <data name="Command_RoofEdit_PurlinLayoutIncompatible" xml:space="preserve"><value>
 La disposition enregistrée des pannes n'est pas compatible avec la nouvelle géométrie du toit.
 Ajustez les pannes ou choisissez une géométrie adaptée.</value></data>
+  <data name="Command_RoofSelectSource_Prompt" xml:space="preserve"><value>
+Sélectionnez un contour ou une partie du toit pour sélectionner le contour source : </value></data>
 </root>

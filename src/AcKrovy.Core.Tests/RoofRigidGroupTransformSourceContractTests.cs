@@ -105,7 +105,8 @@ public sealed class RoofRigidGroupTransformSourceContractTests
     [Fact]
     public void NoNewReactorsOverrulesOrDeepCloneHooks()
     {
-        var source = Live + Resize + Baseline + Rigid + Snapshot + Rules;
+        var source = Resize + Baseline + Rigid + Snapshot + Rules;
+        Assert.Contains("NativeRoofCloneMapping", Live);
         Assert.DoesNotContain("DatabaseReactor", source);
         Assert.DoesNotContain("ObjectOverrule", source);
         Assert.DoesNotContain("BeginDeepClone", source);

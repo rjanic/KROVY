@@ -48,6 +48,7 @@ public static class AcKrovyCommandNames
     public const string RoofToggleLock = "AK_ROOF_TOGGLELOCK";
     public const string RoofResetEdits = "AK_ROOF_RESET_EDITS";
     public const string RoofEdit = "AK_ROOF_EDIT";
+    public const string RoofSelectSource = "AK_ROOF_SELECT_SOURCE";
     public const string ImportDwg = "AK_IMPORT_DWG";
 
     public static IReadOnlyList<string> All { get; } =
@@ -56,7 +57,7 @@ public static class AcKrovyCommandNames
         LabelMissing, LabelSelected, LabelAll, LabelShow, LabelHide, Assign, Rafter, WallPlate, Purlin,
         Post, CollarTie, Brace, TieBeam, Custom, Edit, FlipSlope, Inspect, Report, ReportAll, Recalc,
         Renumber, Diagnostics, SelectSimilar, ExportCsv, Roof, RoofHip, RoofAsymmetric, RoofMonopitch, RoofRafters, RoofPurlins, RoofUnlock, RoofLock,
-        RoofToggleLock, RoofResetEdits, RoofEdit, ImportDwg,
+        RoofToggleLock, RoofResetEdits, RoofEdit, RoofSelectSource, ImportDwg,
     ];
 }
 

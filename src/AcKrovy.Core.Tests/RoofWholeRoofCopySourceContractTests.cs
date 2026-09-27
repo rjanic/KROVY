@@ -25,12 +25,12 @@ public sealed class RoofWholeRoofCopySourceContractTests
     }
 
     [Fact]
-    public void WholeRoofDetection_IsPayloadAndEventBased_NeverSpatial()
+    public void WholeRoofDetection_UsesExactNativeProvenance_NeverSpatialOrPayloadPairing()
     {
-        Assert.Contains("RoofWholeRoofCopyIdentityRules", Rebind);
-        Assert.Contains("DefinitionsEquivalent", Rebind);
-        Assert.Contains("IsCompleteAssemblyClone", Rebind);
-        Assert.Contains("ClassifyPairing", Rebind);
+        Assert.Contains("RoofNativeCloneSnapshot.Clone", Rebind);
+        Assert.Contains("owner.PolylineId == native.OwnerId", Rebind);
+        Assert.DoesNotContain("DefinitionsEquivalent", Rebind);
+        Assert.DoesNotContain("EraseStaleDisplayClones", Rebind);
         Assert.DoesNotContain("TryMatchCompleteSet", Rebind);
         Assert.DoesNotContain("GetClosestPointTo", Rebind);
         Assert.DoesNotContain("GetBoundingBox", Rebind);
@@ -83,9 +83,9 @@ public sealed class RoofWholeRoofCopySourceContractTests
     {
         Assert.Contains("GetPreCommandStructuralGeneratedHandlesByOwner", Snapshot);
         Assert.Contains("StructuralGeneratedHandlesByOwner", Snapshot);
-        Assert.Contains("preStructural.Count", Rebind);
-        Assert.Contains("appendedStructural.Count", Rebind);
-        Assert.Contains("clone.Data.RoofOwnerReference", Rebind);
+        Assert.Contains("RoofStructuralGeneratedStore.Read(entity)", Read("RoofNativeCloneSnapshot.cs"));
+        Assert.Contains("appendedStructural.Where(clone => destinations.Contains(clone.Id))", Rebind);
+        Assert.Contains("pair.StructuralClones", Rebind);
     }
 
     [Fact]

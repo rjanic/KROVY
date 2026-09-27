@@ -15,7 +15,13 @@ public static class HipRoofWireframe
 
     public static IReadOnlyList<RoofDisplayEdge> Create(
         HipRoofGeometry geometry,
-        double sourceElevation)
+        double sourceElevation) =>
+        Create(geometry, sourceElevation, RoofDisplayProjectionKind.SpatialLocalZ);
+
+    public static IReadOnlyList<RoofDisplayEdge> Create(
+        HipRoofGeometry geometry,
+        double sourceElevation,
+        RoofDisplayProjectionKind projection)
     {
         if (geometry is null)
         {
@@ -24,6 +30,10 @@ public static class HipRoofWireframe
         if (!IsFinite(sourceElevation))
         {
             throw new ArgumentOutOfRangeException(nameof(sourceElevation));
+        }
+        if (!Enum.IsDefined(typeof(RoofDisplayProjectionKind), projection))
+        {
+            throw new ArgumentOutOfRangeException(nameof(projection));
         }
 
         var topology = geometry.Topology;
@@ -44,21 +54,21 @@ public static class HipRoofWireframe
         {
             edges.Add(new RoofDisplayEdge(
                 (RoofDisplayEdgeRole)((int)RoofDisplayEdgeRole.HipRidge00 + i),
-                Segment(topology, ridges[i], sourceElevation)));
+                Segment(topology, ridges[i], sourceElevation, projection)));
         }
 
         for (var i = 0; i < hips.Count; i++)
         {
             edges.Add(new RoofDisplayEdge(
                 (RoofDisplayEdgeRole)((int)RoofDisplayEdgeRole.Hip00 + i),
-                Segment(topology, hips[i], sourceElevation)));
+                Segment(topology, hips[i], sourceElevation, projection)));
         }
 
         for (var i = 0; i < valleys.Count; i++)
         {
             edges.Add(new RoofDisplayEdge(
                 (RoofDisplayEdgeRole)((int)RoofDisplayEdgeRole.HipValley00 + i),
-                Segment(topology, valleys[i], sourceElevation)));
+                Segment(topology, valleys[i], sourceElevation, projection)));
         }
 
         if (edges.Count == 0)
@@ -88,13 +98,23 @@ public static class HipRoofWireframe
     private static RoofSegment3D Segment(
         RoofTopology topology,
         RoofTopologyEdge edge,
-        double sourceElevation)
+        double sourceElevation,
+        RoofDisplayProjectionKind projection)
     {
         var start = topology.Nodes[edge.StartNodeIndex];
         var end = topology.Nodes[edge.EndNodeIndex];
+        // Presentation only: FlattenedDrawingPlane ignores topologyLocalZ so the owned
+        // 2D drawing is a true XY plan at the source polyline elevation. Canonical
+        // RoofTopology XYZ remains unchanged for physical 3D / purlins / structural.
+        var startZ = projection == RoofDisplayProjectionKind.FlattenedDrawingPlane
+            ? sourceElevation
+            : start.Z + sourceElevation;
+        var endZ = projection == RoofDisplayProjectionKind.FlattenedDrawingPlane
+            ? sourceElevation
+            : end.Z + sourceElevation;
         return new RoofSegment3D(
-            new RoofPoint3D(start.X, start.Y, start.Z + sourceElevation),
-            new RoofPoint3D(end.X, end.Y, end.Z + sourceElevation));
+            new RoofPoint3D(start.X, start.Y, startZ),
+            new RoofPoint3D(end.X, end.Y, endZ));
     }
 
     private static bool IsFinite(double value) =>
