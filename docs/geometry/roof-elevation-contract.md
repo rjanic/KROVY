@@ -1,8 +1,8 @@
 # Geometrický slovník KROVY
 
-**Verzia:** 1.0  
+**Verzia:** 1.1
 **Jazyk:** slovenčina (s anglickými / kódovými termínmi)  
-**Status:** NORMATÍVNY kontrakt pre 2D modul automatických väzníc (`AK_ROOF_PURLINS` / Automatic Purlin)  
+**Status:** NORMATÍVNY kontrakt pre 2D modul automatických väzníc a schválený 2D/3D kontrakt obyčajných automatických krokiev
 **Jediný zdroj pravdy (SSOT):** tento súbor
 
 Tento dokument je záväzný pre Cursor aj OpenAI Codex. Pred úpravou strešnej geometrie, väzníc, krokiev, technických výšok, dátumov, zapustenia alebo schématickej prezentácie ho agent **musí** prečítať.
@@ -404,6 +404,224 @@ Triedy: `AutomaticPurlinSectionPresentation`, `AutomaticPurlinSectionSvgTemplate
 
 **Schéma nie je geometry solver.**
 
+## H1. Schválený kontrakt 2D/3D obyčajných automatických krokiev
+
+Táto kapitola je normatívna pre `ordinary automatic rafters` / obyčajné automatické krokvy.
+Jedna krokva je jeden logický člen s jednou identitou a spoločnými dátami. Z člena vznikajú
+dve nezávislé CAD reprezentácie:
+
+- `2D representation` — pôdorysná os, prípadne voliteľný pôdorysný obrys,
+- `3D representation` — fyzické jednoduché hranolové teleso.
+
+2D reprezentácia sa nesmie vytvárať presunom 3D telesa na `Z=0` a 3D reprezentácia sa
+nesmie vytvárať transformáciou 2D čiary. 2D nesmie spätne generovať 3D a 3D nesmie
+spätne generovať 2D. Obe reprezentácie zdieľajú minimálne vlastníka strechy, identitu
+člena, rolu, šírku, výšku, sklon, fyzickú dĺžku a logickú/referenčnú geometriu.
+
+### H1.1 Nezmeniteľné 2D invarianty
+
+Pre každú obyčajnú automatickú krokvu platí:
+
+```text
+2D rafter Z = 0
+AxisEaveEndpoint = roof-plane eave boundary
+```
+
+Koniec 2D osi pri okape je vždy hrana strešnej roviny / hranica okapu. Nesmie byť
+určený fyzickým čelom 3D hranola. Zmena spodného rezu, hrebeňového spoja, fyzickej
+dĺžky alebo absolútnej výšky 3D telesa nesmie posunúť, skrátiť, predĺžiť ani inak
+zmeniť pôdorysnú 2D os. Táto väzba platí aj pri prepínaní zobrazenia `2D`, `3D`
+a `2D + 3D`.
+
+### H1.2 Autoritatívna 3D strešná rovina a okap
+
+Autoritatívne platí:
+
+```text
+top face of 3D rafter = roof plane
+3D eave top edge = roof eave boundary
+```
+
+Horná plocha krokvy patrí strešnej rovine; strednica krokvy ju nenahrádza. Pri okape
+končí horná hrana 3D telesa presne na hrane okapu. Od tohto horného referenčného bodu
+sa konštruuje fyzické čelo podľa `LowerEndCutMode`. Jednoduché hranoly sa môžu
+geometricky prekrývať; pri okape a hrebeni sa v tejto etape nepoužíva zapustenie,
+birdsmouth, notch ani výrobný tesársky spoj. Výnimkou je schválený fyzický
+Hip/Valley koncový rez podľa H1.7.
+
+### H1.3 Spodné čelo — `LowerEndCutMode`
+
+Nastavenie je na úrovni automatických krokiev / strechy. Stable enum hodnoty a ich
+význam sú:
+
+| Hodnota | Slovenské UI | Definícia |
+|---|---|---|
+| `Vertical` | Zvislo | Čelo je zvislé voči globálnej osi Z. |
+| `Perpendicular` | Kolmo | Čelo je kolmé na pozdĺžny smer krokvy; `Ncut = D`, kde `D` je normalizovaný smer krokvy. |
+| `Horizontal` | Vodorovne | Čelo je vodorovné; `Ncut = GlobalZ`. |
+
+Default je `LowerEndCutMode = Vertical`. Vo všetkých troch režimoch zostáva horný
+okapový referenčný bod rovnaký a platí:
+
+```text
+LowerEndCutMode does not modify 2D geometry
+```
+
+### H1.4 Hrebeň — `RidgeJoinMode`
+
+`RidgeJoinMode` je samostatné nastavenie a nesmie používať `LowerEndCutMode`.
+
+| Hodnota | Slovenské UI | Definícia |
+|---|---|---|
+| `Meet` | Kolmo k sebe | Obe krokvy končia na spoločnej hrebeňovej deliacej rovine; bez medzery a bez overlapu. |
+| `Overlap` | Vzájomné prekrytie | Obe samostatné 3D telesá sa môžu symetricky prekrývať v oblasti hrebeňa. |
+
+Default je `RidgeJoinMode = Meet`. Pri oboch hodnotách sa nepoužíva `union`,
+`subtract`, `boolean cut` ani orezanie jednej krokvy podľa druhej. Nesmie existovať
+`first/second`, `master/slave` ani ľavá/pravá priorita krokvy. Hrebeňový režim nesmie
+meniť 2D os:
+
+```text
+RidgeJoinMode does not modify 2D geometry
+```
+
+Pri `Overlap` sa fyzický presah každej ordinary krokvy rieši podľa jej skutočnej
+3D osi a výšky; prípadný materiál nad skutočnou susednou strešnou rovinou sa
+odstráni rovinným rezom podľa topology, nie podľa druhého `Solid3d`. Obe telesá
+zostávajú samostatné, ich horné plochy ležia na vlastných roof planes a 45°
+nie je špeciálny konštrukčný prípad. `Meet` zostáva nezmenený.
+
+Pri sklone pod 45° nesmie pôvodné spodné hrebeňové čelo ostať pod protiľahlou
+strešnou rovinou ako trojuholníkový hrot. Dočasný zdrojový hranol každej
+krokvy sa najprv predĺži po jej skutočnej 3D osi aspoň po prienik **oboch**
+spodných pozdĺžnych hrebeňových hrán s protiľahlou roof plane; potrebná dĺžka
+sa vypočíta z prieniku priamky a roviny, nie z konštanty ani z 45° predpokladu.
+Až potom sa zdrojový hranol oreže protiľahlou roof plane. Tento fyzický presah
+nemení 2D os, member identity ani režim `Meet`.
+
+### H1.5 Vlastníctvo a zobrazenie
+
+2D aj 3D reprezentácia patria rovnakému logickému členovi a z oboch musí byť možné
+zistiť minimálne `RoofOwnerId`, `MemberId` a `MemberRole`. Používa sa existujúci
+ownership / metadata mechanizmus projektu; nový konkurenčný ownership systém sa
+nezavádza.
+
+Viditeľnosť je prezentačný stav bez zmeny modelu, metadata alebo dĺžok:
+
+```text
+2D       -> 2D visible, 3D hidden
+3D       -> 2D hidden, 3D visible
+2D + 3D  -> both visible
+```
+
+### H1.6 Priorita kontraktu
+
+Pri práci na 2D/3D obyčajných automatických krokvách sú záväzné najmä tieto
+invarianty:
+
+1. 2D os má vždy `Z = 0`.
+2. Koniec 2D osi pri okape je hranica strešnej roviny / okapu.
+3. Koniec osi nie je definovaný fyzickým koncom 3D telesa.
+4. Horná plocha 3D krokvy patrí strešnej rovine.
+5. Horná hrana 3D krokvy pri okape končí na hrane okapu.
+6. `LowerEndCutMode` nemení 2D geometriu.
+7. `RidgeJoinMode` nemení 2D geometriu.
+
+Schválenie tohto kontraktu nemení samo osebe stav implementácie ani nepredstavuje
+HOST PASS. Pri rozpore medzi týmto kontraktom, schválenou fyzickou definíciou,
+akceptovanými Core testami a overením v AutoCADe agent zastaví prácu a nahlási rozpor.
+
+### H1.7 Physical ordinary end at Hip/Valley
+
+Canonical 2D ordinary endpoint zostáva na osi topologického Hip/Valley prvku,
+vždy v `Z=0`; handle, owner, MemberId, logical key a station sa nemenia. Iba 3D
+ordinary teleso končí na bočnej ploche structural timberu. Structural Hip/Valley
+zostáva samostatným členom a nemusí byť `Solid3d`.
+
+Autoritatívny model bočnej plochy je *plumb side*: šírka konkrétneho Hip/Valley
+člena je meraná v XY. Z jeho 3D osi sa normalizuje pôdorysný smer `Dxy`; horizontálny
+priečny vektor `W = (-Dxy.Y, Dxy.X, 0)`. Obe bočné plochy sú zvislé WCS roviny
+vo vzdialenosti `actualStructuralWidth/2` od structural osi v XY. Vyberie sa tá,
+ktorá smeruje k ordinary členovi; 3D ordinary hranol sa prereže touto rovinou a
+zachová sa časť mimo structural timberu. Skrátenie po ordinary osi nie je všeobecne
+`width/2`, ale závisí od uhla napojenia. Pri neplatnom alebo degenerovanom prieniku
+sa nevytvorí neorezaný náhradný solid.
+
+Hip/Valley rez sa nevzťahuje na RidgeJoinMode ani LowerEndCutMode; tieto režimy
+zostávajú nezávislé. Geometrickú pravdu rezu počíta Core; AutoCAD môže použiť
+`Solid3d.Slice` len na materializáciu už vyriešenej Core geometrie. Podporované
+Valley topológie existujúceho solvera smú materializovať ordinary solids aj tam,
+kde zatiaľ nie sú podporované fyzické roof-surface Faces/Edges. Toto nie je
+rozšírenie solvera ani AutoCAD HOST PASS.
+
+### H1.8 Physical structural Hip/Valley timber
+
+Existujúca generated structural `Line` zostáva logickou/reference reprezentáciou
+toho istého člena, ale jej oba koncové body sú XY projekcia v `Z=0`. Fyzický
+`StructuralRafterSolid` je samostatný owned `Solid3d` pod rovnakým roof ownerom
+a structural key. Fyzická horná os používa resolved eave elevation a roof
+topology, nikdy Z referenčnej `Line`. Display role Hip `200–203` sú schematické
+strešné hrany, nie tretie fyzické timber telesá. Pri Hip je stredná horná
+hrana prienikom susedných strešných rovín a obe horné fazety ležia na svojich
+roof planes. Boky sú zvislé WCS roviny v XY offsete `StructuralWidthMm/2`,
+presne totožné s rovinami, na ktoré sa režú ordinary solids. 2D ordinary osi
+zostávajú na Hip/Valley centerline a nemenia sa podľa fyzického konca.
+
+Default Hip šírka je 120 mm, ale autoritatívna hodnota je owner-scoped persisted
+structural width. Default výška je `Automatic`; dialóg zobrazuje aktuálne
+vypočítané číselné mm zaokrúhlené na jedno desatinné miesto podľa jazyka, bez
+zmeny režimu. Ručná úprava čísla prepína na `Explicit`; tlačidlo „Automaticky“
+režim a výpočet obnoví. Vypočítaná výška vychádza z maxima skutočných zvislých rozpätí
+pripojených ordinary physical cut-faces a zohľadňuje úbytok výšky na hornom
+roof-plane bevel. Explicitná výška zostáva explicitná; ak nestačí na odporúčaný
+kontakt, používateľ dostane upozornenie, hodnota sa bez súhlasu neprepíše.
+
+Fyzický koniec pri okape sa zreže dvoma priľahlými zvislými eave boundary
+rovinami a zostáva v roof footprint. Pri `Vertical` a `Perpendicular` sa
+konštrukčný 3D hranol pred týmito rezmi predĺži za canonical eave corner;
+obe fyzické strany tak končia na
+príslušných okapových hraniciach a horná stredová hrana siaha do ich
+priesečníka. Logická Hip os sa tým neskracuje. Pri
+hrebeni prechádza horná stredová hrana fyzického timberu kanonickým structural
+uzlom bez Boolean union s Ridge. Pri presne dvoch kompatibilných structural členoch so spoločným
+horným topologickým uzlom sa oba fyzické hranoly prerežú tou istou zvislou
+WCS miter rovinou určenou osami v XY; ponechajú sa opačné polpriestory. Toto
+nemení logické osi, 2D referencie ani eave clip. Rovnaký Core resolver je
+použiteľný pre Hip/Valley aj Valley/Valley bez syntetického vytvárania Valley.
+Rovnaký Core builder môže obslúžiť Valley len pri existujúcej
+jednoznačnej topology/structural identity; chýbajúci Valley sa nevymýšľa.
+Po oboch eave pôdorysných rezoch sa na fyzický Hip/Valley timber aplikuje
+rovnaký owner-scoped `LowerEndCutMode` ako na ordinary krokvy. `Vertical` drží
+čelo zvislé vo WCS, `Perpendicular` ho reže kolmo na skutočný pozdĺžny 3D smer
+a `Horizontal` používa vodorovnú WCS rovinu v resolved physical eave elevation
+(nie `Z=0`). Pri `Vertical` a `Perpendicular` sú dva nezávislé rezy:
+prvá rovina určuje čelo (zvislé WCS alebo kolmé na skutočnú 3D pozdĺžnu os),
+druhá je vodorovná WCS spodná rezová rovina s normálou `GlobalZ`.
+Jej výška `OrdinaryLowestZ` je najnižší globálny Z bod celého finálneho
+fyzického ordinary hranola, nie iba jeho spodnej kontaktnej hrany pri Hip.
+Z každej strany sa vyberie geometricky najbližšia relevantná ordinary krokva
+pri okape a z ich fyzických telies sa použije minimum Z,
+nie priemer, horná hrana, kontaktná hrana ani projekcia na Hip os.
+Orientácia čelnej roviny vyplýva iba z `LowerEndCutMode`; jej pozdĺžna poloha
+je viazaná na canonical eave corner, nikdy na ordinary contact, projekciu
+`OrdinaryLowestZ` na Hip os ani na priesečník so spodným rezom. Okapové
+boundary planes určujú pôdorysný dosah nezávisle od spodnej WCS výšky.
+V špičke rohu môže byť prienik čelnej roviny s oboma okapovými polpriestormi
+iba hrana alebo bod; konečná plocha čela by nevyhnutne skrátila pôdorysný
+dosah pred canonical corner. Normála čelnej roviny stále zodpovedá režimu.
+Fyzický Hip/Valley hranol
+zachová polpriestor `Z >= OrdinaryLowestZ`; všetok materiál pod ním je odpad.
+`Horizontal` zostáva jedinou vodorovnou WCS rovinou v resolved physical eave
+elevation, bez redundantného druhého rezu.
+Tento profilový rez nemení existujúce dva plan/eave klipy, ordinary telesá ani
+2D osi. Pri V miteri sa každá fyzická polovica konštruuje až za stredový uzol
+o geometricky potrebný presah podľa šírky a uhla skutočných osí; koniec sa
+určí spoločnou miter rovinou, nie kolmým ridge klipom v uzle. Horná stredová
+hrana dosahuje kanonický uzol a fyzické vrcholy sa prípadne orežú ďalšími
+incidentnými roof planes, aby nič nepretŕčalo nad roof envelope. Implementácia
+zostáva bez AutoCAD HOST
+PASS, kým sa neoverí skutočný `Solid3d` v HOST.
+
 ### Povinné zákazy
 
 - Oprava len vizuálu **nesmie** meniť technické výšky ani persistovanú geometriu bez samostatnej schválenej úlohy fyziky.
@@ -521,12 +739,14 @@ Vizuálny PASS neospravedlňuje zmenu Core výšok; fyzický PASS neznamená aut
 - Seating percent / absolute; outer-corner physical seating; RoofPlane formula vyššie.
 - Schématický 2D rez ako **prezentácia** Core výsledkov.
 
-### Navrhované budúce 3D správanie (NIE normatívne)
+### Budúce 3D správanie mimo schváleného kontraktu obyčajných krokiev
 
-- Plná 3D XYZ autorita modelu mimo súčasného 2D rezu + centerline plánu.
+- Ďalšia plná 3D XYZ autorita pre prvky mimo obyčajných automatických krokiev a
+  mimo pravidiel H1.
 - Ďalšie host-only 3D inspection semantics.
 
-Označovať explicitne ako **FUTURE / NON-NORMATIVE**.
+Tieto rozšírenia zostávajú **FUTURE / NON-NORMATIVE**. Kapitola H1 je pre obyčajné
+automatické krokvy normatívna a nie je týmto otvoreným rozsahom zrušená.
 
 ### OPEN DECISIONS (nezavádzať ticho)
 
