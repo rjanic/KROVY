@@ -109,12 +109,14 @@ public sealed class RoofOrdinaryRafterSolidSourceContractTests
         var edit = Read("RoofGeneratedMemberManualEditService.cs");
         Assert.Contains("TryReconcileModifiedMembersInTransaction(", ordinary);
         Assert.Contains("RoofGeneratedMemberKey.From(data)", ordinary);
-        Assert.Contains("changedKeys.Select(PhysicalMemberId)", ordinary);
+        Assert.Contains("RoofPhysicalStretchRules.TrySelectRebuildKeys(", ordinary);
+        Assert.Contains("changedKeys, collateralIds, out var rebuildKeys", ordinary);
+        Assert.Contains("rebuildKeys.Select(PhysicalMemberId)", ordinary);
         Assert.Contains("if (existing.Count != members.Count", ordinary);
         Assert.Contains("RoofPhysical3DGeneratedStore.Write(solid, transaction, old.Data)", ordinary);
         Assert.Contains("oldEntity.Erase()", ordinary);
         Assert.Contains("TryBuildExistingModelInTransaction(", ordinary);
-        Assert.Contains("if (isMove || RoofGeneratedMemberEditCommandRules.IsTrimCommand", edit);
+        Assert.Contains("if (RoofGeneratedMemberEditCommandRules.RequiresOrdinaryPhysicalReconcile(globalCommandName))", edit);
         Assert.Contains("TryReconcileModifiedMembersInTransaction(", edit);
         Assert.Contains("catch (OrdinaryPhysicalReconcileException ex)", edit);
         Assert.Contains("RecoverFailedOrdinaryPhysicalReconcile(document, ownerId, ex)", edit);

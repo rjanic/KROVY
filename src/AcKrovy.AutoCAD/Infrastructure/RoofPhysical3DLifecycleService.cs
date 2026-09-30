@@ -1,5 +1,6 @@
 using AcKrovy.Core.Models.Roofs;
 using AcKrovy.Core.Services.Roofs;
+using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
 
 namespace AcKrovy.AutoCAD.Infrastructure;
@@ -10,6 +11,70 @@ namespace AcKrovy.AutoCAD.Infrastructure;
 /// </summary>
 internal static class RoofPhysical3DLifecycleService
 {
+    /// <summary>Discard STRETCH tamper using the existing physical generators.
+    /// Metadata supplies identity only. Native physical coordinates are never read.</summary>
+    public static bool TryRestoreStretchPhysicalInTransaction(
+        Document document, Transaction transaction, Polyline owner,
+        IReadOnlyCollection<ObjectId> modifiedIds)
+    {
+        var database = document.Database;
+        var ownerReference = owner.Handle.ToString();
+        var ordinaryIds = new List<ObjectId>();
+        var otherIds = new List<ObjectId>();
+        var surfaceChanged = false;
+        var structuralChanged = false;
+        foreach (var id in modifiedIds)
+        {
+            // Accepted Plan2D reconciliation may already have replaced the body.
+            if (id.IsNull || id.IsErased ||
+                !AutoCadObjectIdAccess.TryGetObject<Entity>(transaction, id,
+                    OpenMode.ForRead, out var entity, database) || entity is null ||
+                RoofPhysical3DGeneratedStore.Read(entity).Data is not { } data ||
+                !string.Equals(data.RoofOwnerReference, ownerReference,
+                    StringComparison.OrdinalIgnoreCase)) continue;
+            if (data.Role == RoofPhysical3DGeneratedRole.OrdinaryRafterSolid)
+                ordinaryIds.Add(id);
+            else
+            {
+                otherIds.Add(id);
+                if (data.Role == RoofPhysical3DGeneratedRole.StructuralRafterSolid)
+                    structuralChanged = true;
+                else surfaceChanged = true;
+            }
+        }
+        if (ordinaryIds.Count == 0 && otherIds.Count == 0) return true;
+        var input = RoofPolylineExtractor.Extract(owner);
+        var footprint = RoofFootprintValidator.Validate(input);
+        var definition = RoofDefinitionStore.Read(owner).Data;
+        if (!footprint.IsValid || footprint.Footprint is null || definition is null ||
+            RoofDefinitionPersistence.Restore(input, footprint.Footprint, definition).Geometry
+                is not HipRoofGeometry hip) return false;
+        if (ordinaryIds.Count > 0 && !RoofOrdinaryRafterSolidMaterializationService
+                .TryRestoreMovedPhysicalMembersInTransaction(database, transaction,
+                    owner, hip, ordinaryIds, out _)) return false;
+        if (otherIds.Count == 0) return true;
+        _ = RoofAssemblyGroupSyncService.DetachMembersBeforeErase(
+            database, transaction, owner.ObjectId, otherIds);
+        if (structuralChanged)
+        {
+            var provenance = RoofBoundaryIdentityProvenanceResolver.Resolve(
+                input, RoofBoundaryIdentityStore.Read(owner).Data);
+            var resolution = RoofStructuralEdgeIdentityResolver.Resolve(hip, provenance);
+            if (!RoofStructuralRafterSolidMaterializationService.TryReconcileInTransaction(
+                    database, transaction, owner, hip, resolution, document.Editor, out _))
+                return false;
+        }
+        if (surfaceChanged)
+        {
+            if (!owner.IsWriteEnabled) owner.UpgradeOpen();
+            if (!ReconcileOwnerInTransaction(database, transaction, owner.ObjectId, owner,
+                    footprint.Footprint, hip,
+                    ResolveElevationState(owner, footprint.Footprint, hip)).IsSuccess)
+                return false;
+        }
+        return true;
+    }
+
     /// <summary>Historical ObjectErased handles are not current deletion authority.</summary>
     public static void CleanupStillErasedSourceInTransaction(Database database, Transaction transaction,
         string ownerReference)

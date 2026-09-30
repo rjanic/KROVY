@@ -952,6 +952,8 @@ internal static class RoofUnsupportedStretchRecoveryService
                     handle: timber.EntityHandle,
                     kind: "timber",
                     detail: "open-or-line-type-failure");
+                RoofPhysical3DHostDiagnostics.TimberRestoreFailure(
+                    database, transaction, ownerHandle, timber, "open-for-write");
 #endif
                 return false;
             }
@@ -974,6 +976,8 @@ internal static class RoofUnsupportedStretchRecoveryService
                     handle: timber.EntityHandle,
                     kind: "timber",
                     detail: $"element-id-mismatch:snapshot={timber.ElementId}:live={data?.ElementId ?? "missing"}");
+                RoofPhysical3DHostDiagnostics.TimberRestoreFailure(
+                    database, transaction, ownerHandle, timber, "element-id-check");
 #endif
                 return false;
             }

@@ -187,7 +187,7 @@ public sealed class RoofGeneratedChildEraseSourceContractTests
         var repair = Member(
             Resize,
             "private static bool ApplyGeneratedChildEraseTampers",
-            "private static void ApplyDerivedPhysicalMoveTampers");
+            "private static void ApplyDerivedPhysicalStretchTampers");
         Assert.DoesNotContain("RoofGeneratedRafterSetService", repair);
         Assert.DoesNotContain("TryRecoverGeneratedMembersOnly", repair);
         Assert.DoesNotContain("RoofManualOverrideSet", repair);
@@ -308,7 +308,7 @@ public sealed class RoofGeneratedChildEraseSourceContractTests
         var repair = Member(
             Resize,
             "private static bool ApplyGeneratedChildEraseTampers",
-            "private static void ApplyDerivedPhysicalMoveTampers");
+            "private static void ApplyDerivedPhysicalStretchTampers");
         Assert.DoesNotContain("RoofKind.Hip", repair);
         Assert.DoesNotContain("NumberOfVertices", repair);
         Assert.DoesNotContain("Rectangle", repair);

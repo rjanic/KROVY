@@ -69,7 +69,9 @@ internal static class RoofOrdinaryRafterSolidMaterializationService
         Transaction transaction,
         Polyline owner,
         IRoofGeometry geometry,
-        IReadOnlyCollection<ObjectId> modifiedIds)
+        IReadOnlyCollection<ObjectId> modifiedIds,
+        bool restoreStretchCollateral = false,
+        IReadOnlyCollection<ObjectId>? acceptedPlanIds = null)
     {
         if (geometry is not HipRoofGeometry hip ||
             RoofPhysicalElevationStore.Read(owner).Data is not { Physical3DEnabled: true } elevation)
@@ -77,7 +79,7 @@ internal static class RoofOrdinaryRafterSolidMaterializationService
 
         var ownerReference = owner.Handle.ToString();
         var changedKeys = new HashSet<RoofGeneratedMemberKey>();
-        foreach (var id in modifiedIds)
+        foreach (var id in acceptedPlanIds ?? modifiedIds)
         {
             if (!AutoCadObjectIdAccess.TryGetObject<Line>(
                     transaction, id, OpenMode.ForRead, out var line, database) ||
@@ -87,7 +89,22 @@ internal static class RoofOrdinaryRafterSolidMaterializationService
                 continue;
             changedKeys.Add(RoofGeneratedMemberKey.From(data));
         }
-        if (changedKeys.Count == 0)
+        var collateralIds = new HashSet<string>(StringComparer.Ordinal);
+        if (restoreStretchCollateral)
+        {
+            foreach (var id in modifiedIds)
+            {
+                if (AutoCadObjectIdAccess.TryGetObject<Solid3d>(
+                        transaction, id, OpenMode.ForRead, out var solid, database) &&
+                    solid is not null &&
+                    RoofPhysical3DGeneratedStore.Read(solid).Data is { } physical &&
+                    physical.Role == RoofPhysical3DGeneratedRole.OrdinaryRafterSolid &&
+                    string.Equals(physical.RoofOwnerReference, ownerReference,
+                        StringComparison.OrdinalIgnoreCase))
+                    collateralIds.Add(physical.StructuralId);
+            }
+        }
+        if (changedKeys.Count == 0 && collateralIds.Count == 0)
             return true;
 
         if (!TryBuildExistingModelInTransaction(
@@ -116,9 +133,21 @@ internal static class RoofOrdinaryRafterSolidMaterializationService
         if (existing.Count != members.Count || !existing.Keys.ToHashSet().SetEquals(members.Keys))
             return false;
 
-        var selected = changedKeys.Select(PhysicalMemberId).ToHashSet();
-        if (!selected.IsSubsetOf(members.Keys))
+        if (!RoofPhysicalStretchRules.TrySelectRebuildKeys(
+                model.Members.Select(member => member.MemberKey).ToArray(),
+                changedKeys, collateralIds, out var rebuildKeys))
             return false;
+        var selected = rebuildKeys.Select(PhysicalMemberId).ToHashSet();
+#if DEBUG
+        if (restoreStretchCollateral && collateralIds.Count > 0)
+            AcKrovy.AutoCAD.Diagnostics.AcKrovyDiagnostics.Info("ROOF_PHYSICAL_STRETCH",
+                $"owner={ownerReference} mode=collateral planKeys={changedKeys.Count} " +
+                $"collateralKeys={collateralIds.Count} rebuiltKeys={selected.Count} result=planned");
+#endif
+        if (restoreStretchCollateral)
+            _ = RoofAssemblyGroupSyncService.DetachMembersBeforeErase(
+                database, transaction, owner.ObjectId,
+                selected.Select(id => existing[id].Id).ToArray());
 
         EnsureLayer(database, transaction);
         var modelSpace = (BlockTableRecord)transaction.GetObject(

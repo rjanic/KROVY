@@ -53,11 +53,12 @@ public sealed class HipRoofLiveResizeSourceContractTests
     }
 
     [Fact]
-    public void OnlyAModifiedPersistedPolylineEntersTheSourceResizeClassification()
+    public void OnlyAChangedPersistedPolylineEntersTheStretchSourceResizeClassification()
     {
         var inspect = Member(Resize, "private static InspectionPlan Inspect", "private static bool HasErasedGeneratedTimber");
         Assert.Contains("entity is not Polyline polyline", inspect);
         Assert.Contains("RoofDefinitionStore.Read(polyline).Data", inspect);
+        Assert.Contains("!HasSourceGeometryChanged(source, modifiedIds, globalCommandName)", inspect);
         Assert.Contains("treatHipDisplayDriftAsResize: true", inspect);
         Assert.Contains("RoofDisplayStore.Read(entity).Exists", inspect);
         Assert.Contains("displayTamperCandidates.Add", inspect);

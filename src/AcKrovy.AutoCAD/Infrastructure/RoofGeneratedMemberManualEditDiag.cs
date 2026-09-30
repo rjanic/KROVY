@@ -710,6 +710,7 @@ internal static class RoofGeneratedMemberManualEditDiag
 
     private static void WriteLine(Editor editor, string line)
     {
+        AcKrovy.AutoCAD.Diagnostics.AcKrovyDiagnostics.Info("ROOF_MANUAL_EDIT_TRACE", line);
         try
         {
             editor.WriteMessage("\n" + line);

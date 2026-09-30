@@ -60,5 +60,28 @@ public sealed class RoofPhysical3DHostDiagnosticsSourceContractTests
         Assert.Contains("detail: \"open-or-line-type-failure\"", recovery);
         Assert.Contains("detail: $\"element-id-mismatch:snapshot=", recovery);
         Assert.Contains("TryRestoreStructuralHipValleyMembersOnly", recovery);
+        Assert.Contains("database, transaction, ownerHandle, timber, \"open-for-write\"", recovery);
+        Assert.Contains("database, transaction, ownerHandle, timber, \"element-id-check\"", recovery);
+        var diagnostic = Read("src/AcKrovy.AutoCAD/Infrastructure/RoofPhysical3DHostDiagnostics.cs");
+        Assert.Contains("geometryMatchesSnapshot=", diagnostic);
+        Assert.Contains("snapshotElementId=", diagnostic);
+        Assert.Contains("liveElementId=", diagnostic);
+        Assert.Contains("readProbeFailed=", diagnostic);
+    }
+
+    [Fact]
+    public void MemberEvidence_IncludesPlanRolesNativeClonePairsAndPersistedFallback()
+    {
+        var diagnostic = Read("src/AcKrovy.AutoCAD/Infrastructure/RoofPhysical3DHostDiagnostics.cs");
+        Assert.Contains("PLAN_MEMBER", diagnostic);
+        Assert.Contains("NATIVE_MEMBER command=", diagnostic);
+        Assert.Contains("MEMBER_MAP command=", diagnostic);
+        Assert.Contains("generated is null && attached is null", diagnostic);
+        var manual = Read("src/AcKrovy.AutoCAD/Infrastructure/RoofGeneratedMemberManualEditDiag.cs");
+        var recovery = Read("src/AcKrovy.AutoCAD/Infrastructure/RoofUnsupportedStretchRecoveryDiag.cs");
+        Assert.StartsWith("#if DEBUG", manual);
+        Assert.StartsWith("#if DEBUG", recovery);
+        Assert.Contains("AcKrovyDiagnostics.Info(\"ROOF_MANUAL_EDIT_TRACE\", line)", manual);
+        Assert.Contains("AcKrovyDiagnostics.Info(FallbackPrefix, line)", recovery);
     }
 }

@@ -67,8 +67,44 @@ internal static class RoofPhysical3DHostDiagnostics
     public static void MaintenanceComplete(Document document, string command)
     {
         if (!Trackers.TryGetValue(document, out var tracker) || !tracker.Enabled ||
-            command.ToUpperInvariant() is not ("COPY" or "MIRROR" or "ERASE")) return;
-        Audit(document, "CommandEnded-after-maintenance:" + command.ToUpperInvariant());
+            LiveGeometryCommandRules.NormalizeCommandName(command).ToUpperInvariant() is not
+                ("COPY" or "MIRROR" or "ERASE" or "BREAK" or "STRETCH" or "GRIP_STRETCH")) return;
+        Audit(document, "CommandEnded-after-maintenance:" +
+            LiveGeometryCommandRules.NormalizeCommandName(command).ToUpperInvariant());
+    }
+
+    public static void TimberRestoreFailure(Database database, Transaction transaction,
+        string owner, RoofUnsupportedStretchTimberLineSnapshotData snapshot, string stage)
+    {
+        // Called only on an existing recovery failure. Observe the live entity; never
+        // retry the write, change recovery policy, or infer a native structural edit.
+        try
+        {
+            var id = database.GetObjectId(false, new Handle(long.Parse(snapshot.EntityHandle,
+                NumberStyles.HexNumber, CultureInfo.InvariantCulture)), 0);
+            var entity = transaction.GetObject(id, OpenMode.ForRead, true) as Entity;
+            var line = entity as Line;
+            var metadata = new AutoCadTimberElementMetadataStore(transaction);
+            var elementId = entity is not null && metadata.TryRead(entity, out var data)
+                ? data?.ElementId : null;
+            var geometryMatches = line is not null &&
+                line.StartPoint.DistanceTo(new Point3d(snapshot.Start.X, snapshot.Start.Y, snapshot.Start.Z)) <= 1e-6 &&
+                line.EndPoint.DistanceTo(new Point3d(snapshot.End.X, snapshot.End.Y, snapshot.End.Z)) <= 1e-6;
+            AcKrovyDiagnostics.Info("ROOF_TIMBER_RESTORE_FAILURE_PROBE",
+                $"owner={owner} handle={snapshot.EntityHandle} stage={stage}" +
+                $" nativeType={entity?.GetType().Name ?? "missing"} erased={entity?.IsErased}" +
+                $" geometryMatchesSnapshot={geometryMatches} snapshotElementId={snapshot.ElementId}" +
+                $" liveElementId={elementId ?? "missing"}" +
+                $" structural={JsonSerializer.Serialize(entity is null ? null : RoofStructuralGeneratedStore.Read(entity).Data)}" +
+                $" liveGeometry={(entity is null ? "missing" : Geometry(entity))}");
+        }
+        catch (System.Exception ex)
+        {
+            var status = ex is Autodesk.AutoCAD.Runtime.Exception cad ? cad.ErrorStatus.ToString() : "-";
+            AcKrovyDiagnostics.Info("ROOF_TIMBER_RESTORE_FAILURE_PROBE",
+                $"owner={owner} handle={snapshot.EntityHandle} stage={stage}" +
+                $" readProbeFailed={ex.GetType().Name} errorStatus={status}");
+        }
     }
 
     public static void OwnerCounts(Database database, Transaction transaction, string owner, string phase)
@@ -202,6 +238,14 @@ internal static class RoofPhysical3DHostDiagnostics
                     }
                 }
             }
+            if (entity is Line planLine)
+            {
+                var generated = RoofGeneratedTimberStore.Read(planLine).Data;
+                var attached = RoofAttachedManualTimberStore.Read(planLine).Data;
+                if (generated is not null || attached is not null)
+                    Write(document, $"PLAN_MEMBER {common} geometry={Geometry(planLine)}" +
+                        $" generated={JsonSerializer.Serialize(generated)} attached={JsonSerializer.Serialize(attached)}");
+            }
             if (entity is Line structuralLine &&
                 RoofStructuralGeneratedStore.Read(structuralLine).Data is { } structuralData)
                 Write(document,
@@ -275,11 +319,10 @@ internal static class RoofPhysical3DHostDiagnostics
         private bool Observe => Enabled && (_command is "COPY" or "MIRROR" or "ERASE" or
             "MOVE" or "TRIM" or "EXTEND" or "BREAK" or "STRETCH" or
             "GRIP_STRETCH" or "AK_ROOF_EDIT");
-        // Keep the existing whole-roof snapshots on their proven commands. The
-        // additional member-edit probes need native event order, not hundreds of
-        // unrelated roof entities in every CommandWillStart/CommandEnded audit.
+        // Opt-in before/after snapshots distinguish native topology from semantic
+        // maintenance, including BREAK's retained source and appended fragment.
         private bool ObserveFullAudit => Observe && (_command is "COPY" or "MIRROR" or
-            "ERASE" or "STRETCH" or "GRIP_STRETCH" or "AK_ROOF_EDIT");
+            "ERASE" or "BREAK" or "STRETCH" or "GRIP_STRETCH" or "AK_ROOF_EDIT");
         public Tracker(Document document)
         {
             Document = document;
@@ -385,7 +428,24 @@ internal static class RoofPhysical3DHostDiagnostics
             _nativeEventCount++;
             // Keep member evidence even when a GRIP command modifies many annotations.
             if (_nativeEventCount <= 200 || entity is Line or Solid3d)
+            {
                 Write(Document, $"NATIVE_EVENT command={_command} seq={_nativeEventCount} kind={kind} handle={entity.Handle} type={entity.GetType().Name}");
+                if (entity is Line line)
+                {
+                    try
+                    {
+                        Write(Document, $"NATIVE_MEMBER command={_command} seq={_nativeEventCount}" +
+                            $" handle={line.Handle} kind={kind} geometry={Geometry(line)}" +
+                            $" generated={JsonSerializer.Serialize(RoofGeneratedTimberStore.Read(line).Data)}" +
+                            $" attached={JsonSerializer.Serialize(RoofAttachedManualTimberStore.Read(line).Data)}" +
+                            $" structural={JsonSerializer.Serialize(RoofStructuralGeneratedStore.Read(line).Data)}");
+                    }
+                    catch (System.Exception ex)
+                    {
+                        Write(Document, $"NATIVE_MEMBER_FAILED command={_command} seq={_nativeEventCount} handle={line.Handle} error={ex.GetType().Name}");
+                    }
+                }
+            }
             else if (_nativeEventCount == 201)
                 Write(Document, $"NATIVE_EVENT command={_command} truncatedAfter=200");
         }
@@ -404,9 +464,14 @@ internal static class RoofPhysical3DHostDiagnostics
                         transaction.GetObject(pair.Value, OpenMode.ForRead) is not Entity clone) continue;
                     var physical = RoofPhysical3DGeneratedStore.Read(source);
                     var display = RoofDisplayStore.Read(source);
+                    var generated = RoofGeneratedTimberStore.Read(source).Data;
+                    var attached = RoofAttachedManualTimberStore.Read(source).Data;
                     var owner = source is Polyline && RoofDefinitionStore.Read(source).Data is not null;
-                    if (!physical.Exists && !display.Exists && !owner) continue;
+                    if (!physical.Exists && !display.Exists && !owner && generated is null && attached is null) continue;
                     Write(Document, $"MAP command={_command} context={e.IdMapping.DeepCloneContext} source={source.Handle} clone={clone.Handle} nativeType={clone.GetType().Name} sourcePhysical={JsonSerializer.Serialize(physical.Data)} clonePhysical={JsonSerializer.Serialize(RoofPhysical3DGeneratedStore.Read(clone).Data)} sourceDisplay={display.OwnerReference} cloneDisplay={RoofDisplayStore.Read(clone).OwnerReference} owner={owner}");
+                    if (generated is not null || attached is not null)
+                        Write(Document, $"MEMBER_MAP command={_command} source={source.Handle} clone={clone.Handle}" +
+                            $" generated={JsonSerializer.Serialize(generated)} attached={JsonSerializer.Serialize(attached)}");
                 }
             }
             catch (System.Exception ex) { Write(Document, $"MAP_FAILED command={_command} error={ex.GetType().Name}"); }

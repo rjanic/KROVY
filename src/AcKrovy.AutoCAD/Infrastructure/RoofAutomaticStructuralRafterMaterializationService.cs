@@ -354,6 +354,13 @@ internal static class RoofAutomaticStructuralRafterMaterializationService
                     !SamePoint(existing.Line.EndPoint, end);
                 var metadataChanged = existing.TimberData != timberData ||
                     existing.StructuralData != structuralData;
+#if DEBUG
+                if (metadataChanged)
+                    RoofAutomaticStructuralRafterTrace.WriteMetadataDifference(
+                        document.Editor, ownerReference, item.LogicalKey,
+                        existing.TimberData, timberData,
+                        existing.StructuralData, structuralData);
+#endif
                 if (geometryChanged || metadataChanged)
                 {
                     if (!existing.Line.IsWriteEnabled)

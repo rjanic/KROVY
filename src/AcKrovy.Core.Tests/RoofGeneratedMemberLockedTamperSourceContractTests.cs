@@ -59,7 +59,7 @@ public sealed class RoofGeneratedMemberLockedTamperSourceContractTests
     public void ChildOnlyTamper_DoesNotRequireRigidEquivalentWhenSourceUnmodified()
     {
         var inspect = Member(Resize, "private static InspectionPlan Inspect", "private static bool HasErasedGeneratedTimber");
-        Assert.Contains("var sourceModified = modifiedIds.Contains(ownerId)", inspect);
+        Assert.Contains("var sourceModified = HasSourceGeometryChanged(owner, modifiedIds, globalCommandName)", inspect);
         Assert.Contains("RoofSourceChangeKind.SupportedResize", inspect);
         Assert.Contains("!sourceModified", inspect);
     }

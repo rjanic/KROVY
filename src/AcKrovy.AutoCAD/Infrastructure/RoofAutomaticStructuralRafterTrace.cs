@@ -201,6 +201,29 @@ internal static class RoofAutomaticStructuralRafterTrace
             $" reason={Token(reason)}");
     }
 
+    public static void WriteMetadataDifference(
+        Editor editor, string owner, RoofStructuralLogicalKey key,
+        TimberElementData existing, TimberElementData desired,
+        RoofStructuralGeneratedData existingStructural, RoofStructuralGeneratedData desiredStructural)
+    {
+        // Read-only values, captured BEFORE any UpgradeOpen/metadata write.
+        // Round-trip JSON retains numeric precision and all record fields.
+        try
+        {
+            var line = $"ROOF_STRUCT_METADATA_DIFF owner={Token(owner)} key={Token(key.ToString())} " +
+                $"existingTimber={System.Text.Json.JsonSerializer.Serialize(existing)} " +
+                $"desiredTimber={System.Text.Json.JsonSerializer.Serialize(desired)} " +
+                $"existingStructural={System.Text.Json.JsonSerializer.Serialize(existingStructural)} " +
+                $"desiredStructural={System.Text.Json.JsonSerializer.Serialize(desiredStructural)}";
+            WriteLine(editor, line);
+            AcKrovy.AutoCAD.Diagnostics.AcKrovyDiagnostics.Info("ROOF_STRUCT_METADATA_DIFF", line);
+        }
+        catch
+        {
+            // DEBUG diagnostics must not change the reconcile result.
+        }
+    }
+
     public static void WriteRejectedExistingAction(
         Editor? editor,
         Database database,

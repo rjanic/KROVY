@@ -21,7 +21,8 @@ internal static class RoofGeneratedMemberManualEditService
         string? globalCommandName,
         IReadOnlyCollection<ObjectId> ownerIds,
         IReadOnlyCollection<ObjectId> modifiedIds,
-        IReadOnlyCollection<ObjectId> appendedTimberIds)
+        IReadOnlyCollection<ObjectId> appendedTimberIds,
+        ISet<ObjectId>? acceptedOrdinaryStretchOwnerIds = null)
     {
         var lockedAttempt = false;
         var unsupportedAttempt = false;
@@ -30,11 +31,12 @@ internal static class RoofGeneratedMemberManualEditService
         foreach (var ownerId in ownerIds)
         {
             OwnerEditOutcome outcome;
+            var ordinaryPlanChanged = false;
             try
             {
                 outcome = ProcessOwner(
                     document, globalCommandName, ownerId, modifiedIds,
-                    appendedTimberIds);
+                    appendedTimberIds, out ordinaryPlanChanged);
             }
             catch (OrdinaryPhysicalReconcileException ex)
             {
@@ -56,6 +58,8 @@ internal static class RoofGeneratedMemberManualEditService
                     break;
                 case OwnerEditOutcome.Accepted:
                     accepted = true;
+                    if (ordinaryPlanChanged)
+                        acceptedOrdinaryStretchOwnerIds?.Add(ownerId);
                     break;
                 case OwnerEditOutcome.Recovered:
                     recovered = true;
@@ -91,8 +95,10 @@ internal static class RoofGeneratedMemberManualEditService
         string? globalCommandName,
         ObjectId ownerId,
         IReadOnlyCollection<ObjectId> modifiedIds,
-        IReadOnlyCollection<ObjectId> appendedTimberIds)
+        IReadOnlyCollection<ObjectId> appendedTimberIds,
+        out bool ordinaryStretchAccepted)
     {
+        ordinaryStretchAccepted = false;
         using (document.LockDocument())
         using (var transaction = document.Database.TransactionManager.StartTransaction())
         {
@@ -113,7 +119,8 @@ internal static class RoofGeneratedMemberManualEditService
                 return OwnerEditOutcome.Skipped;
             }
 
-            var sourceModified = modifiedIds.Contains(ownerId);
+            var sourceModified = RoofLiveResizeService.HasSourceGeometryChanged(
+                owner, modifiedIds, globalCommandName);
             var isRigidRoofTransform =
                 sourceModified &&
                 (LiveGeometryCommandRules.NormalizeCommandName(globalCommandName)
@@ -272,7 +279,8 @@ internal static class RoofGeneratedMemberManualEditService
                 modifiedIds,
                 appendedTimberIds,
                 out var reject,
-                out var ordinaryPhysicalSuppressed);
+                out var ordinaryPhysicalSuppressed,
+                out var ordinaryPlanChanged);
             if (!accept)
             {
                 WriteUnlockedReject(document, globalCommandName, owner, reject);
@@ -298,6 +306,13 @@ internal static class RoofGeneratedMemberManualEditService
                 transaction,
                 ownerId,
                 document.Editor);
+            // Mixed crossing STRETCH: ordinary bodies were rebuilt once with the
+            // accepted Plan2D keys. Discard remaining collateral physical roles
+            // after structural reference recovery, in this SAME owner transaction.
+            if (RoofPhysicalStretchRules.ShouldRecover(globalCommandName, sourceModified) &&
+                !RoofPhysical3DLifecycleService.TryRestoreStretchPhysicalInTransaction(
+                    document, transaction, owner, modifiedIds))
+                throw new OrdinaryPhysicalReconcileException("Collateral Physical3D recovery failed.");
 #if DEBUG
             WriteStructuralEditGuardDiag(
                 document,
@@ -322,13 +337,18 @@ internal static class RoofGeneratedMemberManualEditService
                 modifiedIds);
             var groupSynced = RoofAssemblyGroupSyncService.TrySyncForOwner(
                 document, transaction, owner.ObjectId);
-            if ((RoofGeneratedMemberEditCommandRules.IsMoveCommand(globalCommandName) ||
-                 RoofGeneratedMemberEditCommandRules.IsTrimCommand(globalCommandName) ||
+            if ((RoofGeneratedMemberEditCommandRules.RequiresOrdinaryPhysicalReconcile(globalCommandName) ||
                  ordinaryPhysicalSuppressed) &&
                 !groupSynced)
                 throw new OrdinaryPhysicalReconcileException("Canonical group sync failed.");
+            if (RoofPhysicalStretchRules.ShouldRecover(globalCommandName, sourceModified) &&
+                !RoofLiveResizeService.TryVerifyStretchPhysicalState(
+                    document.Database, transaction, ownerId))
+                throw new OrdinaryPhysicalReconcileException("Physical3D STRETCH keys or GROUP are invalid.");
             RoofUnlockIndicatorService.Sync(document.Database, transaction, owner);
             transaction.Commit();
+            ordinaryStretchAccepted = ordinaryPlanChanged &&
+                RoofPhysicalStretchRules.ShouldRecover(globalCommandName, sourceModified);
             return OwnerEditOutcome.Accepted;
         }
     }
@@ -467,10 +487,12 @@ internal static class RoofGeneratedMemberManualEditService
         IReadOnlyCollection<ObjectId> modifiedIds,
         IReadOnlyCollection<ObjectId> appendedTimberIds,
         out ManualEditReject? reject,
-        out bool ordinaryPhysicalSuppressed)
+        out bool ordinaryPhysicalSuppressed,
+        out bool ordinaryPlanChanged)
     {
         reject = null;
         ordinaryPhysicalSuppressed = false;
+        ordinaryPlanChanged = false;
         var input = RoofPolylineExtractor.Extract(owner);
         var validation = RoofFootprintValidator.Validate(input);
         if (!validation.IsValid || validation.Footprint is null)
@@ -708,6 +730,7 @@ internal static class RoofGeneratedMemberManualEditService
                 transaction,
                 owner.Handle.ToString());
             var changedRecalcItems = new List<RoofGeneratedMemberRecalcItem>();
+            var acceptedPlanIds = new HashSet<ObjectId>();
             // Maps a recalculated Generated member ObjectId to its logical key, so the
             // persisted override's ReservedElementId can be synchronized to the FINAL
             // reconciled ElementId after recalc (a length-changing accepted edit must not
@@ -882,6 +905,8 @@ internal static class RoofGeneratedMemberManualEditService
                     ? overrides.Remove(key)
                     : overrides.Upsert(overrideData);
                 ApplyAcceptedLineGeometry(line, acceptedGeometry, baseline);
+                acceptedPlanIds.Add(id);
+                ordinaryPlanChanged |= generated.Data.MemberKind == RoofGeneratedTimberKind.Rafter;
 
                 if (RoofGeneratedMemberRecalcScopeRules.RequiresRecalculation(
                         baseline,
@@ -969,14 +994,18 @@ internal static class RoofGeneratedMemberManualEditService
                 return false;
             }
 
-            if (isMove || RoofGeneratedMemberEditCommandRules.IsTrimCommand(globalCommandName))
+            if (RoofGeneratedMemberEditCommandRules.RequiresOrdinaryPhysicalReconcile(globalCommandName))
             {
                 try
                 {
                     if (!RoofOrdinaryRafterSolidMaterializationService
                             .TryReconcileModifiedMembersInTransaction(
                                 document.Database, transaction, owner,
-                                roofGeometry, modifiedIds))
+                                roofGeometry, modifiedIds,
+                                restoreStretchCollateral: RoofPhysicalStretchRules.ShouldRecover(
+                                    globalCommandName, RoofLiveResizeService.HasSourceGeometryChanged(
+                                        owner, modifiedIds, globalCommandName)),
+                                acceptedPlanIds: acceptedPlanIds))
                         throw new InvalidOperationException(
                             "Ordinary physical member set or model is incomplete.");
                 }

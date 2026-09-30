@@ -44,7 +44,7 @@ public sealed class RoofGeneratedSnapshotCaptureSourceContractTests
     {
         Assert.Contains("resizeOwners.Contains(ownerId)", Resize);
         Assert.Contains("GeneratedMemberTamperOwnerIds", Resize);
-        Assert.Contains("var sourceModified = modifiedIds.Contains(ownerId)", Resize);
+        Assert.Contains("var sourceModified = HasSourceGeometryChanged(owner, modifiedIds, globalCommandName)", Resize);
     }
 
     [Fact]

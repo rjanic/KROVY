@@ -58,6 +58,19 @@ internal static class RoofLiveResizeService
     private static void MarkSourceSupportedResizeOwner(ObjectId ownerId) =>
         SourceSupportedResizeOwnersThisCommand.Add(ownerId);
 
+    internal static bool HasSourceGeometryChanged(
+        Polyline owner, IReadOnlyCollection<ObjectId> modifiedIds, string? globalCommandName)
+    {
+        if (!(RoofGeneratedMemberEditCommandRules.IsClassicStretch(globalCommandName) ||
+              RoofGeneratedMemberEditCommandRules.IsGripStretchCommand(globalCommandName)) ||
+            !RoofUnsupportedStretchRecoverySnapshotService.TryGet(owner.ObjectId, out var snapshot))
+            return modifiedIds.Contains(owner.ObjectId); // Other commands / unavailable baseline: existing policy.
+        var normal = owner.Normal;
+        return !RoofUnsupportedStretchRecoveryRules.SourceGeometryMatchesSnapshot(
+            RoofPolylineExtractor.Extract(owner), RoofPolylineExtractor.GetSourceElevation(owner),
+            new RoofPoint3D(normal.X, normal.Y, normal.Z), snapshot.Data);
+    }
+
     public static IReadOnlyCollection<ObjectId> Process(
         Document document,
         string? globalCommandName,
@@ -217,6 +230,7 @@ internal static class RoofLiveResizeService
 
             // Existing fallback behavior, including Unlocked ERASE suppression and
             // locked non-ERASE tamper recovery, runs only after exact H9 recovery.
+            var acceptedOrdinaryStretchOwnerIds = new HashSet<ObjectId>();
             if (plan.GeneratedMemberTamperOwnerIds.Count > 0 &&
                 RoofGeneratedMemberEditCommandRules.IsAssemblySnapshotCommand(globalCommandName))
             {
@@ -229,12 +243,17 @@ internal static class RoofLiveResizeService
                     document,
                     globalCommandName,
                     plan.GeneratedMemberTamperOwnerIds,
-                    modifiedIds,
-                    appendedTimberIds);
+                    modifiedIds.Where(id => !plan.UnchangedGeneratedMemberIds.Contains(id)).ToArray(),
+                    appendedTimberIds,
+                    acceptedOrdinaryStretchOwnerIds);
             }
 
             if (plan.DerivedPhysicalMoveMembers.Count > 0)
                 ApplyDerivedPhysicalMoveTampers(document, plan.DerivedPhysicalMoveMembers);
+            if (plan.DerivedPhysicalStretchMembers.Count > 0)
+                ApplyDerivedPhysicalStretchTampers(
+                    document, plan.DerivedPhysicalStretchMembers,
+                    acceptedOrdinaryStretchOwnerIds.Count > 0);
 
             RelocateUnlockIndicators(document, globalCommandName, plan);
             return plan.RelatedIds;
@@ -331,7 +350,10 @@ internal static class RoofLiveResizeService
         var unsupportedOwners = new HashSet<ObjectId>();
         var displayTamperCandidates = new HashSet<ObjectId>();
         var generatedMemberTamperCandidates = new HashSet<ObjectId>();
+        var sourceCandidates = new HashSet<ObjectId>();
+        var unchangedGeneratedMemberIds = new HashSet<ObjectId>();
         var derivedPhysicalMoveCandidates = new Dictionary<ObjectId, HashSet<ObjectId>>();
+        var derivedPhysicalStretchCandidates = new Dictionary<ObjectId, HashSet<ObjectId>>();
         using var transaction = database.TransactionManager.StartTransaction();
 
         var sourceEraseOwners = new HashSet<ObjectId>();
@@ -440,6 +462,17 @@ internal static class RoofLiveResizeService
                 members.Add(id);
             }
 
+            if (RoofPhysicalStretchRules.ShouldRecover(globalCommandName, sourceModified: false) &&
+                RoofPhysical3DGeneratedStore.Read(entity).Data is { } stretchPhysical &&
+                TryResolveHandleToOwnerPolyline(database, transaction,
+                    stretchPhysical.RoofOwnerReference, out var stretchPhysicalOwnerId))
+            {
+                if (!derivedPhysicalStretchCandidates.TryGetValue(
+                        stretchPhysicalOwnerId, out var members))
+                    derivedPhysicalStretchCandidates[stretchPhysicalOwnerId] = members = new();
+                members.Add(id);
+            }
+
             if (RoofDisplayStore.Read(entity).Exists)
             {
                 related.Add(id);
@@ -459,7 +492,11 @@ internal static class RoofLiveResizeService
             {
                 related.Add(id);
                 related.Add(generatedOwnerId);
-                generatedMemberTamperCandidates.Add(generatedOwnerId);
+                sourceCandidates.Add(generatedOwnerId);
+                if (IsUnchangedStretchMemberNotification(entity, generatedOwnerId, globalCommandName))
+                    unchangedGeneratedMemberIds.Add(id);
+                else
+                    generatedMemberTamperCandidates.Add(generatedOwnerId);
             }
 
             if (entity is not Polyline polyline)
@@ -474,17 +511,30 @@ internal static class RoofLiveResizeService
             }
 
             related.Add(id);
+            sourceCandidates.Add(id);
+        }
+
+        // A source notification with unchanged geometry must never promote child/display
+        // drift to SupportedResize and erase the pending semantic member edit.
+        sourceCandidates.UnionWith(generatedMemberTamperCandidates);
+        sourceCandidates.UnionWith(displayTamperCandidates);
+        sourceCandidates.UnionWith(derivedPhysicalStretchCandidates.Keys);
+        foreach (var ownerId in sourceCandidates)
+        {
+            if (!AutoCadObjectIdAccess.TryGetObject<Polyline>(transaction, ownerId,
+                    OpenMode.ForRead, out var source, database) || source is null ||
+                !HasSourceGeometryChanged(source, modifiedIds, globalCommandName)) continue;
             switch (ClassifyOwner(
                         database,
                         transaction,
-                        polyline,
+                        source,
                         treatHipDisplayDriftAsResize: true).Kind)
             {
                 case RoofSourceChangeKind.SupportedResize:
-                    resizeOwners.Add(id);
+                    resizeOwners.Add(ownerId);
                     break;
                 case RoofSourceChangeKind.Unsupported:
-                    unsupportedOwners.Add(id);
+                    unsupportedOwners.Add(ownerId);
                     break;
             }
         }
@@ -577,12 +627,12 @@ internal static class RoofLiveResizeService
                 continue;
             }
 
-            var sourceModified = modifiedIds.Contains(ownerId);
+            var sourceModified = HasSourceGeometryChanged(owner, modifiedIds, globalCommandName);
             ClassifyModifiedGeneratedChildren(
                 database,
                 transaction,
                 owner,
-                modifiedIds,
+                modifiedIds.Where(id => !unchangedGeneratedMemberIds.Contains(id)).ToArray(),
                 out var generatedTimberModified,
                 out var ownedAnnotationModified);
 
@@ -665,6 +715,25 @@ internal static class RoofLiveResizeService
             }
         }
 
+        foreach (var ownerId in derivedPhysicalStretchCandidates.Keys.ToArray())
+        {
+            // Source/whole-roof STRETCH owns its existing lifecycle. Never filter
+            // its native selection or run member-level derived recovery afterward.
+            if ((AutoCadObjectIdAccess.TryGetObject<Polyline>(transaction, ownerId,
+                     OpenMode.ForRead, out var stretchSource, database) && stretchSource is not null &&
+                 !RoofPhysicalStretchRules.ShouldRecover(globalCommandName,
+                     HasSourceGeometryChanged(stretchSource, modifiedIds, globalCommandName))) ||
+                resizeOwners.Contains(ownerId) ||
+                unsupportedOwners.Contains(ownerId) ||
+                SourceHandledOwnersThisCommand.Contains(ownerId))
+                derivedPhysicalStretchCandidates.Remove(ownerId);
+            else
+            {
+                related.Add(ownerId);
+                related.UnionWith(derivedPhysicalStretchCandidates[ownerId]);
+            }
+        }
+
         return new InspectionPlan(
             related,
             resizeOwners,
@@ -675,7 +744,24 @@ internal static class RoofLiveResizeService
             generatedTimberEraseOwners,
             generatedAnnotationEraseOwners,
             derivedPhysicalEraseOwners,
-            derivedPhysicalMoveCandidates);
+            derivedPhysicalMoveCandidates,
+            derivedPhysicalStretchCandidates,
+            unchangedGeneratedMemberIds);
+    }
+
+    private static bool IsUnchangedStretchMemberNotification(
+        Entity entity, ObjectId ownerId, string? command)
+    {
+        if (!RoofGeneratedMemberEditCommandRules.IsClassicStretch(command) || entity is not Line line ||
+            RoofGeneratedTimberStore.Read(line).Data is null ||
+            !RoofUnsupportedStretchRecoverySnapshotService.TryGet(ownerId, out var snapshot)) return false;
+        var before = snapshot.Assembly.TimberLines.FirstOrDefault(member =>
+            string.Equals(member.EntityHandle, line.Handle.ToString(), StringComparison.OrdinalIgnoreCase));
+        return before is not null && RoofGeneratedMemberOverrideMath.GeometryEquals(
+            new RoofGeneratedMemberGeometry(before.Start, before.End),
+            new RoofGeneratedMemberGeometry(
+                new(line.StartPoint.X, line.StartPoint.Y, line.StartPoint.Z),
+                new(line.EndPoint.X, line.EndPoint.Y, line.EndPoint.Z)));
     }
 
     private static bool HasErasedDerivedDisplay(
@@ -2346,6 +2432,85 @@ internal static class RoofLiveResizeService
                timberData == entry.TimberData;
     }
 
+    private static void ApplyDerivedPhysicalStretchTampers(
+        Document document,
+        IReadOnlyDictionary<ObjectId, HashSet<ObjectId>> modifiedByOwner,
+        bool acceptedPlanEdit)
+    {
+        var attempted = false;
+        var failed = false;
+        foreach (var pair in modifiedByOwner)
+        {
+            var remaining = pair.Value.Where(id => !id.IsNull && !id.IsErased).ToArray();
+            if (remaining.Length == 0) continue; // Already reconciled with accepted Plan2D.
+            attempted = true;
+            try
+            {
+                using (document.LockDocument())
+                using (var transaction = document.Database.TransactionManager.StartTransaction())
+                {
+                    if (!AutoCadObjectIdAccess.TryGetObject<Polyline>(transaction, pair.Key,
+                            OpenMode.ForRead, out var owner, document.Database) || owner is null ||
+                        !RoofPhysical3DLifecycleService.TryRestoreStretchPhysicalInTransaction(
+                            document, transaction, owner, remaining) ||
+                        !RoofAssemblyGroupSyncService.TrySyncForOwner(document, transaction, pair.Key) ||
+                        !TryVerifyStretchPhysicalState(document.Database, transaction, pair.Key))
+                        throw new InvalidOperationException("Physical3D STRETCH recovery failed before commit.");
+                    transaction.Commit();
+                }
+                if (!TryFinalizeRestoredPhysicalGroup(document, pair.Key,
+                        Array.Empty<RoofDisplayErasePreCommandMapService.MappedEntity>()))
+                    throw new InvalidOperationException("Physical3D STRETCH GROUP finalization failed.");
+                using var verify = document.Database.TransactionManager.StartTransaction();
+                if (!TryVerifyStretchPhysicalState(document.Database, verify, pair.Key))
+                    throw new InvalidOperationException("Physical3D STRETCH post-commit verification failed.");
+#if DEBUG
+                AcKrovy.AutoCAD.Diagnostics.AcKrovyDiagnostics.Info("ROOF_PHYSICAL_STRETCH",
+                    $"owner={pair.Key.Handle} mode={(acceptedPlanEdit ? "collateral" : "direct")} result=restored");
+#endif
+            }
+            catch (System.Exception)
+            {
+                failed = true;
+#if DEBUG
+                AcKrovy.AutoCAD.Diagnostics.AcKrovyDiagnostics.Info("ROOF_PHYSICAL_STRETCH",
+                    $"owner={pair.Key.Handle} result=HardFailure");
+#endif
+            }
+        }
+        // A valid Plan2D edit is never rejected because another physical object
+        // was caught by its crossing window. Recovery failures remain visible.
+        if (failed || (attempted && RoofPhysicalStretchRules.ShouldRejectDirectEdit(acceptedPlanEdit)))
+            document.Editor.WriteMessage("\n" + UiStrings.GetString(failed
+                ? "Command_Roof_DerivedPhysicalMoveRecoveryFailed"
+                : "Command_Roof_DerivedPhysicalMoveRejected"));
+    }
+
+    internal static bool TryVerifyStretchPhysicalState(
+        Database database, Transaction transaction, ObjectId ownerId)
+    {
+        var keys = new HashSet<(RoofPhysical3DGeneratedRole Role, string Id)>();
+        foreach (var id in RoofPhysical3DGeneratedStore.FindByOwner(
+                     database, transaction, ownerId.Handle.ToString()))
+        {
+            if (!AutoCadObjectIdAccess.TryGetObject<Entity>(transaction, id,
+                    OpenMode.ForRead, out var entity, database) || entity is null ||
+                RoofPhysical3DGeneratedStore.Read(entity).Data is not { } data ||
+                !keys.Add((data.Role, data.StructuralId))) return false;
+            if (!(data.Role switch
+                {
+                    RoofPhysical3DGeneratedRole.Face => entity is Face,
+                    RoofPhysical3DGeneratedRole.OrdinaryRafterSolid or
+                        RoofPhysical3DGeneratedRole.StructuralRafterSolid => entity is Solid3d,
+                    _ => entity is Line,
+                })) return false;
+        }
+        return RoofDisplayGroupService.TryOpenCanonicalGroup(database, transaction,
+                   ownerId, OpenMode.ForRead, out var group) && group is not null &&
+               TryCollectExpectedRoofGroupMembers(database, transaction, ownerId, out var expected) &&
+               RoofAssemblyGroupMembershipRules.IsCanonicalMembership(group.GetAllEntityIds(), expected);
+    }
+
     private static void ApplyDerivedPhysicalMoveTampers(
         Document document,
         IReadOnlyDictionary<ObjectId, HashSet<ObjectId>> movedByOwner)
@@ -3009,7 +3174,9 @@ internal static class RoofLiveResizeService
         HashSet<ObjectId> GeneratedTimberEraseOwnerIds,
         HashSet<ObjectId> GeneratedAnnotationEraseOwnerIds,
         HashSet<ObjectId> DerivedPhysicalEraseOwnerIds,
-        Dictionary<ObjectId, HashSet<ObjectId>> DerivedPhysicalMoveMembers);
+        Dictionary<ObjectId, HashSet<ObjectId>> DerivedPhysicalMoveMembers,
+        Dictionary<ObjectId, HashSet<ObjectId>> DerivedPhysicalStretchMembers,
+        HashSet<ObjectId> UnchangedGeneratedMemberIds);
 
     private enum ResizeApplyResult
     {

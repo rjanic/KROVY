@@ -130,4 +130,14 @@ public static class RoofGeneratedMemberEditCommandRules
         IsRotateCommand(globalCommandName) ||
         IsClassicStretch(globalCommandName) ||
         IsGripStretchCommand(globalCommandName);
+
+    /// <summary>
+    /// Accepted geometry edits with unchanged ordinary-member cardinality share
+    /// the existing transaction-scoped physical reconcile and failure recovery.
+    /// Split/clone operations require reconciliation of AttachedManual results
+    /// before they can enter this path.
+    /// </summary>
+    public static bool RequiresOrdinaryPhysicalReconcile(string? globalCommandName) =>
+        IsMoveCommand(globalCommandName) || IsTrimCommand(globalCommandName) ||
+        IsClassicStretch(globalCommandName) || IsGripStretchCommand(globalCommandName);
 }

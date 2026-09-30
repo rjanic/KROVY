@@ -179,6 +179,20 @@ public static class RoofUnsupportedStretchRecoveryRules
         return true;
     }
 
+    /// <summary>Compare source geometry to the existing command snapshot.
+    /// ObjectModified, GROUP/display drift and member lengths are not source changes.</summary>
+    public static bool SourceGeometryMatchesSnapshot(
+        RoofFootprintInput? live, double elevationMm, RoofPoint3D normal,
+        RoofUnsupportedStretchSourceSnapshotData snapshot) =>
+        live is not null && !live.HasCurvedSegments && live.IsPlanar &&
+        live.Vertices is not null && live.Vertices.All(point => IsFinite(point.X) && IsFinite(point.Y)) &&
+        IsFinite(elevationMm) && IsFinitePoint(normal) &&
+        Math.Abs(elevationMm - snapshot.ElevationMm) <= VertexToleranceMm &&
+        Math.Abs(normal.X - snapshot.NormalX) <= NormalTolerance &&
+        Math.Abs(normal.Y - snapshot.NormalY) <= NormalTolerance &&
+        Math.Abs(normal.Z - snapshot.NormalZ) <= NormalTolerance &&
+        RestoredMatchesSnapshot(live.Vertices, live.IsClosed, snapshot);
+
     public static bool PointsEqual(RoofPoint3D left, RoofPoint3D right) =>
         left.DistanceTo(right) <= VertexToleranceMm;
 

@@ -105,9 +105,10 @@ public sealed class RoofLockedShapeChangeRejectionSourceContractTests
         Assert.Contains("switch (ClassifyOwner(", inspect);
         Assert.Contains("treatHipDisplayDriftAsResize: true", inspect);
         Assert.Contains("case RoofSourceChangeKind.SupportedResize:", inspect);
-        Assert.Contains("resizeOwners.Add(id);", inspect);
+        Assert.Contains("!HasSourceGeometryChanged(source, modifiedIds, globalCommandName)", inspect);
+        Assert.Contains("resizeOwners.Add(ownerId);", inspect);
         Assert.Contains("case RoofSourceChangeKind.Unsupported:", inspect);
-        Assert.Contains("unsupportedOwners.Add(id);", inspect);
+        Assert.Contains("unsupportedOwners.Add(ownerId);", inspect);
     }
 
     [Fact]

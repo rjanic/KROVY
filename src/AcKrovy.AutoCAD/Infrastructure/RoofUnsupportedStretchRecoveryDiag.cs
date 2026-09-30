@@ -40,6 +40,7 @@ internal static class RoofUnsupportedStretchRecoveryDiag
 
         try
         {
+            AcKrovy.AutoCAD.Diagnostics.AcKrovyDiagnostics.Info(FallbackPrefix, line);
             editor.WriteMessage("\n" + line);
         }
         catch
