@@ -738,6 +738,8 @@ Obrys strechy sa od uloženia zmenil. Uložená definícia sa nepoužila.</value
   <data name="Command_Roof_UnsupportedStretchRecoveredNotificationBody" xml:space="preserve"><value>Obrys strechy bol obnovený na posledný podporovaný tvar.</value></data>
   <data name="Command_Roof_DisplayTamperNotificationTitle" xml:space="preserve"><value>Vyberte základný obrys strechy</value></data>
   <data name="Command_Roof_DisplayTamperNotificationBody" xml:space="preserve"><value>Tvar strechy upravte pomocou jej obrysu. Ostatné prvky sa aktualizujú automaticky.</value></data>
+  <data name="Command_Roof_DerivedPhysicalMoveRejected" xml:space="preserve"><value>3D prvok je odvodený z 2D. Upravte jeho pôdorysný prvok.</value></data>
+  <data name="Command_Roof_DerivedPhysicalMoveRecoveryFailed" xml:space="preserve"><value>3D prvok sa nepodarilo obnoviť z 2D. Skontrolujte výkres; zmenu neukladajte.</value></data>
   <data name="Command_Roof_PersistFailed" xml:space="preserve"><value>
 Definíciu strechy sa nepodarilo uložiť.</value></data>
   <data name="Command_Roof_PersistSourceChanged" xml:space="preserve"><value>
@@ -825,9 +827,23 @@ Automatické krokvy sa nepodarilo vytvoriť. Výkresová operácia bola vráten�
   <data name="CommandUi_RoofToggleLock_Label" xml:space="preserve"><value>Zámok</value></data>
   <data name="CommandUi_RoofToggleLock_Tooltip" xml:space="preserve"><value>Prepne vybranú strechu medzi zamknutým a odomknutým režimom.</value></data>
   <data name="RoofRafterWindow_Title" xml:space="preserve"><value>Krokvy</value></data>
+  <data name="RoofRafterWindow_StructuralHeading" xml:space="preserve"><value>Nárožná krokva</value></data>
+  <data name="RoofRafterWindow_StructuralWidthMm" xml:space="preserve"><value>Šírka [mm]</value></data>
+  <data name="RoofRafterWindow_StructuralHeightMm" xml:space="preserve"><value>Výška [mm]</value></data>
+  <data name="RoofRafterWindow_StructuralAutomatic" xml:space="preserve"><value>výpočet</value></data>
+  <data name="RoofRafterWindow_StructuralResetAutomatic" xml:space="preserve"><value>Automaticky</value></data>
+  <data name="RoofRafterWindow_InvalidStructuralDimensions" xml:space="preserve"><value>Zadajte kladnú šírku a výšku nárožnej krokvy alebo obnovte automatický výpočet.</value></data>
+  <data name="RoofRafterWindow_StructuralHeightWarningFormat" xml:space="preserve"><value>Upozornenie: krokva {0} má zadanú výšku {1:0.##} mm, ale fyzický koniec ordinary krokvy vyžaduje aspoň {2:0.##} mm.</value></data>
   <data name="RoofRafterWindow_Heading" xml:space="preserve"><value>Automatické krokvy</value></data>
   <data name="RoofRafterWindow_Description" xml:space="preserve"><value>Nastavte prierez, maximálny rozstup a materiál krokiev.</value></data>
   <data name="RoofRafterWindow_WidthMm" xml:space="preserve"><value>Šírka [mm]</value></data>
+  <data name="RoofRafterWindow_LowerEndCutMode" xml:space="preserve"><value>Spodné čelo krokvy</value></data>
+  <data name="RoofRafterWindow_CutVertical" xml:space="preserve"><value>Zvislo</value></data>
+  <data name="RoofRafterWindow_CutPerpendicular" xml:space="preserve"><value>Kolmo</value></data>
+  <data name="RoofRafterWindow_CutHorizontal" xml:space="preserve"><value>Vodorovne</value></data>
+  <data name="RoofRafterWindow_RidgeJoinMode" xml:space="preserve"><value>Spoj pri hrebeni</value></data>
+  <data name="RoofRafterWindow_JoinMeet" xml:space="preserve"><value>Kolmo k sebe</value></data>
+  <data name="RoofRafterWindow_JoinOverlap" xml:space="preserve"><value>Vzájomné prekrytie</value></data>
   <data name="RoofRafterWindow_HeightMm" xml:space="preserve"><value>Výška [mm]</value></data>
   <data name="RoofRafterWindow_MaximumSpacingMm" xml:space="preserve"><value>Rozostup krokiev [mm]</value></data>
   <data name="RoofRafterWindow_Material" xml:space="preserve"><value>Materiál</value></data>

@@ -559,11 +559,17 @@ rozšírenie solvera ani AutoCAD HOST PASS.
 Existujúca generated structural `Line` zostáva logickou/reference reprezentáciou
 toho istého člena, ale jej oba koncové body sú XY projekcia v `Z=0`. Fyzický
 `StructuralRafterSolid` je samostatný owned `Solid3d` pod rovnakým roof ownerom
-a structural key. Fyzická horná os používa resolved eave elevation a roof
-topology, nikdy Z referenčnej `Line`. Display role Hip `200–203` sú schematické
+a structural key. Fyzická horná os sa odvodzuje z resolved eave elevation a
+roof topology (pri Hip aj zo šírky a oboch roof planes), nikdy zo Z referenčnej
+`Line`. Display role Hip `200–203` sú schematické
 strešné hrany, nie tretie fyzické timber telesá. Pri Hip je stredná horná
-hrana prienikom susedných strešných rovín a obe horné fazety ležia na svojich
-roof planes. Boky sú zvislé WCS roviny v XY offsete `StructuralWidthMm/2`,
+topologická línia prienikom susedných strešných rovín, nie fyzický horný vrchol
+timberu. Ľavá a pravá horná pozdĺžna hrana Hip ležia každá na svojej incidentnej
+roof plane; medzi nimi je **jedna planárna horná plocha**, bez dvoch šikmých
+roof-plane faziet. Jej priečny stred leží pod topologickým prienikom a pri
+uniformnom sklone tvorí štandardný obdĺžnikový prierez. Roof planes určujú
+polohu horných rohov, nie orezanie hornej časti Hip hranola. Boky sú zvislé
+WCS roviny v XY offsete `StructuralWidthMm/2`,
 presne totožné s rovinami, na ktoré sa režú ordinary solids. 2D ordinary osi
 zostávajú na Hip/Valley centerline a nemenia sa podľa fyzického konca.
 
@@ -571,9 +577,11 @@ Default Hip šírka je 120 mm, ale autoritatívna hodnota je owner-scoped persis
 structural width. Default výška je `Automatic`; dialóg zobrazuje aktuálne
 vypočítané číselné mm zaokrúhlené na jedno desatinné miesto podľa jazyka, bez
 zmeny režimu. Ručná úprava čísla prepína na `Explicit`; tlačidlo „Automaticky“
-režim a výpočet obnoví. Vypočítaná výška vychádza z maxima skutočných zvislých rozpätí
-pripojených ordinary physical cut-faces a zohľadňuje úbytok výšky na hornom
-roof-plane bevel. Explicitná výška zostáva explicitná; ak nestačí na odporúčaný
+režim a výpočet obnoví. Pri Hip vypočítaná výška vychádza z maximálnej zvislej
+hĺbky skutočných ordinary physical cut-face bodov pod novou hornou hranou
+príslušného Hip boku; nepoužíva už úbytok na hornom roof-plane bevel.
+Valley si zachováva doterajší profil, kým sa neschváli jeho zmena.
+Explicitná výška zostáva explicitná; ak nestačí na odporúčaný
 kontakt, používateľ dostane upozornenie, hodnota sa bez súhlasu neprepíše.
 
 Fyzický koniec pri okape sa zreže dvoma priľahlými zvislými eave boundary
@@ -581,9 +589,10 @@ rovinami a zostáva v roof footprint. Pri `Vertical` a `Perpendicular` sa
 konštrukčný 3D hranol pred týmito rezmi predĺži za canonical eave corner;
 obe fyzické strany tak končia na
 príslušných okapových hraniciach a horná stredová hrana siaha do ich
-priesečníka. Logická Hip os sa tým neskracuje. Pri
-hrebeni prechádza horná stredová hrana fyzického timberu kanonickým structural
-uzlom bez Boolean union s Ridge. Pri presne dvoch kompatibilných structural členoch so spoločným
+priesečníka v XY; jej Z je pri Hip nižšie než Z topologickej línie.
+Logická Hip os sa tým neskracuje. Pri hrebeni dosahuje fyzická horná
+stredová os kanonický structural uzol v XY pri svojom nižšom Z, bez Boolean
+union s Ridge. Pri presne dvoch kompatibilných structural členoch so spoločným
 horným topologickým uzlom sa oba fyzické hranoly prerežú tou istou zvislou
 WCS miter rovinou určenou osami v XY; ponechajú sa opačné polpriestory. Toto
 nemení logické osi, 2D referencie ani eave clip. Rovnaký Core resolver je
@@ -593,8 +602,10 @@ jednoznačnej topology/structural identity; chýbajúci Valley sa nevymýšľa.
 Po oboch eave pôdorysných rezoch sa na fyzický Hip/Valley timber aplikuje
 rovnaký owner-scoped `LowerEndCutMode` ako na ordinary krokvy. `Vertical` drží
 čelo zvislé vo WCS, `Perpendicular` ho reže kolmo na skutočný pozdĺžny 3D smer
-a `Horizontal` používa vodorovnú WCS rovinu v resolved physical eave elevation
-(nie `Z=0`). Pri `Vertical` a `Perpendicular` sú dva nezávislé rezy:
+a `Horizontal` používa vodorovnú WCS rovinu. Pri fyzickom Hip je jej Z
+výška horného stredu novej jedinej planárnej TopFace v canonical eave corner,
+nie pôvodné roof eave Z ani `Z=0`; Valley si zachováva doterajšiu resolved
+physical eave elevation. Pri `Vertical` a `Perpendicular` sú dva nezávislé rezy:
 prvá rovina určuje čelo (zvislé WCS alebo kolmé na skutočnú 3D pozdĺžnu os),
 druhá je vodorovná WCS spodná rezová rovina s normálou `GlobalZ`.
 Jej výška `OrdinaryLowestZ` je najnižší globálny Z bod celého finálneho
@@ -603,22 +614,25 @@ Z každej strany sa vyberie geometricky najbližšia relevantná ordinary krokva
 pri okape a z ich fyzických telies sa použije minimum Z,
 nie priemer, horná hrana, kontaktná hrana ani projekcia na Hip os.
 Orientácia čelnej roviny vyplýva iba z `LowerEndCutMode`; jej pozdĺžna poloha
-je viazaná na canonical eave corner, nikdy na ordinary contact, projekciu
+je viazaná na canonical eave corner v XY a pri Hip prechádza fyzickým horným
+stredom, nikdy na ordinary contact, projekciu
 `OrdinaryLowestZ` na Hip os ani na priesečník so spodným rezom. Okapové
 boundary planes určujú pôdorysný dosah nezávisle od spodnej WCS výšky.
 V špičke rohu môže byť prienik čelnej roviny s oboma okapovými polpriestormi
 iba hrana alebo bod; konečná plocha čela by nevyhnutne skrátila pôdorysný
 dosah pred canonical corner. Normála čelnej roviny stále zodpovedá režimu.
-Fyzický Hip/Valley hranol
-zachová polpriestor `Z >= OrdinaryLowestZ`; všetok materiál pod ním je odpad.
-`Horizontal` zostáva jedinou vodorovnou WCS rovinou v resolved physical eave
-elevation, bez redundantného druhého rezu.
+Pri `Vertical`/`Perpendicular` fyzický Hip/Valley hranol zachová polpriestor
+`Z >= OrdinaryLowestZ`; všetok materiál pod ním je odpad.
+`Horizontal` zostáva jedinou vodorovnou WCS rovinou bez redundantného druhého
+rezu. Pri Hip nesmie tento rez skrátiť XY pôdorysný dosah pred canonical eave
+corner; presun jeho Z je dôsledkom novej fyzickej hornej plochy.
 Tento profilový rez nemení existujúce dva plan/eave klipy, ordinary telesá ani
-2D osi. Pri V miteri sa každá fyzická polovica konštruuje až za stredový uzol
+2D osi. Pri V miteri sa každý fyzický člen páru konštruuje až za stredový uzol
 o geometricky potrebný presah podľa šírky a uhla skutočných osí; koniec sa
-určí spoločnou miter rovinou, nie kolmým ridge klipom v uzle. Horná stredová
-hrana dosahuje kanonický uzol a fyzické vrcholy sa prípadne orežú ďalšími
-incidentnými roof planes, aby nič nepretŕčalo nad roof envelope. Implementácia
+určí spoločnou miter rovinou, nie kolmým ridge klipom v uzle. Fyzická horná
+stredová os dosahuje kanonický uzol v XY a fyzické vrcholy sa prípadne orežú
+ďalšími incidentnými roof planes pri hornom uzle, aby nič nepretŕčalo nad
+roof envelope; dve priľahlé roof planes netvoria horné fazety Hip. Implementácia
 zostáva bez AutoCAD HOST
 PASS, kým sa neoverí skutočný `Solid3d` v HOST.
 

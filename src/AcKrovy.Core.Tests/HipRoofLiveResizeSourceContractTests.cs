@@ -79,7 +79,10 @@ public sealed class HipRoofLiveResizeSourceContractTests
         var apply = Member(Resize, "private static ResizeApplyResult TryApplyResize", "private static IReadOnlyCollection<ObjectId> TryAcceptRigidGroupTransforms");
         Assert.Contains("RoofDefinitionPersistence.UpdateGeometry(", apply);
         Assert.Contains("RoofDefinitionStore.Write(owner, transaction, updated)", apply);
-        Assert.Contains("RoofWireframe.Create(", apply);
+        Assert.True(
+            apply.Contains("RoofWireframe.Create(", StringComparison.Ordinal) ||
+            apply.Contains("CreateOwnedHipOrLegacy(", StringComparison.Ordinal) ||
+            apply.Contains("CreateOwnedDisplayEdges(", StringComparison.Ordinal));
         Assert.Contains("RoofDisplayService.Rebuild(", apply);
         Assert.Contains("var isHip = classification.Geometry is HipRoofGeometry", apply);
         Assert.Contains("RoofGeneratedRafterSetService.TryReplaceForSupportedResize(", apply);

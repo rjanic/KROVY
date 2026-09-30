@@ -3,22 +3,23 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:localization="clr-namespace:AcKrovy.AutoCAD.UI.Localization"
         Title="{localization:Loc RoofRafterWindow_Title}"
-        Width="470"
+        Width="520"
         SizeToContent="Height"
         ResizeMode="NoResize"
         ShowInTaskbar="False"
         WindowStartupLocation="CenterOwner"
-        Background="{DynamicResource SettingsWindowBackgroundBrush}">
+        Background="{DynamicResource WoodOakBrush}">
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="Design/SettingsColors.Light.xaml" />
                 <ResourceDictionary Source="Design/SettingsDesignSystem.xaml" />
                 <ResourceDictionary Source="Design/SettingsControls.xaml" />
+                <ResourceDictionary Source="Design/RoofGeometryVisuals.xaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Window.Resources>
-    <Border Margin="18" Style="{DynamicResource SettingsCardStyle}">
+    <Border Margin="16" Padding="16" Style="{DynamicResource SettingsCardStyle}">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
@@ -27,8 +28,13 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
-            <TextBlock Style="{DynamicResource SettingsSectionTitleStyle}"
-                       Text="{localization:Loc RoofRafterWindow_Heading}" />
+            <Border Grid.Row="0" Padding="16,12" Margin="0,0,0,4"
+                    Background="{StaticResource WoodOakDarkBrush}"
+                    BorderBrush="#321708" BorderThickness="1" CornerRadius="8">
+                <TextBlock FontSize="22" FontWeight="Bold"
+                           Foreground="{StaticResource RoofGeometryHeaderTextBrush}"
+                           Text="{localization:Loc RoofRafterWindow_Heading}" />
+            </Border>
             <TextBlock Grid.Row="1" Margin="0,4,0,16"
                        Style="{DynamicResource SettingsDescriptionStyle}"
                        Text="{localization:Loc RoofRafterWindow_Description}" />
@@ -40,6 +46,8 @@
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
@@ -75,7 +83,52 @@
                                Style="{DynamicResource SettingsHintStyle}"
                                Text="{localization:Loc RoofRafterWindow_RoofSlopeHint}" />
                 </StackPanel>
-                <Border Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3"
+                <StackPanel Grid.Row="3" Grid.Column="0" Margin="0,0,0,12">
+                    <TextBlock Margin="0,0,0,5" Text="{localization:Loc RoofRafterWindow_LowerEndCutMode}" />
+                    <ComboBox x:Name="LowerEndCutComboBox">
+                        <ComboBoxItem Tag="Vertical" Content="{localization:Loc RoofRafterWindow_CutVertical}" />
+                        <ComboBoxItem Tag="Perpendicular" Content="{localization:Loc RoofRafterWindow_CutPerpendicular}" />
+                        <ComboBoxItem Tag="Horizontal" Content="{localization:Loc RoofRafterWindow_CutHorizontal}" />
+                    </ComboBox>
+                </StackPanel>
+                <StackPanel Grid.Row="3" Grid.Column="2" Margin="0,0,0,12">
+                    <TextBlock Margin="0,0,0,5" Text="{localization:Loc RoofRafterWindow_RidgeJoinMode}" />
+                    <ComboBox x:Name="RidgeJoinComboBox">
+                        <ComboBoxItem Tag="Meet" Content="{localization:Loc RoofRafterWindow_JoinMeet}" />
+                        <ComboBoxItem Tag="Overlap" Content="{localization:Loc RoofRafterWindow_JoinOverlap}" />
+                    </ComboBox>
+                </StackPanel>
+                <Border x:Name="StructuralSection" Grid.Row="4" Grid.Column="0"
+                        Grid.ColumnSpan="3" Margin="0,4,0,12" Padding="12"
+                        Background="{DynamicResource SettingsPanelBackgroundBrush}"
+                        BorderBrush="{DynamicResource SettingsBorderBrush}"
+                        BorderThickness="1" CornerRadius="6">
+                  <StackPanel>
+                    <TextBlock Margin="0,0,0,8" Style="{DynamicResource SettingsSectionTitleStyle}"
+                               Text="{localization:Loc RoofRafterWindow_StructuralHeading}" />
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="18" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Margin="0,0,0,5" Text="{localization:Loc RoofRafterWindow_StructuralWidthMm}" />
+                            <TextBox x:Name="StructuralWidthTextBox" TextChanged="Input_Changed" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Margin="0,0,0,5" Text="{localization:Loc RoofRafterWindow_StructuralHeightMm}" />
+                            <TextBox x:Name="StructuralHeightTextBox" TextChanged="Input_Changed" />
+                            <Button x:Name="StructuralAutomaticButton" Margin="0,6,0,0"
+                                    HorizontalAlignment="Right"
+                                    Click="StructuralAutomaticButton_Click"
+                                    Style="{DynamicResource SettingsSecondaryButtonStyle}"
+                                    Content="{localization:Loc RoofRafterWindow_StructuralResetAutomatic}" />
+                        </StackPanel>
+                    </Grid>
+                  </StackPanel>
+                </Border>
+                <Border Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="3"
                         Padding="12"
                         Background="{DynamicResource SettingsInfoBackgroundBrush}"
                         BorderBrush="{DynamicResource SettingsInfoBorderBrush}"

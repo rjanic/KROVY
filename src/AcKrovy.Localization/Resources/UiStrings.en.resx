@@ -738,6 +738,8 @@ The roof footprint changed after it was saved. The saved definition was not used
   <data name="Command_Roof_UnsupportedStretchRecoveredNotificationBody" xml:space="preserve"><value>The roof outline was restored to the last supported shape.</value></data>
   <data name="Command_Roof_DisplayTamperNotificationTitle" xml:space="preserve"><value>Select the roof outline</value></data>
   <data name="Command_Roof_DisplayTamperNotificationBody" xml:space="preserve"><value>Edit the roof shape using its outline. The other elements update automatically.</value></data>
+  <data name="Command_Roof_DerivedPhysicalMoveRejected" xml:space="preserve"><value>The 3D element is derived from 2D. Edit its plan element instead.</value></data>
+  <data name="Command_Roof_DerivedPhysicalMoveRecoveryFailed" xml:space="preserve"><value>The 3D element could not be restored from 2D. Check the drawing; do not save this change.</value></data>
   <data name="Command_Roof_PersistFailed" xml:space="preserve"><value>
 The roof definition could not be saved.</value></data>
   <data name="Command_Roof_PersistSourceChanged" xml:space="preserve"><value>
@@ -825,9 +827,23 @@ Automatic rafters could not be created. The drawing operation was rolled back.</
   <data name="CommandUi_RoofToggleLock_Label" xml:space="preserve"><value>Lock</value></data>
   <data name="CommandUi_RoofToggleLock_Tooltip" xml:space="preserve"><value>Switches the selected roof between locked and unlocked mode.</value></data>
   <data name="RoofRafterWindow_Title" xml:space="preserve"><value>Rafters</value></data>
+  <data name="RoofRafterWindow_StructuralHeading" xml:space="preserve"><value>Hip rafter</value></data>
+  <data name="RoofRafterWindow_StructuralWidthMm" xml:space="preserve"><value>Width [mm]</value></data>
+  <data name="RoofRafterWindow_StructuralHeightMm" xml:space="preserve"><value>Height [mm]</value></data>
+  <data name="RoofRafterWindow_StructuralAutomatic" xml:space="preserve"><value>calculated</value></data>
+  <data name="RoofRafterWindow_StructuralResetAutomatic" xml:space="preserve"><value>Automatic</value></data>
+  <data name="RoofRafterWindow_InvalidStructuralDimensions" xml:space="preserve"><value>Enter a positive hip-rafter width and height, or restore automatic calculation.</value></data>
+  <data name="RoofRafterWindow_StructuralHeightWarningFormat" xml:space="preserve"><value>Warning: rafter {0} has an explicit height of {1:0.##} mm, but the ordinary rafter contact requires at least {2:0.##} mm.</value></data>
   <data name="RoofRafterWindow_Heading" xml:space="preserve"><value>Automatic rafters</value></data>
   <data name="RoofRafterWindow_Description" xml:space="preserve"><value>Set the rafter section, maximum spacing and material.</value></data>
   <data name="RoofRafterWindow_WidthMm" xml:space="preserve"><value>Width [mm]</value></data>
+  <data name="RoofRafterWindow_LowerEndCutMode" xml:space="preserve"><value>Lower rafter end cut</value></data>
+  <data name="RoofRafterWindow_CutVertical" xml:space="preserve"><value>Vertical</value></data>
+  <data name="RoofRafterWindow_CutPerpendicular" xml:space="preserve"><value>Perpendicular</value></data>
+  <data name="RoofRafterWindow_CutHorizontal" xml:space="preserve"><value>Horizontal</value></data>
+  <data name="RoofRafterWindow_RidgeJoinMode" xml:space="preserve"><value>Ridge join</value></data>
+  <data name="RoofRafterWindow_JoinMeet" xml:space="preserve"><value>Meet</value></data>
+  <data name="RoofRafterWindow_JoinOverlap" xml:space="preserve"><value>Symmetric overlap</value></data>
   <data name="RoofRafterWindow_HeightMm" xml:space="preserve"><value>Height [mm]</value></data>
   <data name="RoofRafterWindow_MaximumSpacingMm" xml:space="preserve"><value>Rafter spacing [mm]</value></data>
   <data name="RoofRafterWindow_Material" xml:space="preserve"><value>Material</value></data>

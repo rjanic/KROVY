@@ -41,7 +41,14 @@ internal static class RoofPhysical3DMaterializationService
         var eligibility = RectangularSymmetricHipEligibility.Evaluate(footprint, geometry);
         if (!eligibility.IsEligible || !elevation.Physical3DEnabled)
         {
-            EraseOwned(database, transaction, ownerReference);
+            // Non-rectangular solved roofs have no roof-surface Face/Edge model
+            // yet, but may own valid ordinary rafter solids (including Valley).
+            // Disable still clears every physical child; mere surface
+            // ineligibility must not erase the independent ordinary role.
+            if (elevation.Physical3DEnabled)
+                EraseRoofSurfaceOwned(database, transaction, ownerReference);
+            else
+                EraseOwned(database, transaction, ownerReference);
             // Keep Physical3DEnabled when only eligibility failed so a later valid
             // rectangle automatically restores 3D. Clearing the preference here caused
             // GRIP_STRETCH HardFailure: flattened 2D rebuild + disabled preference made
@@ -83,7 +90,7 @@ internal static class RoofPhysical3DMaterializationService
 
         try
         {
-            EraseOwned(database, transaction, ownerReference);
+            EraseRoofSurfaceOwned(database, transaction, ownerReference);
             CreateEntities(database, transaction, build.Model);
 #if DEBUG
             RoofPhysical3DHostDiagnostics.Reconcile(database, transaction, ownerReference, "after-create");
@@ -139,6 +146,41 @@ internal static class RoofPhysical3DMaterializationService
                 entity is not null &&
                 !entity.IsErased)
             {
+                entity.Visible = showPlan2D;
+            }
+        }
+
+        var ordinarySourceHandles = new HashSet<string>(
+            StringComparer.OrdinalIgnoreCase);
+        foreach (var id in RoofGeneratedTimberStore.FindByOwner(
+                     database, transaction, ownerReference))
+        {
+            if (AutoCadObjectIdAccess.TryGetObject<Line>(
+                    transaction, id, OpenMode.ForWrite, out var line, database) &&
+                line is not null && !line.IsErased)
+            {
+                ordinarySourceHandles.Add(line.Handle.ToString());
+                line.Visible = showPlan2D;
+            }
+        }
+
+        if (ordinarySourceHandles.Count > 0)
+        {
+            var modelSpace = (BlockTableRecord)transaction.GetObject(
+                SymbolUtilityServices.GetBlockModelSpaceId(database), OpenMode.ForRead);
+            foreach (ObjectId id in modelSpace)
+            {
+                if (id.IsErased ||
+                    !AutoCadObjectIdAccess.TryGetObject<Entity>(
+                        transaction, id, OpenMode.ForRead, out var entity, database) ||
+                    entity is null || entity.IsErased ||
+                    !RoofOwnedAnnotationSourceResolver.TryResolveSourceHandle(
+                        entity, out var sourceHandle) ||
+                    !ordinarySourceHandles.Contains(sourceHandle))
+                {
+                    continue;
+                }
+                entity.UpgradeOpen();
                 entity.Visible = showPlan2D;
             }
         }
@@ -199,6 +241,37 @@ internal static class RoofPhysical3DMaterializationService
         Database database,
         Transaction transaction,
         string ownerReference)
+        => EraseOwnedMatching(database, transaction, ownerReference, ordinaryOnly: false,
+            roofSurfaceOnly: false);
+
+    public static void EraseRoofSurfaceOwned(
+        Database database,
+        Transaction transaction,
+        string ownerReference)
+        => EraseOwnedMatching(database, transaction, ownerReference, ordinaryOnly: false,
+            roofSurfaceOnly: true);
+
+    public static void EraseOrdinaryRafterSolids(
+        Database database,
+        Transaction transaction,
+        string ownerReference)
+        => EraseOwnedMatching(database, transaction, ownerReference, ordinaryOnly: true,
+            roofSurfaceOnly: false);
+
+    public static void EraseStructuralRafterSolids(
+        Database database,
+        Transaction transaction,
+        string ownerReference)
+        => EraseOwnedMatching(database, transaction, ownerReference, ordinaryOnly: false,
+            roofSurfaceOnly: false, structuralOnly: true);
+
+    private static void EraseOwnedMatching(
+        Database database,
+        Transaction transaction,
+        string ownerReference,
+        bool ordinaryOnly,
+        bool roofSurfaceOnly,
+        bool structuralOnly = false)
     {
         foreach (var id in RoofPhysical3DGeneratedStore.FindByOwner(
                      database,
@@ -213,6 +286,16 @@ internal static class RoofPhysical3DMaterializationService
                     database) ||
                 entity is null ||
                 entity.IsErased)
+            {
+                continue;
+            }
+
+            var role = RoofPhysical3DGeneratedStore.Read(entity).Data?.Role;
+            var ordinary = role == RoofPhysical3DGeneratedRole.OrdinaryRafterSolid;
+            var structural = role == RoofPhysical3DGeneratedRole.StructuralRafterSolid;
+            if ((ordinaryOnly && !ordinary) ||
+                (roofSurfaceOnly && (ordinary || structural)) ||
+                (structuralOnly && !structural))
             {
                 continue;
             }

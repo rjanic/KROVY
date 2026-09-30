@@ -9,7 +9,12 @@ public sealed record RoofRafterCreationRequest(
     double HeightMm,
     double MaximumSpacingMm,
     string Material,
-    double RoofSlopeDegrees)
+    double RoofSlopeDegrees,
+    LowerEndCutMode LowerEndCutMode = LowerEndCutMode.Vertical,
+    RidgeJoinMode RidgeJoinMode = RidgeJoinMode.Meet,
+    double StructuralWidthMm = RoofStructuralPhysicalSettings.DefaultWidthMm,
+    RoofStructuralHeightMode StructuralHeightMode = RoofStructuralHeightMode.Automatic,
+    double StructuralExplicitHeightMm = 0d)
 {
     public RoofRafterPreferences ToPreferences() =>
         new(WidthMm, HeightMm, MaximumSpacingMm, Material);

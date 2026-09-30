@@ -260,6 +260,42 @@ public sealed class RoofWholeRoofMirrorSourceContractTests
     }
 
     [Fact]
+    public void InPlaceWholeRoofMirror_RehomesBoundaryBeforeStructuralResize_WithoutChangingCopyPath()
+    {
+        var resize = Read("RoofLiveResizeService.cs");
+        var apply = Segment(resize,
+            "private static ResizeApplyResult TryApplyResize(",
+            "private static IReadOnlyCollection<ObjectId> TryAcceptRigidGroupTransforms");
+        var structuralCount = apply.IndexOf("if (existingStructuralCount > 0)", StringComparison.Ordinal);
+        var mirrorGate = apply.IndexOf("IsMirrorCommand(globalCommandName)", structuralCount,
+            StringComparison.Ordinal);
+        var rehome = apply.IndexOf("RoofBoundaryIdentityService.RehomeForCurrentSource(",
+            mirrorGate, StringComparison.Ordinal);
+        var structural = apply.IndexOf(
+            "RoofAutomaticStructuralRafterMaterializationService.MaterializeInTransaction(",
+            rehome, StringComparison.Ordinal);
+        Assert.True(structuralCount >= 0 && mirrorGate > structuralCount &&
+                    rehome > mirrorGate && structural > rehome);
+        Assert.Contains("boundaryRehome.Identity is null", apply);
+        Assert.Contains("resize structural failure", apply);
+    }
+
+    [Fact]
+    public void InPlaceWholeRoofMirror_DoesNotFallThroughToMemberOnlySuppressionAfterResizeFailure()
+    {
+        Assert.Contains("inPlaceRoofOwners", Mirror);
+        Assert.Contains("RoofDefinitionStore.Read(modifiedOwner).Data is not null", Mirror);
+        Assert.Contains("appendedTimberIds.Count == 0 && erasedSourceHandles.Count == 0", Mirror);
+        var inPlace = Segment(Mirror,
+            "foreach (var id in mirrorModifiedTimberIds)",
+            "if (wrote || affectedOwners.Count > 0)");
+        Assert.Contains("inPlaceRoofOwners.Contains(inPlaceOwner)", inPlace);
+        Assert.Contains("inPlaceRoofOwners.Contains(inPlaceAttached.RoofOwnerReference)", inPlace);
+        Assert.True(inPlace.IndexOf("inPlaceRoofOwners.Contains(inPlaceOwner)", StringComparison.Ordinal) <
+                    inPlace.IndexOf("TryWriteSuppressOverride(", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void WholeRoofMirror_HostParityFixture_56Ordinary16Structural_IsCompleteAssembly()
     {
         Assert.True(AcKrovy.Core.Services.Roofs.RoofWholeRoofCopyIdentityRules.IsCompleteAssemblyClone(

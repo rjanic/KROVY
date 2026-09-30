@@ -22,4 +22,5 @@
   <ItemGroup>
     <ProjectReference Include="..\AcKrovy.AutoCAD\AcKrovy.AutoCAD.csproj" />
   </ItemGroup>
+
 </Project>

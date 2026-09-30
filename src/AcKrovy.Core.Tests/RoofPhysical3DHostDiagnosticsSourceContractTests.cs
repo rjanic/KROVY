@@ -23,8 +23,19 @@ public sealed class RoofPhysical3DHostDiagnosticsSourceContractTests
         Assert.DoesNotContain(".TransformBy(", code);
         Assert.DoesNotContain(".XData =", code);
         Assert.DoesNotContain(".Visible =", code);
-        Assert.Contains("_command is \"COPY\" or \"MIRROR\" or \"ERASE\" or \"AK_ROOF_EDIT\"", code);
+        Assert.Contains("_command is \"COPY\" or \"MIRROR\" or \"ERASE\" or", code);
+        Assert.Contains("\"MOVE\" or \"TRIM\" or \"EXTEND\" or \"BREAK\"", code);
+        Assert.Contains("\"GRIP_STRETCH\" or \"AK_ROOF_EDIT\"", code);
+        Assert.Contains("NATIVE_BEGIN command=", code);
+        Assert.Contains("LiveGeometryCommandRules.NormalizeCommandName(e.GlobalCommandName)", code);
+        Assert.Contains("TRACE_COMMAND raw=", code);
+        Assert.Contains("if (Observe) Write(Document, $\"NATIVE_BEGIN command=", code);
+        Assert.Contains("NATIVE_CANCEL_OR_FAIL command=", code);
         Assert.Contains("if (!Observe) return", code);
+        Assert.Contains("document.Database.ObjectAppended += Appended", code);
+        Assert.Contains("document.Database.ObjectModified += Modified", code);
+        Assert.Contains("document.Database.ObjectErased += Erased", code);
+        Assert.Contains("NATIVE_END command=", code);
         Assert.Contains("sourcePhysical=", code);
         Assert.Contains("clonePhysical=", code);
         Assert.Contains("Generation", Read("src/AcKrovy.Core/Models/Roofs/RoofPhysical3DGeneratedData.cs"));
@@ -40,5 +51,14 @@ public sealed class RoofPhysical3DHostDiagnosticsSourceContractTests
         var materialization = Read("src/AcKrovy.AutoCAD/Infrastructure/RoofPhysical3DMaterializationService.cs");
         Assert.Contains("ownerReference, \"before\"", materialization);
         Assert.Contains("ownerReference, \"after-create\"", materialization);
+    }
+
+    [Fact]
+    public void GripStructuralRestoreFailure_ReportsWhichReadOnlyProbeFailed()
+    {
+        var recovery = Read("src/AcKrovy.AutoCAD/Infrastructure/RoofUnsupportedStretchRecoveryService.cs");
+        Assert.Contains("detail: \"open-or-line-type-failure\"", recovery);
+        Assert.Contains("detail: $\"element-id-mismatch:snapshot=", recovery);
+        Assert.Contains("TryRestoreStructuralHipValleyMembersOnly", recovery);
     }
 }

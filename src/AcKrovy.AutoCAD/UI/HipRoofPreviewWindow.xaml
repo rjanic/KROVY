@@ -82,6 +82,7 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <Border x:Name="HeaderBand" Height="86" Padding="18,14"
@@ -161,7 +162,76 @@
             </StackPanel>
         </Border>
 
-        <Border x:Name="FooterBand" Grid.Row="2" Grid.RowSpan="2" Height="86" Margin="0,12,0,0"
+        <Border Grid.Row="2"
+                Margin="0,12,0,0"
+                Padding="14"
+                Style="{DynamicResource SettingsCardStyle}"
+                Visibility="{Binding SupportsPhysicalElevation, Converter={StaticResource BoolToVis}}">
+            <StackPanel>
+                <TextBlock Margin="0,0,0,10"
+                           Style="{DynamicResource SettingsSectionTitleStyle}"
+                           Text="{localization:Loc RoofHip_ElevationSection}" />
+                <StackPanel Margin="0,0,0,10" Orientation="Horizontal">
+                    <RadioButton Margin="0,0,16,0"
+                                 IsChecked="{Binding IsEaveElevationMode, Mode=TwoWay}"
+                                 GroupName="HipElevationMode"
+                                 VerticalContentAlignment="Center">
+                        <TextBlock Text="{localization:Loc RoofHip_ModeEaveElevation}" />
+                    </RadioButton>
+                    <RadioButton IsChecked="{Binding IsRidgeElevationMode, Mode=TwoWay}"
+                                 GroupName="HipElevationMode"
+                                 VerticalContentAlignment="Center">
+                        <TextBlock Text="{localization:Loc RoofHip_ModeRidgeElevation}" />
+                    </RadioButton>
+                </StackPanel>
+                <TextBlock Margin="0,0,0,5" Text="{Binding EnteredElevationLabel}" />
+                <TextBox Style="{StaticResource HipSlopeTextBoxStyle}"
+                         Text="{Binding ElevationText, UpdateSourceTrigger=PropertyChanged}" />
+                <Grid Margin="0,10,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock VerticalAlignment="Center"
+                               Text="{Binding CalculatedElevationLabel}" />
+                    <TextBlock Grid.Column="1"
+                               FontWeight="SemiBold"
+                               Text="{Binding CalculatedElevationText}" />
+                </Grid>
+                <CheckBox Margin="0,12,0,0"
+                          IsChecked="{Binding Physical3DEnabled, Mode=TwoWay}"
+                          VerticalContentAlignment="Center">
+                    <TextBlock Text="{localization:Loc RoofHip_Physical3DEnabled}"
+                               TextWrapping="Wrap" />
+                </CheckBox>
+                <StackPanel Margin="0,10,0,0"
+                            Visibility="{Binding ShowDisplayVisibilityOptions, Converter={StaticResource BoolToVis}}">
+                    <TextBlock Margin="0,0,0,6"
+                               Text="{localization:Loc RoofHip_DisplayVisibility}" />
+                    <StackPanel Orientation="Horizontal">
+                        <RadioButton Margin="0,0,14,0"
+                                     GroupName="HipDisplayVisibility"
+                                     IsChecked="{Binding IsDisplayBoth, Mode=TwoWay}"
+                                     VerticalContentAlignment="Center">
+                            <TextBlock Text="{localization:Loc RoofHip_DisplayBoth}" />
+                        </RadioButton>
+                        <RadioButton Margin="0,0,14,0"
+                                     GroupName="HipDisplayVisibility"
+                                     IsChecked="{Binding IsDisplayPlan2D, Mode=TwoWay}"
+                                     VerticalContentAlignment="Center">
+                            <TextBlock Text="{localization:Loc RoofHip_DisplayPlan2D}" />
+                        </RadioButton>
+                        <RadioButton GroupName="HipDisplayVisibility"
+                                     IsChecked="{Binding IsDisplayModel3D, Mode=TwoWay}"
+                                     VerticalContentAlignment="Center">
+                            <TextBlock Text="{localization:Loc RoofHip_DisplayModel3D}" />
+                        </RadioButton>
+                    </StackPanel>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <Border x:Name="FooterBand" Grid.Row="3" Grid.RowSpan="2" Height="86" Margin="0,12,0,0"
                 Background="{StaticResource WoodOakDarkBrush}" BorderBrush="#321708" BorderThickness="1" CornerRadius="8">
             <Grid>
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>

@@ -738,6 +738,8 @@ Le contour du toit a changé après l'enregistrement. La définition enregistré
   <data name="Command_Roof_UnsupportedStretchRecoveredNotificationBody" xml:space="preserve"><value>Le contour du toit a été restauré à la dernière forme prise en charge.</value></data>
   <data name="Command_Roof_DisplayTamperNotificationTitle" xml:space="preserve"><value>Sélectionnez le contour du toit</value></data>
   <data name="Command_Roof_DisplayTamperNotificationBody" xml:space="preserve"><value>Modifiez la forme du toit à l'aide de son contour. Les autres éléments se mettent à jour automatiquement.</value></data>
+  <data name="Command_Roof_DerivedPhysicalMoveRejected" xml:space="preserve"><value>L'élément 3D est dérivé de la 2D. Modifiez plutôt son élément en plan.</value></data>
+  <data name="Command_Roof_DerivedPhysicalMoveRecoveryFailed" xml:space="preserve"><value>L'élément 3D n'a pas pu être restauré depuis la 2D. Vérifiez le dessin ; n'enregistrez pas cette modification.</value></data>
   <data name="Command_Roof_PersistFailed" xml:space="preserve"><value>
 La définition du toit n'a pas pu être enregistrée.</value></data>
   <data name="Command_Roof_PersistSourceChanged" xml:space="preserve"><value>
@@ -825,9 +827,23 @@ Les chevrons automatiques n'ont pas pu être créés. L'opération de dessin a �
   <data name="CommandUi_RoofToggleLock_Label" xml:space="preserve"><value>Verrou</value></data>
   <data name="CommandUi_RoofToggleLock_Tooltip" xml:space="preserve"><value>Bascule le toit sélectionné entre les modes verrouillé et déverrouillé.</value></data>
   <data name="RoofRafterWindow_Title" xml:space="preserve"><value>Chevrons</value></data>
+  <data name="RoofRafterWindow_StructuralHeading" xml:space="preserve"><value>Chevron d'arêtier</value></data>
+  <data name="RoofRafterWindow_StructuralWidthMm" xml:space="preserve"><value>Largeur [mm]</value></data>
+  <data name="RoofRafterWindow_StructuralHeightMm" xml:space="preserve"><value>Hauteur [mm]</value></data>
+  <data name="RoofRafterWindow_StructuralAutomatic" xml:space="preserve"><value>calculée</value></data>
+  <data name="RoofRafterWindow_StructuralResetAutomatic" xml:space="preserve"><value>Automatique</value></data>
+  <data name="RoofRafterWindow_InvalidStructuralDimensions" xml:space="preserve"><value>Indiquez une largeur et une hauteur positives, ou rétablissez le calcul automatique.</value></data>
+  <data name="RoofRafterWindow_StructuralHeightWarningFormat" xml:space="preserve"><value>Avertissement : le chevron {0} a une hauteur imposée de {1:0.##} mm, mais la jonction exige au moins {2:0.##} mm.</value></data>
   <data name="RoofRafterWindow_Heading" xml:space="preserve"><value>Chevrons automatiques</value></data>
   <data name="RoofRafterWindow_Description" xml:space="preserve"><value>Définissez la section, l’espacement maximal et le matériau des chevrons.</value></data>
   <data name="RoofRafterWindow_WidthMm" xml:space="preserve"><value>Largeur [mm]</value></data>
+  <data name="RoofRafterWindow_LowerEndCutMode" xml:space="preserve"><value>Coupe basse du chevron</value></data>
+  <data name="RoofRafterWindow_CutVertical" xml:space="preserve"><value>Verticale</value></data>
+  <data name="RoofRafterWindow_CutPerpendicular" xml:space="preserve"><value>Perpendiculaire</value></data>
+  <data name="RoofRafterWindow_CutHorizontal" xml:space="preserve"><value>Horizontale</value></data>
+  <data name="RoofRafterWindow_RidgeJoinMode" xml:space="preserve"><value>Joint au faîtage</value></data>
+  <data name="RoofRafterWindow_JoinMeet" xml:space="preserve"><value>Rencontre sur le plan médian</value></data>
+  <data name="RoofRafterWindow_JoinOverlap" xml:space="preserve"><value>Chevauchement symétrique</value></data>
   <data name="RoofRafterWindow_HeightMm" xml:space="preserve"><value>Hauteur [mm]</value></data>
   <data name="RoofRafterWindow_MaximumSpacingMm" xml:space="preserve"><value>Espacement des chevrons [mm]</value></data>
   <data name="RoofRafterWindow_Material" xml:space="preserve"><value>Matériau</value></data>

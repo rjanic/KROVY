@@ -33,4 +33,9 @@ public sealed record RoofAbsoluteElevationState(
     double ResolvedRidgeRelativeElevationMm,
     double RiseMm,
     bool Physical3DEnabled,
-    RoofPhysicalDisplayVisibility DisplayVisibility = RoofPhysicalDisplayVisibility.Both);
+    RoofPhysicalDisplayVisibility DisplayVisibility = RoofPhysicalDisplayVisibility.Both,
+    LowerEndCutMode LowerEndCutMode = LowerEndCutMode.Vertical,
+    RidgeJoinMode RidgeJoinMode = RidgeJoinMode.Meet,
+    double StructuralWidthMm = RoofStructuralPhysicalSettings.DefaultWidthMm,
+    RoofStructuralHeightMode StructuralHeightMode = RoofStructuralHeightMode.Automatic,
+    double StructuralExplicitHeightMm = 0d);

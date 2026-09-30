@@ -14,6 +14,10 @@ public partial class RoofRafterWindow : Window
     private readonly CultureInfo _culture;
     private readonly double _minimumAutomaticSpacingMm;
     private readonly double _minimumAutomaticLengthMm;
+    private readonly Func<double, double, double, double, double?>? _automaticHeightResolver;
+    private bool _structuralAutomaticMode;
+    private bool _updatingStructuralHeightText;
+    private double? _resolvedAutomaticHeight;
     private RoofRafterRequestValidationResult? _currentValidation;
     private RoofFaceRafterLayout? _currentHipPreviewLayout;
     private bool _initialized;
@@ -25,7 +29,10 @@ public partial class RoofRafterWindow : Window
         SettingsTheme theme,
         CultureInfo? culture = null,
         double minimumAutomaticLengthMm =
-            RoofRafterLengthRules.DefaultMinimumAutomaticLengthMm)
+            RoofRafterLengthRules.DefaultMinimumAutomaticLengthMm,
+        RoofAutomaticRafterPhysicalSettings? physicalSettings = null,
+        RoofPhysicalElevationData? structuralSettings = null,
+        Func<double, double, double, double, double?>? automaticHeightResolver = null)
     {
         ArgumentNullException.ThrowIfNull(geometry);
         ArgumentNullException.ThrowIfNull(preferences);
@@ -44,6 +51,9 @@ public partial class RoofRafterWindow : Window
         _minimumAutomaticSpacingMm = minimumAutomaticSpacingMm;
         _minimumAutomaticLengthMm = minimumAutomaticLengthMm;
         _culture = culture ?? AppLanguageService.CurrentUiCulture;
+        _automaticHeightResolver = automaticHeightResolver;
+        _structuralAutomaticMode = structuralSettings?.StructuralHeightMode !=
+            RoofStructuralHeightMode.Explicit;
         MaterialOptions = TimberMaterialDisplayNameProvider.GetOptions(
             preferences.Material,
             _culture);
@@ -53,6 +63,24 @@ public partial class RoofRafterWindow : Window
         WidthTextBox.Text = FormatInput(preferences.WidthMm);
         HeightTextBox.Text = FormatInput(preferences.HeightMm);
         MaximumSpacingTextBox.Text = FormatInput(preferences.MaximumSpacingMm);
+        StructuralSection.Visibility = geometry is HipRoofGeometry
+            ? Visibility.Visible : Visibility.Collapsed;
+        StructuralWidthTextBox.Text = FormatInput(
+            structuralSettings?.StructuralWidthMm ??
+                RoofStructuralPhysicalSettings.DefaultWidthMm);
+        StructuralHeightTextBox.Text = !_structuralAutomaticMode
+            ? FormatInput(structuralSettings?.StructuralExplicitHeightMm ?? 0d)
+            : string.Empty;
+        var cutMode = physicalSettings?.LowerEndCutMode ?? LowerEndCutMode.Vertical;
+        var joinMode = physicalSettings?.RidgeJoinMode ?? RidgeJoinMode.Meet;
+        LowerEndCutComboBox.SelectedItem = LowerEndCutComboBox.Items
+            .OfType<ComboBoxItem>()
+            .First(item => string.Equals(item.Tag as string, cutMode.ToString(),
+                StringComparison.Ordinal));
+        RidgeJoinComboBox.SelectedItem = RidgeJoinComboBox.Items
+            .OfType<ComboBoxItem>()
+            .First(item => string.Equals(item.Tag as string, joinMode.ToString(),
+                StringComparison.Ordinal));
         RoofSlopeTextBox.Text = geometry is SimpleGableRoofGeometry
             { Kind: RoofKind.AsymmetricGable } gableGeometry
             ? UiStrings.Format(
@@ -80,8 +108,14 @@ public partial class RoofRafterWindow : Window
 
     private string FormatInput(double value) => value.ToString("0.###", _culture);
 
-    private void Input_Changed(object sender, TextChangedEventArgs e) =>
+    private void Input_Changed(object sender, TextChangedEventArgs e)
+    {
+        if (_updatingStructuralHeightText) return;
+        if (ReferenceEquals(sender, StructuralHeightTextBox) &&
+            _initialized)
+            _structuralAutomaticMode = false;
         UpdateValidationAndSummary();
+    }
 
     private void Input_Changed(object sender, SelectionChangedEventArgs e) =>
         UpdateValidationAndSummary();
@@ -152,8 +186,27 @@ public partial class RoofRafterWindow : Window
         }
 
         _currentValidation = validation;
-        CreateButton.IsEnabled = validation.IsValid;
-        ValidationTextBlock.Text = validation.Error ==
+        if (_geometry is HipRoofGeometry && _structuralAutomaticMode)
+        {
+            var structuralWidth = ParseNumber(StructuralWidthTextBox.Text);
+            _resolvedAutomaticHeight = validation.IsValid &&
+                !double.IsNaN(structuralWidth) && structuralWidth > 0d
+                ? _automaticHeightResolver?.Invoke(width, height, spacing, structuralWidth)
+                : null;
+            _updatingStructuralHeightText = true;
+            try
+            {
+                StructuralHeightTextBox.Text = _resolvedAutomaticHeight is { } resolved &&
+                    double.IsFinite(resolved) && resolved > 0d
+                    ? resolved.ToString("0.0", _culture) : string.Empty;
+            }
+            finally { _updatingStructuralHeightText = false; }
+        }
+        var structuralValid = TryReadStructuralSettings(out _, out _, out _);
+        CreateButton.IsEnabled = validation.IsValid && structuralValid;
+        ValidationTextBlock.Text = validation.IsValid && !structuralValid
+            ? UiStrings.GetString("RoofRafterWindow_InvalidStructuralDimensions", _culture)
+            : validation.Error ==
                                    RoofRafterRequestValidationError.InvalidMaximumSpacing
             ? UiStrings.Format(
                 UiStrings.GetString(
@@ -190,6 +243,34 @@ public partial class RoofRafterWindow : Window
         return double.NaN;
     }
 
+    private bool TryReadStructuralSettings(out double width,
+        out RoofStructuralHeightMode heightMode, out double explicitHeight)
+    {
+        width = RoofStructuralPhysicalSettings.DefaultWidthMm;
+        heightMode = RoofStructuralHeightMode.Automatic;
+        explicitHeight = 0d;
+        if (_geometry is not HipRoofGeometry) return true;
+        width = ParseNumber(StructuralWidthTextBox.Text);
+        if (double.IsNaN(width) || double.IsInfinity(width) || width <= 0d)
+            return false;
+        if (_structuralAutomaticMode)
+            return _resolvedAutomaticHeight is { } resolved &&
+                double.IsFinite(resolved) && resolved > 0d;
+        var text = StructuralHeightTextBox.Text.Trim();
+        explicitHeight = ParseNumber(text);
+        if (double.IsNaN(explicitHeight) || double.IsInfinity(explicitHeight) ||
+            explicitHeight <= 0d)
+            return false;
+        heightMode = RoofStructuralHeightMode.Explicit;
+        return true;
+    }
+
+    private void StructuralAutomaticButton_Click(object sender, RoutedEventArgs e)
+    {
+        _structuralAutomaticMode = true;
+        UpdateValidationAndSummary();
+    }
+
     private static string ValidationKey(RoofRafterRequestValidationError error) => error switch
     {
         RoofRafterRequestValidationError.InvalidWidth => "RoofRafterWindow_InvalidWidth",
@@ -203,12 +284,28 @@ public partial class RoofRafterWindow : Window
     private void CreateButton_Click(object sender, RoutedEventArgs e)
     {
         UpdateValidationAndSummary();
-        if (_currentValidation?.IsValid != true)
+        if (_currentValidation?.IsValid != true ||
+            !TryReadStructuralSettings(out var structuralWidth,
+                out var structuralHeightMode, out var explicitHeight))
         {
             return;
         }
 
-        Request = _currentValidation.Request;
+        var cut = (LowerEndCutComboBox.SelectedItem as ComboBoxItem)?.Tag as string;
+        var join = (RidgeJoinComboBox.SelectedItem as ComboBoxItem)?.Tag as string;
+        if (!Enum.TryParse(cut, out LowerEndCutMode cutMode) ||
+            !Enum.TryParse(join, out RidgeJoinMode joinMode))
+        {
+            return;
+        }
+        Request = _currentValidation.Request! with
+        {
+            LowerEndCutMode = cutMode,
+            RidgeJoinMode = joinMode,
+            StructuralWidthMm = structuralWidth,
+            StructuralHeightMode = structuralHeightMode,
+            StructuralExplicitHeightMm = explicitHeight,
+        };
         DialogResult = true;
     }
 }

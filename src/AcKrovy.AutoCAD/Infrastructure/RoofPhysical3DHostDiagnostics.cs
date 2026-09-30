@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Text.Json;
 using AcKrovy.AutoCAD.Diagnostics;
 using AcKrovy.Core.Models.Roofs;
+using AcKrovy.Core.Services;
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.Geometry;
@@ -118,7 +119,16 @@ internal static class RoofPhysical3DHostDiagnostics
             }
             if (string.Equals(RoofDisplayStore.Read(entity).OwnerReference, owner, StringComparison.OrdinalIgnoreCase)) displayCount++;
         }
-        Write(document, $"OWNER_COUNTS phase={phase} owner={owner} sourceLive={sourceLive} faces={children.Count(c => c.Role == RoofPhysical3DGeneratedRole.Face)} eaves={children.Count(c => c.Role == RoofPhysical3DGeneratedRole.EaveEdge)} hips={children.Count(c => c.Role == RoofPhysical3DGeneratedRole.HipEdge)} ridges={children.Count(c => c.Role == RoofPhysical3DGeneratedRole.RidgeEdge)} total={children.Count} display={displayCount} uniqueKeys={children.Select(c => (c.Role, c.StructuralId)).Distinct().Count() == children.Count} signatures={string.Join("|", children.Select(c => c.GenerationSignature).Distinct())} handles={string.Join("|", handles)}");
+        var roofSurfaceTotal = children.Count(c => c.Role is
+            RoofPhysical3DGeneratedRole.Face or RoofPhysical3DGeneratedRole.EaveEdge or
+            RoofPhysical3DGeneratedRole.HipEdge or RoofPhysical3DGeneratedRole.RidgeEdge);
+        var hipRafterSolids = children.Count(c => c.Role ==
+            RoofPhysical3DGeneratedRole.StructuralRafterSolid &&
+            c.StructuralId.StartsWith("Hip|", StringComparison.Ordinal));
+        var valleyRafterSolids = children.Count(c => c.Role ==
+            RoofPhysical3DGeneratedRole.StructuralRafterSolid &&
+            c.StructuralId.StartsWith("Valley|", StringComparison.Ordinal));
+        Write(document, $"OWNER_COUNTS phase={phase} owner={owner} sourceLive={sourceLive} faces={children.Count(c => c.Role == RoofPhysical3DGeneratedRole.Face)} eaves={children.Count(c => c.Role == RoofPhysical3DGeneratedRole.EaveEdge)} hips={children.Count(c => c.Role == RoofPhysical3DGeneratedRole.HipEdge)} ridges={children.Count(c => c.Role == RoofPhysical3DGeneratedRole.RidgeEdge)} ordinarySolids={children.Count(c => c.Role == RoofPhysical3DGeneratedRole.OrdinaryRafterSolid)} hipRafterSolids={hipRafterSolids} valleyRafterSolids={valleyRafterSolids} roofSurfaceTotal={roofSurfaceTotal} combinedPhysicalTotal={children.Count} total={children.Count} display={displayCount} uniqueKeys={children.Select(c => (c.Role, c.StructuralId)).Distinct().Count() == children.Count} signatures={string.Join("|", children.Select(c => c.GenerationSignature).Distinct())} handles={string.Join("|", handles)}");
         // Separate dictionary aliases/repeated listings from genuinely distinct groups.
         var dictionary = (DBDictionary)transaction.GetObject(database.GroupDictionaryId, OpenMode.ForRead);
         var listedGroups = new HashSet<ObjectId>();
@@ -171,8 +181,31 @@ internal static class RoofPhysical3DHostDiagnostics
                     var key = physical.Data.RoofOwnerReference + ":" + physical.Data.Role;
                     ownerReferences.Add(physical.Data.RoofOwnerReference);
                     counts[key] = counts.TryGetValue(key, out var count) ? count + 1 : 1;
+                    if (physical.Data.Role == RoofPhysical3DGeneratedRole.StructuralRafterSolid)
+                    {
+                        var parts = physical.Data.GenerationSignature.Split('|');
+                        var width = 0d;
+                        var height = 0d;
+                        var mode = RoofStructuralHeightMode.Automatic;
+                        var valid = parts.Length == 4 && parts[0] == "StructuralPhysical1" &&
+                            double.TryParse(parts[1], NumberStyles.Float,
+                                CultureInfo.InvariantCulture, out width) &&
+                            double.TryParse(parts[2], NumberStyles.Float,
+                                CultureInfo.InvariantCulture, out height) &&
+                            Enum.TryParse(parts[3], out mode);
+                        var timberType = physical.Data.StructuralId.StartsWith("Hip|",
+                            StringComparison.Ordinal) ? "HipRafter" :
+                            physical.Data.StructuralId.StartsWith("Valley|",
+                                StringComparison.Ordinal) ? "ValleyRafter" : "invalid";
+                        Write(document,
+                            $"STRUCTURAL_SOLID phase={phase} owner={physical.Data.RoofOwnerReference} structuralKey={physical.Data.StructuralId} timberType={timberType} widthMm={(valid ? width.ToString("R", CultureInfo.InvariantCulture) : "invalid")} heightMode={(valid ? mode.ToString() : "invalid")} resolvedHeightMm={(valid ? height.ToString("R", CultureInfo.InvariantCulture) : "invalid")} handle={entity.Handle} metadataValid={valid}");
+                    }
                 }
             }
+            if (entity is Line structuralLine &&
+                RoofStructuralGeneratedStore.Read(structuralLine).Data is { } structuralData)
+                Write(document,
+                    $"STRUCTURAL_REFERENCE phase={phase} owner={structuralData.RoofOwnerReference} structuralKey={structuralData.LogicalKey} handle={entity.Handle} start={Point(structuralLine.StartPoint)} end={Point(structuralLine.EndPoint)} planZZero={Math.Abs(structuralLine.StartPoint.Z) <= 1e-6 && Math.Abs(structuralLine.EndPoint.Z) <= 1e-6}");
             if (display.Exists)
             {
                 if (display.OwnerReference is not null) ownerReferences.Add(display.OwnerReference);
@@ -236,7 +269,17 @@ internal static class RoofPhysical3DHostDiagnostics
         public bool Enabled { get; set; }
         public HashSet<string> KnownOwners { get; } = new(StringComparer.OrdinalIgnoreCase);
         private string _command = string.Empty;
-        private bool Observe => Enabled && (_command is "COPY" or "MIRROR" or "ERASE" or "AK_ROOF_EDIT");
+        private int _nativeEventCount;
+        private Dictionary<string, (string Owner, Point3d Center, double Volume)> _moveSolids =
+            new(StringComparer.OrdinalIgnoreCase);
+        private bool Observe => Enabled && (_command is "COPY" or "MIRROR" or "ERASE" or
+            "MOVE" or "TRIM" or "EXTEND" or "BREAK" or "STRETCH" or
+            "GRIP_STRETCH" or "AK_ROOF_EDIT");
+        // Keep the existing whole-roof snapshots on their proven commands. The
+        // additional member-edit probes need native event order, not hundreds of
+        // unrelated roof entities in every CommandWillStart/CommandEnded audit.
+        private bool ObserveFullAudit => Observe && (_command is "COPY" or "MIRROR" or
+            "ERASE" or "STRETCH" or "GRIP_STRETCH" or "AK_ROOF_EDIT");
         public Tracker(Document document)
         {
             Document = document;
@@ -245,25 +288,112 @@ internal static class RoofPhysical3DHostDiagnostics
             document.CommandCancelled += Cancelled;
             document.CommandFailed += Cancelled;
             document.Database.BeginDeepCloneTranslation += Mapping;
+            document.Database.ObjectAppended += Appended;
+            document.Database.ObjectModified += Modified;
+            document.Database.ObjectErased += Erased;
         }
         private void WillStart(object? sender, CommandEventArgs e)
         {
-            _command = e.GlobalCommandName.ToUpperInvariant();
+            _command = LiveGeometryCommandRules.NormalizeCommandName(e.GlobalCommandName)
+                .ToUpperInvariant();
+            _nativeEventCount = 0;
             KnownOwners.Clear();
-            if (Observe) Audit(Document, "CommandWillStart:" + _command);
+            if (Enabled && (_command is "MOVE" or "GRIP_STRETCH"))
+                Write(Document, $"TRACE_COMMAND raw={e.GlobalCommandName} normalized={_command} enabled=True");
+            _moveSolids = _command == "MOVE" && Enabled
+                ? CaptureOwnedSolidMass() : new(StringComparer.OrdinalIgnoreCase);
+            if (Observe) Write(Document, $"NATIVE_BEGIN command={_command}");
+            if (ObserveFullAudit) Audit(Document, "CommandWillStart:" + _command);
         }
         private void Ended(object? sender, CommandEventArgs e)
         {
             // Registered before the production tracker: this is the native result,
             // before KROVY CommandEnded maintenance. Manual AUDIT records the final result.
-            if (Observe) Audit(Document, "CommandEnded-before-maintenance:" + _command);
+            if (Observe)
+            {
+                Write(Document, $"NATIVE_END command={_command} eventCount={_nativeEventCount}");
+                if (_command == "MOVE") CompareOwnedSolidMass();
+                if (ObserveFullAudit)
+                    Audit(Document, "CommandEnded-before-maintenance:" + _command);
+            }
             _command = string.Empty;
+            _moveSolids.Clear();
         }
-        private void Cancelled(object? sender, CommandEventArgs e) => _command = string.Empty;
+        private void Cancelled(object? sender, CommandEventArgs e)
+        {
+            if (Observe)
+                Write(Document, $"NATIVE_CANCEL_OR_FAIL command={_command} eventCount={_nativeEventCount}");
+            _command = string.Empty;
+            _moveSolids.Clear();
+        }
+        private Dictionary<string, (string Owner, Point3d Center, double Volume)>
+            CaptureOwnedSolidMass()
+        {
+            var result = new Dictionary<string, (string, Point3d, double)>(
+                StringComparer.OrdinalIgnoreCase);
+            try
+            {
+                using var transaction = Document.Database.TransactionManager.StartTransaction();
+                var model = (BlockTableRecord)transaction.GetObject(
+                    SymbolUtilityServices.GetBlockModelSpaceId(Document.Database),
+                    OpenMode.ForRead);
+                foreach (ObjectId id in model)
+                {
+                    if (id.IsErased ||
+                        transaction.GetObject(id, OpenMode.ForRead) is not Solid3d solid ||
+                        RoofPhysical3DGeneratedStore.Read(solid).Data is not { } data)
+                        continue;
+                    try
+                    {
+                        var mass = solid.MassProperties;
+                        result[solid.Handle.ToString()] =
+                            (data.RoofOwnerReference, mass.Centroid, mass.Volume);
+                    }
+                    catch (Autodesk.AutoCAD.Runtime.Exception) { }
+                }
+            }
+            catch (System.Exception ex)
+            {
+                Write(Document, $"MOVE_SNAPSHOT_FAILED phase=before error={ex.GetType().Name}");
+            }
+            return result;
+        }
+        private void CompareOwnedSolidMass()
+        {
+            var after = CaptureOwnedSolidMass();
+            var changed = 0;
+            foreach (var pair in _moveSolids)
+            {
+                if (!after.TryGetValue(pair.Key, out var current)) continue;
+                if (pair.Value.Center.DistanceTo(current.Center) <= 1e-6 &&
+                    Math.Abs(pair.Value.Volume - current.Volume) <= 1e-6) continue;
+                changed++;
+                Write(Document,
+                    $"MOVE_SOLID_DELTA owner={pair.Value.Owner} handle={pair.Key} beforeCenter={Point(pair.Value.Center)} afterCenter={Point(current.Center)} beforeVolume={pair.Value.Volume:R} afterVolume={current.Volume:R}");
+            }
+            Write(Document, $"MOVE_SOLID_SUMMARY before={_moveSolids.Count} after={after.Count} changed={changed} nativeEvents={_nativeEventCount}");
+        }
+        private void Appended(object? sender, ObjectEventArgs e) =>
+            NativeEvent("ObjectAppended", e.DBObject);
+        private void Modified(object? sender, ObjectEventArgs e) =>
+            NativeEvent("ObjectModified", e.DBObject);
+        private void Erased(object? sender, ObjectErasedEventArgs e) =>
+            NativeEvent(e.Erased ? "ObjectErased" : "ObjectUnerased", e.DBObject);
+        private void NativeEvent(string kind, DBObject entity)
+        {
+            if (!Observe) return;
+            _nativeEventCount++;
+            // Keep member evidence even when a GRIP command modifies many annotations.
+            if (_nativeEventCount <= 200 || entity is Line or Solid3d)
+                Write(Document, $"NATIVE_EVENT command={_command} seq={_nativeEventCount} kind={kind} handle={entity.Handle} type={entity.GetType().Name}");
+            else if (_nativeEventCount == 201)
+                Write(Document, $"NATIVE_EVENT command={_command} truncatedAfter=200");
+        }
         private void Mapping(object? sender, IdMappingEventArgs e)
         {
             if (!Observe) return; // In particular, zero DB access on U/UNDO/REDO/MREDO.
             if (_command is not ("COPY" or "MIRROR")) return;
+            Write(Document, $"NATIVE_MAP command={_command} afterEvent={_nativeEventCount}");
             try
             {
                 using var transaction = Document.Database.TransactionManager.StartTransaction();
@@ -288,6 +418,9 @@ internal static class RoofPhysical3DHostDiagnostics
             Document.CommandCancelled -= Cancelled;
             Document.CommandFailed -= Cancelled;
             Document.Database.BeginDeepCloneTranslation -= Mapping;
+            Document.Database.ObjectAppended -= Appended;
+            Document.Database.ObjectModified -= Modified;
+            Document.Database.ObjectErased -= Erased;
         }
     }
 }

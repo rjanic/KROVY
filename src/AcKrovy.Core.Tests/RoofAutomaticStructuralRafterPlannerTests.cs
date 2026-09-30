@@ -64,7 +64,7 @@ public sealed class RoofAutomaticStructuralRafterPlannerTests
 
         Assert.All(plan.Items.Where(item => item.ElementType is TimberElementType.HipRafter or TimberElementType.ValleyRafter), item =>
         {
-            Assert.Equal(80d, item.TimberData.WidthMm);
+            Assert.Equal(120d, item.TimberData.WidthMm);
             Assert.Equal(160d, item.TimberData.HeightMm);
             Assert.Equal(100d, item.TimberData.CuttingAllowanceMm);
         });
@@ -85,6 +85,26 @@ public sealed class RoofAutomaticStructuralRafterPlannerTests
             plan.Items,
             item => item.ElementType == TimberElementType.HipRafter &&
                 Math.Abs(item.TimberData.SlopeDegrees - expectedHipSlope) < 1e-3);
+    }
+
+    [Fact]
+    public void OwnerStructuralWidth_DrivesBothHipAndValleyLineMetadata()
+    {
+        var resolution = Resolve(Points(
+            (0, 0), (8000, 0), (8000, 3000),
+            (3000, 3000), (3000, 8000), (0, 8000)));
+        var ownerState = RoofPhysicalElevationRules.MissingStoreDefault(1000d) with
+        {
+            StructuralWidthMm = 180d,
+        };
+
+        var plan = RoofAutomaticStructuralRafterPlanner.Create(
+            resolution, ownerPhysicalState: ownerState);
+
+        Assert.True(plan.IsValid);
+        Assert.Contains(plan.Items, item => item.ElementType == TimberElementType.HipRafter);
+        Assert.Contains(plan.Items, item => item.ElementType == TimberElementType.ValleyRafter);
+        Assert.All(plan.Items, item => Assert.Equal(180d, item.TimberData.WidthMm));
     }
 
     [Fact]

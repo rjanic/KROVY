@@ -10,5 +10,6 @@ public enum RoofEraseMappedKind
     Source = 1,
     Display = 2,
     GeneratedTimber = 3,
-    GeneratedAnnotation = 4
+    GeneratedAnnotation = 4,
+    DerivedPhysical3D = 5
 }

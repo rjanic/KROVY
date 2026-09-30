@@ -12,10 +12,17 @@ public static class RoofPhysicalElevationRules
         double resolvedEaveRelativeElevationMm,
         bool physical3DEnabled,
         RoofPhysicalDisplayVisibility displayVisibility =
-            RoofPhysicalDisplayVisibility.Both)
+            RoofPhysicalDisplayVisibility.Both,
+        LowerEndCutMode lowerEndCutMode = LowerEndCutMode.Vertical,
+        RidgeJoinMode ridgeJoinMode = RidgeJoinMode.Meet,
+        double structuralWidthMm = RoofStructuralPhysicalSettings.DefaultWidthMm,
+        RoofStructuralHeightMode structuralHeightMode = RoofStructuralHeightMode.Automatic,
+        double structuralExplicitHeightMm = 0d)
     {
         if (schemaVersion is not (
                 RoofPhysicalElevationSchema.Version1 or
+                RoofPhysicalElevationSchema.Version2 or
+                RoofPhysicalElevationSchema.Version3 or
                 RoofPhysicalElevationSchema.CurrentVersion))
         {
             return Invalid(RoofPhysicalElevationError.UnsupportedSchemaVersion);
@@ -29,6 +36,33 @@ public static class RoofPhysicalElevationRules
         if (!Enum.IsDefined(typeof(RoofPhysicalDisplayVisibility), displayVisibility))
         {
             return Invalid(RoofPhysicalElevationError.UnsupportedDisplayVisibility);
+        }
+
+        if (!Enum.IsDefined(typeof(LowerEndCutMode), lowerEndCutMode))
+        {
+            return Invalid(RoofPhysicalElevationError.UnsupportedLowerEndCutMode);
+        }
+        if (!Enum.IsDefined(typeof(RidgeJoinMode), ridgeJoinMode))
+        {
+            return Invalid(RoofPhysicalElevationError.UnsupportedRidgeJoinMode);
+        }
+
+        if (!IsFinite(structuralWidthMm) || structuralWidthMm <= 0d)
+        {
+            return Invalid(RoofPhysicalElevationError.InvalidStructuralWidth);
+        }
+
+        if (!Enum.IsDefined(typeof(RoofStructuralHeightMode), structuralHeightMode))
+        {
+            return Invalid(RoofPhysicalElevationError.UnsupportedStructuralHeightMode);
+        }
+
+        if (!IsFinite(structuralExplicitHeightMm) ||
+            structuralExplicitHeightMm < 0d ||
+            (structuralHeightMode == RoofStructuralHeightMode.Explicit &&
+             structuralExplicitHeightMm == 0d))
+        {
+            return Invalid(RoofPhysicalElevationError.InvalidStructuralExplicitHeight);
         }
 
         if (!IsFinite(enteredRelativeElevationMm))
@@ -61,7 +95,12 @@ public static class RoofPhysicalElevationRules
                 enteredRelativeElevationMm,
                 resolvedEaveRelativeElevationMm,
                 physical3DEnabled,
-                visibility),
+                visibility,
+                lowerEndCutMode,
+                ridgeJoinMode,
+                structuralWidthMm,
+                structuralHeightMode,
+                structuralExplicitHeightMm),
             RoofPhysicalElevationError.None);
     }
 
@@ -78,7 +117,12 @@ public static class RoofPhysicalElevationRules
             state.EnteredRelativeElevationMm,
             state.ResolvedEaveRelativeElevationMm,
             state.Physical3DEnabled,
-            state.DisplayVisibility);
+            state.DisplayVisibility,
+            state.LowerEndCutMode,
+            state.RidgeJoinMode,
+            state.StructuralWidthMm,
+            state.StructuralHeightMode,
+            state.StructuralExplicitHeightMm);
         if (validated.Data is null)
         {
             throw new ArgumentException(
@@ -130,7 +174,12 @@ public static class RoofPhysicalElevationRules
             ridge,
             riseMm,
             data.Physical3DEnabled,
-            visibility);
+            visibility,
+            data.LowerEndCutMode,
+            data.RidgeJoinMode,
+            data.StructuralWidthMm,
+            data.StructuralHeightMode,
+            data.StructuralExplicitHeightMm);
     }
 
     public static RoofAbsoluteElevationState MissingStoreDefault(double riseMm) =>

@@ -79,7 +79,7 @@ public static class TimberElementDefaults
             },
             TimberElementType.HipRafter => common with
             {
-                WidthMm = 80,
+                WidthMm = 120,
                 HeightMm = 160,
                 SlopeDegrees = 0,
             },

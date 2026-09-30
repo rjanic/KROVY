@@ -19,6 +19,8 @@ public enum RoofPhysical3DGeneratedRole
     RidgeEdge = 1,
     HipEdge = 2,
     EaveEdge = 3,
+    OrdinaryRafterSolid = 4,
+    StructuralRafterSolid = 5,
 }
 
 /// <summary>One planar upper-rafter roof face in physical WCS millimetres.</summary>

@@ -30,6 +30,41 @@ public sealed class RoofAssemblyGroupMembershipRulesTests
     }
 
     [Fact]
+    public void PhysicalEraseRecovery_RemovesOnlyExactSurplusSlot_AndRepeatsWithoutGrowth()
+    {
+        var expected = new HashSet<string>(["Owner", "Display", "Solid", "Other"]);
+        var actual = new List<string>(expected);
+        for (var cycle = 0; cycle < 2; cycle++)
+        {
+            // Native un-erase can reattach Solid after a provisional group sync.
+            actual.Add("Solid");
+            var surplus = RoofAssemblyGroupMembershipRules
+                .SurplusOrForeignMemberIndices(actual, expected);
+            Assert.Single(surplus);
+            foreach (var index in surplus.OrderByDescending(index => index))
+                actual.RemoveAt(index);
+            Assert.True(RoofAssemblyGroupMembershipRules.IsCanonicalMembership(
+                actual, expected));
+            Assert.Equal(1, actual.Count(id => id == "Solid"));
+            Assert.Equal(actual.Count, actual.Distinct().Count());
+        }
+    }
+
+    [Fact]
+    public void ExactSlotRepair_RemovesForeignAndDuplicate_WithoutAppendOfPresentMember()
+    {
+        var expected = new HashSet<string>(["Owner", "Solid", "Other"]);
+        var actual = new List<string> { "Owner", "Solid", "Foreign", "Solid", "Other" };
+        var indices = RoofAssemblyGroupMembershipRules
+            .SurplusOrForeignMemberIndices(actual, expected);
+        Assert.Equal([2, 3], indices);
+        foreach (var index in indices.OrderByDescending(index => index))
+            actual.RemoveAt(index);
+        Assert.True(RoofAssemblyGroupMembershipRules.IsCanonicalMembership(
+            actual, expected));
+    }
+
+    [Fact]
     public void Plan_RemovesDuplicateObjectIdsAndAppendsMissing()
     {
         var plan = RoofAssemblyGroupMembershipRules.PlanCanonicalization(

@@ -112,6 +112,41 @@ public sealed class RoofAbsoluteElevationRulesTests
         Assert.Equal(6000d, state.ResolvedRidgeRelativeElevationMm, 12);
     }
 
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void LegacyElevationSchemas_UseApprovedRafterDefaults(int schema)
+    {
+        var validated = RoofPhysicalElevationRules.Validate(
+            schema, RoofAbsoluteElevationInputMode.Eave, 3000d, 3000d, true);
+        Assert.True(validated.IsValid);
+        var state = RoofPhysicalElevationRules.ToState(validated.Data!, 3000d);
+        Assert.Equal(LowerEndCutMode.Vertical, state.LowerEndCutMode);
+        Assert.Equal(RidgeJoinMode.Meet, state.RidgeJoinMode);
+    }
+
+    [Fact]
+    public void RafterCutAndJoinModes_SurviveElevationRecalculationAndStateRoundTrip()
+    {
+        var state = RoofAbsoluteElevationRules.FromEntered(
+            RoofAbsoluteElevationInputMode.Eave, 3000d, 3000d, 45d, true) with
+        {
+            LowerEndCutMode = LowerEndCutMode.Horizontal,
+            RidgeJoinMode = RidgeJoinMode.Overlap,
+        };
+        state = RoofAbsoluteElevationRules.SwitchMode(
+            state, RoofAbsoluteElevationInputMode.Ridge);
+        state = RoofAbsoluteElevationRules.RecalculateForGeometry(state, 3500d, 45d);
+        var stored = RoofPhysicalElevationRules.CreateFromState(state);
+        var restored = RoofPhysicalElevationRules.ToState(stored, state.RiseMm);
+
+        Assert.Equal(RoofPhysicalElevationSchema.CurrentVersion, stored.SchemaVersion);
+        Assert.Equal(LowerEndCutMode.Horizontal, restored.LowerEndCutMode);
+        Assert.Equal(RidgeJoinMode.Overlap, restored.RidgeJoinMode);
+        Assert.Equal(state.ResolvedEaveRelativeElevationMm,
+            restored.ResolvedEaveRelativeElevationMm, 6);
+    }
+
     [Fact]
     public void FormatMetres_ExactZeroUsesPlusMinus()
     {

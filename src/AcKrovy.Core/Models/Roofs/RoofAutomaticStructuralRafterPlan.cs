@@ -3,8 +3,9 @@ using AcKrovy.Core.Models;
 namespace AcKrovy.Core.Models.Roofs;
 
 /// <summary>
-/// One desired automatic Hip/Valley rafter. Segment3D is the single geometric
-/// authority for both persisted Line endpoints and source length.
+/// One desired automatic Hip/Valley rafter. Segment3D is topology-derived
+/// physical geometry and true length; the persisted reference Line uses only
+/// its XY projection at Z=0, independently of physical elevation.
 /// </summary>
 public sealed record RoofAutomaticStructuralRafterPlanItem(
     RoofStructuralLogicalKey LogicalKey,
@@ -21,6 +22,7 @@ public enum RoofAutomaticStructuralRafterPlanError
     InvalidStructuralResolution,
     UnsupportedStructuralRole,
     InvalidStructuralLength,
+    InvalidStructuralWidth,
     DuplicateLogicalKey,
 }
 

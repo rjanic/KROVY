@@ -394,7 +394,7 @@ internal static class RoofGeneratedRafterSetService
                 definition);
             replayPlan = RoofGeneratedMemberReplayPlanner.Create(
                 layoutResult.Layout,
-                RoofPolylineExtractor.GetSourceElevation(owner),
+                0d,
                 RoofGeneratedMemberOverrideRules.SourceWorkingPlaneNormal,
                 definition?.Overrides);
             if (!replayPlan.IsValid)
@@ -423,7 +423,7 @@ internal static class RoofGeneratedRafterSetService
                 editor,
                 ownerReference,
                 layoutResult.Layout,
-                RoofPolylineExtractor.GetSourceElevation(owner),
+                0d,
                 replayPlan);
             RoofGeneratedMemberManualEditDiag.WriteReplay(
                 editor,
@@ -446,7 +446,7 @@ internal static class RoofGeneratedRafterSetService
                 transaction,
                 created.Keys.ToArray(),
                 layoutResult.Layout,
-                RoofPolylineExtractor.GetSourceElevation(owner),
+                0d,
                 definition?.Overrides,
                 out anchorResolutionContext);
 #if DEBUG
@@ -568,7 +568,8 @@ internal static class RoofGeneratedRafterSetService
         bool syncAssemblyGroup = true)
     {
 
-        var sourceElevation = RoofPolylineExtractor.GetSourceElevation(owner);
+        // Ordinary plan axes are independent of the roof's physical elevation.
+        var sourceElevation = 0d;
         var storedOverrides = RoofDefinitionStore.Read(owner).Data?.Overrides;
         var planeNormal = RoofGeneratedMemberOverrideRules.SourceWorkingPlaneNormal;
         RoofGeneratedMemberReplayPlan replayPlan;
@@ -749,6 +750,17 @@ internal static class RoofGeneratedRafterSetService
             throw new RoofRafterMaterializationPhaseException(phase, -1, ex);
         }
         var document = editor.Document;
+        RoofOrdinaryRafterSolidMaterializationService.ReconcileInTransaction(
+            database, transaction, owner, geometry, layout, recipe, replayPlan,
+            structuralReconcilePending: true);
+        var physicalState = RoofPhysicalElevationStore.Read(owner).Data;
+        if (physicalState is not null)
+        {
+            RoofPhysical3DMaterializationService.ApplyOwnedVisibility(
+                database, transaction, ownerReference,
+                physicalState.Physical3DEnabled,
+                physicalState.DisplayVisibility);
+        }
         if (!syncAssemblyGroup)
         {
             return new MaterializationResult(created, replayPlan);

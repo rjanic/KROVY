@@ -161,7 +161,9 @@ public sealed class MonopitchRoofStage1SourceContractTests
 
         Assert.Contains("IRoofGeometry geometry", preview);
         Assert.Contains("RoofDisplayEdgeRole.MonopitchDirection", preview);
-        Assert.Contains("RoofWireframe.Create", display);
+        Assert.True(
+            display.Contains("RoofWireframe.Create", StringComparison.Ordinal) ||
+            display.Contains("CreateOwnedDisplayEdges", StringComparison.Ordinal));
         Assert.Contains("MonopitchRoofWireframe.Create", dispatch);
     }
 

@@ -134,9 +134,12 @@ internal static class RoofAutomaticStructuralRafterMaterializationService
         var structuralResolution = RoofStructuralEdgeIdentityResolver.Resolve(
             hipGeometry,
             provenance);
+        var ownerElevation = RoofPhysicalElevationStore.Read(owner).Data;
         var plan = RoofAutomaticStructuralRafterPlanner.Create(
             structuralResolution,
-            defaultProfile);
+            defaultProfile,
+            ownerElevation is null ? null :
+                RoofPhysicalElevationRules.ToState(ownerElevation, hipGeometry.RiseMm));
         if (!plan.IsValid)
         {
             return RoofAutomaticStructuralRafterMaterializationResult.Failure(
@@ -161,8 +164,9 @@ internal static class RoofAutomaticStructuralRafterMaterializationService
             transaction,
             owner,
             ownerReference,
-            sourceElevation,
             plan.Items,
+            hipGeometry,
+            structuralResolution,
             defaultProfile,
             layerProfile,
             syncAssemblyGroup);
@@ -173,8 +177,9 @@ internal static class RoofAutomaticStructuralRafterMaterializationService
         Transaction transaction,
         Polyline owner,
         string ownerReference,
-        double sourceElevation,
         IReadOnlyList<RoofAutomaticStructuralRafterPlanItem> desired,
+        HipRoofGeometry hipGeometry,
+        RoofStructuralEdgeResolutionResult structuralResolution,
         TimberElementDefaultProfile defaultProfile,
         AcKrovy.Cad.Abstractions.Layers.ElementLayerProfile layerProfile,
         bool syncAssemblyGroup = true)
@@ -263,9 +268,8 @@ internal static class RoofAutomaticStructuralRafterMaterializationService
                     duplicate.Line.Handle.ToString(),
                     null,
                     RoofAutomaticStructuralRafterTrace.Segment(
-                        desiredByKey[duplicate.StructuralData.LogicalKey].Segment3D.Start,
-                        desiredByKey[duplicate.StructuralData.LogicalKey].Segment3D.End,
-                        sourceElevation),
+                        MapPlanPoint(desiredByKey[duplicate.StructuralData.LogicalKey].Segment3D.Start),
+                        MapPlanPoint(desiredByKey[duplicate.StructuralData.LogicalKey].Segment3D.End)),
                     RoofAutomaticStructuralRafterTrace.Segment(duplicate.Line),
                     "duplicate-key-noncanonical-handle");
 #endif
@@ -330,8 +334,8 @@ internal static class RoofAutomaticStructuralRafterMaterializationService
                 item.LogicalKey.BoundaryEdgeIdA,
                 item.LogicalKey.BoundaryEdgeIdB).Data
                 ?? throw new InvalidOperationException("Structural metadata could not be created.");
-            var start = MapPoint(item.Segment3D.Start, sourceElevation);
-            var end = MapPoint(item.Segment3D.End, sourceElevation);
+            var start = MapPlanPoint(item.Segment3D.Start);
+            var end = MapPlanPoint(item.Segment3D.End);
             if (survivorByKey.TryGetValue(item.LogicalKey, out var existing))
             {
 #if DEBUG
@@ -453,6 +457,15 @@ internal static class RoofAutomaticStructuralRafterMaterializationService
             annotationTargets,
             defaultProfile,
             copySourcePreservation: !syncAssemblyGroup);
+
+        if (!RoofStructuralRafterSolidMaterializationService.TryReconcileInTransaction(
+                database, transaction, owner, hipGeometry, structuralResolution,
+                document.Editor,
+                out var physicalFailure))
+        {
+            return RoofAutomaticStructuralRafterMaterializationResult.Failure(
+                "structural-physical-" + physicalFailure, ownerReference);
+        }
 
         var groupCanonical = true;
         if (syncAssemblyGroup)
@@ -666,7 +679,9 @@ internal static class RoofAutomaticStructuralRafterMaterializationService
                 TimberElementIdentityRules.TryParseElementNumber(
                     timber.ElementId,
                     timber.ElementType) is not > 0 ||
-                Math.Abs(line.Length - item.True3DLengthMm) > GeometryToleranceMm)
+                Math.Abs(line.StartPoint.Z) > GeometryToleranceMm ||
+                Math.Abs(line.EndPoint.Z) > GeometryToleranceMm ||
+                Math.Abs(line.Length - PlanLength(item.Segment3D)) > GeometryToleranceMm)
             {
                 return false;
             }
@@ -675,8 +690,15 @@ internal static class RoofAutomaticStructuralRafterMaterializationService
         return true;
     }
 
-    private static Point3d MapPoint(RoofPoint3D point, double sourceElevation) =>
-        new(point.X, point.Y, point.Z + sourceElevation);
+    private static Point3d MapPlanPoint(RoofPoint3D point) =>
+        new(point.X, point.Y, 0d);
+
+    private static double PlanLength(RoofSegment3D segment)
+    {
+        var dx = segment.End.X - segment.Start.X;
+        var dy = segment.End.Y - segment.Start.Y;
+        return Math.Sqrt(dx * dx + dy * dy);
+    }
 
     private static bool SamePoint(Point3d first, Point3d second) =>
         first.DistanceTo(second) <= GeometryToleranceMm;

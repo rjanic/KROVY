@@ -92,7 +92,8 @@ public sealed class RoofBoundaryIdentityAutoCadSourceContractTests
                 .Where(path => !path.Contains("\\obj\\", StringComparison.OrdinalIgnoreCase))
                 .Select(File.ReadAllText));
         Assert.Equal(3, CountOccurrences(allProduction, "EnsureBoundaryIdentity("));
-        Assert.Equal(2, CountOccurrences(allProduction, "RehomeForCurrentSource("));
+        // Clone rebind and in-place MIRROR Yes resize both use the same re-home API.
+        Assert.Equal(3, CountOccurrences(allProduction, "RehomeForCurrentSource("));
         Assert.Contains(
             "RoofBoundaryIdentityService.EnsureBoundaryIdentity",
             File.ReadAllText(Path.Combine(

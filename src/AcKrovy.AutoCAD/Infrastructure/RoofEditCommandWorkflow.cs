@@ -575,6 +575,13 @@ internal static class RoofEditCommandWorkflow
                 failureMessageKey = "Command_RoofRafters_GenerationFailed";
                 return null;
             }
+            if (outcome == RoofGeneratedRafterSetService.ReplacementOutcome.NotApplicable &&
+                !RoofOrdinaryRafterSolidMaterializationService.TryReconcileExistingInTransaction(
+                    document.Database, transaction, owner, restored.Geometry))
+            {
+                failureMessageKey = "Command_RoofRafters_GenerationFailed";
+                return null;
+            }
             if (geometryChanged &&
                 existingOrdinaryGeneratedCount > 0 &&
                 outcome != RoofGeneratedRafterSetService.ReplacementOutcome.Replaced)
@@ -608,8 +615,7 @@ internal static class RoofEditCommandWorkflow
             // ordinary rafters. Reuse the authoritative reconcile so surviving logical
             // identities retain their handles and owned annotations are upserted in the
             // same transaction. A failed reconcile rolls the entire Apply back.
-            if (geometryChanged &&
-                hadGeneratedRafterSystem &&
+            if (hadGeneratedRafterSystem &&
                 restored.Geometry is HipRoofGeometry hipGeometryForStructural)
             {
                 var structural =

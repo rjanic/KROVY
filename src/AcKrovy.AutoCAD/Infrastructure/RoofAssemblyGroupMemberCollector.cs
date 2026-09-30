@@ -118,6 +118,23 @@ internal static class RoofAssemblyGroupMemberCollector
             attachedManualCount++;
         }
 
+        // Physical timber solids share the existing roof owner and their exact
+        // logical member key. They are assembly children, but not timber source
+        // lines and must never enter annotation source-handle matching.
+        foreach (var id in RoofPhysical3DGeneratedStore.FindByOwner(
+                     database, transaction, ownerReference))
+        {
+            if (AutoCadObjectIdAccess.TryGetObject<Solid3d>(
+                    transaction, id, OpenMode.ForRead, out var solid, database) &&
+                solid is not null && !solid.IsErased &&
+                RoofPhysical3DGeneratedStore.Read(solid).Data?.Role is
+                    RoofPhysical3DGeneratedRole.OrdinaryRafterSolid or
+                    RoofPhysical3DGeneratedRole.StructuralRafterSolid)
+            {
+                members.Add(id);
+            }
+        }
+
         var annotationCount = 0;
         if (timberSourceHandles.Count > 0)
         {

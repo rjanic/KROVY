@@ -29,12 +29,21 @@ internal static class RoofGeneratedMemberManualEditService
         var accepted = false;
         foreach (var ownerId in ownerIds)
         {
-            var outcome = ProcessOwner(
-                document,
-                globalCommandName,
-                ownerId,
-                modifiedIds,
-                appendedTimberIds);
+            OwnerEditOutcome outcome;
+            try
+            {
+                outcome = ProcessOwner(
+                    document, globalCommandName, ownerId, modifiedIds,
+                    appendedTimberIds);
+            }
+            catch (OrdinaryPhysicalReconcileException ex)
+            {
+                // ProcessOwner's transaction was disposed without Commit: its
+                // override, metadata and physical writes are all rolled back.
+                // Native 2D MOVE/TRIM predates that transaction, so restore it
+                // from the command snapshot in a fresh owner-scoped transaction.
+                outcome = RecoverFailedOrdinaryPhysicalReconcile(document, ownerId, ex);
+            }
             switch (outcome)
             {
                 case OwnerEditOutcome.LockedRecovered:
@@ -262,7 +271,8 @@ internal static class RoofGeneratedMemberManualEditService
                 globalCommandName,
                 modifiedIds,
                 appendedTimberIds,
-                out var reject);
+                out var reject,
+                out var ordinaryPhysicalSuppressed);
             if (!accept)
             {
                 WriteUnlockedReject(document, globalCommandName, owner, reject);
@@ -310,7 +320,13 @@ internal static class RoofGeneratedMemberManualEditService
                 transaction,
                 owner,
                 modifiedIds);
-            _ = RoofAssemblyGroupSyncService.TrySyncForOwner(document, transaction, owner.ObjectId);
+            var groupSynced = RoofAssemblyGroupSyncService.TrySyncForOwner(
+                document, transaction, owner.ObjectId);
+            if ((RoofGeneratedMemberEditCommandRules.IsMoveCommand(globalCommandName) ||
+                 RoofGeneratedMemberEditCommandRules.IsTrimCommand(globalCommandName) ||
+                 ordinaryPhysicalSuppressed) &&
+                !groupSynced)
+                throw new OrdinaryPhysicalReconcileException("Canonical group sync failed.");
             RoofUnlockIndicatorService.Sync(document.Database, transaction, owner);
             transaction.Commit();
             return OwnerEditOutcome.Accepted;
@@ -450,9 +466,11 @@ internal static class RoofGeneratedMemberManualEditService
         string? globalCommandName,
         IReadOnlyCollection<ObjectId> modifiedIds,
         IReadOnlyCollection<ObjectId> appendedTimberIds,
-        out ManualEditReject? reject)
+        out ManualEditReject? reject,
+        out bool ordinaryPhysicalSuppressed)
     {
         reject = null;
+        ordinaryPhysicalSuppressed = false;
         var input = RoofPolylineExtractor.Extract(owner);
         var validation = RoofFootprintValidator.Validate(input);
         if (!validation.IsValid || validation.Footprint is null)
@@ -476,7 +494,7 @@ internal static class RoofGeneratedMemberManualEditService
 
         var roofGeometry = restored.Geometry;
 
-        var elevation = RoofPolylineExtractor.GetSourceElevation(owner);
+        var elevation = 0d;
         var planeNormal = RoofGeneratedMemberOverrideRules.SourceWorkingPlaneNormal;
         var overrides = new RoofManualOverrideSet(definition.Overrides);
         var metadataStore = new AutoCadTimberElementMetadataStore(transaction);
@@ -501,6 +519,7 @@ internal static class RoofGeneratedMemberManualEditService
             var roundingStepMm = defaultProfile.GetCuttingLengthRoundingStepMm();
             var overrideChanged = false;
             var acceptedCount = 0;
+            var newlySuppressedKeys = new HashSet<RoofGeneratedMemberKey>();
             foreach (var timber in snapshot.Assembly.TimberLines)
             {
                 // Derived Hip/Valley never become Suppress overrides. They are restored
@@ -584,6 +603,7 @@ internal static class RoofGeneratedMemberManualEditService
 
                 overrides = overrides.Upsert(
                     RoofGeneratedMemberOverride.Suppress(key, elementId));
+                newlySuppressedKeys.Add(key);
                 DeleteAnnotationsForHandle(document.Database, transaction, timber.SourceHandle);
                 overrideChanged = true;
                 acceptedCount++;
@@ -610,6 +630,24 @@ internal static class RoofGeneratedMemberManualEditService
                 {
                     reject = new ManualEditReject("persist", "persistence-codec-failure");
                     return false;
+                }
+
+                try
+                {
+                    if (!RoofOrdinaryRafterSolidMaterializationService
+                            .TryRemoveSuppressedMembersInTransaction(
+                                document.Database, transaction, owner,
+                                roofGeometry, newlySuppressedKeys))
+                        throw new InvalidOperationException(
+                            "Suppressed ordinary member has no unique matching physical body.");
+                    ordinaryPhysicalSuppressed = newlySuppressedKeys.Count > 0 &&
+                        roofGeometry is HipRoofGeometry &&
+                        RoofPhysicalElevationStore.Read(owner).Data?.Physical3DEnabled == true;
+                }
+                catch (System.Exception ex)
+                {
+                    throw new OrdinaryPhysicalReconcileException(
+                        "Accepted 2D suppression has no valid derived 3D state.", ex);
                 }
             }
 
@@ -931,6 +969,24 @@ internal static class RoofGeneratedMemberManualEditService
                 return false;
             }
 
+            if (isMove || RoofGeneratedMemberEditCommandRules.IsTrimCommand(globalCommandName))
+            {
+                try
+                {
+                    if (!RoofOrdinaryRafterSolidMaterializationService
+                            .TryReconcileModifiedMembersInTransaction(
+                                document.Database, transaction, owner,
+                                roofGeometry, modifiedIds))
+                        throw new InvalidOperationException(
+                            "Ordinary physical member set or model is incomplete.");
+                }
+                catch (System.Exception ex)
+                {
+                    throw new OrdinaryPhysicalReconcileException(
+                        "Accepted 2D member has no valid derived 3D body.", ex);
+                }
+            }
+
             keepStandalones = true;
             return true;
             }
@@ -942,6 +998,39 @@ internal static class RoofGeneratedMemberManualEditService
                 }
             }
         }
+    }
+
+    private sealed class OrdinaryPhysicalReconcileException : System.Exception
+    {
+        public OrdinaryPhysicalReconcileException(string message) : base(message) { }
+        public OrdinaryPhysicalReconcileException(string message, System.Exception inner)
+            : base(message, inner) { }
+    }
+
+    private static OwnerEditOutcome RecoverFailedOrdinaryPhysicalReconcile(
+        Document document,
+        ObjectId ownerId,
+        OrdinaryPhysicalReconcileException failure)
+    {
+        using (document.LockDocument())
+        using (var transaction = document.Database.TransactionManager.StartTransaction())
+        {
+            var recovered = RoofUnsupportedStretchRecoveryService
+                .TryRecoverGeneratedMembersOnly(
+                    document.Database, transaction, ownerId, document.Editor);
+            if (recovered != RoofUnsupportedStretchRecoveryOutcome.Recovered &&
+                !TryRecoverErasedMembers(document, transaction, ownerId))
+                throw new InvalidOperationException(
+                    "Ordinary physical rebuild and 2D recovery both failed.", failure);
+            if (!RoofAssemblyGroupSyncService.TrySyncForOwner(
+                    document, transaction, ownerId))
+                throw new InvalidOperationException(
+                    "Ordinary physical rebuild and 2D recovery both failed.", failure);
+            transaction.Commit();
+        }
+        document.Editor.WriteMessage(
+            "\nROOF_MANUAL_EDIT_REJECT reason=ordinary-physical-reconcile result=restored");
+        return OwnerEditOutcome.UnsupportedRecovered;
     }
 
     private static RoofGeneratedAnchorResolutionContext? CreateSplitAnchorResolutionContext(

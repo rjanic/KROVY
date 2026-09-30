@@ -431,10 +431,10 @@ public sealed class LocalizationFoundationTests
             "AK_VZPERA", "AK_VAZNYTRAM", "AK_CUSTOM", "AK_EDIT", "AK_FLIPSLOPE", "AK_INSPECT", "AK_REPORT",
             "AK_REPORTALL", "AK_RECALC", "AK_RENUMBER", "AK_DIAGNOSTICS", "AK_SELECTSIMILAR", "AK_EXPORTCSV",
             "AK_ROOF", "AK_ROOF_HIP", "AK_ROOF_ASYM", "AK_ROOF_MONOPITCH", "AK_ROOF_RAFTERS", "AK_ROOF_PURLINS", "AK_ROOF_UNLOCK", "AK_ROOF_LOCK", "AK_ROOF_TOGGLELOCK", "AK_ROOF_RESET_EDITS",
-            "AK_ROOF_EDIT", "AK_IMPORT_DWG",
+            "AK_ROOF_EDIT", "AK_ROOF_SELECT_SOURCE", "AK_IMPORT_DWG",
         };
 
-        Assert.Equal(45, AcKrovyCommandNames.All.Count);
+        Assert.Equal(46, AcKrovyCommandNames.All.Count);
         Assert.Equal(expected, AcKrovyCommandNames.All);
         Assert.All(AcKrovyCommandNames.All, command => Assert.StartsWith("AK_", command, StringComparison.Ordinal));
     }

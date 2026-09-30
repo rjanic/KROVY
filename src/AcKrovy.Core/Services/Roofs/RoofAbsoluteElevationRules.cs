@@ -103,7 +103,12 @@ public static class RoofAbsoluteElevationRules
             current.ResolvedRidgeRelativeElevationMm,
             current.RiseMm,
             current.Physical3DEnabled,
-            current.DisplayVisibility);
+            current.DisplayVisibility,
+            current.LowerEndCutMode,
+            current.RidgeJoinMode,
+            current.StructuralWidthMm,
+            current.StructuralHeightMode,
+            current.StructuralExplicitHeightMm);
     }
 
     /// <summary>
@@ -120,7 +125,14 @@ public static class RoofAbsoluteElevationRules
             halfRoofWidthMm,
             pitchDegrees,
             current.Physical3DEnabled,
-            current.DisplayVisibility);
+            current.DisplayVisibility) with
+        {
+            LowerEndCutMode = current.LowerEndCutMode,
+            RidgeJoinMode = current.RidgeJoinMode,
+            StructuralWidthMm = current.StructuralWidthMm,
+            StructuralHeightMode = current.StructuralHeightMode,
+            StructuralExplicitHeightMm = current.StructuralExplicitHeightMm,
+        };
 
     public static RoofAbsoluteElevationState WithPhysical3DEnabled(
         RoofAbsoluteElevationState current,

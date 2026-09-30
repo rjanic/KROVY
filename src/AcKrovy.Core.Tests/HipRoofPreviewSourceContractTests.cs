@@ -182,7 +182,7 @@ public sealed class HipRoofPreviewSourceContractTests
         Assert.Contains("new RoofParameters(data.Face0SlopeDegrees)", persistence);
         Assert.DoesNotContain("RoofWireframe.Create", persistence);
         Assert.Contains("HipRoofGeometry hip =>", wireframe);
-        Assert.Contains("HipRoofWireframe.Create(hip, sourceElevation)", wireframe);
+        Assert.Contains("HipRoofWireframe.Create(hip, sourceElevation, projection)", wireframe);
         Assert.Contains("RoofTopologyEdgeKind.Ridge", hipWireframe);
         Assert.Contains("RoofTopologyEdgeKind.Hip", hipWireframe);
         Assert.Contains("RoofTopologyEdgeKind.Valley", hipWireframe);

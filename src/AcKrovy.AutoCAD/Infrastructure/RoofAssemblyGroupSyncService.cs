@@ -406,6 +406,15 @@ internal static class RoofAssemblyGroupDiag
         {
             return "AttachedManual";
         }
+        if (entity is Solid3d &&
+            RoofPhysical3DGeneratedStore.Read(entity).Data is { } physical &&
+            (physical.Role is AcKrovy.Core.Models.Roofs.RoofPhysical3DGeneratedRole.OrdinaryRafterSolid or
+                AcKrovy.Core.Models.Roofs.RoofPhysical3DGeneratedRole.StructuralRafterSolid) &&
+            string.Equals(physical.RoofOwnerReference, ownerReference,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return physical.Role.ToString();
+        }
         if (RoofOwnedAnnotationSourceResolver.TryResolveSourceHandle(entity, out var sourceHandle) &&
             timberHandles.Contains(sourceHandle))
         {

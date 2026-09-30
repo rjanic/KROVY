@@ -303,7 +303,9 @@ public sealed class RoofRafterWindowSmokeTests
                     HipGeometry(10000, 6000, 30),
                     new RoofRafterPreferences(80, 160, 900, "Smrek C24"),
                     500d,
-                    SettingsTheme.Light);
+                    SettingsTheme.Light,
+                    automaticHeightResolver: (_, height, _, structuralWidth) =>
+                        height + structuralWidth * 0.7952917d);
 
                 Assert.Equal("900", window.MaximumSpacingTextBox.Text);
                 Assert.NotNull(window.HipPreviewLayout);
@@ -327,6 +329,155 @@ public sealed class RoofRafterWindowSmokeTests
             {
                 failure = exception;
             }
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        Assert.True(thread.Join(TimeSpan.FromSeconds(30)));
+        Assert.Null(failure);
+    }
+
+    [Fact]
+    public void HipRafterDialog_RestoresPhysicalModesAndReturnsStableEnums()
+    {
+        Exception? failure = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                AppLanguageService.Apply("sk");
+                var window = new RoofRafterWindow(
+                    HipGeometry(10000, 6000, 30),
+                    new RoofRafterPreferences(80, 160, 900, "Smrek C24"),
+                    500d,
+                    SettingsTheme.Light,
+                    physicalSettings: new RoofAutomaticRafterPhysicalSettings(
+                        LowerEndCutMode.Perpendicular, RidgeJoinMode.Overlap),
+                    automaticHeightResolver: (_, height, _, structuralWidth) =>
+                        height + structuralWidth * 0.7952917d)
+                {
+                    Left = -30000,
+                    Top = -30000,
+                    ShowInTaskbar = false,
+                    WindowStyle = WindowStyle.None,
+                };
+                Assert.Equal("Perpendicular",
+                    ((ComboBoxItem)window.LowerEndCutComboBox.SelectedItem).Tag);
+                Assert.Equal("Overlap",
+                    ((ComboBoxItem)window.RidgeJoinComboBox.SelectedItem).Tag);
+                Assert.Equal("Kolmo",
+                    ((ComboBoxItem)window.LowerEndCutComboBox.SelectedItem).Content);
+                _ = window.Dispatcher.BeginInvoke(
+                    DispatcherPriority.ApplicationIdle,
+                    new Action(() => window.CreateButton.RaiseEvent(
+                        new RoutedEventArgs(Button.ClickEvent))));
+                Assert.True(window.ShowDialog());
+                var request = Assert.IsType<RoofRafterCreationRequest>(window.Request);
+                Assert.Equal(LowerEndCutMode.Perpendicular, request.LowerEndCutMode);
+                Assert.Equal(RidgeJoinMode.Overlap, request.RidgeJoinMode);
+            }
+            catch (Exception exception)
+            {
+                failure = exception;
+            }
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        Assert.True(thread.Join(TimeSpan.FromSeconds(30)));
+        Assert.Null(failure);
+    }
+
+    [Fact]
+    public void HipRafterDialog_UsesLocalizedAutomaticHeightAndAcceptsExplicitDimensions()
+    {
+        Exception? failure = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                AppLanguageService.Apply("sk");
+                var stored = RoofPhysicalElevationRules.CreateFromState(
+                    RoofPhysicalElevationRules.MissingStoreDefault(0d));
+                var window = new RoofRafterWindow(
+                    HipGeometry(10000, 6000, 30),
+                    new RoofRafterPreferences(80, 160, 900, "Smrek C24"),
+                    500d, SettingsTheme.Light,
+                    structuralSettings: stored,
+                    automaticHeightResolver: (_, height, _, structuralWidth) =>
+                        height + structuralWidth * 0.7952917d)
+                {
+                    Left = -30000,
+                    Top = -30000,
+                    ShowInTaskbar = false,
+                    WindowStyle = WindowStyle.None,
+                };
+                Assert.Equal(Visibility.Visible, window.StructuralSection.Visibility);
+                Assert.Equal("120", window.StructuralWidthTextBox.Text);
+                Assert.Equal("255,4", window.StructuralHeightTextBox.Text);
+                window.HeightTextBox.Text = "180";
+                Assert.Equal("275,4", window.StructuralHeightTextBox.Text);
+                window.StructuralWidthTextBox.Text = "160";
+                Assert.Equal("307,2", window.StructuralHeightTextBox.Text);
+                window.StructuralHeightTextBox.Text = "300";
+                window.StructuralAutomaticButton.RaiseEvent(
+                    new RoutedEventArgs(Button.ClickEvent));
+                Assert.Equal("307,2", window.StructuralHeightTextBox.Text);
+                window.StructuralHeightTextBox.Text = "240";
+                Assert.True(window.CreateButton.IsEnabled);
+                _ = window.Dispatcher.BeginInvoke(
+                    DispatcherPriority.ApplicationIdle,
+                    new Action(() => window.CreateButton.RaiseEvent(
+                        new RoutedEventArgs(Button.ClickEvent))));
+                Assert.True(window.ShowDialog());
+                var request = Assert.IsType<RoofRafterCreationRequest>(window.Request);
+                Assert.Equal(160d, request.StructuralWidthMm);
+                Assert.Equal(RoofStructuralHeightMode.Explicit,
+                    request.StructuralHeightMode);
+                Assert.Equal(240d, request.StructuralExplicitHeightMm);
+            }
+            catch (Exception exception)
+            {
+                failure = exception;
+            }
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        Assert.True(thread.Join(TimeSpan.FromSeconds(30)));
+        Assert.Null(failure);
+    }
+
+    [Fact]
+    public void HipRafterDialog_AutomaticReset_PersistsModeNotRoundedDisplayNumber()
+    {
+        Exception? failure = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                AppLanguageService.Apply("en");
+                var window = new RoofRafterWindow(
+                    HipGeometry(10000, 6000, 30),
+                    new RoofRafterPreferences(80, 160, 900, "Smrek C24"),
+                    500d, SettingsTheme.Light,
+                    automaticHeightResolver: (_, _, _, _) => 255.43500510368222d)
+                {
+                    Left = -30000, Top = -30000, ShowInTaskbar = false,
+                    WindowStyle = WindowStyle.None,
+                };
+                Assert.Equal("255.4", window.StructuralHeightTextBox.Text);
+                window.StructuralHeightTextBox.Text = "300";
+                window.StructuralAutomaticButton.RaiseEvent(
+                    new RoutedEventArgs(Button.ClickEvent));
+                Assert.Equal("255.4", window.StructuralHeightTextBox.Text);
+                _ = window.Dispatcher.BeginInvoke(
+                    DispatcherPriority.ApplicationIdle,
+                    new Action(() => window.CreateButton.RaiseEvent(
+                        new RoutedEventArgs(Button.ClickEvent))));
+                Assert.True(window.ShowDialog());
+                Assert.Equal(RoofStructuralHeightMode.Automatic,
+                    window.Request!.StructuralHeightMode);
+                Assert.Equal(0d, window.Request.StructuralExplicitHeightMm);
+            }
+            catch (Exception exception) { failure = exception; }
         });
         thread.SetApartmentState(ApartmentState.STA);
         thread.Start();

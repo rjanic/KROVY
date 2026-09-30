@@ -46,6 +46,29 @@ internal static class RoofMirrorCloneDetachService
             {
                 var wrote = false;
                 var affectedOwners = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                // MIRROR Yes of an entire roof modifies the authoritative source as
+                // well as its children in place. Those children belong to source
+                // resize/rebuild, not to the member-only MIRROR Yes promotion path.
+                // In particular, a failed resize must not suppress every generated
+                // slot and detach the roof into individual manual members.
+                var inPlaceRoofOwners = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                if (appendedTimberIds.Count == 0 && erasedSourceHandles.Count == 0)
+                {
+                    foreach (var modifiedId in mirrorModifiedTimberIds)
+                    {
+                        if (AutoCadObjectIdAccess.TryGetObject<Polyline>(
+                                transaction,
+                                modifiedId,
+                                OpenMode.ForRead,
+                                out var modifiedOwner,
+                                document.Database) &&
+                            modifiedOwner is not null &&
+                            RoofDefinitionStore.Read(modifiedOwner).Data is not null)
+                        {
+                            inPlaceRoofOwners.Add(modifiedOwner.Handle.ToString());
+                        }
+                    }
+                }
 
                 // MIRROR Erase Source = Yes: the native MIRROR erased the source. For a
                 // Generated source, persist a Suppress override so the canonical slot is
@@ -273,6 +296,13 @@ internal static class RoofMirrorCloneDetachService
                     var inPlaceGenerated = RoofGeneratedTimberStore.Read(inPlaceLine).Data;
                     if (inPlaceGenerated is null)
                     {
+                        var inPlaceAttached = RoofAttachedManualTimberStore.Read(inPlaceLine).Data;
+                        if (inPlaceAttached is not null &&
+                            inPlaceRoofOwners.Contains(inPlaceAttached.RoofOwnerReference))
+                        {
+                            continue;
+                        }
+
                         // Role-aware in-place MIRROR Yes: a modified id that is NOT
                         // Generated may still be an AttachedManual child (Origin.Copy OR
                         // Origin.Split) transformed IN PLACE (appended=0 / erased=0 /
@@ -321,6 +351,10 @@ internal static class RoofMirrorCloneDetachService
 
                     var inPlaceKey = RoofGeneratedMemberKey.From(inPlaceGenerated);
                     var inPlaceOwner = inPlaceGenerated.RoofOwnerReference;
+                    if (inPlaceRoofOwners.Contains(inPlaceOwner))
+                    {
+                        continue;
+                    }
                     affectedOwners.Add(inPlaceOwner);
 
                     // Capture current ElementId for Suppress semantics before any metadata

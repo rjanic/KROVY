@@ -36,7 +36,9 @@ public sealed class HipRoofPersistenceSourceContractTests
             "case HipRoofPreviewDialogAction.Apply:",
             "default:");
         Assert.Contains("RoofDefinitionPersistence.Create(", apply);
-        Assert.Contains("TryPersist(document, ownerId, data", apply);
+        Assert.Contains("TryPersist(", apply);
+        Assert.Contains("ownerId,", apply);
+        Assert.Contains("elevationState", apply);
         Assert.Contains("Command_Roof_PersistedAndDisplaySaved", apply);
         Assert.Contains("x:Name=\"ApplyButton\"", Window);
         Assert.Contains("Click=\"ApplyButton_Click\"", Window);
@@ -72,7 +74,11 @@ public sealed class HipRoofPersistenceSourceContractTests
             "private static bool TryPersist",
             "private static RoofDisplayInspection InspectDisplay");
         var writeIndex = persist.IndexOf("RoofDefinitionStore.Write(owner, transaction, data)", StringComparison.Ordinal);
-        var wireframeIndex = persist.IndexOf("RoofWireframe.Create(restored.Geometry, sourceElevation)", StringComparison.Ordinal);
+        var wireframeIndex = persist.IndexOf("RoofWireframe.CreateOwnedHipOrLegacy(", StringComparison.Ordinal);
+        if (wireframeIndex < 0)
+        {
+            wireframeIndex = persist.IndexOf("CreateOwnedDisplayEdges(", StringComparison.Ordinal);
+        }
         var rebuildIndex = persist.IndexOf("RoofDisplayService.Rebuild(", StringComparison.Ordinal);
         var commitIndex = persist.IndexOf("transaction.Commit();", StringComparison.Ordinal);
         Assert.True(writeIndex >= 0);
@@ -95,7 +101,11 @@ public sealed class HipRoofPersistenceSourceContractTests
         var stored = Segment(Workflow, "if (storedDefinition.Exists)", "RunCreationDialog(");
         var restoreIndex = stored.IndexOf("RoofDefinitionPersistence.Restore", StringComparison.Ordinal);
         var previewIndex = stored.IndexOf("ShowPreview(document, restored.Geometry", StringComparison.Ordinal);
-        var wireframeIndex = stored.IndexOf("RoofWireframe.Create(restored.Geometry, sourceElevation)", StringComparison.Ordinal);
+        var wireframeIndex = stored.IndexOf("RoofWireframe.CreateOwnedHipOrLegacy(", StringComparison.Ordinal);
+        if (wireframeIndex < 0)
+        {
+            wireframeIndex = stored.IndexOf("CreateOwnedDisplayEdges(", StringComparison.Ordinal);
+        }
         var inspectIndex = stored.IndexOf("InspectDisplay(", StringComparison.Ordinal);
         Assert.True(restoreIndex >= 0);
         Assert.True(previewIndex > restoreIndex);

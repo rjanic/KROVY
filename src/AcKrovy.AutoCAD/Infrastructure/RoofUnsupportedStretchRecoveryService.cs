@@ -950,7 +950,8 @@ internal static class RoofUnsupportedStretchRecoveryService
                     "restore-write-failure",
                     owner: ownerHandle,
                     handle: timber.EntityHandle,
-                    kind: "timber");
+                    kind: "timber",
+                    detail: "open-or-line-type-failure");
 #endif
                 return false;
             }
@@ -971,7 +972,8 @@ internal static class RoofUnsupportedStretchRecoveryService
                     "restore-write-failure",
                     owner: ownerHandle,
                     handle: timber.EntityHandle,
-                    kind: "timber");
+                    kind: "timber",
+                    detail: $"element-id-mismatch:snapshot={timber.ElementId}:live={data?.ElementId ?? "missing"}");
 #endif
                 return false;
             }

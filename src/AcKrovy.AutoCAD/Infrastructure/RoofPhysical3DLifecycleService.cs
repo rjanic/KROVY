@@ -89,11 +89,16 @@ internal static class RoofPhysical3DLifecycleService
         .Select(id =>
         {
             if (!AutoCadObjectIdAccess.TryGetObject<Entity>(transaction, id, OpenMode.ForRead,
-                    out var child, database) || child is null) return null;
+                    out var child, database) || child is null)
+                return (Skip: false, Data: (RoofPhysical3DGeneratedData?)null);
             var data = RoofPhysical3DGeneratedStore.Read(child).Data;
-            return data is not null && (data.Role == RoofPhysical3DGeneratedRole.Face ? child is Face : child is Line)
-                ? data : null;
-        }).ToArray();
+            if (data?.Role is RoofPhysical3DGeneratedRole.OrdinaryRafterSolid or
+                RoofPhysical3DGeneratedRole.StructuralRafterSolid)
+                return (Skip: true, Data: (RoofPhysical3DGeneratedData?)null);
+            return (Skip: false, Data: data is not null &&
+                (data.Role == RoofPhysical3DGeneratedRole.Face ? child is Face : child is Line)
+                ? data : null);
+        }).Where(item => !item.Skip).Select(item => item.Data).ToArray();
 
     public static RoofPhysical3DMaterializationResult ReconcileOwnerInTransaction(
         Database database,

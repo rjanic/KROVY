@@ -7,6 +7,36 @@ namespace AcKrovy.Core.Tests;
 public sealed class RoofGeneratedChildEraseProtectionTests
 {
     [Theory]
+    [InlineData(RoofEditState.Locked)]
+    [InlineData(RoofEditState.Unlocked)]
+    public void DerivedPhysicalErase_IsRestoredWithoutSourceErase(
+        RoofEditState editState)
+    {
+        _ = editState; // Derived geometry is protected in either edit state.
+        Assert.True(RoofDisplayErasePreCommandMapRules.ShouldRestoreDerivedPhysicalErase(
+            RoofEraseMappedKind.DerivedPhysical3D, false, "ERASE"));
+    }
+
+    [Theory]
+    [InlineData("MOVE")]
+    [InlineData("U")]
+    [InlineData("REDO")]
+    public void DerivedPhysicalErase_DoesNotRunForOtherCommands(string command)
+    {
+        Assert.False(RoofDisplayErasePreCommandMapRules.ShouldRestoreDerivedPhysicalErase(
+            RoofEraseMappedKind.DerivedPhysical3D, false, command));
+    }
+
+    [Fact]
+    public void DerivedPhysicalErase_DoesNotResurrectDeletedOwner()
+    {
+        Assert.False(RoofDisplayErasePreCommandMapRules.ShouldRestoreDerivedPhysicalErase(
+            RoofEraseMappedKind.DerivedPhysical3D, true, "ERASE"));
+        Assert.False(RoofDisplayErasePreCommandMapRules.ShouldRestoreDerivedPhysicalErase(
+            RoofEraseMappedKind.GeneratedTimber, false, "ERASE"));
+    }
+
+    [Theory]
     [InlineData(RoofEraseMappedKind.GeneratedTimber)]
     [InlineData(RoofEraseMappedKind.GeneratedAnnotation)]
     public void LockedErase_RestoresOnlyGeneratedProtectedKinds(RoofEraseMappedKind kind)
@@ -157,7 +187,7 @@ public sealed class RoofGeneratedChildEraseSourceContractTests
         var repair = Member(
             Resize,
             "private static bool ApplyGeneratedChildEraseTampers",
-            "private static bool ApplyDisplayTampers");
+            "private static void ApplyDerivedPhysicalMoveTampers");
         Assert.DoesNotContain("RoofGeneratedRafterSetService", repair);
         Assert.DoesNotContain("TryRecoverGeneratedMembersOnly", repair);
         Assert.DoesNotContain("RoofManualOverrideSet", repair);
@@ -185,12 +215,43 @@ public sealed class RoofGeneratedChildEraseSourceContractTests
     }
 
     [Fact]
+    public void DerivedPhysicalErase_UsesExistingMappedIdentityAndScopedInternalBypass()
+    {
+        Assert.Contains("RoofPhysical3DGeneratedStore.Read(entity).Data", Map);
+        Assert.Contains("RoofEraseMappedKind.DerivedPhysical3D", Map);
+        Assert.Contains("CollectDerivedPhysicalEraseOwners", Map);
+        Assert.Contains("entry.EntityHandle", Resize);
+        Assert.Contains("RoofPhysical3DGeneratedStore.Read(entity).Data != entry.PhysicalData", Resize);
+        Assert.Contains("CountPhysicalEntriesForOwner(ownerId)", Resize);
+        Assert.Contains("RoofAssemblyGroupSyncService.TrySyncForOwner(", Resize);
+        Assert.Contains("using (_erasedSourceHandles.Suppress())", Live);
+        Assert.Contains("roofRelatedIds = RoofLiveResizeService.Process(", Live);
+    }
+
+    [Fact]
+    public void DerivedPhysicalErase_CommitsUnEraseBeforeCanonicalGroupSync()
+    {
+        var repair = Member(Resize,
+            "private static bool ApplyDerivedPhysicalEraseTampers",
+            "private static bool TryUnEraseGeneratedAnnotation");
+        var commit = repair.IndexOf("transaction.Commit();", StringComparison.Ordinal);
+        var finalize = repair.IndexOf("TryFinalizeRestoredPhysicalGroup(",
+            StringComparison.Ordinal);
+        Assert.True(commit >= 0 && finalize > commit);
+        Assert.Contains("SurplusOrForeignMemberIndices(actual, expected)", repair);
+        Assert.Contains("group.RemoveAt(index)", repair);
+        Assert.Contains("if (present.Add(id))", repair);
+        Assert.Contains("IsCanonicalMembership(", repair);
+        Assert.Contains("committed.Count(id => id == entry.EntityId) == 1", repair);
+    }
+
+    [Fact]
     public void Repair_RestoresTimberBeforeAnnotationsAndSyncsGroupOncePerOwner()
     {
         var repair = Member(
             Resize,
             "private static bool ApplyGeneratedChildEraseTampers",
-            "private static bool ApplyDisplayTampers");
+            "private static bool ApplyDerivedPhysicalEraseTampers");
         var timber = repair.IndexOf("foreach (var entry in timberEntries)", StringComparison.Ordinal);
         var annotation = repair.IndexOf("foreach (var entry in annotationEntries)", StringComparison.Ordinal);
         var group = repair.IndexOf("RoofAssemblyGroupSyncService.TrySyncForOwner", StringComparison.Ordinal);
@@ -247,7 +308,7 @@ public sealed class RoofGeneratedChildEraseSourceContractTests
         var repair = Member(
             Resize,
             "private static bool ApplyGeneratedChildEraseTampers",
-            "private static bool ApplyDisplayTampers");
+            "private static void ApplyDerivedPhysicalMoveTampers");
         Assert.DoesNotContain("RoofKind.Hip", repair);
         Assert.DoesNotContain("NumberOfVertices", repair);
         Assert.DoesNotContain("Rectangle", repair);

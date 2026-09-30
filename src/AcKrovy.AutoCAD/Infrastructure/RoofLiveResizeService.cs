@@ -208,6 +208,13 @@ internal static class RoofLiveResizeService
                     globalCommandName);
             }
 
+            if (plan.DerivedPhysicalEraseOwnerIds.Count > 0)
+            {
+                _ = ApplyDerivedPhysicalEraseTampers(
+                    document, plan.DerivedPhysicalEraseOwnerIds,
+                    erasedSourceHandles);
+            }
+
             // Existing fallback behavior, including Unlocked ERASE suppression and
             // locked non-ERASE tamper recovery, runs only after exact H9 recovery.
             if (plan.GeneratedMemberTamperOwnerIds.Count > 0 &&
@@ -225,6 +232,9 @@ internal static class RoofLiveResizeService
                     modifiedIds,
                     appendedTimberIds);
             }
+
+            if (plan.DerivedPhysicalMoveMembers.Count > 0)
+                ApplyDerivedPhysicalMoveTampers(document, plan.DerivedPhysicalMoveMembers);
 
             RelocateUnlockIndicators(document, globalCommandName, plan);
             return plan.RelatedIds;
@@ -267,6 +277,11 @@ internal static class RoofLiveResizeService
         // transaction for the same logical roof operation and split the native
         // undo/redo unit. Skip them so one SupportedResize stays one transaction.
         ownerIds.ExceptWith(plan.ResizeOwnerIds);
+        foreach (var pair in plan.DerivedPhysicalMoveMembers)
+        {
+            ownerIds.Remove(pair.Key);
+            ownerIds.ExceptWith(pair.Value);
+        }
         if (ownerIds.Count == 0)
         {
             return;
@@ -316,14 +331,22 @@ internal static class RoofLiveResizeService
         var unsupportedOwners = new HashSet<ObjectId>();
         var displayTamperCandidates = new HashSet<ObjectId>();
         var generatedMemberTamperCandidates = new HashSet<ObjectId>();
+        var derivedPhysicalMoveCandidates = new Dictionary<ObjectId, HashSet<ObjectId>>();
         using var transaction = database.TransactionManager.StartTransaction();
 
         var sourceEraseOwners = new HashSet<ObjectId>();
         var generatedTimberEraseOwners = new HashSet<ObjectId>();
         var generatedAnnotationEraseOwners = new HashSet<ObjectId>();
+        var derivedPhysicalEraseOwners = new HashSet<ObjectId>();
         if (RoofGeneratedMemberEditCommandRules.IsEraseCommand(globalCommandName))
         {
             var erasedSet = new HashSet<string>(erasedSourceHandles, StringComparer.OrdinalIgnoreCase);
+            foreach (var ownerId in RoofDisplayErasePreCommandMapService
+                         .CollectDerivedPhysicalEraseOwners(erasedSet, globalCommandName))
+            {
+                related.Add(ownerId);
+                derivedPhysicalEraseOwners.Add(ownerId);
+            }
             foreach (var ownerId in RoofDisplayErasePreCommandMapService.CollectLockedSourceEraseOwners(
                          erasedSet,
                          globalCommandName))
@@ -402,6 +425,19 @@ internal static class RoofLiveResizeService
             if (RoofUnlockIndicatorStore.Exists(entity))
             {
                 continue;
+            }
+
+            if (RoofGeneratedMemberEditCommandRules.IsMoveCommand(globalCommandName) &&
+                entity is Solid3d solid &&
+                RoofPhysical3DGeneratedStore.Read(solid).Data is { } physical &&
+                physical.Role == RoofPhysical3DGeneratedRole.OrdinaryRafterSolid &&
+                TryResolveHandleToOwnerPolyline(database, transaction,
+                    physical.RoofOwnerReference, out var physicalOwnerId))
+            {
+                if (!derivedPhysicalMoveCandidates.TryGetValue(
+                        physicalOwnerId, out var members))
+                    derivedPhysicalMoveCandidates[physicalOwnerId] = members = new();
+                members.Add(id);
             }
 
             if (RoofDisplayStore.Read(entity).Exists)
@@ -615,6 +651,20 @@ internal static class RoofLiveResizeService
             }
         }
 
+        // A whole-roof MOVE (source Polyline modified) retains its established
+        // owner lifecycle. Only a direct derived-member edit is a 3D tamper.
+        foreach (var ownerId in derivedPhysicalMoveCandidates.Keys.ToArray())
+        {
+            if (modifiedIds.Contains(ownerId) || resizeOwners.Contains(ownerId) ||
+                unsupportedOwners.Contains(ownerId))
+                derivedPhysicalMoveCandidates.Remove(ownerId);
+            else
+            {
+                related.Add(ownerId);
+                related.UnionWith(derivedPhysicalMoveCandidates[ownerId]);
+            }
+        }
+
         return new InspectionPlan(
             related,
             resizeOwners,
@@ -623,7 +673,9 @@ internal static class RoofLiveResizeService
             generatedMemberTamperOwners,
             sourceEraseOwners,
             generatedTimberEraseOwners,
-            generatedAnnotationEraseOwners);
+            generatedAnnotationEraseOwners,
+            derivedPhysicalEraseOwners,
+            derivedPhysicalMoveCandidates);
     }
 
     private static bool HasErasedDerivedDisplay(
@@ -1671,6 +1723,25 @@ internal static class RoofLiveResizeService
                 ownerReference).Count;
             if (existingStructuralCount > 0)
             {
+                // Whole-roof MIRROR Yes modifies the source in place and reverses its
+                // winding. Unlike MIRROR No there is no cloned owner rebind to re-home
+                // the persisted boundary identity before structural regeneration.
+                if (RoofGeneratedMemberEditCommandRules.IsMirrorCommand(globalCommandName))
+                {
+                    var boundaryRehome = RoofBoundaryIdentityService.RehomeForCurrentSource(
+                        database,
+                        transaction,
+                        owner.ObjectId);
+                    if (boundaryRehome.Identity is null)
+                    {
+#if DEBUG
+                        document.Editor.WriteMessage(
+                            $"\n[AK_ROOF_PHYS3D] resize boundary-identity failure owner={ownerReference} result={boundaryRehome.Error} cmd={globalCommandName}\n");
+#endif
+                        return ResizeApplyResult.HardFailure;
+                    }
+                }
+
                 var structural =
                     RoofAutomaticStructuralRafterMaterializationService.MaterializeInTransaction(
                         document,
@@ -1684,6 +1755,10 @@ internal static class RoofLiveResizeService
                         syncAssemblyGroup: false);
                 if (!structural.IsSuccess)
                 {
+#if DEBUG
+                    document.Editor.WriteMessage(
+                        $"\n[AK_ROOF_PHYS3D] resize structural failure owner={ownerReference} result={structural.Result} cmd={globalCommandName}\n");
+#endif
                     return ResizeApplyResult.HardFailure;
                 }
             }
@@ -2271,6 +2346,270 @@ internal static class RoofLiveResizeService
                timberData == entry.TimberData;
     }
 
+    private static void ApplyDerivedPhysicalMoveTampers(
+        Document document,
+        IReadOnlyDictionary<ObjectId, HashSet<ObjectId>> movedByOwner)
+    {
+        // Called only at a successful native MOVE CommandEnded, inside the
+        // existing LiveGeometry suppression scope. This is not a parallel reactor.
+        var attempted = false;
+        var failed = false;
+        using (document.LockDocument())
+        {
+            foreach (var pair in movedByOwner)
+            {
+                var liveMovedIds = pair.Value.Where(id => !id.IsNull && !id.IsErased).ToArray();
+                if (liveMovedIds.Length == 0)
+                    continue; // An accepted 2D edit may already have rebuilt these keys.
+                attempted = true;
+                try
+                {
+                    IReadOnlyCollection<string> restoredKeys;
+                    using (var transaction = document.Database.TransactionManager.StartTransaction())
+                    {
+                        if (!AutoCadObjectIdAccess.TryGetObject<Polyline>(
+                                transaction, pair.Key, OpenMode.ForRead,
+                                out var owner, document.Database) || owner is null ||
+                            ClassifyOwner(document.Database, transaction, owner).Geometry
+                                is not HipRoofGeometry hip ||
+                            !RoofOrdinaryRafterSolidMaterializationService
+                                .TryRestoreMovedPhysicalMembersInTransaction(
+                                    document.Database, transaction, owner, hip,
+                                    liveMovedIds, out restoredKeys) ||
+                            !RoofAssemblyGroupSyncService.TrySyncForOwner(
+                                document, transaction, pair.Key) ||
+                            !TryVerifyMovedPhysicalStateInTransaction(
+                                document.Database, transaction, pair.Key, restoredKeys))
+                            throw new InvalidOperationException(
+                                "Authoritative Physical3D MOVE recovery failed before commit.");
+                        transaction.Commit();
+                    }
+
+                    if (!TryFinalizeRestoredPhysicalGroup(
+                            document, pair.Key,
+                            Array.Empty<RoofDisplayErasePreCommandMapService.MappedEntity>()))
+                        throw new InvalidOperationException(
+                            "Physical3D MOVE recovery group finalization failed.");
+
+                    using var verify = document.Database.TransactionManager.StartTransaction();
+                    if (!TryVerifyMovedPhysicalStateInTransaction(
+                            document.Database, verify, pair.Key, restoredKeys))
+                        throw new InvalidOperationException(
+                            "Physical3D MOVE recovery post-commit verification failed.");
+#if DEBUG
+                    document.Editor.WriteMessage(
+                        $"\nROOF_DERIVED_PHYSICAL_MOVE owner={pair.Key.Handle} " +
+                        $"memberKeys={string.Join("|", restoredKeys)} result=restored");
+#endif
+                }
+                catch (System.Exception)
+                {
+                    failed = true;
+#if DEBUG
+                    document.Editor.WriteMessage(
+                        $"\nROOF_DERIVED_PHYSICAL_MOVE owner={pair.Key.Handle} " +
+                        "result=HardFailure");
+#endif
+                }
+            }
+        }
+
+        // Exactly one localized command-line message, independent of how many
+        // native modification callbacks AutoCAD emitted for the moved solids.
+        if (attempted)
+            document.Editor.WriteMessage("\n" + UiStrings.GetString(failed
+                ? "Command_Roof_DerivedPhysicalMoveRecoveryFailed"
+                : "Command_Roof_DerivedPhysicalMoveRejected"));
+    }
+
+    private static bool TryVerifyMovedPhysicalStateInTransaction(
+        Database database,
+        Transaction transaction,
+        ObjectId ownerId,
+        IReadOnlyCollection<string> restoredKeys)
+    {
+        if (!AutoCadObjectIdAccess.TryGetObject<Polyline>(
+                transaction, ownerId, OpenMode.ForRead, out var owner, database) ||
+            owner is null ||
+            ClassifyOwner(database, transaction, owner).Geometry is not HipRoofGeometry hip ||
+            !RoofOrdinaryRafterSolidMaterializationService
+                .TryVerifyRestoredPhysicalMembersInTransaction(
+                    database, transaction, owner, hip, restoredKeys, out var restoredIds) ||
+            !RoofDisplayGroupService.TryOpenCanonicalGroup(
+                database, transaction, ownerId, OpenMode.ForRead, out var group) ||
+            group is null ||
+            !TryCollectExpectedRoofGroupMembers(
+                database, transaction, ownerId, out var expected))
+            return false;
+
+        var actual = group.GetAllEntityIds();
+        return RoofAssemblyGroupMembershipRules.IsCanonicalMembership(actual, expected) &&
+            restoredIds.All(id => actual.Count(member => member == id) == 1);
+    }
+
+    private static bool ApplyDerivedPhysicalEraseTampers(
+        Document document,
+        IReadOnlyCollection<ObjectId> ownerIds,
+        IReadOnlyCollection<string> erasedHandles)
+    {
+        var restoredAny = false;
+        using (document.LockDocument())
+        {
+            foreach (var ownerId in ownerIds)
+            {
+                // Deleting an unlocked source intentionally deletes its derived set.
+                if (RoofDisplayErasePreCommandMapService.IsOwnerSourceErased(
+                        ownerId, erasedHandles))
+                    continue;
+
+                var entries = RoofDisplayErasePreCommandMapService.GetErasedEntriesForOwner(
+                    ownerId, erasedHandles, RoofEraseMappedKind.DerivedPhysical3D);
+                if (entries.Count == 0 ||
+                    !RoofDisplayErasePreCommandMapService.TryGetSourceState(
+                        ownerId, out var sourceState))
+                    continue;
+
+                // AutoCAD reattaches erased GROUP slots when the un-erase
+                // transaction commits. Syncing GROUP before this commit can see
+                // a provisional missing slot, append the same ObjectId, and
+                // persist two slots for one physical solid.
+                using (var transaction = document.Database.TransactionManager.StartTransaction())
+                {
+                    foreach (var entry in entries)
+                    {
+                        if (!AutoCadObjectIdAccess.TryGetObjectAllowErased<Entity>(
+                                transaction, entry.EntityId, OpenMode.ForWrite,
+                                out var entity, document.Database) || entity is null)
+                            throw new InvalidOperationException(
+                                "Physical3D erase recovery cannot open the original entity.");
+
+                        if (entity.IsErased)
+                            entity.Erase(false);
+
+                        var sameEntity = !entity.IsErased &&
+                            entity.ObjectId == entry.EntityId &&
+                            string.Equals(entity.Handle.ToString(), entry.EntityHandle,
+                                StringComparison.OrdinalIgnoreCase);
+                        if (!sameEntity ||
+                            RoofPhysical3DGeneratedStore.Read(entity).Data != entry.PhysicalData)
+                            throw new InvalidOperationException(
+                                "Physical3D erase recovery changed entity identity or metadata.");
+                    }
+
+                    var physicalIds = RoofPhysical3DGeneratedStore.FindByOwner(
+                        document.Database, transaction, sourceState.OwnerHandle);
+                    var expectedCount = RoofDisplayErasePreCommandMapService
+                        .CountPhysicalEntriesForOwner(ownerId);
+                    var identities = new HashSet<(RoofPhysical3DGeneratedRole, string)>();
+                    foreach (var id in physicalIds)
+                    {
+                        if (!AutoCadObjectIdAccess.TryGetObject<Entity>(
+                                transaction, id, OpenMode.ForRead,
+                                out var entity, document.Database) || entity is null ||
+                            RoofPhysical3DGeneratedStore.Read(entity).Data is not { } data ||
+                            !identities.Add((data.Role, data.StructuralId)))
+                            throw new InvalidOperationException(
+                                "Physical3D erase recovery found duplicate or invalid identities.");
+                    }
+
+                    if (physicalIds.Count != expectedCount)
+                        throw new InvalidOperationException(
+                            "Physical3D erase recovery did not restore the original set.");
+                    transaction.Commit();
+                }
+
+                if (!TryFinalizeRestoredPhysicalGroup(
+                        document, ownerId, entries))
+                    throw new InvalidOperationException(
+                        "Physical3D erase recovery did not restore the canonical set/group.");
+                restoredAny = true;
+            }
+        }
+
+        return restoredAny;
+    }
+
+    private static bool TryFinalizeRestoredPhysicalGroup(
+        Document document,
+        ObjectId ownerId,
+        IReadOnlyList<RoofDisplayErasePreCommandMapService.MappedEntity> restoredEntries)
+    {
+        // The first pass runs only AFTER exact un-erase was committed. A second
+        // pass handles any deferred native GROUP reattach observed at commit.
+        for (var attempt = 0; attempt < 2; attempt++)
+        {
+            using (var transaction = document.Database.TransactionManager.StartTransaction())
+            {
+                if (!RoofAssemblyGroupSyncService.TrySyncForOwner(
+                        document, transaction, ownerId) ||
+                    !RoofDisplayGroupService.TryOpenCanonicalGroup(
+                        document.Database, transaction, ownerId, OpenMode.ForWrite,
+                        out var group) || group is null ||
+                    !TryCollectExpectedRoofGroupMembers(
+                        document.Database, transaction, ownerId, out var expected))
+                    return false;
+
+                var actual = group.GetAllEntityIds();
+                foreach (var index in RoofAssemblyGroupMembershipRules
+                             .SurplusOrForeignMemberIndices(actual, expected)
+                             .OrderByDescending(index => index))
+                    group.RemoveAt(index);
+
+                // EnsureGroup normally appends missing members. Recheck the live
+                // membership immediately before any fallback append; never append
+                // an ObjectId that is already present.
+                var present = group.GetAllEntityIds().ToHashSet();
+                foreach (var id in expected)
+                {
+                    if (present.Add(id))
+                        group.Append(id);
+                }
+
+                if (!RoofAssemblyGroupMembershipRules.IsCanonicalMembership(
+                        group.GetAllEntityIds(), expected))
+                    return false;
+                transaction.Commit();
+            }
+
+            using var verify = document.Database.TransactionManager.StartTransaction();
+            if (!RoofDisplayGroupService.TryOpenCanonicalGroup(
+                    document.Database, verify, ownerId, OpenMode.ForRead,
+                    out var committedGroup) || committedGroup is null ||
+                !TryCollectExpectedRoofGroupMembers(
+                    document.Database, verify, ownerId, out var committedExpected))
+                return false;
+            var committed = committedGroup.GetAllEntityIds();
+            if (RoofAssemblyGroupMembershipRules.IsCanonicalMembership(
+                    committed, committedExpected) &&
+                restoredEntries.All(entry => entry.PhysicalData?.Role is not
+                        (RoofPhysical3DGeneratedRole.OrdinaryRafterSolid or
+                         RoofPhysical3DGeneratedRole.StructuralRafterSolid) ||
+                    committed.Count(id => id == entry.EntityId) == 1))
+                return true;
+        }
+        return false;
+    }
+
+    private static bool TryCollectExpectedRoofGroupMembers(
+        Database database,
+        Transaction transaction,
+        ObjectId ownerId,
+        out HashSet<ObjectId> expected)
+    {
+        expected = new HashSet<ObjectId>();
+        if (!AutoCadObjectIdAccess.TryGetObject<Polyline>(
+                transaction, ownerId, OpenMode.ForRead, out var owner, database) ||
+            owner is null ||
+            !RoofDisplayService.TryCollectCurrentStructuralDisplayChildIds(
+                database, transaction, owner, out var displayIds) ||
+            !RoofAssemblyGroupMemberCollector.TryCollect(
+                database, transaction, ownerId, displayIds,
+                out var collected) || collected is null)
+            return false;
+        expected = collected.MemberIds.ToHashSet();
+        return expected.Count == collected.MemberIds.Count;
+    }
+
     private static bool TryUnEraseGeneratedAnnotation(
         Database database,
         Transaction transaction,
@@ -2668,7 +3007,9 @@ internal static class RoofLiveResizeService
         HashSet<ObjectId> GeneratedMemberTamperOwnerIds,
         HashSet<ObjectId> SourceEraseOwnerIds,
         HashSet<ObjectId> GeneratedTimberEraseOwnerIds,
-        HashSet<ObjectId> GeneratedAnnotationEraseOwnerIds);
+        HashSet<ObjectId> GeneratedAnnotationEraseOwnerIds,
+        HashSet<ObjectId> DerivedPhysicalEraseOwnerIds,
+        Dictionary<ObjectId, HashSet<ObjectId>> DerivedPhysicalMoveMembers);
 
     private enum ResizeApplyResult
     {

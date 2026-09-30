@@ -57,6 +57,17 @@ public static class RoofDisplayErasePreCommandMapRules
         return editStateAtStart == RoofEditState.Locked;
     }
 
+    /// <summary>Physical roof children are derived in both edit states; an ERASE
+    /// of the source owner itself is handled by the source lifecycle instead.</summary>
+    public static bool ShouldRestoreDerivedPhysicalErase(
+        RoofEraseMappedKind mappedKind,
+        bool sourceErasedInSameCommand,
+        string? globalCommandName) =>
+        mappedKind == RoofEraseMappedKind.DerivedPhysical3D &&
+        !sourceErasedInSameCommand &&
+        !LiveGeometryCommandRules.IsUndoRedoCommand(globalCommandName) &&
+        RoofGeneratedMemberEditCommandRules.IsEraseCommand(globalCommandName);
+
     /// <summary>
     /// Unlocked source ERASE remains intentional deletion (no Locked resurrection).
     /// </summary>

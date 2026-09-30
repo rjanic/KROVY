@@ -22,6 +22,30 @@ public static class RoofAssemblyGroupMembershipRules
         return result;
     }
 
+    /// <summary>Exact slots to remove from an AutoCAD GROUP, including duplicate
+    /// expected members and foreign members. Remove in descending index order.</summary>
+    public static IReadOnlyList<int> SurplusOrForeignMemberIndices<T>(
+        IReadOnlyList<T> actualMembers,
+        IReadOnlyCollection<T> expectedUniqueMembers)
+        where T : notnull
+    {
+        var expected = expectedUniqueMembers as HashSet<T> ??
+            new HashSet<T>(expectedUniqueMembers);
+        if (expected.Count != expectedUniqueMembers.Count)
+            throw new ArgumentException("Expected membership must be unique.",
+                nameof(expectedUniqueMembers));
+
+        var seen = new HashSet<T>();
+        var result = new List<int>();
+        for (var index = 0; index < actualMembers.Count; index++)
+        {
+            var member = actualMembers[index];
+            if (!expected.Contains(member) || !seen.Add(member))
+                result.Add(index);
+        }
+        return result;
+    }
+
     public sealed record MembershipPlan<T>(
         IReadOnlyList<T> RemoveOnce,
         IReadOnlyList<T> AppendOnce)

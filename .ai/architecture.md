@@ -14,6 +14,7 @@ Preserve the CAD-neutral domain model, stable persisted data, and the separation
 - Keep application versions in `Directory.Build.props`; do not scatter hardcoded product versions.
 - A read-only UI operation, including selecting or hydrating a layer, must not lock or modify the DWG.
 - Keep metadata schema version independent from the layer-profile version and UI-preference storage.
+- Roof geometry authority is centralized in [`docs/geometry/roof-elevation-contract.md`](../docs/geometry/roof-elevation-contract.md). Its approved ordinary-rafter 2D/3D contract governs the 2D `Z=0` axis, eave boundary endpoint, 3D top face, `LowerEndCutMode`, `RidgeJoinMode`, and the prohibition on deriving 2D geometry from a physical 3D end. Do not create a parallel geometry knowledge or ownership contract.
 
 ## Current architecture or workflow
 

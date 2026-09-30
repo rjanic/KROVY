@@ -107,7 +107,7 @@ public sealed class MonopitchRafterStage2D1SourceContractTests
     {
         var applyResizes = Segment(
             Resize,
-            "private static void ApplyResizes(",
+            "private static bool ApplyResizes(",
             "private static ResizeApplyResult TryApplyResize(");
         var commandEnded = Segment(
             Live,

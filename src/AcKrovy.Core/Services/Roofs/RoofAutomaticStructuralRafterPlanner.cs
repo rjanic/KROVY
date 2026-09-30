@@ -11,11 +11,20 @@ public static class RoofAutomaticStructuralRafterPlanner
 {
     public static RoofAutomaticStructuralRafterPlanResult Create(
         RoofStructuralEdgeResolutionResult? resolution,
-        TimberElementDefaultProfile? defaultProfile = null)
+        TimberElementDefaultProfile? defaultProfile = null,
+        RoofAbsoluteElevationState? ownerPhysicalState = null)
     {
         if (resolution is null || !resolution.IsValid)
         {
             return Invalid(RoofAutomaticStructuralRafterPlanError.InvalidStructuralResolution);
+        }
+
+        if (ownerPhysicalState is not null &&
+            (double.IsNaN(ownerPhysicalState.StructuralWidthMm) ||
+             double.IsInfinity(ownerPhysicalState.StructuralWidthMm) ||
+             ownerPhysicalState.StructuralWidthMm <= 0d))
+        {
+            return Invalid(RoofAutomaticStructuralRafterPlanError.InvalidStructuralWidth);
         }
 
         var items = new List<RoofAutomaticStructuralRafterPlanItem>(resolution.Edges.Count);
@@ -57,6 +66,8 @@ public static class RoofAutomaticStructuralRafterPlanner
             {
                 LengthCalculationMode = LengthCalculationMode.PlanLength,
                 ManualLengthMm = null,
+                WidthMm = ownerPhysicalState?.StructuralWidthMm ??
+                    RoofStructuralPhysicalSettings.DefaultWidthMm,
                 SlopeDegrees = edge.MemberInclinationDegrees,
                 IsSlopeDirectionReversed =
                     TimberSlopeDirectionRules.ResolveIsReversedForDownhillDisplay(

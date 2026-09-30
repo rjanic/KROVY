@@ -9,6 +9,8 @@ namespace AcKrovy.AutoCAD.Infrastructure;
 /// Dedicated owner XData store for absolute roof elevation, Physical3DEnabled, and
 /// per-roof display visibility. Independent of RoofDefinitionData schema 5.
 /// Schema 1: mode/entered/eave/enabled. Schema 2 adds DisplayVisibility.
+/// Schema 3 adds ordinary-rafter lower cut and ridge join modes.
+/// Schema 4 adds owner-scoped structural width and height settings.
 /// </summary>
 internal static class RoofPhysicalElevationStore
 {
@@ -19,6 +21,8 @@ internal static class RoofPhysicalElevationStore
     private const int DxfInt16Code = (int)DxfCode.ExtendedDataInteger16;
     private const int Schema1ValueCount = 6;
     private const int Schema2ValueCount = 7;
+    private const int Schema3ValueCount = 9;
+    private const int Schema4ValueCount = 12;
 
     public static RoofPhysicalElevationStoreReadResult Read(Entity entity)
     {
@@ -78,7 +82,7 @@ internal static class RoofPhysicalElevationStore
                 displayVisibility: RoofPhysicalDisplayVisibility.Both);
         }
 
-        if (schemaVersion == RoofPhysicalElevationSchema.CurrentVersion)
+        if (schemaVersion == RoofPhysicalElevationSchema.Version2)
         {
             if (values.Count != Schema2ValueCount)
             {
@@ -100,6 +104,58 @@ internal static class RoofPhysicalElevationStore
             return DecodeCommon(schemaVersion, values, visibility);
         }
 
+        if (schemaVersion is RoofPhysicalElevationSchema.Version3 or
+            RoofPhysicalElevationSchema.CurrentVersion)
+        {
+            var expectedCount = schemaVersion == RoofPhysicalElevationSchema.Version3
+                ? Schema3ValueCount
+                : Schema4ValueCount;
+            if (values.Count != expectedCount)
+            {
+                return RoofPhysicalElevationStoreReadResult.Invalid(
+                    values.Count < expectedCount
+                        ? RoofPhysicalElevationError.IncompletePayload
+                        : RoofPhysicalElevationError.UnexpectedTrailingValue);
+            }
+            if (values[6].TypeCode != DxfAsciiStringCode ||
+                values[6].Value is not string visibilityToken ||
+                !Enum.TryParse(visibilityToken, false, out RoofPhysicalDisplayVisibility visibility) ||
+                !string.Equals(visibility.ToString(), visibilityToken, StringComparison.Ordinal) ||
+                values[7].TypeCode != DxfAsciiStringCode ||
+                values[7].Value is not string cutToken ||
+                !Enum.TryParse(cutToken, false, out LowerEndCutMode cutMode) ||
+                !string.Equals(cutMode.ToString(), cutToken, StringComparison.Ordinal) ||
+                values[8].TypeCode != DxfAsciiStringCode ||
+                values[8].Value is not string joinToken ||
+                !Enum.TryParse(joinToken, false, out RidgeJoinMode joinMode) ||
+                !string.Equals(joinMode.ToString(), joinToken, StringComparison.Ordinal))
+            {
+                return RoofPhysicalElevationStoreReadResult.Invalid(
+                    RoofPhysicalElevationError.MalformedValueType);
+            }
+            if (schemaVersion == RoofPhysicalElevationSchema.Version3)
+            {
+                return DecodeCommon(schemaVersion, values, visibility, cutMode, joinMode);
+            }
+
+            if (values[9].TypeCode != DxfRealCode ||
+                values[9].Value is not double structuralWidthMm ||
+                values[10].TypeCode != DxfAsciiStringCode ||
+                values[10].Value is not string heightModeToken ||
+                !Enum.TryParse(heightModeToken, false, out RoofStructuralHeightMode heightMode) ||
+                !string.Equals(heightMode.ToString(), heightModeToken, StringComparison.Ordinal) ||
+                values[11].TypeCode != DxfRealCode ||
+                values[11].Value is not double explicitHeightMm)
+            {
+                return RoofPhysicalElevationStoreReadResult.Invalid(
+                    RoofPhysicalElevationError.MalformedValueType);
+            }
+
+            return DecodeCommon(
+                schemaVersion, values, visibility, cutMode, joinMode,
+                structuralWidthMm, heightMode, explicitHeightMm);
+        }
+
         return RoofPhysicalElevationStoreReadResult.Invalid(
             RoofPhysicalElevationError.UnsupportedSchemaVersion);
     }
@@ -107,7 +163,12 @@ internal static class RoofPhysicalElevationStore
     private static RoofPhysicalElevationStoreReadResult DecodeCommon(
         int schemaVersion,
         IReadOnlyList<TypedValue> values,
-        RoofPhysicalDisplayVisibility displayVisibility)
+        RoofPhysicalDisplayVisibility displayVisibility,
+        LowerEndCutMode lowerEndCutMode = LowerEndCutMode.Vertical,
+        RidgeJoinMode ridgeJoinMode = RidgeJoinMode.Meet,
+        double structuralWidthMm = RoofStructuralPhysicalSettings.DefaultWidthMm,
+        RoofStructuralHeightMode structuralHeightMode = RoofStructuralHeightMode.Automatic,
+        double structuralExplicitHeightMm = 0d)
     {
         if (values[2].TypeCode != DxfAsciiStringCode ||
             values[2].Value is not string modeToken ||
@@ -131,7 +192,12 @@ internal static class RoofPhysicalElevationStore
             enteredRelativeElevationMm,
             resolvedEaveRelativeElevationMm,
             enabledToken == 1,
-            displayVisibility);
+            displayVisibility,
+            lowerEndCutMode,
+            ridgeJoinMode,
+            structuralWidthMm,
+            structuralHeightMode,
+            structuralExplicitHeightMm);
         return validated.Data is null
             ? RoofPhysicalElevationStoreReadResult.Invalid(validated.Error)
             : RoofPhysicalElevationStoreReadResult.Valid(validated.Data);
@@ -146,7 +212,12 @@ internal static class RoofPhysicalElevationStore
             data.EnteredRelativeElevationMm,
             data.ResolvedEaveRelativeElevationMm,
             data.Physical3DEnabled,
-            data.DisplayVisibility);
+            data.DisplayVisibility,
+            data.LowerEndCutMode,
+            data.RidgeJoinMode,
+            data.StructuralWidthMm,
+            data.StructuralHeightMode,
+            data.StructuralExplicitHeightMm);
         if (validated.Data is null)
         {
             throw new ArgumentException(
@@ -164,6 +235,11 @@ internal static class RoofPhysicalElevationStore
             new TypedValue(DxfRealCode, canonical.ResolvedEaveRelativeElevationMm),
             new TypedValue(DxfInt16Code, (short)(canonical.Physical3DEnabled ? 1 : 0)),
             new TypedValue(DxfAsciiStringCode, canonical.DisplayVisibility.ToString()),
+            new TypedValue(DxfAsciiStringCode, canonical.LowerEndCutMode.ToString()),
+            new TypedValue(DxfAsciiStringCode, canonical.RidgeJoinMode.ToString()),
+            new TypedValue(DxfRealCode, canonical.StructuralWidthMm),
+            new TypedValue(DxfAsciiStringCode, canonical.StructuralHeightMode.ToString()),
+            new TypedValue(DxfRealCode, canonical.StructuralExplicitHeightMm),
         });
     }
 

@@ -738,6 +738,8 @@ Obrys dachu zmienił się po zapisaniu. Zapisana definicja nie została użyta.<
   <data name="Command_Roof_UnsupportedStretchRecoveredNotificationBody" xml:space="preserve"><value>Obrys dachu został przywrócony do ostatniego obsługiwanego kształtu.</value></data>
   <data name="Command_Roof_DisplayTamperNotificationTitle" xml:space="preserve"><value>Wybierz podstawowy obrys dachu</value></data>
   <data name="Command_Roof_DisplayTamperNotificationBody" xml:space="preserve"><value>Kształt dachu edytuj za pomocą jego obrysu. Pozostałe elementy aktualizują się automatycznie.</value></data>
+  <data name="Command_Roof_DerivedPhysicalMoveRejected" xml:space="preserve"><value>Element 3D jest pochodną 2D. Edytuj jego element w rzucie.</value></data>
+  <data name="Command_Roof_DerivedPhysicalMoveRecoveryFailed" xml:space="preserve"><value>Nie udało się odtworzyć elementu 3D z 2D. Sprawdź rysunek; nie zapisuj tej zmiany.</value></data>
   <data name="Command_Roof_PersistFailed" xml:space="preserve"><value>
 Nie udało się zapisać definicji dachu.</value></data>
   <data name="Command_Roof_PersistSourceChanged" xml:space="preserve"><value>
@@ -825,9 +827,23 @@ Nie udało się utworzyć automatycznych krokwi. Operacja na rysunku została wy
   <data name="CommandUi_RoofToggleLock_Label" xml:space="preserve"><value>Blokada</value></data>
   <data name="CommandUi_RoofToggleLock_Tooltip" xml:space="preserve"><value>Przełącza wybrany dach między trybem zablokowanym i odblokowanym.</value></data>
   <data name="RoofRafterWindow_Title" xml:space="preserve"><value>Krokwie</value></data>
+  <data name="RoofRafterWindow_StructuralHeading" xml:space="preserve"><value>Krokiew narożna</value></data>
+  <data name="RoofRafterWindow_StructuralWidthMm" xml:space="preserve"><value>Szerokość [mm]</value></data>
+  <data name="RoofRafterWindow_StructuralHeightMm" xml:space="preserve"><value>Wysokość [mm]</value></data>
+  <data name="RoofRafterWindow_StructuralAutomatic" xml:space="preserve"><value>obliczana</value></data>
+  <data name="RoofRafterWindow_StructuralResetAutomatic" xml:space="preserve"><value>Automatycznie</value></data>
+  <data name="RoofRafterWindow_InvalidStructuralDimensions" xml:space="preserve"><value>Podaj dodatnią szerokość i wysokość albo przywróć obliczanie automatyczne.</value></data>
+  <data name="RoofRafterWindow_StructuralHeightWarningFormat" xml:space="preserve"><value>Uwaga: krokiew {0} ma ustawioną wysokość {1:0.##} mm, ale połączenie wymaga co najmniej {2:0.##} mm.</value></data>
   <data name="RoofRafterWindow_Heading" xml:space="preserve"><value>Automatyczne krokwie</value></data>
   <data name="RoofRafterWindow_Description" xml:space="preserve"><value>Ustaw przekrój, maksymalny rozstaw i materiał krokwi.</value></data>
   <data name="RoofRafterWindow_WidthMm" xml:space="preserve"><value>Szerokość [mm]</value></data>
+  <data name="RoofRafterWindow_LowerEndCutMode" xml:space="preserve"><value>Dolne czoło krokwi</value></data>
+  <data name="RoofRafterWindow_CutVertical" xml:space="preserve"><value>Pionowo</value></data>
+  <data name="RoofRafterWindow_CutPerpendicular" xml:space="preserve"><value>Prostopadle</value></data>
+  <data name="RoofRafterWindow_CutHorizontal" xml:space="preserve"><value>Poziomo</value></data>
+  <data name="RoofRafterWindow_RidgeJoinMode" xml:space="preserve"><value>Połączenie w kalenicy</value></data>
+  <data name="RoofRafterWindow_JoinMeet" xml:space="preserve"><value>Styk na płaszczyźnie podziału</value></data>
+  <data name="RoofRafterWindow_JoinOverlap" xml:space="preserve"><value>Symetryczne nakładanie</value></data>
   <data name="RoofRafterWindow_HeightMm" xml:space="preserve"><value>Wysokość [mm]</value></data>
   <data name="RoofRafterWindow_MaximumSpacingMm" xml:space="preserve"><value>Rozstaw krokwi [mm]</value></data>
   <data name="RoofRafterWindow_Material" xml:space="preserve"><value>Materiał</value></data>

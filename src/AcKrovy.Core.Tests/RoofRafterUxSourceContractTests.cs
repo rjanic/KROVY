@@ -55,6 +55,27 @@ public sealed class RoofRafterUxSourceContractTests
     }
 
     [Fact]
+    public void RafterDialog_ReusesHipRoofWoodVisualResources()
+    {
+        var hip = Read("UI", "HipRoofPreviewWindow.xaml");
+        foreach (var resource in new[]
+        {
+            "Design/SettingsDesignSystem.xaml",
+            "Design/SettingsControls.xaml",
+            "Design/RoofGeometryVisuals.xaml",
+            "WoodOakBrush", "WoodOakDarkBrush",
+            "SettingsCardStyle", "SettingsPrimaryButtonStyle",
+            "SettingsSecondaryButtonStyle",
+        })
+        {
+            Assert.Contains(resource, hip);
+            Assert.Contains(resource, WindowXaml);
+        }
+        Assert.Contains("RoofRafterWindow_StructuralHeading", WindowXaml);
+        Assert.Contains("RoofRafterWindow_StructuralResetAutomatic", WindowXaml);
+    }
+
+    [Fact]
     public void DialogIsDrawingNeutralAndWpfCreateIsTheOnlyConfirmation()
     {
         var dialogPrefix = Workflow[..Workflow.IndexOf("var result = isEdit", StringComparison.Ordinal)];

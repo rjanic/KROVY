@@ -32,7 +32,8 @@ internal static class RoofDisplayErasePreCommandMapService
         RoofEraseMappedKind Kind,
         string? GeneratedSourceHandle,
         RoofGeneratedTimberData? GeneratedData,
-        TimberElementData? TimberData);
+        TimberElementData? TimberData,
+        RoofPhysical3DGeneratedData? PhysicalData = null);
 
     internal sealed record SourcePreCommandState(
         ObjectId OwnerId,
@@ -155,6 +156,20 @@ internal static class RoofDisplayErasePreCommandMapService
                         null,
                         null,
                         null);
+                    continue;
+                }
+
+                // Read the already-owned Physical3D identity while the DBObject is
+                // live. ObjectErased cannot reliably recover XData after native ERASE.
+                var physical = RoofPhysical3DGeneratedStore.Read(entity).Data;
+                if (physical is not null &&
+                    ownerIdsByHandle.TryGetValue(physical.RoofOwnerReference,
+                        out var physicalOwnerId))
+                {
+                    byHandle[handle] = new MappedEntity(
+                        id, handle, physical.RoofOwnerReference, physicalOwnerId,
+                        RoofEraseMappedKind.DerivedPhysical3D, null, null, null,
+                        physical);
                     continue;
                 }
 
@@ -380,6 +395,32 @@ internal static class RoofDisplayErasePreCommandMapService
         return owners.Count == 0 ? Array.Empty<ObjectId>() : owners.ToArray();
     }
 
+    public static IReadOnlyCollection<ObjectId> CollectDerivedPhysicalEraseOwners(
+        IReadOnlyCollection<string> erasedHandles,
+        string? globalCommandName)
+    {
+        var owners = new HashSet<ObjectId>();
+        lock (Gate)
+        {
+            foreach (var handle in erasedHandles)
+            {
+                if (!_byHandle.TryGetValue(handle, out var mapped) ||
+                    mapped.Kind != RoofEraseMappedKind.DerivedPhysical3D ||
+                    !RoofDisplayErasePreCommandMapRules.ShouldRestoreDerivedPhysicalErase(
+                        mapped.Kind, IsSourceErased(mapped.OwnerId, erasedHandles),
+                        globalCommandName))
+                    continue;
+                owners.Add(mapped.OwnerId);
+            }
+        }
+        return owners.ToArray();
+    }
+
+    private static bool IsSourceErased(ObjectId ownerId,
+        IReadOnlyCollection<string> erasedHandles) =>
+        erasedHandles.Any(handle => _byHandle.TryGetValue(handle, out var mapped) &&
+            mapped.OwnerId == ownerId && mapped.Kind == RoofEraseMappedKind.Source);
+
     public static IReadOnlyCollection<ObjectId> CollectLockedGeneratedEraseOwners(
         IReadOnlyCollection<string> erasedHandles,
         RoofEraseMappedKind kind,
@@ -443,6 +484,15 @@ internal static class RoofDisplayErasePreCommandMapService
         return entries.Values
             .OrderBy(entry => entry.EntityId.Handle.Value)
             .ToArray();
+    }
+
+    public static int CountPhysicalEntriesForOwner(ObjectId ownerId)
+    {
+        lock (Gate)
+        {
+            return _byHandle.Values.Count(entry => entry.OwnerId == ownerId &&
+                entry.Kind == RoofEraseMappedKind.DerivedPhysical3D);
+        }
     }
 
     public static int CountErasedDisplaysForOwner(

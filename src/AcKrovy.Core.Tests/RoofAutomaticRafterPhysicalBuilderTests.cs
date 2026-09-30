@@ -634,6 +634,11 @@ public sealed class RoofAutomaticRafterPhysicalBuilderTests
         var (geometry, layout, generated) = Solve();
         var replay = RoofGeneratedMemberReplayPlanner.Create(
             generated, 0d, new RoofPoint3D(0d, 0d, 1d), null);
+        Assert.True(RoofAutomaticRafterPhysicalBuilder.TryBuild(
+            "AB", geometry.Topology, layout, generated, 3000d, 80d, 125d,
+            new RoofAutomaticRafterPhysicalSettings(), replay, out var baseline));
+        var baselineMember = Assert.Single(baseline!.Members,
+            item => item.MemberKey == generated.Rafters[0].LogicalKey);
         var items = replay.Items.ToArray();
         var original = items[0].Geometry!.Value;
         var end = new RoofPoint3D(
@@ -655,6 +660,7 @@ public sealed class RoofAutomaticRafterPhysicalBuilderTests
         Assert.Equal(end, member.PlanAxis.End);
         Assert.Equal(0d, member.PlanAxis.End.Z);
         Assert.NotEqual(generated.Rafters[0].TrueLengthMm, member.PhysicalLengthMm);
+        Assert.NotEqual(baselineMember.PhysicalLengthMm, member.PhysicalLengthMm);
         var transverse = Direction(member.SolidVertices[0], member.SolidVertices[1]);
         Assert.Equal(member.WidthMm, Math.Sqrt(Dot(transverse, transverse)), 6);
         var face = geometry.Topology.Faces.Single(face =>
@@ -669,6 +675,46 @@ public sealed class RoofAutomaticRafterPhysicalBuilderTests
                 normal.Y * (point.Y - origin.Y) +
                 normal.Z * (point.Z - origin.Z - 3000d), 6);
         }
+    }
+
+    [Fact]
+    public void MovedPlanAxis_RebuildsPhysicalMemberWithSameLogicalKey()
+    {
+        var (geometry, layout, generated) = Solve();
+        var replay = RoofGeneratedMemberReplayPlanner.Create(
+            generated, 0d, new RoofPoint3D(0d, 0d, 1d), null);
+        var items = replay.Items.ToArray();
+        var original = items[0].Geometry!.Value;
+        var dx = original.End.X - original.Start.X;
+        var dy = original.End.Y - original.Start.Y;
+        var length = Math.Sqrt(dx * dx + dy * dy);
+        var offsetX = -20d * dy / length;
+        var offsetY = 20d * dx / length;
+        var moved = original with
+        {
+            Start = new RoofPoint3D(original.Start.X + offsetX,
+                original.Start.Y + offsetY, 0d),
+            End = new RoofPoint3D(original.End.X + offsetX,
+                original.End.Y + offsetY, 0d),
+        };
+        items[0] = items[0] with
+        {
+            Geometry = moved,
+            Disposition = RoofGeneratedMemberReplayDisposition.GeometryReplayed,
+        };
+
+        Assert.True(RoofAutomaticRafterPhysicalBuilder.TryBuild(
+            "AB", geometry.Topology, layout, generated, 3000d, 80d, 125d,
+            new RoofAutomaticRafterPhysicalSettings(), replay with { Items = items },
+            out var model));
+        var member = Assert.Single(model!.Members,
+            item => item.MemberKey == generated.Rafters[0].LogicalKey);
+        Assert.Equal(moved.Start, member.PlanAxis.Start);
+        Assert.Equal(moved.End, member.PlanAxis.End);
+        Assert.Equal(0d, member.PlanAxis.Start.Z);
+        Assert.Equal(0d, member.PlanAxis.End.Z);
+        Assert.Equal(model.Members.Count,
+            model.Members.Select(item => item.MemberKey).Distinct().Count());
     }
 
     [Theory]

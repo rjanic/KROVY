@@ -34,14 +34,15 @@ public sealed class RoofAutomaticStructuralRafterMaterializationSourceContractTe
     }
 
     [Fact]
-    public void ExplicitMaterializer_UsesIdentityPlanAndAuthoritativeThreeDimensionalEndpoints()
+    public void ExplicitMaterializer_UsesIdentityPlanAndZeroElevationReferenceLine()
     {
         Assert.Contains("RoofBoundaryIdentityService.EnsureBoundaryIdentity", Service);
         Assert.Contains("RoofStructuralEdgeIdentityResolver.Resolve", Service);
         Assert.Contains("RoofAutomaticStructuralRafterPlanner.Create", Service);
-        Assert.Contains("MapPoint(item.Segment3D.Start", Service);
-        Assert.Contains("MapPoint(item.Segment3D.End", Service);
-        Assert.Contains("line.Length - item.True3DLengthMm", Service);
+        Assert.Contains("MapPlanPoint(item.Segment3D.Start", Service);
+        Assert.Contains("MapPlanPoint(item.Segment3D.End", Service);
+        Assert.Contains("new(point.X, point.Y, 0d)", Service);
+        Assert.Contains("line.Length - PlanLength(item.Segment3D)", Service);
         Assert.DoesNotContain("CalculateSlopeCorrectedLengthMm", Service);
         Assert.DoesNotContain("35d", Service);
     }
@@ -111,11 +112,14 @@ public sealed class RoofAutomaticStructuralRafterMaterializationSourceContractTe
             Workflow,
             "private static RoofRafterCreationResult TryReplaceRafters(",
             "private static RoofRafterCreationResult TryCreateRafters(");
-        AssertOrdered(
-            replace,
-            "TryReplaceWithEditedRecipe(",
+        Assert.True(replace.LastIndexOf(
             "RoofAutomaticStructuralRafterMaterializationService.MaterializeInTransaction(",
-            "transaction.Commit();");
+            StringComparison.Ordinal) > replace.IndexOf(
+                "TryReplaceWithEditedRecipe(", StringComparison.Ordinal));
+        Assert.True(replace.IndexOf("transaction.Commit();", StringComparison.Ordinal) >
+            replace.LastIndexOf(
+                "RoofAutomaticStructuralRafterMaterializationService.MaterializeInTransaction(",
+                StringComparison.Ordinal));
     }
 
     [Fact]

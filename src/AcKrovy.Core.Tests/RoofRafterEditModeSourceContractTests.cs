@@ -189,11 +189,14 @@ public sealed class RoofRafterEditModeSourceContractTests
             Workflow,
             "private static RoofRafterCreationResult TryReplaceRafters(",
             "private static RoofRafterCreationResult TryCreateRafters(");
-        AssertOrdered(
-            replace,
-            "TryReplaceWithEditedRecipe(",
+        Assert.True(replace.LastIndexOf(
             "RoofAutomaticStructuralRafterMaterializationService.MaterializeInTransaction(",
-            "transaction.Commit();");
+            StringComparison.Ordinal) > replace.IndexOf(
+                "TryReplaceWithEditedRecipe(", StringComparison.Ordinal));
+        Assert.True(replace.IndexOf("transaction.Commit();", StringComparison.Ordinal) >
+            replace.LastIndexOf(
+                "RoofAutomaticStructuralRafterMaterializationService.MaterializeInTransaction(",
+                StringComparison.Ordinal));
         Assert.Equal(1, Count(replace, "transaction.Commit();"));
     }
 
