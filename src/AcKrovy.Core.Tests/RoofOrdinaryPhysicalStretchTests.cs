@@ -7,6 +7,12 @@ namespace AcKrovy.Core.Tests;
 /// <summary>Semantic replay and derived geometry; not native HOST Undo/Redo proof.</summary>
 public sealed class RoofOrdinaryPhysicalStretchTests
 {
+    [Fact]
+    public void Break_UsesSharedPhysicalReconcile_WithSemanticCardinalityChange()
+    {
+        Assert.True(RoofGeneratedMemberEditCommandRules.RequiresOrdinaryPhysicalReconcile("BREAK"));
+    }
+
     [Theory]
     [InlineData("STRETCH")]
     [InlineData("GRIP_STRETCH")]
@@ -16,7 +22,6 @@ public sealed class RoofOrdinaryPhysicalStretchTests
         Assert.True(RoofGeneratedMemberEditCommandRules.RequiresOrdinaryPhysicalReconcile(command));
 
     [Theory]
-    [InlineData("BREAK")]
     [InlineData("COPY")]
     [InlineData("MIRROR")]
     [InlineData("UNDO")]

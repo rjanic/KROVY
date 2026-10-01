@@ -142,7 +142,7 @@ public sealed class MonopitchRafterStage2D1SourceContractTests
     {
         Assert.Equal(5, RoofDefinitionDataSchema.CurrentVersion);
         Assert.Equal(1, RoofDisplayDataSchema.CurrentVersion);
-        Assert.Equal(3, RoofAttachedManualTimberDataSchema.CurrentVersion);
+        Assert.Equal(4, RoofAttachedManualTimberDataSchema.CurrentVersion);
         Assert.Equal(3, (int)RoofKind.Monopitch);
         Assert.Contains("<AcKrovyVersion>0.23.0</AcKrovyVersion>", Read("Directory.Build.props"));
     }

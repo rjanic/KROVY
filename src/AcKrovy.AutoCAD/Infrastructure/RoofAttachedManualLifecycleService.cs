@@ -17,7 +17,8 @@ internal static class RoofAttachedManualLifecycleService
         Point3d anchorEnd,
         Point3d childStart,
         Point3d childEnd,
-        RoofAttachedManualOrigin origin = RoofAttachedManualOrigin.Split)
+        RoofAttachedManualOrigin origin = RoofAttachedManualOrigin.Split,
+        string? semanticIdentity = null)
     {
         if (!RoofAttachedManualRelativeGeometryRules.TryCapture(
                 ToRoof(anchorStart),
@@ -36,7 +37,8 @@ internal static class RoofAttachedManualLifecycleService
             RoofTimberChildRole.AttachedManual,
             anchorKey,
             relative,
-            origin);
+            origin,
+            semanticIdentity ?? RoofAttachedManualIdentityRules.Create());
     }
 
     public static bool TryFindGeneratedAnchorLine(
@@ -393,6 +395,16 @@ internal static class RoofAttachedManualLifecycleService
                 anchorStart = anchorLine.StartPoint;
                 anchorEnd = anchorLine.EndPoint;
             }
+            else if (stored.Data.RelativeSegment is { } persistedRelative &&
+                     RoofUnsupportedStretchRecoverySnapshotService.TryGetByHandle(ownerReference, out var snapshot) &&
+                     snapshot.Assembly.TimberLines.FirstOrDefault(item => string.Equals(item.EntityHandle,
+                         childLine.Handle.ToString(), StringComparison.OrdinalIgnoreCase)) is { } prior &&
+                     RoofAttachedManualRelativeGeometryRules.TryRecoverAnchorBasis(persistedRelative,
+                         prior.Start, prior.End, out var basisStart, out var basisEnd))
+            {
+                anchorStart = ToAcad(basisStart);
+                anchorEnd = ToAcad(basisEnd);
+            }
             else
             {
                 continue;
@@ -406,7 +418,8 @@ internal static class RoofAttachedManualLifecycleService
                 anchorEnd,
                 childLine.StartPoint,
                 childLine.EndPoint,
-                stored.Data.Origin);
+                stored.Data.Origin,
+                RoofAttachedManualIdentityRules.Resolve(stored.Data));
             childLine.UpgradeOpen();
             RoofAttachedManualTimberStore.Write(childLine, transaction, data);
 #if DEBUG

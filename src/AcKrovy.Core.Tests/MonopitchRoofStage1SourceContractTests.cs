@@ -229,7 +229,7 @@ public sealed class MonopitchRoofStage1SourceContractTests
         Assert.Contains("<AcKrovyVersion>0.23.0</AcKrovyVersion>", props);
         Assert.Contains("<Version>$(AcKrovyVersion)</Version>", props);
         Assert.Contains("CurrentVersion = 5", schema);
-        Assert.Contains("CurrentVersion = 3", attached);
+        Assert.Contains("CurrentVersion = 4", attached);
     }
 
     private static string Read(string relative) => File.ReadAllText(Path.Combine(Root, relative));

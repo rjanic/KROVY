@@ -60,7 +60,7 @@ public sealed class RoofGeometryDialogSourceContractTests
         Assert.Equal(5, RoofDefinitionDataSchema.CurrentVersion);
         Assert.Equal(7, TimberElementDataSchema.CurrentVersion);
         Assert.Equal(1, RoofGeneratedTimberDataSchema.CurrentVersion);
-        Assert.Equal(3, RoofAttachedManualTimberDataSchema.CurrentVersion);
+        Assert.Equal(4, RoofAttachedManualTimberDataSchema.CurrentVersion);
         Assert.Equal(1, RoofDisplayDataSchema.CurrentVersion);
     }
 

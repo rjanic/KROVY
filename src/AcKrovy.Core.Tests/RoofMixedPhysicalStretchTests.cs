@@ -8,10 +8,13 @@ namespace AcKrovy.Core.Tests;
 public sealed class RoofMixedPhysicalStretchTests
 {
     [Theory]
-    [InlineData(1)]
-    [InlineData(4)]
-    public void MixedStretch_RebuildsUniqueKeys_OnlyPlan2DChangesLogicalGeometry(int physicalCount)
+    [InlineData(1, "STRETCH")]
+    [InlineData(4, "STRETCH")]
+    [InlineData(1, "GRIP_STRETCH")]
+    [InlineData(4, "GRIP_STRETCH")]
+    public void MixedStretch_RebuildsUniqueKeys_OnlyPlan2DChangesLogicalGeometry(int physicalCount, string command)
     {
+        Assert.True(RoofPhysicalStretchRules.ShouldRecover(command, sourceModified: false));
         var (geometry, faceLayout, layout, before) = CreateModel();
         var edited = layout.Rafters.First(rafter =>
             faceLayout.Segments[rafter.StationIndex].EndBoundaryRole == RoofRafterBoundaryRole.Ridge);
@@ -82,7 +85,10 @@ public sealed class RoofMixedPhysicalStretchTests
     [InlineData("_.STRETCH", true, false)]
     [InlineData("STRETCH", false, true)]
     [InlineData("_.STRETCH", false, true)]
-    [InlineData("GRIP_STRETCH", false, false)]
+    [InlineData("GRIP_STRETCH", false, true)]
+    [InlineData("_.grip_stretch", false, true)]
+    [InlineData("'GRIP_STRETCH", false, true)]
+    [InlineData("GRIP_STRETCH", true, false)]
     [InlineData("MOVE", false, false)]
     [InlineData("TRIM", false, false)]
     [InlineData("ERASE", false, false)]
@@ -113,8 +119,8 @@ public sealed class RoofMixedPhysicalStretchTests
         Assert.Contains("globalCommandName, RoofLiveResizeService.HasSourceGeometryChanged(", manual);
         Assert.Contains("acceptedPlanIds: acceptedPlanIds", manual);
         Assert.Contains(".IsClassicStretch(globalCommandName)", manual);
-        Assert.Contains("TrySelectRebuildKeys(", ordinary);
-        Assert.Contains("collateralIds.Add(physical.StructuralId)", ordinary);
+        Assert.Contains("RoofOrdinaryPhysicalReconciliationRules.TryPlan", ordinary);
+        Assert.Contains("changedKeys.Add(data.StructuralId)", ordinary);
         var restore = lifecycle[lifecycle.IndexOf("public static bool TryRestoreStretchPhysicalInTransaction(", StringComparison.Ordinal)..
             lifecycle.IndexOf("public static void CleanupStillErasedSourceInTransaction(", StringComparison.Ordinal)];
         Assert.Contains("TryRestoreMovedPhysicalMembersInTransaction(", restore);
@@ -129,7 +135,7 @@ public sealed class RoofMixedPhysicalStretchTests
         Assert.True(accepted.IndexOf("TryRestoreStructuralHipValleyMembersOnly", StringComparison.Ordinal) <
             accepted.IndexOf("TryRestoreStretchPhysicalInTransaction", StringComparison.Ordinal));
         Assert.True(accepted.IndexOf("TryRestoreStretchPhysicalInTransaction", StringComparison.Ordinal) <
-            accepted.IndexOf("transaction.Commit()", StringComparison.Ordinal));
+            accepted.LastIndexOf("transaction.Commit()", StringComparison.Ordinal));
         Assert.Contains("TryVerifyStretchPhysicalState(document.Database, transaction, pair.Key)", resize);
         Assert.Contains("TryFinalizeRestoredPhysicalGroup(document, pair.Key", resize);
         Assert.Contains("SourceHandledOwnersThisCommand.Contains(ownerId)", resize);

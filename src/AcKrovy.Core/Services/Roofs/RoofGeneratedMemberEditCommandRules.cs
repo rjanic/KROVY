@@ -10,7 +10,8 @@ namespace AcKrovy.Core.Services.Roofs;
 public static class RoofGeneratedMemberEditCommandRules
 {
     public static bool IsAssemblySnapshotCommand(string? globalCommandName) =>
-        IsGeneratedTimberEditCommand(globalCommandName);
+        IsGeneratedTimberEditCommand(globalCommandName) || IsMirrorCommand(globalCommandName) ||
+        LiveGeometryCommandRules.IsSameDwgCopyOwnershipCommand(globalCommandName);
 
     public static bool IsGeneratedTimberEditCommand(string? globalCommandName)
     {
@@ -19,7 +20,7 @@ public static class RoofGeneratedMemberEditCommandRules
                normalized.Equals("ROTATE", StringComparison.OrdinalIgnoreCase) ||
                normalized.Equals("TRIM", StringComparison.OrdinalIgnoreCase) ||
                normalized.Equals("EXTEND", StringComparison.OrdinalIgnoreCase) ||
-               normalized.Equals("BREAK", StringComparison.OrdinalIgnoreCase) ||
+               IsBreakCommand(normalized) ||
                normalized.Equals("STRETCH", StringComparison.OrdinalIgnoreCase) ||
                normalized.Equals("ERASE", StringComparison.OrdinalIgnoreCase) ||
                normalized.Equals("GRIP_STRETCH", StringComparison.OrdinalIgnoreCase) ||
@@ -33,7 +34,7 @@ public static class RoofGeneratedMemberEditCommandRules
                normalized.Equals("ROTATE", StringComparison.OrdinalIgnoreCase) ||
                normalized.Equals("TRIM", StringComparison.OrdinalIgnoreCase) ||
                normalized.Equals("EXTEND", StringComparison.OrdinalIgnoreCase) ||
-               normalized.Equals("BREAK", StringComparison.OrdinalIgnoreCase) ||
+               IsBreakCommand(normalized) ||
                normalized.Equals("STRETCH", StringComparison.OrdinalIgnoreCase) ||
                normalized.Equals("ERASE", StringComparison.OrdinalIgnoreCase) ||
                normalized.Equals("GRIP_STRETCH", StringComparison.OrdinalIgnoreCase);
@@ -105,7 +106,10 @@ public static class RoofGeneratedMemberEditCommandRules
     public static bool IsBreakCommand(string? globalCommandName)
     {
         var normalized = LiveGeometryCommandRules.NormalizeCommandName(globalCommandName);
-        return normalized.Equals("BREAK", StringComparison.OrdinalIgnoreCase);
+        // AutoCAD's one-point command has its own GlobalCommandName. Both commands
+        // use the existing snapshot, split promotion and physical reconciliation.
+        return normalized.Equals("BREAK", StringComparison.OrdinalIgnoreCase) ||
+               normalized.Equals("BREAKATPOINT", StringComparison.OrdinalIgnoreCase);
     }
 
     public static bool IsScaleCommand(string? globalCommandName)
@@ -132,12 +136,12 @@ public static class RoofGeneratedMemberEditCommandRules
         IsGripStretchCommand(globalCommandName);
 
     /// <summary>
-    /// Accepted geometry edits with unchanged ordinary-member cardinality share
-    /// the existing transaction-scoped physical reconcile and failure recovery.
-    /// Split/clone operations require reconciliation of AttachedManual results
-    /// before they can enter this path.
+    /// Accepted geometry edits share the transaction-scoped physical reconcile.
+    /// BREAK selects the same reconciliation engine with cardinality changes;
+    /// native COPY/MIRROR use their existing command-scoped ownership branch.
     /// </summary>
     public static bool RequiresOrdinaryPhysicalReconcile(string? globalCommandName) =>
-        IsMoveCommand(globalCommandName) || IsTrimCommand(globalCommandName) ||
-        IsClassicStretch(globalCommandName) || IsGripStretchCommand(globalCommandName);
+        IsMoveCommand(globalCommandName) || IsEndpointTrimOrExtendCommand(globalCommandName) ||
+        IsClassicStretch(globalCommandName) || IsGripStretchCommand(globalCommandName) ||
+        IsBreakCommand(globalCommandName);
 }

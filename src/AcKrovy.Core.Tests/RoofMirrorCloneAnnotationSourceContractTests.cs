@@ -86,7 +86,8 @@ public sealed class RoofMirrorCloneAnnotationSourceContractTests
         Assert.Contains("appendedAnnotationIds = appendedLabelIds", Sync);
         Assert.Contains(".Concat(appendedSlopeArrowIds)", Sync);
         Assert.Contains(".Concat(appendedSlopeAngleTextIds)", Sync);
-        Assert.Contains("appendedAnnotationIds);", Sync);
+        Assert.Contains("appendedAnnotationIds,", Sync);
+        Assert.Contains("annotations, snapshot, propagateFailure: true", Sync);
     }
 
     [Fact]

@@ -69,7 +69,7 @@ public sealed class RoofStructuralGeneratedLockParityTests
         Assert.Contains("TryIsLockProtectedStructuralTimber", manual);
         Assert.Contains("ROOF_STRUCT_EDIT_GUARD", manual);
         Assert.Contains("locked-generated-members-only", manual);
-        Assert.Contains("structural-hip-valley-after-unlocked-accept", manual);
+        Assert.Contains("structural-hip-valley-before-unlocked-accept", manual);
     }
 
     [Fact]

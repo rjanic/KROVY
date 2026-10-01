@@ -138,307 +138,346 @@ public static class RoofAutomaticRafterPhysicalBuilder
                 planEnd = new RoofPoint2D(applied.End.X, applied.End.Y);
             }
 
-            var origin = topology.Nodes[face.BoundaryNodeIndices[0]];
-            var a = Upper(planStart, origin, normal, eaveElevationMm);
-            var b = Upper(planEnd, origin, normal, eaveElevationMm);
-            var dx = b.X - a.X;
-            var dy = b.Y - a.Y;
-            var dz = b.Z - a.Z;
-            var planLength = Math.Sqrt(dx * dx + dy * dy);
-            var trueLength = Math.Sqrt(dx * dx + dy * dy + dz * dz);
-            if (!Finite(a) || !Finite(b) || planLength <= Tolerance ||
-                !Finite(trueLength) || trueLength <= Tolerance ||
-                (replayByKey is null && Math.Abs(segment.PlanLengthMm - planLength) >
-                    1e-7 * Math.Max(1d, planLength)))
-            {
-                return false;
-            }
-
-            var run = new RoofPoint3D(dx / trueLength, dy / trueLength, dz / trueLength);
-            var planRun = new RoofPoint3D(dx / planLength, dy / planLength, 0d);
-            // For an edited in-plane axis, transverse upper corners must still
-            // lie on the same roof plane (a horizontal offset alone would not).
-            var widthDirection = new RoofPoint3D(-planRun.Y, planRun.X,
-                (normal.X * planRun.Y - normal.Y * planRun.X) / normal.Z);
-            var widthLength = Math.Sqrt(Dot(widthDirection, widthDirection));
-            if (!Finite(widthLength) || widthLength <= Tolerance)
-            {
-                return false;
-            }
-            widthDirection = new RoofPoint3D(
-                widthDirection.X / widthLength,
-                widthDirection.Y / widthLength,
-                widthDirection.Z / widthLength);
-            var startCut = CutNormal(segment.StartBoundaryRole, settings, run, planRun);
-            var endCut = CutNormal(segment.EndBoundaryRole, settings, run, planRun);
-            var halfWidth = widthMm / 2d;
-            var horizontalEave = settings.LowerEndCutMode == LowerEndCutMode.Horizontal &&
-                (segment.StartBoundaryRole == RoofRafterBoundaryRole.Eave ||
-                 segment.EndBoundaryRole == RoofRafterBoundaryRole.Eave);
-            var prismStart = a;
-            var prismEnd = b;
-            RoofPoint3D lowerStart;
-            RoofPoint3D lowerEnd;
-            if (horizontalEave)
-            {
-                // Extend only the transient source prism past the eave. Its
-                // entire top front edge must be below the WCS eave plane so
-                // the final roof-plane/eave intersection is computed by the
-                // clip, even when a replayed axis has a tilted width vector.
-                var eaveAtStart = segment.StartBoundaryRole == RoofRafterBoundaryRole.Eave;
-                var upslopeZ = eaveAtStart ? run.Z : -run.Z;
-                if (upslopeZ <= Tolerance)
-                {
-                    failureReason = $"HorizontalCut:InvalidUpslopeDirection:{rafter.LogicalKey}";
-                    return false;
-                }
-                var extension = (halfWidth * Math.Abs(widthDirection.Z) + 1d) / upslopeZ;
-                if (!Finite(extension) || extension > trueLength * 10d)
-                {
-                    failureReason = $"HorizontalCut:ExtensionDegenerate:{rafter.LogicalKey}";
-                    return false;
-                }
-                if (eaveAtStart)
-                {
-                    prismStart = new RoofPoint3D(
-                        a.X - extension * run.X,
-                        a.Y - extension * run.Y,
-                        a.Z - extension * run.Z);
-                    lowerStart = Add(prismStart,
-                        new RoofPoint3D(normal.X, normal.Y, normal.Z), -heightMm);
-                    if (!TryLower(b, normal, run, endCut, heightMm, out lowerEnd))
-                    {
-                        failureReason = $"HorizontalCut:InnerEndDegenerate:{rafter.LogicalKey}";
-                        return false;
-                    }
-                }
-                else
-                {
-                    prismEnd = new RoofPoint3D(
-                        b.X + extension * run.X,
-                        b.Y + extension * run.Y,
-                        b.Z + extension * run.Z);
-                    lowerEnd = Add(prismEnd,
-                        new RoofPoint3D(normal.X, normal.Y, normal.Z), -heightMm);
-                    if (!TryLower(a, normal, run, startCut, heightMm, out lowerStart))
-                    {
-                        failureReason = $"HorizontalCut:InnerEndDegenerate:{rafter.LogicalKey}";
-                        return false;
-                    }
-                }
-            }
-            else if (!TryLower(a, normal, run, startCut, heightMm, out lowerStart) ||
-                     !TryLower(b, normal, run, endCut, heightMm, out lowerEnd))
-            {
-                return false;
-            }
-
-            RoofConvexPrismPlaneClipper.Plane? ridgeOverlapPlane = null;
-            var ridgeExtensionMm = 0d;
-            if (settings.RidgeJoinMode == RidgeJoinMode.Overlap &&
-                (segment.StartBoundaryRole == RoofRafterBoundaryRole.Ridge ||
-                 segment.EndBoundaryRole == RoofRafterBoundaryRole.Ridge))
-            {
-                if (!TryResolveOpposingRidgeRoofPlane(topology, face, segment,
-                        eaveElevationMm, out var opposingPlane))
-                {
-                    failureReason = $"RidgeOverlap:OpposingPlaneUnresolved:{rafter.LogicalKey}";
-                    return false;
-                }
-                ridgeOverlapPlane = opposingPlane;
-                var ridgeAtStart = segment.StartBoundaryRole == RoofRafterBoundaryRole.Ridge;
-                var towardRidge = ridgeAtStart
-                    ? new RoofPoint3D(-run.X, -run.Y, -run.Z) : run;
-                var advanceRate = Dot(towardRidge, opposingPlane.Normal);
-                if (!Finite(advanceRate) || advanceRate >= -Tolerance)
-                {
-                    failureReason = $"RidgeOverlap:InvalidAdvanceDirection:{rafter.LogicalKey}";
-                    return false;
-                }
-                var ridgeLower = ridgeAtStart ? lowerStart : lowerEnd;
-                foreach (var side in new[] { -halfWidth, halfWidth })
-                {
-                    var corner = Add(ridgeLower, widthDirection, side);
-                    var signed = Dot(Add(corner, opposingPlane.Point, -1d), opposingPlane.Normal);
-                    if (!Finite(signed))
-                    {
-                        failureReason = $"RidgeOverlap:InvalidLowerCorner:{rafter.LogicalKey}";
-                        return false;
-                    }
-                    if (signed > RoofFaceRafterLayoutService.CoordinateToleranceMm)
-                        ridgeExtensionMm = Math.Max(ridgeExtensionMm,
-                            signed / -advanceRate);
-                }
-                if (!Finite(ridgeExtensionMm))
-                {
-                    failureReason = $"RidgeOverlap:ExtensionDegenerate:{rafter.LogicalKey}";
-                    return false;
-                }
-                // Extend the transient prism before slicing: at shallow pitches
-                // the unextended lower ridge end face lies below the opposing
-                // plane and would otherwise survive as a triangular spike.
-                if (ridgeAtStart)
-                {
-                    prismStart = Add(prismStart, towardRidge, ridgeExtensionMm);
-                    lowerStart = Add(lowerStart, towardRidge, ridgeExtensionMm);
-                }
-                else
-                {
-                    prismEnd = Add(prismEnd, towardRidge, ridgeExtensionMm);
-                    lowerEnd = Add(lowerEnd, towardRidge, ridgeExtensionMm);
-                }
-            }
-
-            var sourceVertices = new[]
-            {
-                Add(prismStart, widthDirection, -halfWidth),
-                Add(prismStart, widthDirection, halfWidth),
-                Add(prismEnd, widthDirection, -halfWidth),
-                Add(prismEnd, widthDirection, halfWidth),
-                Add(lowerStart, widthDirection, -halfWidth),
-                Add(lowerStart, widthDirection, halfWidth),
-                Add(lowerEnd, widthDirection, -halfWidth),
-                Add(lowerEnd, widthDirection, halfWidth),
-            };
-            if (sourceVertices.Any(point => !Finite(point)))
-            {
-                return false;
-            }
-            RoofHorizontalRafterCut? horizontalCut = null;
-            RoofStructuralRafterSideCut? structuralCut = null;
-            IReadOnlyList<RoofPoint3D> physicalVertices =
-                Array.AsReadOnly(sourceVertices);
-            var structuralAtStart = segment.StartBoundaryRole is
-                RoofRafterBoundaryRole.Hip or RoofRafterBoundaryRole.Valley;
-            var structuralAtEnd = segment.EndBoundaryRole is
-                RoofRafterBoundaryRole.Hip or RoofRafterBoundaryRole.Valley;
-            if (structuralSources is not null && (structuralAtStart || structuralAtEnd))
-            {
-                if (structuralAtStart && structuralAtEnd)
-                {
-                    failureReason = $"StructuralCut:TwoStructuralEnds:{rafter.LogicalKey}";
-                    return false;
-                }
-                var role = structuralAtStart
-                    ? segment.StartBoundaryRole : segment.EndBoundaryRole;
-                if (!RoofStructuralSidePlaneResolver.TryResolve(
-                        topology, segment.SourceFaceIndex, role,
-                        structuralAtStart ? segment.PlanStart : segment.PlanEnd,
-                        structuralAtStart ? planEnd : planStart,
-                        structuralSources, out structuralCut, out var sideReason))
-                {
-                    failureReason = $"StructuralCut:{sideReason}:{rafter.LogicalKey}";
-                    return false;
-                }
-            }
-            if (structuralCut is not null)
-            {
-                var planes = new List<RoofConvexPrismPlaneClipper.Plane>();
-                if (horizontalEave)
-                {
-                    planes.Add(new RoofConvexPrismPlaneClipper.Plane(
-                        new RoofPoint3D(0d, 0d, eaveElevationMm),
-                        new RoofPoint3D(0d, 0d, 1d)));
-                }
-                planes.Add(new RoofConvexPrismPlaneClipper.Plane(
-                    structuralCut.PlanePoint, structuralCut.PlaneNormal));
-                if (!RoofConvexPrismPlaneClipper.TryClip(
-                        sourceVertices, planes, out var clipped))
-                {
-                    failureReason = $"StructuralCut:ClippedBodyDegenerate:{rafter.LogicalKey}";
-                    return false;
-                }
-                physicalVertices = clipped!.Body;
-                var structuralFaceIndex = horizontalEave ? 1 : 0;
-                var hasLowerContact = TryFindBottomContactEdge(clipped.BottomFace,
-                    clipped.CutFaces[structuralFaceIndex], out var lowerContactEdge);
-                if (!horizontalEave && !hasLowerContact)
-                {
-                    failureReason = $"StructuralCut:BottomContactUnresolved:{rafter.LogicalKey}";
-                    return false;
-                }
-                structuralCut = structuralCut with
-                {
-                    SourcePrismVertices = Array.AsReadOnly(sourceVertices),
-                    CutFaceVertices = clipped.CutFaces[structuralFaceIndex],
-                    TopFaceVertices = clipped.TopFace,
-                    BottomFaceVertices = clipped.BottomFace,
-                    LowerContactEdge = hasLowerContact ? lowerContactEdge : null,
-                };
-                if (horizontalEave)
-                {
-                    horizontalCut = new RoofHorizontalRafterCut(
-                        eaveElevationMm,
-                        Array.AsReadOnly(sourceVertices),
-                        clipped.Body,
-                        clipped.CutFaces[0],
-                        clipped.TopFace);
-                }
-            }
-            else if (horizontalEave)
-            {
-                if (!TryClipHorizontal(sourceVertices, eaveElevationMm,
-                        out horizontalCut))
-                {
-                    failureReason = $"HorizontalCut:ClippedBodyDegenerate:{rafter.LogicalKey}";
-                    return false;
-                }
-                physicalVertices = horizontalCut!.BodyVertices;
-            }
-
-            RoofRidgeOverlapCut? ridgeOverlapCut = null;
-            if (ridgeOverlapPlane is { } opposingPlaneForCut)
-            {
-                var minimum = physicalVertices.Min(point =>
-                    Dot(Add(point, opposingPlaneForCut.Point, -1d), opposingPlaneForCut.Normal));
-                if (minimum < -RoofFaceRafterLayoutService.CoordinateToleranceMm)
-                {
-                    var planes = new List<RoofConvexPrismPlaneClipper.Plane>();
-                    if (horizontalEave)
-                        planes.Add(new RoofConvexPrismPlaneClipper.Plane(
-                            new RoofPoint3D(0d, 0d, eaveElevationMm),
-                            new RoofPoint3D(0d, 0d, 1d)));
-                    if (structuralCut is not null)
-                        planes.Add(new RoofConvexPrismPlaneClipper.Plane(
-                            structuralCut.PlanePoint, structuralCut.PlaneNormal));
-                    planes.Add(opposingPlaneForCut);
-                    if (!RoofConvexPrismPlaneClipper.TryClip(sourceVertices,
-                            planes, out var clipped, allowNoOpPlanes: true) ||
-                        clipped is null || clipped.CutFaces.Count == 0)
-                    {
-                        failureReason = $"RidgeOverlap:ClippedBodyDegenerate:{rafter.LogicalKey}";
-                        return false;
-                    }
-                    physicalVertices = clipped.Body;
-                    ridgeOverlapCut = new RoofRidgeOverlapCut(
-                        opposingPlaneForCut.Point, opposingPlaneForCut.Normal,
-                        Array.AsReadOnly(sourceVertices), ridgeExtensionMm,
-                        clipped.Body, clipped.TopFace, clipped.BottomFace,
-                        clipped.CutFaces[clipped.CutFaces.Count - 1]);
-                }
-            }
-
-            members.Add(new RoofAutomaticRafterPhysicalMember(
-                new RoofGeneratedMemberKey(
-                    RoofGeneratedTimberKind.Rafter, RafterRoofFace.Face0, index),
-                segment.SourceFaceIndex,
-                segment.StartBoundaryRole,
-                segment.EndBoundaryRole,
-                new RoofSegment3D(
-                    new RoofPoint3D(planStart.X, planStart.Y, 0d),
-                    new RoofPoint3D(planEnd.X, planEnd.Y, 0d)),
-                physicalVertices,
-                widthMm,
-                heightMm,
-                topology.PitchDegrees,
-                trueLength,
-                horizontalCut,
-                structuralCut,
-                ridgeOverlapCut));
+            var semanticAxis = new RoofSegment3D(
+                new RoofPoint3D(planStart.X, planStart.Y, 0d),
+                new RoofPoint3D(planEnd.X, planEnd.Y, 0d));
+            if (replayByKey is not null &&
+                (planStart.DistanceTo(segment.PlanStart) > Tolerance ||
+                 planEnd.DistanceTo(segment.PlanEnd) > Tolerance))
+                segment = RoofOrdinaryRafterSemanticGeometryRules.ResolveSegment(
+                    topology, segment, semanticAxis);
+            if (!TryBuildSemanticMember(topology, segment, rafter.LogicalKey,
+                    semanticAxis, eaveElevationMm, widthMm, heightMm, settings,
+                    structuralSources, out var member, out failureReason,
+                    validateCanonicalLength: replayByKey is null)) return false;
+            members.Add(member!);
         }
 
         model = new RoofAutomaticRafterPhysicalModel(
             ownerReference, Array.AsReadOnly(members.ToArray()));
+        failureReason = string.Empty;
+        return true;
+    }
+
+    /// <summary>Shared prism and end-cut solver for any accepted ordinary semantic axis.
+    /// No CAD entities or solids participate in geometry authority.</summary>
+    public static bool TryBuildSemanticMember(
+        RoofTopology topology, RoofFaceRafterSegment segment, RoofGeneratedMemberKey key,
+        RoofSegment3D semanticAxis, double eaveElevationMm, double widthMm, double heightMm,
+        RoofAutomaticRafterPhysicalSettings settings,
+        IReadOnlyList<RoofStructuralRafterTrimSource>? structuralSources,
+        out RoofAutomaticRafterPhysicalMember? member, out string failureReason,
+        bool validateCanonicalLength = false)
+    {
+        member = null;
+        failureReason = "InvalidSemanticPhysicalInput";
+        if (!Finite(semanticAxis.Start) || !Finite(semanticAxis.End) ||
+            Math.Abs(semanticAxis.Start.Z) > Tolerance || Math.Abs(semanticAxis.End.Z) > Tolerance ||
+            !Finite(eaveElevationMm) || !Finite(widthMm) || widthMm <= 0d ||
+            !Finite(heightMm) || heightMm <= 0d ||
+            !Enum.IsDefined(typeof(LowerEndCutMode), settings.LowerEndCutMode) ||
+            !Enum.IsDefined(typeof(RidgeJoinMode), settings.RidgeJoinMode)) return false;
+        var face = topology.Faces.SingleOrDefault(item => item.SourceEdgeIndex == segment.SourceFaceIndex);
+        if (face is null || face.BoundaryNodeIndices.Count < 3 ||
+            !RoofRafterPhysicalGeometry.TryCreateUpwardUnitNormal(topology, face, out var normal)) return false;
+        var planStart = new RoofPoint2D(semanticAxis.Start.X, semanticAxis.Start.Y);
+        var planEnd = new RoofPoint2D(semanticAxis.End.X, semanticAxis.End.Y);
+        var origin = topology.Nodes[face.BoundaryNodeIndices[0]];
+        var a = Upper(planStart, origin, normal, eaveElevationMm);
+        var b = Upper(planEnd, origin, normal, eaveElevationMm);
+        var dx = b.X - a.X;
+        var dy = b.Y - a.Y;
+        var dz = b.Z - a.Z;
+        var planLength = Math.Sqrt(dx * dx + dy * dy);
+        var trueLength = Math.Sqrt(dx * dx + dy * dy + dz * dz);
+        if (!Finite(a) || !Finite(b) || planLength <= Tolerance ||
+            !Finite(trueLength) || trueLength <= Tolerance ||
+            (validateCanonicalLength && Math.Abs(segment.PlanLengthMm - planLength) >
+                1e-7 * Math.Max(1d, planLength)))
+        {
+            return false;
+        }
+
+        var run = new RoofPoint3D(dx / trueLength, dy / trueLength, dz / trueLength);
+        var planRun = new RoofPoint3D(dx / planLength, dy / planLength, 0d);
+        // For an edited in-plane axis, transverse upper corners must still
+        // lie on the same roof plane (a horizontal offset alone would not).
+        var widthDirection = new RoofPoint3D(-planRun.Y, planRun.X,
+            (normal.X * planRun.Y - normal.Y * planRun.X) / normal.Z);
+        var widthLength = Math.Sqrt(Dot(widthDirection, widthDirection));
+        if (!Finite(widthLength) || widthLength <= Tolerance)
+        {
+            return false;
+        }
+        widthDirection = new RoofPoint3D(
+            widthDirection.X / widthLength,
+            widthDirection.Y / widthLength,
+            widthDirection.Z / widthLength);
+        var startCut = CutNormal(segment.StartBoundaryRole, settings, run, planRun);
+        var endCut = CutNormal(segment.EndBoundaryRole, settings, run, planRun);
+        var halfWidth = widthMm / 2d;
+        var horizontalEave = settings.LowerEndCutMode == LowerEndCutMode.Horizontal &&
+            (segment.StartBoundaryRole == RoofRafterBoundaryRole.Eave ||
+             segment.EndBoundaryRole == RoofRafterBoundaryRole.Eave);
+        var prismStart = a;
+        var prismEnd = b;
+        RoofPoint3D lowerStart;
+        RoofPoint3D lowerEnd;
+        if (horizontalEave)
+        {
+            // Extend only the transient source prism past the eave. Its
+            // entire top front edge must be below the WCS eave plane so
+            // the final roof-plane/eave intersection is computed by the
+            // clip, even when a replayed axis has a tilted width vector.
+            var eaveAtStart = segment.StartBoundaryRole == RoofRafterBoundaryRole.Eave;
+            var upslopeZ = eaveAtStart ? run.Z : -run.Z;
+            if (upslopeZ <= Tolerance)
+            {
+                failureReason = $"HorizontalCut:InvalidUpslopeDirection:{key}";
+                return false;
+            }
+            var extension = (halfWidth * Math.Abs(widthDirection.Z) + 1d) / upslopeZ;
+            if (!Finite(extension) || extension > trueLength * 10d)
+            {
+                failureReason = $"HorizontalCut:ExtensionDegenerate:{key}";
+                return false;
+            }
+            if (eaveAtStart)
+            {
+                prismStart = new RoofPoint3D(
+                    a.X - extension * run.X,
+                    a.Y - extension * run.Y,
+                    a.Z - extension * run.Z);
+                lowerStart = Add(prismStart,
+                    new RoofPoint3D(normal.X, normal.Y, normal.Z), -heightMm);
+                if (!TryLower(b, normal, run, endCut, heightMm, out lowerEnd))
+                {
+                    failureReason = $"HorizontalCut:InnerEndDegenerate:{key}";
+                    return false;
+                }
+            }
+            else
+            {
+                prismEnd = new RoofPoint3D(
+                    b.X + extension * run.X,
+                    b.Y + extension * run.Y,
+                    b.Z + extension * run.Z);
+                lowerEnd = Add(prismEnd,
+                    new RoofPoint3D(normal.X, normal.Y, normal.Z), -heightMm);
+                if (!TryLower(a, normal, run, startCut, heightMm, out lowerStart))
+                {
+                    failureReason = $"HorizontalCut:InnerEndDegenerate:{key}";
+                    return false;
+                }
+            }
+        }
+        else if (!TryLower(a, normal, run, startCut, heightMm, out lowerStart) ||
+                 !TryLower(b, normal, run, endCut, heightMm, out lowerEnd))
+        {
+            return false;
+        }
+
+        RoofConvexPrismPlaneClipper.Plane? ridgeOverlapPlane = null;
+        var ridgeExtensionMm = 0d;
+        if (settings.RidgeJoinMode == RidgeJoinMode.Overlap &&
+            (segment.StartBoundaryRole == RoofRafterBoundaryRole.Ridge ||
+             segment.EndBoundaryRole == RoofRafterBoundaryRole.Ridge))
+        {
+            if (!TryResolveOpposingRidgeRoofPlane(topology, face, segment,
+                    eaveElevationMm, out var opposingPlane))
+            {
+                failureReason = $"RidgeOverlap:OpposingPlaneUnresolved:{key}";
+                return false;
+            }
+            ridgeOverlapPlane = opposingPlane;
+            var ridgeAtStart = segment.StartBoundaryRole == RoofRafterBoundaryRole.Ridge;
+            var towardRidge = ridgeAtStart
+                ? new RoofPoint3D(-run.X, -run.Y, -run.Z) : run;
+            var advanceRate = Dot(towardRidge, opposingPlane.Normal);
+            if (!Finite(advanceRate) || advanceRate >= -Tolerance)
+            {
+                failureReason = $"RidgeOverlap:InvalidAdvanceDirection:{key}";
+                return false;
+            }
+            var ridgeLower = ridgeAtStart ? lowerStart : lowerEnd;
+            foreach (var side in new[] { -halfWidth, halfWidth })
+            {
+                var corner = Add(ridgeLower, widthDirection, side);
+                var signed = Dot(Add(corner, opposingPlane.Point, -1d), opposingPlane.Normal);
+                if (!Finite(signed))
+                {
+                    failureReason = $"RidgeOverlap:InvalidLowerCorner:{key}";
+                    return false;
+                }
+                if (signed > RoofFaceRafterLayoutService.CoordinateToleranceMm)
+                    ridgeExtensionMm = Math.Max(ridgeExtensionMm,
+                        signed / -advanceRate);
+            }
+            if (!Finite(ridgeExtensionMm))
+            {
+                failureReason = $"RidgeOverlap:ExtensionDegenerate:{key}";
+                return false;
+            }
+            // Extend the transient prism before slicing: at shallow pitches
+            // the unextended lower ridge end face lies below the opposing
+            // plane and would otherwise survive as a triangular spike.
+            if (ridgeAtStart)
+            {
+                prismStart = Add(prismStart, towardRidge, ridgeExtensionMm);
+                lowerStart = Add(lowerStart, towardRidge, ridgeExtensionMm);
+            }
+            else
+            {
+                prismEnd = Add(prismEnd, towardRidge, ridgeExtensionMm);
+                lowerEnd = Add(lowerEnd, towardRidge, ridgeExtensionMm);
+            }
+        }
+
+        var sourceVertices = new[]
+        {
+            Add(prismStart, widthDirection, -halfWidth),
+            Add(prismStart, widthDirection, halfWidth),
+            Add(prismEnd, widthDirection, -halfWidth),
+            Add(prismEnd, widthDirection, halfWidth),
+            Add(lowerStart, widthDirection, -halfWidth),
+            Add(lowerStart, widthDirection, halfWidth),
+            Add(lowerEnd, widthDirection, -halfWidth),
+            Add(lowerEnd, widthDirection, halfWidth),
+        };
+        if (sourceVertices.Any(point => !Finite(point)))
+        {
+            return false;
+        }
+        RoofHorizontalRafterCut? horizontalCut = null;
+        RoofStructuralRafterSideCut? structuralCut = null;
+        IReadOnlyList<RoofPoint3D> physicalVertices =
+            Array.AsReadOnly(sourceVertices);
+        var structuralAtStart = segment.StartBoundaryRole is
+            RoofRafterBoundaryRole.Hip or RoofRafterBoundaryRole.Valley;
+        var structuralAtEnd = segment.EndBoundaryRole is
+            RoofRafterBoundaryRole.Hip or RoofRafterBoundaryRole.Valley;
+        if (structuralSources is not null && (structuralAtStart || structuralAtEnd))
+        {
+            if (structuralAtStart && structuralAtEnd)
+            {
+                failureReason = $"StructuralCut:TwoStructuralEnds:{key}";
+                return false;
+            }
+            var role = structuralAtStart
+                ? segment.StartBoundaryRole : segment.EndBoundaryRole;
+            if (!RoofStructuralSidePlaneResolver.TryResolve(
+                    topology, segment.SourceFaceIndex, role,
+                    structuralAtStart ? segment.PlanStart : segment.PlanEnd,
+                    structuralAtStart ? planEnd : planStart,
+                    structuralSources, out structuralCut, out var sideReason))
+            {
+                failureReason = $"StructuralCut:{sideReason}:{key}";
+                return false;
+            }
+        }
+        if (structuralCut is not null)
+        {
+            var planes = new List<RoofConvexPrismPlaneClipper.Plane>();
+            if (horizontalEave)
+            {
+                planes.Add(new RoofConvexPrismPlaneClipper.Plane(
+                    new RoofPoint3D(0d, 0d, eaveElevationMm),
+                    new RoofPoint3D(0d, 0d, 1d)));
+            }
+            planes.Add(new RoofConvexPrismPlaneClipper.Plane(
+                structuralCut.PlanePoint, structuralCut.PlaneNormal));
+            if (!RoofConvexPrismPlaneClipper.TryClip(
+                    sourceVertices, planes, out var clipped))
+            {
+                failureReason = $"StructuralCut:ClippedBodyDegenerate:{key}";
+                return false;
+            }
+            physicalVertices = clipped!.Body;
+            var structuralFaceIndex = horizontalEave ? 1 : 0;
+            var hasLowerContact = TryFindBottomContactEdge(clipped.BottomFace,
+                clipped.CutFaces[structuralFaceIndex], out var lowerContactEdge);
+            if (!horizontalEave && !hasLowerContact)
+            {
+                failureReason = $"StructuralCut:BottomContactUnresolved:{key}";
+                return false;
+            }
+            structuralCut = structuralCut with
+            {
+                SourcePrismVertices = Array.AsReadOnly(sourceVertices),
+                CutFaceVertices = clipped.CutFaces[structuralFaceIndex],
+                TopFaceVertices = clipped.TopFace,
+                BottomFaceVertices = clipped.BottomFace,
+                LowerContactEdge = hasLowerContact ? lowerContactEdge : null,
+            };
+            if (horizontalEave)
+            {
+                horizontalCut = new RoofHorizontalRafterCut(
+                    eaveElevationMm,
+                    Array.AsReadOnly(sourceVertices),
+                    clipped.Body,
+                    clipped.CutFaces[0],
+                    clipped.TopFace);
+            }
+        }
+        else if (horizontalEave)
+        {
+            if (!TryClipHorizontal(sourceVertices, eaveElevationMm,
+                    out horizontalCut))
+            {
+                failureReason = $"HorizontalCut:ClippedBodyDegenerate:{key}";
+                return false;
+            }
+            physicalVertices = horizontalCut!.BodyVertices;
+        }
+
+        RoofRidgeOverlapCut? ridgeOverlapCut = null;
+        if (ridgeOverlapPlane is { } opposingPlaneForCut)
+        {
+            var minimum = physicalVertices.Min(point =>
+                Dot(Add(point, opposingPlaneForCut.Point, -1d), opposingPlaneForCut.Normal));
+            if (minimum < -RoofFaceRafterLayoutService.CoordinateToleranceMm)
+            {
+                var planes = new List<RoofConvexPrismPlaneClipper.Plane>();
+                if (horizontalEave)
+                    planes.Add(new RoofConvexPrismPlaneClipper.Plane(
+                        new RoofPoint3D(0d, 0d, eaveElevationMm),
+                        new RoofPoint3D(0d, 0d, 1d)));
+                if (structuralCut is not null)
+                    planes.Add(new RoofConvexPrismPlaneClipper.Plane(
+                        structuralCut.PlanePoint, structuralCut.PlaneNormal));
+                planes.Add(opposingPlaneForCut);
+                if (!RoofConvexPrismPlaneClipper.TryClip(sourceVertices,
+                        planes, out var clipped, allowNoOpPlanes: true) ||
+                    clipped is null || clipped.CutFaces.Count == 0)
+                {
+                    failureReason = $"RidgeOverlap:ClippedBodyDegenerate:{key}";
+                    return false;
+                }
+                physicalVertices = clipped.Body;
+                ridgeOverlapCut = new RoofRidgeOverlapCut(
+                    opposingPlaneForCut.Point, opposingPlaneForCut.Normal,
+                    Array.AsReadOnly(sourceVertices), ridgeExtensionMm,
+                    clipped.Body, clipped.TopFace, clipped.BottomFace,
+                    clipped.CutFaces[clipped.CutFaces.Count - 1]);
+            }
+        }
+
+        member = new RoofAutomaticRafterPhysicalMember(
+            key,
+            segment.SourceFaceIndex,
+            segment.StartBoundaryRole,
+            segment.EndBoundaryRole,
+            new RoofSegment3D(
+                new RoofPoint3D(planStart.X, planStart.Y, 0d),
+                new RoofPoint3D(planEnd.X, planEnd.Y, 0d)),
+            physicalVertices,
+            widthMm,
+            heightMm,
+            topology.PitchDegrees,
+            trueLength,
+            horizontalCut,
+            structuralCut,
+            ridgeOverlapCut);
         failureReason = string.Empty;
         return true;
     }

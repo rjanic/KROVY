@@ -22,7 +22,8 @@ internal static class RoofAttachedManualCopyCloneReinitializeService
         Document document,
         string? globalCommandName,
         IReadOnlyCollection<ObjectId> appendedTimberIds,
-        bool sameDwgClipboardPaste = false)
+        bool sameDwgClipboardPaste = false,
+        bool propagateFailure = false)
     {
         var nativeCopy = LiveGeometryCommandRules.IsSameDwgCopyOwnershipCommand(
             globalCommandName);
@@ -59,13 +60,11 @@ internal static class RoofAttachedManualCopyCloneReinitializeService
                     var attached = RoofAttachedManualTimberStore.Read(cloneLine);
                     if (attached.Data is null ||
                         (attached.Data.Origin != RoofAttachedManualOrigin.Copy &&
-                         !(clipboardPaste &&
-                           attached.Data.Origin == RoofAttachedManualOrigin.Split)) ||
+                         attached.Data.Origin != RoofAttachedManualOrigin.Split) ||
                         attached.Data.AnchorGeneratedMemberKey is null)
                     {
-                        // Native COPY preserves its established Copy-origin-only policy.
-                        // Proven individual clipboard paste also promotes a Split clone
-                        // to a fresh independent Origin.Copy child.
+                        // Both native COPY and proven clipboard paste promote a supported
+                        // attached ordinary clone to a fresh Origin.Copy identity.
                         continue;
                     }
 
@@ -129,6 +128,7 @@ internal static class RoofAttachedManualCopyCloneReinitializeService
         }
         catch (System.Exception)
         {
+            if (propagateFailure) throw;
             // Silent internal maintenance — do not break native COPY UX.
         }
     }

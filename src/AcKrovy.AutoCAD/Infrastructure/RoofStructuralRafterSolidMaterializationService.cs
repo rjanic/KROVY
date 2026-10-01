@@ -46,10 +46,7 @@ internal static class RoofStructuralRafterSolidMaterializationService
             failureReason = "OrdinaryPhysicalModelUnavailable";
             return false;
         }
-        var expectedOrdinaryKeys = ordinary.Members.Select(member => string.Join(":",
-            member.MemberKey.MemberKind,
-            member.MemberKey.RoofFace,
-            member.MemberKey.StationIndex.ToString(CultureInfo.InvariantCulture)))
+        var expectedOrdinaryKeys = ordinary.Members.Select(member => member.PhysicalIdentity)
             .ToHashSet(StringComparer.Ordinal);
         var actualOrdinaryKeys = new HashSet<string>(StringComparer.Ordinal);
         foreach (var id in RoofPhysical3DGeneratedStore.FindByOwner(
@@ -72,6 +69,8 @@ internal static class RoofStructuralRafterSolidMaterializationService
             failureReason = "OrdinaryPhysicalSetMismatch";
             return false;
         }
+        // Attached children do not drive the automatic structural profile recommendation.
+        ordinary = ordinary with { Members = ordinary.Members.Where(member => member.AttachedManualIdentity is null).ToArray() };
 
         var structural = resolution.Edges.Where(edge =>
             edge.IsAutomaticStructuralTimberEligible).ToArray();

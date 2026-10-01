@@ -5,6 +5,7 @@ namespace AcKrovy.Core.Models.Roofs;
 /// v2 adds anchor generated-member key + relative segment geometry.
 /// v3 adds the child origin (COPY vs split) so COPY clones can follow their anchor
 /// during source resize without changing split/BREAK semantics.
+/// v4 separates the persistent semantic UUID from the CAD ChildIdentity binding.
 /// </summary>
 public sealed record RoofAttachedManualTimberData(
     int SchemaVersion,
@@ -13,4 +14,5 @@ public sealed record RoofAttachedManualTimberData(
     RoofTimberChildRole Role = RoofTimberChildRole.AttachedManual,
     RoofGeneratedMemberKey? AnchorGeneratedMemberKey = null,
     RoofAttachedManualRelativeSegment? RelativeSegment = null,
-    RoofAttachedManualOrigin Origin = RoofAttachedManualOrigin.Split);
+    RoofAttachedManualOrigin Origin = RoofAttachedManualOrigin.Split,
+    string? SemanticIdentity = null);

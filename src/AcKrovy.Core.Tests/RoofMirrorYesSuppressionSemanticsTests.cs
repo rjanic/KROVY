@@ -4,38 +4,34 @@ using Xunit;
 
 namespace AcKrovy.Core.Tests;
 
-public sealed class RoofMirrorYesSuppressionSemanticsTests
+public sealed class RoofMirrorYesGeometryOverrideSemanticsTests
 {
-    private static readonly RoofGeneratedMemberKey Key =
-        new(RoofGeneratedTimberKind.Rafter, RafterRoofFace.Face0, 10);
+    private static readonly RoofGeneratedMemberKey Key = new(RoofGeneratedTimberKind.Rafter, RafterRoofFace.Face0, 10);
+    private static readonly RoofGeneratedMemberGeometry Canonical = new(new(0, 0, 0), new(0, 3000, 0));
+    private static readonly RoofGeneratedMemberGeometry Mirrored = new(new(1200, 0, 0), new(1200, -3000, 0));
 
     [Fact]
-    public void MirrorYesSuppression_IsPlainManualOverride_IdenticalToGeneratedErase()
+    public void MirrorYes_PersistsGeometryOverride_UnderOriginalKeyAndReservation()
     {
-        var suppress = RoofGeneratedMemberOverride.Suppress(Key, "K-1");
-
-        Assert.True(suppress.Suppressed);
-        Assert.Equal(Key, suppress.Key);
-        Assert.False(suppress.HasGeometryOverride);
+        Assert.True(RoofGeneratedMemberOverrideMath.TryClassify(Canonical, Mirrored, new(0, 0, 1), Key, "K-1", out var edit));
+        Assert.NotNull(edit);
+        Assert.False(edit!.Suppressed);
+        Assert.Equal(Key, edit.Key);
+        Assert.Equal("K-1", edit.ReservedElementId);
+        Assert.True(edit.HasGeometryOverride);
+        Assert.True(RoofGeneratedMemberOverrideMath.TryApply(Canonical, new(0, 0, 1), edit, out var replayed));
+        Assert.True(RoofGeneratedMemberOverrideMath.GeometryEquals(Mirrored, replayed));
     }
 
     [Fact]
-    public void ResetEdits_ClearsSuppression_RestoringGeneratedSlot()
+    public void ResetEdits_RemovesMirroredGeometryOverride_RetainingTheGeneratedSlot()
     {
-        var set = new RoofManualOverrideSet(new[]
-        {
-            RoofGeneratedMemberOverride.Suppress(Key, "K-1"),
-        });
-
-        Assert.Equal(1, set.SuppressedCount);
-
-        // AK_ROOF_RESET_EDITS clears overrides, which removes the suppression and lets
-        // the canonical Generated slot regenerate. The mirrored AttachedManual child is
-        // a separate Origin.Copy entity NOT represented in the override set, so it is
-        // untouched by reset-edits (exactly like any other COPY child).
+        Assert.True(RoofGeneratedMemberOverrideMath.TryClassify(Canonical, Mirrored, new(0, 0, 1), Key, "K-1", out var edit));
+        var set = new RoofManualOverrideSet([edit!]);
+        Assert.Equal(0, set.SuppressedCount);
         var cleared = set.Clear();
-
-        Assert.Equal(0, cleared.SuppressedCount);
         Assert.False(cleared.TryGet(Key, out _));
+        Assert.True(RoofGeneratedMemberOverrideMath.TryApply(Canonical, new(0, 0, 1), null, out var restored));
+        Assert.Equal(Canonical, restored);
     }
 }

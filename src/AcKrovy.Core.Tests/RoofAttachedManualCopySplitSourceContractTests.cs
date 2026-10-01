@@ -42,8 +42,9 @@ public sealed class RoofAttachedManualCopySplitSourceContractTests
         Assert.Contains("generatedHandle,", preserveBranch);
         Assert.Contains("attachedManualHandle,", preserveBranch);
         Assert.Contains("StringComparison.OrdinalIgnoreCase", preserveBranch);
-        Assert.Contains("RoofAttachedManualOrigin.Copy);", preserveBranch);
+        Assert.Contains("RoofAttachedManualOrigin.Copy,", preserveBranch);
         Assert.Contains("preservedCopyAnchor", preserveBranch);
+        Assert.Contains("RoofAttachedManualIdentityRules.Resolve(originalAttached)", preserveBranch);
     }
 
     [Fact]
@@ -52,7 +53,7 @@ public sealed class RoofAttachedManualCopySplitSourceContractTests
         // The appended BREAK fragment (generatedHandle != attachedManualHandle) falls to
         // the existing anchored write: Origin.Split with the SAME exact anchor key
         // inherited from the Copy source.
-        Assert.Contains("RoofAttachedManualOrigin.Split);", ManualEdit);
+        Assert.Contains("RoofAttachedManualOrigin.Split,", ManualEdit);
         Assert.Contains("resolvedAnchorKey = attachedAnchorKey;", ManualEdit);
         Assert.DoesNotContain("SelectNearestAnchor", ManualEdit);
     }

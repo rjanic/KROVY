@@ -64,7 +64,10 @@ public sealed class RoofPhysical3DLockedSourceEraseSourceContractTests
         var post = diagnostics[diagnostics.IndexOf("public static void MaintenanceComplete", StringComparison.Ordinal)..
             diagnostics.IndexOf("public static void TimberRestoreFailure", StringComparison.Ordinal)];
         Assert.Contains("LiveGeometryCommandRules.NormalizeCommandName(command)", post);
-        Assert.Contains("(\"COPY\" or \"MIRROR\" or \"ERASE\" or \"BREAK\" or \"STRETCH\" or \"GRIP_STRETCH\")", post);
+        Assert.Contains("LiveGeometryCommandRules.IsUndoRedoCommand(command)", post);
+        Assert.Contains("foreach (var owner in tracker.KnownOwners)", post);
+        Assert.Contains("OwnerCounts(document, owner", post);
+        Assert.DoesNotContain("Audit(document,", post);
         Assert.DoesNotContain("\"UNDO\"", post);
         Assert.DoesNotContain("\"REDO\"", post);
         var live = Read("LiveGeometrySynchronizationService");

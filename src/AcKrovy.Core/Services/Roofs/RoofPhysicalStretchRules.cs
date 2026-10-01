@@ -7,7 +7,8 @@ namespace AcKrovy.Core.Services.Roofs;
 public static class RoofPhysicalStretchRules
 {
     public static bool ShouldRecover(string? command, bool sourceModified) =>
-        RoofGeneratedMemberEditCommandRules.IsClassicStretch(command) && !sourceModified;
+        (RoofGeneratedMemberEditCommandRules.IsClassicStretch(command) ||
+         RoofGeneratedMemberEditCommandRules.IsGripStretchCommand(command)) && !sourceModified;
 
     public static bool ShouldRejectDirectEdit(bool acceptedPlanEdit) => !acceptedPlanEdit;
 

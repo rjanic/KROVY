@@ -171,7 +171,9 @@ public sealed class MonopitchRafterStage2D3Tests
         Assert.Contains(wide.Rafters, item => item.LogicalKey == key);
         var encoded = RoofAttachedManualTimberDataCodec.Encode(persisted);
         Assert.True(RoofAttachedManualTimberDataCodec.TryDecode(encoded, out var reopened));
-        Assert.Equal(persisted, reopened);
+        Assert.Equal(RoofAttachedManualIdentityRules.Upgrade(persisted), reopened);
+        Assert.Equal(persisted.AnchorGeneratedMemberKey, reopened!.AnchorGeneratedMemberKey);
+        Assert.Equal(persisted.RelativeSegment, reopened.RelativeSegment);
         Assert.DoesNotContain("SelectNearestAnchor", ReplayMethod());
     }
 
@@ -217,7 +219,7 @@ public sealed class MonopitchRafterStage2D3Tests
     {
         Assert.Equal(5, RoofDefinitionDataSchema.CurrentVersion);
         Assert.Equal(1, RoofDisplayDataSchema.CurrentVersion);
-        Assert.Equal(3, RoofAttachedManualTimberDataSchema.CurrentVersion);
+        Assert.Equal(4, RoofAttachedManualTimberDataSchema.CurrentVersion);
         Assert.Equal(3, (int)RoofKind.Monopitch);
         Assert.False(RoofGeneratedMemberEditCommandRules
             .IsSupportedUnlockedGeneratedTimberCommand("SCALE", RoofKind.Monopitch));

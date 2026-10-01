@@ -416,7 +416,8 @@ internal static class RoofGeneratedRafterSetService
                 layerProfile,
                 reservedElementIds,
                 replayPlan,
-                syncAssemblyGroup: syncAssemblyGroup);
+                syncAssemblyGroup: syncAssemblyGroup,
+                includeAttachedManual: rebuildReason is not ("source-resize" or "roof-edit"));
             var created = materialized.Created;
 #if DEBUG
             WriteOverrideDomainDiagnostics(
@@ -565,7 +566,7 @@ internal static class RoofGeneratedRafterSetService
         ElementLayerProfile layerProfile,
         IReadOnlyDictionary<RoofGeneratedMemberKey, string>? reservedElementIds,
         RoofGeneratedMemberReplayPlan? preparedReplayPlan = null,
-        bool syncAssemblyGroup = true)
+        bool syncAssemblyGroup = true, bool includeAttachedManual = true)
     {
 
         // Ordinary plan axes are independent of the roof's physical elevation.
@@ -752,7 +753,7 @@ internal static class RoofGeneratedRafterSetService
         var document = editor.Document;
         RoofOrdinaryRafterSolidMaterializationService.ReconcileInTransaction(
             database, transaction, owner, geometry, layout, recipe, replayPlan,
-            structuralReconcilePending: true);
+            structuralReconcilePending: true, includeAttachedManual: includeAttachedManual);
         var physicalState = RoofPhysicalElevationStore.Read(owner).Data;
         if (physicalState is not null)
         {

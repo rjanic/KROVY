@@ -38,7 +38,7 @@ public sealed class RoofSplitAttachedManualSourceContractTests
     public void AttachedManualRegApp_UnchangedForSplit()
     {
         Assert.Contains("DECORAIR_ACADKROVY_ROOF_ATTACHED_MANUAL", AttachedStore);
-        Assert.Contains("CurrentVersion = 3", File.ReadAllText(Path.Combine(
+        Assert.Contains("CurrentVersion = 4", File.ReadAllText(Path.Combine(
             RepositoryRoot(),
             "src",
             "AcKrovy.Core",
@@ -147,7 +147,7 @@ public sealed class RoofSplitAttachedManualSourceContractTests
         // Source A keeps Origin.Split and its own handle/ChildIdentity; the appended
         // fragment B gets Origin.Split with its own ChildIdentity (attachedManualHandle),
         // each with an independently captured RelativeSegment.
-        Assert.Contains("RoofAttachedManualOrigin.Split);", ManualEdit);
+        Assert.Contains("RoofAttachedManualOrigin.Split,", ManualEdit);
         Assert.Contains("attachedManualHandle", ManualEdit);
     }
 

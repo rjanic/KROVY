@@ -753,7 +753,7 @@ internal static class RoofLiveResizeService
         Entity entity, ObjectId ownerId, string? command)
     {
         if (!RoofGeneratedMemberEditCommandRules.IsClassicStretch(command) || entity is not Line line ||
-            RoofGeneratedTimberStore.Read(line).Data is null ||
+            (RoofGeneratedTimberStore.Read(line).Data is null && RoofAttachedManualTimberStore.Read(line).Data is null) ||
             !RoofUnsupportedStretchRecoverySnapshotService.TryGet(ownerId, out var snapshot)) return false;
         var before = snapshot.Assembly.TimberLines.FirstOrDefault(member =>
             string.Equals(member.EntityHandle, line.Handle.ToString(), StringComparison.OrdinalIgnoreCase));
@@ -873,7 +873,12 @@ internal static class RoofLiveResizeService
         var generatedIds = RoofGeneratedTimberStore.FindByOwner(
             database,
             transaction,
-            ownerHandle);
+            ownerHandle)
+            // Split/Copy children are also authoritative Plan2D members. Native
+            // BREAK can append a fragment carrying the source's AttachedManual UUID;
+            // the existing semantic split handler must see it before physical validation.
+            .Concat(RoofAttachedManualTimberStore.FindByOwner(database, transaction, ownerHandle))
+            .Distinct().ToArray();
         var structuralIds = RoofStructuralGeneratedStore.FindByOwner(
             database,
             transaction,
@@ -1786,6 +1791,10 @@ internal static class RoofLiveResizeService
             anchorResolutionContext,
             replayAttachedManualChildren: true);
 
+        if (!RoofOrdinaryRafterSolidMaterializationService.TryReconcileAttachedAfterReplay(
+                database, transaction, owner, classification.Geometry))
+            return ResizeApplyResult.HardFailure;
+
         if (rafterOutcome == RoofGeneratedRafterSetService.ReplacementOutcome.SkippedAmbiguousRecipe)
         {
             document.Editor.WriteMessage(
@@ -2504,6 +2513,18 @@ internal static class RoofLiveResizeService
                         RoofPhysical3DGeneratedRole.StructuralRafterSolid => entity is Solid3d,
                     _ => entity is Line,
                 })) return false;
+        }
+        if (!AutoCadObjectIdAccess.TryGetObject<Polyline>(transaction, ownerId, OpenMode.ForRead,
+                out var owner, database) || owner is null) return false;
+        if (RoofPhysicalElevationStore.Read(owner).Data is { Physical3DEnabled: true } &&
+            ClassifyOwner(database, transaction, owner).Geometry is HipRoofGeometry hip)
+        {
+            if (!RoofOrdinaryRafterSolidMaterializationService.TryBuildExistingModelInTransaction(
+                    database, transaction, owner, hip, out var model) || model is null ||
+                !RoofOrdinaryPhysicalReconciliationRules.IsCanonical(
+                    model.Members.Select(member => member.PhysicalIdentity).ToArray(),
+                    keys.Where(key => key.Role == RoofPhysical3DGeneratedRole.OrdinaryRafterSolid)
+                        .Select(key => key.Id).ToArray())) return false;
         }
         return RoofDisplayGroupService.TryOpenCanonicalGroup(database, transaction,
                    ownerId, OpenMode.ForRead, out var group) && group is not null &&

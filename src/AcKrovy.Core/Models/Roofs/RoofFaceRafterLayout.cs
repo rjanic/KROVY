@@ -6,6 +6,8 @@ public enum RoofRafterBoundaryRole
     Ridge = 1,
     Hip = 2,
     Valley = 3,
+    /// <summary>A user-created interior endpoint, perpendicular to the member axis.</summary>
+    Free = 4,
 }
 
 /// <summary>One ordinary rafter centerline owned by a canonical topology face.</summary>

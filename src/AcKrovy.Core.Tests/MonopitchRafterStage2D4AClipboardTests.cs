@@ -644,7 +644,7 @@ public sealed class MonopitchRafterStage2D4AClipboardTests
             "private static void RefreshTimberElements(");
         var classify = refresh.IndexOf("RoofClipboardPasteOwnershipRules.Classify(", StringComparison.Ordinal);
         var gate = refresh.IndexOf(
-            "if (nativeCopy || clipboardDecision.ShouldProcessIndividualTimber)",
+            "if (clipboardDecision.ShouldProcessIndividualTimber)",
             StringComparison.Ordinal);
         var attached = refresh.IndexOf(
             "RoofAttachedManualCopyCloneReinitializeService.Process(",
@@ -658,8 +658,8 @@ public sealed class MonopitchRafterStage2D4AClipboardTests
         Assert.Contains("if (nativeCopy || nativeMirror)", refresh);
         Assert.DoesNotContain("RoofWholeRoofCopyRebindService.Process", Member(
             refresh,
-            "if (nativeCopy || clipboardDecision.ShouldProcessIndividualTimber)",
-            "// MIRROR: member-only"));
+            "if (clipboardDecision.ShouldProcessIndividualTimber)",
+            "if (nativeCopy || nativeMirror)"));
     }
 
     [Fact]
@@ -729,7 +729,7 @@ public sealed class MonopitchRafterStage2D4AClipboardTests
         Assert.DoesNotContain("EXPLODE", newPolicy + Snapshot, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(5, RoofDefinitionDataSchema.CurrentVersion);
         Assert.Equal(1, RoofDisplayDataSchema.CurrentVersion);
-        Assert.Equal(3, RoofAttachedManualTimberDataSchema.CurrentVersion);
+        Assert.Equal(4, RoofAttachedManualTimberDataSchema.CurrentVersion);
         Assert.Equal(3, (int)RoofKind.Monopitch);
     }
 

@@ -71,6 +71,34 @@ public static class RoofAttachedManualRelativeGeometryRules
         return true;
     }
 
+    /// <summary>Recover the unchanged anchor basis from a persisted relative segment
+    /// and its matching pre-command Plan2D pose when the native anchor is absent.
+    /// The returned end defines the basis only; it does not invent a generated slot.</summary>
+    public static bool TryRecoverAnchorBasis(RoofAttachedManualRelativeSegment relative,
+        RoofPoint3D priorStart, RoofPoint3D priorEnd, out RoofPoint3D anchorStart, out RoofPoint3D anchorEnd)
+    {
+        anchorStart = anchorEnd = default;
+        var values = new[] { relative.U0Mm, relative.V0Mm, relative.W0Mm, relative.U1Mm,
+            relative.V1Mm, relative.W1Mm, priorStart.X, priorStart.Y, priorStart.Z, priorEnd.X, priorEnd.Y, priorEnd.Z };
+        if (values.Any(value => double.IsNaN(value) || double.IsInfinity(value))) return false;
+        var du = relative.U1Mm - relative.U0Mm;
+        var dv = relative.V1Mm - relative.V0Mm;
+        var dx = priorEnd.X - priorStart.X;
+        var dy = priorEnd.Y - priorStart.Y;
+        var localLength = Math.Sqrt(du * du + dv * dv);
+        var worldLength = Math.Sqrt(dx * dx + dy * dy);
+        var tolerance = RoofGeneratedMemberOverrideMath.LengthToleranceMm;
+        if (localLength <= tolerance || worldLength <= tolerance ||
+            Math.Abs(localLength - worldLength) > tolerance ||
+            Math.Abs(priorStart.Z - relative.W0Mm - priorEnd.Z + relative.W1Mm) > tolerance) return false;
+        var cosine = (du * dx + dv * dy) / (localLength * worldLength);
+        var sine = (du * dy - dv * dx) / (localLength * worldLength);
+        anchorStart = new(priorStart.X - relative.U0Mm * cosine + relative.V0Mm * sine,
+            priorStart.Y - relative.U0Mm * sine - relative.V0Mm * cosine, priorStart.Z - relative.W0Mm);
+        anchorEnd = new(anchorStart.X + cosine * localLength, anchorStart.Y + sine * localLength, anchorStart.Z);
+        return true;
+    }
+
     public static string FormatAnchorKey(RoofGeneratedMemberKey key) =>
         $"{key.MemberKind}:{key.RoofFace}:s{key.StationIndex.ToString(System.Globalization.CultureInfo.InvariantCulture)}";
 

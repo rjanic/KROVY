@@ -109,17 +109,17 @@ public sealed class RoofOrdinaryRafterSolidSourceContractTests
         var edit = Read("RoofGeneratedMemberManualEditService.cs");
         Assert.Contains("TryReconcileModifiedMembersInTransaction(", ordinary);
         Assert.Contains("RoofGeneratedMemberKey.From(data)", ordinary);
-        Assert.Contains("RoofPhysicalStretchRules.TrySelectRebuildKeys(", ordinary);
-        Assert.Contains("changedKeys, collateralIds, out var rebuildKeys", ordinary);
-        Assert.Contains("rebuildKeys.Select(PhysicalMemberId)", ordinary);
-        Assert.Contains("if (existing.Count != members.Count", ordinary);
-        Assert.Contains("RoofPhysical3DGeneratedStore.Write(solid, transaction, old.Data)", ordinary);
-        Assert.Contains("oldEntity.Erase()", ordinary);
+        Assert.Contains("RoofOrdinaryPhysicalReconciliationRules.TryPlan", ordinary);
+        Assert.Contains("allowCardinalityChanges: false", ordinary);
+        Assert.Contains("CreateSolid(members[key])", ordinary);
+        Assert.Contains("plan.RemoveBodyIdentities", ordinary);
+        Assert.Contains("plan.RebuildKeys", ordinary);
+        Assert.Contains("((Entity)transaction.GetObject(id, OpenMode.ForWrite)).Erase()", ordinary);
         Assert.Contains("TryBuildExistingModelInTransaction(", ordinary);
         Assert.Contains("if (RoofGeneratedMemberEditCommandRules.RequiresOrdinaryPhysicalReconcile(globalCommandName))", edit);
         Assert.Contains("TryReconcileModifiedMembersInTransaction(", edit);
         Assert.Contains("catch (OrdinaryPhysicalReconcileException ex)", edit);
-        Assert.Contains("RecoverFailedOrdinaryPhysicalReconcile(document, ownerId, ex)", edit);
+        Assert.Contains("RecoverFailedOrdinaryPhysicalReconcile(document, ownerId, ex, appendedTimberIds, modifiedIds)", edit);
         Assert.Contains("TryRecoverGeneratedMembersOnly(", edit);
     }
 
@@ -133,7 +133,7 @@ public sealed class RoofOrdinaryRafterSolidSourceContractTests
         Assert.Contains("TryRemoveSuppressedMembersInTransaction(", edit);
         Assert.Contains("ordinaryPhysicalSuppressed", edit);
         Assert.Contains("suppressedKeys.Select(PhysicalMemberId)", ordinary);
-        Assert.Contains("activeIds.Concat(suppressedIds).ToHashSet()", ordinary);
+        Assert.Contains("activeIds.Concat(suppressedIds).Concat(erasedAttachedKeys", ordinary);
         Assert.Contains("physical.Keys.ToHashSet().SetEquals(expectedBefore)", ordinary);
         Assert.Contains("RoofAssemblyGroupSyncService.DetachMembersBeforeErase(", ordinary);
         Assert.Contains("solid.Erase()", ordinary);

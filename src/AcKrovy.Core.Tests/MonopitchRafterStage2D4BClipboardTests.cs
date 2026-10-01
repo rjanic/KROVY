@@ -240,7 +240,7 @@ public sealed class MonopitchRafterStage2D4BClipboardTests
         Assert.Equal(RoofClipboardPasteOwnershipAction.UseStage2D4AAdoption, same.Action);
         Assert.True(same.ShouldProcessIndividualTimber);
         Assert.Contains("IsSameDwgCopyOwnershipCommand", Live);
-        Assert.Contains("if (nativeCopy || clipboardDecision.ShouldProcessIndividualTimber)", Live);
+        Assert.Contains("if (clipboardDecision.ShouldProcessIndividualTimber)", Live);
     }
 
     [Fact]
@@ -338,7 +338,7 @@ public sealed class MonopitchRafterStage2D4BClipboardTests
     {
         Assert.Equal(5, RoofDefinitionDataSchema.CurrentVersion);
         Assert.Equal(1, RoofDisplayDataSchema.CurrentVersion);
-        Assert.Equal(3, RoofAttachedManualTimberDataSchema.CurrentVersion);
+        Assert.Equal(4, RoofAttachedManualTimberDataSchema.CurrentVersion);
         Assert.Equal(3, (int)RoofKind.Monopitch);
         var props = File.ReadAllText(Path.Combine(RepositoryRoot(), "Directory.Build.props"));
         Assert.Contains("<AcKrovyVersion>0.23.0</AcKrovyVersion>", props);

@@ -126,12 +126,12 @@ public sealed class RoofMirrorCloneDetachSourceContractTests
     }
 
     [Fact]
-    public void MirrorYes_SuppressesErasedGeneratedSource()
+    public void MirrorYes_OrdinaryErasedSource_IsReboundBeforeLegacySuppression()
     {
-        Assert.Contains("TrySuppressErasedGeneratedSource", Detach);
-        Assert.Contains("RoofGeneratedMemberOverride.Suppress", Detach);
-        Assert.Contains("RoofGeneratedMemberOverrideRules.WithEditState", Detach);
-        Assert.Contains("RoofDefinitionStore.Write", Detach);
+        Assert.Contains("nativeSnapshot?.Members.Values.Any", Detach);
+        Assert.Contains("member.Generated?.MemberKind == RoofGeneratedTimberKind.Rafter", Detach);
+        Assert.Contains("sourcesByClone.TryGetValue(id, out var sourceId)", Detach);
+        Assert.Contains("TryRebindGeneratedReplacement(document, transaction, cloneLine, before", Detach);
     }
 
     [Fact]
@@ -159,11 +159,11 @@ public sealed class RoofMirrorCloneDetachSourceContractTests
     }
 
     [Fact]
-    public void MirrorYes_EmitsSuppressionTrace()
+    public void MirrorYes_OrdinaryRebind_ReportsSameKeyWithoutSuppression()
     {
-        Assert.Contains("ROOF_MIRROR_YES", Detach);
-        Assert.Contains("suppression=true", Detach);
-        Assert.Contains("sourceRole=Generated", Detach);
+        var rebind = Segment(Detach, "private static bool TryRebindGeneratedReplacement", "private static bool TrySuppressErasedGeneratedSource");
+        Assert.Contains("ROOF_MIRROR_YES", rebind);
+        Assert.Contains("suppression=false roleAfter=generated sameMemberKey=true", rebind);
     }
 
     [Fact]
@@ -187,7 +187,7 @@ public sealed class RoofMirrorCloneDetachSourceContractTests
         // clone, no erased source). The gate must not short-circuit on those alone.
         Assert.Contains("mirrorModifiedTimberIds", Detach);
         Assert.Contains("mirrorModifiedTimberIds.Count == 0", Detach);
-        Assert.Contains("TryConvertInPlaceToAttachedManual", Detach);
+        Assert.Contains("TryRebindGeneratedReplacement", Detach);
     }
 
     private const string InPlaceStart = "// MIRROR Yes (Generated): HOST-proven lifecycle.";
@@ -226,82 +226,72 @@ public sealed class RoofMirrorCloneDetachSourceContractTests
     }
 
     [Fact]
-    public void MirrorYes_InPlace_CapturesOwnerKey_BeforeGeneratedClear()
+    public void MirrorYes_InPlace_CapturesOriginalKeyBeforeSemanticRebind()
     {
-        // owner/key must be captured from the live Generated entity BEFORE its Generated
-        // XData is cleared by TryConvertInPlaceToAttachedManual.
         var inPlace = Segment(Detach, InPlaceStart, InPlaceEnd);
         var keyRead = inPlace.IndexOf("RoofGeneratedMemberKey.From(inPlaceGenerated)", StringComparison.Ordinal);
-        var convert = inPlace.IndexOf("TryConvertInPlaceToAttachedManual(", StringComparison.Ordinal);
-        Assert.True(keyRead >= 0, "owner/key capture not found in in-place branch");
-        Assert.True(convert > keyRead, "owner/key must be captured before Generated XData is cleared");
+        var rebind = inPlace.IndexOf("TryRebindGeneratedReplacement(", StringComparison.Ordinal);
+        Assert.True(keyRead >= 0 && rebind > keyRead);
+        Assert.Contains("beforeGenerated", inPlace);
     }
 
     [Fact]
-    public void MirrorYes_InPlace_SuppressOverrideWritten()
+    public void MirrorYes_InPlace_ExistingGeometryOverrideWritten_WithoutSuppression()
     {
-        Assert.Contains("TryWriteSuppressOverride", Detach);
-        Assert.Contains("RoofGeneratedMemberOverride.Suppress(key, elementId)", Detach);
-        Assert.Contains("RoofDefinitionStore.Write(owner, transaction, updated)", Detach);
+        var rebind = Segment(Detach, "private static bool TryRebindGeneratedReplacement", "private static bool TrySuppressErasedGeneratedSource");
+        Assert.Contains("RoofGeneratedMemberOverrideMath.TryClassify", rebind);
+        Assert.Contains("overrides.Upsert(edit)", rebind);
+        Assert.Contains("RoofDefinitionStore.Write", rebind);
+        Assert.DoesNotContain("Suppress(", rebind);
     }
 
     [Fact]
-    public void MirrorYes_InPlace_SameEntityConverted_ChildIdentityIsHandle()
+    public void MirrorYes_InPlace_SameEntity_KeepsGeneratedMetadata()
     {
-        // The SAME entity H becomes AttachedManual Origin.Copy with ChildIdentity = its
-        // own handle, anchored from its final mirrored WCS. No clone entity is created.
-        Assert.Contains("RoofAttachedManualOrigin.Copy", Detach);
-        Assert.Contains("cloneLine.Handle.ToString()", Detach);
-        Assert.DoesNotContain("AddNewlyCreatedDBObject", Detach);
+        var rebind = Segment(Detach, "private static bool TryRebindGeneratedReplacement", "private static bool TrySuppressErasedGeneratedSource");
+        Assert.Contains("RoofGeneratedTimberStore.WriteAtomic", rebind);
+        Assert.Contains("RoofGeneratedTimberStore.BuildSection(replacement, transaction, generated)", rebind);
+        Assert.DoesNotContain("CreateAnchoredData", rebind);
+        Assert.DoesNotContain("AddNewlyCreatedDBObject", rebind);
     }
 
     [Fact]
-    public void MirrorYes_InPlace_SelfExcludedFromAnchorCandidates()
+    public void MirrorYes_InPlace_OrdinaryDoesNotSearchForNewAnchor()
     {
-        // Clearing Generated XData before anchor discovery removes H from FindByOwner,
-        // so H can never select itself as its own anchor.
-        var convert = Segment(
-            Detach,
-            "private static bool TryConvertInPlaceToAttachedManual",
-            "private static bool TryReinitializeAttachedManualClone");
-        var clear = convert.IndexOf("RoofGeneratedTimberStore.TryClear", StringComparison.Ordinal);
-        var promote = convert.IndexOf("TryPromoteFromMirroredGeometry", StringComparison.Ordinal);
-        Assert.True(clear >= 0, "Generated XData clear not found in in-place convert");
-        Assert.True(promote > clear, "anchor discovery must run AFTER Generated XData is cleared (self-exclusion)");
+        var rebind = Segment(Detach, "private static bool TryRebindGeneratedReplacement", "private static bool TrySuppressErasedGeneratedSource");
+        Assert.Contains("RoofGeneratedMemberKey.From(generated)", rebind);
+        Assert.DoesNotContain("SelectNearestMirrorAnchor", rebind);
+        Assert.DoesNotContain("TryPromoteFromMirroredGeometry", rebind);
     }
 
     [Fact]
-    public void MirrorYes_InPlace_UsesFinalMirroredWcsGeometry()
+    public void MirrorYes_InPlace_UsesFinalMirroredPlanGeometry()
     {
-        // The mirrored entity's final WCS Start/End are authoritative; anchor + relative
-        // segment derive from them via the shared geometry-driven promote helper.
-        Assert.Contains("cloneLine.StartPoint", Detach);
-        Assert.Contains("cloneLine.EndPoint", Detach);
-        Assert.Contains("SelectNearestMirrorAnchor", Detach);
+        var rebind = Segment(Detach, "private static bool TryRebindGeneratedReplacement", "private static bool TrySuppressErasedGeneratedSource");
+        Assert.Contains("ToRoof(replacement.StartPoint)", rebind);
+        Assert.Contains("ToRoof(replacement.EndPoint)", rebind);
+        Assert.Contains("RoofGeneratedMemberOverrideMath.TryClassify(canonical, observed", rebind);
     }
 
     [Fact]
-    public void MirrorYes_InPlace_RefreshSameHandleAnnotation()
+    public void MirrorYes_InPlace_RefreshesAcceptedGeneratedAnnotation()
     {
-        // After conversion, the SAME handle H annotation is refreshed (no duplicate set,
-        // no stale old-position annotation) via the proven AttachedManual presentation
-        // pipeline.
         var inPlace = Segment(Detach, InPlaceStart, InPlaceEnd);
-        Assert.Contains("RefreshClonePresentation(document, transaction, id)", inPlace);
-        Assert.Contains("inPlaceRoleAfter == \"attached-manual\"", inPlace);
+        var ordinary = inPlace[inPlace.IndexOf("if (inPlaceGenerated.MemberKind == RoofGeneratedTimberKind.Rafter)", StringComparison.Ordinal)..];
+        Assert.Contains("if (changed)", ordinary);
+        Assert.Contains("RefreshClonePresentation(document, transaction, id)", ordinary);
     }
 
     [Fact]
-    public void MirrorYes_InPlace_EmitsModeInPlaceSuccessDiagnostic()
+    public void MirrorYes_InPlace_ReportsSemanticRebindSuccess()
     {
-        Assert.Contains("mode=in-place", Detach);
-        Assert.Contains("WriteInPlaceMirrorYesTrace", Detach);
-        Assert.Contains("sourceRole=Generated", Detach);
-        Assert.Contains("annotationRefresh=", Detach);
+        var rebind = Segment(Detach, "private static bool TryRebindGeneratedReplacement", "private static bool TrySuppressErasedGeneratedSource");
+        Assert.Contains("action=mirror-rebind generatedKey=", rebind);
+        Assert.Contains("sameMemberKey=true result=ok", rebind);
     }
 
     [Fact]
-    public void MirrorYes_InPlace_GroupSyncAfterConversion()
+    public void MirrorYes_InPlace_GroupSyncAfterSemanticReconciliation()
     {
         var inPlace = Segment(Detach, InPlaceStart, InPlaceEnd);
         Assert.Contains("RoofAssemblyGroupSyncService.TrySyncForOwnerReference", inPlace);

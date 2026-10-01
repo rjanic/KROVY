@@ -44,7 +44,7 @@ internal static class RoofGeneratedMemberManualEditService
                 // override, metadata and physical writes are all rolled back.
                 // Native 2D MOVE/TRIM predates that transaction, so restore it
                 // from the command snapshot in a fresh owner-scoped transaction.
-                outcome = RecoverFailedOrdinaryPhysicalReconcile(document, ownerId, ex);
+                outcome = RecoverFailedOrdinaryPhysicalReconcile(document, ownerId, ex, appendedTimberIds, modifiedIds);
             }
             switch (outcome)
             {
@@ -270,6 +270,27 @@ internal static class RoofGeneratedMemberManualEditService
             }
 
             owner.UpgradeOpen();
+            // Hip/Valley are derived StructuralGenerated members. Restore native
+            // tampering while the snapshot's item numbers are still current, before
+            // accepted ordinary edits run drawing-wide numbering synchronization.
+            // ElementId is a signature-group number, not structural semantic identity.
+            if (!RoofUnsupportedStretchRecoveryService.TryRestoreStructuralHipValleyMembersOnly(
+                    document.Database,
+                    transaction,
+                    ownerId,
+                    document.Editor))
+                throw new OrdinaryPhysicalReconcileException("Structural Hip/Valley snapshot restoration failed.");
+#if DEBUG
+            WriteStructuralEditGuardDiag(
+                document,
+                transaction,
+                owner,
+                globalCommandName,
+                stored.Data.EditState,
+                modifiedIds,
+                action: "restored",
+                result: "structural-hip-valley-before-unlocked-accept");
+#endif
             var accept = TryAcceptUnlockedEdits(
                 document,
                 transaction,
@@ -299,42 +320,44 @@ internal static class RoofGeneratedMemberManualEditService
                 return OwnerEditOutcome.Skipped;
             }
 
-            // Hip/Valley are derived StructuralGenerated members: never keep freeform
-            // geometry after an unlocked ordinary-member accept path.
-            _ = RoofUnsupportedStretchRecoveryService.TryRestoreStructuralHipValleyMembersOnly(
-                document.Database,
-                transaction,
-                ownerId,
-                document.Editor);
             // Mixed crossing STRETCH: ordinary bodies were rebuilt once with the
             // accepted Plan2D keys. Discard remaining collateral physical roles
             // after structural reference recovery, in this SAME owner transaction.
+            var attachedChanged = new List<string>();
+            var attachedChangedIds = new List<ObjectId>();
+            foreach (var id in RoofAttachedManualTimberStore.FindByOwner(document.Database, transaction, owner.Handle.ToString()))
+            {
+                if (!modifiedIds.Contains(id) || transaction.GetObject(id, OpenMode.ForRead) is not Line line ||
+                    RoofAttachedManualTimberStore.Read(line).Data is not { } data) continue;
+                if (!RoofUnsupportedStretchRecoverySnapshotService.TryGet(ownerId, out var attachedSnapshot))
+                    throw new OrdinaryPhysicalReconcileException("AttachedManual command snapshot is unavailable.");
+                var before = attachedSnapshot.Assembly.TimberLines.FirstOrDefault(item =>
+                    string.Equals(item.EntityHandle, line.Handle.ToString(), StringComparison.OrdinalIgnoreCase));
+                if (before is not null &&
+                    line.StartPoint.DistanceTo(new Point3d(before.Start.X, before.Start.Y, before.Start.Z)) <= 0.01d &&
+                    line.EndPoint.DistanceTo(new Point3d(before.End.X, before.End.Y, before.End.Z)) <= 0.01d) continue;
+                attachedChanged.Add(RoofAttachedManualIdentityRules.PhysicalKey(data));
+                attachedChangedIds.Add(id);
+            }
+            RoofAttachedManualLifecycleService.RefreshModifiedAttachedManualRelatives(
+                document, transaction, owner.Handle.ToString(), attachedChangedIds, globalCommandName);
+            RefreshModifiedAttachedManualNumberingAndAnnotations(document, transaction, owner, attachedChangedIds);
+            if (RoofGeneratedMemberEditCommandRules.IsEraseCommand(globalCommandName) || attachedChanged.Count > 0)
+            {
+                var input = RoofPolylineExtractor.Extract(owner);
+                var footprint = RoofFootprintValidator.Validate(input);
+                var definition = RoofDefinitionStore.Read(owner).Data;
+                var geometry = footprint.Footprint is null || definition is null ? null :
+                    RoofDefinitionPersistence.Restore(input, footprint.Footprint, definition).Geometry;
+                if (geometry is null || !RoofOrdinaryRafterSolidMaterializationService.TryReconcileSemanticMembersInTransaction(
+                        document.Database, transaction, owner, geometry, attachedChanged, Array.Empty<ObjectId>()))
+                    throw new OrdinaryPhysicalReconcileException("AttachedManual physical reconciliation failed.");
+                ordinaryPlanChanged |= attachedChanged.Count > 0;
+            }
             if (RoofPhysicalStretchRules.ShouldRecover(globalCommandName, sourceModified) &&
                 !RoofPhysical3DLifecycleService.TryRestoreStretchPhysicalInTransaction(
                     document, transaction, owner, modifiedIds))
                 throw new OrdinaryPhysicalReconcileException("Collateral Physical3D recovery failed.");
-#if DEBUG
-            WriteStructuralEditGuardDiag(
-                document,
-                transaction,
-                owner,
-                globalCommandName,
-                stored.Data.EditState,
-                modifiedIds,
-                action: "restored",
-                result: "structural-hip-valley-after-unlocked-accept");
-#endif
-            RoofAttachedManualLifecycleService.RefreshModifiedAttachedManualRelatives(
-                document,
-                transaction,
-                owner.Handle.ToString(),
-                modifiedIds,
-                globalCommandName);
-            RefreshModifiedAttachedManualNumberingAndAnnotations(
-                document,
-                transaction,
-                owner,
-                modifiedIds);
             var groupSynced = RoofAssemblyGroupSyncService.TrySyncForOwner(
                 document, transaction, owner.ObjectId);
             if ((RoofGeneratedMemberEditCommandRules.RequiresOrdinaryPhysicalReconcile(globalCommandName) ||
@@ -542,10 +565,11 @@ internal static class RoofGeneratedMemberManualEditService
             var overrideChanged = false;
             var acceptedCount = 0;
             var newlySuppressedKeys = new HashSet<RoofGeneratedMemberKey>();
+            var erasedAttachedKeys = new List<string>();
             foreach (var timber in snapshot.Assembly.TimberLines)
             {
                 // Derived Hip/Valley never become Suppress overrides. They are restored
-                // after accept via TryRestoreStructuralHipValleyMembersOnly.
+                // before accept via TryRestoreStructuralHipValleyMembersOnly.
                 if (TryIsLockProtectedStructuralTimber(
                         document.Database,
                         transaction,
@@ -590,6 +614,7 @@ internal static class RoofGeneratedMemberManualEditService
                         document.Database,
                         transaction,
                         timber.SourceHandle);
+                    erasedAttachedKeys.Add(RoofAttachedManualIdentityRules.PhysicalKey(attachedData));
                     acceptedCount++;
                     var isSplit = attachedData.Origin == RoofAttachedManualOrigin.Split;
                     WriteAccept(
@@ -659,7 +684,7 @@ internal static class RoofGeneratedMemberManualEditService
                     if (!RoofOrdinaryRafterSolidMaterializationService
                             .TryRemoveSuppressedMembersInTransaction(
                                 document.Database, transaction, owner,
-                                roofGeometry, newlySuppressedKeys))
+                                roofGeometry, newlySuppressedKeys, erasedAttachedKeys))
                         throw new InvalidOperationException(
                             "Suppressed ordinary member has no unique matching physical body.");
                     ordinaryPhysicalSuppressed = newlySuppressedKeys.Count > 0 &&
@@ -998,7 +1023,19 @@ internal static class RoofGeneratedMemberManualEditService
             {
                 try
                 {
-                    if (!RoofOrdinaryRafterSolidMaterializationService
+                    var cardinalityChanged = standaloneIds.Count > 0;
+                    if (cardinalityChanged)
+                    {
+                        var changedKeys = acceptedPlanIds.Concat(standaloneIds).Select(id =>
+                            transaction.GetObject(id, OpenMode.ForRead) as Line).Where(line => line is not null)
+                            .Select(line => RoofOrdinaryRafterSolidMaterializationService.TryGetPlanPhysicalIdentity(
+                                line!, owner.Handle.ToString(), out var key) ? key : string.Empty)
+                            .Where(key => key.Length > 0).ToArray();
+                        if (!RoofOrdinaryRafterSolidMaterializationService.TryReconcileSemanticMembersInTransaction(
+                                document.Database, transaction, owner, roofGeometry, changedKeys, Array.Empty<ObjectId>()))
+                            throw new InvalidOperationException("Split physical reconciliation failed.");
+                    }
+                    else if (!RoofOrdinaryRafterSolidMaterializationService
                             .TryReconcileModifiedMembersInTransaction(
                                 document.Database, transaction, owner,
                                 roofGeometry, modifiedIds,
@@ -1006,13 +1043,11 @@ internal static class RoofGeneratedMemberManualEditService
                                     globalCommandName, RoofLiveResizeService.HasSourceGeometryChanged(
                                         owner, modifiedIds, globalCommandName)),
                                 acceptedPlanIds: acceptedPlanIds))
-                        throw new InvalidOperationException(
-                            "Ordinary physical member set or model is incomplete.");
+                        throw new InvalidOperationException("Ordinary physical member set or model is incomplete.");
                 }
                 catch (System.Exception ex)
                 {
-                    throw new OrdinaryPhysicalReconcileException(
-                        "Accepted 2D member has no valid derived 3D body.", ex);
+                    throw new OrdinaryPhysicalReconcileException("Accepted 2D member has no valid derived 3D body.", ex);
                 }
             }
 
@@ -1039,11 +1074,29 @@ internal static class RoofGeneratedMemberManualEditService
     private static OwnerEditOutcome RecoverFailedOrdinaryPhysicalReconcile(
         Document document,
         ObjectId ownerId,
-        OrdinaryPhysicalReconcileException failure)
+        OrdinaryPhysicalReconcileException failure, IReadOnlyCollection<ObjectId> appendedTimberIds,
+        IReadOnlyCollection<ObjectId> modifiedIds)
     {
         using (document.LockDocument())
         using (var transaction = document.Database.TransactionManager.StartTransaction())
         {
+            if (!RoofUnsupportedStretchRecoverySnapshotService.TryGet(ownerId, out var snapshot))
+                throw new InvalidOperationException("Ordinary physical recovery snapshot is unavailable.", failure);
+            var priorHandles = snapshot.Assembly.TimberLines.Select(item => item.EntityHandle)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var reference = ownerId.Handle.ToString();
+            foreach (var id in appendedTimberIds)
+            {
+                if (!AutoCadObjectIdAccess.TryGetObject<Line>(transaction, id, OpenMode.ForRead,
+                        out var line, document.Database) || line is null || priorHandles.Contains(line.Handle.ToString())) continue;
+                var ownerReference = RoofGeneratedTimberStore.Read(line).Data?.RoofOwnerReference ??
+                    RoofAttachedManualTimberStore.Read(line).Data?.RoofOwnerReference;
+                if (!string.Equals(ownerReference, reference, StringComparison.OrdinalIgnoreCase)) continue;
+                _ = RoofAssemblyGroupSyncService.DetachMembersBeforeErase(document.Database, transaction, ownerId, [id]);
+                DeleteAnnotationsForHandle(document.Database, transaction, line.Handle.ToString());
+                line.UpgradeOpen();
+                line.Erase();
+            }
             var recovered = RoofUnsupportedStretchRecoveryService
                 .TryRecoverGeneratedMembersOnly(
                     document.Database, transaction, ownerId, document.Editor);
@@ -1051,6 +1104,28 @@ internal static class RoofGeneratedMemberManualEditService
                 !TryRecoverErasedMembers(document, transaction, ownerId))
                 throw new InvalidOperationException(
                     "Ordinary physical rebuild and 2D recovery both failed.", failure);
+            if (!AutoCadObjectIdAccess.TryGetObject<Polyline>(transaction, ownerId, OpenMode.ForRead,
+                    out var owner, document.Database) || owner is null)
+                throw new InvalidOperationException("Ordinary physical recovery owner is unavailable.", failure);
+            var input = RoofPolylineExtractor.Extract(owner);
+            var footprint = RoofFootprintValidator.Validate(input);
+            var definition = RoofDefinitionStore.Read(owner).Data;
+            var geometry = footprint.Footprint is null || definition is null ? null :
+                RoofDefinitionPersistence.Restore(input, footprint.Footprint, definition).Geometry;
+            var keys = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var id in modifiedIds)
+                if (AutoCadObjectIdAccess.TryGetObject<Entity>(transaction, id, OpenMode.ForRead,
+                        out var entity, document.Database) && entity is not null)
+                {
+                    if (entity is Line line && RoofOrdinaryRafterSolidMaterializationService.TryGetPlanPhysicalIdentity(line, reference, out var key))
+                        keys.Add(key);
+                    if (RoofPhysical3DGeneratedStore.Read(entity).Data is { Role: RoofPhysical3DGeneratedRole.OrdinaryRafterSolid } physical &&
+                        string.Equals(physical.RoofOwnerReference, reference, StringComparison.OrdinalIgnoreCase)) keys.Add(physical.StructuralId);
+                }
+            if (geometry is null || !RoofOrdinaryRafterSolidMaterializationService.TryReconcileSemanticMembersInTransaction(
+                    document.Database, transaction, owner, geometry, keys, Array.Empty<ObjectId>()) ||
+                !RoofPhysical3DLifecycleService.TryRestoreStretchPhysicalInTransaction(document, transaction, owner, modifiedIds))
+                throw new InvalidOperationException("Ordinary semantic physical recovery failed.", failure);
             if (!RoofAssemblyGroupSyncService.TrySyncForOwner(
                     document, transaction, ownerId))
                 throw new InvalidOperationException(
@@ -2166,11 +2241,26 @@ internal static class RoofGeneratedMemberManualEditService
             }
 
             var fragment = ToGeometry(candidate);
+            if (snapshotGeometry.TryGetValue(candidate.Handle.ToString(), out var unchangedBefore) &&
+                RoofGeneratedMemberOverrideMath.GeometryEquals(unchangedBefore, fragment))
+            {
+                continue;
+            }
+            var candidateAttached = RoofAttachedManualTimberStore.Read(candidate).Data;
             Line? sourceLine = null;
             TimberElementData? sourceData = null;
             string? sourceHandle = null;
             foreach (var timber in snapshot.Assembly.TimberLines)
             {
+                // A BREAK fragment inherits the AttachedManual source binding. Use
+                // that exact pre-command source, including for the retained fragment;
+                // a collinear Generated sibling is not its semantic parent.
+                if (candidateAttached is not null &&
+                    !string.Equals(timber.EntityHandle, candidateAttached.ChildIdentity, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
                 if (!snapshotGeometry.TryGetValue(timber.EntityHandle, out var parent))
                 {
                     continue;
@@ -2350,7 +2440,9 @@ internal static class RoofGeneratedMemberManualEditService
                 anchorEnd,
                 extra.StartPoint,
                 extra.EndPoint,
-                RoofAttachedManualOrigin.Copy);
+                RoofAttachedManualOrigin.Copy,
+                RoofAttachedManualTimberStore.Read(extra).Data is { } originalAttached
+                    ? RoofAttachedManualIdentityRules.Resolve(originalAttached) : null);
         }
         else if (resolvedAnchorKey is { } resolvedAnchor)
         {
@@ -2362,7 +2454,10 @@ internal static class RoofGeneratedMemberManualEditService
                 anchorEnd,
                 extra.StartPoint,
                 extra.EndPoint,
-                RoofAttachedManualOrigin.Split);
+                RoofAttachedManualOrigin.Split,
+                string.Equals(generatedHandle, attachedManualHandle, StringComparison.OrdinalIgnoreCase) &&
+                    RoofAttachedManualTimberStore.Read(extra).Data is { } survivingAttached
+                    ? RoofAttachedManualIdentityRules.Resolve(survivingAttached) : null);
         }
         else
         {

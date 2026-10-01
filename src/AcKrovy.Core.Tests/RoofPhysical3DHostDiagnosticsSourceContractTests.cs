@@ -13,6 +13,18 @@ public sealed class RoofPhysical3DHostDiagnosticsSourceContractTests
     }
 
     [Fact]
+    public void BreakAtPoint_IsObservedAtNativeAndMaintenanceCheckpoints()
+    {
+        var code = Read("src/AcKrovy.AutoCAD/Infrastructure/RoofPhysical3DHostDiagnostics.cs");
+        Assert.Contains("ObserveMemberCheckpoint => _command is \"BREAK\" or \"COPY\" or \"MIRROR\" or \"BREAKATPOINT\"", code);
+        Assert.Contains("\"BREAK\" or \"BREAKATPOINT\" or \"STRETCH\"", code);
+        var maintenance = code[code.IndexOf("public static void MaintenanceComplete", StringComparison.Ordinal)..
+            code.IndexOf("public static void TimberRestoreFailure", StringComparison.Ordinal)];
+        Assert.Contains("LiveGeometryCommandRules.IsUndoRedoCommand(command)", maintenance);
+        Assert.Contains("tracker.ReportMemberCheckpoint(command, \"after-maintenance\")", maintenance);
+    }
+
+    [Fact]
     public void DiagnosticObservers_AreReadOnlyAndExcludeUndoRedoCommands()
     {
         var code = Read("src/AcKrovy.AutoCAD/Infrastructure/RoofPhysical3DHostDiagnostics.cs");
@@ -29,9 +41,9 @@ public sealed class RoofPhysical3DHostDiagnosticsSourceContractTests
         Assert.Contains("NATIVE_BEGIN command=", code);
         Assert.Contains("LiveGeometryCommandRules.NormalizeCommandName(e.GlobalCommandName)", code);
         Assert.Contains("TRACE_COMMAND raw=", code);
-        Assert.Contains("if (Observe) Write(Document, $\"NATIVE_BEGIN command=", code);
+        Assert.Contains("if (Observe || ObserveMemberCheckpoint) Write(Document, $\"NATIVE_BEGIN command=", code);
         Assert.Contains("NATIVE_CANCEL_OR_FAIL command=", code);
-        Assert.Contains("if (!Observe) return", code);
+        Assert.Contains("if (!Observe && !ObserveMemberCheckpoint) return", code);
         Assert.Contains("document.Database.ObjectAppended += Appended", code);
         Assert.Contains("document.Database.ObjectModified += Modified", code);
         Assert.Contains("document.Database.ObjectErased += Erased", code);
@@ -83,5 +95,39 @@ public sealed class RoofPhysical3DHostDiagnosticsSourceContractTests
         Assert.StartsWith("#if DEBUG", recovery);
         Assert.Contains("AcKrovyDiagnostics.Info(\"ROOF_MANUAL_EDIT_TRACE\", line)", manual);
         Assert.Contains("AcKrovyDiagnostics.Info(FallbackPrefix, line)", recovery);
+    }
+
+    [Fact]
+    public void MemberCheckpoint_IsAutomaticForRequestedCommandsAndClearsOnCancel()
+    {
+        var code = Read("src/AcKrovy.AutoCAD/Infrastructure/RoofPhysical3DHostDiagnostics.cs");
+        Assert.Contains("ObserveMemberCheckpoint => _command is \"BREAK\" or \"COPY\" or \"MIRROR\"", code);
+        Assert.Contains("MEMBER_CHECKPOINT_BEGIN command=", code);
+        Assert.Contains("ReportMemberCheckpoint(_command, \"native-ended\")", code);
+        Assert.Contains("tracker.ReportMemberCheckpoint(command, \"after-maintenance\")", code);
+        Assert.DoesNotContain("ReportMemberOwnerCounts(_memberBaseline.Values.Select(member => member.Owner), \"before-native\")", code);
+        Assert.Contains("RoofPhysical3DHostDiagnostics.OwnerCounts(Document, transaction, owner", code);
+        Assert.Contains("MEMBER_ROOF_SOURCE phase=", code);
+        Assert.Contains("MEMBER_PHYSICAL phase=", code);
+        var cancel = code[code.IndexOf("private void Cancelled(", StringComparison.Ordinal)..
+            code.IndexOf("CaptureOwnedSolidMass()", code.IndexOf("private void Cancelled(", StringComparison.Ordinal), StringComparison.Ordinal)];
+        Assert.Contains("ClearMemberCheckpoint()", cancel);
+        Assert.DoesNotContain("ReportMemberCheckpoint(", cancel);
+    }
+
+    [Fact]
+    public void MemberCheckpoint_UsesExactNativePairsAndReportsMissingOrAmbiguousMapping()
+    {
+        var code = Read("src/AcKrovy.AutoCAD/Infrastructure/RoofPhysical3DHostDiagnostics.cs");
+        Assert.Contains("_memberMappings[cloneHandle] = sourceHandle", code);
+        Assert.Contains("_ambiguousMemberMappings.Add(cloneHandle)", code);
+        Assert.Contains("\"unmapped-new\"", code);
+        Assert.Contains("\"ambiguous-map\"", code);
+        Assert.Contains("before={JsonSerializer.Serialize(before)} after={JsonSerializer.Serialize(after)}", code);
+        Assert.Contains("timber?.ElementId", code);
+        var checkpoint = code[code.IndexOf("private Dictionary<string, MemberEvidence> CaptureMemberEvidence", StringComparison.Ordinal)..];
+        Assert.DoesNotContain("Nearest", checkpoint);
+        Assert.DoesNotContain("MassProperties", checkpoint);
+        Assert.DoesNotContain("GeometricExtents", checkpoint);
     }
 }

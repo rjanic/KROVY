@@ -24,14 +24,23 @@ internal static class RoofOrdinaryRafterSolidMaterializationService
         Transaction transaction,
         Polyline owner,
         HipRoofGeometry hip,
-        out RoofAutomaticRafterPhysicalModel? model)
+        out RoofAutomaticRafterPhysicalModel? model, bool structuralReconcilePending = false, bool persistAttachedIdentity = false)
     {
         model = null;
         var ownerReference = owner.Handle.ToString();
         var existing = RoofGeneratedTimberStore.FindByOwner(
             database, transaction, ownerReference);
-        if (existing.Count == 0 ||
-            !RoofGeneratedRafterSetService.TryRecoverRecipe(
+        if (existing.Count == 0)
+        {
+            var physical = RoofPhysicalElevationStore.Read(owner).Data;
+            var structural = ResolveStructuralSources(database, transaction, owner, hip, structuralReconcilePending);
+            return physical?.Physical3DEnabled == true && structural is not null &&
+                TryAppendAttachedModel(database, transaction, owner, hip,
+                    new RoofFaceRafterLayout(0d, Array.Empty<RoofFaceRafterSegment>(), string.Empty),
+                    physical, structural, new RoofAutomaticRafterPhysicalModel(ownerReference,
+                        Array.Empty<RoofAutomaticRafterPhysicalMember>()), out model, persistAttachedIdentity);
+        }
+        if (!RoofGeneratedRafterSetService.TryRecoverRecipe(
                 database, transaction, existing, out var recipe))
             return false;
         var solved = RoofRafterLayoutSolver.Solve(
@@ -47,8 +56,8 @@ internal static class RoofOrdinaryRafterSolidMaterializationService
             hip.Topology, recipe.MaximumSpacingMm);
         var elevation = RoofPhysicalElevationStore.Read(owner).Data;
         var sources = ResolveStructuralSources(
-            database, transaction, owner, hip, structuralReconcilePending: false);
-        return replay.IsValid && faceLayout.IsValid && faceLayout.Layout is not null &&
+            database, transaction, owner, hip, structuralReconcilePending);
+        if (!(replay.IsValid && faceLayout.IsValid && faceLayout.Layout is not null &&
             elevation?.Physical3DEnabled == true && sources is not null &&
             RoofAutomaticRafterPhysicalBuilder.TryBuild(
                 ownerReference, hip.Topology, faceLayout.Layout, solved.Layout,
@@ -59,7 +68,9 @@ internal static class RoofOrdinaryRafterSolidMaterializationService
                 replay, sources, out model, out _) &&
             model is not null &&
             model.Members.Count == replay.MaterializedCount &&
-            MatchesGeneratedMemberKeys(database, transaction, ownerReference, model);
+            MatchesGeneratedMemberKeys(database, transaction, ownerReference, model))) return false;
+        return TryAppendAttachedModel(database, transaction, owner, hip, faceLayout.Layout,
+            elevation!, sources!, model!, out model, persistAttachedIdentity);
     }
 
     /// <summary>Rebuild only the physical bodies whose authoritative 2D member
@@ -78,108 +89,100 @@ internal static class RoofOrdinaryRafterSolidMaterializationService
             return true;
 
         var ownerReference = owner.Handle.ToString();
-        var changedKeys = new HashSet<RoofGeneratedMemberKey>();
+        var changedKeys = new HashSet<string>(StringComparer.Ordinal);
         foreach (var id in acceptedPlanIds ?? modifiedIds)
-        {
-            if (!AutoCadObjectIdAccess.TryGetObject<Line>(
-                    transaction, id, OpenMode.ForRead, out var line, database) ||
-                line is null || RoofGeneratedTimberStore.Read(line).Data is not { } data ||
-                !string.Equals(data.RoofOwnerReference, ownerReference,
-                    StringComparison.OrdinalIgnoreCase))
-                continue;
-            changedKeys.Add(RoofGeneratedMemberKey.From(data));
-        }
-        var collateralIds = new HashSet<string>(StringComparer.Ordinal);
+            if (AutoCadObjectIdAccess.TryGetObject<Line>(transaction, id, OpenMode.ForRead,
+                    out var line, database) && line is not null &&
+                TryGetPlanPhysicalIdentity(line, ownerReference, out var identity)) changedKeys.Add(identity);
         if (restoreStretchCollateral)
-        {
             foreach (var id in modifiedIds)
-            {
-                if (AutoCadObjectIdAccess.TryGetObject<Solid3d>(
-                        transaction, id, OpenMode.ForRead, out var solid, database) &&
-                    solid is not null &&
-                    RoofPhysical3DGeneratedStore.Read(solid).Data is { } physical &&
-                    physical.Role == RoofPhysical3DGeneratedRole.OrdinaryRafterSolid &&
-                    string.Equals(physical.RoofOwnerReference, ownerReference,
-                        StringComparison.OrdinalIgnoreCase))
-                    collateralIds.Add(physical.StructuralId);
-            }
-        }
-        if (changedKeys.Count == 0 && collateralIds.Count == 0)
-            return true;
+                if (AutoCadObjectIdAccess.TryGetObject<Solid3d>(transaction, id, OpenMode.ForRead,
+                        out var solid, database) && solid is not null &&
+                    RoofPhysical3DGeneratedStore.Read(solid).Data is { Role: RoofPhysical3DGeneratedRole.OrdinaryRafterSolid } data &&
+                    string.Equals(data.RoofOwnerReference, ownerReference, StringComparison.OrdinalIgnoreCase) &&
+                    !data.StructuralId.StartsWith("AttachedManual:", StringComparison.Ordinal))
+                    changedKeys.Add(data.StructuralId);
+        if (changedKeys.Count == 0) return true;
+        return TryReconcileSemanticMembersInTransaction(database, transaction, owner, hip,
+            changedKeys, Array.Empty<ObjectId>(), allowCardinalityChanges: false);
+    }
 
-        if (!TryBuildExistingModelInTransaction(
-                database, transaction, owner, hip, out var model) || model is null)
+    public static bool TryGetPlanPhysicalIdentity(Line line, string ownerReference, out string identity)
+    {
+        identity = string.Empty;
+        if (RoofGeneratedTimberStore.Read(line).Data is { } generated &&
+            string.Equals(generated.RoofOwnerReference, ownerReference, StringComparison.OrdinalIgnoreCase))
+            identity = PhysicalMemberId(RoofGeneratedMemberKey.From(generated));
+        else if (RoofAttachedManualTimberStore.Read(line).Data is { } attached &&
+                 string.Equals(attached.RoofOwnerReference, ownerReference, StringComparison.OrdinalIgnoreCase))
+            identity = RoofAttachedManualIdentityRules.PhysicalKey(attached);
+        return identity.Length > 0;
+    }
+
+    /// <summary>One semantic reconciliation engine for split, clone, replacement and
+    /// AttachedManual edits. Never inspects native solid geometry.</summary>
+    public static bool TryReconcileSemanticMembersInTransaction(Database database, Transaction transaction,
+        Polyline owner, IRoofGeometry geometry, IReadOnlyCollection<string> changedKeys,
+        IReadOnlyCollection<ObjectId> collateralIds, bool allowCardinalityChanges = true, bool structuralReconcilePending = false)
+    {
+        if (geometry is not HipRoofGeometry hip ||
+            RoofPhysicalElevationStore.Read(owner).Data is not { Physical3DEnabled: true } elevation) return true;
+        if (!TryBuildExistingModelInTransaction(database, transaction, owner, hip, out var model, structuralReconcilePending, persistAttachedIdentity: true) || model is null)
             return false;
-
-        var members = model.Members.ToDictionary(
-            member => PhysicalMemberId(member.MemberKey),
-            member => member);
-        var existing = new Dictionary<string, (ObjectId Id, RoofPhysical3DGeneratedData Data)>(
-            StringComparer.Ordinal);
-        foreach (var id in RoofPhysical3DGeneratedStore.FindByOwner(
-                     database, transaction, ownerReference))
+        var members = model.Members.ToDictionary(member => member.PhysicalIdentity, StringComparer.Ordinal);
+        var existing = new Dictionary<string, ObjectId>(StringComparer.Ordinal);
+        var bindings = new List<RoofOrdinaryPhysicalBinding>();
+        foreach (var id in RoofPhysical3DGeneratedStore.FindByOwner(database, transaction, owner.Handle.ToString()))
         {
-            if (!AutoCadObjectIdAccess.TryGetObject<Entity>(
-                    transaction, id, OpenMode.ForRead, out var entity, database) ||
-                entity is null ||
-                RoofPhysical3DGeneratedStore.Read(entity).Data is not { } data ||
-                data.Role != RoofPhysical3DGeneratedRole.OrdinaryRafterSolid)
+            if (!AutoCadObjectIdAccess.TryGetObject<Entity>(transaction, id, OpenMode.ForRead,
+                    out var entity, database) || entity is null ||
+                RoofPhysical3DGeneratedStore.Read(entity).Data is not { Role: RoofPhysical3DGeneratedRole.OrdinaryRafterSolid } data)
                 continue;
-            if (entity is not Solid3d || !existing.TryAdd(data.StructuralId, (id, data)))
-                return false;
+            if (entity is not Solid3d) return false;
+            var binding = entity.Handle.ToString();
+            existing.Add(binding, id);
+            bindings.Add(new RoofOrdinaryPhysicalBinding(binding, data.StructuralId, collateralIds.Contains(id)));
         }
-        // A damaged/missing physical set must not be silently repaired by a
-        // single-member edit; fail and let the caller restore the 2D snapshot.
-        if (existing.Count != members.Count || !existing.Keys.ToHashSet().SetEquals(members.Keys))
-            return false;
-
-        if (!RoofPhysicalStretchRules.TrySelectRebuildKeys(
-                model.Members.Select(member => member.MemberKey).ToArray(),
-                changedKeys, collateralIds, out var rebuildKeys))
-            return false;
-        var selected = rebuildKeys.Select(PhysicalMemberId).ToHashSet();
-#if DEBUG
-        if (restoreStretchCollateral && collateralIds.Count > 0)
-            AcKrovy.AutoCAD.Diagnostics.AcKrovyDiagnostics.Info("ROOF_PHYSICAL_STRETCH",
-                $"owner={ownerReference} mode=collateral planKeys={changedKeys.Count} " +
-                $"collateralKeys={collateralIds.Count} rebuiltKeys={selected.Count} result=planned");
-#endif
-        if (restoreStretchCollateral)
-            _ = RoofAssemblyGroupSyncService.DetachMembersBeforeErase(
-                database, transaction, owner.ObjectId,
-                selected.Select(id => existing[id].Id).ToArray());
-
+        if (!RoofOrdinaryPhysicalReconciliationRules.TryPlan(members.Keys.ToArray(), changedKeys,
+                bindings, allowCardinalityChanges, out var plan) || plan is null) return false;
+        if (plan.RebuildKeys.Count == 0 && plan.RemoveBodyIdentities.Count == 0)
+            return RoofOrdinaryPhysicalReconciliationRules.IsCanonical(members.Keys.ToArray(), bindings.Select(body => body.SemanticKey).ToArray());
+        var removeIds = plan.RemoveBodyIdentities.Select(binding => existing[binding]).ToArray();
+        _ = RoofAssemblyGroupSyncService.DetachMembersBeforeErase(database, transaction, owner.ObjectId, removeIds);
         EnsureLayer(database, transaction);
         var modelSpace = (BlockTableRecord)transaction.GetObject(
             SymbolUtilityServices.GetBlockModelSpaceId(database), OpenMode.ForWrite);
-        var showModel3D = elevation.DisplayVisibility is
-            RoofPhysicalDisplayVisibility.Both or RoofPhysicalDisplayVisibility.Model3D;
-        foreach (var memberId in selected)
+        var signature = RoofGeneratedTimberStore.FindByOwner(database, transaction, owner.Handle.ToString())
+            .Select(id => RoofGeneratedTimberStore.Read((Entity)transaction.GetObject(id, OpenMode.ForRead)).Data)
+            .FirstOrDefault(data => data is not null)?.LayoutSignature ?? "AttachedManual";
+        foreach (var key in plan.RebuildKeys)
         {
-            var old = existing[memberId];
-            // Construct first. A geometric failure leaves the old body untouched;
-            // any later database failure aborts the caller-owned transaction.
-            var solid = CreateSolid(members[memberId]);
+            var solid = CreateSolid(members[key]);
             var appended = false;
             try
             {
                 solid.SetDatabaseDefaults(database);
                 solid.Layer = LayerName;
-                solid.Visible = showModel3D;
+                solid.Visible = elevation.DisplayVisibility is RoofPhysicalDisplayVisibility.Both or RoofPhysicalDisplayVisibility.Model3D;
                 modelSpace.AppendEntity(solid);
                 appended = true;
                 transaction.AddNewlyCreatedDBObject(solid, true);
-                RoofPhysical3DGeneratedStore.Write(solid, transaction, old.Data);
-                var oldEntity = (Entity)transaction.GetObject(old.Id, OpenMode.ForWrite);
-                oldEntity.Erase();
+                RoofPhysical3DGeneratedStore.Write(solid, transaction, RoofPhysical3DGeneratedDataRules.Create(
+                    owner.Handle.ToString(), RoofPhysical3DGeneratedRole.OrdinaryRafterSolid, key, signature));
             }
-            finally
-            {
-                if (!appended)
-                    solid.Dispose();
-            }
+            finally { if (!appended) solid.Dispose(); }
         }
-        return true;
+        foreach (var id in removeIds)
+            ((Entity)transaction.GetObject(id, OpenMode.ForWrite)).Erase();
+#if DEBUG
+        RoofPhysical3DHostDiagnostics.PhysicalReconcile(database, owner.Handle.ToString(),
+            plan.RebuildKeys.Count, removeIds.Length, plan.RebuildKeys);
+#endif
+        var actual = RoofPhysical3DGeneratedStore.FindByOwner(database, transaction, owner.Handle.ToString())
+            .Select(id => RoofPhysical3DGeneratedStore.Read((Entity)transaction.GetObject(id, OpenMode.ForRead)).Data)
+            .Where(data => data?.Role == RoofPhysical3DGeneratedRole.OrdinaryRafterSolid)
+            .Select(data => data!.StructuralId).ToArray();
+        return RoofOrdinaryPhysicalReconciliationRules.IsCanonical(members.Keys.ToArray(), actual);
     }
 
     /// <summary>Reject a native edit of derived 3D bodies by rebuilding their
@@ -223,6 +226,14 @@ internal static class RoofOrdinaryRafterSolidMaterializationService
                     PhysicalMemberId(RoofGeneratedMemberKey.From(generated)), id))
                 return false;
         }
+        foreach (var id in RoofAttachedManualTimberStore.FindByOwner(database, transaction, ownerReference))
+        {
+            if (!AutoCadObjectIdAccess.TryGetObject<Line>(transaction, id, OpenMode.ForRead,
+                    out var line, database) || line is null || !line.Visible) continue;
+            if (RoofAttachedManualTimberStore.Read(line).Data is { } data &&
+                data.AnchorGeneratedMemberKey?.MemberKind == RoofGeneratedTimberKind.Rafter &&
+                !authoritativeLines.TryAdd(RoofAttachedManualIdentityRules.PhysicalKey(data), id)) return false;
+        }
         if (!movedMemberIds.IsSubsetOf(authoritativeLines.Keys))
             return false;
 
@@ -251,7 +262,7 @@ internal static class RoofOrdinaryRafterSolidMaterializationService
                 database, transaction, owner, geometry, out var model) || model is null)
             return false;
 
-        var expected = model.Members.Select(member => PhysicalMemberId(member.MemberKey))
+        var expected = model.Members.Select(member => member.PhysicalIdentity)
             .ToHashSet(StringComparer.Ordinal);
         var actual = new Dictionary<string, ObjectId>(StringComparer.Ordinal);
         foreach (var id in RoofPhysical3DGeneratedStore.FindByOwner(
@@ -284,7 +295,7 @@ internal static class RoofOrdinaryRafterSolidMaterializationService
         Transaction transaction,
         Polyline owner,
         IRoofGeometry geometry,
-        IReadOnlyCollection<RoofGeneratedMemberKey> suppressedKeys)
+        IReadOnlyCollection<RoofGeneratedMemberKey> suppressedKeys, IReadOnlyCollection<string>? erasedAttachedKeys = null)
     {
         if (suppressedKeys.Count == 0 || geometry is not HipRoofGeometry ||
             RoofPhysicalElevationStore.Read(owner).Data is not { Physical3DEnabled: true })
@@ -307,6 +318,11 @@ internal static class RoofOrdinaryRafterSolidMaterializationService
         }
         if (activeIds.Overlaps(suppressedIds))
             return false;
+        foreach (var id in RoofAttachedManualTimberStore.FindByOwner(database, transaction, ownerReference))
+            if (AutoCadObjectIdAccess.TryGetObject<Line>(transaction, id, OpenMode.ForRead, out var line, database) &&
+                line is { Visible: true } && RoofAttachedManualTimberStore.Read(line).Data is { } attached &&
+                attached.AnchorGeneratedMemberKey?.MemberKind == RoofGeneratedTimberKind.Rafter &&
+                !activeIds.Add(RoofAttachedManualIdentityRules.PhysicalKey(attached))) return false;
 
         var physical = new Dictionary<string, ObjectId>(StringComparer.Ordinal);
         foreach (var id in RoofPhysical3DGeneratedStore.FindByOwner(
@@ -321,7 +337,7 @@ internal static class RoofOrdinaryRafterSolidMaterializationService
             if (entity is not Solid3d || !physical.TryAdd(data.StructuralId, id))
                 return false;
         }
-        var expectedBefore = activeIds.Concat(suppressedIds).ToHashSet();
+        var expectedBefore = activeIds.Concat(suppressedIds).Concat(erasedAttachedKeys ?? Array.Empty<string>()).ToHashSet();
         if (physical.Count != expectedBefore.Count ||
             !physical.Keys.ToHashSet().SetEquals(expectedBefore))
             return false;
@@ -329,7 +345,8 @@ internal static class RoofOrdinaryRafterSolidMaterializationService
         // Detach the exact physical ObjectIds while they are still live. The
         // accepted ERASE transaction then removes their bodies; EnsureGroup
         // must never see an erased member waiting for a deferred reattach.
-        var suppressedSolidIds = suppressedIds.Select(id => physical[id]).ToArray();
+        var suppressedSolidIds = suppressedIds.Concat(erasedAttachedKeys ?? Array.Empty<string>()).Distinct()
+            .Select(id => physical[id]).ToArray();
         _ = RoofAssemblyGroupSyncService.DetachMembersBeforeErase(
             database, transaction, owner.ObjectId, suppressedSolidIds);
         foreach (var memberId in suppressedIds)
@@ -351,6 +368,9 @@ internal static class RoofOrdinaryRafterSolidMaterializationService
             database, transaction, ownerReference);
         if (existing.Count == 0)
         {
+            if (geometry is HipRoofGeometry && RoofPhysicalElevationStore.Read(owner).Data?.Physical3DEnabled == true)
+                return TryReconcileSemanticMembersInTransaction(database, transaction, owner, geometry,
+                    Array.Empty<string>(), Array.Empty<ObjectId>());
             RoofPhysical3DMaterializationService.EraseOrdinaryRafterSolids(
                 database, transaction, ownerReference);
             return true;
@@ -396,7 +416,7 @@ internal static class RoofOrdinaryRafterSolidMaterializationService
         RoofRafterLayout layout,
         RoofRafterGenerationRecipe recipe,
         RoofGeneratedMemberReplayPlan replayPlan,
-        bool structuralReconcilePending = false)
+        bool structuralReconcilePending = false, bool includeAttachedManual = true)
     {
         var ownerReference = owner.Handle.ToString();
         if (geometry is not HipRoofGeometry hip)
@@ -440,6 +460,10 @@ internal static class RoofOrdinaryRafterSolidMaterializationService
             throw new InvalidOperationException(
                 "Ordinary physical rafter model is inconsistent: GeneratedMemberKeyMismatch.");
 
+        if (includeAttachedManual && (!TryAppendAttachedModel(database, transaction, owner, hip, faceLayout.Layout,
+                elevation, structuralSources, model, out model, persistAttachedIdentity: true) || model is null))
+            throw new InvalidOperationException("AttachedManual physical model is inconsistent.");
+
         // The caller owns the transaction. A failed solid or metadata write aborts
         // the same transaction as the 2D Generated replacement.
         RoofPhysical3DMaterializationService.EraseOrdinaryRafterSolids(
@@ -458,7 +482,7 @@ internal static class RoofOrdinaryRafterSolidMaterializationService
             solid.Visible = showModel3D;
             modelSpace.AppendEntity(solid);
             transaction.AddNewlyCreatedDBObject(solid, true);
-            var memberId = PhysicalMemberId(member.MemberKey);
+            var memberId = member.PhysicalIdentity;
             RoofPhysical3DGeneratedStore.Write(
                 solid, transaction,
                 RoofPhysical3DGeneratedDataRules.Create(
@@ -469,14 +493,58 @@ internal static class RoofOrdinaryRafterSolidMaterializationService
         }
     }
 
+    public static bool TryReconcileAttachedAfterReplay(Database database, Transaction transaction,
+        Polyline owner, IRoofGeometry geometry)
+    {
+        var keys = RoofAttachedManualTimberStore.FindByOwner(database, transaction, owner.Handle.ToString())
+            .Select(id => RoofAttachedManualTimberStore.Read((Entity)transaction.GetObject(id, OpenMode.ForRead)).Data)
+            .Where(data => data?.AnchorGeneratedMemberKey?.MemberKind == RoofGeneratedTimberKind.Rafter)
+            .Select(data => RoofAttachedManualIdentityRules.PhysicalKey(data!)).ToArray();
+        return TryReconcileSemanticMembersInTransaction(database, transaction, owner, geometry,
+            keys, Array.Empty<ObjectId>(), structuralReconcilePending: true);
+    }
+
+    private static bool TryAppendAttachedModel(Database database, Transaction transaction,
+        Polyline owner, HipRoofGeometry hip, RoofFaceRafterLayout faceLayout,
+        RoofPhysicalElevationData elevation, IReadOnlyList<RoofStructuralRafterTrimSource> sources,
+        RoofAutomaticRafterPhysicalModel generated, out RoofAutomaticRafterPhysicalModel? model, bool persistAttachedIdentity = false)
+    {
+        var inputs = new List<RoofAttachedManualPhysicalInput>();
+        var metadata = new AutoCadTimberElementMetadataStore(transaction);
+        foreach (var id in RoofAttachedManualTimberStore.FindByOwner(database, transaction, owner.Handle.ToString()))
+        {
+            if (!AutoCadObjectIdAccess.TryGetObject<Line>(transaction, id, OpenMode.ForRead,
+                    out var line, database) || line is null ||
+                RoofAttachedManualTimberStore.Read(line).Data is not { } data) return Fail(out model);
+            if (data.AnchorGeneratedMemberKey?.MemberKind != RoofGeneratedTimberKind.Rafter) continue;
+            if (!metadata.TryRead(line, out var timber) || timber is null) return Fail(out model);
+            if (persistAttachedIdentity && RoofAttachedManualIdentityRules.Upgrade(data) is { } upgraded && upgraded != data)
+            {
+                line.UpgradeOpen();
+                RoofAttachedManualTimberStore.Write(line, transaction, upgraded);
+                data = upgraded;
+            }
+            inputs.Add(new RoofAttachedManualPhysicalInput(data, new RoofSegment3D(
+                new RoofPoint3D(line.StartPoint.X, line.StartPoint.Y, line.StartPoint.Z),
+                new RoofPoint3D(line.EndPoint.X, line.EndPoint.Y, line.EndPoint.Z)),
+                timber.WidthMm, timber.HeightMm, line.Visible));
+        }
+        return RoofAttachedManualPhysicalBuilder.TryAppend(hip.Topology, faceLayout, generated, inputs,
+            elevation.ResolvedEaveRelativeElevationMm, new RoofAutomaticRafterPhysicalSettings(
+                elevation.LowerEndCutMode, elevation.RidgeJoinMode), sources, out model, out _);
+    }
+
+    private static bool Fail(out RoofAutomaticRafterPhysicalModel? model) { model = null; return false; }
+
     private static bool MatchesGeneratedMemberKeys(
         Database database,
         Transaction transaction,
         string ownerReference,
         RoofAutomaticRafterPhysicalModel model)
     {
-        var expected = model.Members.Select(member => member.MemberKey).ToHashSet();
-        if (expected.Count != model.Members.Count)
+        var generatedMembers = model.Members.Where(member => member.AttachedManualIdentity is null).ToArray();
+        var expected = generatedMembers.Select(member => member.MemberKey).ToHashSet();
+        if (expected.Count != generatedMembers.Length)
             return false;
         var actual = new HashSet<RoofGeneratedMemberKey>();
         foreach (var id in RoofGeneratedTimberStore.FindByOwner(

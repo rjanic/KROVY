@@ -37,7 +37,13 @@ public sealed record RoofAutomaticRafterPhysicalMember(
     double PhysicalLengthMm,
     RoofHorizontalRafterCut? HorizontalCut = null,
     RoofStructuralRafterSideCut? StructuralCut = null,
-    RoofRidgeOverlapCut? RidgeOverlapCut = null);
+    RoofRidgeOverlapCut? RidgeOverlapCut = null,
+    string? AttachedManualIdentity = null)
+{
+    public string PhysicalIdentity => AttachedManualIdentity is null
+        ? $"{MemberKey.MemberKind}:{MemberKey.RoofFace}:{MemberKey.StationIndex.ToString(System.Globalization.CultureInfo.InvariantCulture)}"
+        : "AttachedManual:" + AttachedManualIdentity;
+}
 
 /// <summary>
 /// An Overlap member clipped below the actual opposing roof plane. The

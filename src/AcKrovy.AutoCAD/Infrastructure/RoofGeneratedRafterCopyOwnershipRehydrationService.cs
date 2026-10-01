@@ -42,7 +42,8 @@ internal static class RoofGeneratedRafterCopyOwnershipRehydrationService
 
         IReadOnlyCollection<ObjectId>? appendedTimberIds = null,
 
-        bool sameDwgClipboardPaste = false)
+        bool sameDwgClipboardPaste = false,
+        bool propagateFailure = false)
 
     {
 
@@ -442,6 +443,7 @@ internal static class RoofGeneratedRafterCopyOwnershipRehydrationService
             {
 
             }
+            if (propagateFailure) throw;
 
         }
 
@@ -451,6 +453,7 @@ internal static class RoofGeneratedRafterCopyOwnershipRehydrationService
 
         {
 
+            if (propagateFailure) throw;
             // Silent internal maintenance — do not break native COPY UX.
 
         }

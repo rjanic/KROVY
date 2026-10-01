@@ -1,10 +1,13 @@
 using AcKrovy.AutoCAD.Settings;
+using AcKrovy.AutoCAD.Diagnostics;
+using AcKrovy.Core.Models.Roofs;
 using AcKrovy.Core.Services;
 using AcKrovy.Core.Services.Roofs;
 using AcKrovy.Localization;
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
+using Autodesk.AutoCAD.Geometry;
 using AcApp = Autodesk.AutoCAD.ApplicationServices.Application;
 
 namespace AcKrovy.AutoCAD.Infrastructure;
@@ -203,11 +206,13 @@ internal static class LiveGeometrySynchronizationService
                     return;
                 }
 
-                // Per-Document command-scope evidence only. Capture every pasted Entity
+                // Per-Document command-scope evidence for native/clipboard clones. Capture every Entity
                 // before any observation branch can return. Deep-cloned metadata may not
                 // be final until CommandEnded, where these exact ids are reopened.
                 if (!_appendedPasteEntityIds.IsSuppressed &&
-                    LiveGeometryCommandRules.IsClipboardPasteCommand(_currentGlobalCommandName))
+                    (LiveGeometryCommandRules.IsClipboardPasteCommand(_currentGlobalCommandName) ||
+                     LiveGeometryCommandRules.IsSameDwgCopyOwnershipCommand(_currentGlobalCommandName) ||
+                     RoofGeneratedMemberEditCommandRules.IsMirrorCommand(_currentGlobalCommandName)))
                 {
                     _appendedPasteEntityIds.TryAdd(entity.ObjectId);
                 }
@@ -822,13 +827,40 @@ internal static class LiveGeometrySynchronizationService
                         appendedTimberIds,
                         appendedAnnotationIds,
                         nativeRoofClones);
-                    _nativeRoofClones.Clear();
                 }
                 // This set was handled atomically by whole-roof rebind. A rollback
                 // must not be followed by independent resize/tamper writes for its
                 // native clones; success must not regenerate it a second time.
                 var nativeHandledIds = nativeRoofClones.SelectMany(clone => clone.Mapping.Values).ToHashSet();
                 ids = ids.Where(id => !nativeHandledIds.Contains(id)).ToArray();
+            }
+
+            // COPY/MIRROR clones temporarily inherit Generated/AttachedManual identity. Let
+            // the existing semantic clone transaction consume them before generic
+            // generated-tamper recovery can interpret that intermediate state.
+            // Whole-roof rebind retains first priority. Only claimed member results
+            // are removed from the subsequent generic resize/tamper candidates.
+            if (nativeCopy || nativeMirror)
+            {
+                var handledNativeMemberIds = new HashSet<ObjectId>();
+                using (_modifiedIds.Suppress())
+                using (_appendedTimberIds.Suppress())
+                using (_appendedRoofOwnerIds.Suppress())
+                using (_appendedPasteEntityIds.Suppress())
+                using (_appendedLabelIds.Suppress())
+                using (_appendedSlopeArrowIds.Suppress())
+                using (_appendedSlopeAngleTextIds.Suppress())
+                using (_erasedSourceHandles.Suppress())
+                {
+                    ProcessNativeMemberClones(globalCommandName, appendedTimberIds, appendedPasteEntityIds,
+                        erasedSourceHandles, mirrorModifiedTimberIds ?? Array.Empty<ObjectId>(), appendedAnnotationIds,
+                        _nativeRoofClones, copy: nativeCopy, handledNativeMemberIds);
+                }
+                ids = ids.Where(id => !handledNativeMemberIds.Contains(id)).ToArray();
+                appendedTimberIds = appendedTimberIds.Where(id => !handledNativeMemberIds.Contains(id)).ToArray();
+                var handledSourceHandles = handledNativeMemberIds.Select(id => id.Handle.ToString())
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
+                erasedSourceHandles = erasedSourceHandles.Where(handle => !handledSourceHandles.Contains(handle)).ToArray();
             }
 
             // Suppress ObjectModified while SOURCE resize rebuilds display / regenerates
@@ -912,34 +944,17 @@ internal static class LiveGeometrySynchronizationService
                 // NOTE: AttachedManual COPY-of-COPY clones are re-initialized BEFORE the
                 // per-rafter rehydration service so a Generated→AttachedManual promotion
                 // there is not re-classified as an already-manual clone.
-                if (nativeCopy || clipboardDecision.ShouldProcessIndividualTimber)
+                if (clipboardDecision.ShouldProcessIndividualTimber)
                 {
-                    RoofAttachedManualCopyCloneReinitializeService.Process(
-                        _document,
-                        globalCommandName,
-                        appendedTimberIds,
-                        sameDwgClipboardPaste);
-                    RoofGeneratedRafterCopyOwnershipRehydrationService.Process(
-                        _document,
-                        globalCommandName,
-                        appendedTimberIds,
-                        sameDwgClipboardPaste);
+                    RoofAttachedManualCopyCloneReinitializeService.Process(_document, globalCommandName,
+                        appendedTimberIds, sameDwgClipboardPaste);
+                    RoofGeneratedRafterCopyOwnershipRehydrationService.Process(_document, globalCommandName,
+                        appendedTimberIds, sameDwgClipboardPaste);
                 }
-                // MIRROR: member-only mirrored Generated rafters must not become a second
-                // live Generated member. Detach the clone and promote it to AttachedManual
-                // so the (owner, GeneratedMemberKey) invariant stays unique. Whole-roof
-                // MIRROR children already consumed above are skipped. MIRROR Yes
-                // additionally suppresses the erased source's Generated slot.
-                RoofMirrorCloneDetachService.Process(
-                    _document,
-                    globalCommandName,
-                    appendedTimberIds,
-                    erasedSourceHandles,
-                    mirrorModifiedTimberIds ?? Array.Empty<ObjectId>(),
-                    appendedAnnotationIds);
                 if (nativeCopy || nativeMirror)
                 {
                     RoofGeneratedCopyPreCommandSnapshotService.Clear();
+                    _nativeRoofClones.Clear();
                     using (_document.LockDocument())
                     using (var transaction = _document.Database.TransactionManager.StartTransaction())
                     {
@@ -968,6 +983,331 @@ internal static class LiveGeometrySynchronizationService
             }
         }
 
+        private void ProcessNativeMemberClones(string? command, IReadOnlyCollection<ObjectId> appendedIds,
+            IReadOnlyCollection<ObjectId> appendedEntities,
+            IReadOnlyCollection<string> erasedHandles, IReadOnlyCollection<ObjectId> modifiedIds,
+            IReadOnlyCollection<ObjectId> annotations, RoofNativeCloneSnapshot snapshot, bool copy,
+            ISet<ObjectId>? handledIds = null)
+        {
+            var affectedOwners = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var ownedNativeAdded = new HashSet<ObjectId>();
+            var ownedModifiedIds = new HashSet<ObjectId>();
+            var unchangedCloneSources = new HashSet<ObjectId>();
+            var claimedModifiedIds = new HashSet<ObjectId>();
+            var ordinaryPlans = new Dictionary<ObjectId, (RoofGeneratedTimberData? Generated, RoofAttachedManualTimberData? Attached, bool Retain)>();
+            var sourcesByClone = snapshot.GetMemberSourcesByClone();
+            var changedKeys = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
+            var nativeAdded = appendedIds.Concat(appendedEntities).Concat(sourcesByClone.Keys).Concat(annotations).Concat(snapshot.GetDerivedClones())
+                .Where(id => !id.IsNull && !snapshot.IsPreExisting(id) && !snapshot.IsMemberCloneConsumed(id) &&
+                    !RoofGeneratedCopyPreCommandSnapshotService.IsConsumedWholeRoofClone(id.Handle.ToString()))
+                .Distinct().ToArray();
+            using (_document.LockDocument())
+            {
+                using (var probe = _document.Database.TransactionManager.StartTransaction())
+                {
+                    foreach (var id in nativeAdded.Concat(modifiedIds))
+                    {
+                        if (id.IsNull || id.IsErased || probe.GetObject(id, OpenMode.ForRead) is not Entity entity) continue;
+                        var owner = RoofGeneratedTimberStore.Read(entity).Data?.RoofOwnerReference ??
+                            RoofAttachedManualTimberStore.Read(entity).Data?.RoofOwnerReference ??
+                            RoofPhysical3DGeneratedStore.Read(entity).Data?.RoofOwnerReference ??
+                            RoofStructuralGeneratedStore.Read(entity).Data?.RoofOwnerReference;
+                        if (owner is null || !TryOpenNativeMemberOwner(probe, owner, snapshot, out _)) continue;
+                        if (modifiedIds.Contains(id)) ownedModifiedIds.Add(id);
+                        if (nativeAdded.Contains(id))
+                        {
+                            affectedOwners.Add(owner);
+                            ownedNativeAdded.Add(id);
+                        }
+                        if (entity is Line)
+                        {
+                            var generated = RoofGeneratedTimberStore.Read(entity).Data;
+                            var attached = RoofAttachedManualTimberStore.Read(entity).Data;
+                            if (generated?.MemberKind == RoofGeneratedTimberKind.Rafter ||
+                                attached?.AnchorGeneratedMemberKey?.MemberKind == RoofGeneratedTimberKind.Rafter)
+                            {
+                                var retain = snapshot.IsPreExisting(id);
+                                if (sourcesByClone.TryGetValue(id, out var sourceId) && snapshot.Members.TryGetValue(sourceId, out var sourceMember))
+                                {
+                                    generated = sourceMember.Generated;
+                                    attached = sourceMember.Attached;
+                                    retain = !copy && sourceId.IsErased;
+                                }
+                                ordinaryPlans[id] = (generated, attached, retain);
+                            }
+                        }
+                        if (entity is Line line && snapshot.Members.TryGetValue(id, out var before))
+                        {
+                            var after = new RoofGeneratedMemberGeometry(new RoofPoint3D(line.StartPoint.X, line.StartPoint.Y, line.StartPoint.Z),
+                                new RoofPoint3D(line.EndPoint.X, line.EndPoint.Y, line.EndPoint.Z));
+                            if (!RoofGeneratedMemberOverrideMath.GeometryEquals(before.Binding.Geometry, after))
+                            {
+                                affectedOwners.Add(owner);
+                                if (ordinaryPlans.ContainsKey(id)) claimedModifiedIds.Add(id);
+                                if (!changedKeys.TryGetValue(owner, out var keys)) changedKeys[owner] = keys = new(StringComparer.Ordinal);
+                                if (RoofOrdinaryRafterSolidMaterializationService.TryGetPlanPhysicalIdentity(line, owner, out var key)) keys.Add(key);
+                            }
+                        }
+                        else if (!copy && entity is Solid3d && snapshot.IsPreExisting(id) &&
+                                 RoofPhysical3DGeneratedStore.Read(entity).Data is { Role: RoofPhysical3DGeneratedRole.OrdinaryRafterSolid } physical)
+                        {
+                            affectedOwners.Add(owner);
+                            claimedModifiedIds.Add(id);
+                            if (!changedKeys.TryGetValue(owner, out var keys)) changedKeys[owner] = keys = new(StringComparer.Ordinal);
+                            keys.Add(physical.StructuralId);
+                        }
+                    }
+                    foreach (var pair in sourcesByClone)
+                    {
+                        if (ownedNativeAdded.Contains(pair.Key) &&
+                            snapshot.Members.TryGetValue(pair.Value, out var source) &&
+                            !pair.Value.IsErased && probe.GetObject(pair.Value, OpenMode.ForRead) is Line sourceLine &&
+                            RoofGeneratedMemberOverrideMath.GeometryEquals(source.Binding.Geometry,
+                                new RoofGeneratedMemberGeometry(
+                                    new RoofPoint3D(sourceLine.StartPoint.X, sourceLine.StartPoint.Y, sourceLine.StartPoint.Z),
+                                    new RoofPoint3D(sourceLine.EndPoint.X, sourceLine.EndPoint.Y, sourceLine.EndPoint.Z))))
+                            unchangedCloneSources.Add(pair.Value);
+                        if (ownedNativeAdded.Contains(pair.Key) && pair.Value.IsErased &&
+                            snapshot.Members.TryGetValue(pair.Value, out var before) &&
+                            !RoofGeneratedCopyPreCommandSnapshotService.IsConsumedWholeRoofClone(pair.Key.Handle.ToString()))
+                        {
+                            var reference = before.Generated?.RoofOwnerReference ?? before.Attached?.RoofOwnerReference;
+                            if (reference is null || !TryOpenNativeMemberOwner(probe, reference, snapshot, out _)) continue;
+                            affectedOwners.Add(reference);
+                            claimedModifiedIds.Add(pair.Value);
+                            if (!changedKeys.TryGetValue(reference, out var keys)) changedKeys[reference] = keys = new(StringComparer.Ordinal);
+                            if (before.Generated is { } generated)
+                                keys.Add(RoofPhysicalStretchRules.PhysicalMemberId(RoofGeneratedMemberKey.From(generated)));
+                            else if (before.Attached is { } attached)
+                                keys.Add(RoofAttachedManualIdentityRules.PhysicalKey(attached));
+                        }
+                    }
+                    // MIRROR Yes can erase a selected derived source body as well.
+                    // Its semantic replacement key is already driven by Plan2D above.
+                    foreach (var id in snapshot.PreExistingPhysical.Where(id => id.IsErased))
+                        if (AutoCadObjectIdAccess.TryGetObjectAllowErased<Entity>(probe, id, OpenMode.ForRead,
+                                out var entity, _document.Database) && entity is not null &&
+                            RoofPhysical3DGeneratedStore.Read(entity).Data is { Role: RoofPhysical3DGeneratedRole.OrdinaryRafterSolid } physical &&
+                            changedKeys.TryGetValue(physical.RoofOwnerReference, out var keys) && keys.Contains(physical.StructuralId))
+                            claimedModifiedIds.Add(id);
+                }
+                if (affectedOwners.Count == 0) return;
+                try
+                {
+                    // Nested service commits remain part of this outer AutoCAD transaction.
+                    using var transaction = _document.Database.TransactionManager.StartTransaction();
+                    // Restore structural geometry before clone presentation can perform
+                    // drawing-wide item numbering; those numbers are not semantic keys.
+                    foreach (var reference in affectedOwners)
+                        if (TryOpenNativeMemberOwner(transaction, reference, snapshot, out var structuralOwner) &&
+                            structuralOwner is not null &&
+                            !RoofUnsupportedStretchRecoveryService.TryRestoreStructuralHipValleyMembersOnly(
+                                _document.Database, transaction, structuralOwner.ObjectId, _document.Editor))
+                            throw new InvalidOperationException("Native member structural snapshot restoration failed.");
+                    if (copy)
+                    {
+                        var sourceHandles = snapshot.Members.Values.Where(member =>
+                                affectedOwners.Contains(member.Generated?.RoofOwnerReference ?? member.Attached?.RoofOwnerReference ?? string.Empty))
+                            .Select(member => member.Binding.Id.Handle.ToString()).ToHashSet(StringComparer.OrdinalIgnoreCase);
+                        var copiedAnnotations = annotations.Where(id => !id.IsNull && !id.IsErased &&
+                            transaction.GetObject(id, OpenMode.ForRead) is Entity annotation &&
+                            RoofOwnedAnnotationSourceResolver.TryResolveSourceHandle(annotation, out var sourceHandle) &&
+                            sourceHandles.Contains(sourceHandle)).ToArray();
+                        EraseAppendedAnnotationCopies(transaction, copiedAnnotations, Array.Empty<ObjectId>(), Array.Empty<ObjectId>());
+                        var copyCandidates = ownedNativeAdded.ToArray();
+                        RoofAttachedManualCopyCloneReinitializeService.Process(_document, command, copyCandidates, propagateFailure: true);
+                        RoofGeneratedRafterCopyOwnershipRehydrationService.Process(_document, command, copyCandidates, propagateFailure: true);
+                        // Reuse the existing copy-preserving numbering/annotation refresh
+                        // inside this transaction, including AttachedManual COPY-of-COPY.
+                        RefreshTimberElements(_document, command, Array.Empty<ObjectId>(), ordinaryPlans.Keys.ToArray(),
+                            Array.Empty<ObjectId>(), Array.Empty<ObjectId>(), Array.Empty<ObjectId>(), Array.Empty<ObjectId>(),
+                            Array.Empty<string>(), refreshAllTimberAnnotations: false, preserveCopySources: true, propagateFailure: true);
+                        ownedNativeAdded.UnionWith(copiedAnnotations);
+                    }
+                    else
+                        RoofMirrorCloneDetachService.Process(_document, command, ownedNativeAdded.ToArray(),
+                            erasedHandles.Where(handle => claimedModifiedIds.Any(id =>
+                                string.Equals(id.Handle.ToString(), handle, StringComparison.OrdinalIgnoreCase))).ToArray(),
+                            ownedModifiedIds.ToArray(),
+                            annotations, snapshot, propagateFailure: true);
+                    TimberAnnotationService.DeleteForMissingSourceHandles(_document.Database, transaction,
+                        claimedModifiedIds.Where(id => id.IsErased).Select(id => id.Handle.ToString()).ToArray());
+                    foreach (var pair in ordinaryPlans)
+                    {
+                        if (pair.Key.IsErased || transaction.GetObject(pair.Key, OpenMode.ForRead) is not Line line)
+                            throw new InvalidOperationException("Native ordinary Plan2D result is missing.");
+                        var resultGenerated = RoofGeneratedTimberStore.Read(line).Data;
+                        var resultAttached = RoofAttachedManualTimberStore.Read(line).Data;
+                        var expected = pair.Value;
+                        if (expected.Retain && expected.Generated is { } originalGenerated)
+                        {
+                            if (resultGenerated is null || resultAttached is not null ||
+                                RoofGeneratedMemberKey.From(resultGenerated) != RoofGeneratedMemberKey.From(originalGenerated))
+                                throw new InvalidOperationException("Native replacement lost its Generated logical key.");
+                        }
+                        else if (resultGenerated is not null || resultAttached is null ||
+                                 resultAttached.AnchorGeneratedMemberKey?.MemberKind != RoofGeneratedTimberKind.Rafter ||
+                                 (expected.Retain && expected.Attached is { } originalAttached &&
+                                  RoofAttachedManualIdentityRules.Resolve(resultAttached) != RoofAttachedManualIdentityRules.Resolve(originalAttached)))
+                            throw new InvalidOperationException("Native ordinary result has no canonical AttachedManual semantic identity.");
+                    }
+                    foreach (var id in unchangedCloneSources)
+                    {
+                        var before = snapshot.Members[id];
+                        if (id.IsErased || transaction.GetObject(id, OpenMode.ForRead) is not Line source ||
+                            !RoofGeneratedMemberOverrideMath.GeometryEquals(before.Binding.Geometry,
+                                new RoofGeneratedMemberGeometry(
+                                    new RoofPoint3D(source.StartPoint.X, source.StartPoint.Y, source.StartPoint.Z),
+                                    new RoofPoint3D(source.EndPoint.X, source.EndPoint.Y, source.EndPoint.Z))) ||
+                            (before.Generated is { } original &&
+                             (RoofGeneratedTimberStore.Read(source).Data is not { } liveGenerated ||
+                              RoofGeneratedMemberKey.From(liveGenerated) != RoofGeneratedMemberKey.From(original) ||
+                              (copy && liveGenerated != original))) ||
+                            (before.Attached is { } originalAttached &&
+                             RoofAttachedManualIdentityRules.Resolve(RoofAttachedManualTimberStore.Read(source).Data!) !=
+                             RoofAttachedManualIdentityRules.Resolve(originalAttached)))
+                            throw new InvalidOperationException("Native clone changed its retained semantic source.");
+                    }
+                    foreach (var reference in affectedOwners)
+                    {
+                        if (!TryOpenNativeMemberOwner(transaction, reference, snapshot, out var owner) || owner is null) continue;
+                        if (modifiedIds.Contains(owner.ObjectId)) claimedModifiedIds.Add(owner.ObjectId);
+                        foreach (var id in modifiedIds.Where(id => !id.IsNull && !id.IsErased))
+                            if (transaction.GetObject(id, OpenMode.ForRead) is Entity structuralEntity &&
+                                RoofStructuralGeneratedStore.Read(structuralEntity).Data is { } structural &&
+                                string.Equals(structural.RoofOwnerReference, reference, StringComparison.OrdinalIgnoreCase) &&
+                                RoofStructuralGeneratedLockRules.IsLockProtectedRole(structural.StructuralRole))
+                                claimedModifiedIds.Add(id); // Restored before clone numbering above.
+                        var input = RoofPolylineExtractor.Extract(owner);
+                        var footprint = RoofFootprintValidator.Validate(input);
+                        var definition = RoofDefinitionStore.Read(owner).Data;
+                        var geometry = footprint.Footprint is null || definition is null ? null :
+                            RoofDefinitionPersistence.Restore(input, footprint.Footprint, definition).Geometry;
+                        if (geometry is null) throw new InvalidOperationException("Native member roof geometry is unavailable.");
+                        var collateral = RoofPhysical3DGeneratedStore.FindByOwner(_document.Database, transaction, reference)
+                            .Where(id => !snapshot.IsPreExisting(id)).ToArray();
+                        if (!RoofOrdinaryRafterSolidMaterializationService.TryReconcileSemanticMembersInTransaction(
+                                _document.Database, transaction, owner, geometry,
+                                changedKeys.GetValueOrDefault(reference)?.ToArray() ?? Array.Empty<string>(), collateral))
+                            throw new InvalidOperationException("Native member physical reconciliation failed.");
+                        var disposable = snapshot.GetDerivedClones().Concat(collateral).Concat(nativeAdded).Distinct().Where(id => !id.IsErased &&
+                            !RoofGeneratedCopyPreCommandSnapshotService.IsConsumedWholeRoofClone(id.Handle.ToString()) &&
+                            transaction.GetObject(id, OpenMode.ForRead) is Entity entity &&
+                            (RoofPhysical3DGeneratedStore.Read(entity).Data?.RoofOwnerReference ??
+                             RoofStructuralGeneratedStore.Read(entity).Data?.RoofOwnerReference ??
+                             RoofDisplayStore.Read(entity).OwnerReference) == reference).ToArray();
+                        _ = RoofAssemblyGroupSyncService.DetachMembersBeforeErase(_document.Database, transaction, owner.ObjectId, disposable);
+                        foreach (var id in disposable) ((Entity)transaction.GetObject(id, OpenMode.ForWrite)).Erase();
+                        var otherPhysical = modifiedIds.Where(id => !id.IsNull && !id.IsErased &&
+                            snapshot.IsPreExisting(id) && transaction.GetObject(id, OpenMode.ForRead) is Entity entity &&
+                            RoofPhysical3DGeneratedStore.Read(entity).Data is { } physical &&
+                            physical.Role != RoofPhysical3DGeneratedRole.OrdinaryRafterSolid &&
+                            string.Equals(physical.RoofOwnerReference, reference, StringComparison.OrdinalIgnoreCase)).ToArray();
+                        if (!RoofPhysical3DLifecycleService.TryRestoreStretchPhysicalInTransaction(_document, transaction, owner, otherPhysical) ||
+                            !RoofAssemblyGroupSyncService.TrySyncForOwner(_document, transaction, owner.ObjectId) ||
+                            !RoofLiveResizeService.TryVerifyStretchPhysicalState(_document.Database, transaction, owner.ObjectId))
+                            throw new InvalidOperationException("Native member physical/GROUP canonicality failed.");
+                        claimedModifiedIds.UnionWith(otherPhysical);
+                    }
+                    transaction.Commit();
+                    var summary = $"ROOF_MEMBER_CLONE_ACCEPT command={command}" +
+                        $" classification={(ordinaryPlans.Count > 0 ? "semantic-members" : "derived-recovery")}" +
+                        $" plans={ordinaryPlans.Count} owners={affectedOwners.Count}" +
+                        $" claimedNew={ownedNativeAdded.Count} claimedModified={claimedModifiedIds.Count} result=ok";
+                    _document.Editor.WriteMessage("\n" + summary);
+                    AcKrovyDiagnostics.Info("ROOF_MEMBER_CLONE_ACCEPT", summary);
+                }
+                catch (System.Exception ex)
+                {
+                    // The failed outer transaction is disposed before this fresh recovery.
+                    RecoverNativeMemberFailure(snapshot, nativeAdded, ownedNativeAdded, affectedOwners, command, ex);
+                }
+                snapshot.ConsumeMemberClones(ownedNativeAdded);
+                handledIds?.UnionWith(ownedNativeAdded);
+                handledIds?.UnionWith(unchangedCloneSources);
+                handledIds?.UnionWith(claimedModifiedIds);
+            }
+        }
+
+        private bool TryOpenNativeMemberOwner(Transaction transaction, string reference,
+            RoofNativeCloneSnapshot snapshot, out Polyline? owner)
+        {
+            owner = null;
+            if (!long.TryParse(reference, System.Globalization.NumberStyles.HexNumber,
+                    System.Globalization.CultureInfo.InvariantCulture, out var handle)) return false;
+            ObjectId id;
+            try { id = _document.Database.GetObjectId(false, new Handle(handle), 0); }
+            catch (Autodesk.AutoCAD.Runtime.Exception) { return false; }
+            return AutoCadObjectIdAccess.TryGetObject<Polyline>(transaction, id, OpenMode.ForRead,
+                out owner, _document.Database) && owner is not null && !snapshot.IsSourceChanged(owner);
+        }
+
+        private void RecoverNativeMemberFailure(RoofNativeCloneSnapshot snapshot, IReadOnlyCollection<ObjectId> nativeAdded,
+            IReadOnlyCollection<ObjectId> ownedNativeAdded,
+            IReadOnlyCollection<string> owners, string? command, System.Exception failure)
+        {
+            using var transaction = _document.Database.TransactionManager.StartTransaction();
+            var ownedSourceHandles = snapshot.Members.Values.Where(member =>
+                    owners.Contains(member.Generated?.RoofOwnerReference ?? member.Attached?.RoofOwnerReference ?? string.Empty))
+                .Select(member => member.Binding.Id.Handle.ToString()).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            foreach (var id in nativeAdded)
+            {
+                if (id.IsNull || id.IsErased || transaction.GetObject(id, OpenMode.ForRead) is not Entity entity) continue;
+                var reference = RoofGeneratedTimberStore.Read(entity).Data?.RoofOwnerReference ??
+                    RoofAttachedManualTimberStore.Read(entity).Data?.RoofOwnerReference ??
+                    RoofPhysical3DGeneratedStore.Read(entity).Data?.RoofOwnerReference ??
+                    RoofStructuralGeneratedStore.Read(entity).Data?.RoofOwnerReference ?? RoofDisplayStore.Read(entity).OwnerReference;
+                if (ownedNativeAdded.Contains(id) || (reference is not null && owners.Contains(reference)) ||
+                    (RoofOwnedAnnotationSourceResolver.TryResolveSourceHandle(entity, out var source) && ownedSourceHandles.Contains(source)))
+                {
+                    entity.UpgradeOpen();
+                    entity.Erase();
+                }
+            }
+            foreach (var member in snapshot.Members.Values)
+            {
+                var reference = member.Generated?.RoofOwnerReference ?? member.Attached?.RoofOwnerReference;
+                if (reference is null || !owners.Contains(reference) ||
+                    !AutoCadObjectIdAccess.TryGetObjectAllowErased<Line>(transaction, member.Binding.Id,
+                        OpenMode.ForWrite, out var line, _document.Database) || line is null) continue;
+                if (line.IsErased) line.Erase(false);
+                line.StartPoint = new Point3d(member.Binding.Geometry.Start.X, member.Binding.Geometry.Start.Y, member.Binding.Geometry.Start.Z);
+                line.EndPoint = new Point3d(member.Binding.Geometry.End.X, member.Binding.Geometry.End.Y, member.Binding.Geometry.End.Z);
+                if (member.Generated is not null && member.Timber is not null)
+                    RoofGeneratedTimberStore.WriteAtomic(line, transaction, member.Timber,
+                        RoofGeneratedTimberStore.BuildSection(line, transaction, member.Generated));
+                if (member.Attached is not null) RoofAttachedManualLifecycleService.WriteAnchored(line, transaction, member.Attached);
+            }
+            foreach (var reference in owners)
+            {
+                if (!TryOpenNativeMemberOwner(transaction, reference, snapshot, out var owner) || owner is null) continue;
+                if (RoofUnsupportedStretchRecoveryService.TryRecoverGeneratedMembersOnly(_document.Database, transaction,
+                        owner.ObjectId, _document.Editor) != RoofUnsupportedStretchRecoveryOutcome.Recovered)
+                    throw new InvalidOperationException("Native member snapshot recovery failed.", failure);
+                var input = RoofPolylineExtractor.Extract(owner);
+                var footprint = RoofFootprintValidator.Validate(input);
+                var definition = RoofDefinitionStore.Read(owner).Data;
+                var geometry = footprint.Footprint is null || definition is null ? null :
+                    RoofDefinitionPersistence.Restore(input, footprint.Footprint, definition).Geometry;
+                var keys = snapshot.Members.Values.Where(member =>
+                        (member.Generated?.RoofOwnerReference ?? member.Attached?.RoofOwnerReference) == reference)
+                    .Select(member => member.Generated is { } generated ? RoofPhysicalStretchRules.PhysicalMemberId(
+                        RoofGeneratedMemberKey.From(generated)) : RoofAttachedManualIdentityRules.PhysicalKey(member.Attached!)).ToArray();
+                if (geometry is null || !RoofOrdinaryRafterSolidMaterializationService.TryReconcileSemanticMembersInTransaction(
+                        _document.Database, transaction, owner, geometry, keys, Array.Empty<ObjectId>()) ||
+                    !RoofPhysical3DLifecycleService.TryRestoreStretchPhysicalInTransaction(
+                        _document, transaction, owner, snapshot.PreExistingPhysical.Where(id => !id.IsErased &&
+                            RoofPhysical3DGeneratedStore.Read((Entity)transaction.GetObject(id, OpenMode.ForRead)).Data is { } data &&
+                            data.Role != RoofPhysical3DGeneratedRole.OrdinaryRafterSolid &&
+                            string.Equals(data.RoofOwnerReference, reference, StringComparison.OrdinalIgnoreCase)).ToArray()) ||
+                    !RoofAssemblyGroupSyncService.TrySyncForOwner(_document, transaction, owner.ObjectId) ||
+                    !RoofLiveResizeService.TryVerifyStretchPhysicalState(_document.Database, transaction, owner.ObjectId))
+                    throw new InvalidOperationException("Native member physical rollback failed.", failure);
+            }
+            transaction.Commit();
+            AcKrovyDiagnostics.Info("ROOF_MEMBER_ROLLBACK", $"command={command} action=rollback result=restored error={failure.GetType().Name}");
+        }
+
         private static void RefreshTimberElements(
             Document document,
             string? globalCommandName,
@@ -979,7 +1319,8 @@ internal static class LiveGeometrySynchronizationService
             IReadOnlyCollection<ObjectId> appendedSlopeAngleTextIds,
             IReadOnlyCollection<string> erasedSourceHandles,
             bool refreshAllTimberAnnotations,
-            bool preserveCopySources)
+            bool preserveCopySources,
+            bool propagateFailure = false)
         {
             // Final guard: Undo/Redo must never LockDocument / StartTransaction.
             if (LiveGeometryCommandRules.IsUndoRedoCommand(globalCommandName))
@@ -1268,6 +1609,7 @@ internal static class LiveGeometrySynchronizationService
                     committed: false);
 #endif
                 editor.WriteMessage(UiStrings.Format(UiStrings.WarningLiveRefreshSkippedFormat, ex.Message));
+                if (propagateFailure) throw;
             }
         }
 

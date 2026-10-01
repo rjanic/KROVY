@@ -83,13 +83,13 @@ public sealed class RoofWholeRoofMirrorSourceContractTests
             "private void RefreshCandidates(",
             "private static void RefreshTimberElements(");
         var mirror = refreshCandidates.IndexOf(
-            "RoofMirrorCloneDetachService.Process(",
+            "ProcessNativeMemberClones(globalCommandName",
             StringComparison.Ordinal);
         var clear = refreshCandidates.IndexOf(
             "RoofGeneratedCopyPreCommandSnapshotService.Clear()",
             StringComparison.Ordinal);
         Assert.True(mirror >= 0, "MirrorCloneDetach call not found in RefreshCandidates.");
-        Assert.True(clear > mirror, "Snapshot clear must follow MirrorCloneDetach.");
+        Assert.True(clear > mirror, "Snapshot clear must follow shared native member reconciliation.");
         Assert.Contains("GetPreCommandStructuralGeneratedHandlesByOwner", Snapshot);
     }
 

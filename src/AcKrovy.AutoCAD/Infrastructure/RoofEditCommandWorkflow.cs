@@ -611,6 +611,13 @@ internal static class RoofEditCommandWorkflow
                     anchorResolutionContext: anchorResolutionContext!);
             }
 
+            if (!RoofOrdinaryRafterSolidMaterializationService.TryReconcileAttachedAfterReplay(
+                    document.Database, transaction, owner, restored.Geometry))
+            {
+                failureMessageKey = "Command_RoofRafters_GenerationFailed";
+                return null;
+            }
+
             // Hip/Valley Lines are derived from the edited roof definition just like
             // ordinary rafters. Reuse the authoritative reconcile so surviving logical
             // identities retain their handles and owned annotations are upserted in the

@@ -102,6 +102,7 @@ internal static class RoofAttachedManualTimberStore
             RoofOwnerReference = ownerReference,
             Role = RoofTimberChildRole.AttachedManual,
         };
+        data = RoofAttachedManualIdentityRules.Upgrade(data);
         EnsureRegAppRegistered(entity.Database, transaction);
         var payload = RoofAttachedManualTimberDataCodec.Encode(data);
         var retained = ReadForeignXData(entity);

@@ -44,6 +44,8 @@ public static class RoofAttachedManualTimberDataCodec
             {
                 fields.Add(data.Origin.ToString());
             }
+            if (data.SchemaVersion >= 4)
+                fields.Add(RoofAttachedManualIdentityRules.Resolve(data));
 
             return string.Join(Separator.ToString(), fields);
         }
@@ -110,7 +112,10 @@ public static class RoofAttachedManualTimberDataCodec
                 role,
                 new RoofGeneratedMemberKey(kind, face, station),
                 new RoofAttachedManualRelativeSegment(u0, v0, w0, u1, v1, w1),
-                origin);
+                origin,
+                schema >= 4 && fields.Length >= 15 ? fields[14] : null);
+            if (schema >= 4 && (fields.Length != 15 ||
+                !Guid.TryParseExact(fields[14], "N", out _))) return false;
             return TryValidate(data, out _);
         }
 
@@ -139,6 +144,13 @@ public static class RoofAttachedManualTimberDataCodec
                 error = "invalid-attached-manual-v2";
                 return false;
             }
+        }
+
+        if (data.SemanticIdentity is not null &&
+            !Guid.TryParseExact(data.SemanticIdentity, "N", out _))
+        {
+            error = "invalid-attached-manual-identity";
+            return false;
         }
 
         return true;

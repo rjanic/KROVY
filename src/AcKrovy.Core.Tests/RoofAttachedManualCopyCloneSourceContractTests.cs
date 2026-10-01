@@ -19,10 +19,10 @@ public sealed class RoofAttachedManualCopyCloneSourceContractTests
     }
 
     [Fact]
-    public void NativeClone_RequiresCopyOrigin_ClipboardMayPromoteSplitToCopy()
+    public void NativeAndClipboardClone_AcceptBothSupportedAttachedOrigins()
     {
         Assert.Contains("attached.Data.Origin != RoofAttachedManualOrigin.Copy", Service);
-        Assert.Contains("attached.Data.Origin == RoofAttachedManualOrigin.Split", Service);
+        Assert.Contains("attached.Data.Origin != RoofAttachedManualOrigin.Split", Service);
         Assert.Contains("clipboardPaste", Service);
     }
 

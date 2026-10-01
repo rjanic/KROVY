@@ -111,8 +111,8 @@ public sealed class RoofVirtualSuppressedAttachedManualCaptureSourceContractTest
         Assert.Contains("sourceRole == \"AttachedManualCopy\"", capture);
         Assert.Contains("generatedHandle,", capture);
         Assert.Contains("attachedManualHandle,", capture);
-        Assert.Contains("RoofAttachedManualOrigin.Copy);", capture);
-        Assert.Contains("RoofAttachedManualOrigin.Split);", capture);
+        Assert.Contains("RoofAttachedManualOrigin.Copy,", capture);
+        Assert.Contains("RoofAttachedManualOrigin.Split,", capture);
         Assert.Contains("resolvedAnchorKey = attachedAnchorKey", capture);
     }
 
@@ -122,7 +122,7 @@ public sealed class RoofVirtualSuppressedAttachedManualCaptureSourceContractTest
         var capture = CaptureMethod();
         Assert.Contains(": \"AttachedManual\"", capture);
         Assert.Contains("attachedManualHandle", capture);
-        Assert.Contains("RoofAttachedManualOrigin.Split);", capture);
+        Assert.Contains("RoofAttachedManualOrigin.Split,", capture);
         Assert.Contains("extra.StartPoint", capture);
         Assert.Contains("extra.EndPoint", capture);
         Assert.Contains("IsSplitCommand(globalCommandName)", Manual);

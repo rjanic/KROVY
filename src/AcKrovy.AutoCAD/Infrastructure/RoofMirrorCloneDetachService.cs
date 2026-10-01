@@ -28,7 +28,9 @@ internal static class RoofMirrorCloneDetachService
         IReadOnlyCollection<ObjectId> appendedTimberIds,
         IReadOnlyCollection<string> erasedSourceHandles,
         IReadOnlyCollection<ObjectId> mirrorModifiedTimberIds,
-        IReadOnlyCollection<ObjectId> appendedAnnotationIds)
+        IReadOnlyCollection<ObjectId> appendedAnnotationIds,
+        RoofNativeCloneSnapshot? nativeSnapshot = null,
+        bool propagateFailure = false)
     {
         if (LiveGeometryCommandRules.IsUndoRedoCommand(globalCommandName) ||
             !RoofGeneratedMemberEditCommandRules.IsMirrorCommand(globalCommandName) ||
@@ -45,6 +47,7 @@ internal static class RoofMirrorCloneDetachService
             using (var transaction = document.Database.TransactionManager.StartTransaction())
             {
                 var wrote = false;
+                var sourcesByClone = nativeSnapshot?.GetMemberSourcesByClone();
                 var affectedOwners = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 // MIRROR Yes of an entire roof modifies the authoritative source as
                 // well as its children in place. Those children belong to source
@@ -63,7 +66,8 @@ internal static class RoofMirrorCloneDetachService
                                 out var modifiedOwner,
                                 document.Database) &&
                             modifiedOwner is not null &&
-                            RoofDefinitionStore.Read(modifiedOwner).Data is not null)
+                            RoofDefinitionStore.Read(modifiedOwner).Data is not null &&
+                            (nativeSnapshot is null || nativeSnapshot.IsSourceChanged(modifiedOwner)))
                         {
                             inPlaceRoofOwners.Add(modifiedOwner.Handle.ToString());
                         }
@@ -76,6 +80,11 @@ internal static class RoofMirrorCloneDetachService
                 // are already permanently erased (no override, no resurrection).
                 foreach (var sourceHandle in erasedSourceHandles)
                 {
+                    // Ordinary replacements are rebound by exact native mapping below.
+                    if (nativeSnapshot?.Members.Values.Any(member =>
+                            member.Generated?.MemberKind == RoofGeneratedTimberKind.Rafter &&
+                            string.Equals(member.Binding.Id.Handle.ToString(), sourceHandle,
+                                StringComparison.OrdinalIgnoreCase)) == true) continue;
                     if (!TrySuppressErasedGeneratedSource(
                             document,
                             transaction,
@@ -128,6 +137,23 @@ internal static class RoofMirrorCloneDetachService
                         var keyBefore = RoofGeneratedMemberKey.From(generated);
                         var ownerReference = generated.RoofOwnerReference;
                         affectedOwners.Add(ownerReference);
+                        if (generated.MemberKind == RoofGeneratedTimberKind.Rafter &&
+                            sourcesByClone is not null && sourcesByClone.TryGetValue(id, out var sourceId) &&
+                            sourceId.IsErased && nativeSnapshot!.Members.TryGetValue(sourceId, out var before))
+                        {
+                            if (sourcesByClone.Count(pair => pair.Value == sourceId) != 1 ||
+                                !TryRebindGeneratedReplacement(document, transaction, cloneLine, before, out _))
+                                throw new InvalidOperationException("Ambiguous or invalid MIRROR replacement.");
+                            DeleteMirroredCloneAnnotations(document, transaction,
+                                appendedAnnotationIds, sourceId.Handle.ToString());
+                            RefreshClonePresentation(document, transaction, id);
+                            wrote = true;
+                            continue;
+                        }
+                        if (generated.MemberKind == RoofGeneratedTimberKind.Rafter &&
+                            erasedSourceHandles.Count > 0 && sourcesByClone is not null &&
+                            !sourcesByClone.ContainsKey(id))
+                            throw new InvalidOperationException("MIRROR erased source has no exact native clone pairing.");
 
                         if (!TryDetachAndPromote(
                                 document,
@@ -224,6 +250,22 @@ internal static class RoofMirrorCloneDetachService
                         continue;
                     }
 
+                    if (nativeSnapshot is not null &&
+                        nativeSnapshot.GetMemberSourcesByClone().TryGetValue(id, out var attachedSourceId) &&
+                        attachedSourceId.IsErased && nativeSnapshot.Members.TryGetValue(attachedSourceId, out var originalManual) &&
+                        originalManual.Attached is { } originalManualData)
+                    {
+                        if (nativeSnapshot.GetMemberSourcesByClone().Count(pair => pair.Value == attachedSourceId) != 1 ||
+                            RoofAttachedManualTimberStore.Read(cloneLine).Data is not { } replacementData)
+                            throw new InvalidOperationException("Ambiguous AttachedManual MIRROR Yes replacement.");
+                        RoofAttachedManualLifecycleService.WriteAnchored(cloneLine, transaction, replacementData with
+                        {
+                            ChildIdentity = originalManualData.ChildIdentity,
+                            SemanticIdentity = RoofAttachedManualIdentityRules.Resolve(originalManualData),
+                            Origin = originalManualData.Origin,
+                        });
+                    }
+
                     wrote = true;
                     if (attachedRoleAfter == "attached-manual")
                     {
@@ -271,10 +313,9 @@ internal static class RoofMirrorCloneDetachService
                 }
 
                 // MIRROR Yes (Generated): HOST-proven lifecycle. AutoCAD transforms the
-                // selected Generated member IN PLACE — same ObjectId/handle survives, no
-                // ObjectAppended clone, no ObjectErased source. Convert that SAME entity
-                // from Generated to AttachedManual Origin.Copy and persist a Suppress
-                // override for its original slot K. No clone is created by AutoCAD.
+                // selected Generated member IN PLACE. Ordinary members preserve their
+                // exact logical key through the existing geometry override. Other
+                // member kinds retain their established promotion policy.
                 foreach (var id in mirrorModifiedTimberIds)
                 {
                     if (id.IsNull ||
@@ -302,6 +343,11 @@ internal static class RoofMirrorCloneDetachService
                         {
                             continue;
                         }
+
+                        if (nativeSnapshot?.Members.TryGetValue(id, out var beforeAttached) == true &&
+                            RoofGeneratedMemberOverrideMath.GeometryEquals(beforeAttached.Binding.Geometry,
+                                new RoofGeneratedMemberGeometry(ToRoof(inPlaceLine.StartPoint), ToRoof(inPlaceLine.EndPoint))))
+                            continue;
 
                         // Role-aware in-place MIRROR Yes: a modified id that is NOT
                         // Generated may still be an AttachedManual child (Origin.Copy OR
@@ -353,6 +399,20 @@ internal static class RoofMirrorCloneDetachService
                     var inPlaceOwner = inPlaceGenerated.RoofOwnerReference;
                     if (inPlaceRoofOwners.Contains(inPlaceOwner))
                     {
+                        continue;
+                    }
+                    if (inPlaceGenerated.MemberKind == RoofGeneratedTimberKind.Rafter)
+                    {
+                        if (nativeSnapshot is null || !nativeSnapshot.Members.TryGetValue(id, out var beforeGenerated))
+                            throw new InvalidOperationException("MIRROR source snapshot is unavailable.");
+                        if (!TryRebindGeneratedReplacement(document, transaction, inPlaceLine, beforeGenerated, out var changed))
+                            throw new InvalidOperationException("MIRROR in-place semantic rebind failed.");
+                        if (changed)
+                        {
+                            affectedOwners.Add(inPlaceOwner);
+                            RefreshClonePresentation(document, transaction, id);
+                            wrote = true;
+                        }
                         continue;
                     }
                     affectedOwners.Add(inPlaceOwner);
@@ -434,8 +494,52 @@ internal static class RoofMirrorCloneDetachService
         }
         catch (System.Exception)
         {
+            if (propagateFailure) throw;
             // Silent internal maintenance — do not break native MIRROR UX.
         }
+    }
+
+    private static bool TryRebindGeneratedReplacement(Document document, Transaction transaction,
+        Line replacement, RoofNativeCloneSnapshot.Member before, out bool changed)
+    {
+        changed = false;
+        if (before.Generated is not { MemberKind: RoofGeneratedTimberKind.Rafter } generated || before.Timber is null ||
+            !TryResolveOwnerPolyline(document.Database, transaction, generated.RoofOwnerReference, out var owner) || owner is null)
+            return false;
+        var observed = new RoofGeneratedMemberGeometry(ToRoof(replacement.StartPoint), ToRoof(replacement.EndPoint));
+        if (replacement.ObjectId == before.Binding.Id &&
+            RoofGeneratedMemberOverrideMath.GeometryEquals(before.Binding.Geometry, observed)) return true;
+        var input = RoofPolylineExtractor.Extract(owner);
+        var footprint = RoofFootprintValidator.Validate(input);
+        var definition = RoofDefinitionStore.Read(owner).Data;
+        if (footprint.Footprint is null || definition is null) return false;
+        var geometry = RoofDefinitionPersistence.Restore(input, footprint.Footprint, definition).Geometry;
+        if (geometry is null) return false;
+        var solved = RoofRafterLayoutSolver.Solve(geometry, AutoCadRoofRafterSpacingStore.CreateLayoutParameters(
+            document.Database, generated.RequestedMaximumSpacingMm, before.Timber.WidthMm));
+        var key = RoofGeneratedMemberKey.From(generated);
+        var canonicalMember = solved.Layout?.Rafters.SingleOrDefault(member => member.LogicalKey == key);
+        if (canonicalMember is null) return false;
+        var planElevation = geometry is HipRoofGeometry && RoofPhysicalElevationStore.Read(owner).Data?.Physical3DEnabled == true
+            ? 0d : RoofPolylineExtractor.GetSourceElevation(owner);
+        var canonical = RoofGeneratedMemberOverrideRules.CanonicalGeometry(canonicalMember, planElevation);
+        if (!RoofGeneratedMemberOverrideMath.TryClassify(canonical, observed,
+                RoofGeneratedMemberOverrideRules.SourceWorkingPlaneNormal, key, before.Timber.ElementId, out var edit)) return false;
+        var overrides = new RoofManualOverrideSet(definition.Overrides);
+        overrides = edit is null ? overrides.Remove(key) : overrides.Upsert(edit);
+        owner.UpgradeOpen();
+        RoofDefinitionStore.Write(owner, transaction,
+            RoofGeneratedMemberOverrideRules.WithEditState(definition, definition.EditState, overrides.Items));
+        if (!RoofAttachedManualTimberStore.TryClear(replacement, transaction, out _)) return false;
+        RoofGeneratedTimberStore.WriteAtomic(replacement, transaction, before.Timber,
+            RoofGeneratedTimberStore.BuildSection(replacement, transaction, generated));
+        changed = true;
+#if DEBUG
+        AcKrovy.AutoCAD.Diagnostics.AcKrovyDiagnostics.Info("ROOF_MIRROR_YES",
+            $"handle={replacement.Handle} owner={generated.RoofOwnerReference} action=mirror-rebind generatedKey={key} " +
+            "suppression=false roleAfter=generated sameMemberKey=true result=ok");
+#endif
+        return true;
     }
 
     private static bool TrySuppressErasedGeneratedSource(
@@ -813,6 +917,12 @@ internal static class RoofMirrorCloneDetachService
         }
 
         var rewritten = RoofAttachedManualTimberStore.Read(inPlaceLine);
+        if (rewritten.Data is { } finalAttached)
+            RoofAttachedManualLifecycleService.WriteAnchored(inPlaceLine, transaction, finalAttached with
+            {
+                ChildIdentity = attached.Data.ChildIdentity,
+                SemanticIdentity = RoofAttachedManualIdentityRules.Resolve(attached.Data),
+            });
         newAnchorKey = rewritten.Data?.AnchorGeneratedMemberKey ?? oldAnchorKey;
         originAfter = RoofAttachedManualOrigin.Copy;
         roleAfter = "attached-manual";
