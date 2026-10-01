@@ -91,7 +91,10 @@ internal static class RoofUnsupportedStretchRecoverySnapshotService
     public static void CaptureForCommand(Document document, string? globalCommandName)
     {
         Clear("capture-start", globalCommandName);
-        if (!RoofGeneratedMemberEditCommandRules.IsAssemblySnapshotCommand(globalCommandName))
+        // Structural Hip/Valley first-claim (ARRAY/FILLET/etc.) needs the same
+        // assembly snapshot. Do not widen ordinary IsAssemblySnapshotCommand.
+        if (!RoofGeneratedMemberEditCommandRules.IsAssemblySnapshotCommand(globalCommandName) &&
+            !RoofStructuralEditRules.RequiresAssemblySnapshotCapture(globalCommandName))
         {
             return;
         }

@@ -15,6 +15,7 @@ namespace AcKrovy.AutoCAD.Infrastructure;
 /// First structural claim after whole-roof ownership, before generic member recovery.
 /// Collectors are suppressed by the caller. All accepted state and derived entities
 /// participate in the native command's existing undo scope, with no undo/redo writes.
+/// Ordinary automatic rafters are never candidates.
 /// </summary>
 internal static class RoofStructuralNativeEditService
 {
@@ -40,7 +41,8 @@ internal static class RoofStructuralNativeEditService
                 // pre-command map, retaining the exact structural semantic key.
                 if (id.IsErased && RoofDisplayErasePreCommandMapService.TryResolve(id.Handle.ToString(), out var mapped))
                 {
-                    if (mapped.StructuralData is { } structural)
+                    if (mapped.StructuralData is { } structural &&
+                        RoofStructuralEditRules.IsStructuralHipValleyRole(structural.LogicalKey.Role))
                         candidates.Add(new(id, mapped.OwnerHandle, structural.LogicalKey.ToString(), false));
                     else if (mapped.PhysicalData is { Role: RoofPhysical3DGeneratedRole.StructuralRafterSolid } erasedPhysical)
                         candidates.Add(new(id, mapped.OwnerHandle, erasedPhysical.StructuralId, true));
@@ -48,8 +50,9 @@ internal static class RoofStructuralNativeEditService
                 }
                 if (!AutoCadObjectIdAccess.TryGetObjectAllowErased<Entity>(read, id, OpenMode.ForRead,
                         out var entity, document.Database) || entity is null) continue;
+                // Ordinary Generated/AttachedManual rafters are intentionally ignored.
                 if (entity is Line && RoofStructuralGeneratedStore.Read(entity).Data is { } plan &&
-                    plan.StructuralRole is RoofStructuralRole.Hip or RoofStructuralRole.Valley)
+                    RoofStructuralEditRules.IsStructuralHipValleyRole(plan.StructuralRole))
                     candidates.Add(new(id, plan.RoofOwnerReference, plan.LogicalKey.ToString(), false));
                 else if (entity is Solid3d && RoofPhysical3DGeneratedStore.Read(entity).Data is { } physical &&
                          physical.Role == RoofPhysical3DGeneratedRole.StructuralRafterSolid)
@@ -91,23 +94,40 @@ internal static class RoofStructuralNativeEditService
                     var expected = RoofStructuralEditRules.ApplyPlan(canonical.Items, state).ToDictionary(item => item.LogicalKey.ToString());
                     var annotations = new Dictionary<ObjectId, TimberElementData>();
                     var metadata = new AutoCadTimberElementMetadataStore(transaction);
+                    var snapshotHandles = snapshot.Assembly.TimberLines
+                        .Select(timber => timber.EntityHandle)
+                        .ToHashSet(StringComparer.OrdinalIgnoreCase);
+                    var eraseCloneIds = new List<ObjectId>();
+                    var stateChanged = false;
                     foreach (var candidate in ownerCandidates)
                     {
-                        if (!expected.TryGetValue(candidate.Key, out var item)) continue;
+                        if (!expected.TryGetValue(candidate.Key, out var item) &&
+                            !RoofStructuralEditRules.IsCloneRejectCommand(commandName) &&
+                            !RoofStructuralEditRules.IsPlanRestoreCommand(commandName)) continue;
                         var action = RoofStructuralEditRules.Classify(commandName, candidate.Physical, definition.EditState);
                         if (candidate.Physical)
                         {
-                            if (action == RoofStructuralNativeAction.RebuildPhysical) claimed.Add(candidate);
+                            if (action is RoofStructuralNativeAction.RebuildPhysical or RoofStructuralNativeAction.RejectClone)
+                                claimed.Add(candidate);
                             continue;
                         }
-                        // COPY/MIRROR/BREAK/etc receive first opportunity, but do not yet
-                        // gain foundation semantics. Legacy handles only these unclaimed edits.
                         if (action == RoofStructuralNativeAction.Unclaimed) continue;
                         var before = snapshot.Assembly.TimberLines.SingleOrDefault(timber =>
                             string.Equals(timber.EntityHandle, candidate.Id.Handle.ToString(), StringComparison.OrdinalIgnoreCase));
-                        if (before is null) continue; // Never claim an appended clone as its source.
                         if (!AutoCadObjectIdAccess.TryGetObjectAllowErased<Line>(transaction, candidate.Id, OpenMode.ForWrite,
-                                out var line, document.Database) || line is null) throw new InvalidOperationException("Structural reference unavailable.");
+                                out var line, document.Database) || line is null)
+                            throw new InvalidOperationException("Structural reference unavailable.");
+                        if (before is null)
+                        {
+                            // Appended structural clone/fragment carrying inherited identity.
+                            // Independent StructuralId cloning is not a product concept.
+                            if (action is not (RoofStructuralNativeAction.RejectClone or RoofStructuralNativeAction.RestorePlan))
+                                continue; // Never claim an appended clone as its MOVE/ERASE source.
+                            if (!line.IsErased) eraseCloneIds.Add(candidate.Id);
+                            claimed.Add(candidate);
+                            continue;
+                        }
+                        if (!expected.TryGetValue(candidate.Key, out item)) continue;
                         var expectedStart = new RoofPoint3D(item.Segment3D.Start.X, item.Segment3D.Start.Y, 0);
                         var expectedEnd = new RoofPoint3D(item.Segment3D.End.X, item.Segment3D.End.Y, 0);
                         if (before.Start.DistanceTo(expectedStart) > 1e-6 || before.End.DistanceTo(expectedEnd) > 1e-6)
@@ -118,16 +138,22 @@ internal static class RoofStructuralNativeEditService
                             {
                                 state = RoofStructuralEditRules.Upsert(state,
                                     RoofStructuralEditRules.Get(state, item.LogicalKey) with { Suppressed = true });
+                                stateChanged = true;
                                 RoofAssemblyGroupSyncService.DetachMembersBeforeErase(document.Database, transaction, ownerId, new[] { candidate.Id });
                                 TimberAnnotationService.DeleteForSourceHandle(document.Database, transaction, before.SourceHandle);
                             }
                             else if (!line.IsErased && RoofGeneratedMemberEditCommandRules.IsMoveCommand(commandName) &&
                                      RoofStructuralEditRules.TryAcceptMove(state, item.LogicalKey, new(before.Start, before.End),
-                                         new(Point(line.StartPoint), Point(line.EndPoint)), out var accepted)) state = accepted;
+                                         new(Point(line.StartPoint), Point(line.EndPoint)), out var accepted))
+                            {
+                                state = accepted;
+                                stateChanged = true;
+                            }
                             else continue; // Non-planar or non-translation edit remains unclaimed.
                         }
                         else
                         {
+                            // RestorePlan / RejectClone: keep the canonical Plan2D source.
                             if (line.IsErased) line.Erase(false);
                             line.StartPoint = new(before.Start.X, before.Start.Y, 0);
                             line.EndPoint = new(before.End.X, before.End.Y, 0);
@@ -136,12 +162,44 @@ internal static class RoofStructuralNativeEditService
                         {
                             if (!metadata.TryRead(line, out var timber) || timber is null)
                                 throw new InvalidOperationException("Structural reference metadata unavailable.");
-                            annotations.Add(candidate.Id, timber);
+                            annotations[candidate.Id] = timber;
                         }
                         claimed.Add(candidate);
                     }
+
+                    // Erase any remaining unsnapshot Hip/Valley under this owner (ARRAY
+                    // collateral, BREAK fragments, or clones not present in the event set).
+                    if (claimed.Count > 0 &&
+                        (RoofStructuralEditRules.IsCloneRejectCommand(commandName) ||
+                         RoofStructuralEditRules.IsPlanRestoreCommand(commandName)))
+                    {
+                        foreach (var id in RoofStructuralGeneratedStore.FindByOwner(
+                                     document.Database, transaction, ownerCandidates.Key))
+                        {
+                            if (snapshotHandles.Contains(id.Handle.ToString()) || eraseCloneIds.Contains(id)) continue;
+                            if (!AutoCadObjectIdAccess.TryGetObject<Line>(transaction, id, OpenMode.ForWrite,
+                                    out var orphan, document.Database) || orphan is null || orphan.IsErased) continue;
+                            if (RoofStructuralGeneratedStore.Read(orphan).Data is not { } orphanData ||
+                                !RoofStructuralEditRules.IsStructuralHipValleyRole(orphanData.StructuralRole)) continue;
+                            eraseCloneIds.Add(id);
+                            claimed.Add(new Candidate(id, orphanData.RoofOwnerReference, orphanData.LogicalKey.ToString(), false));
+                        }
+                    }
+
+                    if (eraseCloneIds.Count > 0)
+                    {
+                        RoofAssemblyGroupSyncService.DetachMembersBeforeErase(document.Database, transaction, ownerId, eraseCloneIds);
+                        foreach (var id in eraseCloneIds)
+                        {
+                            if (!AutoCadObjectIdAccess.TryGetObjectAllowErased<Line>(transaction, id, OpenMode.ForWrite,
+                                    out var clone, document.Database) || clone is null || clone.IsErased) continue;
+                            TimberAnnotationService.DeleteForSourceHandle(document.Database, transaction, clone.Handle.ToString());
+                            clone.Erase(true);
+                        }
+                    }
+
                     if (claimed.Count == 0) continue;
-                    if (claimed.Any(candidate => !candidate.Physical) && definition.EditState == RoofEditState.Unlocked)
+                    if (stateChanged && definition.EditState == RoofEditState.Unlocked)
                         RoofStructuralEditStateStore.Write(owner, transaction, state);
                     // Include native-erased ids: remove their old GROUP slots before rebuilding.
                     RoofAssemblyGroupSyncService.DetachMembersBeforeErase(document.Database, transaction, ownerId,
@@ -154,6 +212,15 @@ internal static class RoofStructuralNativeEditService
                     if (!RoofStructuralRafterSolidMaterializationService.TryReconcileInTransaction(
                             document.Database, transaction, owner, geometry, resolution, document.Editor, out var physicalFailure))
                         throw new InvalidOperationException("structural-physical-" + physicalFailure);
+                    // STRETCH/ROTATE/etc. can mutate structural display children in the
+                    // crossing selection. GROUP sync requires a current display set;
+                    // rebuild it after Plan2D restore + Physical3D reconcile, before sync.
+                    var displayEdges = RoofPhysical3DLifecycleService.CreateOwnedDisplayEdges(owner, geometry);
+                    var displaySignature = RoofWireframe.BuildGenerationSignature(displayEdges);
+                    if (!RoofDisplayService.Rebuild(
+                            document.Database, transaction, ownerId, owner.Handle.ToString(),
+                            displayEdges, displaySignature, syncAssemblyGroup: false))
+                        throw new InvalidOperationException("Structural display rebuild failed.");
                     if (!RoofAssemblyGroupSyncService.TrySyncForOwner(document, transaction, ownerId))
                         throw new InvalidOperationException("Structural GROUP synchronization failed.");
                     transaction.Commit();

@@ -438,9 +438,12 @@ internal static class LiveGeometrySynchronizationService
 
             // Generated-member lifecycle recovery: capture the exact roof assembly
             // before any supported or known-unsupported native edit can mutate it.
+            // Structural first-claim for ARRAY/FILLET/etc. reuses the same capture
+            // without widening ordinary IsAssemblySnapshotCommand routing.
             if (!isUndoRedo &&
                 !_ignoreCurrentCommand &&
-                RoofGeneratedMemberEditCommandRules.IsAssemblySnapshotCommand(e.GlobalCommandName))
+                (RoofGeneratedMemberEditCommandRules.IsAssemblySnapshotCommand(e.GlobalCommandName) ||
+                 RoofStructuralEditRules.RequiresAssemblySnapshotCapture(e.GlobalCommandName)))
             {
                 RoofUnsupportedStretchRecoverySnapshotService.CaptureForCommand(
                     _document,

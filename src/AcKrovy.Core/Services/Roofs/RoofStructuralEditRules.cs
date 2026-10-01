@@ -1,8 +1,15 @@
 using AcKrovy.Core.Models.Roofs;
+using AcKrovy.Core.Services;
 
 namespace AcKrovy.Core.Services.Roofs;
 
-public enum RoofStructuralNativeAction { Unclaimed, AcceptPlan, RestorePlan, RebuildPhysical }
+public enum RoofStructuralNativeAction { Unclaimed, AcceptPlan, RestorePlan, RebuildPhysical, RejectClone }
+
+/// <summary>
+/// Product disposition for the structural Hip/Valley native-edit matrix.
+/// Whole-roof COPY/MIRROR remain owned by the existing roof rebind path.
+/// </summary>
+public enum RoofStructuralCommandDisposition { Supported, ExplicitlyRejected, Deferred }
 
 public static class RoofStructuralEditRules
 {
@@ -18,23 +25,86 @@ public static class RoofStructuralEditRules
             IsFinite(item.OffsetXmm) && IsFinite(item.OffsetYmm)) &&
         state.Members.Select(item => item.LogicalKey).Distinct().Count() == state.Members.Count;
 
-    // All supported families enter the router first. Only MOVE/ERASE have accepted
-    // Plan2D semantics in this foundation; the others remain explicitly unclaimed.
     public static bool HasFirstClaimOpportunity(string? command) =>
-        LiveGeometryCommandRules.NormalizeCommandName(command) is
-            "MOVE" or "TRIM" or "EXTEND" or "STRETCH" or "GRIP_STRETCH" or
-            "ERASE" or "COPY" or "MIRROR" or "BREAK" or "BREAKATPOINT";
+        IsPlanAcceptCommand(command) ||
+        IsPlanRestoreCommand(command) ||
+        IsCloneRejectCommand(command) ||
+        IsPhysicalRecoveryCommand(command);
 
-    public static bool IsPlanFoundationCommand(string? command) =>
+    public static bool RequiresAssemblySnapshotCapture(string? command) =>
+        HasFirstClaimOpportunity(command);
+
+    public static bool IsPlanAcceptCommand(string? command) =>
         LiveGeometryCommandRules.NormalizeCommandName(command) is "MOVE" or "ERASE";
 
-    public static bool IsPhysicalRecoveryCommand(string? command) =>
-        LiveGeometryCommandRules.NormalizeCommandName(command) is "MOVE" or "ERASE" or "STRETCH" or "GRIP_STRETCH";
+    public static bool IsPlanRestoreCommand(string? command) =>
+        LiveGeometryCommandRules.NormalizeCommandName(command) is
+            "ROTATE" or "SCALE" or "STRETCH" or "GRIP_STRETCH" or
+            "TRIM" or "EXTEND" or "BREAK" or "BREAKATPOINT" or
+            "FILLET" or "CHAMFER" or "JOIN" or "OFFSET" or "EXPLODE";
 
-    public static RoofStructuralNativeAction Classify(string? command, bool physical, RoofEditState editState) =>
-        physical ? IsPhysicalRecoveryCommand(command) ? RoofStructuralNativeAction.RebuildPhysical : RoofStructuralNativeAction.Unclaimed
-        : !IsPlanFoundationCommand(command) ? RoofStructuralNativeAction.Unclaimed
-        : editState == RoofEditState.Unlocked ? RoofStructuralNativeAction.AcceptPlan : RoofStructuralNativeAction.RestorePlan;
+    public static bool IsCloneRejectCommand(string? command) =>
+        LiveGeometryCommandRules.NormalizeCommandName(command) is
+            "COPY" or "MIRROR" or
+            "ARRAY" or "ARRAYRECT" or "ARRAYPOLAR" or "ARRAYPATH";
+
+    public static bool IsPlanFoundationCommand(string? command) =>
+        IsPlanAcceptCommand(command);
+
+    public static bool IsPhysicalRecoveryCommand(string? command) =>
+        IsPlanAcceptCommand(command) ||
+        IsPlanRestoreCommand(command) ||
+        IsCloneRejectCommand(command);
+
+    public static RoofStructuralNativeAction Classify(string? command, bool physical, RoofEditState editState)
+    {
+        if (IsCloneRejectCommand(command))
+            return RoofStructuralNativeAction.RejectClone;
+        if (physical)
+            return IsPhysicalRecoveryCommand(command)
+                ? RoofStructuralNativeAction.RebuildPhysical
+                : RoofStructuralNativeAction.Unclaimed;
+        // Locked Plan2D reject-family (STRETCH/ROTATE/BREAK/…): the existing Locked
+        // generated-member guard is the sole restore owner. Claiming here runs an
+        // intermediate semantic reconcile + GROUP sync that can fail and emit a
+        // false user error before that guard recovers the same roof.
+        if (IsPlanRestoreCommand(command))
+            return editState == RoofEditState.Locked
+                ? RoofStructuralNativeAction.Unclaimed
+                : RoofStructuralNativeAction.RestorePlan;
+        if (!IsPlanAcceptCommand(command))
+            return RoofStructuralNativeAction.Unclaimed;
+        return editState == RoofEditState.Unlocked
+            ? RoofStructuralNativeAction.AcceptPlan
+            : RoofStructuralNativeAction.RestorePlan;
+    }
+
+    /// <summary>
+    /// Individual generated Structural Hip/Valley members have no independent clone
+    /// identity. Whole-roof COPY/MIRROR stay Supported via existing rebind, not here.
+    /// </summary>
+    public static RoofStructuralCommandDisposition GetDisposition(string? command)
+    {
+        var normalized = LiveGeometryCommandRules.NormalizeCommandName(command);
+        if (LiveGeometryCommandRules.IsUndoRedoCommand(normalized))
+            return RoofStructuralCommandDisposition.Supported;
+        if (normalized is "SAVE" or "CLOSE" or "OPEN" or "QSAVE" or "SAVEAS")
+            return RoofStructuralCommandDisposition.Supported;
+        if (IsCloneRejectCommand(normalized))
+            return RoofStructuralCommandDisposition.ExplicitlyRejected;
+        if (IsPlanRestoreCommand(normalized))
+            return RoofStructuralCommandDisposition.ExplicitlyRejected;
+        if (IsPlanAcceptCommand(normalized))
+            return RoofStructuralCommandDisposition.Supported;
+        return RoofStructuralCommandDisposition.Deferred;
+    }
+
+    /// <summary>
+    /// Ordinary automatic rafters use Generated/AttachedManual identity. Structural
+    /// claim must never treat a non-Hip/Valley structural role as a candidate.
+    /// </summary>
+    public static bool IsStructuralHipValleyRole(RoofStructuralRole? role) =>
+        role is RoofStructuralRole.Hip or RoofStructuralRole.Valley;
 
     public static RoofStructuralMemberEdit Get(RoofStructuralEditState state, RoofStructuralLogicalKey key)
     {

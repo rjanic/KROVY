@@ -76,18 +76,82 @@ public sealed class RoofStructuralFoundationTests
     }
 
     [Theory]
-    [InlineData("TRIM")]
-    [InlineData("EXTEND")]
-    [InlineData("STRETCH")]
-    [InlineData("GRIP_STRETCH")]
     [InlineData("COPY")]
     [InlineData("MIRROR")]
-    [InlineData("BREAK")]
-    [InlineData("BREAKATPOINT")]
-    public void FurtherFamilies_ReceiveFirstOpportunityWithoutInventingPlanSemantics(string command)
+    [InlineData("ARRAY")]
+    [InlineData("ARRAYRECT")]
+    [InlineData("ARRAYPOLAR")]
+    [InlineData("ARRAYPATH")]
+    public void IndividualCloneCommands_AreExplicitlyRejectedForBothRepresentations(string command)
     {
         Assert.True(RoofStructuralEditRules.HasFirstClaimOpportunity(command));
-        Assert.Equal(RoofStructuralNativeAction.Unclaimed, RoofStructuralEditRules.Classify(command, false, RoofEditState.Unlocked));
+        Assert.True(RoofStructuralEditRules.IsCloneRejectCommand(command));
+        Assert.Equal(RoofStructuralCommandDisposition.ExplicitlyRejected, RoofStructuralEditRules.GetDisposition(command));
+        Assert.Equal(RoofStructuralNativeAction.RejectClone, RoofStructuralEditRules.Classify(command, false, RoofEditState.Unlocked));
+        Assert.Equal(RoofStructuralNativeAction.RejectClone, RoofStructuralEditRules.Classify(command, true, RoofEditState.Locked));
+    }
+
+    [Theory]
+    [InlineData("ROTATE")]
+    [InlineData("SCALE")]
+    [InlineData("STRETCH")]
+    [InlineData("GRIP_STRETCH")]
+    [InlineData("TRIM")]
+    [InlineData("EXTEND")]
+    [InlineData("BREAK")]
+    [InlineData("BREAKATPOINT")]
+    [InlineData("FILLET")]
+    [InlineData("CHAMFER")]
+    [InlineData("JOIN")]
+    [InlineData("OFFSET")]
+    [InlineData("EXPLODE")]
+    public void UnsupportedGeometryCommands_RestorePlanAndRebuildPhysical(string command)
+    {
+        Assert.True(RoofStructuralEditRules.HasFirstClaimOpportunity(command));
+        Assert.Equal(RoofStructuralCommandDisposition.ExplicitlyRejected, RoofStructuralEditRules.GetDisposition(command));
+        Assert.Equal(RoofStructuralNativeAction.RestorePlan, RoofStructuralEditRules.Classify(command, false, RoofEditState.Unlocked));
+        Assert.Equal(RoofStructuralNativeAction.RebuildPhysical, RoofStructuralEditRules.Classify(command, true, RoofEditState.Unlocked));
+        Assert.Equal(RoofStructuralNativeAction.RebuildPhysical, RoofStructuralEditRules.Classify(command, true, RoofEditState.Locked));
+    }
+
+    [Theory]
+    [InlineData(RoofStructuralRole.Hip, "STRETCH")]
+    [InlineData(RoofStructuralRole.Valley, "STRETCH")]
+    [InlineData(RoofStructuralRole.Hip, "GRIP_STRETCH")]
+    [InlineData(RoofStructuralRole.Valley, "GRIP_STRETCH")]
+    [InlineData(RoofStructuralRole.Hip, "ROTATE")]
+    [InlineData(RoofStructuralRole.Valley, "BREAK")]
+    public void LockedPlan2DGeometryReject_IsUnclaimedSoLockedGuardOwnsRestore(
+        RoofStructuralRole role, string command)
+    {
+        _ = role;
+        Assert.Equal(RoofStructuralNativeAction.Unclaimed,
+            RoofStructuralEditRules.Classify(command, false, RoofEditState.Locked));
+        Assert.Equal(RoofStructuralNativeAction.RestorePlan,
+            RoofStructuralEditRules.Classify(command, false, RoofEditState.Unlocked));
+        // Locked MOVE/ERASE remain structural RestorePlan (foundation), not this deferral.
+        Assert.Equal(RoofStructuralNativeAction.RestorePlan,
+            RoofStructuralEditRules.Classify("MOVE", false, RoofEditState.Locked));
+        Assert.Equal(RoofStructuralNativeAction.RestorePlan,
+            RoofStructuralEditRules.Classify("ERASE", false, RoofEditState.Locked));
+    }
+
+    [Theory]
+    [InlineData(RoofStructuralRole.Hip)]
+    [InlineData(RoofStructuralRole.Valley)]
+    public void UnlockedStretch_RemainsRestorePlanNotAcceptOrLockedDeferral(RoofStructuralRole role)
+    {
+        _ = role;
+        Assert.Equal(RoofStructuralNativeAction.RestorePlan,
+            RoofStructuralEditRules.Classify("STRETCH", false, RoofEditState.Unlocked));
+        Assert.Equal(RoofStructuralNativeAction.Unclaimed,
+            RoofStructuralEditRules.Classify("STRETCH", false, RoofEditState.Locked));
+        Assert.Equal(RoofStructuralNativeAction.AcceptPlan,
+            RoofStructuralEditRules.Classify("MOVE", false, RoofEditState.Unlocked));
+        Assert.Equal(RoofStructuralNativeAction.AcceptPlan,
+            RoofStructuralEditRules.Classify("ERASE", false, RoofEditState.Unlocked));
+        Assert.Equal(RoofStructuralNativeAction.RebuildPhysical,
+            RoofStructuralEditRules.Classify("STRETCH", true, RoofEditState.Unlocked));
     }
 
     [Theory]
@@ -95,9 +159,19 @@ public sealed class RoofStructuralFoundationTests
     [InlineData("UNDO")]
     [InlineData("REDO")]
     [InlineData("MREDO")]
-    [InlineData("SCALE")]
-    public void UnsupportedAndUndoCommands_DoNotEnterFirstClaim(string command) =>
+    public void UndoFamily_IsSupportedWithoutFirstClaimWrites(string command)
+    {
         Assert.False(RoofStructuralEditRules.HasFirstClaimOpportunity(command));
+        Assert.Equal(RoofStructuralCommandDisposition.Supported, RoofStructuralEditRules.GetDisposition(command));
+    }
+
+    [Theory]
+    [InlineData("SAVE")]
+    [InlineData("QSAVE")]
+    [InlineData("CLOSE")]
+    [InlineData("OPEN")]
+    public void PersistenceCommands_AreSupportedByOwnerSemanticState(string command) =>
+        Assert.Equal(RoofStructuralCommandDisposition.Supported, RoofStructuralEditRules.GetDisposition(command));
 
     [Theory]
     [InlineData(0, 1, 0)] // endpoint length change
@@ -126,6 +200,16 @@ public sealed class RoofStructuralFoundationTests
     }
 
     [Theory]
+    [InlineData(RoofStructuralRole.Hip)]
+    [InlineData(RoofStructuralRole.Valley)]
+    public void OrdinaryRafterRoles_AreNeverStructuralHipValleyClaims(RoofStructuralRole role)
+    {
+        Assert.True(RoofStructuralEditRules.IsStructuralHipValleyRole(role));
+        Assert.False(RoofStructuralEditRules.IsStructuralHipValleyRole(RoofStructuralRole.Ridge));
+        Assert.False(RoofStructuralEditRules.IsStructuralHipValleyRole(null));
+    }
+
+    [Theory]
     [InlineData("Hip|1|4")]
     [InlineData("Valley|2|5")]
     public void Group_RepeatedNativeReattachmentRemovesExactSurplusSlots(string key)
@@ -147,5 +231,25 @@ public sealed class RoofStructuralFoundationTests
             Assert.Equal(0, RoofAssemblyGroupMembershipRules.CountForeign(actual, expected));
             Assert.Empty(RoofAssemblyGroupMembershipRules.SurplusOrForeignMemberIndices(actual, expected));
         }
+    }
+
+    [Theory]
+    [InlineData(RoofStructuralRole.Hip)]
+    [InlineData(RoofStructuralRole.Valley)]
+    public void PersistenceRoundtrip_RetainsSuppressionAndPlacementAcrossReopen(RoofStructuralRole role)
+    {
+        var key = new RoofStructuralLogicalKey(role, 1, 4);
+        var state = RoofStructuralEditRules.Upsert(RoofStructuralEditState.Empty,
+            new RoofStructuralMemberEdit(key, 125.5, -40.25, true));
+        var reopened = JsonSerializer.Deserialize<RoofStructuralEditState>(JsonSerializer.Serialize(state))!;
+        Assert.True(RoofStructuralEditRules.IsValid(reopened));
+        var edit = RoofStructuralEditRules.Get(reopened, key);
+        Assert.True(edit.Suppressed);
+        Assert.Equal(125.5, edit.OffsetXmm);
+        Assert.Equal(-40.25, edit.OffsetYmm);
+        Assert.Empty(RoofStructuralEditRules.ApplyPlan(
+        [
+            new(key, TimberElementType.HipRafter, new(new(0, 0, 0), new(100, 100, 50)), new TimberElementData())
+        ], reopened));
     }
 }
