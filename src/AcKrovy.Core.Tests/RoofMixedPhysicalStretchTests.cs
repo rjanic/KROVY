@@ -130,7 +130,7 @@ public sealed class RoofMixedPhysicalStretchTests
         Assert.DoesNotContain("TransformBy(", restore);
         Assert.DoesNotContain("GeometricExtents", restore);
         Assert.DoesNotContain("RoofDefinitionStore.Write(", restore);
-        var accepted = manual[manual.IndexOf("// Hip/Valley are derived", StringComparison.Ordinal)..
+        var accepted = manual[manual.IndexOf("// Restore only unclaimed structural mutations", StringComparison.Ordinal)..
             manual.IndexOf("return OwnerEditOutcome.Accepted;", StringComparison.Ordinal)];
         Assert.True(accepted.IndexOf("TryRestoreStructuralHipValleyMembersOnly", StringComparison.Ordinal) <
             accepted.IndexOf("TryRestoreStretchPhysicalInTransaction", StringComparison.Ordinal));

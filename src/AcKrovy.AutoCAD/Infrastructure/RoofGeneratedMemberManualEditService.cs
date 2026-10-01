@@ -270,8 +270,8 @@ internal static class RoofGeneratedMemberManualEditService
             }
 
             owner.UpgradeOpen();
-            // Hip/Valley are derived StructuralGenerated members. Restore native
-            // tampering while the snapshot's item numbers are still current, before
+            // Restore only unclaimed structural mutations. Committed semantic claims
+            // are protected by the command snapshot, before
             // accepted ordinary edits run drawing-wide numbering synchronization.
             // ElementId is a signature-group number, not structural semantic identity.
             if (!RoofUnsupportedStretchRecoveryService.TryRestoreStructuralHipValleyMembersOnly(
@@ -289,7 +289,7 @@ internal static class RoofGeneratedMemberManualEditService
                 stored.Data.EditState,
                 modifiedIds,
                 action: "restored",
-                result: "structural-hip-valley-before-unlocked-accept");
+                result: "unclaimed-structural-mutations-before-unlocked-accept");
 #endif
             var accept = TryAcceptUnlockedEdits(
                 document,

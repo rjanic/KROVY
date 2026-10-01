@@ -19,7 +19,7 @@ public sealed class RoofDisplayGroupSourceContractTests
         Assert.Contains("only the current structural-display subset", Group);
         Assert.Contains("RoofAssemblyGroupMemberCollector.TryCollect", Group);
         Assert.Contains("group.Append(addId)", Group);
-        Assert.Contains("group.Remove(removeId)", Group);
+        Assert.Contains("group.RemoveAt(index)", Group);
         Assert.Contains("RoofAssemblyGroupMembershipRules.IsCanonicalMembership(", Group);
         Assert.Contains("group.Selectable", Group);
     }
@@ -27,9 +27,9 @@ public sealed class RoofDisplayGroupSourceContractTests
     [Fact]
     public void DiffSync_ComputesMultisetPlanAndVerifiesInvariant()
     {
-        Assert.Contains("RoofAssemblyGroupMembershipRules.PlanCanonicalization(", Group);
-        Assert.Contains("plan.RemoveOnce", Group);
-        Assert.Contains("plan.AppendOnce", Group);
+        Assert.Contains("RoofAssemblyGroupMembershipRules.SurplusOrForeignMemberIndices(", Group);
+        Assert.Contains("surplusIndices.Reverse()", Group);
+        Assert.Contains("memberIds", Group);
         Assert.Contains("VerifyGroupUndoInvariant", Group);
         Assert.Contains("ROOF_GROUP_UNDO_INVARIANT", Group);
         Assert.Contains("ROOF_GROUP_SYNC_POST", Sync);
@@ -73,9 +73,9 @@ public sealed class RoofDisplayGroupSourceContractTests
             "public static void EnsureGroup",
             "private static void VerifyGroupUndoInvariant");
         Assert.DoesNotContain("group.Clear()", ensureGroup);
-        Assert.Contains("plan.RemoveOnce", ensureGroup);
-        Assert.Contains("plan.AppendOnce", ensureGroup);
-        Assert.Contains("RoofAssemblyGroupMembershipRules.PlanCanonicalization(", ensureGroup);
+        Assert.Contains("surplusIndices.Reverse()", ensureGroup);
+        Assert.Contains("memberIds", ensureGroup);
+        Assert.Contains("RoofAssemblyGroupMembershipRules.SurplusOrForeignMemberIndices(", ensureGroup);
         Assert.Contains("childIds.Distinct().Count()", Group);
         Assert.Contains("newChildIds", Display);
         Assert.Contains("RoofDisplayGroupService.EnsureGroup", Display);

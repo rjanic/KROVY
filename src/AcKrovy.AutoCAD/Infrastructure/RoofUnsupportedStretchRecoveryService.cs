@@ -255,6 +255,7 @@ internal static class RoofUnsupportedStretchRecoveryService
         var structuralSourceHandles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var timber in entry.Assembly.TimberLines)
         {
+            if (entry.IsStructuralClaimed(timber.EntityHandle)) continue;
             if (!TryGetEntityByHandle<Line>(
                     database,
                     transaction,
@@ -705,6 +706,7 @@ internal static class RoofUnsupportedStretchRecoveryService
         var metadataStore = new AutoCadTimberElementMetadataStore(transaction);
         foreach (var timber in assembly.TimberLines)
         {
+            if (IsClaimedStructural(ownerHandle, timber.EntityHandle)) continue;
             if (!TryResolveEntityByHandle(
                     database,
                     timber.EntityHandle,
@@ -804,6 +806,7 @@ internal static class RoofUnsupportedStretchRecoveryService
 
         foreach (var annotation in assembly.Annotations)
         {
+            if (IsClaimedStructural(ownerHandle, annotation.SourceHandle)) continue;
             if (!TryResolveEntityByHandle(
                     database,
                     annotation.EntityHandle,
@@ -923,6 +926,10 @@ internal static class RoofUnsupportedStretchRecoveryService
         }
     }
 
+    private static bool IsClaimedStructural(string ownerHandle, string memberHandle) =>
+        RoofUnsupportedStretchRecoverySnapshotService.TryGetByHandle(ownerHandle, out var snapshot) &&
+        snapshot.IsStructuralClaimed(memberHandle);
+
     private static bool TryRestoreTimberLines(
         Database database,
         Transaction transaction,
@@ -934,6 +941,7 @@ internal static class RoofUnsupportedStretchRecoveryService
         var metadataStore = new AutoCadTimberElementMetadataStore(transaction);
         foreach (var timber in timberLines)
         {
+            if (IsClaimedStructural(ownerHandle, timber.EntityHandle)) continue;
             if (!TryGetEntityByHandle<Line>(
                     database,
                     transaction,
@@ -1121,6 +1129,7 @@ internal static class RoofUnsupportedStretchRecoveryService
     {
         foreach (var annotation in annotations)
         {
+            if (IsClaimedStructural(ownerHandle, annotation.SourceHandle)) continue;
             if (!TryGetEntityByHandle<Entity>(
                     database,
                     transaction,

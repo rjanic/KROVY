@@ -7,6 +7,52 @@ namespace AcKrovy.Core.Tests;
 public sealed class RoofStructuralRafterPolyhedronServiceTests
 {
     [Theory]
+    [InlineData(false, LowerEndCutMode.Vertical)]
+    [InlineData(true, LowerEndCutMode.Vertical)]
+    [InlineData(false, LowerEndCutMode.Perpendicular)]
+    [InlineData(true, LowerEndCutMode.Perpendicular)]
+    public void StructuralFoundationPlacement_RebuildsCanonicalProfileAndCutContext(bool valley, LowerEndCutMode mode)
+    {
+        var fixture = CreateFixture(35d, valley, lowerEndCutMode: mode);
+        Assert.True(RoofStructuralRafterPolyhedronService.TryBuild(fixture.Request, out var canonical, out var reason), reason);
+        var edit = new RoofStructuralMemberEdit(canonical!.StructuralKey, 350, -225, false);
+        for (var recovery = 0; recovery < 2; recovery++)
+        {
+            Assert.True(RoofStructuralRafterPolyhedronService.TryBuild(fixture.Request, out var fresh, out reason), reason);
+            var placed = RoofStructuralEditRules.Place(fresh!, edit);
+            Assert.Equal(canonical.StructuralKey, placed.StructuralKey);
+            Assert.Equal(canonical.Geometry.WidthMm, placed.Geometry.WidthMm);
+            Assert.Equal(canonical.Geometry.PhysicalVerticalHeightMm, placed.Geometry.PhysicalVerticalHeightMm);
+            Assert.Equal(canonical.Geometry.RequiredAutomaticHeightMm, placed.Geometry.RequiredAutomaticHeightMm);
+            Assert.Equal(canonical.Geometry.TopologyEdgeIndex, placed.Geometry.TopologyEdgeIndex);
+            Assert.Equal(canonical.LowerEndCutMode, placed.LowerEndCutMode);
+            Assert.Equal(canonical.EaveBoundaryEdgeIndices, placed.EaveBoundaryEdgeIndices);
+            Assert.Equal(canonical.Geometry.BodyVertices.Select(p => new RoofPoint3D(p.X + 350, p.Y - 225, p.Z)), placed.Geometry.BodyVertices);
+            Assert.Equal(canonical.ConvexHalves.Count, placed.ConvexHalves.Count);
+            for (var index = 0; index < placed.ConvexHalves.Count; index++)
+            {
+                var before = canonical.ConvexHalves[index];
+                var after = placed.ConvexHalves[index];
+                Assert.Equal(before.AdjacentSourceFaceIndex, after.AdjacentSourceFaceIndex);
+                Assert.Equal(before.SourcePrismVertices.Select(p => new RoofPoint3D(p.X + 350, p.Y - 225, p.Z)), after.SourcePrismVertices);
+                Assert.Equal(before.ClippedBodyVertices.Select(p => new RoofPoint3D(p.X + 350, p.Y - 225, p.Z)), after.ClippedBodyVertices);
+                Assert.Equal(before.ClippedTopFaceVertices.Select(p => new RoofPoint3D(p.X + 350, p.Y - 225, p.Z)), after.ClippedTopFaceVertices);
+            }
+            var beforePlanes = canonical.EaveClipPlanes.Concat(canonical.LowerEndClipPlanes)
+                .Concat(canonical.RoofEnvelopeClipPlanes).Append(canonical.RidgeClipPlane).ToArray();
+            var afterPlanes = placed.EaveClipPlanes.Concat(placed.LowerEndClipPlanes)
+                .Concat(placed.RoofEnvelopeClipPlanes).Append(placed.RidgeClipPlane).ToArray();
+            for (var index = 0; index < beforePlanes.Length; index++)
+            {
+                Assert.Equal(beforePlanes[index].RetainedNormal, afterPlanes[index].RetainedNormal);
+                Assert.Equal(new RoofPoint3D(beforePlanes[index].Point.X + 350, beforePlanes[index].Point.Y - 225, beforePlanes[index].Point.Z), afterPlanes[index].Point);
+            }
+            // Placement does not mutate the canonical model or physical elevation.
+            Assert.Equal(canonical.Geometry.BodyVertices, fresh!.Geometry.BodyVertices);
+        }
+    }
+
+    [Theory]
     [InlineData(30d)]
     [InlineData(45d)]
     [InlineData(60d)]

@@ -33,7 +33,8 @@ internal static class RoofDisplayErasePreCommandMapService
         string? GeneratedSourceHandle,
         RoofGeneratedTimberData? GeneratedData,
         TimberElementData? TimberData,
-        RoofPhysical3DGeneratedData? PhysicalData = null);
+        RoofPhysical3DGeneratedData? PhysicalData = null,
+        RoofStructuralGeneratedData? StructuralData = null);
 
     internal sealed record SourcePreCommandState(
         ObjectId OwnerId,
@@ -218,7 +219,8 @@ internal static class RoofDisplayErasePreCommandMapService
                         null,
                         ElementDataStore.TryRead(line, transaction, out var structuralTimberData)
                             ? structuralTimberData
-                            : null);
+                            : null,
+                        StructuralData: structural.Data);
                 }
             }
 

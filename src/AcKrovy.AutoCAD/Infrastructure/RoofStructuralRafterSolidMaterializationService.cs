@@ -72,10 +72,12 @@ internal static class RoofStructuralRafterSolidMaterializationService
         // Attached children do not drive the automatic structural profile recommendation.
         ordinary = ordinary with { Members = ordinary.Members.Where(member => member.AttachedManualIdentity is null).ToArray() };
 
-        var structural = resolution.Edges.Where(edge =>
-            edge.IsAutomaticStructuralTimberEligible).ToArray();
+        var editState = RoofStructuralEditStateStore.Read(owner, transaction);
+        var allStructural = resolution.Edges.Where(edge => edge.IsAutomaticStructuralTimberEligible).ToArray();
+        var structural = allStructural.Where(edge =>
+            !RoofStructuralEditRules.Get(editState, edge.StructuralIdentity).Suppressed).ToArray();
         if (!RoofStructuralUpperNodeMiterResolver.TryResolve(
-                geometry.Topology, structural, out var miterPlanes,
+                geometry.Topology, allStructural, out var miterPlanes,
                 out failureReason))
             return false;
         var liveKeys = new HashSet<RoofStructuralLogicalKey>();
@@ -114,7 +116,8 @@ internal static class RoofStructuralRafterSolidMaterializationService
             if (!RoofStructuralRafterPolyhedronService.TryBuild(request,
                     out var body, out failureReason) || body is null)
                 return false;
-            bodies.Add((edge.StructuralIdentity, body));
+            bodies.Add((edge.StructuralIdentity, RoofStructuralEditRules.Place(body,
+                RoofStructuralEditRules.Get(editState, edge.StructuralIdentity))));
         }
 
         // Construct all transient solids before touching the old set. A failure
@@ -127,6 +130,12 @@ internal static class RoofStructuralRafterSolidMaterializationService
             foreach (var (key, body) in bodies)
                 created.Add((key, body, CreateSolid(body)));
 
+            var priorStructuralIds = RoofPhysical3DGeneratedStore.FindByOwner(database, transaction, ownerReference)
+                .Where(id => AutoCadObjectIdAccess.TryGetObject<Entity>(transaction, id, OpenMode.ForRead,
+                    out var entity, database) && entity is not null &&
+                    RoofPhysical3DGeneratedStore.Read(entity).Data?.Role == RoofPhysical3DGeneratedRole.StructuralRafterSolid)
+                .ToArray();
+            RoofAssemblyGroupSyncService.DetachMembersBeforeErase(database, transaction, owner.ObjectId, priorStructuralIds);
             RoofPhysical3DMaterializationService.EraseStructuralRafterSolids(
                 database, transaction, ownerReference);
             var modelSpace = (BlockTableRecord)transaction.GetObject(
@@ -150,7 +159,9 @@ internal static class RoofStructuralRafterSolidMaterializationService
                     "StructuralPhysical1",
                     elevation.StructuralWidthMm.ToString("R", CultureInfo.InvariantCulture),
                     body.Geometry.PhysicalVerticalHeightMm.ToString("R", CultureInfo.InvariantCulture),
-                    elevation.StructuralHeightMode.ToString());
+                    elevation.StructuralHeightMode.ToString(),
+                    RoofStructuralEditRules.Get(editState, key).OffsetXmm.ToString("R", CultureInfo.InvariantCulture),
+                    RoofStructuralEditRules.Get(editState, key).OffsetYmm.ToString("R", CultureInfo.InvariantCulture));
                 RoofPhysical3DGeneratedStore.Write(solid, transaction,
                     RoofPhysical3DGeneratedDataRules.Create(ownerReference,
                         RoofPhysical3DGeneratedRole.StructuralRafterSolid,

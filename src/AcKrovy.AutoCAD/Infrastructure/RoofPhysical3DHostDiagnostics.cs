@@ -68,8 +68,9 @@ internal static class RoofPhysical3DHostDiagnostics
     public static void MaintenanceComplete(Document document, string command)
     {
         if (!Trackers.TryGetValue(document, out var tracker)) return;
+        if (LiveGeometryCommandRules.IsUndoRedoCommand(command)) return;
         tracker.ReportMemberCheckpoint(command, "after-maintenance");
-        if (!tracker.Enabled || LiveGeometryCommandRules.IsUndoRedoCommand(command)) return;
+        if (!tracker.Enabled) return;
         var normalized = LiveGeometryCommandRules.NormalizeCommandName(command).ToUpperInvariant();
         foreach (var owner in tracker.KnownOwners)
             OwnerCounts(document, owner, "CommandEnded-after-maintenance:" + normalized);
@@ -319,10 +320,27 @@ internal static class RoofPhysical3DHostDiagnostics
     private static string Geometry(Entity entity) => entity switch
     {
         Line line => $"start={Point(line.StartPoint)};end={Point(line.EndPoint)}",
+        Solid3d solid => DiagnosticSolidGeometry(solid),
         Face face => string.Join(";", Enumerable.Range(0, 4).Select(i => $"v{i}={Point(face.GetVertexAt((short)i))}")),
         Polyline polyline => string.Join(";", Enumerable.Range(0, polyline.NumberOfVertices).Select(i => $"v{i}={Point(polyline.GetPoint3dAt(i))}")),
         _ => "-",
     };
+
+    // HOST evidence only. These measurements never enter semantic reconciliation
+    // or a physical builder. Read after native completion, not inside solid edits.
+    private static string DiagnosticSolidGeometry(Solid3d solid)
+    {
+        try
+        {
+            var mass = solid.MassProperties;
+            return FormattableString.Invariant(
+                $"center={Point(mass.Centroid)};volume={mass.Volume:R}");
+        }
+        catch (System.Exception ex)
+        {
+            return "solid-measurement-unavailable:" + ex.GetType().Name;
+        }
+    }
 
     private static string Point(Point3d point) => FormattableString.Invariant($"({point.X:R},{point.Y:R},{point.Z:R})");
     private static void Write(Document document, string message)
@@ -356,11 +374,12 @@ internal static class RoofPhysical3DHostDiagnostics
         private readonly Dictionary<string, string> _memberMappings = new(StringComparer.OrdinalIgnoreCase);
         private readonly HashSet<string> _ambiguousMemberMappings = new(StringComparer.OrdinalIgnoreCase);
         private readonly HashSet<string> _memberTouched = new(StringComparer.OrdinalIgnoreCase);
+        private readonly List<(int Sequence, string Kind, string Handle, string NativeType)> _nativeEntityEvents = new();
         private string _memberCommand = string.Empty;
         // Narrow DEBUG evidence for this milestone is automatic, so the HOST request
         // needs no trace-toggle setup. These observations never route production edits.
         private bool ObserveMemberCheckpoint => _command is "BREAK" or "COPY" or "MIRROR" or "BREAKATPOINT" ||
-            Enabled && (_command is "MOVE" or "TRIM" or "EXTEND" or "ERASE" or "STRETCH" or "GRIP_STRETCH");
+            (_command is "MOVE" or "TRIM" or "EXTEND" or "ERASE" or "STRETCH" or "GRIP_STRETCH");
         private Dictionary<string, (string Owner, Point3d Center, double Volume)> _moveSolids =
             new(StringComparer.OrdinalIgnoreCase);
         private bool Observe => Enabled && (_command is "COPY" or "MIRROR" or "ERASE" or
@@ -497,8 +516,36 @@ internal static class RoofPhysical3DHostDiagnostics
                     Write(Document, $"NATIVE_OWNER_FAILED command={_command} kind={kind} error={ex.GetType().Name}");
                 }
             }
-            if (ObserveMemberCheckpoint && entity is Line)
+            if (ObserveMemberCheckpoint && entity is (Line or Solid3d))
+            {
                 _memberTouched.Add(entity.Handle.ToString());
+                // ObjectAppended can precede readable inherited ownership. Resolve
+                // relevance at native completion, retaining the original sequence.
+                _nativeEntityEvents.Add((_nativeEventCount, kind, entity.Handle.ToString(), entity.GetType().Name));
+            }
+            // Keep every structural transition, including later erase/unerase
+            // events on a handle already reported as modified. A first-event-only
+            // summary cannot prove native control flow for replacement or recovery.
+            if (ObserveMemberCheckpoint && entity is Entity structuralEntity)
+            {
+                try
+                {
+                    var structural = RoofStructuralGeneratedStore.Read(structuralEntity).Data;
+                    var physical = RoofPhysical3DGeneratedStore.Read(structuralEntity).Data;
+                    if (structural is not null ||
+                        physical?.Role == RoofPhysical3DGeneratedRole.StructuralRafterSolid)
+                        Write(Document, $"STRUCTURAL_NATIVE_EVENT command={_command} seq={_nativeEventCount}" +
+                            $" kind={kind} handle={entity.Handle} nativeType={entity.GetType().Name}" +
+                            $" representation={(structural is not null ? "Plan2D" : "Physical3D")}" +
+                            $" owner={structural?.RoofOwnerReference ?? physical!.RoofOwnerReference}" +
+                            $" identity={structural?.LogicalKey.ToString() ?? physical!.StructuralId}");
+                }
+                catch (System.Exception ex)
+                {
+                    Write(Document, $"STRUCTURAL_NATIVE_EVENT_FAILED command={_command}" +
+                        $" seq={_nativeEventCount} kind={kind} handle={entity.Handle} error={ex.GetType().Name}");
+                }
+            }
             // One affected member record per handle; repeated events are summarized.
             if (entity is Line && _nativeMemberReported.Add(entity.Handle.ToString()))
             {
@@ -537,13 +584,15 @@ internal static class RoofPhysical3DHostDiagnostics
                     var display = RoofDisplayStore.Read(source);
                     var generated = RoofGeneratedTimberStore.Read(source).Data;
                     var attached = RoofAttachedManualTimberStore.Read(source).Data;
+                    var structural = RoofStructuralGeneratedStore.Read(source).Data;
                     var owner = source is Polyline && RoofDefinitionStore.Read(source).Data is not null;
-                    if (!physical.Exists && !display.Exists && !owner && generated is null && attached is null) continue;
-                    var reference = generated?.RoofOwnerReference ?? attached?.RoofOwnerReference ?? physical.Data?.RoofOwnerReference ?? display.OwnerReference;
+                    if (!physical.Exists && !display.Exists && !owner && generated is null && attached is null && structural is null) continue;
+                    var reference = generated?.RoofOwnerReference ?? attached?.RoofOwnerReference ?? structural?.RoofOwnerReference ?? physical.Data?.RoofOwnerReference ?? display.OwnerReference;
                     if (reference is not null) KnownOwners.Add(reference);
                     if (owner) KnownOwners.Add(source.Handle.ToString());
                     Write(Document, $"MAP command={_command} context={e.IdMapping.DeepCloneContext} source={source.Handle} clone={clone.Handle} nativeType={clone.GetType().Name} sourcePhysical={JsonSerializer.Serialize(physical.Data)} clonePhysical={JsonSerializer.Serialize(RoofPhysical3DGeneratedStore.Read(clone).Data)} sourceDisplay={display.OwnerReference} cloneDisplay={RoofDisplayStore.Read(clone).OwnerReference} owner={owner}");
-                    if (generated is not null || attached is not null)
+                    if (generated is not null || attached is not null || structural is not null ||
+                        physical.Data?.Role == RoofPhysical3DGeneratedRole.StructuralRafterSolid)
                     {
                         var sourceHandle = source.Handle.ToString();
                         var cloneHandle = clone.Handle.ToString();
@@ -552,7 +601,8 @@ internal static class RoofPhysical3DHostDiagnostics
                             _ambiguousMemberMappings.Add(cloneHandle);
                         else _memberMappings[cloneHandle] = sourceHandle;
                         Write(Document, $"MEMBER_MAP command={_command} source={source.Handle} clone={clone.Handle}" +
-                            $" generated={JsonSerializer.Serialize(generated)} attached={JsonSerializer.Serialize(attached)}");
+                            $" generated={JsonSerializer.Serialize(generated)} attached={JsonSerializer.Serialize(attached)}" +
+                            $" structural={JsonSerializer.Serialize(structural)} physical={JsonSerializer.Serialize(physical.Data)}");
                     }
                 }
             }
@@ -569,17 +619,27 @@ internal static class RoofPhysical3DHostDiagnostics
                 var metadata = new AutoCadTimberElementMetadataStore(transaction);
                 foreach (ObjectId id in model)
                 {
-                    if (id.IsErased || transaction.GetObject(id, OpenMode.ForRead) is not Line line) continue;
+                    if (id.IsErased || transaction.GetObject(id, OpenMode.ForRead) is not Entity entity) continue;
+                    if (entity is Solid3d solid && RoofPhysical3DGeneratedStore.Read(solid).Data is { } physical &&
+                        physical.Role == RoofPhysical3DGeneratedRole.StructuralRafterSolid)
+                    {
+                        result.Add(solid.Handle.ToString(), new MemberEvidence(physical.RoofOwnerReference,
+                            "PhysicalStructural:" + physical.StructuralId, Geometry(solid), null,
+                            JsonSerializer.Serialize(new { physical })));
+                        continue;
+                    }
+                    if (entity is not Line line) continue;
                     var generated = RoofGeneratedTimberStore.Read(line).Data;
                     var attached = RoofAttachedManualTimberStore.Read(line).Data;
-                    if (generated is null && attached is null) continue;
-                    var owner = generated?.RoofOwnerReference ?? attached!.RoofOwnerReference;
-                    var identity = generated is not null
+                    var structural = RoofStructuralGeneratedStore.Read(line).Data;
+                    if (generated is null && attached is null && structural is null) continue;
+                    var owner = structural?.RoofOwnerReference ?? generated?.RoofOwnerReference ?? attached!.RoofOwnerReference;
+                    var identity = structural is not null ? "Structural:" + structural.LogicalKey : generated is not null
                         ? "Generated:" + RoofPhysicalStretchRules.PhysicalMemberId(RoofGeneratedMemberKey.From(generated))
                         : RoofAttachedManualIdentityRules.PhysicalKey(attached!);
                     _ = metadata.TryRead(line, out var timber);
                     result.Add(line.Handle.ToString(), new MemberEvidence(owner, identity, Geometry(line),
-                        timber?.ElementId, JsonSerializer.Serialize(new { generated, attached })));
+                        timber?.ElementId, JsonSerializer.Serialize(new { generated, attached, structural })));
                 }
             }
             catch (System.Exception ex)
@@ -596,8 +656,25 @@ internal static class RoofPhysical3DHostDiagnostics
             try
             {
                 var current = CaptureMemberEvidence();
+                if (phase == "native-ended")
+                {
+                    var structuralHandles = _memberBaseline.Concat(current)
+                        .Where(pair => pair.Value.Identity.StartsWith("Structural:", StringComparison.Ordinal) ||
+                            pair.Value.Identity.StartsWith("PhysicalStructural:", StringComparison.Ordinal))
+                        .Select(pair => pair.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
+                    foreach (var native in _nativeEntityEvents.Where(item => structuralHandles.Contains(item.Handle)))
+                        Write(Document, $"STRUCTURAL_NATIVE_SEQUENCE command={_memberCommand} seq={native.Sequence}" +
+                            $" kind={native.Kind} handle={native.Handle} nativeType={native.NativeType}");
+                }
                 var owners = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                // Recovery can replace a touched solid with a new ObjectId after
+                // native events have ended. Include those new semantic physical
+                // representations so immediate recovery has measured final evidence.
+                var addedStructuralBodies = current.Where(pair =>
+                        pair.Value.Identity.StartsWith("PhysicalStructural:", StringComparison.Ordinal) &&
+                        !_memberBaseline.ContainsKey(pair.Key)).Select(pair => pair.Key);
                 foreach (var handle in _memberTouched.Concat(_memberMappings.Keys).Concat(_memberMappings.Values)
+                             .Concat(addedStructuralBodies)
                              .Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(value => value, StringComparer.Ordinal))
                 {
                     var ambiguous = _ambiguousMemberMappings.Contains(handle);
@@ -608,7 +685,9 @@ internal static class RoofPhysical3DHostDiagnostics
                     if (before is null && after is null) continue;
                     if (!mapped && before == after) continue; // Unchanged member notifications are not edits.
                     var pairing = ambiguous ? "ambiguous-map" : mapped ? "native-map" :
-                        _memberBaseline.ContainsKey(handle) ? "pre-existing" : "unmapped-new";
+                        _memberBaseline.ContainsKey(handle) ? "pre-existing" :
+                        phase == "after-maintenance" && after?.Identity.StartsWith("PhysicalStructural:", StringComparison.Ordinal) == true
+                            ? "maintenance-created" : "unmapped-new";
                     var sameIdentity = before is not null && after is not null &&
                         before.Owner == after.Owner && before.Identity == after.Identity;
                     if (before is not null) owners.Add(before.Owner);
@@ -635,8 +714,17 @@ internal static class RoofPhysical3DHostDiagnostics
             {
                 using var transaction = Document.Database.TransactionManager.StartTransaction();
                 foreach (var owner in owners.Distinct(StringComparer.OrdinalIgnoreCase))
+                {
+                    var ownerId = Document.Database.GetObjectId(false,
+                        new Handle(long.Parse(owner, NumberStyles.HexNumber, CultureInfo.InvariantCulture)), 0);
+                    if (!ownerId.IsErased && transaction.GetObject(ownerId, OpenMode.ForRead) is Polyline source)
+                        Write(Document, $"MEMBER_OWNER_CONTEXT command={_memberCommand} phase={phase} owner={owner}" +
+                            $" definition={JsonSerializer.Serialize(RoofDefinitionStore.Read(source).Data)}" +
+                            $" boundary={JsonSerializer.Serialize(RoofBoundaryIdentityStore.Read(source).Data)}" +
+                            $" elevation={JsonSerializer.Serialize(RoofPhysicalElevationStore.Read(source).Data)}");
                     RoofPhysical3DHostDiagnostics.OwnerCounts(Document, transaction, owner,
                         "member-" + phase + ":" + _memberCommand);
+                }
             }
             catch (System.Exception ex)
             {
@@ -650,6 +738,7 @@ internal static class RoofPhysical3DHostDiagnostics
             _memberMappings.Clear();
             _ambiguousMemberMappings.Clear();
             _memberTouched.Clear();
+            _nativeEntityEvents.Clear();
         }
         public void Dispose()
         {

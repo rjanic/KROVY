@@ -835,6 +835,26 @@ internal static class LiveGeometrySynchronizationService
                 ids = ids.Where(id => !nativeHandledIds.Contains(id)).ToArray();
             }
 
+            // Structural native events receive first semantic claim after full-roof
+            // ownership, before ordinary clone handling and generic tamper recovery.
+            using (_modifiedIds.Suppress())
+            using (_appendedTimberIds.Suppress())
+            using (_appendedRoofOwnerIds.Suppress())
+            using (_appendedPasteEntityIds.Suppress())
+            using (_appendedLabelIds.Suppress())
+            using (_appendedSlopeArrowIds.Suppress())
+            using (_appendedSlopeAngleTextIds.Suppress())
+            using (_erasedSourceHandles.Suppress())
+            {
+                var structuralClaimedIds = RoofStructuralNativeEditService.Process(
+                    _document, globalCommandName, ids, erasedSourceHandles, appendedTimberIds);
+                ids = ids.Where(id => !structuralClaimedIds.Contains(id)).ToArray();
+                appendedTimberIds = appendedTimberIds.Where(id => !structuralClaimedIds.Contains(id)).ToArray();
+                modifiedFramedLabelIds = modifiedFramedLabelIds.Where(id => !structuralClaimedIds.Contains(id)).ToArray();
+                var claimedHandles = structuralClaimedIds.Select(id => id.Handle.ToString()).ToHashSet(StringComparer.OrdinalIgnoreCase);
+                erasedSourceHandles = erasedSourceHandles.Where(handle => !claimedHandles.Contains(handle)).ToArray();
+            }
+
             // COPY/MIRROR clones temporarily inherit Generated/AttachedManual identity. Let
             // the existing semantic clone transaction consume them before generic
             // generated-tamper recovery can interpret that intermediate state.

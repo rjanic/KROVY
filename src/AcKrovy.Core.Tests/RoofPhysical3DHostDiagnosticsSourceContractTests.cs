@@ -5,6 +5,88 @@ namespace AcKrovy.Core.Tests;
 /// <summary>Guards diagnostic isolation; does not assert HOST clone behavior.</summary>
 public sealed class RoofPhysical3DHostDiagnosticsSourceContractTests
 {
+    [Fact]
+    public void StructuralEvidence_IsAutomaticForTheEntireNativeEditFamily()
+    {
+        var code = Read("src/AcKrovy.AutoCAD/Infrastructure/RoofPhysical3DHostDiagnostics.cs");
+        var observation = code[code.IndexOf("private bool ObserveMemberCheckpoint", StringComparison.Ordinal)..
+            code.IndexOf("private Dictionary<string, (string Owner", StringComparison.Ordinal)];
+        foreach (var command in new[] { "MOVE", "TRIM", "EXTEND", "STRETCH", "GRIP_STRETCH",
+                     "ERASE", "COPY", "MIRROR", "BREAK", "BREAKATPOINT" })
+            Assert.Contains("\"" + command + "\"", observation);
+        Assert.DoesNotContain("Enabled", observation);
+        Assert.DoesNotContain("UNDO", observation);
+        Assert.DoesNotContain("REDO", observation);
+        var maintenance = code[code.IndexOf("public static void MaintenanceComplete", StringComparison.Ordinal)..
+            code.IndexOf("public static void TimberRestoreFailure", StringComparison.Ordinal)];
+        Assert.True(maintenance.IndexOf("IsUndoRedoCommand(command)", StringComparison.Ordinal) <
+            maintenance.IndexOf("tracker.ReportMemberCheckpoint", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void StructuralEvidence_CapturesBothRepresentationsAndRoofContext()
+    {
+        var code = Read("src/AcKrovy.AutoCAD/Infrastructure/RoofPhysical3DHostDiagnostics.cs");
+        var checkpoint = code[code.IndexOf("private Dictionary<string, MemberEvidence> CaptureMemberEvidence", StringComparison.Ordinal)..];
+        Assert.Contains("RoofStructuralGeneratedStore.Read(line).Data", checkpoint);
+        Assert.Contains("\"Structural:\" + structural.LogicalKey", checkpoint);
+        Assert.Contains("\"PhysicalStructural:\" + physical.StructuralId", checkpoint);
+        Assert.Contains("physical.Role == RoofPhysical3DGeneratedRole.StructuralRafterSolid", checkpoint);
+        Assert.Contains("JsonSerializer.Serialize(new { generated, attached, structural })", checkpoint);
+        Assert.Contains("Geometry(solid)", checkpoint);
+        Assert.Contains("var addedStructuralBodies = current.Where", checkpoint);
+        Assert.Contains(".Concat(addedStructuralBodies)", checkpoint);
+        Assert.Contains("\"maintenance-created\"", checkpoint);
+        Assert.Contains("MEMBER_OWNER_CONTEXT command=", checkpoint);
+        Assert.Contains("RoofDefinitionStore.Read(source).Data", checkpoint);
+        Assert.Contains("RoofBoundaryIdentityStore.Read(source).Data", checkpoint);
+        Assert.Contains("RoofPhysicalElevationStore.Read(source).Data", checkpoint);
+        Assert.DoesNotContain("TryBuild", checkpoint);
+        Assert.DoesNotContain("TryReconcile", checkpoint);
+    }
+
+    [Fact]
+    public void StructuralNativeEvents_DoNotDiscardLaterEraseOrUneraseTransitions()
+    {
+        var code = Read("src/AcKrovy.AutoCAD/Infrastructure/RoofPhysical3DHostDiagnostics.cs");
+        var native = code[code.IndexOf("private void NativeEvent", StringComparison.Ordinal)..
+            code.IndexOf("private void Mapping", StringComparison.Ordinal)];
+        Assert.True(native.IndexOf("STRUCTURAL_NATIVE_EVENT command=", StringComparison.Ordinal) <
+            native.IndexOf("_nativeMemberReported.Add", StringComparison.Ordinal));
+        Assert.Contains("representation={(structural is not null ? \"Plan2D\" : \"Physical3D\")}", native);
+        Assert.Contains("identity={structural?.LogicalKey.ToString() ?? physical!.StructuralId}", native);
+        Assert.DoesNotContain("DiagnosticSolidGeometry", native);
+        Assert.DoesNotContain("MassProperties", native);
+        Assert.Contains("e.Erased ? \"ObjectErased\" : \"ObjectUnerased\"", code);
+    }
+
+    [Fact]
+    public void StructuralCloneEvidence_UsesOnlyExactNativeMappings()
+    {
+        var code = Read("src/AcKrovy.AutoCAD/Infrastructure/RoofPhysical3DHostDiagnostics.cs");
+        var mapping = code[code.IndexOf("private void Mapping", StringComparison.Ordinal)..
+            code.IndexOf("private Dictionary<string, MemberEvidence> CaptureMemberEvidence", StringComparison.Ordinal)];
+        Assert.Contains("RoofStructuralGeneratedStore.Read(source).Data", mapping);
+        Assert.Contains("physical.Data?.Role == RoofPhysical3DGeneratedRole.StructuralRafterSolid", mapping);
+        Assert.Contains("_memberMappings[cloneHandle] = sourceHandle", mapping);
+        Assert.Contains("_ambiguousMemberMappings.Add(cloneHandle)", mapping);
+        Assert.DoesNotContain("ElementId", mapping);
+        Assert.DoesNotContain("Nearest", mapping);
+        Assert.DoesNotContain("Geometry(", mapping);
+    }
+
+    [Fact]
+    public void StructuralSequence_RetainsAppendEventsBeforeOwnershipBecomesReadable()
+    {
+        var code = Read("src/AcKrovy.AutoCAD/Infrastructure/RoofPhysical3DHostDiagnostics.cs");
+        Assert.Contains("_nativeEntityEvents.Add((_nativeEventCount, kind, entity.Handle.ToString(), entity.GetType().Name))", code);
+        Assert.Contains("var structuralHandles = _memberBaseline.Concat(current)", code);
+        Assert.Contains("_nativeEntityEvents.Where(item => structuralHandles.Contains(item.Handle))", code);
+        Assert.Contains("STRUCTURAL_NATIVE_SEQUENCE command=", code);
+        var clear = code[code.IndexOf("private void ClearMemberCheckpoint()", StringComparison.Ordinal)..];
+        Assert.Contains("_nativeEntityEvents.Clear()", clear);
+    }
+
     private static string Read(string path)
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);

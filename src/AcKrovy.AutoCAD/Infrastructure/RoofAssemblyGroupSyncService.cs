@@ -5,6 +5,31 @@ namespace AcKrovy.AutoCAD.Infrastructure;
 
 internal static class RoofAssemblyGroupSyncService
 {
+    public static bool TryFinalizeStructuralMembers(Document document, ObjectId ownerId, string? commandName)
+    {
+        // Must remain in CommandEnded's existing lock/undo scope. No deferred repair
+        // and no DB access whatsoever during native undo/redo.
+        if (AcKrovy.Core.Services.LiveGeometryCommandRules.IsUndoRedoCommand(commandName)) return false;
+        for (var pass = 0; pass < 2; pass++)
+        {
+            using (var repair = document.Database.TransactionManager.StartTransaction())
+            {
+                if (!IsCurrent(document.Database, repair, ownerId))
+                {
+                    if (!TrySyncForOwner(document, repair, ownerId)) return false;
+                    repair.Commit();
+                }
+            }
+            using var verify = document.Database.TransactionManager.StartTransaction();
+#if DEBUG
+            RoofPhysical3DHostDiagnostics.OwnerCounts(document.Database, verify,
+                ownerId.Handle.ToString(), "structural-group-finalize-committed:pass=" + pass);
+#endif
+            if (IsCurrent(document.Database, verify, ownerId)) return true;
+        }
+        return false;
+    }
+
     public static bool TryFinalizeRestoredSources(Document document,
         IReadOnlyCollection<ObjectId> ownerIds, string? globalCommandName)
     {

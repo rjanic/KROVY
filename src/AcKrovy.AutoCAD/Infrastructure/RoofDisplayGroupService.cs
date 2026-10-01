@@ -136,29 +136,28 @@ internal static class RoofDisplayGroupService
         RoofPhysical3DHostDiagnostics.OwnerCounts(database, transaction, ownerId.Handle.ToString(), "group-sync-before");
 #endif
         var actual = group.GetAllEntityIds();
-        var plan = RoofAssemblyGroupMembershipRules.PlanCanonicalization(actual, expected);
+        var surplusIndices = RoofAssemblyGroupMembershipRules.SurplusOrForeignMemberIndices(actual, expected);
 
 #if DEBUG
         var editor = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument?.Editor;
         var groupObjectId = group.ObjectId.Handle.ToString();
 #endif
-        foreach (var removeId in plan.RemoveOnce)
+        foreach (var index in surplusIndices.Reverse())
         {
-            group.Remove(removeId);
+            var removeId = actual[index];
+            group.RemoveAt(index);
 #if DEBUG
             RoofGroupMutationDiag.Write(database, editor, name, "remove", groupObjectId, removeId.Handle.ToString(), "ensure-group");
 #endif
         }
 
-        // AutoCAD Group.Append of an ObjectId that is already a member can create a
-        // second membership slot. PlanCanonicalization already omits present ids, but
-        // refresh the presence set immediately before Append so a stale GetAllEntityIds
-        // snapshot used for planning cannot double-insert within this EnsureGroup call.
+        // Remove exact surplus slots rather than Remove(ObjectId): retain the first
+        // expected occurrence and re-read membership before appending missing ids.
         var present = new HashSet<ObjectId>(group.GetAllEntityIds());
 #if DEBUG
         RoofPhysical3DHostDiagnostics.OwnerCounts(database, transaction, ownerId.Handle.ToString(), "group-sync-before-append");
 #endif
-        foreach (var addId in plan.AppendOnce)
+        foreach (var addId in memberIds)
         {
             if (!present.Add(addId))
             {
@@ -171,16 +170,17 @@ internal static class RoofDisplayGroupService
 #endif
         }
 
-        // Collapse any remaining duplicate ObjectId slots before commit/persistence.
+        // Native reattachment can happen around unerase. Verify/collapse exact slots.
         var afterAppend = group.GetAllEntityIds();
         if (RoofAssemblyGroupMembershipRules.CountDuplicates(afterAppend) > 0)
         {
-            var collapse = RoofAssemblyGroupMembershipRules.PlanCanonicalization(
+            var collapse = RoofAssemblyGroupMembershipRules.SurplusOrForeignMemberIndices(
                 afterAppend,
                 expected);
-            foreach (var removeId in collapse.RemoveOnce)
+            foreach (var index in collapse.Reverse())
             {
-                group.Remove(removeId);
+                var removeId = afterAppend[index];
+                group.RemoveAt(index);
 #if DEBUG
                 RoofGroupMutationDiag.Write(
                     database,
@@ -193,6 +193,9 @@ internal static class RoofDisplayGroupService
 #endif
             }
         }
+
+        if (!RoofAssemblyGroupMembershipRules.IsCanonicalMembership(group.GetAllEntityIds(), expected))
+            throw new InvalidOperationException("Roof assembly GROUP is not canonical after synchronization.");
 
         // Native GROUP COPY and prior assembly syncs can leave selectable duplicate
         // groups containing the same roof members. Canonical membership must be unique.

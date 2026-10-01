@@ -884,6 +884,11 @@ internal static class RoofUnsupportedStretchRecoverySnapshotService
 
     internal sealed class SnapshotEntry
     {
+        private readonly HashSet<string> _claimedStructuralHandles = new(StringComparer.OrdinalIgnoreCase);
+
+        public void ClaimStructural(IEnumerable<string> handles) => _claimedStructuralHandles.UnionWith(handles);
+        public bool IsStructuralClaimed(string handle) => _claimedStructuralHandles.Contains(handle);
+
         public SnapshotEntry(ObjectId ownerId, RoofUnsupportedStretchAssemblySnapshotData assembly)
         {
             OwnerId = ownerId;

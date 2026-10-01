@@ -164,7 +164,7 @@ internal static class RoofAutomaticStructuralRafterMaterializationService
             transaction,
             owner,
             ownerReference,
-            plan.Items,
+            RoofStructuralEditRules.ApplyPlan(plan.Items, RoofStructuralEditStateStore.Read(owner, transaction)),
             hipGeometry,
             structuralResolution,
             defaultProfile,
