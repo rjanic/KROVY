@@ -1,4 +1,4 @@
-# Repository instructions for AI agents
+﻿# Repository instructions for AI agents
 
 Before starting a task, read the relevant files in `.ai/`.
 
@@ -26,9 +26,27 @@ Commit and push only after all required verification succeeds. Never create a re
 
 Before prompts that ask Codex to perform substantial work, give the user an explicit model recommendation.
 
+
+## CAD host compatibility contract (normative)
+
+Before changing CAD-host API usage, target frameworks, multi-targeting,
+Compatibility Gate rules, host adapters, or any runtime-sensitive boundary
+between Core and a CAD host, read:
+
+- [docs/architecture/cad-host-compatibility.md](docs/architecture/cad-host-compatibility.md)
+
+Keep Core / Cad.Abstractions / Localization / Infrastructure free of Autodesk,
+BricsCAD, ZWCAD, ODA, and Teigha dependencies. Lifecycle and Core semantics
+must remain host-neutral unless that contract documents an exception.
+
+Do not assume one managed binary spans AutoCAD .NET Framework 4.8, .NET 8,
+and .NET 10. Run Portable Gate for neutral-layer changes; Full Gate when
+CAD host adapter / host-reference changes are in scope.
+
 ## Core project documents
 
 - [docs/geometry/roof-elevation-contract.md](docs/geometry/roof-elevation-contract.md) — Geometrický slovník KROVY v1.0 (normative roof elevation / purlin geometry)
+- [docs/architecture/cad-host-compatibility.md](docs/architecture/cad-host-compatibility.md) - CAD host / runtime compatibility contract (normative)
 - [.ai/architecture.md](.ai/architecture.md)
 - [.ai/cad-abstractions.md](.ai/cad-abstractions.md)
 - [.ai/localization.md](.ai/localization.md)

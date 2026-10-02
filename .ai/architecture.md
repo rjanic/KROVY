@@ -1,4 +1,4 @@
-# Architecture guidance for AI agents
+﻿# Architecture guidance for AI agents
 
 ## Purpose
 
@@ -109,4 +109,4 @@ Localization also depends directly on Core. Core never depends back on any of th
 - `src/AcKrovy.Core.Tests/TimberAnnotationModeTests.cs`
 - `src/AcKrovy.Core.Tests/SettingsTargetedFeatureTests.cs`
 
-See also [cad-abstractions.md](cad-abstractions.md), [localization.md](localization.md), and [testing.md](testing.md).
+See also [cad-abstractions.md](cad-abstractions.md), [localization.md](localization.md), and [testing.md](testing.md). CAD host / runtime targeting: [docs/architecture/cad-host-compatibility.md](../docs/architecture/cad-host-compatibility.md).

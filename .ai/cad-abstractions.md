@@ -1,4 +1,4 @@
-# CAD abstraction guidance for AI agents
+﻿# CAD abstraction guidance for AI agents
 
 ## Purpose
 
@@ -71,4 +71,4 @@ For a future BricsCAD or ZWCAD adapter, retain Core and CAD abstractions unchang
 - `src/AcKrovy.Core.Tests/SettingsTargetedFeatureTests.cs`
 - `scripts/compatibility-gate.ps1`
 
-See [architecture.md](architecture.md) for ownership and dependency rules.
+See [architecture.md](architecture.md) for ownership and dependency rules. CAD host / runtime targeting: [docs/architecture/cad-host-compatibility.md](../docs/architecture/cad-host-compatibility.md).
