@@ -34,7 +34,8 @@ internal static class RoofDisplayErasePreCommandMapService
         RoofGeneratedTimberData? GeneratedData,
         TimberElementData? TimberData,
         RoofPhysical3DGeneratedData? PhysicalData = null,
-        RoofStructuralGeneratedData? StructuralData = null);
+        RoofStructuralGeneratedData? StructuralData = null,
+        RoofStructuralAttachedManualData? StructuralAttachedManualData = null);
 
     internal sealed record SourcePreCommandState(
         ObjectId OwnerId,
@@ -221,6 +222,28 @@ internal static class RoofDisplayErasePreCommandMapService
                             ? structuralTimberData
                             : null,
                         StructuralData: structural.Data);
+                    continue;
+                }
+
+                var structuralManual = RoofStructuralAttachedManualStore.Read(line);
+                if (structuralManual.Data is not null &&
+                    !string.IsNullOrWhiteSpace(structuralManual.Data.RoofOwnerReference) &&
+                    ownerIdsByHandle.TryGetValue(
+                        structuralManual.Data.RoofOwnerReference,
+                        out var structuralManualOwnerId))
+                {
+                    byHandle[handle] = new MappedEntity(
+                        id,
+                        handle,
+                        structuralManual.Data.RoofOwnerReference,
+                        structuralManualOwnerId,
+                        RoofEraseMappedKind.GeneratedTimber,
+                        handle,
+                        null,
+                        ElementDataStore.TryRead(line, transaction, out var structuralManualTimberData)
+                            ? structuralManualTimberData
+                            : null,
+                        StructuralAttachedManualData: structuralManual.Data);
                 }
             }
 

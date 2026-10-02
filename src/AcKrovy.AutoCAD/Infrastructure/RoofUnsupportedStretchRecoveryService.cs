@@ -420,60 +420,51 @@ internal static class RoofUnsupportedStretchRecoveryService
             return RoofUnsupportedStretchRecoveryOutcome.NotApplicable;
         }
 
-        if (!TryProbeAssemblyMembers(
-                database,
-                transaction,
-                entry.Assembly,
-                editor,
-                liveHandle))
-        {
+        // The locked recovery remains the only Plan restore owner. Detect before
+        // restoring: a Plan-only selection need not emit any Solid3d notification.
+        var structuralRecovery = sourceUnchanged &&
+            RoofDefinitionStore.Read(owner).Data?.EditState == RoofEditState.Locked &&
+            HasUnclaimedStructuralPlanChanges(database, transaction, entry.Assembly);
+        if (!TryProbeAssemblyMembers(database, transaction, entry.Assembly, editor,
+                liveHandle, allowErased: structuralRecovery))
             return RoofUnsupportedStretchRecoveryOutcome.Unavailable;
-        }
 
         try
         {
-            if (!TryRestoreTimberLines(
-                    database,
-                    transaction,
-                    entry.Assembly.TimberLines,
-                    editor,
-                    liveHandle) ||
-                !TryRestoreAnnotations(
-                    database,
-                    transaction,
-                    entry.Assembly.Annotations,
-                    editor,
-                    liveHandle) ||
-                !TryEraseUnsnapshotGeneratedDuplicates(
-                    database,
-                    transaction,
-                    ownerId,
-                    entry.Assembly.TimberLines) ||
-                !TryEraseUnsnapshotStructuralDuplicates(
-                    database,
-                    transaction,
-                    ownerId,
-                    entry.Assembly.TimberLines,
-                    editor))
-            {
+            if (!RoofStructuralLockedRecoveryCompletion.TryCompleteStructuralRecovery(structuralRecovery,
+                    restorePlan: () => TryRestoreTimberLines(database, transaction,
+                        entry.Assembly.TimberLines, editor, liveHandle, allowErased: structuralRecovery) &&
+                        (!structuralRecovery || TryEraseUnsnapshotStructuralDuplicates(database, transaction,
+                            ownerId, entry.Assembly.TimberLines, editor, includeManual: true)),
+                    reconcileStructural: () =>
+                    {
+                        if (classification.Geometry is not HipRoofGeometry hip || editor is null) return false;
+                        var input = RoofPolylineExtractor.Extract(owner);
+                        var provenance = RoofBoundaryIdentityProvenanceResolver.Resolve(
+                            input, RoofBoundaryIdentityStore.Read(owner).Data);
+                        var resolution = RoofStructuralEdgeIdentityResolver.Resolve(hip, provenance);
+                        var success = RoofStructuralRafterSolidMaterializationService.TryReconcileInTransaction(
+                            database, transaction, owner, hip, resolution, editor, out var reason);
+#if DEBUG
+                        editor.WriteMessage($"\nROOF_STRUCT_LOCK_RECOVERY owner={liveHandle} plan=restored physical={(success ? "canonical" : reason)} result={(success ? "prepared" : "failed")}\n");
+#endif
+                        return success;
+                    },
+                    restoreAnnotations: () => TryRestoreAnnotations(database, transaction,
+                        entry.Assembly.Annotations, editor, liveHandle, allowErased: structuralRecovery),
+                    finalize: () =>
+                    {
+                        if (!TryEraseUnsnapshotGeneratedDuplicates(database, transaction, ownerId, entry.Assembly.TimberLines) ||
+                            !TryEraseUnsnapshotStructuralDuplicates(database, transaction, ownerId, entry.Assembly.TimberLines, editor))
+                            return false;
+                        if (classification.Geometry is null) return !structuralRecovery;
+                        var edges = RoofPhysical3DLifecycleService.CreateOwnedDisplayEdges(owner, classification.Geometry);
+                        var signature = RoofWireframe.BuildGenerationSignature(edges);
+                        // Rebuild also finalizes GROUP, after physical replacement and annotations.
+                        var rebuilt = RoofDisplayService.Rebuild(database, transaction, ownerId, liveHandle, edges, signature);
+                        return !structuralRecovery || rebuilt;
+                    }))
                 return RoofUnsupportedStretchRecoveryOutcome.HardFailure;
-            }
-
-            // Locked generated tamper recovery must also ensure canonical display.
-            if (classification.Geometry is not null)
-            {
-                var edges = RoofPhysical3DLifecycleService.CreateOwnedDisplayEdges(
-                    owner,
-                    classification.Geometry);
-                var signature = RoofWireframe.BuildGenerationSignature(edges);
-                _ = RoofDisplayService.Rebuild(
-                    database,
-                    transaction,
-                    ownerId,
-                    liveHandle,
-                    edges,
-                    signature);
-            }
         }
 #if DEBUG
         catch (Autodesk.AutoCAD.Runtime.Exception ex)
@@ -696,12 +687,34 @@ internal static class RoofUnsupportedStretchRecoveryService
         }
     }
 
+    private static bool HasUnclaimedStructuralPlanChanges(Database database, Transaction transaction,
+        RoofUnsupportedStretchAssemblySnapshotData assembly)
+    {
+        foreach (var before in assembly.TimberLines)
+        {
+            if (IsClaimedStructural(assembly.RoofSource.OwnerHandle, before.EntityHandle) ||
+                !TryGetEntityByHandle<Line>(database, transaction, before.EntityHandle,
+                    OpenMode.ForRead, out var line, allowErased: true) || line is null)
+                continue;
+            var generated = RoofStructuralGeneratedStore.Read(line).Data;
+            var manual = RoofStructuralAttachedManualStore.Read(line).Data;
+            var role = manual?.SourceRole ?? generated?.StructuralRole;
+            var owner = manual?.RoofOwnerReference ?? generated?.RoofOwnerReference;
+            if (role is null || !RoofStructuralGeneratedLockRules.IsLockProtectedRole(role.Value) ||
+                !string.Equals(owner, assembly.RoofSource.OwnerHandle, StringComparison.OrdinalIgnoreCase)) continue;
+            if (line.IsErased || line.StartPoint.DistanceTo(ToAcad(before.Start)) > 1e-6 ||
+                line.EndPoint.DistanceTo(ToAcad(before.End)) > 1e-6) return true;
+        }
+        return false;
+    }
+
     private static bool TryProbeAssemblyMembers(
         Database database,
         Transaction transaction,
         RoofUnsupportedStretchAssemblySnapshotData assembly,
         Autodesk.AutoCAD.EditorInput.Editor? editor,
-        string ownerHandle)
+        string ownerHandle,
+        bool allowErased = false)
     {
         var metadataStore = new AutoCadTimberElementMetadataStore(transaction);
         foreach (var timber in assembly.TimberLines)
@@ -712,7 +725,8 @@ internal static class RoofUnsupportedStretchRecoveryService
                     timber.EntityHandle,
                     role: "generated-timber",
                     out var timberId,
-                    out var timberResolveReason))
+                    out var timberResolveReason,
+                    allowErased))
             {
 #if DEBUG
                 RoofUnsupportedStretchRecoveryDiag.WriteFallback(
@@ -726,13 +740,13 @@ internal static class RoofUnsupportedStretchRecoveryService
                 return false;
             }
 
-            if (!AutoCadObjectIdAccess.TryGetObject<Entity>(
+            if (!AutoCadObjectIdAccess.TryGetObjectAllowErased<Entity>(
                     transaction,
                     timberId,
                     OpenMode.ForRead,
                     out var timberEntity,
                     database) ||
-                timberEntity is null)
+                timberEntity is null || (!allowErased && timberEntity.IsErased))
             {
 #if DEBUG
                 RoofUnsupportedStretchRecoveryDiag.WriteFallback(
@@ -812,7 +826,8 @@ internal static class RoofUnsupportedStretchRecoveryService
                     annotation.EntityHandle,
                     role: "annotation",
                     out var annotationId,
-                    out var annotationResolveReason))
+                    out var annotationResolveReason,
+                    allowErased))
             {
 #if DEBUG
                 RoofUnsupportedStretchRecoveryDiag.WriteFallback(
@@ -826,13 +841,13 @@ internal static class RoofUnsupportedStretchRecoveryService
                 return false;
             }
 
-            if (!AutoCadObjectIdAccess.TryGetObject<Entity>(
+            if (!AutoCadObjectIdAccess.TryGetObjectAllowErased<Entity>(
                     transaction,
                     annotationId,
                     OpenMode.ForRead,
                     out var entity,
                     database) ||
-                entity is null)
+                entity is null || (!allowErased && entity.IsErased))
             {
 #if DEBUG
                 RoofUnsupportedStretchRecoveryDiag.WriteFallback(
@@ -889,7 +904,8 @@ internal static class RoofUnsupportedStretchRecoveryService
         string handleText,
         string role,
         out ObjectId id,
-        out string reason)
+        out string reason,
+        bool allowErased = false)
     {
         id = ObjectId.Null;
         var missing = role == "annotation" ? "annotation-missing" : "generated-timber-missing";
@@ -912,7 +928,7 @@ internal static class RoofUnsupportedStretchRecoveryService
                 return false;
             }
 
-            if (id.IsErased)
+            if (id.IsErased && !allowErased)
             {
                 reason = erased;
                 return false;
@@ -1052,7 +1068,8 @@ internal static class RoofUnsupportedStretchRecoveryService
         Transaction transaction,
         ObjectId ownerId,
         IReadOnlyList<RoofUnsupportedStretchTimberLineSnapshotData> timberLines,
-        Autodesk.AutoCAD.EditorInput.Editor? editor = null)
+        Autodesk.AutoCAD.EditorInput.Editor? editor = null,
+        bool includeManual = false)
     {
         if (ownerId.IsNull)
         {
@@ -1066,7 +1083,9 @@ internal static class RoofUnsupportedStretchRecoveryService
         foreach (var id in RoofStructuralGeneratedStore.FindByOwner(
                      database,
                      transaction,
-                     ownerHandle))
+                     ownerHandle).Concat(includeManual
+                         ? RoofStructuralAttachedManualStore.FindByOwner(database, transaction, ownerHandle)
+                         : Array.Empty<ObjectId>()).Distinct())
         {
             if (!AutoCadObjectIdAccess.TryGetObject<Line>(
                     transaction,
@@ -1087,13 +1106,12 @@ internal static class RoofUnsupportedStretchRecoveryService
             }
 
             var structural = RoofStructuralGeneratedStore.Read(line);
-            if (structural.Data is null ||
-                !RoofStructuralGeneratedLockRules.IsLockProtectedRole(
-                    structural.Data.StructuralRole) ||
-                !string.Equals(
-                    structural.Data.RoofOwnerReference,
-                    ownerHandle,
-                    StringComparison.OrdinalIgnoreCase))
+            var manual = RoofStructuralAttachedManualStore.Read(line).Data;
+            var role = includeManual ? manual?.SourceRole ?? structural.Data?.StructuralRole : structural.Data?.StructuralRole;
+            var sourceOwner = includeManual ? manual?.RoofOwnerReference ?? structural.Data?.RoofOwnerReference : structural.Data?.RoofOwnerReference;
+            if (role is null || !RoofStructuralGeneratedLockRules.IsLockProtectedRole(role.Value) ||
+                (!includeManual && manual is not null) ||
+                !string.Equals(sourceOwner, ownerHandle, StringComparison.OrdinalIgnoreCase))
             {
                 continue;
             }
@@ -1105,7 +1123,7 @@ internal static class RoofUnsupportedStretchRecoveryService
                 "break-fragment",
                 owner: ownerHandle,
                 handle: handle,
-                kind: structural.Data.StructuralRole.ToString());
+                kind: role.Value.ToString());
 #endif
             ElementLabelService.DeleteForSourceHandle(database, transaction, handle);
             SlopeAnnotationService.DeleteForSourceHandle(database, transaction, handle);

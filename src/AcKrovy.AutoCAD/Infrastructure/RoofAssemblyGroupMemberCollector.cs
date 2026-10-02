@@ -118,6 +118,19 @@ internal static class RoofAssemblyGroupMemberCollector
             attachedManualCount++;
         }
 
+        foreach (var id in RoofStructuralAttachedManualStore.FindByOwner(
+                     database, transaction, ownerReference))
+        {
+            if (!TryAddTimberLine(database, transaction, id, members, timberSourceHandles))
+            {
+                continue;
+            }
+
+            // Counted with structural-generated family for assembly cardinality,
+            // not ordinary AttachedManual Face/Station children.
+            structuralGeneratedCount++;
+        }
+
         // Physical timber solids share the existing roof owner and their exact
         // logical member key. They are assembly children, but not timber source
         // lines and must never enter annotation source-handle matching.

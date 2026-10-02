@@ -979,6 +979,10 @@ internal static class RoofMirrorCloneDetachService
     /// existed and were NOT appended). Pre-existing source annotations are therefore never
     /// touched, and no midpoint/nearest heuristic is used.
     /// </summary>
+    internal static void DeleteStructuralMirrorCloneAnnotations(
+        Document document, Transaction transaction, IReadOnlyCollection<ObjectId> appendedAnnotationIds,
+        string sourceHandle) => DeleteMirroredCloneAnnotations(document, transaction, appendedAnnotationIds, sourceHandle);
+
     private static void DeleteMirroredCloneAnnotations(
         Document document,
         Transaction transaction,

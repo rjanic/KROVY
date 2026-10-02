@@ -419,37 +419,27 @@ internal static class RoofOrdinaryRafterSolidMaterializationService
         bool structuralReconcilePending = false, bool includeAttachedManual = true)
     {
         var ownerReference = owner.Handle.ToString();
-        if (geometry is not HipRoofGeometry hip)
-        {
-            RoofPhysical3DMaterializationService.EraseOrdinaryRafterSolids(
-                database, transaction, ownerReference);
-            return;
-        }
-
         var elevation = RoofPhysicalElevationStore.Read(owner).Data;
         var footprint = RoofFootprintValidator.Validate(RoofPolylineExtractor.Extract(owner));
         if (elevation?.Physical3DEnabled != true ||
-            !footprint.IsValid || footprint.Footprint is null)
+            !footprint.IsValid || footprint.Footprint is null ||
+            !TryResolveOrdinaryPhysicalBuildContext(
+                database, transaction, owner, geometry, layout, recipe,
+                structuralReconcilePending, out var context))
         {
             RoofPhysical3DMaterializationService.EraseOrdinaryRafterSolids(
                 database, transaction, ownerReference);
             return;
         }
 
-        var faceLayout = RoofFaceRafterLayoutService.Create(
-            hip.Topology, recipe.MaximumSpacingMm);
-        var structuralSources = ResolveStructuralSources(
-            database, transaction, owner, hip, structuralReconcilePending);
         var failureReason = "InvalidFaceLayoutOrMemberCount";
-        if (structuralSources is null ||
-            !faceLayout.IsValid || faceLayout.Layout is null ||
-            !RoofAutomaticRafterPhysicalBuilder.TryBuild(
-                ownerReference, hip.Topology, faceLayout.Layout, layout,
+        if (!RoofAutomaticRafterPhysicalBuilder.TryBuild(
+                ownerReference, context.Topology, context.FaceLayout, layout,
                 elevation.ResolvedEaveRelativeElevationMm,
                 recipe.WidthMm, recipe.HeightMm,
                 new RoofAutomaticRafterPhysicalSettings(
                     elevation.LowerEndCutMode,
-                    elevation.RidgeJoinMode), replayPlan, structuralSources,
+                    elevation.RidgeJoinMode), replayPlan, context.StructuralSources,
                 out var model, out failureReason) || model is null ||
             model.Members.Count != replayPlan.MaterializedCount)
         {
@@ -460,8 +450,11 @@ internal static class RoofOrdinaryRafterSolidMaterializationService
             throw new InvalidOperationException(
                 "Ordinary physical rafter model is inconsistent: GeneratedMemberKeyMismatch.");
 
-        if (includeAttachedManual && (!TryAppendAttachedModel(database, transaction, owner, hip, faceLayout.Layout,
-                elevation, structuralSources, model, out model, persistAttachedIdentity: true) || model is null))
+        if (includeAttachedManual &&
+            context.HipGeometry is { } attachedHip &&
+            (!TryAppendAttachedModel(database, transaction, owner, attachedHip,
+                context.FaceLayout, elevation, context.StructuralSources, model,
+                out model, persistAttachedIdentity: true) || model is null))
             throw new InvalidOperationException("AttachedManual physical model is inconsistent.");
 
         // The caller owns the transaction. A failed solid or metadata write aborts
@@ -492,6 +485,68 @@ internal static class RoofOrdinaryRafterSolidMaterializationService
                     signature));
         }
     }
+
+    /// <summary>
+    /// Explicit ordinary Physical3D support: Hip (existing Face0-flattened) and
+    /// SimpleGable (Face0+Face1 ordinary only). Asymmetric/Monopitch stay closed.
+    /// </summary>
+    private static bool TryResolveOrdinaryPhysicalBuildContext(
+        Database database,
+        Transaction transaction,
+        Polyline owner,
+        IRoofGeometry geometry,
+        RoofRafterLayout layout,
+        RoofRafterGenerationRecipe recipe,
+        bool structuralReconcilePending,
+        out OrdinaryPhysicalBuildContext context)
+    {
+        context = null!;
+        if (geometry is HipRoofGeometry hip)
+        {
+            var faceLayout = RoofFaceRafterLayoutService.Create(
+                hip.Topology, recipe.MaximumSpacingMm);
+            var structuralSources = ResolveStructuralSources(
+                database, transaction, owner, hip, structuralReconcilePending);
+            if (structuralSources is null ||
+                !faceLayout.IsValid || faceLayout.Layout is null)
+            {
+                return false;
+            }
+
+            context = new OrdinaryPhysicalBuildContext(
+                hip.Topology, faceLayout.Layout, structuralSources, hip);
+            return true;
+        }
+
+        if (geometry is SimpleGableRoofGeometry
+            {
+                Kind: RoofKind.SimpleGable
+            } gable)
+        {
+            if (!SimpleGableRoofTopologyAdapter.TryCreate(
+                    gable, out var topology, out _) ||
+                !SimpleGableOrdinaryRafterPhysicalAdapter.TryCreateFaceLayout(
+                    gable, topology, layout, out var faceLayout, out _))
+            {
+                return false;
+            }
+
+            // Ordinary SimpleGable Physical3D never consumes Structural Hip/Valley.
+            context = new OrdinaryPhysicalBuildContext(
+                topology, faceLayout,
+                Array.Empty<RoofStructuralRafterTrimSource>(),
+                HipGeometry: null);
+            return true;
+        }
+
+        return false;
+    }
+
+    private sealed record OrdinaryPhysicalBuildContext(
+        RoofTopology Topology,
+        RoofFaceRafterLayout FaceLayout,
+        IReadOnlyList<RoofStructuralRafterTrimSource> StructuralSources,
+        HipRoofGeometry? HipGeometry);
 
     public static bool TryReconcileAttachedAfterReplay(Database database, Transaction transaction,
         Polyline owner, IRoofGeometry geometry)

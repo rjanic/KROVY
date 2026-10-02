@@ -26,23 +26,44 @@ public sealed class RoofStructuralFoundationSourceContractTests
         Assert.Contains("RoofDisplayErasePreCommandMapService.TryResolve", router);
         Assert.Contains("mapped.StructuralData", router);
         Assert.Contains("mapped.PhysicalData", router);
+        Assert.Contains("mapped.StructuralAttachedManualData", router);
         Assert.Contains("StructuralData: structural.Data", Read("RoofDisplayErasePreCommandMapService"));
+        Assert.Contains("StructuralAttachedManualData: structuralManual.Data", Read("RoofDisplayErasePreCommandMapService"));
+        Assert.Contains("TryConvertCloneToAttachedManual", router);
+        Assert.Contains("TryEnsureManualCloneIdentity", router);
+        Assert.Contains("WriteReplacingGenerated", router);
+        Assert.Contains("structural-manual-convert-", router);
+        Assert.Contains("GeneratedIdentityNotCleared", router);
+        Assert.Contains("manualizedCloneIds", router);
+        Assert.Contains("VerifyCommitted(document, ownerId, commandName, manualizedCloneIds)", router);
+        Assert.Contains("!item.Id.IsErased", router);
+        Assert.Contains("IsConsumedWholeRoofClone", router);
+        Assert.Contains("RoofStructuralAttachedManualStore.Read", router);
         Assert.Contains("Ordinary Generated/AttachedManual rafters are intentionally ignored", router);
         Assert.Contains("RoofStructuralEditRules.IsStructuralHipValleyRole", router);
         Assert.DoesNotContain("RoofGeneratedTimberStore.Read(entity).Data?.MemberKind == RoofGeneratedTimberKind.Rafter", router);
+        Assert.DoesNotContain("RoofGeneratedTimberKind.Rafter", router);
+        Assert.DoesNotContain("RoofAttachedManualTimberStore", router);
+        Assert.True(RoofGeneratedMemberEditCommandRules.IsAssemblySnapshotCommand("COPY"));
+        Assert.True(RoofGeneratedMemberEditCommandRules.IsAssemblySnapshotCommand("MIRROR"));
+        Assert.False(RoofGeneratedMemberEditCommandRules.IsAssemblySnapshotCommand("ARRAY"));
+        Assert.False(RoofGeneratedMemberEditCommandRules.IsAssemblySnapshotCommand("ARRAYRECT"));
+        Assert.True(RoofStructuralEditRules.RequiresAssemblySnapshotCapture("ARRAY"));
+        Assert.Contains("RequiresAssemblySnapshotCapture(e.GlobalCommandName)", tracker);
+        Assert.Contains("RequiresAssemblySnapshotCapture(globalCommandName)", Read("RoofUnsupportedStretchRecoverySnapshotService"));
     }
 
     [Fact]
     public void LockedPlan2DStretch_DefersToLockedGeneratedMemberGuardWithoutStructuralGroupFailPath()
     {
         var rules = RoofUxSourceContractText.Read("src", "AcKrovy.Core", "Services", "Roofs", "RoofStructuralEditRules.cs");
-        Assert.Contains("existing Locked", rules);
-        Assert.Contains("generated-member guard is the sole restore owner", rules);
+        Assert.Contains("Locked Plan2D reject/geometry families", rules);
+        Assert.Contains("Locked generated-member guard owns restore", rules);
         Assert.Contains("editState == RoofEditState.Locked", rules);
         Assert.Contains("RoofStructuralNativeAction.Unclaimed", rules);
         Assert.Equal(RoofStructuralNativeAction.Unclaimed,
             RoofStructuralEditRules.Classify("STRETCH", false, RoofEditState.Locked));
-        Assert.Equal(RoofStructuralNativeAction.RestorePlan,
+        Assert.Equal(RoofStructuralNativeAction.AcceptPlan,
             RoofStructuralEditRules.Classify("STRETCH", false, RoofEditState.Unlocked));
         var manual = Read("RoofGeneratedMemberManualEditService");
         Assert.Contains("locked-generated-members-only", manual);
@@ -56,27 +77,33 @@ public sealed class RoofStructuralFoundationSourceContractTests
     }
 
     [Fact]
-    public void UnlockedRestorePlan_RebuildsDisplayBeforeGroupSyncAndForcesPlan2DZ0()
+    public void UnlockedPlanGeometryAccept_PersistsAbsolutePlanAndRebuildsDisplayBeforeGroupSync()
     {
         var router = Read("RoofStructuralNativeEditService");
-        var restore = router.IndexOf("// RestorePlan / RejectClone: keep the canonical Plan2D source.", StringComparison.Ordinal);
-        var z0Start = router.IndexOf("line.StartPoint = new(before.Start.X, before.Start.Y, 0);", restore, StringComparison.Ordinal);
-        var z0End = router.IndexOf("line.EndPoint = new(before.End.X, before.End.Y, 0);", z0Start, StringComparison.Ordinal);
-        var physical = router.IndexOf("RoofStructuralRafterSolidMaterializationService.TryReconcileInTransaction(", z0End, StringComparison.Ordinal);
+        Assert.Contains("TryAcceptPlanGeometry", router);
+        Assert.Contains("IsPlanGeometryAcceptCommand(commandName)", router);
+        var accept = router.IndexOf("TryAcceptPlanGeometry(state, item.LogicalKey", StringComparison.Ordinal);
+        var z0 = router.IndexOf("line.StartPoint = new(line.StartPoint.X, line.StartPoint.Y, 0);", accept, StringComparison.Ordinal);
+        var physical = router.IndexOf("RoofStructuralRafterSolidMaterializationService.TryReconcileInTransaction(", z0, StringComparison.Ordinal);
         var display = router.IndexOf("RoofDisplayService.Rebuild(", physical, StringComparison.Ordinal);
         var group = router.IndexOf("TrySyncForOwner(document, transaction, ownerId)", display, StringComparison.Ordinal);
-        Assert.True(restore >= 0 && z0Start > restore && z0End > z0Start && physical > z0End && display > physical && group > display);
+        Assert.True(accept >= 0 && z0 > accept && physical > z0 && display > physical && group > display);
         Assert.Contains("syncAssemblyGroup: false", router);
-        Assert.Contains("CreateOwnedDisplayEdges(owner, geometry)", router);
-        Assert.Contains("crossing selection", router);
-        Assert.Equal(RoofStructuralNativeAction.RestorePlan,
+        Assert.Equal(RoofStructuralNativeAction.AcceptPlan,
             RoofStructuralEditRules.Classify("STRETCH", false, RoofEditState.Unlocked));
+        Assert.Equal(RoofStructuralNativeAction.AcceptPlan,
+            RoofStructuralEditRules.Classify("TRIM", false, RoofEditState.Unlocked));
+        Assert.Equal(RoofStructuralNativeAction.RestorePlan,
+            RoofStructuralEditRules.Classify("ROTATE", false, RoofEditState.Unlocked));
+        Assert.Equal(RoofStructuralNativeAction.RestorePlan,
+            RoofStructuralEditRules.Classify("SCALE", false, RoofEditState.Unlocked));
         Assert.Equal(RoofStructuralNativeAction.Unclaimed,
             RoofStructuralEditRules.Classify("STRETCH", false, RoofEditState.Locked));
         Assert.Equal(RoofStructuralNativeAction.AcceptPlan,
             RoofStructuralEditRules.Classify("MOVE", false, RoofEditState.Unlocked));
         Assert.Equal(RoofStructuralNativeAction.AcceptPlan,
             RoofStructuralEditRules.Classify("ERASE", false, RoofEditState.Unlocked));
+        Assert.Contains("automaticItem.Segment3D", router);
     }
 
     [Fact]
@@ -90,6 +117,9 @@ public sealed class RoofStructuralFoundationSourceContractTests
         Assert.Contains("RoofGeneratedRafterCopyOwnershipRehydrationService.Process", ordinary);
         Assert.Contains("RoofMirrorCloneDetachService.Process", ordinary);
         Assert.Contains("TryRestoreStructuralHipValleyMembersOnly", ordinary);
+        Assert.Contains("RoofStructuralAttachedManualStore.Read(entity).Data is not null", ordinary);
+        Assert.Contains("IsManualPhysicalKey(manualPhysical.StructuralId)", ordinary);
+        Assert.Contains("IsManualPhysicalKey(physical.StructuralId)", ordinary);
         var router = Read("RoofStructuralNativeEditService");
         Assert.DoesNotContain("RoofGeneratedTimberKind.Rafter", router);
         Assert.DoesNotContain("RoofAttachedManualTimberStore", router);
@@ -114,6 +144,7 @@ public sealed class RoofStructuralFoundationSourceContractTests
         Assert.True(store < physical && physical < commit && commit < claim && claim < finalize);
         Assert.Contains("Suppressed = true", router);
         Assert.Contains("TryAcceptMove", router);
+        Assert.Contains("TryAcceptPlanGeometry", router);
         Assert.Contains("line.Erase(false)", router);
         Assert.Contains("RejectClone", router);
         Assert.Contains("eraseCloneIds", router);
@@ -138,9 +169,11 @@ public sealed class RoofStructuralFoundationSourceContractTests
         Assert.DoesNotContain("TransformBy", router);
         var physical = Read("RoofStructuralRafterSolidMaterializationService");
         Assert.Contains("RoofStructuralRafterPolyhedronService.TryBuild(request", physical);
-        Assert.Contains("RoofStructuralEditRules.Place(body", physical);
+        Assert.Contains("RoofStructuralEditRules.Place(body, canonicalItem.Segment3D, edit)", physical);
         Assert.Contains("EraseStructuralRafterSolids", physical);
         Assert.Contains("DetachMembersBeforeErase", physical);
+        Assert.Contains("TryMatchRigidPlanCopy", physical);
+        Assert.Contains("RoofStructuralGeneratedStore.FindByOwner", physical);
         Assert.Contains("!physicalKeys.Add(data.StructuralId)", router);
         Assert.Contains("physicalKeys.SetEquals(keys)", router);
     }
@@ -193,7 +226,13 @@ public sealed class RoofStructuralFoundationSourceContractTests
     {
         var whole = Read("RoofWholeRoofCopyRebindService");
         Assert.Contains("CollectAppendedStructuralClones", whole);
+        Assert.Contains("CollectAppendedStructuralAttachedManualClones", whole);
+        Assert.Contains("TryRebindStructuralAttachedManualClone", whole);
         Assert.Contains("RoofAutomaticStructuralRafterMaterializationService.MaterializeInTransaction", whole);
+        var rebindManual = whole.IndexOf("TryRebindStructuralAttachedManualClone(", StringComparison.Ordinal);
+        var materialize = whole.IndexOf(
+            "RoofAutomaticStructuralRafterMaterializationService.MaterializeInTransaction(", StringComparison.Ordinal);
+        Assert.True(rebindManual >= 0 && materialize > rebindManual);
         var tracker = Read("LiveGeometrySynchronizationService");
         var wholeIdx = tracker.IndexOf("RoofWholeRoofCopyRebindService.Process(", StringComparison.Ordinal);
         var structuralIdx = tracker.IndexOf("RoofStructuralNativeEditService.Process(", wholeIdx, StringComparison.Ordinal);

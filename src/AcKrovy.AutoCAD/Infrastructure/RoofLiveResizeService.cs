@@ -882,7 +882,10 @@ internal static class RoofLiveResizeService
         var structuralIds = RoofStructuralGeneratedStore.FindByOwner(
             database,
             transaction,
-            ownerHandle);
+            ownerHandle)
+            .Concat(RoofDefinitionStore.Read(owner).Data?.EditState == RoofEditState.Locked
+                ? RoofStructuralAttachedManualStore.FindByOwner(database, transaction, ownerHandle)
+                : Array.Empty<ObjectId>()).Distinct().ToArray();
         var generatedIdSet = new HashSet<ObjectId>(generatedIds);
         generatedIdSet.UnionWith(structuralIds);
         var timberSourceHandles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -924,9 +927,10 @@ internal static class RoofLiveResizeService
             }
 
             var structural = RoofStructuralGeneratedStore.Read(structuralEntity);
-            if (structural.Data is null ||
+            var structuralManual = RoofStructuralAttachedManualStore.Read(structuralEntity).Data;
+            if (structuralManual is null && (structural.Data is null ||
                 !RoofStructuralGeneratedLockRules.IsLockProtectedRole(
-                    structural.Data.StructuralRole))
+                    structural.Data.StructuralRole)))
             {
                 continue;
             }
@@ -974,6 +978,8 @@ internal static class RoofLiveResizeService
         out ObjectId ownerId)
     {
         ownerId = ObjectId.Null;
+        if (TryResolveLockedStructuralManualOwner(database, transaction, entity, out ownerId))
+            return true;
         var attached = RoofAttachedManualTimberStore.Read(entity);
         if (attached.Data is not null &&
             !string.IsNullOrWhiteSpace(attached.Data.RoofOwnerReference) &&
@@ -1045,6 +1051,8 @@ internal static class RoofLiveResizeService
             return false;
         }
 
+        if (TryResolveLockedStructuralManualOwner(database, transaction, sourceEntity, out ownerId))
+            return true;
         var sourceAttached = RoofAttachedManualTimberStore.Read(sourceEntity);
         if (sourceAttached.Data is not null &&
                !string.IsNullOrWhiteSpace(sourceAttached.Data.RoofOwnerReference) &&
@@ -1138,6 +1146,20 @@ internal static class RoofLiveResizeService
         }
 
         return false;
+    }
+
+    private static bool TryResolveLockedStructuralManualOwner(Database database, Transaction transaction,
+        Entity entity, out ObjectId ownerId)
+    {
+        ownerId = ObjectId.Null;
+        var manual = RoofStructuralAttachedManualStore.Read(entity).Data;
+        if (manual is null || !RoofStructuralGeneratedLockRules.IsLockProtectedRole(manual.SourceRole) ||
+            !TryResolveHandleToOwnerPolyline(database, transaction, manual.RoofOwnerReference, out var resolved) ||
+            !AutoCadObjectIdAccess.TryGetObject<Polyline>(transaction, resolved, OpenMode.ForRead,
+                out var owner, database) || owner is null ||
+            RoofDefinitionStore.Read(owner).Data?.EditState != RoofEditState.Locked) return false;
+        ownerId = resolved;
+        return true;
     }
 
     private static bool TryResolveHandleToOwnerPolyline(

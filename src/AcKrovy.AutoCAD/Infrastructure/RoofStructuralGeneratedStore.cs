@@ -21,6 +21,13 @@ internal static class RoofStructuralGeneratedStore
         ArgumentNullException.ThrowIfNull(entity);
         try
         {
+            if (entity.XData is { } residentXData)
+            {
+                var resident = ExtractApplicationSection(residentXData, RegAppName);
+                return resident is null
+                    ? RoofStructuralGeneratedStoreReadResult.Missing
+                    : DecodePayload(resident);
+            }
             using var xdata = entity.GetXDataForApplication(RegAppName);
             return xdata is null
                 ? RoofStructuralGeneratedStoreReadResult.Missing
@@ -166,6 +173,23 @@ internal static class RoofStructuralGeneratedStore
         }
 
         return matches;
+    }
+
+    private static TypedValue[]? ExtractApplicationSection(ResultBuffer? xdata, string regAppName)
+    {
+        if (xdata is null) return null;
+        var values = xdata.AsArray();
+        var start = -1;
+        for (var i = 0; i < values.Length; i++)
+        {
+            if (values[i].TypeCode != DxfRegAppNameCode) continue;
+            var name = Convert.ToString(values[i].Value, CultureInfo.InvariantCulture);
+            if (start >= 0)
+                return values[start..i];
+            if (string.Equals(name, regAppName, StringComparison.OrdinalIgnoreCase))
+                start = i;
+        }
+        return start >= 0 ? values[start..] : null;
     }
 
     public static IReadOnlyList<TypedValue> BuildSection(

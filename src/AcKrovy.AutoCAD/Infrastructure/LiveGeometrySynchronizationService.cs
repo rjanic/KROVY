@@ -850,7 +850,7 @@ internal static class LiveGeometrySynchronizationService
             using (_erasedSourceHandles.Suppress())
             {
                 var structuralClaimedIds = RoofStructuralNativeEditService.Process(
-                    _document, globalCommandName, ids, erasedSourceHandles, appendedTimberIds);
+                    _document, globalCommandName, ids, erasedSourceHandles, appendedTimberIds, appendedAnnotationIds);
                 ids = ids.Where(id => !structuralClaimedIds.Contains(id)).ToArray();
                 appendedTimberIds = appendedTimberIds.Where(id => !structuralClaimedIds.Contains(id)).ToArray();
                 modifiedFramedLabelIds = modifiedFramedLabelIds.Where(id => !structuralClaimedIds.Contains(id)).ToArray();
@@ -1031,6 +1031,15 @@ internal static class LiveGeometrySynchronizationService
                     foreach (var id in nativeAdded.Concat(modifiedIds))
                     {
                         if (id.IsNull || id.IsErased || probe.GetObject(id, OpenMode.ForRead) is not Entity entity) continue;
+                        // Structural AttachedManual was claimed earlier; never route through
+                        // ordinary native-member clone recovery (that path restores/erases
+                        // Generated Hip/Valley snapshots and would destroy Manual children).
+                        if (entity is Line && RoofStructuralAttachedManualStore.Read(entity).Data is not null)
+                            continue;
+                        if (entity is Solid3d &&
+                            RoofPhysical3DGeneratedStore.Read(entity).Data is { Role: RoofPhysical3DGeneratedRole.StructuralRafterSolid } manualPhysical &&
+                            RoofStructuralAttachedManualDataRules.IsManualPhysicalKey(manualPhysical.StructuralId))
+                            continue;
                         var owner = RoofGeneratedTimberStore.Read(entity).Data?.RoofOwnerReference ??
                             RoofAttachedManualTimberStore.Read(entity).Data?.RoofOwnerReference ??
                             RoofPhysical3DGeneratedStore.Read(entity).Data?.RoofOwnerReference ??
@@ -1213,12 +1222,26 @@ internal static class LiveGeometrySynchronizationService
                                 _document.Database, transaction, owner, geometry,
                                 changedKeys.GetValueOrDefault(reference)?.ToArray() ?? Array.Empty<string>(), collateral))
                             throw new InvalidOperationException("Native member physical reconciliation failed.");
-                        var disposable = snapshot.GetDerivedClones().Concat(collateral).Concat(nativeAdded).Distinct().Where(id => !id.IsErased &&
-                            !RoofGeneratedCopyPreCommandSnapshotService.IsConsumedWholeRoofClone(id.Handle.ToString()) &&
-                            transaction.GetObject(id, OpenMode.ForRead) is Entity entity &&
-                            (RoofPhysical3DGeneratedStore.Read(entity).Data?.RoofOwnerReference ??
-                             RoofStructuralGeneratedStore.Read(entity).Data?.RoofOwnerReference ??
-                             RoofDisplayStore.Read(entity).OwnerReference) == reference).ToArray();
+                        var disposable = snapshot.GetDerivedClones().Concat(collateral).Concat(nativeAdded).Distinct().Where(id =>
+                        {
+                            if (id.IsErased ||
+                                RoofGeneratedCopyPreCommandSnapshotService.IsConsumedWholeRoofClone(id.Handle.ToString()) ||
+                                transaction.GetObject(id, OpenMode.ForRead) is not Entity entity)
+                                return false;
+                            // Structural AttachedManual Plans/solids are claimed earlier and
+                            // must not be erased as ordinary native-member disposable clones.
+                            if (entity is Line && RoofStructuralAttachedManualStore.Read(entity).Data is not null)
+                                return false;
+                            var physical = RoofPhysical3DGeneratedStore.Read(entity).Data;
+                            if (physical is not null &&
+                                physical.Role == RoofPhysical3DGeneratedRole.StructuralRafterSolid &&
+                                RoofStructuralAttachedManualDataRules.IsManualPhysicalKey(physical.StructuralId))
+                                return false;
+                            var ownerReference = physical?.RoofOwnerReference ??
+                                RoofStructuralGeneratedStore.Read(entity).Data?.RoofOwnerReference ??
+                                RoofDisplayStore.Read(entity).OwnerReference;
+                            return ownerReference == reference;
+                        }).ToArray();
                         _ = RoofAssemblyGroupSyncService.DetachMembersBeforeErase(_document.Database, transaction, owner.ObjectId, disposable);
                         foreach (var id in disposable) ((Entity)transaction.GetObject(id, OpenMode.ForWrite)).Erase();
                         var otherPhysical = modifiedIds.Where(id => !id.IsNull && !id.IsErased &&
@@ -1276,6 +1299,12 @@ internal static class LiveGeometrySynchronizationService
             foreach (var id in nativeAdded)
             {
                 if (id.IsNull || id.IsErased || transaction.GetObject(id, OpenMode.ForRead) is not Entity entity) continue;
+                if (entity is Line && RoofStructuralAttachedManualStore.Read(entity).Data is not null)
+                    continue;
+                if (entity is Solid3d &&
+                    RoofPhysical3DGeneratedStore.Read(entity).Data is { Role: RoofPhysical3DGeneratedRole.StructuralRafterSolid } manualPhysical &&
+                    RoofStructuralAttachedManualDataRules.IsManualPhysicalKey(manualPhysical.StructuralId))
+                    continue;
                 var reference = RoofGeneratedTimberStore.Read(entity).Data?.RoofOwnerReference ??
                     RoofAttachedManualTimberStore.Read(entity).Data?.RoofOwnerReference ??
                     RoofPhysical3DGeneratedStore.Read(entity).Data?.RoofOwnerReference ??

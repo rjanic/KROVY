@@ -37,6 +37,11 @@ public sealed class RoofStructuralRafterSolidSourceContractTests
         Assert.Contains("combinedPhysicalTotal=", audit);
         Assert.Contains("uniqueKeys=", audit);
         Assert.Contains("STRUCTURAL_SOLID phase=", audit);
+        Assert.Contains("placementMode=", audit);
+        Assert.Contains("placementPayload=", audit);
+        Assert.Contains("metadataValid=", audit);
+        Assert.Contains("parts[4] == \"Plan\"", audit);
+        Assert.Contains("parts[4] == \"Automatic\"", audit);
         Assert.Contains("resolvedHeightMm=", audit);
         Assert.Contains("structuralKey=", audit);
         Assert.Contains("STRUCTURAL_REFERENCE phase=", audit);
@@ -50,13 +55,17 @@ public sealed class RoofStructuralRafterSolidSourceContractTests
         var structural = Read("RoofAutomaticStructuralRafterMaterializationService.cs");
         var ordinary = Read("RoofOrdinaryRafterSolidMaterializationService.cs");
         Assert.Contains("RoofStructuralRafterPolyhedronService.TryBuild", adapter);
+        Assert.Contains("structuralReconcilePending: true", adapter);
+        Assert.Contains("RoofStructuralManualPlacementRules.TryBuildPrism", adapter);
         Assert.Contains("RoofOrdinaryRafterSolidMaterializationService.TryBuildExistingModelInTransaction", adapter);
         Assert.Contains("RoofStructuralGeneratedStore.FindByOwner", adapter);
         Assert.Contains("RoofPhysical3DGeneratedRole.StructuralRafterSolid", adapter);
-        Assert.Contains("key.ToString()", adapter);
+        Assert.Contains("edge.StructuralIdentity.ToString()", adapter);
+        Assert.Contains("RoofStructuralAttachedManualIdentityRules.PhysicalKey", adapter);
+        Assert.Contains("IsManualPhysicalKey", adapter);
         Assert.Contains("new Solid3d()", adapter);
         Assert.Contains("BooleanOperationType.BoolUnite", adapter);
-        Assert.Contains("model.Geometry.Role == RoofStructuralRole.Hip ? 1 : 2", adapter);
+        Assert.Contains("model.Geometry.Role == RoofStructuralRole.Hip && expectedPrisms != 1", adapter);
         Assert.Contains("if (halves.Count == 2)", adapter);
         Assert.Contains("RoofStructuralRafterSolidMaterializationService.TryReconcileInTransaction", structural);
         Assert.Contains("RoofPhysicalElevationRules.ToState", structural);
@@ -74,5 +83,8 @@ public sealed class RoofStructuralRafterSolidSourceContractTests
         Assert.Contains("model.RoofEnvelopeClipPlanes", adapter);
         Assert.Contains("if (model.UpperNodeMiterPlane is null)", adapter);
         Assert.Contains("model.EaveClipPlanes", adapter);
+        // Ridge-side Plan override clears miter; prior sequence must not force-unwrap null.
+        Assert.DoesNotContain("UpperNodeMiterPlane!", adapter);
+        Assert.Contains("if (model.UpperNodeMiterPlane is { } priorMiter)", adapter);
     }
 }

@@ -14,7 +14,8 @@ public sealed record RoofRafterCreationRequest(
     RidgeJoinMode RidgeJoinMode = RidgeJoinMode.Meet,
     double StructuralWidthMm = RoofStructuralPhysicalSettings.DefaultWidthMm,
     RoofStructuralHeightMode StructuralHeightMode = RoofStructuralHeightMode.Automatic,
-    double StructuralExplicitHeightMm = 0d)
+    double StructuralExplicitHeightMm = 0d,
+    bool? Physical3DEnabled = null)
 {
     public RoofRafterPreferences ToPreferences() =>
         new(WidthMm, HeightMm, MaximumSpacingMm, Material);

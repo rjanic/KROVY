@@ -65,6 +65,14 @@ public partial class RoofRafterWindow : Window
         MaximumSpacingTextBox.Text = FormatInput(preferences.MaximumSpacingMm);
         StructuralSection.Visibility = geometry is HipRoofGeometry
             ? Visibility.Visible : Visibility.Collapsed;
+        Physical3DSection.Visibility =
+            geometry is HipRoofGeometry ||
+            geometry is SimpleGableRoofGeometry { Kind: RoofKind.SimpleGable }
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+        // Absent store => OFF (MissingStoreDefault). New SimpleGable create seeds ON.
+        Physical3DEnabledCheckBox.IsChecked =
+            structuralSettings?.Physical3DEnabled == true;
         StructuralWidthTextBox.Text = FormatInput(
             structuralSettings?.StructuralWidthMm ??
                 RoofStructuralPhysicalSettings.DefaultWidthMm);
@@ -305,6 +313,9 @@ public partial class RoofRafterWindow : Window
             StructuralWidthMm = structuralWidth,
             StructuralHeightMode = structuralHeightMode,
             StructuralExplicitHeightMm = explicitHeight,
+            Physical3DEnabled = Physical3DSection.Visibility == Visibility.Visible
+                ? Physical3DEnabledCheckBox.IsChecked == true
+                : null,
         };
         DialogResult = true;
     }

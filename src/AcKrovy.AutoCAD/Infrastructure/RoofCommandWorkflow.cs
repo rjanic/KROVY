@@ -538,8 +538,31 @@ internal static class RoofCommandWorkflow
             }
 
             RoofDefinitionStore.Write(owner, transaction, data);
+            // New SimpleGable create seeds ordinary Physical3DEnabled=true to match
+            // Hip create convention. Existing drawings without a store stay false via
+            // MissingStoreDefault and are never rewritten on load.
+            if (elevationState is null &&
+                restored.Geometry is SimpleGableRoofGeometry
+                {
+                    Kind: RoofKind.SimpleGable
+                } newGable &&
+                !RoofPhysicalElevationStore.Read(owner).Exists)
+            {
+                var seeded = RoofPhysicalElevationRules.CreateFromState(
+                    RoofPhysicalElevationRules.MissingStoreDefault(newGable.RiseMm) with
+                    {
+                        Physical3DEnabled = true,
+                    });
+                RoofPhysicalElevationStore.Write(owner, transaction, seeded);
+            }
+
             var sourceElevation = RoofPolylineExtractor.GetSourceElevation(owner);
-            var physical3DEnabled = elevationState?.Physical3DEnabled == true;
+            var physical3DEnabled = elevationState?.Physical3DEnabled == true ||
+                (restored.Geometry is SimpleGableRoofGeometry
+                 {
+                     Kind: RoofKind.SimpleGable
+                 } &&
+                 RoofPhysicalElevationStore.Read(owner).Data?.Physical3DEnabled == true);
             var edges = RoofWireframe.CreateOwnedHipOrLegacy(
                 restored.Geometry,
                 sourceElevation,

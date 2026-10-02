@@ -40,7 +40,8 @@ internal static class RoofStructuralRafterSolidMaterializationService
         }
         if (!resolution.IsValid ||
             !RoofOrdinaryRafterSolidMaterializationService.TryBuildExistingModelInTransaction(
-                database, transaction, owner, geometry, out var ordinary) ||
+                database, transaction, owner, geometry, out var ordinary,
+                structuralReconcilePending: true) ||
             ordinary is null)
         {
             failureReason = "OrdinaryPhysicalModelUnavailable";
@@ -87,7 +88,9 @@ internal static class RoofStructuralRafterSolidMaterializationService
         {
             if (!AutoCadObjectIdAccess.TryGetObject<Line>(transaction, id,
                     OpenMode.ForRead, out var line, database) || line is null ||
-                RoofStructuralGeneratedStore.Read(line).Data is not { } data ||
+                RoofStructuralAttachedManualStore.Read(line).Data is not null)
+                continue;
+            if (RoofStructuralGeneratedStore.Read(line).Data is not { } data ||
                 !metadata.TryRead(line, out TimberElementData? timber) || timber is null ||
                 Math.Abs(timber.WidthMm - elevation.StructuralWidthMm) > ToleranceMm ||
                 !liveKeys.Add(data.LogicalKey))
@@ -102,7 +105,30 @@ internal static class RoofStructuralRafterSolidMaterializationService
             return false;
         }
 
-        var bodies = new List<(RoofStructuralLogicalKey Key, RoofStructuralRafterPolyhedron Model)>();
+        var manuals = new List<(RoofStructuralAttachedManualData Data, Line Plan)>();
+        var manualIdentities = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var id in RoofStructuralAttachedManualStore.FindByOwner(
+                     database, transaction, ownerReference))
+        {
+            if (!AutoCadObjectIdAccess.TryGetObject<Line>(transaction, id,
+                    OpenMode.ForRead, out var line, database) || line is null ||
+                RoofStructuralAttachedManualStore.Read(line).Data is not { } manual ||
+                !manualIdentities.Add(manual.ManualIdentity) ||
+                Math.Abs(line.StartPoint.Z) > ToleranceMm ||
+                Math.Abs(line.EndPoint.Z) > ToleranceMm)
+            {
+                failureReason = "StructuralAttachedManualSetInvalid";
+                return false;
+            }
+            manuals.Add((manual, line));
+        }
+
+        var bodies = new List<(string PhysicalId, RoofStructuralRafterPolyhedron Model)>();
+        var editStateLookup = editState;
+        var canonicalByKey = RoofAutomaticStructuralRafterPlanner.Create(resolution, TimberElementDefaultProfileStore.Load(),
+            RoofPhysicalElevationRules.ToState(elevation, geometry.RiseMm)).Items
+            .ToDictionary(item => item.LogicalKey);
+        // Prefer already-resolved live plan geometry for absolute placement when present.
         foreach (var edge in structural)
         {
             var request = new RoofStructuralRafterPolyhedronRequest(
@@ -116,19 +142,38 @@ internal static class RoofStructuralRafterSolidMaterializationService
             if (!RoofStructuralRafterPolyhedronService.TryBuild(request,
                     out var body, out failureReason) || body is null)
                 return false;
-            bodies.Add((edge.StructuralIdentity, RoofStructuralEditRules.Place(body,
-                RoofStructuralEditRules.Get(editState, edge.StructuralIdentity))));
+            var edit = RoofStructuralEditRules.Get(editStateLookup, edge.StructuralIdentity);
+            if (!canonicalByKey.TryGetValue(edge.StructuralIdentity, out var canonicalItem))
+            {
+                failureReason = "StructuralCanonicalPlanMissing";
+                return false;
+            }
+            bodies.Add((edge.StructuralIdentity.ToString(),
+                RoofStructuralEditRules.Place(body, canonicalItem.Segment3D, edit)));
+        }
+
+        foreach (var (manual, plan) in manuals)
+        {
+            if (!TryResolveManualPlacement(
+                    manual, plan, transaction, allStructural, geometry, elevation, ordinary,
+                    miterPlanes, canonicalByKey, editStateLookup, editor, out var placement,
+                    out failureReason) ||
+                !RoofStructuralManualPlacementRules.TryBuildPrism(
+                    manual.SourceRole, manual.WidthMm, placement!, out var manualBody, out failureReason) ||
+                manualBody is null)
+                return false;
+            bodies.Add((RoofStructuralAttachedManualIdentityRules.PhysicalKey(manual.ManualIdentity), manualBody));
         }
 
         // Construct all transient solids before touching the old set. A failure
         // rolls back the enclosing ordinary/structural/group transaction.
-        var created = new List<(RoofStructuralLogicalKey Key,
+        var created = new List<(string PhysicalId,
             RoofStructuralRafterPolyhedron Model, Solid3d Solid)>();
         var appended = new HashSet<Solid3d>();
         try
         {
-            foreach (var (key, body) in bodies)
-                created.Add((key, body, CreateSolid(body)));
+            foreach (var (physicalId, body) in bodies)
+                created.Add((physicalId, body, CreateSolid(body)));
 
             var priorStructuralIds = RoofPhysical3DGeneratedStore.FindByOwner(database, transaction, ownerReference)
                 .Where(id => AutoCadObjectIdAccess.TryGetObject<Entity>(transaction, id, OpenMode.ForRead,
@@ -143,9 +188,10 @@ internal static class RoofStructuralRafterSolidMaterializationService
             var layerProfile = ElementLayerProfileStore.Load();
             var visible = elevation.DisplayVisibility is
                 RoofPhysicalDisplayVisibility.Both or RoofPhysicalDisplayVisibility.Model3D;
-            foreach (var (key, body, solid) in created)
+            foreach (var (physicalId, body, solid) in created)
             {
-                var timberType = key.Role == RoofStructuralRole.Hip
+                var isManual = RoofStructuralAttachedManualDataRules.IsManualPhysicalKey(physicalId);
+                var timberType = body.Geometry.Role == RoofStructuralRole.Hip
                     ? TimberElementType.HipRafter : TimberElementType.ValleyRafter;
                 var layerName = layerProfile.GetStyle(timberType).LayerName + "_3D";
                 EnsureLayer(database, transaction, layerName);
@@ -155,25 +201,42 @@ internal static class RoofStructuralRafterSolidMaterializationService
                 modelSpace.AppendEntity(solid);
                 appended.Add(solid);
                 transaction.AddNewlyCreatedDBObject(solid, true);
-                var signature = string.Join("|",
-                    "StructuralPhysical1",
-                    elevation.StructuralWidthMm.ToString("R", CultureInfo.InvariantCulture),
-                    body.Geometry.PhysicalVerticalHeightMm.ToString("R", CultureInfo.InvariantCulture),
-                    elevation.StructuralHeightMode.ToString(),
-                    RoofStructuralEditRules.Get(editState, key).OffsetXmm.ToString("R", CultureInfo.InvariantCulture),
-                    RoofStructuralEditRules.Get(editState, key).OffsetYmm.ToString("R", CultureInfo.InvariantCulture));
+                string signature;
+                if (isManual)
+                {
+                    var manual = manuals.Select(item => item.Data).First(item =>
+                        RoofStructuralAttachedManualIdentityRules.PhysicalKey(item.ManualIdentity) == physicalId);
+                    signature = string.Join("|",
+                        "StructuralPhysical1",
+                        manual.WidthMm.ToString("R", CultureInfo.InvariantCulture),
+                        body.Geometry.PhysicalVerticalHeightMm.ToString("R", CultureInfo.InvariantCulture),
+                        manual.HeightMode.ToString(),
+                        "Manual",
+                        manual.ManualIdentity,
+                        manual.SourceLogicalKey.ToString());
+                }
+                else
+                {
+                    var edit = RoofStructuralEditRules.Get(editState, body.StructuralKey);
+                    signature = string.Join("|",
+                        "StructuralPhysical1",
+                        elevation.StructuralWidthMm.ToString("R", CultureInfo.InvariantCulture),
+                        body.Geometry.PhysicalVerticalHeightMm.ToString("R", CultureInfo.InvariantCulture),
+                        elevation.StructuralHeightMode.ToString(),
+                        RoofStructuralEditRules.PhysicalSignatureToken(edit));
+                }
                 RoofPhysical3DGeneratedStore.Write(solid, transaction,
                     RoofPhysical3DGeneratedDataRules.Create(ownerReference,
                         RoofPhysical3DGeneratedRole.StructuralRafterSolid,
-                        key.ToString(), signature));
+                        physicalId, signature));
             }
-            foreach (var (key, body) in bodies.Where(item =>
+            foreach (var (physicalId, body) in bodies.Where(item =>
                          item.Model.Geometry.Warning ==
                          "ExplicitHeightBelowOrdinaryCutRequirement"))
             {
                 editor.WriteMessage("\n" + UiStrings.Format(
                     UiStrings.GetString("RoofRafterWindow_StructuralHeightWarningFormat"),
-                    key.ToString(),
+                    physicalId,
                     body.Geometry.PhysicalVerticalHeightMm,
                     body.Geometry.RequiredAutomaticHeightMm) + "\n");
             }
@@ -186,10 +249,140 @@ internal static class RoofStructuralRafterSolidMaterializationService
         }
     }
 
+    private static bool TryResolveManualPlacement(
+        RoofStructuralAttachedManualData manual,
+        Line plan,
+        Transaction transaction,
+        IReadOnlyList<ResolvedRoofStructuralEdge> allStructural,
+        HipRoofGeometry geometry,
+        RoofPhysicalElevationData elevation,
+        RoofAutomaticRafterPhysicalModel ordinary,
+        IReadOnlyDictionary<int, RoofStructuralRafterClipPlane> miterPlanes,
+        IReadOnlyDictionary<RoofStructuralLogicalKey, RoofAutomaticStructuralRafterPlanItem> canonicalByKey,
+        RoofStructuralEditState editState,
+        Editor editor,
+        out RoofStructuralManualPlacement? placement,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (manual.Placement is { } stored)
+        {
+            placement = stored;
+            return true;
+        }
+
+        placement = null;
+        var edge = allStructural.FirstOrDefault(item =>
+            item.StructuralIdentity == manual.SourceLogicalKey);
+        if (edge is null || !edge.IsAutomaticStructuralTimberEligible ||
+            !canonicalByKey.TryGetValue(manual.SourceLogicalKey, out var canonicalItem))
+        {
+            failureReason = "StructuralManualSourceFoldMissing";
+            return false;
+        }
+
+        var request = new RoofStructuralRafterPolyhedronRequest(
+            geometry.Topology, edge, elevation.ResolvedEaveRelativeElevationMm,
+            manual.WidthMm, manual.HeightMode,
+            manual.HeightMode == RoofStructuralHeightMode.Explicit
+                ? manual.ExplicitHeightMm : null,
+            ordinary.Members,
+            miterPlanes.GetValueOrDefault(edge.TopologyEdgeIndex),
+            elevation.LowerEndCutMode);
+        if (!RoofStructuralRafterPolyhedronService.TryBuild(request, out var body, out failureReason) ||
+            body is null)
+            return false;
+        RoofStructuralRafterPolyhedron placed;
+        try
+        {
+            placed = RoofStructuralEditRules.Place(
+                body, canonicalItem.Segment3D,
+                RoofStructuralEditRules.Get(editState, manual.SourceLogicalKey));
+        }
+        catch (ArgumentException)
+        {
+            failureReason = "StructuralManualSourcePlaceFailed";
+            return false;
+        }
+        if (!RoofStructuralManualPlacementRules.TryCaptureFrame(placed, out var frame) || frame is null)
+        {
+            failureReason = "StructuralManualFrameCaptureFailed";
+            return false;
+        }
+
+        var applied = RoofStructuralEditRules.ApplyPlan(new[] { canonicalItem }, editState).Single();
+        // Native COPY clones the live Generated Plan Line. Match against that Line
+        // (not only ApplyPlan) so RigidCopy survives small planner/line deltas.
+        var sourcePlan = new RoofSegment3D(
+            new(applied.Segment3D.Start.X, applied.Segment3D.Start.Y, 0),
+            new(applied.Segment3D.End.X, applied.Segment3D.End.Y, 0));
+        foreach (var id in RoofStructuralGeneratedStore.FindByOwner(
+                     plan.Database, transaction, manual.RoofOwnerReference))
+        {
+            if (!AutoCadObjectIdAccess.TryGetObject<Line>(transaction, id, OpenMode.ForRead,
+                    out var sourceLine, plan.Database) || sourceLine is null)
+                continue;
+            if (RoofStructuralGeneratedStore.Read(sourceLine).Data is not { } generated ||
+                generated.LogicalKey != manual.SourceLogicalKey)
+                continue;
+            sourcePlan = new RoofSegment3D(
+                new(sourceLine.StartPoint.X, sourceLine.StartPoint.Y, 0),
+                new(sourceLine.EndPoint.X, sourceLine.EndPoint.Y, 0));
+            break;
+        }
+        var copiedPlan = new RoofSegment3D(
+            new(plan.StartPoint.X, plan.StartPoint.Y, 0),
+            new(plan.EndPoint.X, plan.EndPoint.Y, 0));
+        if (manual.CreationKind == RoofStructuralAttachedManualCreationKind.Mirror)
+        {
+            if (!RoofStructuralManualPlacementRules.TryReflectFrame(frame, sourcePlan, copiedPlan, out placement))
+            {
+                failureReason = "StructuralManualReflectionInvalid";
+                return false;
+            }
+        }
+        else
+        {
+            if (!RoofStructuralManualPlacementRules.TryMatchRigidPlanCopy(
+                    sourcePlan, copiedPlan, out var dx, out var dy))
+            {
+                failureReason = "StructuralManualPlacementInvalid";
+                return false;
+            }
+            placement = RoofStructuralManualPlacementRules.Translate(frame, dx, dy, 0);
+        }
+
+        if (placement is null)
+        {
+            failureReason = "StructuralManualPlacementInvalid";
+            return false;
+        }
+        var persisted = RoofStructuralAttachedManualDataRules.WithPlacement(manual, placement);
+        if (persisted.Data is null)
+        {
+            failureReason = persisted.Error.ToString();
+            return false;
+        }
+        if (!plan.IsWriteEnabled) plan.UpgradeOpen();
+        RoofStructuralAttachedManualStore.Write(plan, transaction, persisted.Data);
+#if DEBUG
+        editor.WriteMessage(
+            $"\nROOF_STRUCT_MANUALIZE_PLACEMENT manualId={manual.ManualIdentity} placementMode={(manual.CreationKind == RoofStructuralAttachedManualCreationKind.Mirror ? "RigidMirror" : "RigidCopy")}" +
+            $" planStart={plan.StartPoint.X.ToString("R", CultureInfo.InvariantCulture)},{plan.StartPoint.Y.ToString("R", CultureInfo.InvariantCulture)}" +
+            $" planEnd={plan.EndPoint.X.ToString("R", CultureInfo.InvariantCulture)},{plan.EndPoint.Y.ToString("R", CultureInfo.InvariantCulture)}" +
+            $" physicalStart={placement.AxisStartX.ToString("R", CultureInfo.InvariantCulture)},{placement.AxisStartY.ToString("R", CultureInfo.InvariantCulture)},{placement.AxisStartZ.ToString("R", CultureInfo.InvariantCulture)}" +
+            $" physicalEnd={placement.AxisEndX.ToString("R", CultureInfo.InvariantCulture)},{placement.AxisEndY.ToString("R", CultureInfo.InvariantCulture)},{placement.AxisEndZ.ToString("R", CultureInfo.InvariantCulture)}\n");
+#else
+        _ = editor;
+#endif
+        return true;
+    }
+
     private static Solid3d CreateSolid(RoofStructuralRafterPolyhedron model)
     {
-        var expectedPrisms = model.Geometry.Role == RoofStructuralRole.Hip ? 1 : 2;
-        if (model.ConvexHalves.Count != expectedPrisms)
+        var expectedPrisms = model.ConvexHalves.Count;
+        if (expectedPrisms is not (1 or 2) ||
+            (model.Geometry.Role == RoofStructuralRole.Hip && expectedPrisms != 1))
             throw new InvalidOperationException("Structural body has an invalid prism count.");
         var halves = new List<Solid3d>(expectedPrisms);
         try
@@ -222,10 +415,14 @@ internal static class RoofStructuralRafterSolidMaterializationService
                             SliceRetainingInside(solid, vertices, miter);
                         for (var index = 0; index < model.RoofEnvelopeClipPlanes.Count; index++)
                         {
-                            var prior = model.EaveClipPlanes
-                                .Concat(model.LowerEndClipPlanes)
-                                .Append(model.UpperNodeMiterPlane!)
-                                .Concat(model.RoofEnvelopeClipPlanes.Take(index));
+                            // Never Append a null miter into the prior sequence — ridge-side
+                            // Plan overrides clear UpperNodeMiterPlane while envelope planes
+                            // may still be present until Core clears them too.
+                            IEnumerable<RoofStructuralRafterClipPlane> prior =
+                                model.EaveClipPlanes.Concat(model.LowerEndClipPlanes);
+                            if (model.UpperNodeMiterPlane is { } priorMiter)
+                                prior = prior.Append(priorMiter);
+                            prior = prior.Concat(model.RoofEnvelopeClipPlanes.Take(index));
                             SliceRetainingAfterPrior(solid, vertices, prior,
                                 model.RoofEnvelopeClipPlanes[index]);
                         }

@@ -52,6 +52,7 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
                 <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,0,12">
@@ -98,7 +99,12 @@
                         <ComboBoxItem Tag="Overlap" Content="{localization:Loc RoofRafterWindow_JoinOverlap}" />
                     </ComboBox>
                 </StackPanel>
-                <Border x:Name="StructuralSection" Grid.Row="4" Grid.Column="0"
+                <StackPanel x:Name="Physical3DSection" Grid.Row="4" Grid.Column="0"
+                            Grid.ColumnSpan="3" Margin="0,0,0,12">
+                    <CheckBox x:Name="Physical3DEnabledCheckBox"
+                              Content="{localization:Loc RoofHip_Physical3DEnabled}" />
+                </StackPanel>
+                <Border x:Name="StructuralSection" Grid.Row="5" Grid.Column="0"
                         Grid.ColumnSpan="3" Margin="0,4,0,12" Padding="12"
                         Background="{DynamicResource SettingsPanelBackgroundBrush}"
                         BorderBrush="{DynamicResource SettingsBorderBrush}"
@@ -128,7 +134,7 @@
                     </Grid>
                   </StackPanel>
                 </Border>
-                <Border Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="3"
+                <Border Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="3"
                         Padding="12"
                         Background="{DynamicResource SettingsInfoBackgroundBrush}"
                         BorderBrush="{DynamicResource SettingsInfoBorderBrush}"

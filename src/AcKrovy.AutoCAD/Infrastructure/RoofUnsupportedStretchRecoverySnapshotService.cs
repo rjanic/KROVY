@@ -476,6 +476,49 @@ internal static class RoofUnsupportedStretchRecoverySnapshotService
                 ToPoint(structuralLine.EndPoint)));
         }
 
+        foreach (var structuralManualId in RoofStructuralAttachedManualStore.FindByOwner(
+                     database,
+                     transaction,
+                     sourceData.OwnerHandle))
+        {
+            if (structuralManualId.IsNull ||
+                structuralManualId.IsErased ||
+                timberIdSet.Contains(structuralManualId))
+            {
+                continue;
+            }
+
+            if (!AutoCadObjectIdAccess.TryGetObject<Entity>(
+                    transaction,
+                    structuralManualId,
+                    OpenMode.ForRead,
+                    out var structuralManualEntity,
+                    database) ||
+                structuralManualEntity is not Line structuralManualLine)
+            {
+                skipReason = "structural-attached-manual-missing";
+                return false;
+            }
+
+            if (!metadataStore.TryRead(structuralManualLine, out var structuralManualTimberData) ||
+                structuralManualTimberData is null ||
+                string.IsNullOrWhiteSpace(structuralManualTimberData.ElementId))
+            {
+                skipReason = "structural-attached-manual-metadata-mismatch";
+                return false;
+            }
+
+            var structuralManualHandle = structuralManualLine.Handle.ToString();
+            timberIdSet.Add(structuralManualId);
+            timberSourceHandles.Add(structuralManualHandle);
+            timberLines.Add(new RoofUnsupportedStretchTimberLineSnapshotData(
+                structuralManualHandle,
+                structuralManualTimberData.ElementId,
+                structuralManualHandle,
+                ToPoint(structuralManualLine.StartPoint),
+                ToPoint(structuralManualLine.EndPoint)));
+        }
+
         foreach (var attachedId in RoofAttachedManualTimberStore.FindByOwner(
                      database,
                      transaction,

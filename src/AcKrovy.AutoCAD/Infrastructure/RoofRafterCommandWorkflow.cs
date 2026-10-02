@@ -477,6 +477,8 @@ internal static class RoofRafterCommandWorkflow
                 previousPhysical?.StructuralWidthMm != request.StructuralWidthMm ||
                 previousPhysical?.StructuralHeightMode != request.StructuralHeightMode ||
                 previousPhysical?.StructuralExplicitHeightMm != request.StructuralExplicitHeightMm ||
+                (request.Physical3DEnabled is { } requestedPhysical3D &&
+                 previousPhysical?.Physical3DEnabled != requestedPhysical3D) ||
                 previousPhysical?.SchemaVersion < RoofPhysicalElevationSchema.CurrentVersion;
             var needsInitialSolids = previousPhysical?.Physical3DEnabled == true &&
                 !RoofPhysical3DGeneratedStore.FindByOwner(
@@ -944,6 +946,7 @@ internal static class RoofRafterCommandWorkflow
             StructuralWidthMm = request.StructuralWidthMm,
             StructuralHeightMode = request.StructuralHeightMode,
             StructuralExplicitHeightMm = request.StructuralExplicitHeightMm,
+            Physical3DEnabled = request.Physical3DEnabled ?? stored.Physical3DEnabled,
         });
     }
 

@@ -32,7 +32,9 @@ public sealed class RoofPhysical3DHostDiagnosticsSourceContractTests
         Assert.Contains("\"Structural:\" + structural.LogicalKey", checkpoint);
         Assert.Contains("\"PhysicalStructural:\" + physical.StructuralId", checkpoint);
         Assert.Contains("physical.Role == RoofPhysical3DGeneratedRole.StructuralRafterSolid", checkpoint);
-        Assert.Contains("JsonSerializer.Serialize(new { generated, attached, structural })", checkpoint);
+        Assert.Contains("JsonSerializer.Serialize(new { generated, attached, structural, structuralManual })", checkpoint);
+        Assert.Contains("RoofStructuralAttachedManualStore.Read(line).Data", checkpoint);
+        Assert.Contains("RoofStructuralAttachedManualIdentityRules.PhysicalKey(structuralManual.ManualIdentity)", checkpoint);
         Assert.Contains("Geometry(solid)", checkpoint);
         Assert.Contains("var addedStructuralBodies = current.Where", checkpoint);
         Assert.Contains(".Concat(addedStructuralBodies)", checkpoint);

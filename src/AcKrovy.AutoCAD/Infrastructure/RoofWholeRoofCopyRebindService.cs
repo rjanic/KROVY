@@ -38,6 +38,8 @@ internal static class RoofWholeRoofCopyRebindService
         RoofStructuralGeneratedData Data);
 
     private sealed record AppendedAttachedClone(string Handle, ObjectId Id, RoofAttachedManualTimberData Data);
+    private sealed record AppendedStructuralAttachedManualClone(
+        string Handle, ObjectId Id, RoofStructuralAttachedManualData Data);
 
     private sealed record WholeRoofPair(
         string OldOwner,
@@ -46,6 +48,7 @@ internal static class RoofWholeRoofCopyRebindService
         IReadOnlyList<AppendedGeneratedClone> GeneratedClones,
         IReadOnlyList<AppendedStructuralClone> StructuralClones,
         IReadOnlyList<AppendedAttachedClone> AttachedManualClones,
+        IReadOnlyList<AppendedStructuralAttachedManualClone> StructuralAttachedManualClones,
         IReadOnlyList<ObjectId> NativeDisposableClones);
 
     public static void Process(
@@ -119,6 +122,10 @@ internal static class RoofWholeRoofCopyRebindService
                     document.Database,
                     transaction,
                     appendedTimberIds);
+                var appendedStructuralAttached = CollectAppendedStructuralAttachedManualClones(
+                    document.Database,
+                    transaction,
+                    appendedTimberIds);
 
                 var pairs = new List<WholeRoofPair>();
                 var consumedHandles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -134,11 +141,15 @@ internal static class RoofWholeRoofCopyRebindService
                     var generated = appendedGenerated.Where(clone => destinations.Contains(clone.Id)).ToArray();
                     var structural = appendedStructural.Where(clone => destinations.Contains(clone.Id)).ToArray();
                     var attached = appendedAttached.Where(clone => destinations.Contains(clone.Id)).ToArray();
+                    var structuralAttached = appendedStructuralAttached
+                        .Where(clone => destinations.Contains(clone.Id)).ToArray();
                     pairs.Add(new WholeRoofPair(native.Source.Handle, candidate.Handle, candidate,
-                        generated, structural, attached, native.Disposable));
+                        generated, structural, attached, structuralAttached, native.Disposable));
                     foreach (var handle in generated.Select(clone => clone.Handle)
                                  .Concat(structural.Select(clone => clone.Handle))
-                                 .Concat(attached.Select(clone => clone.Handle))) consumedHandles.Add(handle);
+                                 .Concat(attached.Select(clone => clone.Handle))
+                                 .Concat(structuralAttached.Select(clone => clone.Handle)))
+                        consumedHandles.Add(handle);
                 }
 
                 if (consumedHandles.Count > 0)
@@ -477,6 +488,24 @@ internal static class RoofWholeRoofCopyRebindService
                 generatedRebuilt = created.Count;
             }
 
+            // Rebind Structural AttachedManual children onto the new owner BEFORE
+            // Generated Structural materialization so Physical reconcile includes them.
+            foreach (var clone in pair.StructuralAttachedManualClones)
+            {
+                if (!TryRebindStructuralAttachedManualClone(
+                        document,
+                        transaction,
+                        clone,
+                        pair.NewOwner,
+                        out var structuralManualStage))
+                {
+                    stage = $"structural-attached-manual-{structuralManualStage}";
+                    return false;
+                }
+
+                attachedManualRebound++;
+            }
+
             if (structuralGeometry is not null)
             {
                 // Mirrored owners deep-clone BoundaryIdentity with the pre-mirror
@@ -774,6 +803,49 @@ internal static class RoofWholeRoofCopyRebindService
         return true;
     }
 
+    private static bool TryRebindStructuralAttachedManualClone(
+        Document document,
+        Transaction transaction,
+        AppendedStructuralAttachedManualClone clone,
+        string newOwner,
+        out string stage)
+    {
+        stage = "start";
+        if (!AutoCadObjectIdAccess.TryGetObject<Line>(
+                transaction,
+                clone.Id,
+                OpenMode.ForWrite,
+                out var cloneLine,
+                document.Database) ||
+            cloneLine is null)
+        {
+            stage = "read-clone";
+            return false;
+        }
+
+        // Owner-scoped ManualIdentity: keep the copied uuid; rebind owner only.
+        // Provenance SourceLogicalKey remains meaningful under the new roof topology.
+        var rebound = RoofStructuralAttachedManualDataRules.Create(
+            newOwner,
+            clone.Data.ManualIdentity,
+            clone.Data.SourceLogicalKey,
+            clone.Data.CreationKind,
+            clone.Data.WidthMm,
+            clone.Data.HeightMode,
+            clone.Data.ExplicitHeightMm);
+        if (rebound.Data is null)
+        {
+            stage = "validate-" + rebound.Error;
+            return false;
+        }
+
+        RoofStructuralAttachedManualStore.Write(cloneLine, transaction, rebound.Data);
+        cloneLine.StartPoint = new(cloneLine.StartPoint.X, cloneLine.StartPoint.Y, 0);
+        cloneLine.EndPoint = new(cloneLine.EndPoint.X, cloneLine.EndPoint.Y, 0);
+        stage = "rebound";
+        return true;
+    }
+
     private static IReadOnlyList<OwnerCandidate> CollectOwners(
         Database database,
         Transaction transaction)
@@ -946,6 +1018,42 @@ internal static class RoofWholeRoofCopyRebindService
                 line.Handle.ToString(),
                 id,
                 attached.Data));
+        }
+
+        return clones;
+    }
+
+    private static IReadOnlyList<AppendedStructuralAttachedManualClone> CollectAppendedStructuralAttachedManualClones(
+        Database database,
+        Transaction transaction,
+        IReadOnlyCollection<ObjectId> appendedTimberIds)
+    {
+        var clones = new List<AppendedStructuralAttachedManualClone>(appendedTimberIds.Count);
+        foreach (var id in appendedTimberIds)
+        {
+            if (id.IsNull ||
+                id.IsErased ||
+                !AutoCadObjectIdAccess.TryGetObject<Line>(
+                    transaction,
+                    id,
+                    OpenMode.ForRead,
+                    out var line,
+                    database) ||
+                line is null)
+            {
+                continue;
+            }
+
+            var manual = RoofStructuralAttachedManualStore.Read(line);
+            if (manual.Data is null)
+            {
+                continue;
+            }
+
+            clones.Add(new AppendedStructuralAttachedManualClone(
+                line.Handle.ToString(),
+                id,
+                manual.Data));
         }
 
         return clones;

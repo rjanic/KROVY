@@ -90,18 +90,17 @@ public static class RoofAutomaticRafterPhysicalBuilder
             return false;
         }
         var members = new List<RoofAutomaticRafterPhysicalMember>(generatedLayout.Rafters.Count);
-        var seen = new HashSet<int>();
+        var seen = new HashSet<(RafterRoofFace Face, int Station)>();
         foreach (var rafter in generatedLayout.Rafters)
         {
-            var index = rafter.StationIndex;
-            if (rafter.Face != RafterRoofFace.Face0 ||
-                index < 0 || index >= faceLayout.Segments.Count ||
-                !seen.Add(index))
+            if (rafter.Face is not (RafterRoofFace.Face0 or RafterRoofFace.Face1) ||
+                rafter.StationIndex < 0 ||
+                !seen.Add((rafter.Face, rafter.StationIndex)) ||
+                !TryResolveFaceSegment(faceLayout, rafter, out var segment))
             {
                 return false;
             }
 
-            var segment = faceLayout.Segments[index];
             if (rafter.PlanStart.DistanceTo(segment.PlanStart) > Tolerance ||
                 rafter.PlanEnd.DistanceTo(segment.PlanEnd) > Tolerance)
             {
@@ -156,6 +155,44 @@ public static class RoofAutomaticRafterPhysicalBuilder
         model = new RoofAutomaticRafterPhysicalModel(
             ownerReference, Array.AsReadOnly(members.ToArray()));
         failureReason = string.Empty;
+        return true;
+    }
+
+    /// <summary>
+    /// Hip Face0-flattened layouts index <see cref="RoofFaceRafterLayout.Segments"/> by
+    /// StationIndex. SimpleGable Face0/Face1 layouts resolve by SourceFaceIndex + StationIndex.
+    /// </summary>
+    private static bool TryResolveFaceSegment(
+        RoofFaceRafterLayout faceLayout,
+        RoofRafterGeometry rafter,
+        out RoofFaceRafterSegment segment)
+    {
+        segment = null!;
+        if (rafter.Face == RafterRoofFace.Face0 &&
+            rafter.StationIndex < faceLayout.Segments.Count)
+        {
+            var candidate = faceLayout.Segments[rafter.StationIndex];
+            if (rafter.PlanStart.DistanceTo(candidate.PlanStart) <= Tolerance &&
+                rafter.PlanEnd.DistanceTo(candidate.PlanEnd) <= Tolerance)
+            {
+                segment = candidate;
+                return true;
+            }
+        }
+
+        var sourceFaceIndex = rafter.Face == RafterRoofFace.Face0 ? 0 : 1;
+        var matches = faceLayout.Segments.Where(item =>
+                item.SourceFaceIndex == sourceFaceIndex &&
+                item.StationIndex == rafter.StationIndex &&
+                rafter.PlanStart.DistanceTo(item.PlanStart) <= Tolerance &&
+                rafter.PlanEnd.DistanceTo(item.PlanEnd) <= Tolerance)
+            .ToArray();
+        if (matches.Length != 1)
+        {
+            return false;
+        }
+
+        segment = matches[0];
         return true;
     }
 

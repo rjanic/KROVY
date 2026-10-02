@@ -258,18 +258,32 @@ internal static class RoofPhysical3DHostDiagnostics
                         var width = 0d;
                         var height = 0d;
                         var mode = RoofStructuralHeightMode.Automatic;
-                        var valid = parts.Length == 4 && parts[0] == "StructuralPhysical1" &&
+                        var placementMode = "invalid";
+                        var placementPayload = "-";
+                        var valid = parts.Length >= 5 && parts[0] == "StructuralPhysical1" &&
                             double.TryParse(parts[1], NumberStyles.Float,
                                 CultureInfo.InvariantCulture, out width) &&
                             double.TryParse(parts[2], NumberStyles.Float,
                                 CultureInfo.InvariantCulture, out height) &&
                             Enum.TryParse(parts[3], out mode);
+                        if (valid && parts[4] == "Automatic" && parts.Length >= 7)
+                        {
+                            placementMode = "Automatic";
+                            placementPayload = parts[5] + "|" + parts[6];
+                        }
+                        else if (valid && parts[4] == "Plan" && parts.Length >= 9)
+                        {
+                            placementMode = "Plan";
+                            placementPayload = string.Join("|", parts.Skip(5).Take(4));
+                        }
+                        else
+                            valid = false;
                         var timberType = physical.Data.StructuralId.StartsWith("Hip|",
                             StringComparison.Ordinal) ? "HipRafter" :
                             physical.Data.StructuralId.StartsWith("Valley|",
                                 StringComparison.Ordinal) ? "ValleyRafter" : "invalid";
                         Write(document,
-                            $"STRUCTURAL_SOLID phase={phase} owner={physical.Data.RoofOwnerReference} structuralKey={physical.Data.StructuralId} timberType={timberType} widthMm={(valid ? width.ToString("R", CultureInfo.InvariantCulture) : "invalid")} heightMode={(valid ? mode.ToString() : "invalid")} resolvedHeightMm={(valid ? height.ToString("R", CultureInfo.InvariantCulture) : "invalid")} handle={entity.Handle} metadataValid={valid}");
+                            $"STRUCTURAL_SOLID phase={phase} owner={physical.Data.RoofOwnerReference} structuralKey={physical.Data.StructuralId} timberType={timberType} widthMm={(valid ? width.ToString("R", CultureInfo.InvariantCulture) : "invalid")} heightMode={(valid ? mode.ToString() : "invalid")} resolvedHeightMm={(valid ? height.ToString("R", CultureInfo.InvariantCulture) : "invalid")} placementMode={placementMode} placementPayload={placementPayload} handle={entity.Handle} metadataValid={valid}");
                     }
                 }
             }
@@ -632,14 +646,18 @@ internal static class RoofPhysical3DHostDiagnostics
                     var generated = RoofGeneratedTimberStore.Read(line).Data;
                     var attached = RoofAttachedManualTimberStore.Read(line).Data;
                     var structural = RoofStructuralGeneratedStore.Read(line).Data;
-                    if (generated is null && attached is null && structural is null) continue;
-                    var owner = structural?.RoofOwnerReference ?? generated?.RoofOwnerReference ?? attached!.RoofOwnerReference;
-                    var identity = structural is not null ? "Structural:" + structural.LogicalKey : generated is not null
+                    var structuralManual = RoofStructuralAttachedManualStore.Read(line).Data;
+                    if (generated is null && attached is null && structural is null && structuralManual is null) continue;
+                    var owner = structuralManual?.RoofOwnerReference ?? structural?.RoofOwnerReference ??
+                        generated?.RoofOwnerReference ?? attached!.RoofOwnerReference;
+                    var identity = structuralManual is not null
+                        ? RoofStructuralAttachedManualIdentityRules.PhysicalKey(structuralManual.ManualIdentity)
+                        : structural is not null ? "Structural:" + structural.LogicalKey : generated is not null
                         ? "Generated:" + RoofPhysicalStretchRules.PhysicalMemberId(RoofGeneratedMemberKey.From(generated))
                         : RoofAttachedManualIdentityRules.PhysicalKey(attached!);
                     _ = metadata.TryRead(line, out var timber);
                     result.Add(line.Handle.ToString(), new MemberEvidence(owner, identity, Geometry(line),
-                        timber?.ElementId, JsonSerializer.Serialize(new { generated, attached, structural })));
+                        timber?.ElementId, JsonSerializer.Serialize(new { generated, attached, structural, structuralManual })));
                 }
             }
             catch (System.Exception ex)

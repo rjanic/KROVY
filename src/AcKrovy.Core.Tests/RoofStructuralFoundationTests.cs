@@ -76,8 +76,6 @@ public sealed class RoofStructuralFoundationTests
     }
 
     [Theory]
-    [InlineData("COPY")]
-    [InlineData("MIRROR")]
     [InlineData("ARRAY")]
     [InlineData("ARRAYRECT")]
     [InlineData("ARRAYPOLAR")]
@@ -91,13 +89,31 @@ public sealed class RoofStructuralFoundationTests
         Assert.Equal(RoofStructuralNativeAction.RejectClone, RoofStructuralEditRules.Classify(command, true, RoofEditState.Locked));
     }
 
+    [Fact]
+    public void UnlockedCopy_AcceptsManualStructuralClone()
+    {
+        Assert.True(RoofStructuralEditRules.IsManualCloneAcceptCommand("COPY"));
+        Assert.False(RoofStructuralEditRules.IsCloneRejectCommand("COPY"));
+        Assert.False(RoofStructuralEditRules.IsPlanRestoreCommand("COPY"));
+        Assert.Equal(RoofStructuralAttachedManualCreationKind.Copy,
+            RoofStructuralEditRules.CreationKindForCommand("COPY"));
+        Assert.Equal(RoofStructuralCommandDisposition.Supported,
+            RoofStructuralEditRules.GetDisposition("COPY"));
+        Assert.Equal(RoofStructuralNativeAction.AcceptManualClone,
+            RoofStructuralEditRules.Classify("COPY", false, RoofEditState.Unlocked));
+        Assert.Equal(RoofStructuralNativeAction.RejectClone,
+            RoofStructuralEditRules.Classify("COPY", false, RoofEditState.Locked));
+        Assert.Equal(RoofStructuralNativeAction.AcceptManualClone,
+            RoofStructuralEditRules.Classify("COPY", true, RoofEditState.Unlocked));
+        Assert.Equal(RoofStructuralNativeAction.AcceptManualClone,
+            RoofStructuralEditRules.Classify("MIRROR", false, RoofEditState.Unlocked));
+        Assert.Equal(RoofStructuralNativeAction.RestorePlan,
+            RoofStructuralEditRules.Classify("OFFSET", false, RoofEditState.Unlocked));
+    }
+
     [Theory]
     [InlineData("ROTATE")]
     [InlineData("SCALE")]
-    [InlineData("STRETCH")]
-    [InlineData("GRIP_STRETCH")]
-    [InlineData("TRIM")]
-    [InlineData("EXTEND")]
     [InlineData("BREAK")]
     [InlineData("BREAKATPOINT")]
     [InlineData("FILLET")]
@@ -115,20 +131,47 @@ public sealed class RoofStructuralFoundationTests
     }
 
     [Theory]
+    [InlineData("STRETCH")]
+    [InlineData("GRIP_STRETCH")]
+    [InlineData("TRIM")]
+    [InlineData("EXTEND")]
+    public void PriorityPackA_UnlockedPlanGeometry_IsAcceptPlan(string command)
+    {
+        Assert.True(RoofStructuralEditRules.IsPlanGeometryAcceptCommand(command));
+        Assert.Equal(RoofStructuralCommandDisposition.Supported, RoofStructuralEditRules.GetDisposition(command));
+        Assert.Equal(RoofStructuralNativeAction.AcceptPlan, RoofStructuralEditRules.Classify(command, false, RoofEditState.Unlocked));
+        Assert.Equal(RoofStructuralNativeAction.Unclaimed, RoofStructuralEditRules.Classify(command, false, RoofEditState.Locked));
+        Assert.Equal(RoofStructuralNativeAction.RebuildPhysical, RoofStructuralEditRules.Classify(command, true, RoofEditState.Unlocked));
+    }
+
+    [Fact]
+    public void Rotate_IsRestorePlan_ArbitraryRotationIsNotValidHipValley()
+    {
+        Assert.False(RoofStructuralEditRules.IsPlanGeometryAcceptCommand("ROTATE"));
+        Assert.True(RoofStructuralEditRules.IsPlanRestoreCommand("ROTATE"));
+        Assert.Equal(RoofStructuralCommandDisposition.ExplicitlyRejected,
+            RoofStructuralEditRules.GetDisposition("ROTATE"));
+        Assert.Equal(RoofStructuralNativeAction.RestorePlan,
+            RoofStructuralEditRules.Classify("ROTATE", false, RoofEditState.Unlocked));
+        Assert.Equal(RoofStructuralNativeAction.Unclaimed,
+            RoofStructuralEditRules.Classify("ROTATE", false, RoofEditState.Locked));
+    }
+
+    [Theory]
     [InlineData(RoofStructuralRole.Hip, "STRETCH")]
     [InlineData(RoofStructuralRole.Valley, "STRETCH")]
     [InlineData(RoofStructuralRole.Hip, "GRIP_STRETCH")]
-    [InlineData(RoofStructuralRole.Valley, "GRIP_STRETCH")]
-    [InlineData(RoofStructuralRole.Hip, "ROTATE")]
-    [InlineData(RoofStructuralRole.Valley, "BREAK")]
+    [InlineData(RoofStructuralRole.Valley, "TRIM")]
+    [InlineData(RoofStructuralRole.Hip, "EXTEND")]
+    [InlineData(RoofStructuralRole.Valley, "ROTATE")]
+    [InlineData(RoofStructuralRole.Hip, "BREAK")]
+    [InlineData(RoofStructuralRole.Hip, "SCALE")]
     public void LockedPlan2DGeometryReject_IsUnclaimedSoLockedGuardOwnsRestore(
         RoofStructuralRole role, string command)
     {
         _ = role;
         Assert.Equal(RoofStructuralNativeAction.Unclaimed,
             RoofStructuralEditRules.Classify(command, false, RoofEditState.Locked));
-        Assert.Equal(RoofStructuralNativeAction.RestorePlan,
-            RoofStructuralEditRules.Classify(command, false, RoofEditState.Unlocked));
         // Locked MOVE/ERASE remain structural RestorePlan (foundation), not this deferral.
         Assert.Equal(RoofStructuralNativeAction.RestorePlan,
             RoofStructuralEditRules.Classify("MOVE", false, RoofEditState.Locked));
@@ -139,10 +182,100 @@ public sealed class RoofStructuralFoundationTests
     [Theory]
     [InlineData(RoofStructuralRole.Hip)]
     [InlineData(RoofStructuralRole.Valley)]
-    public void UnlockedStretch_RemainsRestorePlanNotAcceptOrLockedDeferral(RoofStructuralRole role)
+    public void AcceptedPlanGeometry_PersistsAbsoluteEndpointsAndClearsOffset(RoofStructuralRole role)
+    {
+        var key = new RoofStructuralLogicalKey(role, 1, 4);
+        var canonicalSeg = new RoofSegment3D(new(100, 200, 50), new(900, 1000, 600));
+        RoofAutomaticStructuralRafterPlanItem[] canonical =
+        [new(key, role == RoofStructuralRole.Hip ? TimberElementType.HipRafter : TimberElementType.ValleyRafter,
+            canonicalSeg, new TimberElementData())];
+        var state = RoofStructuralEditState.Empty;
+        Assert.True(RoofStructuralEditRules.TryAcceptMove(state, key,
+            new(new(100, 200, 0), new(900, 1000, 0)),
+            new(new(150, 220, 0), new(950, 1020, 0)), out state));
+        Assert.Equal(50, RoofStructuralEditRules.Get(state, key).OffsetXmm);
+        // On-fold shorten of the *automatic* fold (not the offset line): clears Offset,
+        // stores absolute Plan on the fold.
+        var planXy = new RoofSegment3D(new(100, 200, 0), new(900, 1000, 0));
+        var stretched = new RoofSegment3D(
+            new(100 + 0.25 * 800, 200 + 0.25 * 800, 0),
+            new(900, 1000, 0));
+        Assert.Equal(RoofStructuralPlanEditClass.OnFoldSubsegment,
+            RoofStructuralEditRules.ClassifyPlanGeometry(planXy, stretched));
+        Assert.True(RoofStructuralEditRules.TryAcceptPlanGeometry(state, key, stretched, canonicalSeg, out state));
+        var edit = RoofStructuralEditRules.Get(state, key);
+        Assert.True(edit.HasAbsolutePlan);
+        Assert.Equal(0, edit.OffsetXmm);
+        Assert.Equal(0, edit.OffsetYmm);
+        Assert.Equal(stretched.Start.X, edit.PlanStartXmm);
+        Assert.Equal(stretched.End.X, edit.PlanEndXmm);
+        state = JsonSerializer.Deserialize<RoofStructuralEditState>(JsonSerializer.Serialize(state))!;
+        var live = Assert.Single(RoofStructuralEditRules.ApplyPlan(canonical, state));
+        Assert.Equal(stretched.Start.X, live.Segment3D.Start.X);
+        Assert.Equal(stretched.End.X, live.Segment3D.End.X);
+        Assert.Equal(50, live.Segment3D.Start.Z); // Plan override keeps canonical Z for 3D plan item
+        Assert.StartsWith("Plan|", RoofStructuralEditRules.PhysicalSignatureToken(edit), StringComparison.Ordinal);
+        Assert.False(RoofStructuralEditRules.TryAcceptPlanGeometry(state, key,
+            new(new(0, 0, 0), new(0, 0, 0)), canonicalSeg, out var rejected));
+        Assert.Same(state, rejected);
+        Assert.False(RoofStructuralEditRules.TryAcceptPlanGeometry(state, key,
+            new(new(1, 2, 5), new(3, 4, 5)), canonicalSeg, out rejected));
+        Assert.Same(state, rejected);
+        // Off-fold / rotated Plan is rejected when canonical is supplied.
+        Assert.False(RoofStructuralEditRules.TryAcceptPlanGeometry(state, key,
+            new(new(100, 200, 0), new(100, 1000, 0)), canonicalSeg, out rejected));
+        Assert.Same(state, rejected);
+    }
+
+    [Theory]
+    [InlineData(RoofStructuralRole.Hip)]
+    [InlineData(RoofStructuralRole.Valley)]
+    public void CanonicalPlanRestore_NormalizesToAutomatic(RoofStructuralRole role)
+    {
+        var key = new RoofStructuralLogicalKey(role, 1, 4);
+        var canonicalSeg = new RoofSegment3D(new(100, 200, 0), new(900, 1000, 0));
+        var state = RoofStructuralEditState.Empty;
+        var trimmed = new RoofSegment3D(new(100, 200, 0), new(500, 600, 0));
+        Assert.True(RoofStructuralEditRules.TryAcceptPlanGeometry(state, key, trimmed, canonicalSeg, out state));
+        Assert.True(RoofStructuralEditRules.Get(state, key).HasAbsolutePlan);
+        Assert.True(RoofStructuralEditRules.TryAcceptPlanGeometry(state, key, canonicalSeg, canonicalSeg, out state));
+        Assert.False(RoofStructuralEditRules.Get(state, key).HasAbsolutePlan);
+        Assert.Equal(RoofStructuralPlanEditClass.Automatic,
+            RoofStructuralEditRules.ClassifyMemberEdit(canonicalSeg, RoofStructuralEditRules.Get(state, key)));
+    }
+
+    [Theory]
+    [InlineData(RoofStructuralRole.Hip)]
+    [InlineData(RoofStructuralRole.Valley)]
+    public void MoveThenOnFoldTrim_ClearsOffsetAndStoresAbsolutePlan(RoofStructuralRole role)
+    {
+        var key = new RoofStructuralLogicalKey(role, 1, 4);
+        var canonicalSeg = new RoofSegment3D(new(0, 0, 0), new(1000, 0, 0));
+        var state = RoofStructuralEditState.Empty;
+        Assert.True(RoofStructuralEditRules.TryAcceptMove(state, key,
+            canonicalSeg, new(new(100, 50, 0), new(1100, 50, 0)), out state));
+        Assert.Equal(100, RoofStructuralEditRules.Get(state, key).OffsetXmm);
+        Assert.Equal(50, RoofStructuralEditRules.Get(state, key).OffsetYmm);
+        // Trim the moved line (parallel offset of a subsegment).
+        var trimmedMoved = new RoofSegment3D(new(100, 50, 0), new(700, 50, 0));
+        Assert.Equal(RoofStructuralPlanEditClass.OffsetRigid,
+            RoofStructuralEditRules.ClassifyPlanGeometry(canonicalSeg, trimmedMoved));
+        Assert.True(RoofStructuralEditRules.TryAcceptPlanGeometry(state, key, trimmedMoved, canonicalSeg, out state));
+        var edit = RoofStructuralEditRules.Get(state, key);
+        Assert.True(edit.HasAbsolutePlan);
+        Assert.Equal(0, edit.OffsetXmm);
+        Assert.Equal(0, edit.OffsetYmm);
+        Assert.Equal(100, edit.PlanStartXmm);
+        Assert.Equal(700, edit.PlanEndXmm);
+    }
+
+    [Theory]
+    [InlineData(RoofStructuralRole.Hip)]
+    [InlineData(RoofStructuralRole.Valley)]
+    public void UnlockedStretch_IsPersistentAcceptNotRestore(RoofStructuralRole role)
     {
         _ = role;
-        Assert.Equal(RoofStructuralNativeAction.RestorePlan,
+        Assert.Equal(RoofStructuralNativeAction.AcceptPlan,
             RoofStructuralEditRules.Classify("STRETCH", false, RoofEditState.Unlocked));
         Assert.Equal(RoofStructuralNativeAction.Unclaimed,
             RoofStructuralEditRules.Classify("STRETCH", false, RoofEditState.Locked));
