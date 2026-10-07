@@ -43,7 +43,7 @@ Localization also depends directly on Core. Core never depends back on any of th
 
 ### Domain and persisted identity
 
-- `ElementId` is a logical timber identity used by numbering/reporting. `SourceHandle` binds annotations to one physical DWG source entity.
+- `ElementId` is the manufacturing designation used by numbering/reporting, derived from the current timber signature. Accepted signature changes may reassign it. `IndependentMemberId` is the stable persistent identity of detached Ordinary timber; `SourceHandle` binds annotations to one physical DWG source entity.
 - `TimberElementSignature` derives the stable manufacturing grouping key from measurements. Stable item numbering reuses compatible existing assignments.
 - `TimberElementDataSchema.CurrentVersion` governs the timber XData JSON payload. Older supported payloads are normalized and upgraded only when written (`PrepareForWrite`); reads do not rewrite the DWG.
 - Preserve backward-compatible defaults when adding optional metadata. Bump the schema only when the payload contract structurally changes.
@@ -83,7 +83,7 @@ Localization also depends directly on Core. Core never depends back on any of th
 
 - Confirm the dependency direction and run both compatibility gates.
 - Identify whether a change affects domain data, local profile data, UI preferences, or only presentation.
-- Preserve `ElementId`, `SourceHandle`, signature and update-on-write semantics.
+- Preserve technical identity, `SourceHandle` and update-on-write semantics. Keep `ElementId` when the manufacturing signature is unchanged; reconcile accepted signature changes with existing designation groups.
 - Exercise COPY/COPYCLIP/WBLOCK/SAVE-REOPEN and STRETCH lifecycle rules when annotations change.
 - Check repeated Apply for idempotency and duplicate/orphan cleanup.
 - Update relevant tests and documentation without recording transient test counts.

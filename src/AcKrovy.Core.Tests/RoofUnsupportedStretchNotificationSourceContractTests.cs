@@ -53,8 +53,8 @@ public sealed class RoofUnsupportedStretchNotificationSourceContractTests
     {
         var apply = Segment(
             ResizeService,
-            "private static bool ApplyResizes",
-            "private static ResizeApplyResult TryApplyResize");
+            "private static ResizeBatchResult ApplyResizes",
+            "private static void FinalizeSupportedResizeHardFailure");
         var tryApply = Segment(
             ResizeService,
             "private static ResizeApplyResult TryApplyResize",

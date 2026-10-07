@@ -597,7 +597,7 @@ public static class RoofGeneratedMemberOverrideMath
             existing?.StartOffsetMm ?? 0d,
             existing?.EndOffsetMm ?? 0d,
             existing?.ReservedElementId ?? reservedElementId);
-        return Normalize(composed);
+        return Normalize(composed with { PhysicalReferenceSegment = existing?.PhysicalReferenceSegment });
     }
 
     public static RoofGeneratedMemberGeometry NormalizeToBasis(
@@ -739,7 +739,8 @@ public static class RoofGeneratedMemberOverrideMath
             rotation,
             start,
             end,
-            overrideData.ReservedElementId);
+            overrideData.ReservedElementId)
+        { PhysicalReferenceSegment = overrideData.PhysicalReferenceSegment };
     }
 
     public static bool GeometryEquals(

@@ -168,6 +168,6 @@ public sealed class MonopitchRafterStage2D2SourceContractTests
         Assert.Contains("never", Live, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("MonopitchGeneratedEditObserver", Manual + Live);
         Assert.DoesNotContain("MonopitchManualOverrideManager", Manual + Live);
-        Assert.Equal(5, RoofDefinitionDataSchema.CurrentVersion);
+        Assert.Equal(6, RoofDefinitionDataSchema.CurrentVersion);
     }
 }

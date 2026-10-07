@@ -609,13 +609,16 @@ internal static class RoofMirrorCloneDetachService
     // elementId) into the owner RoofDefinitionData.ManualOverrides so a later
     // SupportedResize never regenerates slot K. Reuses the proven Generated ERASE
     // suppression architecture (EditState preserved, not forced).
-    private static bool TryWriteSuppressOverride(
+    internal static bool TryWriteSuppressOverride(
         Document document,
         Transaction transaction,
         string ownerReference,
         RoofGeneratedMemberKey key,
         string? elementId)
     {
+        // Normal Ordinary MIRROR is handled by its Independent package lifecycle.
+        // A legacy fall-through must fail closed instead of creating an exclusion.
+        if (key.MemberKind == RoofGeneratedTimberKind.Rafter) return false;
         if (!TryResolveOwnerPolyline(
                 document.Database,
                 transaction,

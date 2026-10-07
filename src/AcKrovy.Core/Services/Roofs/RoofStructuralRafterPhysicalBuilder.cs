@@ -189,20 +189,25 @@ public static class RoofStructuralRafterPhysicalBuilder
             eavePlanes.Add((eave.Start, inward));
         }
 
+        var expectedBoundaryRole = role == RoofStructuralRole.Hip
+            ? RoofRafterBoundaryRole.Hip : RoofRafterBoundaryRole.Valley;
+        // Index-only TopologyEdgeIndex is not enough: accepted MOVE can translate a
+        // StructuralCut off the Hip/Valley side. Non-contacting overrides are skipped;
+        // on-edge but off-side cuts remain HardFailure.
+        if (!RoofStructuralOrdinaryContactRules.TrySelectContacts(
+                ordinaryMembers,
+                axis,
+                topologyEdgeIndex,
+                expectedBoundaryRole,
+                widthMm,
+                out var contactingOrdinaries,
+                out failureReason))
+            return false;
+
         var requiredHeight = double.NegativeInfinity;
-        foreach (var ordinary in ordinaryMembers)
+        foreach (var ordinary in contactingOrdinaries)
         {
-            var cut = ordinary.StructuralCut;
-            if (cut is null || cut.TopologyEdgeIndex != topologyEdgeIndex)
-                continue;
-            if (cut.Role != (role == RoofStructuralRole.Hip
-                    ? RoofRafterBoundaryRole.Hip : RoofRafterBoundaryRole.Valley) ||
-                cut.CutFaceVertices is null || cut.CutFaceVertices.Count < 3 ||
-                cut.CutFaceVertices.Any(point => !Finite(point)))
-            {
-                failureReason = "OrdinaryStructuralCutInvalid";
-                return false;
-            }
+            var cut = ordinary.StructuralCut!;
             var slot = sideFaces[0]!.SourceEdgeIndex == ordinary.SourceFaceIndex ? 0 :
                 sideFaces[1]!.SourceEdgeIndex == ordinary.SourceFaceIndex ? 1 : -1;
             if (slot < 0)
@@ -211,13 +216,6 @@ public static class RoofStructuralRafterPhysicalBuilder
                 return false;
             }
             var sideNormal = slot == 0 ? left : new RoofPoint3D(-left.X, -left.Y, 0d);
-            var expectedSidePoint = Add(axis.Start, sideNormal, widthMm / 2d);
-            if (cut.CutFaceVertices.Any(point =>
-                Math.Abs(Dot(Subtract(point, expectedSidePoint), sideNormal)) > Tolerance))
-            {
-                failureReason = "OrdinaryCutNotOnStructuralSide";
-                return false;
-            }
             var span = cut.CutFaceVertices.Max(point => point.Z) -
                        cut.CutFaceVertices.Min(point => point.Z);
             // The Hip top is one chord between the two roof-plane contacts.
@@ -331,10 +329,8 @@ public static class RoofStructuralRafterPhysicalBuilder
             }
             faces = clipped!;
         }
-        var contacts = ordinaryMembers.Where(member =>
-            member.StructuralCut?.TopologyEdgeIndex == topologyEdgeIndex);
         if (!RoofStructuralLowerEndProfile.TryResolve(physicalTopAxis,
-                resolvedEaveElevationMm, height, lowerEndCutMode, contacts,
+                resolvedEaveElevationMm, height, lowerEndCutMode, contactingOrdinaries,
                 out var lowerPlanes))
         {
             failureReason = "LowerEndProfileUnresolved";

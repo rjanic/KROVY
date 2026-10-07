@@ -57,10 +57,10 @@ public sealed class RoofGeometryDialogSourceContractTests
     [Fact]
     public void SchemaBoundariesRemainExplicit()
     {
-        Assert.Equal(5, RoofDefinitionDataSchema.CurrentVersion);
+        Assert.Equal(6, RoofDefinitionDataSchema.CurrentVersion);
         Assert.Equal(7, TimberElementDataSchema.CurrentVersion);
         Assert.Equal(1, RoofGeneratedTimberDataSchema.CurrentVersion);
-        Assert.Equal(4, RoofAttachedManualTimberDataSchema.CurrentVersion);
+        Assert.Equal(5, RoofAttachedManualTimberDataSchema.CurrentVersion);
         Assert.Equal(1, RoofDisplayDataSchema.CurrentVersion);
     }
 
@@ -74,13 +74,14 @@ public sealed class RoofGeometryDialogSourceContractTests
     }
 
     [Fact]
-    public void AsymmetricInputModeRemainsUiOnlyAndSchemaFiveIsUnchanged()
+    public void AsymmetricInputModeRemainsUiOnlyAndLegacyEaveSchemaStaysReadable()
     {
         Assert.Contains("enum AsymmetricGableInputMode", ViewModel);
         Assert.DoesNotContain("AsymmetricGableInputMode", Codec);
         Assert.DoesNotContain("AsymmetricGableInputMode", Workflow);
-        Assert.Contains("CurrentVersion => EncodeV5", Codec);
-        Assert.Equal(5, RoofDefinitionDataSchema.CurrentVersion);
+        Assert.Contains("EaveHeightVersion => EncodeV5", Codec);
+        Assert.Contains("CurrentVersion => EncodeV6", Codec);
+        Assert.Equal(5, RoofDefinitionDataSchema.EaveHeightVersion);
     }
 
     [Fact]
@@ -92,7 +93,7 @@ public sealed class RoofGeometryDialogSourceContractTests
         Assert.Contains("? -uiDeltaHeight", ViewModel);
         Assert.DoesNotContain("IsAsymmetryMirrored", Codec);
         Assert.DoesNotContain("IsAsymmetryMirrored", Workflow);
-        Assert.Equal(5, RoofDefinitionDataSchema.CurrentVersion);
+        Assert.Equal(6, RoofDefinitionDataSchema.CurrentVersion);
     }
 
     [Fact]

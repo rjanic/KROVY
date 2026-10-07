@@ -40,10 +40,23 @@ public sealed record RoofAutomaticRafterPhysicalMember(
     RoofRidgeOverlapCut? RidgeOverlapCut = null,
     string? AttachedManualIdentity = null)
 {
+    public RoofRidgeMeetCut? RidgeMeetCut { get; init; }
+    public AcKrovy.Core.Services.Roofs.RoofOrdinarySectionOrientation? SectionOrientation { get; init; }
+
     public string PhysicalIdentity => AttachedManualIdentity is null
         ? $"{MemberKey.MemberKind}:{MemberKey.RoofFace}:{MemberKey.StationIndex.ToString(System.Globalization.CultureInfo.InvariantCulture)}"
         : "AttachedManual:" + AttachedManualIdentity;
 }
+
+/// <summary>Topology ridge plane retaining the ordinary member's interior side.</summary>
+public sealed record RoofRidgeMeetCut(
+    RoofPoint3D PlanePoint,
+    RoofPoint3D RetainedNormal,
+    IReadOnlyList<RoofPoint3D> SourcePrismVertices,
+    IReadOnlyList<RoofPoint3D> BodyVertices,
+    IReadOnlyList<RoofPoint3D> TopFaceVertices,
+    IReadOnlyList<RoofPoint3D> BottomFaceVertices,
+    IReadOnlyList<RoofPoint3D> CutFaceVertices);
 
 /// <summary>
 /// An Overlap member clipped below the actual opposing roof plane. The

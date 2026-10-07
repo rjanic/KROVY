@@ -452,6 +452,7 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
             .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
             .ToList());
         RefreshLayerNameOptions(availableLayerPresets, profile);
+        InitializeWarningPreferences();
         InitializeComponent();
         DataContext = this;
         ApplyWindowPreferences(_loadedUiPreferences);
@@ -1527,7 +1528,7 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
                 ? Visibility.Visible
                 : Visibility.Collapsed;
         LanguageFooterActions.Visibility =
-            section == SettingsWindowTabKind.Language
+            section is SettingsWindowTabKind.Language or SettingsWindowTabKind.Warnings
                 ? Visibility.Visible
                 : Visibility.Collapsed;
         LayersApplyButton.IsDefault =
@@ -1679,7 +1680,7 @@ public partial class LayerSettingsWindow : Window, INotifyPropertyChanged
             var bounds = WindowState == WindowState.Normal
                 ? new Rect(Left, Top, ActualWidth, ActualHeight)
                 : RestoreBounds;
-            SettingsUiPreferencesStore.Save(new SettingsUiPreferences
+            SettingsUiPreferencesStore.Save(SettingsUiPreferencesStore.Load() with
             {
                 Theme = Visual.SelectedTheme,
                 SelectedSection = Visual.SelectedSection,

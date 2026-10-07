@@ -14,7 +14,11 @@ public sealed record RoofGeneratedMemberReplayItem(
     RoofRafterGeometry Rafter,
     RoofGeneratedMemberGeometry? Geometry,
     RoofGeneratedMemberOverride? Override,
-    RoofGeneratedMemberReplayDisposition Disposition);
+    RoofGeneratedMemberReplayDisposition Disposition)
+{
+    // Transient replay policy, not persisted timber/roof metadata.
+    public bool CarriesAcceptedTranslation { get; init; }
+}
 
 public sealed record RoofGeneratedMemberReplayPlan(
     bool IsValid,
@@ -40,6 +44,39 @@ public sealed record RoofGeneratedMemberReplayPlan(
 /// </summary>
 public static class RoofGeneratedMemberReplayPlanner
 {
+    /// <summary>Physical rebuild of existing members: a live exact-key Plan matching a
+    /// persisted MOVE proves acceptance even outside the resize replay domain.
+    /// Resize creation continues to use Create and its dormancy policy.</summary>
+    public static RoofGeneratedMemberReplayPlan CreateForExistingPhysicalMembers(
+        RoofRafterLayout layout,
+        IReadOnlyList<RoofGeneratedMemberOverride>? overrides,
+        IReadOnlyDictionary<RoofGeneratedMemberKey, RoofGeneratedMemberGeometry> livePlans)
+    {
+        var replay = Create(layout, 0d, RoofGeneratedMemberOverrideRules.SourceWorkingPlaneNormal, overrides);
+        if (!replay.IsValid) return replay;
+        var restored = 0;
+        var items = replay.Items.Select(item =>
+        {
+            if (item.Disposition != RoofGeneratedMemberReplayDisposition.DormantInvalidDomain ||
+                item.Override is not { Suppressed: false, RotationRadians: 0d,
+                    StartOffsetMm: 0d, EndOffsetMm: 0d } edit ||
+                !livePlans.TryGetValue(item.Rafter.LogicalKey, out var live) ||
+                !RoofGeneratedMemberOverrideMath.TryApply(
+                    RoofGeneratedMemberOverrideRules.CanonicalGeometry(item.Rafter, 0d),
+                    RoofGeneratedMemberOverrideRules.SourceWorkingPlaneNormal, edit, out var applied) ||
+                !(live.Start.DistanceTo(applied.Start) <= RoofGeneratedMemberOverrideMath.LengthToleranceMm) ||
+                !(live.End.DistanceTo(applied.End) <= RoofGeneratedMemberOverrideMath.LengthToleranceMm))
+                return item;
+            restored++;
+            return item with { Geometry = applied, Disposition = RoofGeneratedMemberReplayDisposition.GeometryReplayed };
+        }).ToArray();
+        return replay with
+        {
+            Items = items, GeometryReplayCount = replay.GeometryReplayCount + restored,
+            DormantInvalidDomainCount = replay.DormantInvalidDomainCount - restored,
+        };
+    }
+
     public static RoofGeneratedMemberReplayPlan Create(
         RoofRafterLayout layout,
         double sourceElevationMm,
@@ -163,7 +200,8 @@ public static class RoofGeneratedMemberReplayPlanner
 /// current regenerated roof domain. Prefers the authoritative footprint polygon
 /// on <see cref="RoofRafterLayout.DomainPolygon"/>. Endpoint containment is not
 /// required: any segment overlap keeps supported TRIM/EXTEND past-eave semantics.
-/// Completely disjoint outside geometry must dormant as invalid-domain.
+/// Completely disjoint geometry reports no overlap; the caller's replay policy
+/// determines whether an accepted edit is still materialized.
 /// </summary>
 public static class RoofGeneratedMemberDomainRules
 {

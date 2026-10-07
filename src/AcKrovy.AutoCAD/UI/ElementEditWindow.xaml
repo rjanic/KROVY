@@ -1,92 +1,463 @@
-<Window x:Class="AcKrovy.AutoCAD.UI.ElementEditWindow"
+﻿<Window x:Class="AcKrovy.AutoCAD.UI.ElementEditWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:localization="clr-namespace:AcKrovy.AutoCAD.UI.Localization"
         Title="{localization:Loc EditWindow_Title}"
-        Width="580"
+        Width="760"
         SizeToContent="Height"
         ResizeMode="NoResize"
-        WindowStartupLocation="CenterOwner">
-    <Grid Margin="18">
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource WoodOakBrush}"
+        Foreground="{DynamicResource SettingsTextPrimaryBrush}">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Design/SettingsColors.Light.xaml" />
+                <ResourceDictionary Source="Design/SettingsDesignSystem.xaml" />
+                <ResourceDictionary Source="Design/SettingsControls.xaml" />
+                <ResourceDictionary Source="Design/RoofGeometryVisuals.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <SolidColorBrush x:Key="ElevationSelectedCardBrush" Color="#D6E8F8" />
+            <SolidColorBrush x:Key="ElevationReadOnlyFieldBrush" Color="#E7D9C7" />
+
+            <!-- Match purlin primary/secondary wood button language -->
+            <Style x:Key="SettingsPrimaryButtonStyle"
+                   TargetType="Button"
+                   BasedOn="{StaticResource SettingsBaseButtonStyle}">
+                <Setter Property="Foreground" Value="White" />
+                <Setter Property="Background" Value="{StaticResource RoofGeometryPrimaryButtonBrush}" />
+                <Setter Property="BorderBrush" Value="{StaticResource RoofGeometryPrimaryButtonBorderBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="Effect" Value="{StaticResource RoofGeometryPrimaryButtonElevation}" />
+                <Setter Property="MinHeight" Value="32" />
+                <Setter Property="Padding" Value="14,6" />
+            </Style>
+            <Style x:Key="SettingsSecondaryButtonStyle"
+                   TargetType="Button"
+                   BasedOn="{StaticResource SettingsBaseButtonStyle}">
+                <Setter Property="Foreground" Value="{DynamicResource SettingsTextPrimaryBrush}" />
+                <Setter Property="Background" Value="{StaticResource RoofGeometrySecondaryButtonBrush}" />
+                <Setter Property="BorderBrush" Value="{StaticResource RoofGeometrySecondaryButtonBorderBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="MinHeight" Value="32" />
+                <Setter Property="Padding" Value="14,6" />
+            </Style>
+
+            <Style x:Key="CompactCardStyle" TargetType="Border" BasedOn="{StaticResource SettingsCardStyle}">
+                <Setter Property="Padding" Value="10,8" />
+                <Setter Property="Margin" Value="0,0,0,6" />
+            </Style>
+
+            <Style x:Key="ElevationSubsectionCardStyle" TargetType="Border" BasedOn="{StaticResource CompactCardStyle}">
+                <Setter Property="Effect" Value="{x:Null}" />
+                <Setter Property="Margin" Value="0,0,0,6" />
+                <Setter Property="Padding" Value="8,6" />
+            </Style>
+
+            <Style x:Key="EditFieldTextBoxStyle" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+                <Setter Property="Margin" Value="0,2" />
+                <Setter Property="MinHeight" Value="28" />
+                <Setter Property="Padding" Value="6,4" />
+            </Style>
+
+            <Style x:Key="EditComboBoxStyle" TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
+                <Setter Property="MinHeight" Value="28" />
+                <Setter Property="Padding" Value="6,4" />
+                <Setter Property="Margin" Value="0,2" />
+            </Style>
+
+            <Style x:Key="ElevationFieldTextBoxStyle" TargetType="TextBox" BasedOn="{StaticResource EditFieldTextBoxStyle}">
+                <Style.Triggers>
+                    <Trigger Property="IsReadOnly" Value="True">
+                        <Setter Property="Background" Value="{StaticResource ElevationReadOnlyFieldBrush}" />
+                        <Setter Property="Foreground" Value="{DynamicResource SettingsTextSecondaryBrush}" />
+                        <Setter Property="Opacity" Value="0.88" />
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+
+            <!-- Equal-width clickable tiles: title above, ~64×64 image slot below -->
+            <Style x:Key="ElevationImageChoiceCardStyle" TargetType="Button">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="Padding" Value="0" />
+                <Setter Property="Margin" Value="0" />
+                <Setter Property="HorizontalAlignment" Value="Stretch" />
+                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="FocusVisualStyle" Value="{DynamicResource SettingsFocusVisualStyle}" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="CardChrome"
+                                    Background="{DynamicResource SettingsCardBackgroundBrush}"
+                                    BorderBrush="{DynamicResource SettingsBorderBrush}"
+                                    BorderThickness="1.5"
+                                    CornerRadius="{DynamicResource SettingsCornerRadiusSmall}"
+                                    Padding="6,6"
+                                    Margin="3,0"
+                                    SnapsToDevicePixels="True">
+                                <StackPanel HorizontalAlignment="Center">
+                                    <TextBlock x:Name="TitleText"
+                                               Text="{Binding Title}"
+                                               HorizontalAlignment="Center"
+                                               TextAlignment="Center"
+                                               TextWrapping="Wrap"
+                                               MaxWidth="140"
+                                               MinHeight="28"
+                                               MaxHeight="36"
+                                               Margin="0,0,0,6"
+                                               FontWeight="SemiBold"
+                                               FontSize="{DynamicResource SettingsFontSizeCaption}"
+                                               Foreground="{DynamicResource SettingsTextPrimaryBrush}" />
+                                    <Border x:Name="ImageFrame"
+                                            Width="64"
+                                            Height="64"
+                                            HorizontalAlignment="Center"
+                                            CornerRadius="6"
+                                            BorderBrush="{DynamicResource SettingsBorderBrush}"
+                                            BorderThickness="1"
+                                            Background="{DynamicResource SettingsPanelBackgroundBrush}"
+                                            ClipToBounds="True">
+                                        <Grid>
+                                            <Image Source="{Binding Image}"
+                                                   Stretch="Uniform"
+                                                   Margin="3">
+                                                <Image.Style>
+                                                    <Style TargetType="Image">
+                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding HasImage}" Value="True">
+                                                                <Setter Property="Visibility" Value="Visible" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Image.Style>
+                                            </Image>
+                                            <Border Background="#1A8A5A33">
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="Visibility" Value="Visible" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding HasImage}" Value="True">
+                                                                <Setter Property="Visibility" Value="Collapsed" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                                <TextBlock Text="PNG"
+                                                           HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center"
+                                                           FontSize="10"
+                                                           FontWeight="SemiBold"
+                                                           Opacity="0.55"
+                                                           Foreground="{DynamicResource SettingsTextSecondaryBrush}" />
+                                            </Border>
+                                        </Grid>
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                    <Setter TargetName="CardChrome" Property="BorderBrush" Value="{DynamicResource SettingsAccentBrush}" />
+                                    <Setter TargetName="CardChrome" Property="BorderThickness" Value="2.5" />
+                                    <Setter TargetName="CardChrome" Property="Background" Value="{StaticResource ElevationSelectedCardBrush}" />
+                                    <Setter TargetName="ImageFrame" Property="BorderBrush" Value="{DynamicResource SettingsAccentBrush}" />
+                                    <Setter TargetName="TitleText" Property="Foreground" Value="{DynamicResource SettingsAccentBrush}" />
+                                </DataTrigger>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="CardChrome" Property="Opacity" Value="0.94" />
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="CardChrome" Property="Opacity" Value="0.82" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <Style x:Key="ElevationChoiceItemsControlStyle" TargetType="ItemsControl">
+                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            </Style>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <!-- No ScrollViewer: entire AK_EDIT must fit one compact window -->
+    <Grid Margin="10">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="10" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="18" />
+            <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="165" />
-            <ColumnDefinition Width="38" />
-            <ColumnDefinition Width="*" />
-        </Grid.ColumnDefinitions>
 
-        <TextBlock Grid.Row="0" Grid.ColumnSpan="3" FontSize="15" FontWeight="SemiBold" Text="{localization:Loc EditWindow_Heading}" />
+        <!-- TOP BAR: dark wood header (~25% shorter than purlin 72px) -->
+        <Border x:Name="HeaderBand"
+                Height="54"
+                Margin="0,0,0,8"
+                Padding="12,6"
+                Background="{StaticResource WoodOakDarkBrush}"
+                BorderBrush="#321708"
+                BorderThickness="1"
+                CornerRadius="8">
+            <StackPanel Orientation="Horizontal">
+                <Border Width="34" Height="34"
+                        Margin="0,0,10,0"
+                        VerticalAlignment="Center"
+                        Background="#2AFFFFFF"
+                        BorderBrush="#88FFF4DF"
+                        BorderThickness="1"
+                        CornerRadius="7">
+                    <Viewbox Width="20" Height="20" Margin="5">
+                        <Path Data="{StaticResource RoofGeometryGableIconGeometry}"
+                              Fill="Transparent"
+                              Stroke="{StaticResource RoofGeometryHeaderTextBrush}"
+                              StrokeThickness="1.7"
+                              StrokeStartLineCap="Round"
+                              StrokeEndLineCap="Round"
+                              StrokeLineJoin="Round" />
+                    </Viewbox>
+                </Border>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock FontSize="16"
+                               FontWeight="Bold"
+                               Foreground="{StaticResource RoofGeometryHeaderTextBrush}"
+                               Text="{localization:Loc EditWindow_Title}" />
+                    <TextBlock Margin="0,1,0,0"
+                               FontSize="{DynamicResource SettingsFontSizeCaption}"
+                               Foreground="{StaticResource RoofGeometryHeaderSecondaryTextBrush}"
+                               Text="{localization:Loc EditWindow_Heading}" />
+                </StackPanel>
+            </StackPanel>
+        </Border>
 
-        <TextBlock Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" Text="{localization:Loc EditWindow_ElementType}" />
-        <CheckBox x:Name="ChangeTypeCheckBox" Grid.Row="2" Grid.Column="1" VerticalAlignment="Center" ToolTip="{localization:Loc EditWindow_ChangeTooltip}" />
-        <StackPanel Grid.Row="2" Grid.Column="2">
-            <ComboBox x:Name="ElementTypeComboBox" MinWidth="210" />
-            <Button x:Name="RenameCustomDefinitionButton"
-                    Margin="0,5,0,2"
-                    Padding="8,3"
-                    HorizontalAlignment="Left"
+        <StackPanel Grid.Row="1">
+            <!-- TOP PROPERTIES: Údaje prvku -->
+            <Border Style="{StaticResource CompactCardStyle}">
+                <StackPanel>
+                    <TextBlock Style="{DynamicResource SettingsSectionTitleStyle}"
+                               FontSize="{DynamicResource SettingsFontSizeBody}"
+                               FontWeight="Bold"
+                               Margin="0,0,0,6"
+                               Text="{localization:Loc EditWindow_Heading}" />
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="155" />
+                            <ColumnDefinition Width="28" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Text="{localization:Loc EditWindow_ElementType}" />
+                        <CheckBox x:Name="ChangeTypeCheckBox" Grid.Row="0" Grid.Column="1" VerticalAlignment="Center" ToolTip="{localization:Loc EditWindow_ChangeTooltip}" />
+                        <StackPanel Grid.Row="0" Grid.Column="2">
+                            <ComboBox x:Name="ElementTypeComboBox" Style="{StaticResource EditComboBoxStyle}" MinWidth="210" />
+                            <Button x:Name="RenameCustomDefinitionButton"
+                                    Margin="0,4,0,0"
+                                    Padding="8,3"
+                                    HorizontalAlignment="Left"
+                                    Visibility="Collapsed"
+                                    Click="RenameCustomDefinition_Click"
+                                    Content="{localization:Loc EditWindow_RenameCustomDefinition}" />
+                        </StackPanel>
+
+                        <TextBlock Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" Text="{localization:Loc EditWindow_WidthMm}" />
+                        <CheckBox x:Name="ChangeWidthCheckBox" Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" ToolTip="{localization:Loc EditWindow_ChangeTooltip}" />
+                        <TextBox x:Name="WidthTextBox" Grid.Row="1" Grid.Column="2" Style="{StaticResource EditFieldTextBoxStyle}" />
+
+                        <TextBlock Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" Text="{localization:Loc EditWindow_HeightMm}" />
+                        <CheckBox x:Name="ChangeHeightCheckBox" Grid.Row="2" Grid.Column="1" VerticalAlignment="Center" ToolTip="{localization:Loc EditWindow_ChangeTooltip}" />
+                        <TextBox x:Name="HeightTextBox" Grid.Row="2" Grid.Column="2" Style="{StaticResource EditFieldTextBoxStyle}" />
+
+                        <TextBlock x:Name="SlopeDegreesLabel" Grid.Row="3" Grid.Column="0" VerticalAlignment="Center"
+                                   Text="{localization:Loc EditWindow_SlopeDegrees}" />
+                        <CheckBox x:Name="ChangeSlopeCheckBox" Grid.Row="3" Grid.Column="1" VerticalAlignment="Center"
+                                  ToolTip="{localization:Loc EditWindow_ChangeTooltip}" />
+                        <TextBox x:Name="SlopeTextBox" Grid.Row="3" Grid.Column="2"
+                                 Style="{StaticResource ElevationFieldTextBoxStyle}"
+                                 LostFocus="MainSlopeTextBox_LostFocus" />
+
+                        <TextBlock Grid.Row="4" Grid.Column="0" VerticalAlignment="Center" Text="{localization:Loc EditWindow_SlopeDirection}" />
+                        <CheckBox x:Name="ChangeSlopeDirectionCheckBox" Grid.Row="4" Grid.Column="1" VerticalAlignment="Center" ToolTip="{localization:Loc EditWindow_ChangeTooltip}" />
+                        <ComboBox x:Name="SlopeDirectionComboBox" Grid.Row="4" Grid.Column="2" Style="{StaticResource EditComboBoxStyle}" />
+
+                        <TextBlock Grid.Row="5" Grid.Column="0" VerticalAlignment="Center" Text="{localization:Loc EditWindow_RoofPlane}" />
+                        <CheckBox x:Name="ChangeRoofPlaneCheckBox" Grid.Row="5" Grid.Column="1" VerticalAlignment="Center" ToolTip="{localization:Loc EditWindow_ChangeTooltip}" />
+                        <TextBox x:Name="RoofPlaneTextBox" Grid.Row="5" Grid.Column="2" Style="{StaticResource EditFieldTextBoxStyle}" />
+
+                        <TextBlock Grid.Row="6" Grid.Column="0" VerticalAlignment="Center" Text="{localization:Loc EditWindow_CuttingAllowanceMm}" />
+                        <CheckBox x:Name="ChangeAllowanceCheckBox" Grid.Row="6" Grid.Column="1" VerticalAlignment="Center" ToolTip="{localization:Loc EditWindow_ChangeTooltip}" />
+                        <StackPanel Grid.Row="6" Grid.Column="2" Orientation="Horizontal" Margin="0,2">
+                            <TextBox x:Name="AllowanceTextBox" Width="105" Style="{StaticResource EditFieldTextBoxStyle}" Margin="0" />
+                            <Button Width="210" Margin="8,0,0,0" Padding="8,3" Click="UseDefaultAllowance_Click"
+                                    Content="{localization:Loc EditWindow_UseDefaultByType}" />
+                        </StackPanel>
+
+                        <TextBlock Grid.Row="7" Grid.Column="0" VerticalAlignment="Center" Text="{localization:Loc EditWindow_LengthMode}" />
+                        <CheckBox x:Name="ChangeLengthModeCheckBox" Grid.Row="7" Grid.Column="1" VerticalAlignment="Center" ToolTip="{localization:Loc EditWindow_ChangeTooltip}" />
+                        <ComboBox x:Name="LengthModeComboBox" Grid.Row="7" Grid.Column="2" Style="{StaticResource EditComboBoxStyle}" />
+
+                        <TextBlock Grid.Row="8" Grid.Column="0" VerticalAlignment="Center" Text="{localization:Loc EditWindow_ManualLengthMm}" />
+                        <CheckBox x:Name="ChangeManualLengthCheckBox" Grid.Row="8" Grid.Column="1" VerticalAlignment="Center" ToolTip="{localization:Loc EditWindow_ChangeTooltip}" />
+                        <TextBox x:Name="ManualLengthTextBox" Grid.Row="8" Grid.Column="2" Style="{StaticResource EditFieldTextBoxStyle}" />
+
+                        <TextBlock Grid.Row="9" Grid.Column="0" VerticalAlignment="Center" Text="{localization:Loc EditWindow_Material}" />
+                        <CheckBox x:Name="ChangeMaterialCheckBox" Grid.Row="9" Grid.Column="1" VerticalAlignment="Center" ToolTip="{localization:Loc EditWindow_ChangeTooltip}" />
+                        <ComboBox x:Name="MaterialComboBox" Grid.Row="9" Grid.Column="2" Style="{StaticResource EditComboBoxStyle}" DisplayMemberPath="DisplayName" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- Výškové osadenie — light panel on wood background -->
+            <Border x:Name="ElevationSection"
                     Visibility="Collapsed"
-                    Click="RenameCustomDefinition_Click"
-                    Content="{localization:Loc EditWindow_RenameCustomDefinition}" />
+                    Style="{StaticResource CompactCardStyle}"
+                    Margin="0,2,0,0"
+                    Background="{DynamicResource SettingsPanelBackgroundBrush}">
+                <StackPanel>
+                    <TextBlock Style="{DynamicResource SettingsSectionTitleStyle}"
+                               FontSize="{DynamicResource SettingsFontSizeBody}"
+                               FontWeight="Bold"
+                               Margin="0,0,0,6"
+                               Text="{localization:Loc RoofOrdinaryElevation_Section}" />
+
+                    <!-- A. Referencia: single SH/OS/VH card row -->
+                    <Border Style="{StaticResource ElevationSubsectionCardStyle}">
+                        <StackPanel>
+                            <TextBlock FontWeight="SemiBold"
+                                       FontSize="{DynamicResource SettingsFontSizeCaption}"
+                                       Margin="0,0,0,6"
+                                       Foreground="{DynamicResource SettingsTextPrimaryBrush}"
+                                       Text="{localization:Loc RoofOrdinaryElevation_Reference}" />
+                            <ItemsControl x:Name="ReferenceChoicesList"
+                                          Style="{StaticResource ElevationChoiceItemsControlStyle}"
+                                          ItemsSource="{Binding ReferenceChoices}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <UniformGrid Columns="3" Rows="1" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Button Style="{StaticResource ElevationImageChoiceCardStyle}"
+                                                Click="ElevationImageChoice_Click"
+                                                Tag="Reference" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- B. Hodnoty: text fields only (no second SH/OS/VH card row) -->
+                    <Border Style="{StaticResource ElevationSubsectionCardStyle}">
+                        <StackPanel>
+                            <TextBlock FontWeight="SemiBold"
+                                       FontSize="{DynamicResource SettingsFontSizeCaption}"
+                                       Margin="0,0,0,4"
+                                       Foreground="{DynamicResource SettingsTextPrimaryBrush}"
+                                       Text="{localization:Loc RoofOrdinaryElevation_Values}" />
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="150" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center"
+                                           Text="{localization:Loc RoofOrdinaryElevation_LowerZ}" />
+                                <TextBox x:Name="LowerZTextBox" Grid.Row="0" Grid.Column="1"
+                                         Style="{StaticResource ElevationFieldTextBoxStyle}" />
+
+                                <TextBlock Grid.Row="1" Grid.Column="0" VerticalAlignment="Center"
+                                           Text="{localization:Loc RoofOrdinaryElevation_UpperZ}" />
+                                <TextBox x:Name="UpperZTextBox" Grid.Row="1" Grid.Column="1"
+                                         Style="{StaticResource ElevationFieldTextBoxStyle}" />
+
+                                <TextBlock Grid.Row="2" Grid.Column="0" VerticalAlignment="Center"
+                                           Text="{localization:Loc RoofOrdinaryElevation_Slope}" />
+                                <TextBox x:Name="SlopeElevationTextBox" Grid.Row="2" Grid.Column="1"
+                                         Style="{StaticResource ElevationFieldTextBoxStyle}"
+                                         IsReadOnly="True"
+                                         ToolTip="{localization:Loc RoofOrdinaryElevation_SlopeLinkedTooltip}" />
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- C. Výpočet podľa -->
+                    <Border Style="{StaticResource ElevationSubsectionCardStyle}" Margin="0">
+                        <StackPanel>
+                            <TextBlock FontWeight="SemiBold"
+                                       FontSize="{DynamicResource SettingsFontSizeCaption}"
+                                       Margin="0,0,0,6"
+                                       Foreground="{DynamicResource SettingsTextPrimaryBrush}"
+                                       Text="{localization:Loc RoofOrdinaryElevation_CalcMode}" />
+                            <ItemsControl x:Name="CalculationChoicesList"
+                                          Style="{StaticResource ElevationChoiceItemsControlStyle}"
+                                          ItemsSource="{Binding CalculationChoices}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <UniformGrid Columns="3" Rows="1" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Button Style="{StaticResource ElevationImageChoiceCardStyle}"
+                                                Click="ElevationImageChoice_Click"
+                                                Tag="Calculation" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Border>
         </StackPanel>
 
-        <TextBlock Grid.Row="3" Grid.Column="0" VerticalAlignment="Center" Text="{localization:Loc EditWindow_WidthMm}" />
-        <CheckBox x:Name="ChangeWidthCheckBox" Grid.Row="3" Grid.Column="1" VerticalAlignment="Center" ToolTip="{localization:Loc EditWindow_ChangeTooltip}" />
-        <TextBox x:Name="WidthTextBox" Grid.Row="3" Grid.Column="2" Margin="0,4" />
-
-        <TextBlock Grid.Row="4" Grid.Column="0" VerticalAlignment="Center" Text="{localization:Loc EditWindow_HeightMm}" />
-        <CheckBox x:Name="ChangeHeightCheckBox" Grid.Row="4" Grid.Column="1" VerticalAlignment="Center" ToolTip="{localization:Loc EditWindow_ChangeTooltip}" />
-        <TextBox x:Name="HeightTextBox" Grid.Row="4" Grid.Column="2" Margin="0,4" />
-
-        <TextBlock Grid.Row="5" Grid.Column="0" VerticalAlignment="Center" Text="{localization:Loc EditWindow_SlopeDegrees}" />
-        <CheckBox x:Name="ChangeSlopeCheckBox" Grid.Row="5" Grid.Column="1" VerticalAlignment="Center" ToolTip="{localization:Loc EditWindow_ChangeTooltip}" />
-        <TextBox x:Name="SlopeTextBox" Grid.Row="5" Grid.Column="2" Margin="0,4" />
-
-        <TextBlock Grid.Row="6" Grid.Column="0" VerticalAlignment="Center" Text="{localization:Loc EditWindow_SlopeDirection}" />
-        <CheckBox x:Name="ChangeSlopeDirectionCheckBox" Grid.Row="6" Grid.Column="1" VerticalAlignment="Center" ToolTip="{localization:Loc EditWindow_ChangeTooltip}" />
-        <ComboBox x:Name="SlopeDirectionComboBox" Grid.Row="6" Grid.Column="2" />
-
-        <TextBlock Grid.Row="7" Grid.Column="0" VerticalAlignment="Center" Text="{localization:Loc EditWindow_RoofPlane}" />
-        <CheckBox x:Name="ChangeRoofPlaneCheckBox" Grid.Row="7" Grid.Column="1" VerticalAlignment="Center" ToolTip="{localization:Loc EditWindow_ChangeTooltip}" />
-        <TextBox x:Name="RoofPlaneTextBox" Grid.Row="7" Grid.Column="2" Margin="0,4" />
-
-        <TextBlock Grid.Row="8" Grid.Column="0" VerticalAlignment="Center" Text="{localization:Loc EditWindow_CuttingAllowanceMm}" />
-        <CheckBox x:Name="ChangeAllowanceCheckBox" Grid.Row="8" Grid.Column="1" VerticalAlignment="Center" ToolTip="{localization:Loc EditWindow_ChangeTooltip}" />
-        <StackPanel Grid.Row="8" Grid.Column="2" Orientation="Horizontal" Margin="0,4">
-            <TextBox x:Name="AllowanceTextBox" Width="105" />
-            <Button Width="215" Margin="8,0,0,0" Padding="8,3" Click="UseDefaultAllowance_Click" Content="{localization:Loc EditWindow_UseDefaultByType}" />
-        </StackPanel>
-
-        <TextBlock Grid.Row="9" Grid.Column="0" VerticalAlignment="Center" Text="{localization:Loc EditWindow_LengthMode}" />
-        <CheckBox x:Name="ChangeLengthModeCheckBox" Grid.Row="9" Grid.Column="1" VerticalAlignment="Center" ToolTip="{localization:Loc EditWindow_ChangeTooltip}" />
-        <ComboBox x:Name="LengthModeComboBox" Grid.Row="9" Grid.Column="2" />
-
-        <TextBlock Grid.Row="10" Grid.Column="0" VerticalAlignment="Center" Text="{localization:Loc EditWindow_ManualLengthMm}" />
-        <CheckBox x:Name="ChangeManualLengthCheckBox" Grid.Row="10" Grid.Column="1" VerticalAlignment="Center" ToolTip="{localization:Loc EditWindow_ChangeTooltip}" />
-        <TextBox x:Name="ManualLengthTextBox" Grid.Row="10" Grid.Column="2" Margin="0,4" />
-
-        <TextBlock Grid.Row="11" Grid.Column="0" VerticalAlignment="Center" Text="{localization:Loc EditWindow_Material}" />
-        <CheckBox x:Name="ChangeMaterialCheckBox" Grid.Row="11" Grid.Column="1" VerticalAlignment="Center" ToolTip="{localization:Loc EditWindow_ChangeTooltip}" />
-        <ComboBox x:Name="MaterialComboBox" Grid.Row="11" Grid.Column="2" Margin="0,4" DisplayMemberPath="DisplayName" />
-
-        <StackPanel Grid.Row="13" Grid.ColumnSpan="3" HorizontalAlignment="Right" Orientation="Horizontal">
-            <Button Width="105" Margin="0,0,8,0" Padding="8,4" Click="Cancel_Click" IsCancel="True" Content="{localization:Loc EditWindow_Cancel}" />
-            <Button Width="105" Padding="8,4" Click="Save_Click" IsDefault="True" Content="{localization:Loc EditWindow_Apply}" />
-        </StackPanel>
+        <!-- BOTTOM BAR: dark wood footer (~25% shorter than purlin MinHeight 68) -->
+        <Border x:Name="FooterBand"
+                Grid.Row="2"
+                MinHeight="51"
+                Margin="0,8,0,0"
+                Background="{StaticResource WoodOakDarkBrush}"
+                BorderBrush="#321708"
+                BorderThickness="1"
+                CornerRadius="8">
+            <Grid Margin="10,6">
+                <StackPanel x:Name="FooterPanel"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center"
+                            Orientation="Horizontal">
+                    <Button x:Name="CancelButton"
+                            Width="110"
+                            Margin="0,0,10,0"
+                            Click="Cancel_Click"
+                            IsCancel="True"
+                            Style="{StaticResource SettingsSecondaryButtonStyle}"
+                            Content="{localization:Loc EditWindow_Cancel}" />
+                    <Button x:Name="ApplyButton"
+                            Width="110"
+                            Click="Save_Click"
+                            IsDefault="True"
+                            Style="{StaticResource SettingsPrimaryButtonStyle}"
+                            Content="{localization:Loc EditWindow_Apply}" />
+                </StackPanel>
+            </Grid>
+        </Border>
     </Grid>
 </Window>

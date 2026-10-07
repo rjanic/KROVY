@@ -277,7 +277,8 @@ public sealed class RoofWholeRoofMirrorSourceContractTests
         Assert.True(structuralCount >= 0 && mirrorGate > structuralCount &&
                     rehome > mirrorGate && structural > rehome);
         Assert.Contains("boundaryRehome.Identity is null", apply);
-        Assert.Contains("resize structural failure", apply);
+        Assert.Contains("HardFailureAt(document, ownerId, \"structural-physical\"", apply);
+        Assert.Contains("HardFailureAt(document, ownerId, \"boundary-identity\"", apply);
     }
 
     [Fact]

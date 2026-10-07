@@ -1205,4 +1205,49 @@ La disposition enregistrée des pannes n'est pas compatible avec la nouvelle gé
 Ajustez les pannes ou choisissez une géométrie adaptée.</value></data>
   <data name="Command_RoofSelectSource_Prompt" xml:space="preserve"><value>
 Sélectionnez un contour ou une partie du toit pour sélectionner le contour source : </value></data>
+  <data name="RoofOrdinaryPhysical3DWarningTitle" xml:space="preserve"><value>Modification de l'élément 3D</value></data>
+  <data name="RoofOrdinaryPhysical3DWarningOk" xml:space="preserve"><value>OK</value></data>
+  <data name="RoofOrdinaryDetachTitle" xml:space="preserve"><value>Détacher l'élément du toit</value></data>
+  <data name="RoofOrdinaryDetachBody" xml:space="preserve"><value>Cette modification détachera l'élément du toit automatique.
+Il ne sera plus mis à jour automatiquement lors des prochaines modifications du toit.
+Continuer ?</value></data>
+  <data name="RoofOrdinaryDetachYes" xml:space="preserve"><value>Oui</value></data>
+  <data name="RoofOrdinaryDetachNo" xml:space="preserve"><value>Non</value></data>
+  <data name="SettingsWindow_Warnings_Tab" xml:space="preserve"><value>Avertissements et confirmations</value></data>
+  <data name="SettingsWindow_ConfirmAutomaticDetach" xml:space="preserve"><value>Confirmer le détachement des éléments automatiques</value></data>
+  <data name="SettingsWindow_WarnDerived3DEdit" xml:space="preserve"><value>Avertir lors de la modification d’un élément 3D dérivé</value></data>
+  <data name="SettingsWindow_RestoreWarnings" xml:space="preserve"><value>Rétablir tous les avertissements</value></data>
+  <data name="SettingsWindow_DetachWarningExplanation" xml:space="preserve"><value>Si la confirmation est désactivée, l’élément automatique modifié se détache du toit sans autre question.</value></data>
+  <data name="Warning_DoNotShowAgain" xml:space="preserve"><value>Ne plus afficher cet avertissement</value></data>
+  <data name="Warning_Derived3DEditCancelled" xml:space="preserve"><value>L’élément 3D est dérivé de la 2D. La modification 3D a été annulée.</value></data>
+  <data name="Warning_PreferenceSaveFailed" xml:space="preserve"><value>Les préférences d’avertissement n’ont pas pu être enregistrées.</value></data>
+  <data name="Message_OrdinaryJoinRejected" xml:space="preserve"><value>JOIN des chevrons prend en charge uniquement les éléments compatibles sur un même axe. Les éléments d'origine ont été restaurés.</value></data>
+  <!-- Elevation seating (Výškové osadenie) — v1 -->
+  <data name="RoofOrdinaryElevation_Title" xml:space="preserve"><value>Calage en hauteur de la chevron</value></data>
+  <data name="RoofOrdinaryElevation_Section" xml:space="preserve"><value>Calage en hauteur</value></data>
+  <data name="RoofOrdinaryElevation_Reference" xml:space="preserve"><value>Référence</value></data>
+  <data name="RoofOrdinaryElevation_SH_Tooltip" xml:space="preserve"><value>SH – hauteur de la face inférieure</value></data>
+  <data name="RoofOrdinaryElevation_OS_Tooltip" xml:space="preserve"><value>OS – hauteur de l'axe neutre</value></data>
+  <data name="RoofOrdinaryElevation_VH_Tooltip" xml:space="preserve"><value>VH – hauteur de la face supérieure</value></data>
+  <data name="RoofOrdinaryElevation_Values" xml:space="preserve"><value>Valeurs</value></data>
+  <data name="RoofOrdinaryElevation_ValuesHint" xml:space="preserve"><value>Modifiez uniquement les champs du mode Calculer depuis sélectionné. Les champs gris sont dérivés.</value></data>
+  <data name="RoofOrdinaryElevation_LowerZ" xml:space="preserve"><value>Z point bas</value></data>
+  <data name="RoofOrdinaryElevation_UpperZ" xml:space="preserve"><value>Z point haut</value></data>
+  <data name="RoofOrdinaryElevation_Slope" xml:space="preserve"><value>Pente liée</value></data>
+  <data name="RoofOrdinaryElevation_SlopeLinkedTooltip" xml:space="preserve"><value>Miroir de la pente de l'élément en haut (Pente [°]). Pas une seconde valeur indépendante.</value></data>
+  <data name="RoofOrdinaryElevation_CalcMode" xml:space="preserve"><value>Calculer depuis</value></data>
+  <data name="RoofOrdinaryElevation_Mode_LowerUpper" xml:space="preserve"><value>Z bas + Z haut</value></data>
+  <data name="RoofOrdinaryElevation_Mode_LowerSlope" xml:space="preserve"><value>Z bas + Pente</value></data>
+  <data name="RoofOrdinaryElevation_Mode_UpperSlope" xml:space="preserve"><value>Z haut + Pente</value></data>
+  <data name="RoofOrdinaryElevation_Apply" xml:space="preserve"><value>Appliquer</value></data>
+  <data name="RoofOrdinaryElevation_Cancel" xml:space="preserve"><value>Annuler</value></data>
+  <data name="RoofOrdinaryElevation_SelectPrompt" xml:space="preserve"><value>&#xa;Sélectionner la chevron pour le calage : </value></data>
+  <data name="RoofOrdinaryElevation_SelectReject" xml:space="preserve"><value>&#xa;Sélectionner une ligne de chevron.</value></data>
+  <data name="RoofOrdinaryElevation_NotALine" xml:space="preserve"><value>&#xa;Calage : l'objet sélectionné n'est pas une ligne.</value></data>
+  <data name="RoofOrdinaryElevation_NotOrdinary" xml:space="preserve"><value>&#xa;Calage : l'élément sélectionné n'est pas une chevron ordinaire.</value></data>
+  <data name="RoofOrdinaryElevation_Degenerate" xml:space="preserve"><value>&#xa;Calage : chevron trop courte (dégénérée).</value></data>
+  <data name="RoofOrdinaryElevation_NoMetadata" xml:space="preserve"><value>&#xa;Calage : métadonnées indisponibles.</value></data>
+  <data name="RoofOrdinaryElevation_NoChange" xml:space="preserve"><value>&#xa;Calage : aucun changement.</value></data>
+  <data name="RoofOrdinaryElevation_Applied" xml:space="preserve"><value>&#xa;Calage en hauteur appliqué.</value></data>
+  <data name="RoofOrdinaryElevation_Failed" xml:space="preserve"><value>&#xa;Calage : erreur lors de l'application</value></data>
 </root>

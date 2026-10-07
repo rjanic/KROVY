@@ -207,9 +207,17 @@ internal static class RoofUnsupportedStretchRecoverySnapshotService
                     continue;
                 }
 
+                var physicalHandles = CapturePhysicalSolidHandles(
+                    document.Database,
+                    transaction,
+                    roof.Source.OwnerHandle);
                 lock (Gate)
                 {
-                    ByOwner[roof.Id] = new SnapshotEntry(roof.Id, assembly);
+                    ByOwner[roof.Id] = new SnapshotEntry(
+                        roof.Id,
+                        assembly,
+                        roof.Data,
+                        physicalHandles);
                 }
 #if DEBUG
                 RoofGeneratedSnapshotDiag.WriteCapture(
@@ -928,21 +936,51 @@ internal static class RoofUnsupportedStretchRecoverySnapshotService
 
     private static RoofPoint3D ToPoint(Point3d point) => new(point.X, point.Y, point.Z);
 
+    private static IReadOnlyList<string> CapturePhysicalSolidHandles(
+        Database database,
+        Transaction transaction,
+        string ownerHandle)
+    {
+        var handles = new List<string>();
+        foreach (var id in RoofPhysical3DGeneratedStore.FindByOwner(database, transaction, ownerHandle))
+        {
+            if (id.IsNull || id.IsErased ||
+                !AutoCadObjectIdAccess.TryGetObject<Entity>(
+                    transaction, id, OpenMode.ForRead, out var entity, database) ||
+                entity is null)
+                continue;
+            handles.Add(entity.Handle.ToString());
+        }
+
+        return handles;
+    }
+
     internal sealed class SnapshotEntry
     {
         private readonly HashSet<string> _claimedStructuralHandles = new(StringComparer.OrdinalIgnoreCase);
+        private readonly HashSet<string> _claimedOrdinaryHandles = new(StringComparer.OrdinalIgnoreCase);
+        public void ClaimOrdinary(IEnumerable<string> handles) => _claimedOrdinaryHandles.UnionWith(handles);
+        public bool IsOrdinaryClaimed(string handle) => _claimedOrdinaryHandles.Contains(handle);
 
         public void ClaimStructural(IEnumerable<string> handles) => _claimedStructuralHandles.UnionWith(handles);
         public bool IsStructuralClaimed(string handle) => _claimedStructuralHandles.Contains(handle);
 
-        public SnapshotEntry(ObjectId ownerId, RoofUnsupportedStretchAssemblySnapshotData assembly)
+        public SnapshotEntry(
+            ObjectId ownerId,
+            RoofUnsupportedStretchAssemblySnapshotData assembly,
+            RoofDefinitionData? definition = null,
+            IReadOnlyList<string>? physicalSolidHandles = null)
         {
             OwnerId = ownerId;
             Assembly = assembly;
+            Definition = definition;
+            PhysicalSolidHandles = physicalSolidHandles ?? Array.Empty<string>();
         }
 
         public ObjectId OwnerId { get; }
         public RoofUnsupportedStretchAssemblySnapshotData Assembly { get; }
+        public RoofDefinitionData? Definition { get; }
+        public IReadOnlyList<string> PhysicalSolidHandles { get; }
 
         public IReadOnlyDictionary<RoofGeneratedMemberKey, string> PreResizeAnchorHandleByKey { get; private set; } =
             new Dictionary<RoofGeneratedMemberKey, string>();

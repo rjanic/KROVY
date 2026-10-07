@@ -237,8 +237,9 @@ public sealed class SettingsRuntimeLocalizationTests
             .Descendants(presentation + "Border")
             .Single(element => (string?)element.Attribute(x + "Name") == "StatusBanner");
 
-        Assert.Equal("2", (string?)banner.Attribute("Grid.RowSpan"));
-        Assert.Equal("2", (string?)banner.Attribute("Grid.ColumnSpan"));
+        // Wood chrome layout: header / body / footer => span all three rows.
+        Assert.Equal("3", (string?)banner.Attribute("Grid.RowSpan"));
+        Assert.Null(banner.Attribute("Grid.ColumnSpan"));
         Assert.Equal("100", (string?)banner.Attribute("Panel.ZIndex"));
         Assert.Equal("False", (string?)banner.Attribute("IsHitTestVisible"));
         Assert.Equal("Collapsed", (string?)banner.Attribute("Visibility"));

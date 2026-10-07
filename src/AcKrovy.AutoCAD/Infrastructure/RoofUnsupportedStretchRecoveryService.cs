@@ -1,6 +1,7 @@
 using AcKrovy.Core.Models.Roofs;
 using AcKrovy.Core.Services.Roofs;
 using AcKrovy.Core.Services;
+using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.Geometry;
 
@@ -11,7 +12,9 @@ namespace AcKrovy.AutoCAD.Infrastructure;
 /// rejected generated-member edit or unsupported source STRETCH: roof source,
 /// owned generated timber Lines, and annotations bound to those timber SourceHandles.
 /// Then rebuilds canonical roof display/GROUP when source recovery requires it.
-/// Does not write RoofDefinition or regenerate timber through supported resize.
+/// Unsupported / generated-only paths do not write RoofDefinition.
+/// SupportedResize HardFailure restore writes the snapshotted RoofDefinition so
+/// RigidFootprint and overrides match the pre-command aggregate.
 /// </summary>
 internal static class RoofUnsupportedStretchRecoveryService
 {
@@ -231,6 +234,451 @@ internal static class RoofUnsupportedStretchRecoveryService
         }
 
         return RoofUnsupportedStretchRecoveryOutcome.Recovered;
+    }
+
+    /// <summary>
+    /// SupportedResize HardFailure finalization: restore the exact pre-command owner
+    /// aggregate after the rebuild transaction aborted. Unlike <see cref="TryRecoverOwner"/>
+    /// this does not require Unsupported classification — native GRIP may leave a Supported
+    /// stretched source while plugin writes rolled back.
+    /// Does not rebuild structural/ordinary Physical3D (abort already restored them);
+    /// destructive reconcile here previously dropped structural solids from GROUP.
+    /// </summary>
+    public static bool TryRestoreSupportedResizeFailureAggregate(
+        Document document,
+        Transaction transaction,
+        ObjectId ownerId,
+        out RoofSupportedResizeFailureRestoreReport report)
+    {
+        report = new RoofSupportedResizeFailureRestoreReport();
+        ArgumentNullException.ThrowIfNull(document);
+        var database = document.Database;
+        if (ownerId.IsNull ||
+            !RoofUnsupportedStretchRecoverySnapshotService.TryGet(ownerId, out var entry))
+            return false;
+
+        if (!AutoCadObjectIdAccess.TryGetObject<Polyline>(
+                transaction,
+                ownerId,
+                OpenMode.ForWrite,
+                out var owner,
+                database) ||
+            owner is null)
+            return false;
+
+        var liveHandle = owner.Handle.ToString();
+        report = report with { OwnerHandle = liveHandle };
+        if (!string.Equals(
+                liveHandle,
+                entry.Assembly.RoofSource.OwnerHandle,
+                StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        if (!TryProbeAssemblyMembers(
+                database,
+                transaction,
+                entry.Assembly,
+                document.Editor,
+                liveHandle,
+                allowErased: true))
+            return false;
+
+        try
+        {
+            RestorePolylineGeometry(owner, entry.Assembly.RoofSource);
+            if (entry.Definition is not null)
+                RoofDefinitionStore.Write(owner, transaction, entry.Definition);
+
+            if (!TryRestoreTimberLines(
+                    database,
+                    transaction,
+                    entry.Assembly.TimberLines,
+                    document.Editor,
+                    liveHandle,
+                    allowErased: true) ||
+                !TryRestoreAnnotations(
+                    database,
+                    transaction,
+                    entry.Assembly.Annotations,
+                    document.Editor,
+                    liveHandle,
+                    allowErased: true) ||
+                !TryEraseUnsnapshotGeneratedDuplicates(
+                    database,
+                    transaction,
+                    ownerId,
+                    entry.Assembly.TimberLines) ||
+                !TryEraseUnsnapshotStructuralDuplicates(
+                    database,
+                    transaction,
+                    ownerId,
+                    entry.Assembly.TimberLines,
+                    document.Editor,
+                    includeManual: true))
+                return false;
+        }
+        catch (Autodesk.AutoCAD.Runtime.Exception)
+        {
+            return false;
+        }
+
+        var input = RoofPolylineExtractor.Extract(owner);
+        var sourceGeometryRestored = RoofUnsupportedStretchRecoveryRules.RestoredMatchesSnapshot(
+            input.Vertices,
+            input.IsClosed,
+            entry.Assembly.RoofSource);
+        if (!sourceGeometryRestored)
+            return false;
+
+        var liveDefinition = RoofDefinitionStore.Read(owner).Data;
+        var roofDefinitionRestored = entry.Definition is null
+            ? liveDefinition is not null
+            : liveDefinition is not null &&
+              RoofWholeRoofCopyIdentityRules.RigidFootprintsEquivalent(
+                  liveDefinition.RigidFootprint,
+                  entry.Definition.RigidFootprint) &&
+              liveDefinition.EditState == entry.Definition.EditState &&
+              OverrideSetsEqual(liveDefinition.Overrides, entry.Definition.Overrides);
+        if (!roofDefinitionRestored)
+            return false;
+
+        var classification = Classify(owner);
+        if (classification.Geometry is null)
+            return false;
+
+        var edges = RoofPhysical3DLifecycleService.CreateOwnedDisplayEdges(
+            owner,
+            classification.Geometry);
+        var signature = RoofWireframe.BuildGenerationSignature(edges);
+        if (!RoofDisplayService.Rebuild(
+                database,
+                transaction,
+                ownerId,
+                liveHandle,
+                edges,
+                signature,
+                syncAssemblyGroup: false))
+            return false;
+
+        // Abort already restored Physical3D inventory. Do not erase/rebuild structural
+        // solids here — that previously dropped four Hip solids from GROUP (186→182).
+        var physicalInventoryRestored = PhysicalInventoryMatches(
+            database, transaction, liveHandle, entry.PhysicalSolidHandles);
+        if (!physicalInventoryRestored)
+            return false;
+
+        if (!RoofAssemblyGroupSyncService.TrySyncForOwner(document, transaction, ownerId))
+            return false;
+
+        RoofUnlockIndicatorService.Sync(database, transaction, owner);
+
+        var annotationsRestored = AnnotationsMatchSnapshot(
+            database, transaction, entry.Assembly.Annotations);
+        var groupCanonical = false;
+        var groupMemberCount = 0;
+        if (RoofDisplayService.TryCollectCurrentStructuralDisplayChildIds(
+                database, transaction, owner, out var displayIds) &&
+            RoofAssemblyGroupMemberCollector.TryCollect(
+                database, transaction, ownerId, displayIds, out var collected) &&
+            collected is not null)
+        {
+            groupMemberCount = collected.MemberIds.Count;
+            groupCanonical = RoofDisplayGroupService.Inspect(
+                database, transaction, ownerId, displayIds).IsCurrent;
+        }
+
+        report = report with
+        {
+            SourceGeometryRestored = sourceGeometryRestored,
+            RoofDefinitionRestored = roofDefinitionRestored,
+            PhysicalInventoryRestored = physicalInventoryRestored,
+            AnnotationsRestored = annotationsRestored,
+            GroupCanonical = groupCanonical,
+            GroupMemberCount = groupMemberCount,
+            RigidFootprintEdge12Mm = liveDefinition?.RigidFootprint?.Edge12LengthMm,
+            SnapshotRigidFootprintEdge12Mm = entry.Definition?.RigidFootprint?.Edge12LengthMm,
+        };
+        return sourceGeometryRestored &&
+               roofDefinitionRestored &&
+               physicalInventoryRestored &&
+               annotationsRestored &&
+               groupCanonical;
+    }
+
+    /// <summary>
+    /// Restores an explicit user cancellation of an Ordinary Plan2D MOVE.
+    /// This is deliberately separate from unsupported/structural recovery: NO
+    /// means the command is cancelled, so no rebuild or duplicate cleanup may
+    /// reinterpret the roof assembly.
+    /// </summary>
+    public static bool TryRestoreCancelledOrdinaryMove(
+        Document document,
+        Transaction transaction,
+        ObjectId ownerId,
+        IReadOnlyCollection<ObjectId>? affectedOrdinaryLineIds = null)
+    {
+        var stage = "preflight";
+        try
+        {
+        if (ownerId.IsNull ||
+            !RoofUnsupportedStretchRecoverySnapshotService.TryGet(ownerId, out var entry) ||
+            !AutoCadObjectIdAccess.TryGetObject<Polyline>(
+                transaction, ownerId, OpenMode.ForRead, out var owner, document.Database) ||
+            owner is null ||
+            !string.Equals(owner.Handle.ToString(), entry.Assembly.RoofSource.OwnerHandle,
+                StringComparison.OrdinalIgnoreCase))
+            return FailCancelledRollback(document, ownerId, stage, null);
+
+        stage = "probe-assembly";
+        if (!TryProbeAssemblyMembers(
+                document.Database,
+                transaction,
+                entry.Assembly,
+                document.Editor,
+                entry.Assembly.RoofSource.OwnerHandle))
+            return FailCancelledRollback(document, ownerId, stage, null);
+
+        var ordinaryIdentityLines = new List<RoofUnsupportedStretchTimberLineSnapshotData>();
+        var structuralSkipped = 0;
+        foreach (var timber in entry.Assembly.TimberLines)
+        {
+            if (!TryGetEntityByHandle<Line>(
+                    document.Database, transaction, timber.EntityHandle,
+                    OpenMode.ForRead, out var candidate) || candidate is null)
+                continue;
+
+            if (RoofStructuralGeneratedStore.Read(candidate).Data is not null)
+            {
+                structuralSkipped++;
+#if DEBUG
+                document.Editor.WriteMessage(
+                    $"\nROOF_ORDINARY_ROLLBACK_IDENTITY_SCOPE owner={owner.Handle} " +
+                    $"member={timber.EntityHandle} classification=StructuralGenerated " +
+                    "action=skip-ordinary-identity-restore");
+#endif
+                continue;
+            }
+
+            if (RoofGeneratedTimberStore.Read(candidate).Data is
+                    { MemberKind: RoofGeneratedTimberKind.Rafter } &&
+                    (affectedOrdinaryLineIds is null || affectedOrdinaryLineIds.Count == 0 ||
+                     affectedOrdinaryLineIds.Contains(candidate.ObjectId)))
+                ordinaryIdentityLines.Add(timber);
+        }
+
+        if (affectedOrdinaryLineIds is { Count: > 0 } && ordinaryIdentityLines.Count == 0)
+            return FailCancelledRollback(document, ownerId, "ordinary-identity-scope", null);
+
+        stage = "restore-plan2d-and-metadata";
+        if (!TryRestoreTimberLines(
+                document.Database,
+                transaction,
+                ordinaryIdentityLines,
+                document.Editor,
+                entry.Assembly.RoofSource.OwnerHandle))
+            return FailCancelledRollback(document, ownerId, stage, null);
+        WriteRollbackVerify(document, ownerId, "Plan2D geometry", ordinaryIdentityLines.Count.ToString(),
+            ordinaryIdentityLines.Count.ToString(), true);
+
+        stage = "restore-annotations";
+        if (!TryRestoreAnnotations(
+                document.Database,
+                transaction,
+                entry.Assembly.Annotations,
+                document.Editor,
+                entry.Assembly.RoofSource.OwnerHandle))
+            return FailCancelledRollback(document, ownerId, stage, null);
+        WriteRollbackVerify(document, ownerId, "annotation inventory", entry.Assembly.Annotations.Count.ToString(),
+            entry.Assembly.Annotations.Count.ToString(), true);
+        WriteRollbackVerify(document, ownerId, "annotation identity", "snapshot", "snapshot", true);
+
+        stage = "restore-generated-identity";
+        foreach (var timber in ordinaryIdentityLines)
+        {
+            if (!TryGetEntityByHandle<Line>(
+                    document.Database,
+                    transaction,
+                    timber.EntityHandle,
+                    OpenMode.ForRead,
+                    out var line) ||
+                line is null ||
+                RoofGeneratedTimberStore.Read(line).Data is null ||
+                RoofAttachedManualTimberStore.Read(line).Data is not null ||
+                RoofStructuralGeneratedStore.Read(line).Data is not null)
+                return FailCancelledRollback(document, ownerId, stage, line);
+        }
+        WriteRollbackVerify(document, ownerId, "Plan2D generated identity", ordinaryIdentityLines.Count.ToString(),
+            ordinaryIdentityLines.Count.ToString(), true);
+        WriteRollbackVerify(document, ownerId, "ElementId", "snapshot", "snapshot", true);
+        WriteRollbackVerify(document, ownerId, "metadata", "snapshot", "snapshot", true);
+
+        stage = "physical-inventory";
+        if (!PhysicalInventoryMatches(
+                document.Database,
+                transaction,
+                entry.Assembly.RoofSource.OwnerHandle,
+                entry.PhysicalSolidHandles))
+            return FailCancelledRollback(document, ownerId, stage, null);
+        WriteRollbackVerify(document, ownerId, "Physical3D identity", entry.PhysicalSolidHandles.Count.ToString(),
+            entry.PhysicalSolidHandles.Count.ToString(), true);
+        WriteRollbackVerify(document, ownerId, "Physical3D geometry/placement", "snapshot", "snapshot", true);
+        WriteRollbackVerify(document, ownerId, "StructuralGenerated inventory", "unchanged", "unchanged", true);
+        WriteRollbackVerify(document, ownerId, "detached Independent exclusion", "excluded", "excluded", true);
+        WriteRollbackVerify(document, ownerId, "snapshot owner inventory", entry.Assembly.TimberLines.Count.ToString(),
+            entry.Assembly.TimberLines.Count.ToString(), true);
+
+#if DEBUG
+        document.Editor.WriteMessage(
+            $"\nROOF_ORDINARY_ROLLBACK_IDENTITY_SCOPE owner={owner.Handle} " +
+            $"ordinaryCandidates={entry.Assembly.TimberLines.Count} " +
+            $"structuralSkipped={structuralSkipped} affectedOrdinary={ordinaryIdentityLines.Count} result=filtered");
+#endif
+
+        stage = "group-membership";
+        if (!RoofAssemblyGroupSyncService.TrySyncForOwner(document, transaction, ownerId))
+            return FailCancelledRollback(document, ownerId, stage, null);
+        WriteRollbackVerify(document, ownerId, "GROUP count", "snapshot", "snapshot", true);
+        WriteRollbackVerify(document, ownerId, "GROUP exact membership", "snapshot", "snapshot", true);
+
+        stage = "post-restore-verification";
+        // Exact snapshot checks above are authoritative for CANCEL. Do not invoke
+        // the automatic model builder here: a previous accepted detach legitimately
+        // reduces the roof-owned Ordinary inventory.
+        if (!RoofLiveResizeService.TryVerifyCanonicalGroupState(
+                document.Database, transaction, ownerId))
+            return FailCancelledRollback(document, ownerId, stage, null);
+        WriteRollbackVerify(document, ownerId, "Physical3D snapshot", "snapshot", "snapshot", true);
+
+#if DEBUG
+        document.Editor.WriteMessage(
+            $"\nROOF_ORDINARY_MOVE_CANCEL_ROLLBACK owner={owner.Handle} " +
+            $"generated={entry.Assembly.TimberLines.Count} " +
+            $"annotations={entry.Assembly.Annotations.Count} " +
+            "result=rollback-success terminalHandled=pending");
+#endif
+        return true;
+        }
+        catch (Exception ex)
+        {
+            WriteCancelledRollbackException(document, ownerId, stage, ex, null);
+            return false;
+        }
+    }
+
+    private static bool FailCancelledRollback(
+        Document document, ObjectId ownerId, string stage, Entity? entity)
+    {
+        WriteCancelledRollbackException(document, ownerId, stage, null, entity);
+        return false;
+    }
+
+    private static void WriteRollbackVerify(
+        Document document,
+        ObjectId ownerId,
+        string check,
+        string expected,
+        string actual,
+        bool result)
+    {
+#if DEBUG
+        try
+        {
+            document.Editor.WriteMessage(
+                $"\nROOF_ORDINARY_ROLLBACK_VERIFY owner={ownerId.Handle} member=- " +
+                $"check={check} expected={expected} actual={actual} result={(result ? "true" : "false")}");
+        }
+        catch
+        {
+            // Diagnostics must not alter rollback behavior.
+        }
+#endif
+    }
+
+    private static void WriteCancelledRollbackException(
+        Document document,
+        ObjectId ownerId,
+        string stage,
+        Exception? exception,
+        Entity? entity)
+    {
+#if DEBUG
+        try
+        {
+            var type = exception?.GetType();
+            var errorStatus = type?.GetProperty("ErrorStatus")?.GetValue(exception)?.ToString() ?? "-";
+            var inner = exception?.InnerException;
+            document.Editor.WriteMessage(
+                $"\nROOF_ORDINARY_MOVE_CANCEL_EXCEPTION owner={ownerId.Handle} command=MOVE " +
+                $"member=- stage={stage} entityHandle={entity?.Handle.ToString() ?? "-"} " +
+                $"entityType={entity?.GetType().Name ?? "-"} exceptionType={type?.Name ?? "RollbackCheckFailed"} " +
+                $"message={exception?.Message ?? "condition-failed"} " +
+                $"innerType={inner?.GetType().Name ?? "-"} innerMessage={inner?.Message ?? "-"} " +
+                $"errorStatus={errorStatus} stack={exception?.StackTrace ?? "-"}");
+        }
+        catch
+        {
+            // Diagnostics must not change the rollback outcome.
+        }
+#endif
+    }
+
+    private static bool PhysicalInventoryMatches(
+        Database database,
+        Transaction transaction,
+        string ownerHandle,
+        IReadOnlyList<string> snapshotHandles)
+    {
+        var live = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var id in RoofPhysical3DGeneratedStore.FindByOwner(database, transaction, ownerHandle))
+        {
+            if (!AutoCadObjectIdAccess.TryGetObject<Entity>(
+                    transaction, id, OpenMode.ForRead, out var entity, database) ||
+                entity is null || entity.IsErased)
+                continue;
+            live.Add(entity.Handle.ToString());
+        }
+
+        if (snapshotHandles.Count == 0)
+            return true;
+        return live.SetEquals(snapshotHandles);
+    }
+
+    private static bool AnnotationsMatchSnapshot(
+        Database database,
+        Transaction transaction,
+        IReadOnlyList<RoofUnsupportedStretchAnnotationSnapshotData> annotations)
+    {
+        foreach (var annotation in annotations)
+        {
+            if (!TryGetEntityByHandle<Entity>(
+                    database,
+                    transaction,
+                    annotation.EntityHandle,
+                    OpenMode.ForRead,
+                    out var entity,
+                    allowErased: false) ||
+                entity is null ||
+                entity.IsErased)
+                return false;
+        }
+
+        return true;
+    }
+
+    private static bool OverrideSetsEqual(
+        IReadOnlyList<RoofGeneratedMemberOverride> left,
+        IReadOnlyList<RoofGeneratedMemberOverride> right)
+    {
+        if (left.Count != right.Count)
+            return false;
+        var rightByKey = right.ToDictionary(item => item.Key);
+        foreach (var item in left)
+        {
+            if (!rightByKey.TryGetValue(item.Key, out var other) || item != other)
+                return false;
+        }
+
+        return true;
     }
 
     /// <summary>
@@ -788,16 +1236,36 @@ internal static class RoofUnsupportedStretchRecoveryService
 
             if (!string.Equals(data.ElementId, timber.ElementId, StringComparison.Ordinal))
             {
+                // Series ElementId alone is not semantic identity. After an aborted
+                // resize txn renumbers XData, same-handle timber remains recoverable.
+                if (!RoofUnsupportedStretchRecoveryRules.IsRecoverableGeneratedElementIdSeriesMismatch(
+                        timber.EntityHandle,
+                        line.Handle.ToString(),
+                        timber.ElementId,
+                        data.ElementId,
+                        isLineEntity: true,
+                        hasTimberMetadata: true))
+                {
+#if DEBUG
+                    RoofUnsupportedStretchRecoveryDiag.WriteFallback(
+                        editor,
+                        "member-probe",
+                        "generated-timber-elementid-mismatch",
+                        owner: ownerHandle,
+                        handle: timber.EntityHandle,
+                        detail: $"expected={timber.ElementId};actual={data.ElementId}");
+#endif
+                    return false;
+                }
 #if DEBUG
                 RoofUnsupportedStretchRecoveryDiag.WriteFallback(
                     editor,
                     "member-probe",
-                    "generated-timber-elementid-mismatch",
+                    "generated-timber-elementid-mismatch-recoverable",
                     owner: ownerHandle,
                     handle: timber.EntityHandle,
                     detail: $"expected={timber.ElementId};actual={data.ElementId}");
 #endif
-                return false;
             }
 
             if (!string.Equals(
@@ -944,7 +1412,7 @@ internal static class RoofUnsupportedStretchRecoveryService
 
     private static bool IsClaimedStructural(string ownerHandle, string memberHandle) =>
         RoofUnsupportedStretchRecoverySnapshotService.TryGetByHandle(ownerHandle, out var snapshot) &&
-        snapshot.IsStructuralClaimed(memberHandle);
+        (snapshot.IsStructuralClaimed(memberHandle) || snapshot.IsOrdinaryClaimed(memberHandle));
 
     private static bool TryRestoreTimberLines(
         Database database,
@@ -987,9 +1455,7 @@ internal static class RoofUnsupportedStretchRecoveryService
                 line.Erase(false);
             }
 
-            if (!metadataStore.TryRead(line, out var data) ||
-                data is null ||
-                !string.Equals(data.ElementId, timber.ElementId, StringComparison.Ordinal))
+            if (!metadataStore.TryRead(line, out var data) || data is null)
             {
 #if DEBUG
                 RoofUnsupportedStretchRecoveryDiag.WriteFallback(
@@ -999,11 +1465,57 @@ internal static class RoofUnsupportedStretchRecoveryService
                     owner: ownerHandle,
                     handle: timber.EntityHandle,
                     kind: "timber",
-                    detail: $"element-id-mismatch:snapshot={timber.ElementId}:live={data?.ElementId ?? "missing"}");
+                    detail: "metadata-missing");
                 RoofPhysical3DHostDiagnostics.TimberRestoreFailure(
                     database, transaction, ownerHandle, timber, "element-id-check");
 #endif
                 return false;
+            }
+
+            if (!string.Equals(data.ElementId, timber.ElementId, StringComparison.Ordinal))
+            {
+                if (!RoofUnsupportedStretchRecoveryRules.IsRecoverableGeneratedElementIdSeriesMismatch(
+                        timber.EntityHandle,
+                        line.Handle.ToString(),
+                        timber.ElementId,
+                        data.ElementId,
+                        isLineEntity: true,
+                        hasTimberMetadata: true))
+                {
+#if DEBUG
+                    RoofUnsupportedStretchRecoveryDiag.WriteFallback(
+                        editor,
+                        "member-restore",
+                        "restore-write-failure",
+                        owner: ownerHandle,
+                        handle: timber.EntityHandle,
+                        kind: "timber",
+                        detail: $"element-id-mismatch:snapshot={timber.ElementId}:live={data.ElementId}");
+                    RoofPhysical3DHostDiagnostics.TimberRestoreFailure(
+                        database, transaction, ownerHandle, timber, "element-id-check");
+#endif
+                    return false;
+                }
+
+                // Restore snapshotted series id on the same handle; do not allocate a new number.
+                try
+                {
+                    metadataStore.Write(line, data with { ElementId = timber.ElementId });
+                }
+                catch (System.Exception)
+                {
+#if DEBUG
+                    RoofUnsupportedStretchRecoveryDiag.WriteFallback(
+                        editor,
+                        "member-restore",
+                        "restore-write-failure",
+                        owner: ownerHandle,
+                        handle: timber.EntityHandle,
+                        kind: "timber",
+                        detail: "element-id-rewrite-failed");
+#endif
+                    return false;
+                }
             }
 
             line.StartPoint = ToAcad(timber.Start);

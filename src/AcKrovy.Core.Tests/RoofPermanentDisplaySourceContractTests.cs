@@ -160,7 +160,7 @@ public sealed class RoofPermanentDisplaySourceContractTests
     public void DisplaySchemaIsOneWhileEstablishedSchemasRemainUnchanged()
     {
         Assert.Equal(1, RoofDisplayDataSchema.CurrentVersion);
-        Assert.Contains("public const int CurrentVersion = 5", Read(
+        Assert.Contains("public const int CurrentVersion = 6", Read(
             "src", "AcKrovy.Core", "Models", "Roofs", "RoofDefinitionDataSchema.cs"));
         Assert.Contains("public const int CurrentVersion = 7", Read(
             "src", "AcKrovy.Core", "Models", "TimberElementDataSchema.cs"));

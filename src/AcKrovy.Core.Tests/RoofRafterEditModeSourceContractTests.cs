@@ -133,7 +133,7 @@ public sealed class RoofRafterEditModeSourceContractTests
             "private static ReplacementOutcome ReplacePreparedSetWithRecipe(",
             "public static IReadOnlyDictionary<ObjectId, TimberElementData> Materialize(");
         Assert.Contains("CollectReservedElementIds(", shared);
-        Assert.Contains("RoofGeneratedMemberReplayPlanner.Create(", shared);
+        Assert.Contains("RoofOrdinaryRebuildRules.CreateReplayPlan(", shared);
         Assert.Contains("EraseGeneratedSet(", shared);
         Assert.Contains("MaterializeCore(", shared);
         Assert.Contains("reservedElementIds", shared);

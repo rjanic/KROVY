@@ -30,34 +30,17 @@
         <GradientStop Offset="1" Color="#6A3F1F" />
     </LinearGradientBrush>
 
-    <SolidColorBrush x:Key="SettingsCardBackgroundBrush" Color="#F8F3EA" />
-    <SolidColorBrush x:Key="SettingsPanelBackgroundBrush" Color="#FBF7F1" />
     <SolidColorBrush x:Key="RoofGeometrySchematicBackgroundBrush" Color="#FBF7F1" />
-
-    <SolidColorBrush x:Key="SettingsTextPrimaryBrush" Color="#4A2D1A" />
-    <SolidColorBrush x:Key="SettingsTextSecondaryBrush" Color="#725640" />
-    <SolidColorBrush x:Key="SettingsAccentBrush" Color="#8A5A33" />
-    <SolidColorBrush x:Key="SettingsAccentHoverBrush" Color="#B57A45" />
-    <SolidColorBrush x:Key="SettingsAccentPressedBrush" Color="#6A3F1F" />
-    <SolidColorBrush x:Key="SettingsBorderBrush" Color="#D0B99B" />
-    <SolidColorBrush x:Key="SettingsHoverBrush" Color="#F1DFC9" />
-    <LinearGradientBrush x:Key="SettingsSelectedBrush" StartPoint="0,0" EndPoint="0,1">
-        <GradientStop Offset="0" Color="#F7EFE3" />
-        <GradientStop Offset="1" Color="#EBD9BF" />
-    </LinearGradientBrush>
-    <SolidColorBrush x:Key="SettingsFocusBrush" Color="#B57A45" />
-    <SolidColorBrush x:Key="SettingsDisabledBrush" Color="#8E7968" />
-    <SolidColorBrush x:Key="SettingsValidationBrush" Color="#C62828" />
     <!-- Invalid field chrome: clear red border + subtle light-red fill (wood theme). -->
     <SolidColorBrush x:Key="PurlinValidationBorderBrush" Color="#C62828" />
     <SolidColorBrush x:Key="PurlinValidationBackgroundBrush" Color="#FDECEA" />
-    <SolidColorBrush x:Key="SettingsInfoBackgroundBrush" Color="#FCFAF5" />
-    <SolidColorBrush x:Key="SettingsInfoBorderBrush" Color="#D9CABB" />
-    <SolidColorBrush x:Key="SettingsInfoTextBrush" Color="#725640" />
-
-    <Color x:Key="SettingsShadowColor">#502D19</Color>
-    <DropShadowEffect x:Key="SettingsCardElevation" Color="{StaticResource SettingsShadowColor}" BlurRadius="9" ShadowDepth="2" Opacity="0.2" />
-    <DropShadowEffect x:Key="RoofGeometryPrimaryButtonElevation" Color="{StaticResource SettingsShadowColor}" BlurRadius="10" ShadowDepth="2" Opacity="0.25" />
+    <!-- Settings* semantic brushes live in SettingsColors.Light/Dark so theme switch can win.
+         Wood chrome / roof-geometry chrome stays here. -->
+    <DropShadowEffect x:Key="RoofGeometryPrimaryButtonElevation"
+                      Color="{DynamicResource SettingsShadowColor}"
+                      BlurRadius="10"
+                      ShadowDepth="2"
+                      Opacity="0.25" />
 
     <SolidColorBrush x:Key="RoofGeometryHeaderTextBrush" Color="#F2E1C5" />
     <SolidColorBrush x:Key="RoofGeometryHeaderSecondaryTextBrush" Color="#E8CDAA" />

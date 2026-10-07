@@ -32,6 +32,7 @@ public static class RoofGroupGripResizeAdoptionRules
                 RoofDefinitionDataSchema.TopologyVersion or
                 RoofDefinitionDataSchema.HybridLifecycleVersion or
                 RoofDefinitionDataSchema.DualSlopeVersion or
+                RoofDefinitionDataSchema.EaveHeightVersion or
                 RoofDefinitionDataSchema.CurrentVersion) ||
             definition.RigidFootprint is null ||
             definition.RidgeEdgeFamily is not (

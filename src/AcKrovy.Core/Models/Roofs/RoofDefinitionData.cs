@@ -7,6 +7,7 @@ namespace AcKrovy.Core.Models.Roofs;
 /// Schema 4 adds the stable roof kind and second face slope.
 /// Schema 5 adds signed eave height difference, zB - zA. It also carries Hip
 /// definitions through the existing fields with no ridge-edge family.
+/// Schema 6 retains the roof-owned Ordinary generation recipe independently of live instances.
 /// </summary>
 public sealed record RoofDefinitionData(
     int SchemaVersion,
@@ -22,6 +23,8 @@ public sealed record RoofDefinitionData(
     double? Face1SlopeDegrees = null,
     double EaveHeightDifferenceMm = 0d)
 {
+    // Roof generator input, retained even when its current AUTO set is empty.
+    public RoofRafterGenerationRecipe? OrdinaryRafterRecipe { get; init; }
     public double Face0SlopeDegrees => SlopeDegrees;
 
     public double EffectiveFace1SlopeDegrees => Face1SlopeDegrees ?? SlopeDegrees;

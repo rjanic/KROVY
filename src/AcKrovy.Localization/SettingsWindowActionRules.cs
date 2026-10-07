@@ -6,6 +6,7 @@ public enum SettingsWindowTabKind
     Manufacturing,
     Annotation,
     Language,
+    Warnings,
 }
 
 public enum SettingsSaveMode
@@ -37,7 +38,9 @@ public sealed class SettingsWindowActionState
 public static class SettingsWindowActionRules
 {
     public static SettingsWindowActionState ForTab(SettingsWindowTabKind tab) =>
-        tab == SettingsWindowTabKind.Language
+        tab == SettingsWindowTabKind.Warnings
+            ? new SettingsWindowActionState(false, false, false)
+            : tab == SettingsWindowTabKind.Language
             ? new SettingsWindowActionState(false, false, true)
             : new SettingsWindowActionState(true, true, false);
 

@@ -64,7 +64,21 @@ public static class TimberElementItemNumbering
     }
 
     public static IReadOnlyList<TimberElementItemAssignment> AssignElementIds(
-        IEnumerable<TimberElementItemNumberingCandidate> candidates)
+        IEnumerable<TimberElementItemNumberingCandidate> candidates) =>
+        AssignElementIds(candidates, retainChangedAssignments: true);
+
+    /// <summary>
+    /// Reconciles accepted manufacturing-signature changes with the current groups.
+    /// IsChanged means the manufacturing signature changed, not merely the geometry.
+    /// An edited member's former designation is not evidence of its new group.
+    /// Existing numbers are not compacted or recycled within this operation.
+    /// </summary>
+    public static IReadOnlyList<TimberElementItemAssignment> AssignElementIdsAfterGeometryEdit(
+        IEnumerable<TimberElementItemNumberingCandidate> candidates) =>
+        AssignElementIds(candidates, retainChangedAssignments: false);
+
+    private static IReadOnlyList<TimberElementItemAssignment> AssignElementIds(
+        IEnumerable<TimberElementItemNumberingCandidate> candidates, bool retainChangedAssignments)
     {
         if (candidates is null)
         {
@@ -72,7 +86,9 @@ public static class TimberElementItemNumbering
         }
 
         var materialized = candidates.ToList();
-        var assignedIdsBySignature = FindExistingStableAssignments(materialized);
+        var stableCandidates = retainChangedAssignments
+            ? materialized : materialized.Where(candidate => !candidate.IsChanged).ToList();
+        var assignedIdsBySignature = FindExistingStableAssignments(stableCandidates);
         var allocatedNumbersBySeries = ReadAllocatedNumbers(materialized);
         var prefixesBySeries = ReadSeriesPrefixes(
             materialized.Select(candidate => candidate.Measurement.Data));

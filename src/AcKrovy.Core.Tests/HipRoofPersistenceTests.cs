@@ -21,7 +21,7 @@ public sealed class HipRoofPersistenceTests
         Assert.Equal(2, (int)RoofKind.AsymmetricGable);
         Assert.Equal(3, (int)RoofKind.Monopitch);
         Assert.Equal(4, (int)RoofKind.Hip);
-        Assert.Equal(5, RoofDefinitionDataSchema.CurrentVersion);
+        Assert.Equal(6, RoofDefinitionDataSchema.CurrentVersion);
     }
 
     [Theory]
@@ -135,7 +135,7 @@ public sealed class HipRoofPersistenceTests
         Assert.False(RoofDefinitionDataCodec.TryDecode(unknown, out _, out var unknownError));
         Assert.Equal(RoofDefinitionDataDecodeError.UnsupportedRoofKind, unknownError);
 
-        for (var schema = 1; schema < RoofDefinitionDataSchema.CurrentVersion; schema++)
+        for (var schema = 1; schema < RoofDefinitionDataSchema.EaveHeightVersion; schema++)
         {
             var data = new RoofDefinitionData(schema, RoofKind.Hip, 30d);
             Assert.False(RoofDefinitionDataCodec.TryValidate(data, out var error));

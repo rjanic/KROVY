@@ -194,6 +194,12 @@
 - L/T/komplexné footprinty, viaceré hrebene, nárožia a úžľabia,
 - stabilný `RoofPlaneId`.
 
+### Roof Face Identity Contract v1 — plánované (zatiaľ neimplementovať)
+- stabilná identity strešných rovín `R1`…`Rn` (nie iba jedno `R1`),
+- pripravené pre valbovú/komplexnú topológiu, sklony/výšky po faces,
+  nárožné/úžľabné väzby a selektívny rebuild,
+- nadväzuje na BoundaryIdentity / structural identity; plná implementácia neskôr.
+
 ### Typy strechy podľa PDF
 - pultová,
 - sedlová,

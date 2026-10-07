@@ -102,51 +102,26 @@ public static class RoofStructuralRafterPolyhedronService
             return false;
         }
 
-        var contacts = request.OrdinaryMembers.Where(member =>
-            member?.StructuralCut?.TopologyEdgeIndex == resolved.TopologyEdgeIndex).ToArray();
         var expectedRole = key.Role == RoofStructuralRole.Hip
             ? RoofRafterBoundaryRole.Hip : RoofRafterBoundaryRole.Valley;
-        var normalX = -(axis.End.Y - axis.Start.Y);
-        var normalY = axis.End.X - axis.Start.X;
-        var normalLength = Math.Sqrt(normalX * normalX + normalY * normalY);
-        if (!Finite(normalLength) || normalLength <= Tolerance)
-        {
-            failureReason = "StructuralPlanDirectionDegenerate";
+        if (!RoofStructuralOrdinaryContactRules.TrySelectContacts(
+                request.OrdinaryMembers,
+                axis,
+                resolved.TopologyEdgeIndex,
+                expectedRole,
+                request.StructuralWidthMm,
+                out var contacts,
+                out failureReason))
             return false;
-        }
-        normalX /= normalLength;
-        normalY /= normalLength;
         var maximumSpan = 0d;
         foreach (var member in contacts)
         {
-            var cut = member.StructuralCut!;
-            if (cut.Role != expectedRole ||
-                !Finite(cut.StructuralWidthMm) ||
-                Math.Abs(cut.StructuralWidthMm - request.StructuralWidthMm) > Tolerance ||
-                cut.CutFaceVertices is not { Count: >= 3 } vertices ||
-                vertices.Any(point => !Finite(point)))
-            {
-                failureReason = "OrdinaryStructuralCutMismatch";
-                return false;
-            }
-            var offset = (cut.PlanePoint.X - axis.Start.X) * normalX +
-                (cut.PlanePoint.Y - axis.Start.Y) * normalY;
-            if (Math.Abs(Math.Abs(offset) - request.StructuralWidthMm / 2d) > Tolerance ||
-                Math.Abs(cut.PlaneNormal.Z) > Tolerance ||
-                Math.Abs(cut.PlaneNormal.X * normalX +
-                    cut.PlaneNormal.Y * normalY - Math.Sign(offset)) > Tolerance ||
-                vertices.Any(point => Math.Abs(
-                    (point.X - axis.Start.X) * normalX +
-                    (point.Y - axis.Start.Y) * normalY - offset) > Tolerance))
-            {
-                failureReason = "OrdinaryCutNotOnStructuralSide";
-                return false;
-            }
+            var vertices = member.StructuralCut!.CutFaceVertices;
             maximumSpan = Math.Max(maximumSpan,
                 vertices.Max(point => point.Z) - vertices.Min(point => point.Z));
         }
         if (request.HeightMode == RoofStructuralHeightMode.Automatic &&
-            contacts.Length == 0)
+            contacts.Count == 0)
         {
             failureReason = "AutomaticHeightNeedsOrdinaryCuts";
             return false;

@@ -60,11 +60,25 @@ public sealed class RoofUnsupportedStretchRecoverySourceContractTests
     }
 
     [Fact]
-    public void Recovery_RestoresSameObjectId_WithoutDefinitionWrite_WithoutRafterReplace()
+    public void Recovery_RestoresSameObjectId_WithoutRafterReplace_DefinitionWriteOnlyOnSupportedHardFailure()
     {
         Assert.Contains("RestorePolylineGeometry", Recovery);
         Assert.Contains("RoofDisplayService.Rebuild", Recovery);
-        Assert.DoesNotContain("RoofDefinitionStore.Write(", Recovery);
+        var unsupportedOwner = RoofUxSourceContractText.Member(
+            Recovery,
+            "public static RoofUnsupportedStretchRecoveryOutcome TryRecoverOwner(",
+            "public static bool TryRestoreSupportedResizeFailureAggregate(");
+        var generatedOnly = RoofUxSourceContractText.Member(
+            Recovery,
+            "public static RoofUnsupportedStretchRecoveryOutcome TryRecoverGeneratedMembersOnly(",
+            "public static bool TryNormalizeRigidTranslation(");
+        var supportedHardFailure = RoofUxSourceContractText.Member(
+            Recovery,
+            "public static bool TryRestoreSupportedResizeFailureAggregate(",
+            "private static bool PhysicalInventoryMatches(");
+        Assert.DoesNotContain("RoofDefinitionStore.Write(", unsupportedOwner);
+        Assert.DoesNotContain("RoofDefinitionStore.Write(", generatedOnly);
+        Assert.Contains("RoofDefinitionStore.Write(owner, transaction, entry.Definition)", supportedHardFailure);
         Assert.DoesNotContain("TryReplaceForSupportedResize(", Recovery);
         Assert.DoesNotContain("SendStringToExecute", Recovery + Resize + Live + Snapshot);
         Assert.DoesNotContain("SendStringToExecute(\"U\")", Recovery + Resize + Live);
@@ -76,11 +90,15 @@ public sealed class RoofUnsupportedStretchRecoverySourceContractTests
     }
 
     [Fact]
-    public void SupportedResizeAndRigidAndDisplayTamper_DoNotCallRecovery()
+    public void SupportedResizeAndRigidAndDisplayTamper_DoNotCallUnsupportedRecovery()
     {
         var apply = RoofUxSourceContractText.Member(
             Resize,
-            "private static bool ApplyResizes",
+            "private static ResizeBatchResult ApplyResizes",
+            "private static void FinalizeSupportedResizeHardFailure");
+        var finalize = RoofUxSourceContractText.Member(
+            Resize,
+            "private static void FinalizeSupportedResizeHardFailure",
             "private static ResizeApplyResult TryApplyResize");
         var rigid = RoofUxSourceContractText.Member(
             Resize,
@@ -90,8 +108,12 @@ public sealed class RoofUnsupportedStretchRecoverySourceContractTests
             Resize,
             "private static bool ApplyDisplayTampers",
             "private static bool TryApplyDisplayTamper");
-        Assert.DoesNotContain("TryRecoverUnsupportedOwners", apply + rigid + display);
+        Assert.DoesNotContain("TryRecoverUnsupportedOwners", apply + finalize + rigid + display);
+        Assert.DoesNotContain("TryRecoverOwner(", apply + finalize + rigid + display);
         Assert.DoesNotContain("RoofUnsupportedStretchRecoveryService", apply + rigid + display);
+        // HardFailure finalization restores the SupportedResize aggregate; it must not
+        // route through Unsupported-gated TryRecoverOwner.
+        Assert.Contains("TryRestoreSupportedResizeFailureAggregate(", finalize);
     }
 
     [Fact]
@@ -100,7 +122,7 @@ public sealed class RoofUnsupportedStretchRecoverySourceContractTests
         var batch = RoofUxSourceContractText.Member(
             Resize,
             "private static UnsupportedRecoveryBatchResult TryRecoverUnsupportedOwners",
-            "private static bool ApplyResizes");
+            "private static ResizeBatchResult ApplyResizes");
         Assert.Contains("All-or-nothing", batch);
         Assert.Contains("transaction.Commit()", batch);
         Assert.Contains("HardFailure", batch);
@@ -115,7 +137,11 @@ public sealed class RoofUnsupportedStretchRecoverySourceContractTests
         Assert.Contains("Annotations", Snapshot + Recovery);
         Assert.Contains("ALL owned generated members", Snapshot);
         Assert.DoesNotContain("TryReplaceForSupportedResize(", Recovery);
-        Assert.DoesNotContain("RoofDefinitionStore.Write(", Recovery);
+        var unsupportedOwner = RoofUxSourceContractText.Member(
+            Recovery,
+            "public static RoofUnsupportedStretchRecoveryOutcome TryRecoverOwner(",
+            "public static bool TryRestoreSupportedResizeFailureAggregate(");
+        Assert.DoesNotContain("RoofDefinitionStore.Write(", unsupportedOwner);
     }
 
     [Fact]
@@ -177,7 +203,7 @@ public sealed class RoofUnsupportedStretchRecoverySourceContractTests
         var batch = RoofUxSourceContractText.Member(
             Resize,
             "private static UnsupportedRecoveryBatchResult TryRecoverUnsupportedOwners",
-            "private static bool ApplyResizes");
+            "private static ResizeBatchResult ApplyResizes");
         Assert.Contains("StartTransaction()", batch);
         Assert.Contains("CanAttemptAssemblyRecovery", batch);
         Assert.Contains("transaction.Commit()", batch);
@@ -270,7 +296,11 @@ public sealed class RoofUnsupportedStretchRecoverySourceContractTests
                 "TryRecoverGeneratedMemberOwners",
                 "TryProbeUnsupportedOwner"));
         // Generated-only must not write RoofDefinition / SupportedResize replace.
-        Assert.DoesNotContain("RoofDefinitionStore.Write(", Recovery);
+        var generatedOnly = RoofUxSourceContractText.Member(
+            Recovery,
+            "public static RoofUnsupportedStretchRecoveryOutcome TryRecoverGeneratedMembersOnly(",
+            "public static bool TryNormalizeRigidTranslation(");
+        Assert.DoesNotContain("RoofDefinitionStore.Write(", generatedOnly);
         Assert.DoesNotContain("TryReplaceForSupportedResize(", Recovery);
     }
 

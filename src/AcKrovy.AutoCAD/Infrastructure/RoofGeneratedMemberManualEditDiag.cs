@@ -1,4 +1,7 @@
 #if DEBUG
+using System.Globalization;
+using AcKrovy.Core.Models.Roofs;
+using AcKrovy.Core.Services.Roofs;
 using Autodesk.AutoCAD.EditorInput;
 
 namespace AcKrovy.AutoCAD.Infrastructure;
@@ -708,6 +711,53 @@ internal static class RoofGeneratedMemberManualEditDiag
         WriteLine(editor, line);
     }
 
+    private sealed record PendingGrip(Editor Editor, string Owner, string Identity,
+        string Kind, RoofOrdinaryFreeformGripAcceptance Grip);
+    private static readonly Dictionary<string, PendingGrip> PendingFreeformGrips = new(StringComparer.Ordinal);
+
+    public static void WriteOrdinaryGripFreeform(Editor? editor, string owner, string identity,
+        RoofOrdinaryFreeformGripAcceptance grip, string result, string kind = "Generated")
+    {
+        if (editor is null) return;
+        var pending = new PendingGrip(editor, owner, identity, kind, grip);
+        if (result == "ok" && grip.Endpoint != "None")
+        {
+            if (PendingFreeformGrips.Count >= 128) PendingFreeformGrips.Clear();
+            PendingFreeformGrips[owner + ":" + (kind == "AttachedManual" ? "AttachedManual:" : "") + identity] = pending;
+        }
+        WriteFreeformLine(pending, result, "accepted", null);
+    }
+
+    public static void CompleteOrdinaryGripPhysicalFrame(string owner,
+        RoofTopology topology, RoofAutomaticRafterPhysicalMember member, double eaveElevationMm)
+    {
+        var key = owner + ":" + member.PhysicalIdentity;
+        if (!PendingFreeformGrips.TryGetValue(key, out var pending)) return;
+        PendingFreeformGrips.Remove(key);
+        var measured = RoofOrdinaryRoofPlaneFrameRules.TryDescribe(topology, member, eaveElevationMm, out var frame);
+        WriteFreeformLine(pending, measured && frame is { TopFacePlaneErrorMm: <= 0.01,
+            SectionOrthogonalityError: <= 1e-5, HeightNormalErrorMm: <= 0.01 } ? "ok" : "fail", "physical-model", frame);
+    }
+
+    private static void WriteFreeformLine(PendingGrip pending, string result, string stage,
+        RoofOrdinaryRoofPlaneFrameRules.Frame? frame)
+    {
+        var inv = CultureInfo.InvariantCulture;
+        string Point(RoofPoint3D p) => $"({p.X.ToString("R", inv)},{p.Y.ToString("R", inv)},{p.Z.ToString("R", inv)})";
+        var grip = pending.Grip;
+        WriteLine(pending.Editor, "ROOF_ORDINARY_GRIP_FREEFORM" +
+            $" kind={Token(pending.Kind)} owner={Token(pending.Owner)} identity={Token(pending.Identity)}" +
+            $" endpoint={Token(grip.Endpoint)} stage={stage}" +
+            $" beforeStart={Point(grip.Before.Start)} beforeEnd={Point(grip.Before.End)}" +
+            $" nativeStart={Point(grip.Native.Start)} nativeEnd={Point(grip.Native.End)}" +
+            $" acceptedStart={Point(grip.Geometry.Start)} acceptedEnd={Point(grip.Geometry.End)}" +
+            $" axisBefore={Point(grip.AxisBefore)} axisAfter={Point(grip.AxisAfter)}" +
+            $" planYawDeltaDegrees={grip.PlanYawDeltaDegrees.ToString("R", inv)}" +
+            $" roofNormal={(frame is null ? "unavailable" : Point(frame.RoofNormal))}" +
+            $" physicalAxis={(frame is null ? "unavailable" : Point(frame.PhysicalAxis))}" +
+            $" topFacePlaneErrorMm={(frame is null ? "unavailable" : frame.TopFacePlaneErrorMm.ToString("R", inv))}" +
+            $" minimumLength={grip.MinimumLengthMm.ToString("R", inv)} clamped={grip.Clamped} result={Token(result)}");
+    }
     private static void WriteLine(Editor editor, string line)
     {
         AcKrovy.AutoCAD.Diagnostics.AcKrovyDiagnostics.Info("ROOF_MANUAL_EDIT_TRACE", line);

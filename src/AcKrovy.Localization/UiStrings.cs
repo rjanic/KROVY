@@ -21,6 +21,24 @@ public static class UiStrings
     public static string ReportColumnVolumeM3 => GetString("Report_Column_VolumeM3");
     public static string ReportTotalFormat => GetString("Report_TotalFormat");
     public static string MessageDialogTitle => GetString("Message_DialogTitle");
+    public static string MessageOrdinaryJoinRejected => GetString("Message_OrdinaryJoinRejected");
+    // Elevation seating (Výškové osadenie) v1
+    public static string RoofOrdinaryElevationTitle => GetString("RoofOrdinaryElevation_Title");
+    public static string RoofOrdinaryElevationSection => GetString("RoofOrdinaryElevation_Section");
+    public static string RoofOrdinaryElevationReference => GetString("RoofOrdinaryElevation_Reference");
+    public static string RoofOrdinaryElevationSHTooltip => GetString("RoofOrdinaryElevation_SH_Tooltip");
+    public static string RoofOrdinaryElevationOSTooltip => GetString("RoofOrdinaryElevation_OS_Tooltip");
+    public static string RoofOrdinaryElevationVHTooltip => GetString("RoofOrdinaryElevation_VH_Tooltip");
+    public static string RoofOrdinaryElevationValues => GetString("RoofOrdinaryElevation_Values");
+    public static string RoofOrdinaryElevationValuesHint => GetString("RoofOrdinaryElevation_ValuesHint");
+    public static string RoofOrdinaryElevationLowerZ => GetString("RoofOrdinaryElevation_LowerZ");
+    public static string RoofOrdinaryElevationUpperZ => GetString("RoofOrdinaryElevation_UpperZ");
+    public static string RoofOrdinaryElevationSlope => GetString("RoofOrdinaryElevation_Slope");
+    public static string RoofOrdinaryElevationSlopeLinkedTooltip => GetString("RoofOrdinaryElevation_SlopeLinkedTooltip");
+    public static string RoofOrdinaryElevationCalcMode => GetString("RoofOrdinaryElevation_CalcMode");
+    public static string RoofOrdinaryElevationModeLowerUpper => GetString("RoofOrdinaryElevation_Mode_LowerUpper");
+    public static string RoofOrdinaryElevationModeLowerSlope => GetString("RoofOrdinaryElevation_Mode_LowerSlope");
+    public static string RoofOrdinaryElevationModeUpperSlope => GetString("RoofOrdinaryElevation_Mode_UpperSlope");
     public static string MessagePluginLoaded =>
         Format(GetString("Message_PluginLoaded"), ApplicationVersionProvider.DisplayVersion);
     public static string HelpCommandOverview =>

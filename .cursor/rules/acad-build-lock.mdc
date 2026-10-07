@@ -1,0 +1,25 @@
+---
+description: Automatically close AutoCAD before builds that copy AutoCAD assemblies
+alwaysApply: true
+---
+
+# AutoCAD process lock
+
+Before any build/test that may load or overwrite AutoCAD plugin assemblies
+(`AcKrovy.AutoCAD`, solution x64 Debug/Release, Full compatibility gate, NETLOAD path):
+
+1. Invoke the shared `scripts/acad-host-workflow.ps1` when a HOST build is
+   required. It checks only `acad.exe`, requests a normal close, waits briefly,
+   and force-stops the remaining intended AutoCAD process before the build.
+2. Wait until `acad.exe` is actually gone before building; never retry MSB3026
+   copy loops against a live AutoCAD process.
+3. For portable-only work, a process check is sufficient and the workflow need
+   not launch AutoCAD.
+
+Portable Core-only tests/gates that do not touch AutoCAD output may still run
+while AutoCAD is open.
+
+After a successful HOST build/test, invoke the same workflow without `-NoLaunch`
+to launch AutoCAD Architecture 2027 with the configured saved HOST DWG. The
+existing startup/autoload remains responsible for loading the plugin, running
+`AK_RUNTIME_BUILD`, and enabling `AK_ROOF_3D_TRACE`; do not add a competing loader.

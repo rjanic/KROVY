@@ -191,7 +191,7 @@ internal static class RoofEditCommandWorkflow
                         {
                             document.Editor.SetImpliedSelection([ownerId]);
                             document.Editor.UpdateScreen();
-                            ShowPreview(document, previewGeometry, sourceElevation);
+                            ShowPreview(document, previewGeometry, sourceElevation, ownerId, restoredGeometry);
                         }
                         continue;
 
@@ -299,7 +299,9 @@ internal static class RoofEditCommandWorkflow
                             ShowPreview(
                                 document,
                                 previewGeometry,
-                                sourceElevation);
+                                sourceElevation,
+                                ownerId,
+                                restoredGeometry);
                         }
                         finally
                         {
@@ -501,6 +503,7 @@ internal static class RoofEditCommandWorkflow
                 return null;
             }
 
+            data = RoofOrdinaryRebuildRules.Prepare(data);
             RoofDefinitionStore.Write(owner, transaction, data);
 
             var sourceElevation = RoofPolylineExtractor.GetSourceElevation(owner);
@@ -706,9 +709,39 @@ internal static class RoofEditCommandWorkflow
     private static void ShowPreview(
         Document document,
         IRoofGeometry geometry,
-        double sourceElevation)
+        double sourceElevation,
+        ObjectId ownerId,
+        IRoofGeometry selectionGeometry)
     {
-        using (RoofTransientPreviewSession.Show(document, geometry, sourceElevation))
+        RoofGeneratedMemberReplayPlan? ordinaryPlan = null;
+        // A read transaction ends before the interactive transient session. No recipe,
+        // definition, entity, annotation, GROUP or Independent state is written here.
+        using (var transaction = document.Database.TransactionManager.StartOpenCloseTransaction())
+        {
+            var owner = (Polyline)transaction.GetObject(ownerId, OpenMode.ForRead);
+            var current = RoofDefinitionStore.Read(owner).Data;
+            if (current is not null && RoofGeneratedRafterSetService.TryResolveGeneratorRecipe(
+                    document.Database, transaction, owner, out var recipe))
+            {
+                var definition = RoofDefinitionPersistence.UpdateGeometry(current, RoofPolylineExtractor.Extract(owner), geometry);
+                if (geometry is not HipRoofGeometry)
+                    definition = MonopitchRoofDefinitionRules.PreserveGeneratedMemberOverridesAcrossSemanticMirror(
+                        definition, selectionGeometry, geometry);
+                var layout = RoofGeneratedRafterSetService.CreateGeneratorLayout(document.Database, geometry, recipe);
+                if (!layout.IsValid || layout.Layout is null)
+                {
+                    document.Editor.WriteMessage(UiStrings.GetString("Command_RoofRafters_GenerationFailed"));
+                    return;
+                }
+                ordinaryPlan = RoofOrdinaryRebuildRules.CreateReplayPlan(layout.Layout, definition);
+                if (!ordinaryPlan.IsValid)
+                {
+                    document.Editor.WriteMessage(UiStrings.GetString("Command_RoofRafters_GenerationFailed"));
+                    return;
+                }
+            }
+        }
+        using (RoofTransientPreviewSession.Show(document, geometry, sourceElevation, ordinaryPlan))
         {
             _ = document.Editor.GetString(new PromptStringOptions(
                 UiStrings.GetString("Command_Roof_PreviewClosePrompt"))

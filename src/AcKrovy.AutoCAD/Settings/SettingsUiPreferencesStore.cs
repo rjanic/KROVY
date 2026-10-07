@@ -4,6 +4,7 @@ using AcKrovy.AutoCAD.Diagnostics;
 using AcKrovy.Infrastructure.Diagnostics;
 using AcKrovy.Localization;
 using AcKrovy.Core.Models.Roofs;
+using AcKrovy.Core.Models;
 
 namespace AcKrovy.AutoCAD.Settings;
 
@@ -17,6 +18,7 @@ internal sealed record SettingsUiPreferences
     public double? Top { get; init; }
     public bool IsMaximized { get; init; }
     public RoofRafterPreferences? AutomaticRafterPreferences { get; init; }
+    public WarningPreferences Warnings { get; init; } = new();
 
     public SettingsUiPreferences Normalize() => this with
     {
@@ -33,6 +35,7 @@ internal sealed record SettingsUiPreferences
         Left = NormalizeCoordinate(Left),
         Top = NormalizeCoordinate(Top),
         AutomaticRafterPreferences = NormalizeRafterPreferences(AutomaticRafterPreferences),
+        Warnings = Warnings ?? new(),
     };
 
     private static RoofRafterPreferences? NormalizeRafterPreferences(

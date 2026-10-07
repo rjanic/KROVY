@@ -14,7 +14,7 @@ namespace AcKrovy.AutoCAD.Infrastructure;
 /// keep the source's ChildIdentity and stale RelativeSegment and later replay on top of
 /// its source. Each clone is re-captured from its FINAL WCS geometry with a fresh
 /// ChildIdentity (clone handle) and a RelativeSegment computed against a deterministic
-/// compatible Generated anchor.
+/// source Generated anchor. COPY never adopts a closer foreign frame.
 /// </summary>
 internal static class RoofAttachedManualCopyCloneReinitializeService
 {
@@ -100,6 +100,12 @@ internal static class RoofAttachedManualCopyCloneReinitializeService
                             newAnchorKey,
                             result);
 #endif
+                        // Reject only the appended clone if its source frame is gone.
+                        // Keeping inherited UUID/binding would duplicate the source identity.
+                        cloneLine.Erase();
+                        wrote = true;
+                        _ = RoofAssemblyGroupSyncService.TrySyncForOwnerReference(
+                            document, transaction, ownerReference);
                         continue;
                     }
 
@@ -174,8 +180,8 @@ internal static class RoofAttachedManualCopyCloneReinitializeService
                 ToRoof(genLine.EndPoint)));
         }
 
-        var selected = RoofAttachedManualReanchorRules.SelectNearestMirrorAnchor(
-            inheritedAnchorKey.MemberKind,
+        var selected = RoofAttachedManualReanchorRules.SelectRetainedAnchor(
+            inheritedAnchorKey,
             candidates,
             ToRoof(cloneLine.StartPoint),
             ToRoof(cloneLine.EndPoint));
@@ -196,6 +202,11 @@ internal static class RoofAttachedManualCopyCloneReinitializeService
             cloneLine.StartPoint,
             cloneLine.EndPoint,
             RoofAttachedManualOrigin.Copy);
+        var inherited = RoofAttachedManualTimberStore.Read(cloneLine).Data!;
+        attachedData = attachedData with
+        {
+            PhysicalReferenceSegment = inherited.PhysicalReferenceSegment ?? inherited.RelativeSegment,
+        };
         RoofAttachedManualLifecycleService.WriteAnchored(cloneLine, transaction, attachedData);
         return true;
     }

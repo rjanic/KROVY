@@ -190,7 +190,7 @@ public sealed class AsymmetricGableRoofFoundationTests
             RoofKind.AsymmetricGable,
             20d,
             35d,
-            RoofDefinitionDataSchema.CurrentVersion,
+            RoofDefinitionDataSchema.EaveHeightVersion,
             450d));
 
         Assert.Equal(
@@ -312,9 +312,9 @@ public sealed class AsymmetricGableRoofFoundationTests
     [Fact]
     public void LifecycleSchemasRemainUnchanged()
     {
-        Assert.Equal(5, RoofDefinitionDataSchema.CurrentVersion);
+        Assert.Equal(6, RoofDefinitionDataSchema.CurrentVersion);
         Assert.Equal(1, RoofGeneratedTimberDataSchema.CurrentVersion);
-        Assert.Equal(4, RoofAttachedManualTimberDataSchema.CurrentVersion);
+        Assert.Equal(5, RoofAttachedManualTimberDataSchema.CurrentVersion);
         Assert.Equal(1, RoofDisplayDataSchema.CurrentVersion);
     }
 

@@ -188,7 +188,7 @@ public sealed class HipRoofPreviewSourceContractTests
         Assert.Contains("RoofTopologyEdgeKind.Valley", hipWireframe);
         Assert.DoesNotContain("RoofTopologyEdgeKind.Eave", hipWireframe);
         Assert.DoesNotContain("RoofTopologyEdgeKind.CoplanarSeam", hipWireframe);
-        Assert.Equal(5, RoofDefinitionDataSchema.CurrentVersion);
+        Assert.Equal(6, RoofDefinitionDataSchema.CurrentVersion);
     }
 
     private static string Segment(string source, string start, string end) =>

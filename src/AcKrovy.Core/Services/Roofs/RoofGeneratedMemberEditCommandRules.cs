@@ -10,7 +10,7 @@ namespace AcKrovy.Core.Services.Roofs;
 public static class RoofGeneratedMemberEditCommandRules
 {
     public static bool IsAssemblySnapshotCommand(string? globalCommandName) =>
-        IsGeneratedTimberEditCommand(globalCommandName) || IsMirrorCommand(globalCommandName) ||
+        IsGeneratedTimberEditCommand(globalCommandName) || IsJoinCommand(globalCommandName) || IsMirrorCommand(globalCommandName) ||
         LiveGeometryCommandRules.IsSameDwgCopyOwnershipCommand(globalCommandName);
 
     public static bool IsGeneratedTimberEditCommand(string? globalCommandName)
@@ -18,6 +18,7 @@ public static class RoofGeneratedMemberEditCommandRules
         var normalized = LiveGeometryCommandRules.NormalizeCommandName(globalCommandName);
         return normalized.Equals("MOVE", StringComparison.OrdinalIgnoreCase) ||
                normalized.Equals("ROTATE", StringComparison.OrdinalIgnoreCase) ||
+               IsLengthenCommand(normalized) ||
                normalized.Equals("TRIM", StringComparison.OrdinalIgnoreCase) ||
                normalized.Equals("EXTEND", StringComparison.OrdinalIgnoreCase) ||
                IsBreakCommand(normalized) ||
@@ -97,11 +98,25 @@ public static class RoofGeneratedMemberEditCommandRules
         return normalized.Equals("MIRROR", StringComparison.OrdinalIgnoreCase);
     }
 
+    public static bool IsLengthenCommand(string? globalCommandName) =>
+        LiveGeometryCommandRules.NormalizeCommandName(globalCommandName)
+            .Equals("LENGTHEN", StringComparison.OrdinalIgnoreCase);
+
+    public static bool IsJoinCommand(string? globalCommandName) =>
+        LiveGeometryCommandRules.NormalizeCommandName(globalCommandName)
+            .Equals("JOIN", StringComparison.OrdinalIgnoreCase);
+
     public static bool IsGripStretchCommand(string? globalCommandName)
     {
         var normalized = LiveGeometryCommandRules.NormalizeCommandName(globalCommandName);
         return normalized.Equals("GRIP_STRETCH", StringComparison.OrdinalIgnoreCase);
     }
+
+    /// <summary>Plan2D Ordinary edits share snapshot/build-state infrastructure across native commands.</summary>
+    public static bool IsOrdinaryPlanGeometryEditCommand(string? globalCommandName) =>
+        IsClassicStretch(globalCommandName) || IsGripStretchCommand(globalCommandName) ||
+        IsTrimCommand(globalCommandName) || IsExtendCommand(globalCommandName) || IsBreakCommand(globalCommandName) ||
+        IsRotateCommand(globalCommandName) || IsLengthenCommand(globalCommandName);
 
     public static bool IsBreakCommand(string? globalCommandName)
     {
@@ -143,5 +158,5 @@ public static class RoofGeneratedMemberEditCommandRules
     public static bool RequiresOrdinaryPhysicalReconcile(string? globalCommandName) =>
         IsMoveCommand(globalCommandName) || IsEndpointTrimOrExtendCommand(globalCommandName) ||
         IsClassicStretch(globalCommandName) || IsGripStretchCommand(globalCommandName) ||
-        IsBreakCommand(globalCommandName);
+        IsBreakCommand(globalCommandName) || IsRotateCommand(globalCommandName);
 }

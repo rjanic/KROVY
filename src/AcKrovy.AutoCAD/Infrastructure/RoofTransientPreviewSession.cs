@@ -35,7 +35,8 @@ internal sealed class RoofTransientPreviewSession : IDisposable
     public static RoofTransientPreviewSession Show(
         Document document,
         IRoofGeometry geometry,
-        double sourceElevation)
+        double sourceElevation,
+        RoofGeneratedMemberReplayPlan? ordinaryPlan = null)
     {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(geometry);
@@ -48,6 +49,7 @@ internal sealed class RoofTransientPreviewSession : IDisposable
         try
         {
             session.AddGeometry(geometry, sourceElevation);
+            if (ordinaryPlan is not null) session.AddGeneratedRafters(ordinaryPlan);
             document.Editor.UpdateScreen();
             return session;
         }
@@ -388,6 +390,34 @@ internal sealed class RoofTransientPreviewSession : IDisposable
         }
     }
 
+    internal static IReadOnlyList<RoofGeneratedMemberPreviewSegment> MapGeneratedRafterSegments(RoofGeneratedMemberReplayPlan plan)
+    {
+        if (!plan.IsValid) throw new ArgumentException("Invalid Ordinary preview generator plan.", nameof(plan));
+        var segments = new List<RoofGeneratedMemberPreviewSegment>();
+        foreach (var item in plan.Items)
+        {
+            if (item.Geometry is not { } axis) continue;
+            segments.Add(new(axis.Start, axis.End, (int)item.Rafter.Face));
+        }
+        return segments;
+    }
+
+    private void AddGeneratedRafters(RoofGeneratedMemberReplayPlan plan)
+    {
+        var transientManager = TransientManager.CurrentTransientManager;
+        foreach (var segment in MapGeneratedRafterSegments(plan))
+        {
+            var drawable = new Line(MapPoint(segment.Start), MapPoint(segment.End))
+            {
+                ColorIndex = RafterColorIndex,
+                LineWeight = LineWeight.LineWeight025,
+            };
+            _drawables.Add(drawable);
+            transientManager.AddTransient(drawable, TransientDrawingMode.DirectShortTerm,
+                TransientSubDrawingMode, _viewportNumbers);
+        }
+    }
+
     private void AddRafters(
         RoofFaceRafterLayout layout,
         double sourceElevation)
@@ -466,4 +496,6 @@ internal sealed class RoofTransientPreviewSession : IDisposable
         RoofPoint2D Start,
         RoofPoint2D End,
         int FaceIndex);
+
+    internal sealed record RoofGeneratedMemberPreviewSegment(RoofPoint3D Start, RoofPoint3D End, int FaceIndex);
 }

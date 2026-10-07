@@ -88,7 +88,7 @@ internal static class RoofAssemblyGroupSyncService
         return true;
     }
 
-    private static bool IsCurrent(Database database, Transaction transaction, ObjectId ownerId) =>
+    internal static bool IsCurrent(Database database, Transaction transaction, ObjectId ownerId) =>
         AutoCadObjectIdAccess.TryGetObject<Polyline>(transaction, ownerId, OpenMode.ForRead,
             out var owner, database) && owner is not null &&
         RoofDisplayService.TryCollectCurrentStructuralDisplayChildIds(database, transaction, owner,

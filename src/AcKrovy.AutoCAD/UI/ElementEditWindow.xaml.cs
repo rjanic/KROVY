@@ -6,6 +6,9 @@ using AcKrovy.Core.Models;
 using AcKrovy.Core.Services;
 using AcKrovy.Localization;
 
+using AcKrovy.Core.Models.Roofs;
+using AcKrovy.Core.Services.Roofs;
+
 namespace AcKrovy.AutoCAD.UI;
 
 public partial class ElementEditWindow : Window
@@ -21,7 +24,14 @@ public partial class ElementEditWindow : Window
     private bool _manualLengthEditingEnabled;
     private readonly bool _usesFootprintPostSlopePresentation;
 
+    private readonly RoofOrdinaryElevationViewModel? _elevationVm;
+
     internal TimberElementPatch? Patch { get; private set; }
+    internal RoofOrdinaryElevationViewModel? ElevationViewModel => _elevationVm;
+    internal StructuralMemberElevationState? RequestedElevationState => _elevationVm?.BuildRequestedState();
+    internal bool ElevationGeometryChanged => _elevationVm?.GeometryChanged ?? false;
+    internal bool ElevationDisplayReferenceChanged => _elevationVm?.DisplayReferenceChanged ?? false;
+
     internal TimberElementType? SelectedElementType => (ElementTypeComboBox.SelectedItem as ElementTypeOption)?.Value;
     internal bool CuttingAllowanceWasEdited { get; private set; }
     internal bool UseDefaultCuttingAllowanceByType { get; private set; }
@@ -34,7 +44,9 @@ public partial class ElementEditWindow : Window
         TimberElementDefaultProfile? defaultProfile = null,
         bool cuttingAllowanceIsMixed = false,
         bool slopeDirectionIsMixed = false,
-        IReadOnlyList<TimberElementData>? validationData = null)
+        IReadOnlyList<TimberElementData>? validationData = null,
+        StructuralMemberElevationState? elevationState = null,
+        double? planLengthMm = null)
     {
         InitializeComponent();
         _isInitializing = true;
@@ -44,6 +56,23 @@ public partial class ElementEditWindow : Window
 
         var data = seedData ?? new TimberElementData();
         _validationData = validationData ?? new[] { data };
+
+        // Initialize Elevation seating section if state is provided (single selection only).
+        if (elevationState is not null && planLengthMm is { } len && _validationData.Count == 1)
+        {
+            _elevationVm = new RoofOrdinaryElevationViewModel(
+                elevationState,
+                len,
+                data.HeightMm,
+                _uiCulture,
+                elementType: data.ElementType);
+            InitializeElevationSection();
+        }
+        else
+        {
+            ElevationSection.Visibility = Visibility.Collapsed;
+        }
+
         _originalCustomDefinition = ResolveRenameableCustomDefinition(_validationData);
         ElementTypeComboBox.ItemsSource = Enum
             .GetValues<TimberElementType>()
@@ -276,8 +305,9 @@ public partial class ElementEditWindow : Window
                 GetUiString("Dialog_Edit_FieldHeight"),
                 out var height) ||
             !TryReadOptionalSlope(
-                !_usesFootprintPostSlopePresentation && ChangeSlopeCheckBox.IsChecked == true,
-                SlopeTextBox.Text,
+                !_usesFootprintPostSlopePresentation &&
+                (ChangeSlopeCheckBox.IsChecked == true || (_elevationVm?.GeometryChanged ?? false)),
+                ResolveSlopeTextForPatch(),
                 out var slope) ||
             !TryReadOptionalWholeNumber(
                 ChangeAllowanceCheckBox.IsChecked == true && !UseDefaultCuttingAllowanceByType,
@@ -472,6 +502,149 @@ public partial class ElementEditWindow : Window
 
     private void Cancel_Click(object sender, RoutedEventArgs e) =>
         DialogResult = false;
+
+    private string ResolveSlopeTextForPatch()
+    {
+        // One slope value: when elevation is active, AbsoluteSlopeDegrees is authoritative.
+        if (_elevationVm is not null && ElevationSection.Visibility == Visibility.Visible)
+            return Format(_elevationVm.AbsoluteSlopeDegrees);
+        return SlopeTextBox.Text;
+    }
+
+    private void MainSlopeTextBox_LostFocus(object sender, RoutedEventArgs e)
+    {
+        if (_elevationVm is null ||
+            ElevationSection.Visibility != Visibility.Visible ||
+            !_elevationVm.SlopeEditable)
+            return;
+
+        if (!double.TryParse(SlopeTextBox.Text, NumberStyles.Float, SlovakCulture, out var absolute) &&
+            !double.TryParse(SlopeTextBox.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out absolute))
+            return;
+
+        // Slope is always a positive magnitude; fall direction is separate (Smer spádu).
+        absolute = Math.Abs(absolute);
+        _elevationVm.SlopeText = StructuralMemberElevationRules.FormatSlopeDegrees(absolute, _uiCulture);
+        ChangeSlopeCheckBox.IsChecked = true;
+    }
+
+    private void ElevationImageChoice_Click(object sender, RoutedEventArgs e)
+    {
+        if (_elevationVm is null) return;
+        if (sender is not System.Windows.Controls.Button button) return;
+        if (button.DataContext is not ElevationImageChoiceItem item) return;
+
+        if (string.Equals(button.Tag as string, "Reference", StringComparison.Ordinal))
+            _elevationVm.SelectReferenceChoice(item);
+        else if (string.Equals(button.Tag as string, "Calculation", StringComparison.Ordinal))
+            _elevationVm.SelectCalculationChoice(item);
+
+        ApplyElevationFieldEditability();
+        SyncMainSlopeFromElevation();
+    }
+
+    private void InitializeElevationSection()
+    {
+        if (_elevationVm is null) return;
+
+        ElevationSection.Visibility = Visibility.Visible;
+        ElevationSection.DataContext = _elevationVm;
+
+        // Main Sklon [°] stays visible as the element parameter.
+        // Elevation "Previazaný sklon" is always a linked read-only mirror (not a second editor).
+
+        LowerZTextBox.SetBinding(System.Windows.Controls.TextBox.TextProperty,
+            new System.Windows.Data.Binding(nameof(RoofOrdinaryElevationViewModel.LowerZText))
+            {
+                Source = _elevationVm,
+                Mode = System.Windows.Data.BindingMode.TwoWay,
+                UpdateSourceTrigger = System.Windows.Data.UpdateSourceTrigger.LostFocus,
+            });
+        UpperZTextBox.SetBinding(System.Windows.Controls.TextBox.TextProperty,
+            new System.Windows.Data.Binding(nameof(RoofOrdinaryElevationViewModel.UpperZText))
+            {
+                Source = _elevationVm,
+                Mode = System.Windows.Data.BindingMode.TwoWay,
+                UpdateSourceTrigger = System.Windows.Data.UpdateSourceTrigger.LostFocus,
+            });
+        SlopeElevationTextBox.SetBinding(System.Windows.Controls.TextBox.TextProperty,
+            new System.Windows.Data.Binding(nameof(RoofOrdinaryElevationViewModel.SlopeText))
+            {
+                Source = _elevationVm,
+                Mode = System.Windows.Data.BindingMode.OneWay,
+            });
+
+        _elevationVm.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName is
+                nameof(RoofOrdinaryElevationViewModel.LowerZEditable) or
+                nameof(RoofOrdinaryElevationViewModel.UpperZEditable) or
+                nameof(RoofOrdinaryElevationViewModel.SlopeEditable))
+            {
+                ApplyElevationFieldEditability();
+            }
+
+            if (e.PropertyName is
+                nameof(RoofOrdinaryElevationViewModel.SlopeText) or
+                nameof(RoofOrdinaryElevationViewModel.AbsoluteSlopeDegrees) or
+                nameof(RoofOrdinaryElevationViewModel.GeometryChanged))
+            {
+                SyncMainSlopeFromElevation();
+            }
+
+            if (e.PropertyName is nameof(RoofOrdinaryElevationViewModel.IsSlopeDirectionReversed) or
+                nameof(RoofOrdinaryElevationViewModel.IsHorizontal))
+            {
+                SyncSlopeDirectionFromElevation();
+            }
+        };
+
+        ApplyElevationFieldEditability();
+        SyncMainSlopeFromElevation();
+    }
+
+    private void ApplyElevationFieldEditability()
+    {
+        if (_elevationVm is null) return;
+        LowerZTextBox.IsReadOnly = !_elevationVm.LowerZEditable;
+        UpperZTextBox.IsReadOnly = !_elevationVm.UpperZEditable;
+        // Elevation slope row is always a linked display — never a second independent editor.
+        SlopeElevationTextBox.IsReadOnly = true;
+        // Main Sklon [°] is editable only in Mode B/C (LowerSlope / UpperSlope).
+        if (!_usesFootprintPostSlopePresentation)
+        {
+            SlopeTextBox.IsReadOnly = !_elevationVm.SlopeEditable;
+            SlopeTextBox.IsEnabled = true;
+            ChangeSlopeCheckBox.IsEnabled = _elevationVm.SlopeEditable;
+            if (_elevationVm.SlopeEditable)
+                ChangeSlopeCheckBox.IsChecked = true;
+        }
+    }
+
+    private void SyncMainSlopeFromElevation()
+    {
+        if (_elevationVm is null) return;
+        // Keep the main element slope field mirrored to the same underlying elevation math.
+        if (!SlopeTextBox.IsKeyboardFocusWithin)
+            SlopeTextBox.Text = Format(_elevationVm.AbsoluteSlopeDegrees);
+        if (_elevationVm.GeometryChanged)
+            ChangeSlopeCheckBox.IsChecked = true;
+    }
+
+    private void SyncSlopeDirectionFromElevation()
+    {
+        if (_elevationVm is null || SlopeDirectionComboBox.ItemsSource is null) return;
+        // Horizontal: fall has no meaning — leave combo alone (do not invent a direction).
+        if (_elevationVm.IsHorizontal) return;
+        var target = _elevationVm.IsSlopeDirectionReversed;
+        var match = ((IEnumerable<SlopeDirectionOption>)SlopeDirectionComboBox.ItemsSource)
+            .FirstOrDefault(item => item.IsReversed == target);
+        if (match is not null && !Equals(SlopeDirectionComboBox.SelectedItem, match))
+        {
+            SlopeDirectionComboBox.SelectedItem = match;
+            ChangeSlopeDirectionCheckBox.IsChecked = true;
+        }
+    }
 
     private sealed record ElementTypeOption(TimberElementType Value, string Label)
     {

@@ -19,6 +19,8 @@ Snapshot for v0.22.0 Per-Element Annotation Scale: annotation presentation uses 
 
 Near-term themes must be taken from `ACAD_KROVY_BACKLOG.md` and sequenced through `ACAD_KROVY_ROADMAP.md`. At this snapshot those documents remain the source for roof automation, reporting/manufacturing workflow, multilingual completion and compatibility expansion; implement only items that are still present and explicitly selected.
 
+Planned (not implemented): **Roof Face Identity Contract v1** — multi-face roof plane identity (`R1`…`Rn`) for hip/complex topology, slopes/heights, hip/valley bindings and selective rebuild. Do not implement unless explicitly tasked.
+
 Architectural prerequisites for later stages:
 
 - Keep calculations and persisted models CAD-neutral.
@@ -81,3 +83,13 @@ Compatibility path: retain shared Core and abstractions, then add explicitly tar
 - `src/AcKrovy.Wpf.Tests`
 
 See [architecture.md](architecture.md), [cad-abstractions.md](cad-abstractions.md), and [release-process.md](release-process.md).
+
+## Planned — Roof Face Identity Contract v1 (note only)
+
+Stable face identities R1, R2, R3, R4... for future hip roofs. Roadmap recording only (2026-10-06 AK_EDIT UI polish). Not implemented. JOIN remains CODE PASS / HOST OPEN.
+
+## Checkpoint status (2026-10-07)
+
+- **ELEVATION:** CODE PASS / HOST PASS / CLOSED
+- **JOIN:** CODE PASS / HOST OPEN
+- **ROOF FACE IDENTITY:** NOT STARTED

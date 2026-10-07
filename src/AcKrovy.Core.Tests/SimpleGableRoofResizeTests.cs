@@ -127,7 +127,7 @@ public sealed class SimpleGableRoofResizeTests
         Assert.Equal(first.Signature, second.Signature);
         Assert.Equal(RoofRidgeEdgeFamily.SourceEdge12, updated.RidgeEdgeFamily);
         Assert.Equal(31.75d, updated.SlopeDegrees);
-        Assert.Equal(5, updated.SchemaVersion);
+        Assert.Equal(RoofDefinitionDataSchema.CurrentVersion, updated.SchemaVersion);
         Assert.NotEqual(data.RigidFootprint!.Edge01LengthMm, updated.RigidFootprint!.Edge01LengthMm);
         Assert.Equal(
             RoofDefinitionDataCodec.Encode(updated),
@@ -207,11 +207,11 @@ public sealed class SimpleGableRoofResizeTests
     public void FutureSchema_RemainsRejected()
     {
         Assert.False(RoofDefinitionDataCodec.TryDecode(
-            "6|SimpleGable|35|Edge01|4|CCW|10000|6000",
+            $"{RoofDefinitionDataSchema.CurrentVersion + 1}|SimpleGable|35|Edge01|4|CCW|10000|6000",
             out _,
             out var error));
         Assert.Equal(RoofDefinitionDataDecodeError.UnsupportedFutureSchema, error);
-        Assert.Equal(5, RoofDefinitionDataSchema.CurrentVersion);
+        Assert.Equal(6, RoofDefinitionDataSchema.CurrentVersion);
         Assert.Equal(7, AcKrovy.Core.Models.TimberElementDataSchema.CurrentVersion);
         Assert.Equal(1, RoofDisplayDataSchema.CurrentVersion);
         Assert.Equal(1, RoofGeneratedTimberDataSchema.CurrentVersion);

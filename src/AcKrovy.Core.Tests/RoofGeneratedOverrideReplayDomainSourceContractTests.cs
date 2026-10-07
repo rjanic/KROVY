@@ -40,7 +40,7 @@ public sealed class RoofGeneratedOverrideReplayDomainSourceContractTests
     public void SourceResizeBuildsCompleteReplayPlanBeforeErasingOldGeneratedSet()
     {
         var plan = Materialization.IndexOf(
-            "replayPlan = RoofGeneratedMemberReplayPlanner.Create",
+            "replayPlan = RoofOrdinaryRebuildRules.CreateReplayPlan",
             StringComparison.Ordinal);
         var erase = Materialization.IndexOf(
             "EraseGeneratedSet(database, transaction, owner.ObjectId, existingIds)",

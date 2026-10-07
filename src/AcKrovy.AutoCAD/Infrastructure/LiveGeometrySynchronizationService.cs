@@ -86,6 +86,9 @@ internal static class LiveGeometrySynchronizationService
     {
         private readonly Document _document;
         private readonly RoofNativeCloneSnapshot _nativeRoofClones = new();
+#if DEBUG
+        private readonly HashSet<string> _copyRecoveryOwners = new(StringComparer.OrdinalIgnoreCase);
+#endif
         private readonly LiveGeometryRefreshCoordinator<ObjectId> _modifiedIds = new();
         private readonly LiveGeometryRefreshCoordinator<ObjectId> _appendedTimberIds = new();
         private readonly LiveGeometryRefreshCoordinator<ObjectId> _appendedRoofOwnerIds = new();
@@ -95,6 +98,12 @@ internal static class LiveGeometrySynchronizationService
         private readonly LiveGeometryRefreshCoordinator<ObjectId> _appendedSlopeAngleTextIds = new();
         private readonly LiveGeometryRefreshCoordinator<ObjectId> _appendedPasteEntityIds = new();
         private readonly LiveGeometryRefreshCoordinator<string> _erasedSourceHandles = new();
+        private RoofOrdinaryLogicalMoveService.Snapshot? _ordinaryMoveSnapshot;
+        private RoofOrdinaryGripLifecycleService.Snapshot? _ordinaryGripSnapshot;
+        private RoofOrdinaryJoinLifecycleService.Context? _ordinaryJoinContext;
+        private RoofOrdinaryEraseLifecycleService.Context? _ordinaryEraseContext;
+        private RoofOrdinaryCopyLifecycleService.Context? _ordinaryCopyContext;
+        private RoofOrdinaryCopyLifecycleService.Context? _ordinaryMirrorContext;
         private bool _ignoreCurrentCommand;
         private bool _refreshAllTimberAnnotationsAfterCommand;
         private bool _preserveCopySourcesForCurrentCommand;
@@ -179,6 +188,15 @@ internal static class LiveGeometrySynchronizationService
             EndStretchUndoMark();
             RoofLiveResizeService.EndStretchCommandScope();
             RoofGroupGripGeometrySnapshotService.EndCommandScope("dispose");
+            _ordinaryGripSnapshot?.Dispose();
+            _ordinaryGripSnapshot = null;
+            _ordinaryCopyContext?.Dispose();
+            _ordinaryCopyContext = null;
+            _ordinaryMirrorContext?.Dispose();
+            _ordinaryMirrorContext = null;
+            _ordinaryJoinContext?.Dispose();
+            _ordinaryJoinContext = null;
+            _nativeRoofClones.Clear();
             RoofGroupGripPreCommandBaselineService.Clear("dispose");
             RoofUnsupportedStretchRecoverySnapshotService.Clear("dispose");
             RoofDisplayErasePreCommandMapService.Clear("dispose");
@@ -205,6 +223,10 @@ internal static class LiveGeometrySynchronizationService
                 {
                     return;
                 }
+
+                if (RoofGeneratedMemberEditCommandRules.IsSplitCommand(_currentGlobalCommandName))
+                    _ordinaryGripSnapshot?.NativeTrimAppendedIds.Add(entity.ObjectId);
+                _ordinaryJoinContext?.Observe(entity, appended: true);
 
                 // Per-Document command-scope evidence for native/clipboard clones. Capture every Entity
                 // before any observation branch can return. Deep-cloned metadata may not
@@ -288,6 +310,8 @@ internal static class LiveGeometrySynchronizationService
                 return;
             }
 
+            _ordinaryJoinContext?.Observe(entity);
+
             // Framed MLeader presentation tracking remains for Unlocked
             // PersistFramedManualOffsets. Do NOT early-return: Locked roofs need
             // the same ObjectId in _modifiedIds so RoofLiveResizeService Inspect
@@ -321,6 +345,7 @@ internal static class LiveGeometrySynchronizationService
             }
 
             var handle = entity.Handle.ToString();
+            _ordinaryJoinContext?.Observe(entity);
             var mapped = RoofDisplayErasePreCommandMapService.TryResolve(handle, out var mappedEntity);
             var mappedKind = mapped ? mappedEntity.Kind.ToString() : "-";
             var mappedOwner = mapped ? mappedEntity.OwnerHandle : "-";
@@ -366,11 +391,17 @@ internal static class LiveGeometrySynchronizationService
             // Copy IDs only. Metadata was captured before the native command; no
             // writes or nested transaction in the native translation callback.
             _nativeRoofClones.Observe(e.IdMapping);
+            _ordinaryCopyContext?.Observe(_nativeRoofClones);
+            _ordinaryMirrorContext?.Observe(_nativeRoofClones);
         }
 
         private void CommandWillStart(object? sender, CommandEventArgs e)
         {
-            _nativeRoofClones.Clear();
+            // Discard notifications left by completed command maintenance before
+            // capturing this command's baseline. No drawing state is changed.
+            ClearPendingLiveGeometryState();
+            _ordinaryGripSnapshot?.Dispose();
+            _ordinaryGripSnapshot = null;
             var isUndoRedo = LiveGeometryCommandRules.IsUndoRedoCommand(e.GlobalCommandName);
             _ignoreCurrentCommand = IsAcKrovyCommand(e.GlobalCommandName) || isUndoRedo;
             _currentGlobalCommandName = e.GlobalCommandName;
@@ -419,8 +450,15 @@ internal static class LiveGeometrySynchronizationService
                  RoofGeneratedMemberEditCommandRules.IsMirrorCommand(e.GlobalCommandName)))
             {
                 RoofGeneratedCopyPreCommandSnapshotService.CaptureForCopy(_document);
+#if DEBUG
+                _copyRecoveryOwners.Clear();
+#endif
                 try { _nativeRoofClones.Capture(_document.Database); }
                 catch (System.Exception) { _nativeRoofClones.Clear(); }
+                if (LiveGeometryCommandRules.IsSameDwgCopyOwnershipCommand(e.GlobalCommandName))
+                    _ordinaryCopyContext = new RoofOrdinaryCopyLifecycleService.Context(_document);
+                else
+                    _ordinaryMirrorContext = new RoofOrdinaryCopyLifecycleService.Context(_document, mirror: true);
             }
 
             if (!isUndoRedo &&
@@ -454,6 +492,19 @@ internal static class LiveGeometrySynchronizationService
                 RoofUnsupportedStretchRecoverySnapshotService.Clear("non-recovery-command", e.GlobalCommandName);
             }
 
+            if (!isUndoRedo && !_ignoreCurrentCommand &&
+                RoofGeneratedMemberEditCommandRules.IsMoveCommand(e.GlobalCommandName))
+                _ordinaryMoveSnapshot = RoofOrdinaryLogicalMoveService.Capture(_document);
+
+            if (!isUndoRedo && !_ignoreCurrentCommand &&
+                RoofGeneratedMemberEditCommandRules.IsOrdinaryPlanGeometryEditCommand(e.GlobalCommandName))
+            {
+                _ordinaryGripSnapshot = RoofOrdinaryGripLifecycleService.Capture(_document);
+                _ordinaryGripSnapshot.BeginCommand(_document, e.GlobalCommandName);
+            }
+            if (!isUndoRedo && !_ignoreCurrentCommand && RoofGeneratedMemberEditCommandRules.IsJoinCommand(e.GlobalCommandName))
+                _ordinaryJoinContext = new RoofOrdinaryJoinLifecycleService.Context(_document);
+
             // Read-only display→owner map for native ERASE. ObjectErased resolves
             // through this map; never rely on post-erase XData from erased DBObjects.
             if (!isUndoRedo &&
@@ -463,6 +514,7 @@ internal static class LiveGeometrySynchronizationService
                 RoofDisplayErasePreCommandMapService.CaptureForErase(
                     _document,
                     e.GlobalCommandName);
+                _ordinaryEraseContext = new RoofOrdinaryEraseLifecycleService.Context(_document);
             }
             else
             {
@@ -555,11 +607,26 @@ internal static class LiveGeometrySynchronizationService
                     RoofGeneratedCopyPreCommandSnapshotService.CompleteClipboardPaste();
                 }
 
+                var physicalEraseCompletion = _ordinaryEraseContext?.TakeCompletion();
+                // Restore transaction has committed. Keep GROUP writes in this ERASE undo scope.
+                try { physicalEraseCompletion?.Invoke(); }
+                catch (Exception exception)
+                {
+                    AcKrovyDiagnostics.Error("ROOF_ORDINARY_ERASE_COMPLETION", exception.Message, exception: exception);
+                    _document.Editor.WriteMessage("\nROOF_ORDINARY_ERASE_COMPLETION result=fail reason=" + exception.Message);
+                }
+
                 EndStretchUndoMark();
                 RoofLiveResizeService.EndStretchCommandScope();
                 RoofGroupGripGeometrySnapshotService.EndCommandScope("CommandEnded");
                 RoofGroupGripPreCommandBaselineService.Clear("CommandEnded");
                 RoofUnsupportedStretchRecoverySnapshotService.Clear("CommandEnded", e.GlobalCommandName);
+                _ordinaryGripSnapshot?.TraceCommandState("end");
+                _ordinaryCopyContext?.Trace("end");
+                _ordinaryMirrorContext?.Trace("end");
+                ClearPendingLiveGeometryState();
+                _ordinaryGripSnapshot?.Dispose();
+                _ordinaryGripSnapshot = null;
                 RoofDisplayErasePreCommandMapService.Clear("CommandEnded");
                 _currentGlobalCommandName = null;
 #if DEBUG
@@ -569,8 +636,44 @@ internal static class LiveGeometrySynchronizationService
             }
         }
 
+        private void CancelOrdinaryTrimSplit(string command, string phase = "cancel")
+        {
+            try
+            {
+                using (_modifiedIds.Suppress())
+                using (_appendedTimberIds.Suppress())
+                using (_modifiedFramedLabelIds.Suppress())
+                using (_appendedLabelIds.Suppress())
+                using (_appendedSlopeArrowIds.Suppress())
+                using (_appendedSlopeAngleTextIds.Suppress())
+                using (_erasedSourceHandles.Suppress())
+                {
+                    RoofOrdinaryGripLifecycleService.CancelTrimSplit(_document, _ordinaryGripSnapshot, command);
+                    RoofOrdinaryGripLifecycleService.CancelExtend(_document, _ordinaryGripSnapshot, command);
+                    if (RoofGeneratedMemberEditCommandRules.IsLengthenCommand(command))
+                        RoofOrdinaryLengthenLifecycleService.Cancel(_document, _ordinaryGripSnapshot);
+                    if (RoofGeneratedMemberEditCommandRules.IsJoinCommand(command) && _ordinaryJoinContext is not null)
+                        RoofOrdinaryJoinLifecycleService.Process(_document, _ordinaryJoinContext, cancel: true, terminalPhase: phase);
+                }
+            }
+            catch (Exception ex)
+            {
+                var diagnostic = RoofGeneratedMemberEditCommandRules.IsBreakCommand(command)
+                    ? "ROOF_ORDINARY_BREAK_LIFECYCLE"
+                    : RoofGeneratedMemberEditCommandRules.IsLengthenCommand(command)
+                        ? "ROOF_ORDINARY_LENGTHEN_LIFECYCLE"
+                    : RoofGeneratedMemberEditCommandRules.IsExtendCommand(command)
+                        ? "ROOF_ORDINARY_EXTEND_LIFECYCLE" : "ROOF_ORDINARY_TRIM_SPLIT";
+                _document.Editor.WriteMessage("\n" + diagnostic + " phase=cancel result=failed reason=" + ex.Message);
+            }
+        }
+
         private void CommandCancelled(object? sender, CommandEventArgs e)
         {
+            CompleteOrdinaryCopyOnAbort("cancel");
+            CancelOrdinaryMirror("cancel");
+            CancelOrdinaryTrimSplit(e.GlobalCommandName);
+            _ordinaryGripSnapshot?.TraceCommandState("cancel");
             var isUndoRedo = LiveGeometryCommandRules.IsUndoRedoCommand(e.GlobalCommandName);
             ClearPendingLiveGeometryState();
             _refreshAllTimberAnnotationsAfterCommand = false;
@@ -595,6 +698,8 @@ internal static class LiveGeometrySynchronizationService
             EndStretchUndoMark();
             RoofLiveResizeService.EndStretchCommandScope();
             RoofGroupGripGeometrySnapshotService.EndCommandScope("CommandCancelled");
+            _ordinaryGripSnapshot?.Dispose();
+            _ordinaryGripSnapshot = null;
             RoofGroupGripPreCommandBaselineService.Clear("CommandCancelled");
             RoofUnsupportedStretchRecoverySnapshotService.Clear("CommandCancelled", e.GlobalCommandName);
             RoofDisplayErasePreCommandMapService.Clear("CommandCancelled");
@@ -612,6 +717,10 @@ internal static class LiveGeometrySynchronizationService
 
         private void CommandFailed(object? sender, CommandEventArgs e)
         {
+            CompleteOrdinaryCopyOnAbort("fail");
+            CancelOrdinaryMirror("fail");
+            CancelOrdinaryTrimSplit(e.GlobalCommandName, "fail");
+            _ordinaryGripSnapshot?.TraceCommandState("fail");
             var isUndoRedo = LiveGeometryCommandRules.IsUndoRedoCommand(e.GlobalCommandName);
             ClearPendingLiveGeometryState();
             _refreshAllTimberAnnotationsAfterCommand = false;
@@ -636,6 +745,8 @@ internal static class LiveGeometrySynchronizationService
             EndStretchUndoMark();
             RoofLiveResizeService.EndStretchCommandScope();
             RoofGroupGripGeometrySnapshotService.EndCommandScope("CommandFailed");
+            _ordinaryGripSnapshot?.Dispose();
+            _ordinaryGripSnapshot = null;
             RoofGroupGripPreCommandBaselineService.Clear("CommandFailed");
             RoofUnsupportedStretchRecoverySnapshotService.Clear("CommandFailed", e.GlobalCommandName);
             RoofDisplayErasePreCommandMapService.Clear("CommandFailed");
@@ -653,7 +764,16 @@ internal static class LiveGeometrySynchronizationService
 
         private void ClearPendingLiveGeometryState()
         {
+            _ordinaryJoinContext?.Dispose();
+            _ordinaryJoinContext = null;
+            _ordinaryEraseContext?.Dispose();
+            _ordinaryEraseContext = null;
+            _ordinaryCopyContext?.Dispose();
+            _ordinaryCopyContext = null;
+            _ordinaryMirrorContext?.Dispose();
+            _ordinaryMirrorContext = null;
             _nativeRoofClones.Clear();
+            _ordinaryMoveSnapshot = null;
             _modifiedIds.Clear();
             _appendedTimberIds.Clear();
             _appendedRoofOwnerIds.Clear();
@@ -674,6 +794,51 @@ internal static class LiveGeometrySynchronizationService
 
             RoofLiveResizeService.TryEndGroupedUndo(_document, true);
             _stretchUndoMarkOpen = false;
+        }
+
+        private void CompleteOrdinaryCopyOnAbort(string phase)
+        {
+            if (_ordinaryCopyContext is null) return;
+            // Native COPY Multiple keeps completed placements when ESC finishes it.
+            // Read the surviving native map exactly once before clearing the context.
+            try
+            {
+                using (_modifiedIds.Suppress())
+                using (_appendedTimberIds.Suppress())
+                using (_appendedPasteEntityIds.Suppress())
+                using (_appendedLabelIds.Suppress())
+                using (_appendedSlopeArrowIds.Suppress())
+                using (_appendedSlopeAngleTextIds.Suppress())
+                using (_erasedSourceHandles.Suppress())
+                    RoofOrdinaryCopyLifecycleService.Process(_document, _ordinaryCopyContext, _nativeRoofClones);
+            }
+            catch (System.Exception ex)
+            {
+                _document.Editor.WriteMessage($"\nROOF_ORDINARY_COPY_LIFECYCLE phase={phase} result=fail reason={ex.Message}");
+            }
+            finally { _ordinaryCopyContext.Trace(phase); }
+        }
+
+        private void CancelOrdinaryMirror(string phase)
+        {
+            if (_ordinaryMirrorContext is null) return;
+            try
+            {
+                using (_modifiedIds.Suppress())
+                using (_appendedTimberIds.Suppress())
+                using (_appendedPasteEntityIds.Suppress())
+                using (_appendedLabelIds.Suppress())
+                using (_appendedSlopeArrowIds.Suppress())
+                using (_appendedSlopeAngleTextIds.Suppress())
+                using (_erasedSourceHandles.Suppress())
+                    RoofOrdinaryCopyLifecycleService.CancelMirror(_document, _ordinaryMirrorContext,
+                        _nativeRoofClones, _modifiedIds.Drain(), phase);
+            }
+            catch (Exception ex)
+            {
+                _document.Editor.WriteMessage($"\nROOF_ORDINARY_MIRROR_LIFECYCLE phase={phase} result=fail reason={ex.Message}");
+                _ordinaryMirrorContext.Trace(phase);
+            }
         }
 
         private void RefreshCandidates(
@@ -705,6 +870,31 @@ internal static class LiveGeometrySynchronizationService
             var appendedSlopeAngleTextIds = _appendedSlopeAngleTextIds.Drain();
             var appendedPasteEntityIds = _appendedPasteEntityIds.Drain();
             var erasedSourceHandles = _erasedSourceHandles.Drain();
+            // JOIN claims the complete native source/result graph before structural,
+            // owner-resize or generic erased-source maintenance can consume it.
+            if (RoofGeneratedMemberEditCommandRules.IsJoinCommand(globalCommandName) && _ordinaryJoinContext is not null)
+            {
+                using (_modifiedIds.Suppress())
+                using (_appendedTimberIds.Suppress())
+                using (_modifiedFramedLabelIds.Suppress())
+                using (_appendedLabelIds.Suppress())
+                using (_appendedSlopeArrowIds.Suppress())
+                using (_appendedSlopeAngleTextIds.Suppress())
+                using (_erasedSourceHandles.Suppress())
+                {
+                    var joinClaimed = RoofOrdinaryJoinLifecycleService.Process(_document, _ordinaryJoinContext);
+                    var handles = joinClaimed.Select(id => id.Handle.ToString()).ToHashSet(StringComparer.OrdinalIgnoreCase);
+                    ids = ids.Where(id => !joinClaimed.Contains(id)).ToArray();
+                    appendedTimberIds = appendedTimberIds.Where(id => !joinClaimed.Contains(id)).ToArray();
+                    appendedPasteEntityIds = appendedPasteEntityIds.Where(id => !joinClaimed.Contains(id)).ToArray();
+                    modifiedFramedLabelIds = modifiedFramedLabelIds.Where(id => !joinClaimed.Contains(id)).ToArray();
+                    appendedLabelIds = appendedLabelIds.Where(id => !joinClaimed.Contains(id)).ToArray();
+                    appendedSlopeArrowIds = appendedSlopeArrowIds.Where(id => !joinClaimed.Contains(id)).ToArray();
+                    appendedSlopeAngleTextIds = appendedSlopeAngleTextIds.Where(id => !joinClaimed.Contains(id)).ToArray();
+                    erasedSourceHandles = erasedSourceHandles.Where(handle => !handles.Contains(handle)).ToArray();
+                    if (joinClaimed.Count > 0) refreshAllTimberAnnotations = false;
+                }
+            }
             var appendedIntelligentTimberCount =
                 LiveGeometryCommandRules.IsClipboardPasteCommand(globalCommandName)
                     ? CountAppendedIntelligentRoofTimbers(_document, appendedTimberIds)
@@ -838,6 +1028,24 @@ internal static class LiveGeometrySynchronizationService
                 ids = ids.Where(id => !nativeHandledIds.Contains(id)).ToArray();
             }
 
+            // Plan2D ERASE wins over derived-solid restore, including mixed native erasures.
+            if (RoofGeneratedMemberEditCommandRules.IsEraseCommand(globalCommandName))
+            {
+                using (_modifiedIds.Suppress())
+                using (_appendedTimberIds.Suppress())
+                using (_appendedLabelIds.Suppress())
+                using (_appendedSlopeArrowIds.Suppress())
+                using (_appendedSlopeAngleTextIds.Suppress())
+                using (_erasedSourceHandles.Suppress())
+                {
+                    var ordinaryEraseClaimed = RoofOrdinaryEraseLifecycleService.Process(_document, _ordinaryEraseContext);
+                    ids = ids.Where(id => !ordinaryEraseClaimed.Contains(id)).ToArray();
+                    modifiedFramedLabelIds = modifiedFramedLabelIds.Where(id => !ordinaryEraseClaimed.Contains(id)).ToArray();
+                    var ordinaryEraseHandles = ordinaryEraseClaimed.Select(id => id.Handle.ToString()).ToHashSet(StringComparer.OrdinalIgnoreCase);
+                    erasedSourceHandles = erasedSourceHandles.Where(handle => !ordinaryEraseHandles.Contains(handle)).ToArray();
+                }
+            }
+
             // Structural native events receive first semantic claim after full-roof
             // ownership, before ordinary clone handling and generic tamper recovery.
             using (_modifiedIds.Suppress())
@@ -875,6 +1083,36 @@ internal static class LiveGeometrySynchronizationService
                 using (_appendedSlopeAngleTextIds.Suppress())
                 using (_erasedSourceHandles.Suppress())
                 {
+                    if (nativeCopy)
+                    {
+                        var ordinaryCopyClaimed = RoofOrdinaryCopyLifecycleService.Process(
+                            _document, _ordinaryCopyContext, _nativeRoofClones);
+                        handledNativeMemberIds.UnionWith(ordinaryCopyClaimed);
+                        appendedTimberIds = appendedTimberIds.Where(id => !ordinaryCopyClaimed.Contains(id)).ToArray();
+                        appendedPasteEntityIds = appendedPasteEntityIds.Where(id => !ordinaryCopyClaimed.Contains(id)).ToArray();
+                        appendedAnnotationIds = appendedAnnotationIds.Where(id => !ordinaryCopyClaimed.Contains(id)).ToArray();
+                        appendedLabelIds = appendedLabelIds.Where(id => !ordinaryCopyClaimed.Contains(id)).ToArray();
+                        appendedSlopeArrowIds = appendedSlopeArrowIds.Where(id => !ordinaryCopyClaimed.Contains(id)).ToArray();
+                        appendedSlopeAngleTextIds = appendedSlopeAngleTextIds.Where(id => !ordinaryCopyClaimed.Contains(id)).ToArray();
+                        modifiedFramedLabelIds = modifiedFramedLabelIds.Where(id => !ordinaryCopyClaimed.Contains(id)).ToArray();
+                    }
+                    if (nativeMirror)
+                    {
+                        var ordinaryMirrorClaimed = RoofOrdinaryCopyLifecycleService.Process(
+                            _document, _ordinaryMirrorContext, _nativeRoofClones, mirrorModifiedTimberIds);
+                        handledNativeMemberIds.UnionWith(ordinaryMirrorClaimed);
+                        appendedTimberIds = appendedTimberIds.Where(id => !ordinaryMirrorClaimed.Contains(id)).ToArray();
+                        appendedPasteEntityIds = appendedPasteEntityIds.Where(id => !ordinaryMirrorClaimed.Contains(id)).ToArray();
+                        appendedAnnotationIds = appendedAnnotationIds.Where(id => !ordinaryMirrorClaimed.Contains(id)).ToArray();
+                        appendedLabelIds = appendedLabelIds.Where(id => !ordinaryMirrorClaimed.Contains(id)).ToArray();
+                        appendedSlopeArrowIds = appendedSlopeArrowIds.Where(id => !ordinaryMirrorClaimed.Contains(id)).ToArray();
+                        appendedSlopeAngleTextIds = appendedSlopeAngleTextIds.Where(id => !ordinaryMirrorClaimed.Contains(id)).ToArray();
+                        modifiedFramedLabelIds = modifiedFramedLabelIds.Where(id => !ordinaryMirrorClaimed.Contains(id)).ToArray();
+                        mirrorModifiedTimberIds = mirrorModifiedTimberIds?.Where(id => !ordinaryMirrorClaimed.Contains(id)).ToArray();
+                        var ordinaryMirrorHandles = ordinaryMirrorClaimed.Select(id => id.Handle.ToString())
+                            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+                        erasedSourceHandles = erasedSourceHandles.Where(handle => !ordinaryMirrorHandles.Contains(handle)).ToArray();
+                    }
                     ProcessNativeMemberClones(globalCommandName, appendedTimberIds, appendedPasteEntityIds,
                         erasedSourceHandles, mirrorModifiedTimberIds ?? Array.Empty<ObjectId>(), appendedAnnotationIds,
                         _nativeRoofClones, copy: nativeCopy, handledNativeMemberIds);
@@ -891,6 +1129,41 @@ internal static class LiveGeometrySynchronizationService
             // pass misclassifies them as independent display-only tamper.
             // Freeze native grip geometry snapshot before any plugin Rebuild can overwrite it.
             RoofGroupGripGeometrySnapshotService.FreezeAll();
+            if (RoofGeneratedMemberEditCommandRules.IsOrdinaryPlanGeometryEditCommand(globalCommandName))
+            {
+                using (_modifiedIds.Suppress())
+                using (_appendedTimberIds.Suppress())
+                using (_modifiedFramedLabelIds.Suppress())
+                using (_appendedLabelIds.Suppress())
+                using (_appendedSlopeArrowIds.Suppress())
+                using (_appendedSlopeAngleTextIds.Suppress())
+                using (_erasedSourceHandles.Suppress())
+                {
+                    var gripClaimedIds = RoofOrdinaryGripLifecycleService.Process(
+                        _document, _ordinaryGripSnapshot, globalCommandName, ids);
+                    ids = ids.Where(id => !gripClaimedIds.Contains(id)).ToArray();
+                    appendedTimberIds = appendedTimberIds.Where(id => !gripClaimedIds.Contains(id)).ToArray();
+                    modifiedFramedLabelIds = modifiedFramedLabelIds
+                        .Where(id => !gripClaimedIds.Contains(id)).ToArray();
+                    // ROTATE's historical full-drawing fallback must not revisit a
+                    // terminal Ordinary package (especially an exact NO rollback).
+                    if (RoofGeneratedMemberEditCommandRules.IsRotateCommand(globalCommandName) && gripClaimedIds.Count > 0)
+                        refreshAllTimberAnnotations = false;
+                }
+            }
+            if (RoofGeneratedMemberEditCommandRules.IsMoveCommand(globalCommandName))
+            {
+                using (_modifiedIds.Suppress())
+                using (_appendedTimberIds.Suppress())
+                using (_modifiedFramedLabelIds.Suppress())
+                {
+                    var logicalMoveClaimedIds = RoofOrdinaryLogicalMoveService.Process(
+                        _document, _ordinaryMoveSnapshot, globalCommandName, ids);
+                    ids = ids.Where(id => !logicalMoveClaimedIds.Contains(id)).ToArray();
+                    modifiedFramedLabelIds = modifiedFramedLabelIds
+                        .Where(id => !logicalMoveClaimedIds.Contains(id)).ToArray();
+                }
+            }
             IReadOnlyCollection<ObjectId> roofRelatedIds;
             using (_modifiedIds.Suppress())
             using (_appendedTimberIds.Suppress())
@@ -976,6 +1249,9 @@ internal static class LiveGeometrySynchronizationService
                 }
                 if (nativeCopy || nativeMirror)
                 {
+#if DEBUG
+                    if (nativeCopy) TraceCopyFinal(_nativeRoofClones);
+#endif
                     RoofGeneratedCopyPreCommandSnapshotService.Clear();
                     _nativeRoofClones.Clear();
                     using (_document.LockDocument())
@@ -1147,6 +1423,26 @@ internal static class LiveGeometrySynchronizationService
                             sourceHandles.Contains(sourceHandle)).ToArray();
                         EraseAppendedAnnotationCopies(transaction, copiedAnnotations, Array.Empty<ObjectId>(), Array.Empty<ObjectId>());
                         var copyCandidates = ownedNativeAdded.ToArray();
+                        // Native COPY can carry a cursor Z displacement into a Plan
+                        // Line. Accept its XY placement in the source working plane
+                        // before capturing relatives/reference or building Physical3D.
+                        foreach (var pair in ordinaryPlans)
+                        {
+                            if (pair.Value.Retain) continue;
+                            if (!sourcesByClone.TryGetValue(pair.Key, out var sourceId) ||
+                                !snapshot.Members.TryGetValue(sourceId, out var source) ||
+                                transaction.GetObject(pair.Key, OpenMode.ForRead) is not Line clone)
+                                throw new InvalidOperationException("Ordinary COPY source geometry is unavailable.");
+                            if (!RoofOrdinaryCopyPlanRules.TryAccept(
+                                    source.Binding.Geometry,
+                                    new(new RoofPoint3D(clone.StartPoint.X, clone.StartPoint.Y, clone.StartPoint.Z),
+                                        new RoofPoint3D(clone.EndPoint.X, clone.EndPoint.Y, clone.EndPoint.Z)),
+                                    out var acceptedPlan))
+                                throw new InvalidOperationException("Ordinary COPY is not a rigid Plan translation.");
+                            clone.UpgradeOpen();
+                            clone.StartPoint = new Point3d(acceptedPlan.Start.X, acceptedPlan.Start.Y, acceptedPlan.Start.Z);
+                            clone.EndPoint = new Point3d(acceptedPlan.End.X, acceptedPlan.End.Y, acceptedPlan.End.Z);
+                        }
                         RoofAttachedManualCopyCloneReinitializeService.Process(_document, command, copyCandidates, propagateFailure: true);
                         RoofGeneratedRafterCopyOwnershipRehydrationService.Process(_document, command, copyCandidates, propagateFailure: true);
                         // Reuse the existing copy-preserving numbering/annotation refresh
@@ -1265,6 +1561,14 @@ internal static class LiveGeometrySynchronizationService
                 }
                 catch (System.Exception ex)
                 {
+#if DEBUG
+                    if (copy)
+                    {
+                        _copyRecoveryOwners.UnionWith(affectedOwners);
+                        AcKrovyDiagnostics.Info("ROOF_COPY_RECOVERY",
+                            $"command={command} owners={string.Join(",", affectedOwners)} reason={ex.Message}");
+                    }
+#endif
                     // The failed outer transaction is disposed before this fresh recovery.
                     RecoverNativeMemberFailure(snapshot, nativeAdded, ownedNativeAdded, affectedOwners, command, ex);
                 }
@@ -1274,6 +1578,49 @@ internal static class LiveGeometrySynchronizationService
                 handledIds?.UnionWith(claimedModifiedIds);
             }
         }
+
+#if DEBUG
+        private void TraceCopyFinal(RoofNativeCloneSnapshot snapshot)
+        {
+            using var transaction = _document.Database.TransactionManager.StartTransaction();
+            foreach (var pair in snapshot.GetMemberSourcesByClone())
+            {
+                if (!snapshot.IsMemberCloneConsumed(pair.Key) ||
+                    RoofGeneratedCopyPreCommandSnapshotService.IsConsumedWholeRoofClone(pair.Key.Handle.ToString()) ||
+                    !snapshot.Members.TryGetValue(pair.Value, out var source) ||
+                    (source.Generated?.MemberKind != RoofGeneratedTimberKind.Rafter &&
+                     source.Attached?.AnchorGeneratedMemberKey?.MemberKind != RoofGeneratedTimberKind.Rafter)) continue;
+                var reference = source.Generated?.RoofOwnerReference ?? source.Attached!.RoofOwnerReference;
+                var survived = AutoCadObjectIdAccess.TryGetObject<Line>(transaction, pair.Key, OpenMode.ForRead,
+                    out var clone, _document.Database) && clone is not null && !clone.IsErased;
+                var data = survived ? RoofAttachedManualTimberStore.Read(clone!).Data : null;
+                if (survived && RoofIndependentOrdinaryTimberStore.Read(clone!) is not null) continue;
+                var physicalKey = data is null ? "-" : RoofAttachedManualIdentityRules.PhysicalKey(data);
+                var bodies = RoofPhysical3DGeneratedStore.FindByOwner(_document.Database, transaction, reference)
+                    .Select(id => RoofPhysical3DGeneratedStore.Read((Entity)transaction.GetObject(id, OpenMode.ForRead)).Data)
+                    .Where(item => item?.Role == RoofPhysical3DGeneratedRole.OrdinaryRafterSolid).ToArray();
+                var physicalCount = bodies.Count(item => item!.StructuralId == physicalKey);
+                var ownerAvailable = TryOpenNativeMemberOwner(transaction, reference, snapshot, out var owner) && owner is not null;
+                var expectedCount = ownerAvailable && RoofPhysicalElevationStore.Read(owner!).Data?.Physical3DEnabled == true ? 1 : 0;
+                var recoveryClaimed = _copyRecoveryOwners.Contains(reference);
+                var ok = survived && data is not null && ownerAvailable && !recoveryClaimed &&
+                    data.SemanticIdentity != source.Attached?.SemanticIdentity &&
+                    data.AnchorGeneratedMemberKey == (source.Generated is { } generated
+                        ? RoofGeneratedMemberKey.From(generated) : source.Attached?.AnchorGeneratedMemberKey) &&
+                    RoofGeneratedTimberStore.Read(clone!).Data is null &&
+                    Math.Abs(clone!.StartPoint.Z) <= RoofGeneratedMemberOverrideMath.LengthToleranceMm &&
+                    Math.Abs(clone.EndPoint.Z) <= RoofGeneratedMemberOverrideMath.LengthToleranceMm &&
+                    physicalCount == expectedCount &&
+                    bodies.Select(item => item!.StructuralId).Distinct(StringComparer.Ordinal).Count() == bodies.Length &&
+                    RoofLiveResizeService.TryVerifyStretchPhysicalState(_document.Database, transaction, owner!.ObjectId);
+                var line = $"ROOF_COPY_FINAL source={pair.Value.Handle} clone={pair.Key.Handle}" +
+                    $" identity={data?.SemanticIdentity ?? "-"} planSurvived={survived}" +
+                    $" physicalCount={physicalCount} recoveryClaimed={recoveryClaimed} result={(ok ? "ok" : "fail")}";
+                AcKrovyDiagnostics.Info("ROOF_COPY_FINAL", line);
+                _document.Editor.WriteMessage("\n" + line);
+            }
+        }
+#endif
 
         private bool TryOpenNativeMemberOwner(Transaction transaction, string reference,
             RoofNativeCloneSnapshot snapshot, out Polyline? owner)
@@ -1333,6 +1680,16 @@ internal static class LiveGeometrySynchronizationService
             foreach (var reference in owners)
             {
                 if (!TryOpenNativeMemberOwner(transaction, reference, snapshot, out var owner) || owner is null) continue;
+                if (RoofCommandLifecycleTerminalState.IsHandled(owner.ObjectId))
+                {
+#if DEBUG
+                    _document.Editor.WriteMessage(
+                        $"\nROOF_ORDINARY_RECOVERY_SKIP owner={owner.Handle} " +
+                        $"command={command ?? "-"} reason=already-terminally-handled " +
+                        "skip=ordinary-recovery,derived-solid-recovery,physical-reconcile");
+#endif
+                    continue;
+                }
                 if (RoofUnsupportedStretchRecoveryService.TryRecoverGeneratedMembersOnly(_document.Database, transaction,
                         owner.ObjectId, _document.Editor) != RoofUnsupportedStretchRecoveryOutcome.Recovered)
                     throw new InvalidOperationException("Native member snapshot recovery failed.", failure);

@@ -37,6 +37,10 @@
       <HintPath>$(AutoCadInstallDir)\AcDbMgd.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <Reference Include="AcDbMgdBrep">
+      <HintPath>$(AutoCadInstallDir)\acdbmgdbrep.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference Include="AcMgd">
       <HintPath>$(AutoCadInstallDir)\AcMgd.dll</HintPath>
       <Private>false</Private>
@@ -58,6 +62,7 @@
     <Resource Include="UI\Assets\Schematics\*.png" />
     <Resource Include="UI\Assets\wood-oak-bg.png" />
     <Resource Include="UI\Assets\RoofPurlins\Tooltips\*.png" />
+    <Resource Include="UI\Assets\Elevation\**\*.png" />
   </ItemGroup>
 
   <Target Name="ValidateAutoCadReferences" BeforeTargets="ResolveReferences">

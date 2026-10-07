@@ -26,6 +26,7 @@ public static class SettingsFashionLookRules
         SettingsWindowTabKind.Manufacturing,
         SettingsWindowTabKind.Annotation,
         SettingsWindowTabKind.Language,
+        SettingsWindowTabKind.Warnings,
     ];
 
     public static SettingsWindowTabKind NormalizeSection(SettingsWindowTabKind value) =>

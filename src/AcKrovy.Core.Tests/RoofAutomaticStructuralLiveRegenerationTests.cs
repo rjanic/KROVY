@@ -120,7 +120,7 @@ public sealed class RoofAutomaticStructuralLiveRegenerationTests
             "private static ResizeApplyResult TryApplyResize",
             "private static IReadOnlyCollection<ObjectId> TryAcceptRigidGroupTransforms"));
         Assert.Equal(7, TimberElementDataSchema.CurrentVersion);
-        Assert.Equal(5, RoofDefinitionDataSchema.CurrentVersion);
+        Assert.Equal(6, RoofDefinitionDataSchema.CurrentVersion);
         Assert.Equal(1, RoofStructuralGeneratedDataSchema.CurrentVersion);
         Assert.Equal(1, RoofBoundaryIdentitySchema.CurrentVersion);
         Assert.Contains("<AcKrovyVersion>0.23.0</AcKrovyVersion>", File.ReadAllText(

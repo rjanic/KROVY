@@ -78,8 +78,12 @@ public sealed class RoofGeneratedMemberScaleRecoveryTests
         Assert.Contains("WriteUnlockedReject", unsupported);
         Assert.Contains("unsupported-scale", unsupported);
         Assert.DoesNotContain("TryAcceptUnlockedEdits", unsupported);
-        Assert.DoesNotContain("RoofDefinitionStore.Write", unsupported + Recovery);
-        Assert.DoesNotContain("ManualOverrides", unsupported + Recovery);
+        var generatedOnly = RoofUxSourceContractText.Member(
+            Recovery,
+            "public static RoofUnsupportedStretchRecoveryOutcome TryRecoverGeneratedMembersOnly",
+            "public static bool TryNormalizeRigidTranslation");
+        Assert.DoesNotContain("RoofDefinitionStore.Write", unsupported + generatedOnly);
+        Assert.DoesNotContain("ManualOverrides", unsupported + generatedOnly);
     }
 
     [Fact]

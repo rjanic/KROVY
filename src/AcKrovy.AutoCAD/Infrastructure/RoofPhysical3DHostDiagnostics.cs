@@ -393,7 +393,7 @@ internal static class RoofPhysical3DHostDiagnostics
         // Narrow DEBUG evidence for this milestone is automatic, so the HOST request
         // needs no trace-toggle setup. These observations never route production edits.
         private bool ObserveMemberCheckpoint => _command is "BREAK" or "COPY" or "MIRROR" or "BREAKATPOINT" ||
-            (_command is "MOVE" or "TRIM" or "EXTEND" or "ERASE" or "STRETCH" or "GRIP_STRETCH");
+            (_command is "MOVE" or "TRIM" or "EXTEND" or "ERASE" or "STRETCH" or "GRIP_STRETCH" or "LENGTHEN") || _command == "JOIN";
         private Dictionary<string, (string Owner, Point3d Center, double Volume)> _moveSolids =
             new(StringComparer.OrdinalIgnoreCase);
         private bool Observe => Enabled && (_command is "COPY" or "MIRROR" or "ERASE" or
@@ -512,6 +512,9 @@ internal static class RoofPhysical3DHostDiagnostics
             if (!Observe && !ObserveMemberCheckpoint) return;
             _nativeEventCount++;
             _nativeEventKinds[kind] = _nativeEventKinds.GetValueOrDefault(kind) + 1;
+            if (_command == "JOIN" && entity is Entity joinEntity && joinEntity is Curve)
+                Write(Document, $"JOIN_NATIVE_EVENT command=JOIN seq={_nativeEventCount} kind={kind} handle={joinEntity.Handle}" +
+                    $" type={joinEntity.GetType().Name} geometry={Geometry(joinEntity)}");
             if (entity is Entity owned)
             {
                 try
@@ -523,7 +526,12 @@ internal static class RoofPhysical3DHostDiagnostics
                         RoofDisplayStore.Read(owned).OwnerReference;
                     if (reference is not null) KnownOwners.Add(reference);
                     if (owned is Polyline && RoofDefinitionStore.Read(owned).Data is not null)
+                    {
                         KnownOwners.Add(owned.Handle.ToString());
+                        if (LiveGeometryCommandRules.IsGripStretchCommand(_command))
+                            Write(Document, $"ROOF_GRIP_NATIVE_SOURCE command={_command} seq={_nativeEventCount}" +
+                                $" kind={kind} owner={owned.Handle} geometry={Geometry(owned)}");
+                    }
                 }
                 catch (System.Exception ex)
                 {

@@ -2,5 +2,5 @@ namespace AcKrovy.Core.Models.Roofs;
 
 public static class RoofAttachedManualTimberDataSchema
 {
-    public const int CurrentVersion = 4;
+    public const int CurrentVersion = 5;
 }

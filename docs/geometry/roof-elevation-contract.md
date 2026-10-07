@@ -1,6 +1,6 @@
 # Geometrický slovník KROVY
 
-**Verzia:** 1.1
+**Verzia:** 1.3
 **Jazyk:** slovenčina (s anglickými / kódovými termínmi)  
 **Status:** NORMATÍVNY kontrakt pre 2D modul automatických väzníc a schválený 2D/3D kontrakt obyčajných automatických krokiev
 **Jediný zdroj pravdy (SSOT):** tento súbor
@@ -414,9 +414,160 @@ dve nezávislé CAD reprezentácie:
 - `3D representation` — fyzické jednoduché hranolové teleso.
 
 2D reprezentácia sa nesmie vytvárať presunom 3D telesa na `Z=0` a 3D reprezentácia sa
-nesmie vytvárať transformáciou 2D čiary. 2D nesmie spätne generovať 3D a 3D nesmie
-spätne generovať 2D. Obe reprezentácie zdieľajú minimálne vlastníka strechy, identitu
-člena, rolu, šírku, výšku, sklon, fyzickú dĺžku a logickú/referenčnú geometriu.
+nesmie vytvárať transformáciou samotnej 2D čiary. Priama geometria CAD reprezentácie
+nesmie spätne generovať druhú reprezentáciu. Prijatá používateľská úprava Plan2D však
+aktualizuje spoločný logický stav člena, z ktorého úplný fyzický builder odvodzuje 3D
+podľa H1.0. Obe reprezentácie zdieľajú minimálne vlastníka strechy, identitu člena,
+rolu, šírku, výšku, sklon, fyzickú dĺžku a logickú/referenčnú geometriu.
+
+### H1.0 Autorita používateľskej úpravy obyčajnej krokvy
+
+`GeometryAuthority` určuje vlastníka logickej geometrie: `Roof` pre automatickú
+`RoofOwned` krokvu a `Member` po odpojení na `Independent`. Odlišná veličina
+`UserGeometryEditAuthority` je v **oboch** stavoch `Plan2D`. Používateľ mení
+geometriu obyčajnej krokvy pôdorysnou `Line`; pri prvom povolenom zásahu do
+`RoofOwned` člena nasleduje potvrdenie odpojenia, pri `Independent` nie.
+
+Prijatá pôdorysná úprava mení **logický geometrický stav člena**. Autoritatívny
+Physical3D builder používa tento stav spolu so strešnou alebo member rovinou,
+prierezom W/H, orientáciou/frame, rezmi pri okape a hrebeni, Hip/Valley rezmi
+a ďalšími fyzickými pravidlami. Samotná pôdorysná čiara nestačí na vytvorenie
+`Solid3d`; zákaz generovať jednu CAD reprezentáciu transformáciou druhej platí.
+Pri čisto rigidnom `MOVE` sa už vypočítaný úplný fyzický tvar môže bezstratovo
+preniesť o prijatý pôdorysný posun; nemení to jeho prierez, frame ani rezy.
+
+**Schválené rozlíšenie identity a označenia (2026-10-05):**
+`IndependentMemberId` je stabilná technická identita odpojeného člena.
+`ElementId` (`K1`, `K2`, ...) je výrobné označenie podľa aktuálnej signatúry
+`TimberElementSignature` (typ, materiál, W/H, zaokrúhlená rezná dĺžka).
+Po prijatej geometrickej úprave, vrátane AUTO → Independent, sa dokončí Plan2D,
+prebuduje Physical3D a následne sa označenie zosúladí s aktuálnymi výrobnými
+skupinami. Zhodná signatúra preberá existujúce označenie; nová dostáva nové
+označenie podľa bežných pravidiel číselnej série. Nezmenená signatúra a rigidný
+MOVE zachovajú označenie. Nezmenené susedné skupiny sa nekompaktujú.
+Pôvodný AUTO slot ani strešná proveniencia nerezervujú označenie Independent
+člena. Rovnaké označenie nesmie zastupovať rozdielne výrobné signatúry.
+Anotácie, výkaz a AK_INSPECT čítajú konečné označenie z aktuálnych metadát.
+NO/rollback obnoví pôvodné označenie presne; žiadny prepočet z NO vetvy
+nepretrvá. Toto rozhodnutie nahrádza pôvodné pravidlo „detach vždy zachová
+ElementId“; technická identita, vlastníctvo, GROUP a fyzický frame sa nemenia.
+
+**Schválený Ordinary BREAK kontrakt (2026-10-05):** Konečné native Plan2D
+čiary určujú výsledok. Dve výsledné `Line` entity znamenajú dva samostatné
+výrobné kusy aj pri nulovej medzere a spoločnom bode; nejde o notch v jednom
+telese. AUTO po prijatí vytvorí dve rôzne `IndependentMemberId`, Independent
+ponechá identitu na retained čiare a appended kus dostane novú. Každý kus má
+vlastné Physical3D, anotácie a označenie podľa aktuálnej signatúry a celý jeho
+balík zostáva mimo roof GROUP. NO obnoví presný pôvodný balík a odstráni
+native appended fragmenty bez vytvorenia Independent identity. Geometria sa
+neprepočítava z používateľom zvolených bodov.
+
+**Schválený Ordinary COPY kontrakt (2026-10-05):** COPY nemení zdroj a nežiada
+potvrdenie odpojenia. Každá native kópia Plan2D vytvorí nový Independent člen
+s novým `IndependentMemberId`; AUTO zdroj zostáva AUTO a Independent zdroj si
+ponechá identitu. Native XY umiestnenie sa zachová, oba Z konce sa normalizujú
+na nulu. Člen používa vlastný prenesený úplný fyzický kontext, vodorovnú W os,
+nahor orientovanú H os, vlastné Physical3D/anotácie a výrobné označenie podľa
+aktuálnej signatúry (pri čistej kópii spravidla rovnaké ako zdroj). Celý balík
+je mimo roof GROUP. Súčasná kópia 2D a 3D predstavuje jeden nový člen;
+samotná kópia odvodeného 3D sa odmietne bez novej identity. Strešná proveniencia
+je iba história a neovláda budúcu geometriu. Whole-roof/owner COPY zachováva
+existujúci roof rebind lifecycle. Ordinary COPY nevytvára AttachedManual.
+
+**Schválený Ordinary MIRROR kontrakt (2026-10-05):** MIRROR používa rovnaký
+Independent balík ako COPY, bez nového AttachedManual. AUTO MIRROR vyžaduje
+jedno spoločné potvrdenie odpojenia za operáciu, aj pri erase-source=YES.
+Áno pokračuje existujúcim lifecycle; Nie atomicky obnoví celý predpríkazový
+balík, strešnú definíciu a GROUP a odstráni všetky native klony bez rebuildu,
+prečíslovania, novej identity či suppression. Independent MIRROR nemá detach dialóg.
+Spoločná aplikačná voľba `ConfirmAutomaticMemberDetach` (default ON) riadi
+potvrdenia všetkých podporovaných Ordinary úprav; OFF znamená automatické Áno.
+Voľba `WarnDerived3DEdit` (default ON) riadi iba upozornenie, nikdy povolenie
+priamej úpravy odvodeného Physical3D. Obe voľby sa ukladajú v existujúcich
+UI nastaveniach; obnovenie upozornení zapne obe. „Nabudúce nezobrazovať“ pri
+detach sa uloží iba po Áno, nikdy po Nie.
+Pri erase-source=NO zdroj zostáva presne nezmenený; výsledok má nový
+`IndependentMemberId`, native zrkadlené XY a oba Z konce nula. Zrkadlí sa celý
+vlastný fyzický kontext vrátane member roviny a rezov; Physical3D sa prebuduje
+z výslednej Plan2D s vodorovnou W osou, nahor smerujúcou H a pravotočivým
+rámom. Smer čiary aj roly jej koncov sa určia z konečnej geometrie, nie zo
+zdedeného smeru zdroja. Balík má vlastné anotácie a výrobné označenie podľa
+aktuálnej signatúry, zostáva mimo roof GROUP. Súčasný 2D+3D výber vytvorí
+jeden logický výsledok; samotné native 3D zrkadlenie sa odmietne/obnoví.
+Pri erase-source=YES ide o atomickú náhradu aj pri HOST in-place transformácii:
+pôvodný balík sa odstráni a výsledok dostane novú Independent identitu.
+AUTO slot sa nepersistuje ako vylúčený; pri explicitnom rebuild sa vytvorí znovu
+z aktuálnej definície. Proveniencia `MirroredFromAuto` alebo
+`MirroredFromIndependent` je iba história. Whole-roof/owner MIRROR zachováva
+existujúci roof lifecycle. Nejednoznačná reflexia sa nesmie nahradiť odhadom
+roof plane alebo nesprávnym prehodením okapového/hrebeňového rezu.
+
+**Rebuild / ERASE kontrakt (2026-10-05, nahrádza skoršie suppression pravidlo):**
+explicitný `AK_ROOF_EDIT Apply` a autoritatívna regenerácia vytvoria kompletnú
+aktuálnu AUTO sadu. Normálne ERASE ani detach/MIRROR nezapisujú `Suppressed=true`
+ani persistentné vylúčenie. ERASE Plan2D odstráni aktuálny Line/Physical3D/anotačný
+balík bez detach; Line má prednosť pri zmiešanom výbere. Príkazová ochrana zabráni
+okamžitej obnove v tej istej operácii a zanikne na hranici príkazu. Independent
+ERASE natrvalo odstráni vlastný balík; rebuild ho neobnoví a živé Independent
+členy nemení ani nepreberá. Samotné otvorenie DWG nie je rebuild. Legacy
+suppression zostáva čitateľný, explicitná regenerácia ho nepoužíva ako vylúčenie
+Ordinary slotu. Recept AUTO generátora sa uchová v existujúcej strešnej definícii
+(schema 6, backward read 1–5), aby bol rebuild možný aj po odstránení všetkých
+AUTO inštancií; neuchováva zmazané geometrie ani identitu Independent.
+
+**AK_ROOF_EDIT preview (2026-10-05):** náhľad Ordinary AUTO ukazuje výsledok
+generátora z aktuálnej draft geometrie, strešnej definície, uloženého
+`OrdinaryRafterRecipe` a aktuálnych spacing/minimum-length pravidiel. Nekopíruje
+živý inventár Generated entít: vymazaná AUTO stanica je v náhľade znovu prítomná,
+rovnako aj pri prázdnej živej AUTO sade. Preview a Apply zdieľajú výpočet layoutu
+a rovnaký pripravený replay plán. Independent nie je vstupom AUTO plánu.
+Preview je read-only transient, nemení DWG ani suppression; legacy bez receptu
+môže zo živej AUTO sady obnoviť iba hodnoty receptu, nikdy členstvo staníc.
+
+**Schválené rozlíšenie prierezu (2026-10-05):** `RoofOwned` / AUTO Ordinary
+ďalej používa strešný frame. Pri prijatom endpoint `GRIP_STRETCH`, ktorý mení
+pozdĺžny smer a odpája AUTO na `Independent`, má vlastný prierez člena
+**vodorovnú šírkovú os `W.Z = 0`**. Rovnaké pravidlo platí pri ďalších smerových
+GRIP úpravách Independent člena. Nová os `L1` sa vyrieši z konečnej Plan2D
+geometrie a referenčnej strešnej/member roviny. Prierez sa konštruuje geometricky:
+
+```text
+L = normalized physical longitudinal direction
+W = normalized cross(WorldZ, L)
+H = normalized cross(L, W), H.Z > 0
+```
+
+Výška smeruje nahor; rám je pravotočivý, prierez kolmý na L a šírka vodorovná.
+Zvislá os nemá jednoznačnú world-up šírku a je neplatná pre tento pôdorysný
+kontrakt. Dĺžková úprava bez zmeny smeru a čisto rigidná translácia zachovajú
+existujúci fyzický prierez; samotná translácia nepridáva novú orientáciu.
+Predchádzajúci fyzický frame sa číta z telesa pred editom a uchováva ako členský
+geometrický stav. Nové pravidlo nie je odvodené od nahromadených Euler rotácií.
+
+Toto explicitné používateľské rozhodnutie nahrádza pôvodný návrh minimálneho
+3D transportu: pre kanonický člen, ktorého L0/L1 sú v jednej roof plane a H0
+je jej normála, by minimum transport vrátil práve nechcený roof-normal frame.
+
+Strešná referencia Independent člena určuje pozdĺžny referenčný smer a eleváciu,
+**nevnucuje** `H1 = roofNormal`. Horná plocha Independent po yaw preto nemusí
+byť rovnobežná so strešnou rovinou; strešná rovina naďalej obsahuje zdvihnutú
+hornú pozdĺžnu referenčnú os, nie nutne celú hornú plochu. Toto je explicitná
+výnimka z roof-owned pravidla H1.2/H1.6. Prierezové rozmery W/H a pravotočivosť
+sa zachovajú. Rezy používajú vlastný fyzický prierez; lifecycle odpojenia,
+identity, GROUP a rollback zostáva nezmenený.
+
+`extraTwistAroundNewAxisDegrees` porovnáva finálny fyzický prierez s minimálnym
+prenosom **predchádzajúceho fyzického frame**, ale je iba informatívny a pri
+prijatých yaw zmenách môže byť nenulový. PASS overuje `W.Z = 0`, `H.Z > 0`,
+prierez W/H, správnu projekciu osi a pravotočivosť. `rollErrorDegrees` porovnáva
+skutočný BRep prierez so schváleným world-up prierezom, nie s roofNormal.
+Zhoda výškovej osi s roofNormal nie je jeho PASS oracle.
+
+Priama geometrická úprava `Ordinary Solid3d` nikdy nemení `Plan2D`, nevyvoláva
+odpojenie a nemení `GeometryAuthority`. Natívny zásah do 3D sa odmietne a
+odvodený fyzický stav sa obnoví. Pri súčasnom natívnom `MOVE` čiary aj telesa
+rozhoduje zmenená `Plan2D`; natívny posun telesa sa zosúladí s jej prijatým
+výsledkom iba raz. Pôdorysná čiara zostáva v `Z=0`.
 
 ### H1.1 Nezmeniteľné 2D invarianty
 
@@ -442,7 +593,8 @@ top face of 3D rafter = roof plane
 3D eave top edge = roof eave boundary
 ```
 
-Horná plocha krokvy patrí strešnej rovine; strednica krokvy ju nenahrádza. Pri okape
+Pre `RoofOwned` / AUTO patrí horná plocha krokvy strešnej rovine; strednica krokvy
+ju nenahrádza. Výnimka pre vlastný frame Independent je definovaná v H1.0. Pri okape
 končí horná hrana 3D telesa presne na hrane okapu. Od tohto horného referenčného bodu
 sa konštruuje fyzické čelo podľa `LowerEndCutMode`. Jednoduché hranoly sa môžu
 geometricky prekrývať; pri okape a hrebeni sa v tejto etape nepoužíva zapustenie,
@@ -522,7 +674,7 @@ invarianty:
 1. 2D os má vždy `Z = 0`.
 2. Koniec 2D osi pri okape je hranica strešnej roviny / okapu.
 3. Koniec osi nie je definovaný fyzickým koncom 3D telesa.
-4. Horná plocha 3D krokvy patrí strešnej rovine.
+4. Horná plocha roof-owned 3D krokvy patrí strešnej rovine; Independent zachováva vlastný frame podľa H1.0.
 5. Horná hrana 3D krokvy pri okape končí na hrane okapu.
 6. `LowerEndCutMode` nemení 2D geometriu.
 7. `RidgeJoinMode` nemení 2D geometriu.
@@ -798,3 +950,70 @@ automatické krokvy normatívna a nie je týmto otvoreným rozsahom zrušená.
 ---
 
 *Koniec Geometrického slovníka KROVY v1.0*
+
+
+---
+
+## L. Structural Member Elevation Contract v1
+
+**Status:** NORMATÍVNY kontrakt pre výškové osadenie konštrukčných prvkov (v1: obyčajné krokvy)
+**Rozsah:** Zdieľaný Core model výšok, persistencia, UI a 3D rebuild logika pre Ordinary krokvy.
+
+### L1. Geometrický model a Plan2D invariant
+
+- **Plan2D Invariant:** Pôdorysná os (Line) obyčajnej krokvy zostáva v **Z=0**.
+- **Kanonická reprezentácia:** Výškové osadenie je definované dvoma hodnotami **stredovej osi (OS)** na koncoch pôdorysnej úsečky: AxisStartElevationMm (pri Line.StartPoint) a AxisEndElevationMm (pri Line.EndPoint).
+- **Odvodený sklon (Slope):** Sklon nie je samostatná nezávislá veličina. Vždy sa odvodzuje z delta-Z koncových bodov a pôdorysnej dĺžky: slope = atan((endZ - startZ) / planLength).
+- **KROVY 2.5D Foundation:** Tento model tvorí základ pre 2.5D inšpekciu, výkazy a budúci priestorový JOIN.
+
+### L2. Referenčné roviny (SH / OS / VH)
+
+Výškové osadenie v UI umožňuje prepínanie zobrazenia voči trom referenčným rovinám prvku:
+- **SH (Spodná hrana):** spodná plocha prvku.
+- **OS (Os):** geometrická strednica (centerline). Kanonický údaj modelu.
+- **VH (Vrchná hrana):** horná plocha prvku. Pri AUTO krokve VH = strešná rovina.
+
+**Pravidlá prepínania:**
+- Zmena referenčnej roviny (napr. z OS na VH) je **iba prezentačná zmena**.
+- Samotné prepnutie referencie **nikdy nepohne fyzickou geometriou** a pri AUTO krokve **nevyvoláva odpojenie (detach)**.
+- Konverzia medzi OS a plochami (SH/VH) používa Z-zložku výškovej osi prierezu (HeightAxisZ = cos(pitch)), aby bol výsledok geometricky presný aj pri sklone.
+
+### L3. Výpočtové režimy (Calculation Modes)
+
+UI podporuje tri režimy zadávania, ktoré vždy aktualizujú kanonické OS konce:
+1. **Z dolný + Z horný (Lower + Upper):** Zadanie oboch koncových výšok; sklon sa dopočíta.
+2. **Z dolný + Sklon (Lower + Slope):** Zadanie spodného konca a sklonu; horný koniec sa dopočíta.
+3. **Z horný + Sklon (Upper + Slope):** Zadanie horného konca a sklonu; spodný koniec sa dopočíta.
+
+*Poznámka:* „Dolný“ a „horný“ bod sa určuje podľa relatívnej výšky Z, nie podľa indexu bodu v Line.
+
+### L4. Lifecycle a odpojenie (AUTO Detach)
+
+- **AUTO (Roof-Owned):**
+  - Zmeny výšok, ktoré menia fyzickú polohu (delta-Z), vyžadujú odpojenie od automatického generátora.
+  - Používa sa existujúci lifecycle: dialóg RoofIndependentOrdinaryDetachWindow → potvrdenie → transformácia na Independent.
+  - Display-only zmeny (zmena referencie SH/OS/VH) nevyvolávajú detach.
+- **Independent:**
+  - Úpravy výšok prebiehajú priamo na člene.
+  - Stabilná technická identita IndependentMemberId sa pri zmene výšok **zachováva**.
+- **Legacy Resolution:** Ak člen (AUTO/Independent) nemá uložený nový výškový XRecord, jeho stav sa pri načítaní odvodí z existujúceho RoofOrdinaryPhysicalBuildState v2 (EaveElevationMm + PitchDegrees).
+
+### L5. Fyzický 3D Rebuild
+
+Zmena výškového osadenia iniciuje prebudovanie Solid3d cez existujúci Physical3D builder:
+1. Pôvodný RoofOrdinaryPhysicalBuildState v2 sa opatchuje novými hodnotami EaveElevationMm, PitchDegrees a novým SectionFrame (vypočítaný zo sklonu).
+2. Builder vygeneruje nové teleso, ktoré nahradí pôvodné.
+3. Pri AUTO krokve zostáva v platnosti pravidlo VH = roof-plane.
+
+### L6. Priestorový resolver (Spatial Axis Resolver)
+
+StructuralMemberSpatialAxisRules poskytuje 3D reprezentáciu stredovej osi (SpatialAxis) pre potreby iných modulov.
+
+**Budúci JOIN requirement:**
+Pre úspešné spojenie (JOIN) dvoch prvkov v 2.5D/3D priestore nebude stačiť pôdorysná kolinearita XY osí. Musia byť splnené aj priestorové podmienky:
+- Zhodný sklon (Slope) oboch prvkov.
+- Kontinuita Z-výšok v bode spojenia (nulový odskok Z).
+
+### L7. Budúci vývoj (UniformElevation)
+
+Model je pripravený na vodorovné prvky (UniformElevation), kde je sklon vynútene nulový a oba koncové body majú identickú výšku.

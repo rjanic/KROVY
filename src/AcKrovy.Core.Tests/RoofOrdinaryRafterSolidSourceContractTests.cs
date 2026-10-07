@@ -94,7 +94,8 @@ public sealed class RoofOrdinaryRafterSolidSourceContractTests
         Assert.Contains("item.TimberData.WidthMm", ordinary);
         Assert.Contains("structuralCut.PlanePoint", ordinary);
         Assert.Contains("structuralCut.PlaneNormal", ordinary);
-        Assert.Equal(3, ordinary.Split("solid.Slice(plane, false)").Length - 1);
+        Assert.Equal(4, ordinary.Split("solid.Slice(plane, false)").Length - 1);
+        Assert.Contains("ridgeMeetCut.RetainedNormal", ordinary);
         Assert.Contains("ridgeOverlapCut.RetainedNormal", ordinary);
         Assert.Contains("ridgeOverlapCut?.SourcePrismVertices", ordinary);
         Assert.Equal(2, ordinary.Split("modelSpace.AppendEntity(solid)").Length - 1);
@@ -129,7 +130,7 @@ public sealed class RoofOrdinaryRafterSolidSourceContractTests
         var ordinary = Read("RoofOrdinaryRafterSolidMaterializationService.cs");
         var edit = Read("RoofGeneratedMemberManualEditService.cs");
         Assert.Contains("newlySuppressedKeys.Add(key)", edit);
-        Assert.Contains("RoofGeneratedMemberOverride.Suppress(key, elementId)", edit);
+        Assert.DoesNotContain("RoofGeneratedMemberOverride.Suppress(key, elementId)", edit);
         Assert.Contains("TryRemoveSuppressedMembersInTransaction(", edit);
         Assert.Contains("ordinaryPhysicalSuppressed", edit);
         Assert.Contains("suppressedKeys.Select(PhysicalMemberId)", ordinary);

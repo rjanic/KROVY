@@ -401,6 +401,7 @@ Typy podľa PDF:
 - Stanová/Pyramídová preto nebude samostatný sémantický roof type, Ribbon položka,
   command, ikona ani persistence schema; v menu zostáva iba Valbová,
 - ide o budúcu solver architektúru, nie implementáciu v Stage 6.
+- Plánovaný predpoklad: **Roof Face Identity Contract v1** (`R1`…`Rn`) — pozri §17a.
 
 ### Polovalbová
 - výber štítu,
@@ -414,6 +415,16 @@ ikonky podobné referencii v PDF.
 - stabilný `RoofPlaneId`,
 - sklon,
 - použitie ako vstup pre automatické krokvy.
+
+## 17a. Roof Face Identity Contract v1 — PLÁNOVANÉ (zatiaľ neimplementovať)
+- CAD-neutrálny kontrakt identity strešných rovín (faces), nie iba jedno `R1`.
+- Model musí byť pripravený na **viac strešných rovín** `R1`, `R2`, `R3`, `R4`, …
+  (valbová / komplexná strecha), nie na jednu globálnu rovinu.
+- Budúce využitie: topológia faces, sklony a výšky po rovinách, nárožné/úžľabné
+  väzby medzi incidentnými faces, selektívny rebuild podľa face identity.
+- Nadväzuje na BoundaryIdentity / structural identity foundation; nesmie sa zamieňať
+  s `RoofPlaneId` textovým polom prvku ani s Elevation seating v1.
+- V tomto kroku iba zaradenie do plánu — **plná funkcionalita sa zatiaľ neimplementuje**.
 
 ## 18. Rozšírené automatické kreslenie krokiev
 Tri režimy:
@@ -551,3 +562,21 @@ Priebežne pri dotyku s danou oblasťou:
 5. True-width a automatický vizuálny trim.
 6. XLSX/PDF/report linking.
 7. Internacionalizácia, distribúcia a ďalšie CAD adaptéry.
+
+
+## Structural Member Elevation v1 — CLOSED (2026-10-07 checkpoint)
+
+- **ELEVATION:** CODE PASS / HOST PASS / CLOSED
+- **JOIN:** CODE PASS / HOST OPEN
+- **ROOF FACE IDENTITY:** NOT STARTED (next architectural stage)
+- Product contract: classic plan edits (GRIP_STRETCH / STRETCH / LENGTHEN / MOVE / ROTATE) preserve accepted slope; intentional slope changes go through AK_EDIT.
+- Slope magnitude is positive; fall direction is separate. Lower/Upper are semantic roles over Endpoint A/B.
+
+## Roof Face Identity Contract v1 (roadmap only - NOT implemented)
+
+Planned future contract for stable roof-face identities R1, R2, R3, R4... so hip (and later multi-face) roofs can address faces without relying on transient topology indices.
+
+- Scope: identity + persistence naming only when scheduled; no geometry solver change in this note.
+- Related UI: AK_EDIT / elevation seating remains the single edit window for auto and non-auto members.
+- JOIN lifecycle remains CODE: PASS / HOST: OPEN (unchanged by AK_EDIT UI polish 2026-10-06).
+- Do not implement this contract from this note alone.

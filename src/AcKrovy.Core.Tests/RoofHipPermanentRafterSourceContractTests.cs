@@ -94,7 +94,7 @@ public sealed class RoofHipPermanentRafterSourceContractTests
         Assert.Contains("<AcKrovyVersion>0.23.0</AcKrovyVersion>", props);
         Assert.Contains("public const int CurrentVersion = 1", schema);
         Assert.Contains("public const int CurrentVersion = 7", timberSchema);
-        Assert.Contains("public const int CurrentVersion = 5", roofSchema);
+        Assert.Contains("public const int CurrentVersion = 6", roofSchema);
         Assert.Contains("public const int SchemaVersion = 1", spacingPayload);
         Assert.Contains("RoofRafterSettingsPayload.SchemaVersion", spacingStore);
         Assert.Contains("RafterRoofFace RoofFace", generated);

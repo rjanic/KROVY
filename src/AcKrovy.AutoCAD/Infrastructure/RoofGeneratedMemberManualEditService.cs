@@ -7,6 +7,7 @@ using AcKrovy.Core.Services.Roofs;
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.Geometry;
+using AcApp = Autodesk.AutoCAD.ApplicationServices.Application;
 
 namespace AcKrovy.AutoCAD.Infrastructure;
 
@@ -24,6 +25,10 @@ internal static class RoofGeneratedMemberManualEditService
         IReadOnlyCollection<ObjectId> appendedTimberIds,
         ISet<ObjectId>? acceptedOrdinaryStretchOwnerIds = null)
     {
+        // COPY captures an assembly snapshot for ownership, but the accepted
+        // clone is not a generated-member tamper to restore from that snapshot.
+        if (LiveGeometryCommandRules.IsSameDwgCopyOwnershipCommand(globalCommandName))
+            return GeneratedMemberEditBatchResult.None;
         var lockedAttempt = false;
         var unsupportedAttempt = false;
         var recovered = false;
@@ -37,6 +42,13 @@ internal static class RoofGeneratedMemberManualEditService
                 outcome = ProcessOwner(
                     document, globalCommandName, ownerId, modifiedIds,
                     appendedTimberIds, out ordinaryPlanChanged);
+            }
+            catch (OrdinaryMoveRollbackFailureException ex)
+            {
+                // An explicit Plan2D rejection is fail-closed. Never route a
+                // failed CANCEL through the generic semantic rebuild path.
+                outcome = RetryCancelledOrdinaryRollback(
+                    document, globalCommandName, ownerId, ex);
             }
             catch (OrdinaryPhysicalReconcileException ex)
             {
@@ -150,6 +162,33 @@ internal static class RoofGeneratedMemberManualEditService
                 transaction.Commit();
                 return OwnerEditOutcome.Skipped;
             }
+
+            if (RoofGeneratedMemberEditCommandRules.IsGripStretchCommand(globalCommandName) && !sourceModified)
+            {
+                var unclaimedOrdinary = modifiedIds.Where(id =>
+                    AutoCadObjectIdAccess.TryGetObject<Line>(transaction, id, OpenMode.ForRead,
+                        out var candidate, document.Database) && candidate is not null &&
+                    RoofGeneratedTimberStore.Read(candidate).Data is { MemberKind: RoofGeneratedTimberKind.Rafter } data &&
+                    string.Equals(data.RoofOwnerReference, owner.Handle.ToString(), StringComparison.OrdinalIgnoreCase))
+                    .ToArray();
+                if (unclaimedOrdinary.Length > 0)
+                {
+                    if (!RoofUnsupportedStretchRecoveryService.TryRestoreCancelledOrdinaryMove(
+                            document, transaction, owner.ObjectId, unclaimedOrdinary))
+                        throw new OrdinaryMoveRollbackFailureException(
+                            "Unclaimed Ordinary GRIP snapshot rollback failed.", unclaimedOrdinary);
+                    transaction.Commit();
+                    RoofCommandLifecycleTerminalState.MarkHandled(owner.ObjectId);
+                    document.Editor.WriteMessage("\nROOF_ORDINARY_GRIP_LIFECYCLE decision=NONE " +
+                        "rollback=True manualOverrideWritten=false terminalHandled=true result=uncaptured-restored");
+                    return OwnerEditOutcome.Recovered;
+                }
+            }
+
+            if (TryHandleFirstIndependentOrdinaryEdit(document, transaction, owner,
+                    stored.Data, globalCommandName, modifiedIds, appendedTimberIds,
+                    sourceModified, out var independentOutcome))
+                return independentOutcome;
 
             if (!supportedUnlocked)
             {
@@ -339,8 +378,15 @@ internal static class RoofGeneratedMemberManualEditService
                 attachedChanged.Add(RoofAttachedManualIdentityRules.PhysicalKey(data));
                 attachedChangedIds.Add(id);
             }
-            RoofAttachedManualLifecycleService.RefreshModifiedAttachedManualRelatives(
-                document, transaction, owner.Handle.ToString(), attachedChangedIds, globalCommandName);
+            try
+            {
+                RoofAttachedManualLifecycleService.RefreshModifiedAttachedManualRelatives(
+                    document, transaction, owner.Handle.ToString(), attachedChangedIds, globalCommandName);
+            }
+            catch (InvalidOperationException ex)
+            {
+                throw new OrdinaryPhysicalReconcileException("AttachedManual edit could not be accepted.", ex);
+            }
             RefreshModifiedAttachedManualNumberingAndAnnotations(document, transaction, owner, attachedChangedIds);
             if (RoofGeneratedMemberEditCommandRules.IsEraseCommand(globalCommandName) || attachedChanged.Count > 0)
             {
@@ -374,6 +420,169 @@ internal static class RoofGeneratedMemberManualEditService
                 RoofPhysicalStretchRules.ShouldRecover(globalCommandName, sourceModified);
             return OwnerEditOutcome.Accepted;
         }
+    }
+
+    private static bool TryHandleFirstIndependentOrdinaryEdit(
+        Document document, Transaction transaction, Polyline owner,
+        RoofDefinitionData definition, string? commandName,
+        IReadOnlyCollection<ObjectId> modifiedIds,
+        IReadOnlyCollection<ObjectId> appendedTimberIds,
+        bool sourceModified, out OwnerEditOutcome outcome)
+    {
+        outcome = OwnerEditOutcome.Skipped;
+        var move = RoofGeneratedMemberEditCommandRules.IsMoveCommand(commandName);
+        if (!move || appendedTimberIds.Count > 0 ||
+            !RoofUnsupportedStretchRecoverySnapshotService.TryGet(owner.ObjectId, out var snapshot))
+            return false;
+
+        var candidates = modifiedIds.Select(id =>
+            AutoCadObjectIdAccess.TryGetObject<Line>(transaction, id, OpenMode.ForRead,
+                out var line, document.Database) ? line : null)
+            .Where(line => line is not null &&
+                RoofGeneratedTimberStore.Read(line).Data is { MemberKind: RoofGeneratedTimberKind.Rafter } data &&
+                string.Equals(data.RoofOwnerReference, owner.Handle.ToString(),
+                    StringComparison.OrdinalIgnoreCase))
+            .Cast<Line>()
+            .DistinctBy(line => line.ObjectId)
+            .ToArray();
+        if (candidates.Length == 0)
+            return false;
+        var candidateIds = candidates.Select(line => line.ObjectId).ToHashSet();
+        var generatedByLine = new Dictionary<ObjectId, RoofGeneratedTimberData>();
+        foreach (var candidate in candidates)
+        {
+            if (RoofGeneratedTimberStore.Read(candidate).Data is not { } generated)
+                return false;
+            generatedByLine[candidate.ObjectId] = generated;
+        }
+        foreach (var id in modifiedIds)
+        {
+            if (candidateIds.Contains(id) ||
+                !AutoCadObjectIdAccess.TryGetObject<Entity>(transaction, id, OpenMode.ForRead,
+                    out var changed, document.Database) || changed is null) continue;
+            if (RoofGeneratedTimberStore.Read(changed).Data is not null ||
+                RoofStructuralGeneratedStore.Read(changed).Data is not null ||
+                RoofAttachedManualTimberStore.Read(changed).Data is not null ||
+                RoofStructuralAttachedManualStore.Read(changed).Data is not null)
+                return false;
+            if (RoofPhysical3DGeneratedStore.Read(changed).Data is { } physical)
+            {
+                // A single MOVE may include Plan2D lines and physical-only solids
+                // from other Ordinary members.  The line candidate set is the
+                // authority scope; do not reject a valid same-owner Ordinary
+                // solid merely because its line was not edited in Plan2D.
+                var validPhysical =
+                    string.Equals(physical.RoofOwnerReference, owner.Handle.ToString(),
+                        StringComparison.OrdinalIgnoreCase) &&
+                    physical.Role == RoofPhysical3DGeneratedRole.OrdinaryRafterSolid;
+                if (!validPhysical) return false;
+            }
+        }
+        var affected = new List<(Line Line, RoofGeneratedTimberData Generated,
+            RoofUnsupportedStretchTimberLineSnapshotData Before, RoofGeneratedMemberKey Key)>();
+        foreach (var candidate in candidates)
+        {
+            var generated = generatedByLine[candidate.ObjectId];
+            var before = snapshot.Assembly.TimberLines.SingleOrDefault(item =>
+                string.Equals(item.EntityHandle, candidate.Handle.ToString(), StringComparison.OrdinalIgnoreCase));
+            if (before is null) return false;
+            var geometryChanged = candidate.StartPoint.DistanceTo(
+                                      new Point3d(before.Start.X, before.Start.Y, before.Start.Z)) > 0.0001d ||
+                                  candidate.EndPoint.DistanceTo(
+                                      new Point3d(before.End.X, before.End.Y, before.End.Z)) > 0.0001d;
+            if (RoofOrdinaryAuthorityTransitionRules.Decide(
+                    RoofOrdinaryGeometryAuthority.RoofOwned, commandName, geometryChanged,
+                    sourceModified, definition.EditState != RoofEditState.Unlocked) !=
+                RoofOrdinaryEditDecision.PromptDetach)
+                return false;
+            affected.Add((candidate, generated, before, RoofGeneratedMemberKey.From(generated)));
+        }
+        var affectedIds = affected.Select(item => item.Line.ObjectId).ToArray();
+        var physicalOnlyCount = modifiedIds.Count(id => !candidateIds.Contains(id) &&
+            AutoCadObjectIdAccess.TryGetObject<Entity>(transaction, id, OpenMode.ForRead,
+                out var entity, document.Database) && entity is not null &&
+            RoofPhysical3DGeneratedStore.Read(entity).Data is { Role: RoofPhysical3DGeneratedRole.OrdinaryRafterSolid });
+#if DEBUG
+        document.Editor.WriteMessage(
+            $"\nROOF_ORDINARY_MULTI_MOVE owner={owner.Handle} command={commandName ?? "-"} " +
+            $"affectedLogical={affected.Count} planAuthorityCount={affected.Count} " +
+            $"physicalOnlyCount={physicalOnlyCount} manualOverrideWritten=false classification=Plan2D");
+        foreach (var member in affected)
+            document.Editor.WriteMessage(
+                $"\nROOF_ORDINARY_MULTI_MEMBER owner={owner.Handle} line={member.Line.Handle} " +
+                "planChanged=true physicalChanged=true authority=Plan2D");
+#endif
+        if (!ConfirmIndependentOrdinaryDetach())
+        {
+            // Explicit NO is a user CANCEL. Restore the captured assembly in-place
+            // and keep this transaction free of detach, rebuild, or duplicate cleanup.
+            if (!RoofUnsupportedStretchRecoveryService.TryRestoreCancelledOrdinaryMove(
+                    document, transaction, owner.ObjectId, affectedIds))
+                throw new OrdinaryMoveRollbackFailureException(
+                    "Independent Ordinary decline snapshot rollback failed.", affectedIds);
+            try
+            {
+                transaction.Commit();
+            }
+            catch (Exception ex)
+            {
+                throw new OrdinaryMoveRollbackFailureException(
+                    "Independent Ordinary decline snapshot rollback commit failed.", ex,
+                    affectedIds);
+            }
+            RoofCommandLifecycleTerminalState.MarkHandled(owner.ObjectId);
+#if DEBUG
+            document.Editor.WriteMessage(
+                $"\nROOF_ORDINARY_PLAN_EDIT_REJECT owner={owner.Handle} command={commandName ?? "-"} " +
+                $"memberCount={affected.Count} decision=NO snapshotRollback=success " +
+                "terminalHandled=true result=restored");
+            document.Editor.WriteMessage(
+                $"\nROOF_ORDINARY_MULTI_MOVE owner={owner.Handle} command={commandName ?? "-"} " +
+                $"affectedLogical={affected.Count} decision=NO detachedCount=0 restoredCount={affected.Count} " +
+                "manualOverrideWritten=false result=rollback-success");
+#endif
+            outcome = OwnerEditOutcome.Recovered;
+            return true;
+        }
+
+        var liveDefinition = RoofDefinitionStore.Read(owner).Data ??
+            throw new OrdinaryPhysicalReconcileException("Independent Ordinary roof definition vanished.");
+        var replay = new RoofManualOverrideSet(liveDefinition.Overrides);
+        foreach (var member in affected)
+        {
+            if (replay.TryGet(member.Key, out _))
+                replay = replay.Remove(member.Key);
+        }
+        if (replay.Items.Count != liveDefinition.Overrides.Count)
+        {
+            owner.UpgradeOpen();
+            RoofDefinitionStore.Write(owner, transaction,
+                RoofGeneratedMemberOverrideRules.WithEditState(liveDefinition,
+                    RoofEditState.Unlocked, replay.Items));
+        }
+        foreach (var member in affected)
+        {
+            member.Line.UpgradeOpen();
+            var priorStart = new Point3d(member.Before.Start.X, member.Before.Start.Y, member.Before.Start.Z);
+            var delta = member.Line.StartPoint - priorStart;
+            if (!RoofIndependentOrdinaryDetachService.TryDetach(document, transaction, owner,
+                    member.Line, move, delta, modifiedIds))
+                throw new OrdinaryPhysicalReconcileException("Independent Ordinary detach failed.");
+        }
+        transaction.Commit();
+#if DEBUG
+        document.Editor.WriteMessage(
+            $"\nROOF_ORDINARY_MULTI_MOVE owner={owner.Handle} command={commandName ?? "-"} " +
+            $"affectedLogical={affected.Count} decision=YES detachedCount={affected.Count} restoredCount=0 " +
+            "manualOverrideWritten=false result=detached");
+#endif
+        outcome = OwnerEditOutcome.Accepted;
+        return true;
+    }
+
+    private static bool ConfirmIndependentOrdinaryDetach()
+    {
+        return MemberWarningPreferenceService.ConfirmAutomaticDetach().Accepted;
     }
 
     /// <summary>
@@ -568,6 +777,7 @@ internal static class RoofGeneratedMemberManualEditService
             var erasedAttachedKeys = new List<string>();
             foreach (var timber in snapshot.Assembly.TimberLines)
             {
+                if (snapshot.IsOrdinaryClaimed(timber.EntityHandle)) continue;
                 // Derived Hip/Valley never become Suppress overrides. They are restored
                 // before accept via TryRestoreStructuralHipValleyMembersOnly.
                 if (TryIsLockProtectedStructuralTimber(
@@ -648,8 +858,7 @@ internal static class RoofGeneratedMemberManualEditService
                     return false;
                 }
 
-                overrides = overrides.Upsert(
-                    RoofGeneratedMemberOverride.Suppress(key, elementId));
+                // ERASE removes the current package; it never reserves/excludes a generator slot.
                 newlySuppressedKeys.Add(key);
                 DeleteAnnotationsForHandle(document.Database, transaction, timber.SourceHandle);
                 overrideChanged = true;
@@ -660,25 +869,11 @@ internal static class RoofGeneratedMemberManualEditService
                     owner.Handle.ToString(),
                     1,
                     FormatKey(key),
-                    "suppress");
+                    "delete-current-auto");
             }
 
             if (overrideChanged)
             {
-                try
-                {
-                    var updated = RoofGeneratedMemberOverrideRules.WithEditState(
-                        definition,
-                        RoofEditState.Unlocked,
-                        overrides.Items);
-                    RoofDefinitionStore.Write(owner, transaction, updated);
-                }
-                catch (System.Exception)
-                {
-                    reject = new ManualEditReject("persist", "persistence-codec-failure");
-                    return false;
-                }
-
                 try
                 {
                     if (!RoofOrdinaryRafterSolidMaterializationService
@@ -1064,11 +1259,71 @@ internal static class RoofGeneratedMemberManualEditService
         }
     }
 
-    private sealed class OrdinaryPhysicalReconcileException : System.Exception
+    private class OrdinaryPhysicalReconcileException : System.Exception
     {
         public OrdinaryPhysicalReconcileException(string message) : base(message) { }
         public OrdinaryPhysicalReconcileException(string message, System.Exception inner)
             : base(message, inner) { }
+    }
+
+    private sealed class OrdinaryMoveRollbackFailureException : OrdinaryPhysicalReconcileException
+    {
+        public IReadOnlyCollection<ObjectId> AffectedOrdinaryLineIds { get; } = Array.Empty<ObjectId>();
+
+        public OrdinaryMoveRollbackFailureException(string message) : base(message) { }
+        public OrdinaryMoveRollbackFailureException(string message, IReadOnlyCollection<ObjectId> affectedLineIds)
+            : base(message) => AffectedOrdinaryLineIds = affectedLineIds;
+        public OrdinaryMoveRollbackFailureException(string message, Exception inner)
+            : base(message, inner) { }
+        public OrdinaryMoveRollbackFailureException(string message, Exception inner,
+            IReadOnlyCollection<ObjectId> affectedLineIds)
+            : base(message, inner) => AffectedOrdinaryLineIds = affectedLineIds;
+    }
+
+    private static OwnerEditOutcome RetryCancelledOrdinaryRollback(
+        Document document,
+        string? commandName,
+        ObjectId ownerId,
+        OrdinaryMoveRollbackFailureException failure)
+    {
+        try
+        {
+            using (document.LockDocument())
+            using (var transaction = document.Database.TransactionManager.StartTransaction())
+            {
+                if (!RoofUnsupportedStretchRecoveryService.TryRestoreCancelledOrdinaryMove(
+                        document, transaction, ownerId, failure.AffectedOrdinaryLineIds))
+                    throw new InvalidOperationException("Terminal Ordinary rollback retry failed.", failure);
+                transaction.Commit();
+            }
+
+            RoofCommandLifecycleTerminalState.MarkHandled(ownerId);
+            document.Editor.WriteMessage(
+                $"\nROOF_ORDINARY_PLAN_EDIT_REJECT owner={ownerId.Handle} " +
+                $"command={commandName ?? "-"} decision=NO snapshotRollback=success " +
+                "terminalHandled=true result=restored-retry");
+            return OwnerEditOutcome.Recovered;
+        }
+        catch (System.Exception retryFailure)
+        {
+#if DEBUG
+            var errorStatus = retryFailure.GetType().GetProperty("ErrorStatus")?.GetValue(retryFailure)?.ToString() ?? "-";
+            var inner = retryFailure.InnerException;
+            document.Editor.WriteMessage(
+                $"\nROOF_ORDINARY_MOVE_CANCEL_EXCEPTION owner={ownerId.Handle} " +
+                $"command={commandName ?? "-"} member=- stage=retry-rollback " +
+                $"entityHandle=- entityType=- exceptionType={retryFailure.GetType().Name} " +
+                $"message={retryFailure.Message} innerType={inner?.GetType().Name ?? "-"} " +
+                $"innerMessage={inner?.Message ?? "-"} errorStatus={errorStatus} " +
+                $"stack={retryFailure.StackTrace ?? "-"}");
+#endif
+            document.Editor.WriteMessage(
+                $"\nROOF_ORDINARY_PLAN_EDIT_REJECT owner={ownerId.Handle} " +
+                $"command={commandName ?? "-"} decision=NO snapshotRollback=failed " +
+                "terminalHandled=false result=fail-closed " +
+                $"failure={retryFailure.GetType().Name}");
+            return OwnerEditOutcome.Skipped;
+        }
     }
 
     private static OwnerEditOutcome RecoverFailedOrdinaryPhysicalReconcile(
@@ -1351,7 +1606,43 @@ internal static class RoofGeneratedMemberManualEditService
             return true;
         }
 
-        if (isGrip || isFreeformRepresentable)
+        if (isGrip)
+        {
+            if (RoofOrdinaryFreeformGripRules.TryAccept(baseline, observed, out var grip, out var gripReason) && grip is not null)
+            {
+                acceptedGeometry = grip.Geometry;
+                if (gripReason == RoofGeneratedMemberManualEditReason.NeitherEndpointChanged)
+                    unchanged = true;
+                else if (!RoofOrdinaryFreeformGripRules.TryComposeGenerated(canonical, grip, key,
+                             existing, reservedElementId, out overrideData))
+                {
+                    WriteOrdinaryGripFreeform(document, ownerHandle, FormatKey(key), grip, "fail");
+                    reject = Fail(RoofGeneratedMemberManualEditReason.CompositionFailed);
+                    return false;
+                }
+                WriteOrdinaryGripFreeform(document, ownerHandle, FormatKey(key), grip, "ok");
+                return true;
+            }
+
+            // Keep the existing midpoint-grip translation lifecycle.
+            if (RoofGeneratedMemberOverrideMath.TryClassifyPureTranslation(baseline, observed,
+                    planeNormal, out var gripTranslation, out acceptedGeometry, out var gripMoveReason) &&
+                gripMoveReason == RoofGeneratedMemberManualEditReason.Accepted &&
+                RoofGeneratedMemberOverrideMath.TryDecomposeInPlane(canonical, planeNormal, gripTranslation,
+                    out var gripAlongDelta, out var gripLateralDelta))
+            {
+                overrideData = RoofGeneratedMemberOverrideMath.ComposeTranslation(existing, key,
+                    reservedElementId, gripAlongDelta, gripLateralDelta);
+                return true;
+            }
+
+            WriteOrdinaryGripFreeform(document, ownerHandle, FormatKey(key),
+                new(baseline, observed, baseline, "None", default, default, 0,
+                    Math.Min(baseline.LengthMm, RoofRafterLengthRules.DefaultMinimumAutomaticLengthMm), false), "fail");
+            reject = Fail(RoofGeneratedMemberManualEditReason.UnsupportedGrip);
+            return false;
+        }
+        if (isFreeformRepresentable)
         {
             if (RoofGeneratedMemberOverrideMath.TryClassifyCollinearEndpointEdit(
                     baseline,
@@ -1360,11 +1651,11 @@ internal static class RoofGeneratedMemberManualEditService
                     out var startDelta,
                     out var endDelta,
                     out acceptedGeometry,
-                    out var gripReason) &&
-                (gripReason == RoofGeneratedMemberManualEditReason.Accepted ||
-                 gripReason == RoofGeneratedMemberManualEditReason.NeitherEndpointChanged))
+                    out var stretchReason) &&
+                (stretchReason == RoofGeneratedMemberManualEditReason.Accepted ||
+                 stretchReason == RoofGeneratedMemberManualEditReason.NeitherEndpointChanged))
             {
-                if (gripReason == RoofGeneratedMemberManualEditReason.NeitherEndpointChanged)
+                if (stretchReason == RoofGeneratedMemberManualEditReason.NeitherEndpointChanged)
                 {
                     unchanged = true;
                     acceptedGeometry = baseline;
@@ -1438,21 +1729,18 @@ internal static class RoofGeneratedMemberManualEditService
                         observed,
                         existing,
                         gripComposeFailure);
-                    reject = Fail(
-                        isFreeformRepresentable && !isGrip
-                            ? RoofGeneratedMemberManualEditReason.UnrepresentableStretch
-                            : RoofGeneratedMemberManualEditReason.UnsupportedGrip);
+                    reject = Fail(RoofGeneratedMemberManualEditReason.UnrepresentableStretch);
                     return false;
                 }
 
                 return true;
             }
 
-            if (RoofGeneratedMemberOverrideMath.TryCreateBasis(canonical, planeNormal, out var gripBasis))
+            if (RoofGeneratedMemberOverrideMath.TryCreateBasis(canonical, planeNormal, out var stretchBasis))
             {
                 if (!RoofGeneratedMemberOverrideMath.TryProjectObserved(
                         observed,
-                        gripBasis,
+                        stretchBasis,
                         out var projected,
                         out var projectReason))
                 {
@@ -1477,10 +1765,7 @@ internal static class RoofGeneratedMemberManualEditService
                 }
             }
 
-            reject = Fail(
-                isFreeformRepresentable && !isGrip
-                    ? RoofGeneratedMemberManualEditReason.UnrepresentableStretch
-                    : RoofGeneratedMemberManualEditReason.UnsupportedGrip);
+            reject = Fail(RoofGeneratedMemberManualEditReason.UnrepresentableStretch);
             return false;
         }
 
@@ -1670,6 +1955,19 @@ internal static class RoofGeneratedMemberManualEditService
 #endif
     }
 
+    private static void WriteOrdinaryGripFreeform(Document document, string ownerHandle,
+        string key, RoofOrdinaryFreeformGripAcceptance grip, string result)
+    {
+#if DEBUG
+        RoofGeneratedMemberManualEditDiag.WriteOrdinaryGripFreeform(document.Editor, ownerHandle, key, grip, result);
+#else
+        _ = document;
+        _ = ownerHandle;
+        _ = key;
+        _ = grip;
+        _ = result;
+#endif
+    }
     private static void WriteComposeFail(
         Document document,
         string? globalCommandName,

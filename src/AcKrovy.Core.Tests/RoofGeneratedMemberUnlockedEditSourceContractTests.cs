@@ -91,7 +91,7 @@ public sealed class RoofGeneratedMemberUnlockedEditSourceContractTests
     }
 
     [Fact]
-    public void Erase_UsesCommandSnapshot_AndPersistsSuppression()
+    public void Erase_UsesCommandSnapshot_WithoutPersistentSuppression()
     {
         var accept = RoofUxSourceContractText.Member(
             Manual,
@@ -100,11 +100,11 @@ public sealed class RoofGeneratedMemberUnlockedEditSourceContractTests
         Assert.Contains("IsEraseCommand", accept);
         Assert.Contains("snapshot.Assembly.TimberLines", accept);
         Assert.Contains("TryResolveErasedMemberKey", accept);
-        Assert.Contains("RoofGeneratedMemberOverride.Suppress", accept);
+        Assert.DoesNotContain("RoofGeneratedMemberOverride.Suppress", accept);
         Assert.Contains("DeleteAnnotationsForHandle", accept);
         Assert.Contains("HasErasedOwnedAnnotation", accept);
         Assert.Contains("TryRestoreLiveTimberAnnotations", accept);
-        Assert.Contains("action=suppress", Diag);
+        Assert.Contains("\"delete-current-auto\"", accept);
         Assert.Contains("ROOF_MANUAL_EDIT_ACCEPT", Diag);
         Assert.Contains("IsEraseCommand(globalCommandName)", Resize);
         Assert.Contains("HasErasedOwnedGeneratedAnnotation", Resize);
@@ -153,7 +153,7 @@ public sealed class RoofGeneratedMemberUnlockedEditSourceContractTests
         Assert.Contains("GRIP_STRETCH", CommandRules);
         Assert.Contains("MOVE", CommandRules);
         Assert.Contains("ROTATE", CommandRules);
-        Assert.Equal(5, RoofDefinitionDataSchema.CurrentVersion);
+        Assert.Equal(6, RoofDefinitionDataSchema.CurrentVersion);
     }
 
     [Fact]
@@ -165,7 +165,7 @@ public sealed class RoofGeneratedMemberUnlockedEditSourceContractTests
             "private static bool TryRecalculateAcceptedMembers");
         Assert.True(
             accept.IndexOf("HasErasedOwnedAnnotation", StringComparison.Ordinal) <
-            accept.IndexOf("RoofGeneratedMemberOverride.Suppress", StringComparison.Ordinal));
+            accept.IndexOf("newlySuppressedKeys.Add(key)", StringComparison.Ordinal));
         Assert.Contains("TryIsLiveTimber", accept);
         Assert.Contains("annotation-restore", accept);
         Assert.DoesNotContain("if (!TimberAnnotationService.EnsureForElement", Manual);

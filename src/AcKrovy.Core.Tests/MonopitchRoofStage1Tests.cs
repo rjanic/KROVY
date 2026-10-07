@@ -10,11 +10,12 @@ public sealed class MonopitchRoofStage1Tests
     public void RoofKindAndSchema5Payload_HaveStableIdentity()
     {
         Assert.Equal(3, (int)RoofKind.Monopitch);
-        Assert.Equal(5, RoofDefinitionDataSchema.CurrentVersion);
+        Assert.Equal(6, RoofDefinitionDataSchema.CurrentVersion);
         var source = Source();
         var geometry = Solve(source, 30d, Direction(0d, 1d));
         var payload = RoofDefinitionDataCodec.Encode(
-            RoofDefinitionPersistence.Create(source, Validate(source), geometry));
+            RoofDefinitionPersistence.Create(source, Validate(source), geometry) with
+            { SchemaVersion = RoofDefinitionDataSchema.EaveHeightVersion });
 
         Assert.Equal("5|Monopitch|30|30|3464.1016151377544|Edge12|4|CCW|10000|6000|Locked|", payload);
         Assert.True(RoofDefinitionDataCodec.TryDecode(payload, out var decoded, out var error));

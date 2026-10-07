@@ -306,43 +306,102 @@
         <Setter Property="Padding" Value="8,5" />
     </Style>
 
+    <!-- Raised wood-plate nav buttons: gradient fill, border, top highlight, soft bottom shadow. -->
+    <LinearGradientBrush x:Key="SettingsNavItemBackgroundBrush" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Offset="0" Color="#5A3A22" />
+        <GradientStop Offset="1" Color="#3B2414" />
+    </LinearGradientBrush>
+    <LinearGradientBrush x:Key="SettingsNavItemHoverBackgroundBrush" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Offset="0" Color="#6A462A" />
+        <GradientStop Offset="1" Color="#4A2E1A" />
+    </LinearGradientBrush>
+    <LinearGradientBrush x:Key="SettingsNavItemSelectedBackgroundBrush" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Offset="0" Color="#7A5230" />
+        <GradientStop Offset="1" Color="#4E3018" />
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="SettingsNavItemBorderBrush" Color="#8A6A48" />
+    <SolidColorBrush x:Key="SettingsNavItemSelectedBorderBrush" Color="#D2A06A" />
+    <SolidColorBrush x:Key="SettingsNavItemTopHighlightBrush" Color="#66FFF4DF" />
+    <SolidColorBrush x:Key="SettingsNavItemForegroundBrush" Color="#F2E1C5" />
+
     <Style x:Key="SettingsNavigationItemStyle" TargetType="ListBoxItem">
-        <Setter Property="Foreground" Value="{DynamicResource SettingsSidebarTextBrush}" />
-        <Setter Property="Background" Value="Transparent" />
-        <Setter Property="Padding" Value="14,11" />
+        <Setter Property="Foreground" Value="{StaticResource SettingsNavItemForegroundBrush}" />
+        <Setter Property="Background" Value="{StaticResource SettingsNavItemBackgroundBrush}" />
+        <Setter Property="Padding" Value="10,7" />
         <Setter Property="Margin" Value="8,2" />
+        <Setter Property="MinHeight" Value="34" />
         <Setter Property="HorizontalContentAlignment" Value="Stretch" />
         <Setter Property="FocusVisualStyle" Value="{DynamicResource SettingsFocusVisualStyle}" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ListBoxItem">
-                    <Grid>
-                        <Border x:Name="SelectionBar"
-                                Width="4"
-                                HorizontalAlignment="Left"
+                    <Grid Margin="0,0,0,1">
+                        <Border x:Name="ShadowHost"
                                 Background="Transparent"
-                                CornerRadius="2" />
-                        <Border x:Name="Chrome"
-                                Margin="6,0,0,0"
-                                Background="{TemplateBinding Background}"
-                                CornerRadius="{DynamicResource SettingsCornerRadiusSmall}"
-                                Padding="{TemplateBinding Padding}">
-                            <ContentPresenter />
+                                CornerRadius="6"
+                                Effect="{DynamicResource SettingsNavItemElevation}">
+                            <Border x:Name="Chrome"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{StaticResource SettingsNavItemBorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="6"
+                                    Padding="{TemplateBinding Padding}">
+                                <Grid>
+                                    <Border x:Name="TopHighlight"
+                                            Height="1"
+                                            Margin="6,1,6,0"
+                                            VerticalAlignment="Top"
+                                            Background="{StaticResource SettingsNavItemTopHighlightBrush}"
+                                            CornerRadius="1"
+                                            IsHitTestVisible="False" />
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="3" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <Border x:Name="SelectionBar"
+                                                Width="3"
+                                                Margin="0,1,0,1"
+                                                HorizontalAlignment="Left"
+                                                Background="Transparent"
+                                                CornerRadius="1.5" />
+                                        <ContentPresenter Grid.Column="1"
+                                                          Margin="6,0,0,0"
+                                                          VerticalAlignment="Center" />
+                                    </Grid>
+                                </Grid>
+                            </Border>
                         </Border>
                     </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Chrome" Property="Background" Value="#22FFFFFF" />
+                            <Setter TargetName="Chrome" Property="Background" Value="{StaticResource SettingsNavItemHoverBackgroundBrush}" />
+                            <Setter TargetName="Chrome" Property="BorderBrush" Value="{StaticResource SettingsNavItemSelectedBorderBrush}" />
                         </Trigger>
                         <Trigger Property="IsSelected" Value="True">
                             <Setter TargetName="SelectionBar" Property="Background" Value="{DynamicResource SettingsAccentBrush}" />
-                            <Setter TargetName="Chrome" Property="Background" Value="#2BFFFFFF" />
+                            <Setter TargetName="Chrome" Property="Background" Value="{StaticResource SettingsNavItemSelectedBackgroundBrush}" />
+                            <Setter TargetName="Chrome" Property="BorderBrush" Value="{StaticResource SettingsNavItemSelectedBorderBrush}" />
+                            <Setter TargetName="Chrome" Property="BorderThickness" Value="1.5" />
+                            <Setter TargetName="ShadowHost" Property="Effect" Value="{DynamicResource SettingsNavItemSelectedElevation}" />
                             <Setter Property="FontWeight" Value="{DynamicResource SettingsFontWeightSemiBold}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="ShadowHost" Property="Opacity" Value="{DynamicResource SettingsDisabledOpacity}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
+    </Style>
+
+    <Style x:Key="SettingsThemeSelectorChromeStyle" TargetType="Border">
+        <Setter Property="Background" Value="#22000000" />
+        <Setter Property="BorderBrush" Value="#8A6A48" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="7" />
+        <Setter Property="Padding" Value="2" />
+        <Setter Property="Effect" Value="{DynamicResource SettingsNavItemElevation}" />
     </Style>
 
     <Style x:Key="SettingsSelectionCardItemStyle" TargetType="ListBoxItem">
@@ -441,11 +500,62 @@
         <Setter Property="Margin" Value="3,0,0,0" />
     </Style>
 
+    <Style x:Key="SettingsDataGridColumnHeaderStyle" TargetType="DataGridColumnHeader">
+        <Setter Property="Foreground" Value="{DynamicResource SettingsTextPrimaryBrush}" />
+        <Setter Property="Background" Value="{DynamicResource SettingsPanelBackgroundBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SettingsBorderBrush}" />
+        <Setter Property="BorderThickness" Value="0,0,0,1" />
+        <Setter Property="Padding" Value="10,8" />
+        <Setter Property="FontWeight" Value="{DynamicResource SettingsFontWeightSemiBold}" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+
+    <Style x:Key="SettingsDataGridCellStyle" TargetType="DataGridCell">
+        <Setter Property="Foreground" Value="{DynamicResource SettingsTextPrimaryBrush}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="4,2" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="DataGridCell">
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter VerticalAlignment="Center" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="IsSelected" Value="True">
+                <Setter Property="Foreground" Value="{DynamicResource SettingsTextPrimaryBrush}" />
+                <Setter Property="Background" Value="{DynamicResource SettingsSelectedBrush}" />
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Foreground" Value="{DynamicResource SettingsDisabledBrush}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="SettingsDataGridRowStyle" TargetType="DataGridRow">
+        <Setter Property="Foreground" Value="{DynamicResource SettingsTextPrimaryBrush}" />
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{DynamicResource SettingsHoverBrush}" />
+            </Trigger>
+            <Trigger Property="IsSelected" Value="True">
+                <Setter Property="Background" Value="{DynamicResource SettingsSelectedBrush}" />
+                <Setter Property="Foreground" Value="{DynamicResource SettingsTextPrimaryBrush}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
     <Style x:Key="SettingsDataGridStyle" TargetType="DataGrid">
         <Setter Property="Background" Value="{DynamicResource SettingsCardBackgroundBrush}" />
         <Setter Property="Foreground" Value="{DynamicResource SettingsTextPrimaryBrush}" />
         <Setter Property="BorderBrush" Value="{DynamicResource SettingsBorderBrush}" />
-        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="BorderThickness" Value="1" />
         <Setter Property="GridLinesVisibility" Value="Horizontal" />
         <Setter Property="HorizontalGridLinesBrush" Value="{DynamicResource SettingsBorderBrush}" />
         <Setter Property="RowBackground" Value="{DynamicResource SettingsCardBackgroundBrush}" />
@@ -456,5 +566,8 @@
         <Setter Property="HeadersVisibility" Value="Column" />
         <Setter Property="SelectionMode" Value="Single" />
         <Setter Property="SelectionUnit" Value="FullRow" />
+        <Setter Property="ColumnHeaderStyle" Value="{StaticResource SettingsDataGridColumnHeaderStyle}" />
+        <Setter Property="CellStyle" Value="{StaticResource SettingsDataGridCellStyle}" />
+        <Setter Property="RowStyle" Value="{StaticResource SettingsDataGridRowStyle}" />
     </Style>
 </ResourceDictionary>

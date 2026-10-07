@@ -154,11 +154,25 @@ internal static class RoofStructuralNativeEditService
                                             out var sourceHandle, out var manualFailure))
                                     {
                                         eraseCloneIds.Add(candidate.Id);
+                                        if (LiveGeometryCommandRules.IsSameDwgCopyOwnershipCommand(commandName))
+                                        {
+                                            // Reject an untrustworthy COPY in this transaction;
+                                            // throwing here would roll back the queued erase and
+                                            // leave an inherited UUID eligible for legacy fallback.
+                                            RoofMirrorCloneDetachService.DeleteStructuralMirrorCloneAnnotations(
+                                                document, transaction, appendedAnnotationIds, sourceHandle);
+                                            claimed.Add(candidate);
+#if DEBUG
+                                            document.Editor.WriteMessage($"\nROOF_STRUCT_MANUAL_COPY_CLONE clone={line.Handle} result=rejected detail={manualFailure}\n");
+#endif
+                                            continue;
+                                        }
                                         throw new InvalidOperationException(
                                             "structural-manual-clone-" + manualFailure);
                                     }
                                     manualizedCloneIds.Add(candidate.Id);
-                                    if (RoofGeneratedMemberEditCommandRules.IsMirrorCommand(commandName))
+                                    if (RoofGeneratedMemberEditCommandRules.IsMirrorCommand(commandName) ||
+                                        LiveGeometryCommandRules.IsSameDwgCopyOwnershipCommand(commandName))
                                     {
                                         // Consume only native appended annotations bound to this
                                         // source; recreate the clone's set from its final geometry.
@@ -170,7 +184,10 @@ internal static class RoofStructuralNativeEditService
                                         mirrorCloneAnnotations[candidate.Id] = cloneTimber;
                                         claimed.Add(candidate with { Key = RoofStructuralAttachedManualIdentityRules.PhysicalKey(cloneManual.ManualIdentity) });
 #if DEBUG
-                                        document.Editor.WriteMessage($"\nROOF_STRUCT_MANUAL_MIRROR_CLONE source={sourceHandle} clone={line.Handle} sourceIdentity={candidate.Key} cloneIdentity={cloneManual.ManualIdentity} placementMode=RigidMirror annotations=canonical result=prepared\n");
+                                        if (RoofGeneratedMemberEditCommandRules.IsMirrorCommand(commandName))
+                                            document.Editor.WriteMessage($"\nROOF_STRUCT_MANUAL_MIRROR_CLONE source={sourceHandle} clone={line.Handle} sourceIdentity={candidate.Key} cloneIdentity={cloneManual.ManualIdentity} placementMode=RigidMirror annotations=canonical result=prepared\n");
+                                        else
+                                            document.Editor.WriteMessage($"\nROOF_STRUCT_MANUAL_COPY_CLONE source={sourceHandle} clone={line.Handle} sourceIdentity={candidate.Key} cloneIdentity={cloneManual.ManualIdentity} placementMode=RigidCopy annotations=canonical result=prepared\n");
 #endif
                                     }
                                     else claimed.Add(candidate);
@@ -188,6 +205,8 @@ internal static class RoofStructuralNativeEditService
                             {
                                 // COPY source Manual Structural remains Manual — claim only.
                                 claimed.Add(candidate);
+                                if (LiveGeometryCommandRules.IsSameDwgCopyOwnershipCommand(commandName))
+                                    continue; // Preserve the source's existing annotation set too.
                                 if (!metadata.TryRead(line, out var sourceTimber) || sourceTimber is null)
                                     throw new InvalidOperationException("Structural manual metadata unavailable.");
                                 annotations[candidate.Id] = sourceTimber;
@@ -512,7 +531,7 @@ internal static class RoofStructuralNativeEditService
         if (RoofStructuralAttachedManualStore.Read(line).Data is { } existing)
         {
             RoofStructuralAttachedManualDataValidationResult reminted;
-            if (creationKind == RoofStructuralAttachedManualCreationKind.Mirror)
+            if (creationKind is RoofStructuralAttachedManualCreationKind.Mirror or RoofStructuralAttachedManualCreationKind.Copy)
             {
                 // Inherited UUID identifies the exact surviving pre-command source,
                 // not another timber with the same Generated provenance key.
@@ -530,25 +549,30 @@ internal static class RoofStructuralNativeEditService
                         before.Start.DistanceTo(Point(sourceLine.StartPoint)) > 1e-6 ||
                         before.End.DistanceTo(Point(sourceLine.EndPoint)) > 1e-6)
                     {
-                        failureReason = "ManualMirrorSourceAmbiguousOrChanged";
+                        failureReason = creationKind == RoofStructuralAttachedManualCreationKind.Copy
+                            ? "ManualCopySourceAmbiguousOrChanged" : "ManualMirrorSourceAmbiguousOrChanged";
                         return false;
                     }
                     source = before;
                 }
                 if (source is null)
                 {
-                    failureReason = "ManualMirrorSourceMissing";
+                    failureReason = creationKind == RoofStructuralAttachedManualCreationKind.Copy
+                        ? "ManualCopySourceMissing" : "ManualMirrorSourceMissing";
                     return false;
                 }
                 sourceHandle = source.EntityHandle;
                 line.StartPoint = new(line.StartPoint.X, line.StartPoint.Y, 0);
                 line.EndPoint = new(line.EndPoint.X, line.EndPoint.Y, 0);
-                reminted = RoofStructuralAttachedManualDataRules.CreateMirroredClone(
-                    existing, new(source.Start, source.End), new(Point(line.StartPoint), Point(line.EndPoint)));
+                reminted = creationKind == RoofStructuralAttachedManualCreationKind.Copy
+                    ? RoofStructuralAttachedManualDataRules.CreateCopiedClone(
+                        existing, new(source.Start, source.End), new(Point(line.StartPoint), Point(line.EndPoint)))
+                    : RoofStructuralAttachedManualDataRules.CreateMirroredClone(
+                        existing, new(source.Start, source.End), new(Point(line.StartPoint), Point(line.EndPoint)));
             }
             else
             {
-                // Existing COPY/OFFSET allocation remains unchanged.
+                // Existing OFFSET allocation remains unchanged.
                 reminted = RoofStructuralAttachedManualDataRules.Create(
                     ownerReference, RoofStructuralAttachedManualIdentityRules.Create(),
                     existing.SourceLogicalKey, creationKind, existing.WidthMm,

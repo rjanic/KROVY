@@ -79,7 +79,7 @@ public sealed class RoofGeneratedRafterCopyRehydrationSourceContractTests
         Assert.DoesNotContain("DatabaseReactor", Rehydration);
         Assert.DoesNotContain("ObjectOverrule", Rehydration);
         Assert.Equal(1, RoofGeneratedTimberDataSchema.CurrentVersion);
-        Assert.Equal(5, RoofDefinitionDataSchema.CurrentVersion);
+        Assert.Equal(6, RoofDefinitionDataSchema.CurrentVersion);
         Assert.Equal(1, RoofDisplayDataSchema.CurrentVersion);
         Assert.Equal(7, TimberElementDataSchema.CurrentVersion);
         Assert.Equal(1, TimberDrawingSettings.DrawingSettingsSchemaVersion);

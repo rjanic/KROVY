@@ -738,7 +738,7 @@ Obrys strechy sa od uloženia zmenil. Uložená definícia sa nepoužila.</value
   <data name="Command_Roof_UnsupportedStretchRecoveredNotificationBody" xml:space="preserve"><value>Obrys strechy bol obnovený na posledný podporovaný tvar.</value></data>
   <data name="Command_Roof_DisplayTamperNotificationTitle" xml:space="preserve"><value>Vyberte základný obrys strechy</value></data>
   <data name="Command_Roof_DisplayTamperNotificationBody" xml:space="preserve"><value>Tvar strechy upravte pomocou jej obrysu. Ostatné prvky sa aktualizujú automaticky.</value></data>
-  <data name="Command_Roof_DerivedPhysicalMoveRejected" xml:space="preserve"><value>3D prvok je odvodený z 2D. Upravte jeho pôdorysný prvok.</value></data>
+  <data name="Command_Roof_DerivedPhysicalMoveRejected" xml:space="preserve"><value>3D prvok je odvodený z 2D. Geometriu krokvy upravte jej pôdorysnou čiarou.</value></data>
   <data name="Command_Roof_DerivedPhysicalMoveRecoveryFailed" xml:space="preserve"><value>3D prvok sa nepodarilo obnoviť z 2D. Skontrolujte výkres; zmenu neukladajte.</value></data>
   <data name="Command_Roof_PersistFailed" xml:space="preserve"><value>
 Definíciu strechy sa nepodarilo uložiť.</value></data>
@@ -1205,4 +1205,58 @@ Uloženie väzníc nie je kompatibilné s novou geometriou strechy.
 Upravte väznice alebo zvoľte vhodnú geometriu.</value></data>
   <data name="Command_RoofSelectSource_Prompt" xml:space="preserve"><value>
 Vyberte obrys alebo časť strechy na označenie zdrojového obrysu: </value></data>
+  <data name="RoofOrdinaryPhysical3DWarningTitle" xml:space="preserve"><value>Úprava 3D prvku</value></data>
+  <data name="RoofOrdinaryPhysical3DWarningOk" xml:space="preserve"><value>OK</value></data>
+  <data name="RoofOrdinaryDetachTitle" xml:space="preserve"><value>Odpojenie prvku od strechy</value></data>
+  <data name="RoofOrdinaryDetachBody" xml:space="preserve"><value>Úpravou sa prvok odpojí od automatickej strechy.
+Nebude sa už automaticky meniť pri ďalších úpravách strechy.
+Pokračovať?</value></data>
+  <data name="RoofOrdinaryDetachYes" xml:space="preserve"><value>Áno</value></data>
+  <data name="RoofOrdinaryDetachNo" xml:space="preserve"><value>Nie</value></data>
+  <data name="SettingsWindow_Warnings_Tab" xml:space="preserve"><value>Upozornenia a potvrdenia</value></data>
+  <data name="SettingsWindow_ConfirmAutomaticDetach" xml:space="preserve"><value>Potvrdzovať odpojenie automatického prvku</value></data>
+  <data name="SettingsWindow_WarnDerived3DEdit" xml:space="preserve"><value>Upozorniť pri pokuse upraviť odvodený 3D prvok</value></data>
+  <data name="SettingsWindow_RestoreWarnings" xml:space="preserve"><value>Obnoviť všetky upozornenia</value></data>
+  <data name="SettingsWindow_DetachWarningExplanation" xml:space="preserve"><value>Pri vypnutí potvrdenia sa upravený automatický prvok odpojí od strechy bez ďalšej otázky.</value></data>
+  <data name="Warning_DoNotShowAgain" xml:space="preserve"><value>Upozornenie nabudúce nezobrazovať</value></data>
+  <data name="Warning_Derived3DEditCancelled" xml:space="preserve"><value>3D prvok je odvodený z 2D. Úprava 3D bola zrušená.</value></data>
+  <data name="Warning_PreferenceSaveFailed" xml:space="preserve"><value>Nastavenie upozornení sa nepodarilo uložiť.</value></data>
+  <data name="Message_OrdinaryJoinRejected" xml:space="preserve"><value>JOIN krokiev je podporovaný iba pre kompatibilné prvky na jednej osi. Pôvodné prvky boli obnovené.</value></data>
+  <!-- Elevation seating (Výškové osadenie) — v1 -->
+  <data name="RoofOrdinaryElevation_Title" xml:space="preserve"><value>Výškové osadenie krokvy</value></data>
+  <data name="RoofOrdinaryElevation_Section" xml:space="preserve"><value>Výškové osadenie</value></data>
+  <data name="RoofOrdinaryElevation_Reference" xml:space="preserve"><value>Referencia</value></data>
+  <data name="RoofOrdinaryElevation_SH_Tooltip" xml:space="preserve"><value>SH – výška spodnej hrany prvku</value></data>
+  <data name="RoofOrdinaryElevation_OS_Tooltip" xml:space="preserve"><value>OS – výška osi prvku</value></data>
+  <data name="RoofOrdinaryElevation_VH_Tooltip" xml:space="preserve"><value>VH – výška vrchnej hrany prvku</value></data>
+  <data name="RoofOrdinaryElevation_Values" xml:space="preserve"><value>Hodnoty</value></data>
+  <data name="RoofOrdinaryElevation_ValuesHint" xml:space="preserve"><value>Upravujte iba polia podľa zvoleného režimu Výpočet podľa. Sivé polia sú odvodené.</value></data>
+  <data name="RoofOrdinaryElevation_LowerZ" xml:space="preserve"><value>Z spodného bodu</value></data>
+  <data name="RoofOrdinaryElevation_UpperZ" xml:space="preserve"><value>Z horného bodu</value></data>
+  <data name="RoofOrdinaryElevation_Slope" xml:space="preserve"><value>Previazaný sklon</value></data>
+  <data name="RoofOrdinaryElevation_SlopeLinkedTooltip" xml:space="preserve"><value>Zrkadlo sklonu prvku hore (Sklon [°]). Nie je to druhá nezávislá hodnota.</value></data>
+  <data name="RoofOrdinaryElevation_CalcMode" xml:space="preserve"><value>Výpočet podľa</value></data>
+  <data name="RoofOrdinaryElevation_Mode_LowerUpper" xml:space="preserve"><value>Z spodný + Z horný</value></data>
+  <data name="RoofOrdinaryElevation_Mode_LowerSlope" xml:space="preserve"><value>Z spodný + Sklon</value></data>
+  <data name="RoofOrdinaryElevation_Mode_UpperSlope" xml:space="preserve"><value>Z horný + Sklon</value></data>
+  <data name="RoofOrdinaryElevation_Apply" xml:space="preserve"><value>Použiť</value></data>
+  <data name="RoofOrdinaryElevation_Cancel" xml:space="preserve"><value>Zrušiť</value></data>
+  <data name="RoofOrdinaryElevation_SelectPrompt" xml:space="preserve"><value>
+Výber krokvy pre výškové osadenie: </value></data>
+  <data name="RoofOrdinaryElevation_SelectReject" xml:space="preserve"><value>
+Vyberte čiaru krokvy.</value></data>
+  <data name="RoofOrdinaryElevation_NotALine" xml:space="preserve"><value>
+Výškové osadenie: vybraný objekt nie je čiara.</value></data>
+  <data name="RoofOrdinaryElevation_NotOrdinary" xml:space="preserve"><value>
+Výškové osadenie: vybraný prvok nie je automatická ani nezávislá krokva.</value></data>
+  <data name="RoofOrdinaryElevation_Degenerate" xml:space="preserve"><value>
+Výškové osadenie: krokva je príliš krátka (degenerovaná).</value></data>
+  <data name="RoofOrdinaryElevation_NoMetadata" xml:space="preserve"><value>
+Výškové osadenie: metadáta krokvy nie sú dostupné.</value></data>
+  <data name="RoofOrdinaryElevation_NoChange" xml:space="preserve"><value>
+Výškové osadenie: žiadna zmena.</value></data>
+  <data name="RoofOrdinaryElevation_Applied" xml:space="preserve"><value>
+Výškové osadenie bolo aplikované.</value></data>
+  <data name="RoofOrdinaryElevation_Failed" xml:space="preserve"><value>
+Výškové osadenie: chyba pri aplikovaní</value></data>
 </root>

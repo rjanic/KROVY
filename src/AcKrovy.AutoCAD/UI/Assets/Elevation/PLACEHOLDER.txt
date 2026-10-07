@@ -1,0 +1,1 @@
+Drop 80x80 PNG files here using ImageKey path segments, e.g. Ordinary/Reference/SH.png

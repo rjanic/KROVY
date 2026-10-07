@@ -155,7 +155,7 @@ public sealed class RoofGroupRehydrationSourceContractTests
         Assert.Contains("Success(selectedId, selectedThroughDisplayChild: false)", Resolver);
         Assert.Contains("DxfCode.ExtendedDataHandle", Store);
         Assert.Equal(1, RoofDisplayDataSchema.CurrentVersion);
-        Assert.Equal(5, RoofDefinitionDataSchema.CurrentVersion);
+        Assert.Equal(6, RoofDefinitionDataSchema.CurrentVersion);
         Assert.Equal(7, TimberElementDataSchema.CurrentVersion);
         Assert.Equal(1, RoofGeneratedTimberDataSchema.CurrentVersion);
     }

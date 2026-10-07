@@ -1205,4 +1205,49 @@ Die gespeicherte Pfettenanordnung ist mit der neuen Dachgeometrie nicht kompatib
 Passen Sie die Pfetten an oder wählen Sie eine geeignete Geometrie.</value></data>
   <data name="Command_RoofSelectSource_Prompt" xml:space="preserve"><value>
 Umriss oder Dachteil wählen, um den Quellumriss auszuwählen: </value></data>
+  <data name="RoofOrdinaryPhysical3DWarningTitle" xml:space="preserve"><value>3D-Element bearbeiten</value></data>
+  <data name="RoofOrdinaryPhysical3DWarningOk" xml:space="preserve"><value>OK</value></data>
+  <data name="RoofOrdinaryDetachTitle" xml:space="preserve"><value>Element vom Dach lösen</value></data>
+  <data name="RoofOrdinaryDetachBody" xml:space="preserve"><value>Durch diese Änderung wird das Element vom automatischen Dach gelöst.
+Bei späteren Dachänderungen wird es nicht mehr automatisch aktualisiert.
+Fortfahren?</value></data>
+  <data name="RoofOrdinaryDetachYes" xml:space="preserve"><value>Ja</value></data>
+  <data name="RoofOrdinaryDetachNo" xml:space="preserve"><value>Nein</value></data>
+  <data name="SettingsWindow_Warnings_Tab" xml:space="preserve"><value>Warnungen und Bestätigungen</value></data>
+  <data name="SettingsWindow_ConfirmAutomaticDetach" xml:space="preserve"><value>Ablösen automatischer Bauteile bestätigen</value></data>
+  <data name="SettingsWindow_WarnDerived3DEdit" xml:space="preserve"><value>Beim Bearbeiten abgeleiteter 3D-Bauteile warnen</value></data>
+  <data name="SettingsWindow_RestoreWarnings" xml:space="preserve"><value>Alle Warnungen wiederherstellen</value></data>
+  <data name="SettingsWindow_DetachWarningExplanation" xml:space="preserve"><value>Bei deaktivierter Bestätigung wird das bearbeitete automatische Bauteil ohne weitere Rückfrage vom Dach gelöst.</value></data>
+  <data name="Warning_DoNotShowAgain" xml:space="preserve"><value>Diese Warnung nicht mehr anzeigen</value></data>
+  <data name="Warning_Derived3DEditCancelled" xml:space="preserve"><value>Das 3D-Bauteil wird aus 2D abgeleitet. Die 3D-Bearbeitung wurde abgebrochen.</value></data>
+  <data name="Warning_PreferenceSaveFailed" xml:space="preserve"><value>Die Warnungseinstellungen konnten nicht gespeichert werden.</value></data>
+  <data name="Message_OrdinaryJoinRejected" xml:space="preserve"><value>JOIN für Sparren unterstützt nur kompatible Bauteile auf einer Achse. Die ursprünglichen Bauteile wurden wiederhergestellt.</value></data>
+  <!-- Elevation seating (Výškové osadenie) — v1 -->
+  <data name="RoofOrdinaryElevation_Title" xml:space="preserve"><value>Höhenlage des Sparrens</value></data>
+  <data name="RoofOrdinaryElevation_Section" xml:space="preserve"><value>Höhenlage</value></data>
+  <data name="RoofOrdinaryElevation_Reference" xml:space="preserve"><value>Referenz</value></data>
+  <data name="RoofOrdinaryElevation_SH_Tooltip" xml:space="preserve"><value>SH – Höhe der Unterseite</value></data>
+  <data name="RoofOrdinaryElevation_OS_Tooltip" xml:space="preserve"><value>OS – Höhe der Achse</value></data>
+  <data name="RoofOrdinaryElevation_VH_Tooltip" xml:space="preserve"><value>VH – Höhe der Oberseite</value></data>
+  <data name="RoofOrdinaryElevation_Values" xml:space="preserve"><value>Werte</value></data>
+  <data name="RoofOrdinaryElevation_ValuesHint" xml:space="preserve"><value>Bearbeiten Sie nur die Felder des gewählten Berechnungsmodus. Graue Felder sind abgeleitet.</value></data>
+  <data name="RoofOrdinaryElevation_LowerZ" xml:space="preserve"><value>Z unterer Punkt</value></data>
+  <data name="RoofOrdinaryElevation_UpperZ" xml:space="preserve"><value>Z oberer Punkt</value></data>
+  <data name="RoofOrdinaryElevation_Slope" xml:space="preserve"><value>Verknüpfte Neigung</value></data>
+  <data name="RoofOrdinaryElevation_SlopeLinkedTooltip" xml:space="preserve"><value>Spiegel der Elementneigung oben (Neigung [°]). Kein zweiter unabhängiger Wert.</value></data>
+  <data name="RoofOrdinaryElevation_CalcMode" xml:space="preserve"><value>Berechnung nach</value></data>
+  <data name="RoofOrdinaryElevation_Mode_LowerUpper" xml:space="preserve"><value>Z unten + Z oben</value></data>
+  <data name="RoofOrdinaryElevation_Mode_LowerSlope" xml:space="preserve"><value>Z unten + Neigung</value></data>
+  <data name="RoofOrdinaryElevation_Mode_UpperSlope" xml:space="preserve"><value>Z oben + Neigung</value></data>
+  <data name="RoofOrdinaryElevation_Apply" xml:space="preserve"><value>Anwenden</value></data>
+  <data name="RoofOrdinaryElevation_Cancel" xml:space="preserve"><value>Abbrechen</value></data>
+  <data name="RoofOrdinaryElevation_SelectPrompt" xml:space="preserve"><value>&#xa;Sparren für Höhenlage wählen: </value></data>
+  <data name="RoofOrdinaryElevation_SelectReject" xml:space="preserve"><value>&#xa;Sparrenlinie auswählen.</value></data>
+  <data name="RoofOrdinaryElevation_NotALine" xml:space="preserve"><value>&#xa;Höhenlage: ausgewähltes Objekt ist keine Linie.</value></data>
+  <data name="RoofOrdinaryElevation_NotOrdinary" xml:space="preserve"><value>&#xa;Höhenlage: ausgewähltes Element ist kein gewöhnlicher Sparren.</value></data>
+  <data name="RoofOrdinaryElevation_Degenerate" xml:space="preserve"><value>&#xa;Höhenlage: Sparren ist zu kurz (degeneriert).</value></data>
+  <data name="RoofOrdinaryElevation_NoMetadata" xml:space="preserve"><value>&#xa;Höhenlage: Metadaten nicht verfügbar.</value></data>
+  <data name="RoofOrdinaryElevation_NoChange" xml:space="preserve"><value>&#xa;Höhenlage: keine Änderung.</value></data>
+  <data name="RoofOrdinaryElevation_Applied" xml:space="preserve"><value>&#xa;Höhenlage angewendet.</value></data>
+  <data name="RoofOrdinaryElevation_Failed" xml:space="preserve"><value>&#xa;Höhenlage: Fehler beim Anwenden</value></data>
 </root>

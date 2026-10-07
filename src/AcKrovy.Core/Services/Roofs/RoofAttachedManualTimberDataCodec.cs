@@ -46,6 +46,14 @@ public static class RoofAttachedManualTimberDataCodec
             }
             if (data.SchemaVersion >= 4)
                 fields.Add(RoofAttachedManualIdentityRules.Resolve(data));
+            if (data.SchemaVersion >= 5)
+            {
+                var reference = data.PhysicalReferenceSegment;
+                fields.AddRange(reference is null ? new[] { "", "", "", "", "", "" } :
+                    new[] { reference.U0Mm, reference.V0Mm, reference.W0Mm,
+                        reference.U1Mm, reference.V1Mm, reference.W1Mm }
+                    .Select(value => value.ToString("R", CultureInfo.InvariantCulture)));
+            }
 
             return string.Join(Separator.ToString(), fields);
         }
@@ -114,8 +122,15 @@ public static class RoofAttachedManualTimberDataCodec
                 new RoofAttachedManualRelativeSegment(u0, v0, w0, u1, v1, w1),
                 origin,
                 schema >= 4 && fields.Length >= 15 ? fields[14] : null);
-            if (schema >= 4 && (fields.Length != 15 ||
+            if (schema >= 4 && (fields.Length != (schema >= 5 ? 21 : 15) ||
                 !Guid.TryParseExact(fields[14], "N", out _))) return false;
+            if (schema >= 5 && fields.Skip(15).Any(field => field.Length > 0))
+            {
+                var values = new double[6];
+                for (var i = 0; i < values.Length; i++)
+                    if (!TryParseDouble(fields[15 + i], out values[i])) return false;
+                data = data with { PhysicalReferenceSegment = new(values[0], values[1], values[2], values[3], values[4], values[5]) };
+            }
             return TryValidate(data, out _);
         }
 
@@ -150,6 +165,14 @@ public static class RoofAttachedManualTimberDataCodec
             !Guid.TryParseExact(data.SemanticIdentity, "N", out _))
         {
             error = "invalid-attached-manual-identity";
+            return false;
+        }
+        if (data.PhysicalReferenceSegment is { } reference &&
+            (data.SchemaVersion < 5 || data.Origin != RoofAttachedManualOrigin.Copy ||
+             new[] { reference.U0Mm, reference.V0Mm, reference.W0Mm, reference.U1Mm, reference.V1Mm, reference.W1Mm }
+                .Any(value => double.IsNaN(value) || double.IsInfinity(value))))
+        {
+            error = "invalid-attached-manual-physical-reference";
             return false;
         }
 

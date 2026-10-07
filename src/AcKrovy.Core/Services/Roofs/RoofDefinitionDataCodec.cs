@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 using AcKrovy.Core.Models.Roofs;
 
 namespace AcKrovy.Core.Services.Roofs;
@@ -35,7 +36,8 @@ public static class RoofDefinitionDataCodec
             RoofDefinitionDataSchema.TopologyVersion => EncodeV2(data),
             RoofDefinitionDataSchema.HybridLifecycleVersion => EncodeV3(data),
             RoofDefinitionDataSchema.DualSlopeVersion => EncodeV4(data),
-            RoofDefinitionDataSchema.CurrentVersion => EncodeV5(data),
+            RoofDefinitionDataSchema.EaveHeightVersion => EncodeV5(data),
+            RoofDefinitionDataSchema.CurrentVersion => EncodeV6(data),
             _ => throw new ArgumentException("Unsupported roof schema.", nameof(data)),
         };
     }
@@ -78,8 +80,10 @@ public static class RoofDefinitionDataCodec
                 TryDecodeV3(fields, out data, out error),
             RoofDefinitionDataSchema.DualSlopeVersion =>
                 TryDecodeV4(fields, out data, out error),
-            RoofDefinitionDataSchema.CurrentVersion =>
+            RoofDefinitionDataSchema.EaveHeightVersion =>
                 TryDecodeV5(fields, out data, out error),
+            RoofDefinitionDataSchema.CurrentVersion =>
+                TryDecodeV6(fields, out data, out error),
             _ => false,
         };
     }
@@ -104,6 +108,7 @@ public static class RoofDefinitionDataCodec
                 RoofDefinitionDataSchema.TopologyVersion or
                 RoofDefinitionDataSchema.HybridLifecycleVersion or
                 RoofDefinitionDataSchema.DualSlopeVersion or
+                RoofDefinitionDataSchema.EaveHeightVersion or
                 RoofDefinitionDataSchema.CurrentVersion))
         {
             return false;
@@ -114,10 +119,8 @@ public static class RoofDefinitionDataCodec
                 RoofKind.Monopitch or RoofKind.Hip) ||
             data.SchemaVersion < RoofDefinitionDataSchema.DualSlopeVersion &&
             data.Kind != RoofKind.SimpleGable ||
-            data.Kind == RoofKind.Monopitch &&
-            data.SchemaVersion != RoofDefinitionDataSchema.CurrentVersion ||
-            data.Kind == RoofKind.Hip &&
-            data.SchemaVersion != RoofDefinitionDataSchema.CurrentVersion)
+            data.Kind is RoofKind.Monopitch or RoofKind.Hip &&
+            data.SchemaVersion < RoofDefinitionDataSchema.EaveHeightVersion)
         {
             error = RoofDefinitionDataDecodeError.UnsupportedRoofKind;
             return false;
@@ -136,7 +139,7 @@ public static class RoofDefinitionDataCodec
         }
 
         if (!IsFinite(data.EaveHeightDifferenceMm) ||
-            data.SchemaVersion < RoofDefinitionDataSchema.CurrentVersion &&
+            data.SchemaVersion < RoofDefinitionDataSchema.EaveHeightVersion &&
             Math.Abs(data.EaveHeightDifferenceMm) >
                 SimpleGableRoofGeometryTolerance.CoordinateToleranceMm ||
             data.Kind is RoofKind.SimpleGable or RoofKind.Hip &&
@@ -150,6 +153,12 @@ public static class RoofDefinitionDataCodec
             return false;
         }
 
+        if (data.OrdinaryRafterRecipe is { } recipe &&
+            (data.SchemaVersion < RoofDefinitionDataSchema.CurrentVersion || !RoofRafterGenerationRecipeRules.IsValid(recipe)))
+        {
+            error = RoofDefinitionDataDecodeError.MalformedPayload;
+            return false;
+        }
         return data.SchemaVersion == RoofDefinitionDataSchema.LegacyAbsoluteVersion
             ? TryValidateV1(data, out error)
             : TryValidateTopology(data, out error);
@@ -223,7 +232,7 @@ public static class RoofDefinitionDataCodec
         var editState = data.EditState == RoofEditState.Unlocked ? "Unlocked" : "Locked";
         return string.Join(
             Separator.ToString(),
-            RoofDefinitionDataSchema.CurrentVersion.ToString(CultureInfo.InvariantCulture),
+            RoofDefinitionDataSchema.EaveHeightVersion.ToString(CultureInfo.InvariantCulture),
             KindToken(data.Kind),
             data.Face0SlopeDegrees.ToString("R", CultureInfo.InvariantCulture),
             data.EffectiveFace1SlopeDegrees.ToString("R", CultureInfo.InvariantCulture),
@@ -235,6 +244,39 @@ public static class RoofDefinitionDataCodec
             descriptor.Edge12LengthMm.ToString("R", CultureInfo.InvariantCulture),
             editState,
             RoofGeneratedMemberOverrideCodec.Encode(data.Overrides));
+    }
+
+    private static string EncodeV6(RoofDefinitionData data)
+    {
+        var recipe = data.OrdinaryRafterRecipe;
+        var token = recipe is null ? "-" : string.Join(",", recipe.WidthMm.ToString("R", CultureInfo.InvariantCulture),
+            recipe.HeightMm.ToString("R", CultureInfo.InvariantCulture), recipe.MaximumSpacingMm.ToString("R", CultureInfo.InvariantCulture),
+            Convert.ToBase64String(Encoding.UTF8.GetBytes(recipe.Material)));
+        return "6|" + token + "|" + Convert.ToBase64String(Encoding.UTF8.GetBytes(EncodeV5(data)));
+    }
+
+    private static bool TryDecodeV6(IReadOnlyList<string> fields, out RoofDefinitionData? data,
+        out RoofDefinitionDataDecodeError error)
+    {
+        data = null;
+        error = RoofDefinitionDataDecodeError.MalformedPayload;
+        if (fields.Count != 3) return false;
+        try
+        {
+            var geometry = Encoding.UTF8.GetString(Convert.FromBase64String(fields[2])).Split(Separator);
+            if (geometry.Length == 0 || geometry[0] != "5" || !TryDecodeV5(geometry, out var old, out error)) return false;
+            RoofRafterGenerationRecipe? recipe = null;
+            if (fields[1] != "-")
+            {
+                error = RoofDefinitionDataDecodeError.MalformedPayload;
+                var values = fields[1].Split(',');
+                if (values.Length != 4 || !TryParseFinite(values[0], out var width) ||
+                    !TryParseFinite(values[1], out var height) || !TryParseFinite(values[2], out var spacing)) return false;
+                recipe = new(width, height, spacing, Encoding.UTF8.GetString(Convert.FromBase64String(values[3])));
+            }
+            return Accept(old! with { SchemaVersion = RoofDefinitionDataSchema.CurrentVersion, OrdinaryRafterRecipe = recipe }, out data, out error);
+        }
+        catch (FormatException) { error = RoofDefinitionDataDecodeError.MalformedPayload; return false; }
     }
 
     private static bool TryDecodeV1(
@@ -519,7 +561,7 @@ public static class RoofDefinitionDataCodec
         }
 
         return Accept(new RoofDefinitionData(
-            RoofDefinitionDataSchema.CurrentVersion,
+            RoofDefinitionDataSchema.EaveHeightVersion,
             kind,
             slope0,
             RidgeEdgeFamily: edgeFamily,

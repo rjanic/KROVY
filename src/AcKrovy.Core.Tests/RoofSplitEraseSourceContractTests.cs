@@ -56,11 +56,11 @@ public sealed class RoofSplitEraseSourceContractTests
     }
 
     [Fact]
-    public void GeneratedErase_SuppressionSemanticsUnchanged()
+    public void GeneratedErase_DoesNotPersistExclusion()
     {
         var erase = Segment(ManualEdit, "if (isErase)", "else");
-        Assert.Contains("RoofGeneratedMemberOverride.Suppress", erase);
-        Assert.Contains("\"suppress\"", erase);
+        Assert.DoesNotContain("RoofGeneratedMemberOverride.Suppress", erase);
+        Assert.Contains("\"delete-current-auto\"", erase);
     }
 
     [Fact]

@@ -3,6 +3,7 @@ using AcKrovy.Core.Models;
 using AcKrovy.Core.Models.Roofs;
 using AcKrovy.Core.Services;
 using AcKrovy.Core.Services.Roofs;
+using AcKrovy.AutoCAD.Diagnostics;
 using AcKrovy.AutoCAD.Settings;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
@@ -26,17 +27,29 @@ internal static class RoofGeneratedRafterSetService
         Failed = 4,
     }
 
+    /// <summary>Last <see cref="ReplacementOutcome.Failed"/> detail from ReplacePreparedSetWithRecipe.</summary>
+    internal static RoofGeneratedPlanRebuildFailureRules.FailureDetail? LastFailureDetail { get; private set; }
+
+#if DEBUG
+    /// <summary>
+    /// Test seam: throw once immediately after Plan2D create / before ordinary Physical3D
+    /// returns, proving exception detail reaches HardFailure diagnostics.
+    /// </summary>
+    internal static string? InjectPostCreateOrdinaryPhysicalFailureOnce;
+#endif
+
     public static bool TryRecoverRecipe(
         Database database,
         Transaction transaction,
         IReadOnlyList<ObjectId> generatedIds,
-        out RoofRafterGenerationRecipe recipe)
+        out RoofRafterGenerationRecipe recipe, RoofOrdinaryPhysicalBuildStateTrace? trace = null)
     {
         recipe = default!;
         ArgumentNullException.ThrowIfNull(database);
         ArgumentNullException.ThrowIfNull(transaction);
         if (generatedIds is null || generatedIds.Count == 0)
         {
+            trace?.Add("recipeFailure", "TryRecoverRecipe:no_generated_observations");
             return false;
         }
 
@@ -52,16 +65,22 @@ internal static class RoofGeneratedRafterSetService
                     database) ||
                 entity is null)
             {
+                trace?.Add("recipeFailure", "AutoCadObjectIdAccess.TryGetObject:generated_entity");
+                trace?.Add("recipeFailureHandle", id.Handle);
                 return false;
             }
 
             var generated = RoofGeneratedTimberStore.Read(entity);
-            if (generated.Data is null ||
-                generated.Data.MemberKind != RoofGeneratedTimberKind.Rafter ||
-                !metadataStore.TryRead(entity, out var timber) ||
-                timber is null ||
-                timber.ElementType != TimberElementType.Rafter)
+            if (generated.Data is null || generated.Data.MemberKind != RoofGeneratedTimberKind.Rafter)
             {
+                trace?.Add("recipeFailure", "RoofGeneratedTimberStore.Read:not_rafter");
+                trace?.Add("recipeFailureHandle", id.Handle);
+                return false;
+            }
+            if (!metadataStore.TryRead(entity, out var timber) || timber is null || timber.ElementType != TimberElementType.Rafter)
+            {
+                trace?.Add("recipeFailure", "AutoCadTimberElementMetadataStore.TryRead:not_rafter");
+                trace?.Add("recipeFailureHandle", id.Handle);
                 return false;
             }
 
@@ -72,7 +91,78 @@ internal static class RoofGeneratedRafterSetService
                 timber.Material));
         }
 
-        return RoofRafterGenerationRecipeRules.TryUnify(observations, out recipe);
+        var unified = RoofRafterGenerationRecipeRules.TryUnify(observations, out recipe);
+        if (!unified)
+        {
+            trace?.Add("recipeFailure", "RoofRafterGenerationRecipeRules.TryUnify");
+            trace?.Add("recipeDistinctInputs", string.Join(";", observations.Distinct().Select(r =>
+                FormattableString.Invariant($"{r.WidthMm:R}x{r.HeightMm:R}@{r.MaximumSpacingMm:R}:{r.Material}"))));
+        }
+        return unified;
+    }
+
+    internal static void PreserveRecipe(Database database, Transaction transaction, ObjectId ownerId,
+        IEnumerable<Line>? plans = null)
+    {
+        if (ownerId.IsNull || ownerId.IsErased) return;
+        var owner = (Polyline)transaction.GetObject(ownerId, OpenMode.ForRead);
+        var definition = RoofDefinitionStore.Read(owner).Data;
+        if (definition is null) throw new InvalidOperationException("Ordinary generator definition is missing.");
+        plans ??= RoofGeneratedTimberStore.FindByOwner(database, transaction, owner.Handle.ToString())
+            .Where(id => !id.IsErased).Select(id => transaction.GetObject(id, OpenMode.ForRead)).OfType<Line>();
+        var observations = new List<RoofRafterGenerationRecipe>();
+        foreach (var line in plans)
+            if (RoofGeneratedTimberStore.Read(line).Data is { MemberKind: RoofGeneratedTimberKind.Rafter } generated &&
+                ElementDataStore.TryRead(line, transaction, out var timber) && timber is not null)
+                observations.Add(new(timber.WidthMm, timber.HeightMm, generated.RequestedMaximumSpacingMm, timber.Material));
+        if (!RoofRafterGenerationRecipeRules.TryUnify(observations, out var recipe))
+        {
+            if (observations.Count == 0 && definition.OrdinaryRafterRecipe is not null) return;
+            throw new InvalidOperationException("Ordinary generation recipe is unavailable or ambiguous.");
+        }
+        PersistRecipe(transaction, owner, definition, recipe);
+    }
+
+    internal static bool TryResolveGeneratorRecipe(Database database, Transaction transaction, Polyline owner,
+        out RoofRafterGenerationRecipe recipe)
+    {
+        // Stored generator input wins; legacy inventory is used only to recover recipe values,
+        // never to decide which stations belong in a preview or a regenerated set.
+        if (RoofDefinitionStore.Read(owner).Data?.OrdinaryRafterRecipe is { } stored)
+        {
+            recipe = stored;
+            return RoofRafterGenerationRecipeRules.IsValid(recipe);
+        }
+        return TryRecoverRecipe(database, transaction,
+            RoofGeneratedTimberStore.FindByOwner(database, transaction, owner.Handle.ToString()), out recipe);
+    }
+
+    internal static RoofRafterLayoutResult CreateGeneratorLayout(Database database, IRoofGeometry geometry,
+        RoofRafterGenerationRecipe recipe) => RoofRafterLayoutSolver.Solve(geometry,
+            AutoCadRoofRafterSpacingStore.CreateLayoutParameters(database, recipe.MaximumSpacingMm, recipe.WidthMm));
+
+    private static void PersistRecipe(Transaction transaction, Polyline owner, RoofDefinitionData definition,
+        RoofRafterGenerationRecipe recipe)
+    {
+        if (definition.OrdinaryRafterRecipe == recipe && definition.SchemaVersion == RoofDefinitionDataSchema.CurrentVersion) return;
+        var input = RoofPolylineExtractor.Extract(owner);
+        var footprint = RoofFootprintValidator.Validate(input).Footprint;
+        var geometry = footprint is null ? null : RoofDefinitionPersistence.Restore(input, footprint, definition).Geometry;
+        if (geometry is null) throw new InvalidOperationException("Ordinary recipe owner geometry is unavailable.");
+        var updated = RoofDefinitionPersistence.UpdateGeometry(definition, input, geometry) with { OrdinaryRafterRecipe = recipe };
+        owner.UpgradeOpen();
+        RoofDefinitionStore.Write(owner, transaction, updated);
+    }
+
+    private static RoofDefinitionData? PrepareGeneratorDefinition(Transaction transaction, Polyline owner)
+    {
+        var definition = RoofDefinitionStore.Read(owner).Data;
+        if (definition is null || !definition.Overrides.Any(item => item.Suppressed &&
+                item.Key.MemberKind == RoofGeneratedTimberKind.Rafter)) return definition;
+        var prepared = RoofOrdinaryRebuildRules.Prepare(definition);
+        owner.UpgradeOpen();
+        RoofDefinitionStore.Write(owner, transaction, prepared);
+        return prepared;
     }
 
     public static ReplacementOutcome TryReplaceForSupportedResize(
@@ -168,12 +258,14 @@ internal static class RoofGeneratedRafterSetService
                 out var existingIds,
                 out var members))
         {
-            return existingIds.Count == 0
-                ? ReplacementOutcome.NotApplicable
-                : ReplacementOutcome.SkippedAmbiguousRecipe;
+            if (existingIds.Count == 0 && RoofDefinitionStore.Read(owner).Data?.OrdinaryRafterRecipe is { } savedRecipe)
+                return ReplacePreparedSetWithRecipe(database, transaction, editor, owner, ownerReference, geometry,
+                    savedRecipe, existingIds, members, defaultProfile, layerProfile, out anchorResolutionContext,
+                    out replayPlan, rebuildReason, syncAssemblyGroup);
+            return existingIds.Count == 0 ? ReplacementOutcome.NotApplicable : ReplacementOutcome.SkippedAmbiguousRecipe;
         }
 
-        if (!forceRegenerateOnSourceResize &&
+        if (rebuildReason != "roof-edit" && !forceRegenerateOnSourceResize &&
             !IsGeneratedSetStale(database, transaction, existingIds, geometry))
         {
 #if DEBUG
@@ -184,7 +276,7 @@ internal static class RoofGeneratedRafterSetService
             return ReplacementOutcome.NotApplicable;
         }
 
-        if (!TryRecoverRecipe(database, transaction, existingIds, out var recipe))
+        if (!TryResolveGeneratorRecipe(database, transaction, owner, out var recipe))
         {
 #if DEBUG
             RoofGeneratedTimberCopyOwnershipDiagService.WriteReplaceDiag(
@@ -368,12 +460,8 @@ internal static class RoofGeneratedRafterSetService
     {
         anchorResolutionContext = null;
         replayPlan = null;
-        var layoutResult = RoofRafterLayoutSolver.Solve(
-            geometry,
-            AutoCadRoofRafterSpacingStore.CreateLayoutParameters(
-                database,
-                recipe.MaximumSpacingMm,
-                recipe.WidthMm));
+        LastFailureDetail = null;
+        var layoutResult = CreateGeneratorLayout(database, geometry, recipe);
         if (!layoutResult.IsValid || layoutResult.Layout is null)
         {
 #if DEBUG
@@ -386,17 +474,13 @@ internal static class RoofGeneratedRafterSetService
 
         try
         {
-            var definition = RoofDefinitionStore.Read(owner).Data;
+            var definition = PrepareGeneratorDefinition(transaction, owner);
             var reservedElementIds = CollectReservedElementIds(
                 database,
                 transaction,
                 existingIds,
                 definition);
-            replayPlan = RoofGeneratedMemberReplayPlanner.Create(
-                layoutResult.Layout,
-                0d,
-                RoofGeneratedMemberOverrideRules.SourceWorkingPlaneNormal,
-                definition?.Overrides);
+            replayPlan = RoofOrdinaryRebuildRules.CreateReplayPlan(layoutResult.Layout, definition);
             if (!replayPlan.IsValid)
             {
                 throw new InvalidOperationException(
@@ -462,12 +546,22 @@ internal static class RoofGeneratedRafterSetService
         }
         catch (System.Exception ex)
         {
+            var phase = ex is RoofRafterMaterializationPhaseException materialization
+                ? materialization.ServicePhase
+                : null;
+            LastFailureDetail = RoofGeneratedPlanRebuildFailureRules.FromException(
+                ownerReference,
+                ex,
+                phase);
 #if DEBUG
             RoofGeneratedTimberCopyOwnershipDiagService.WriteReplaceDiag(
                 editor,
                 $"branch=MaterializeOrEraseFailed -> Failed ex={ex.GetType().Name}:{ex.Message}");
-#else
-            _ = ex;
+            AcKrovyDiagnostics.Info(
+                "ROOF_GENERATED_PLAN_REBUILD_FAILURE",
+                LastFailureDetail.ToMarkerLine());
+            editor.WriteMessage(
+                $"\nROOF_GENERATED_PLAN_REBUILD_FAILURE {LastFailureDetail.ToMarkerLine()}\n");
 #endif
             return ReplacementOutcome.Failed;
         }
@@ -570,6 +664,8 @@ internal static class RoofGeneratedRafterSetService
     {
 
         // Ordinary plan axes are independent of the roof's physical elevation.
+        if (PrepareGeneratorDefinition(transaction, owner) is { } recipeDefinition)
+            PersistRecipe(transaction, owner, recipeDefinition, recipe);
         var sourceElevation = 0d;
         var storedOverrides = RoofDefinitionStore.Read(owner).Data?.Overrides;
         var planeNormal = RoofGeneratedMemberOverrideRules.SourceWorkingPlaneNormal;
@@ -581,6 +677,8 @@ internal static class RoofGeneratedRafterSetService
                 sourceElevation,
                 planeNormal,
                 storedOverrides);
+            replayPlan = RoofAcceptedOrdinaryOverrideReplayRules.Apply(
+                replayPlan, RoofDefinitionStore.Read(owner).Data?.EditState ?? RoofEditState.Locked);
         }
         catch (Exception ex)
         {
@@ -751,16 +849,45 @@ internal static class RoofGeneratedRafterSetService
             throw new RoofRafterMaterializationPhaseException(phase, -1, ex);
         }
         var document = editor.Document;
-        RoofOrdinaryRafterSolidMaterializationService.ReconcileInTransaction(
-            database, transaction, owner, geometry, layout, recipe, replayPlan,
-            structuralReconcilePending: true, includeAttachedManual: includeAttachedManual);
-        var physicalState = RoofPhysicalElevationStore.Read(owner).Data;
-        if (physicalState is not null)
+        try
         {
-            RoofPhysical3DMaterializationService.ApplyOwnedVisibility(
-                database, transaction, ownerReference,
-                physicalState.Physical3DEnabled,
-                physicalState.DisplayVisibility);
+#if DEBUG
+            if (!string.IsNullOrWhiteSpace(InjectPostCreateOrdinaryPhysicalFailureOnce))
+            {
+                var injected = InjectPostCreateOrdinaryPhysicalFailureOnce;
+                InjectPostCreateOrdinaryPhysicalFailureOnce = null;
+                throw new InvalidOperationException(injected);
+            }
+#endif
+            RoofOrdinaryRafterSolidMaterializationService.ReconcileInTransaction(
+                database, transaction, owner, geometry, layout, recipe, replayPlan,
+                structuralReconcilePending: true, includeAttachedManual: includeAttachedManual);
+        }
+        catch (Exception ex)
+        {
+            throw new RoofRafterMaterializationPhaseException(
+                RoofGeneratedPlanRebuildFailureRules.SubstageOrdinaryPhysicalReconcile,
+                -1,
+                ex);
+        }
+
+        try
+        {
+            var physicalState = RoofPhysicalElevationStore.Read(owner).Data;
+            if (physicalState is not null)
+            {
+                RoofPhysical3DMaterializationService.ApplyOwnedVisibility(
+                    database, transaction, ownerReference,
+                    physicalState.Physical3DEnabled,
+                    physicalState.DisplayVisibility);
+            }
+        }
+        catch (Exception ex)
+        {
+            throw new RoofRafterMaterializationPhaseException(
+                RoofGeneratedPlanRebuildFailureRules.SubstageVisibility,
+                -1,
+                ex);
         }
         if (!syncAssemblyGroup)
         {

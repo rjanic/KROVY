@@ -38,7 +38,7 @@ public sealed class RoofRigidTransformPersistenceTests
         var payload = RoofDefinitionDataCodec.Encode(data);
         var decoded = Decode(payload);
 
-        Assert.Equal(5, decoded.SchemaVersion);
+        Assert.Equal(RoofDefinitionDataSchema.CurrentVersion, decoded.SchemaVersion);
         Assert.Equal(RoofKind.SimpleGable, decoded.Kind);
         Assert.Equal(37.1234567890123d, decoded.SlopeDegrees);
         Assert.Equal(RoofRidgeEdgeFamily.SourceEdge01, decoded.RidgeEdgeFamily);
@@ -104,7 +104,7 @@ public sealed class RoofRigidTransformPersistenceTests
     public void FutureSchema_IsRejectedSafely()
     {
         Assert.False(RoofDefinitionDataCodec.TryDecode(
-            "6|SimpleGable|35|Edge01|4|CCW|10000|6000",
+            $"{RoofDefinitionDataSchema.CurrentVersion + 1}|SimpleGable|35|Edge01|4|CCW|10000|6000",
             out _,
             out var error));
         Assert.Equal(RoofDefinitionDataDecodeError.UnsupportedFutureSchema, error);

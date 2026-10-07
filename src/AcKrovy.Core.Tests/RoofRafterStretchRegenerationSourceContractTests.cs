@@ -82,12 +82,23 @@ public sealed class RoofRafterStretchRegenerationSourceContractTests
     {
         var apply = Segment(
             ResizeService,
-            "private static bool ApplyResizes",
-            "private static ResizeApplyResult TryApplyResize");
+            "private static ResizeBatchResult ApplyResizes",
+            "private static void FinalizeSupportedResizeHardFailure");
         Assert.Contains("ResizeApplyResult.HardFailure", apply);
-        Assert.Contains("return false;", apply);
-        Assert.Contains("Command_RoofRafters_GenerationFailed", apply);
+        Assert.Contains("hardFailed = true", apply);
+        Assert.Contains("ResizeBatchResult.HardFailure", apply);
         Assert.Contains("transaction.Commit()", apply);
+        Assert.Contains("FinalizeSupportedResizeHardFailure(", ResizeService);
+        Assert.Contains("TryRestoreSupportedResizeFailureAggregate(", ResizeService);
+        Assert.Contains("ROOF_RESIZE_FAILURE_RECOVERY", ResizeService);
+        Assert.Contains("ROOF_RESIZE_HARDFAILURE_DETAIL", ResizeService);
+        Assert.Contains("nextCommandReady", ResizeService);
+        Assert.Contains("groupCanonical", ResizeService);
+        Assert.Contains("IsRecoveryVerdictOk(", ResizeService);
+        Assert.Contains("InjectStructuralPhysicalFailureOnce", ResizeService);
+        Assert.Contains("SourceHandledOwnersThisCommand.Clear()", ResizeService);
+        Assert.Contains("SourceSupportedResizeOwnersThisCommand.Clear()", ResizeService);
+        Assert.Contains("resizeBatch == ResizeBatchResult.HardFailure", ResizeService);
     }
 
     [Fact]
@@ -117,7 +128,7 @@ public sealed class RoofRafterStretchRegenerationSourceContractTests
     {
         Assert.Equal(1, AcKrovy.Core.Models.Roofs.RoofGeneratedTimberDataSchema.CurrentVersion);
         Assert.Equal(7, AcKrovy.Core.Models.TimberElementDataSchema.CurrentVersion);
-        Assert.Equal(5, AcKrovy.Core.Models.Roofs.RoofDefinitionDataSchema.CurrentVersion);
+        Assert.Equal(6, AcKrovy.Core.Models.Roofs.RoofDefinitionDataSchema.CurrentVersion);
         Assert.DoesNotContain("CurrentVersion = 2", Read(
             "src", "AcKrovy.Core", "Models", "Roofs", "RoofGeneratedTimberDataSchema.cs"));
     }

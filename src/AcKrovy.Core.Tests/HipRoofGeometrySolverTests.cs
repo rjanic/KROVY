@@ -317,14 +317,14 @@ public sealed class HipRoofGeometrySolverTests
     }
 
     [Fact]
-    public void ExistingEnumValuesAndSchemaRemainStableAndHipUsesCurrentSchemaOnly()
+    public void ExistingEnumValuesRemainStableAndHipRequiresEaveHeightSchemaOrLater()
     {
         Assert.Equal(1, (int)RoofKind.SimpleGable);
         Assert.Equal(2, (int)RoofKind.AsymmetricGable);
         Assert.Equal(3, (int)RoofKind.Monopitch);
         Assert.Equal(4, (int)RoofKind.Hip);
-        Assert.Equal(5, RoofDefinitionDataSchema.CurrentVersion);
-        for (var schema = 1; schema < RoofDefinitionDataSchema.CurrentVersion; schema++)
+        Assert.Equal(6, RoofDefinitionDataSchema.CurrentVersion);
+        for (var schema = 1; schema < RoofDefinitionDataSchema.EaveHeightVersion; schema++)
         {
             var data = new RoofDefinitionData(schema, RoofKind.Hip, 30);
             Assert.False(RoofDefinitionDataCodec.TryValidate(data, out var error));

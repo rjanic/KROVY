@@ -6,6 +6,24 @@ namespace AcKrovy.Core.Tests;
 public sealed class LiveGeometryRefreshCoordinatorTests
 {
     [Fact]
+    public void CompletedRollbackNotifications_DoNotLeakIntoNextCommand()
+    {
+        var coordinator = new LiveGeometryRefreshCoordinator<string>();
+        coordinator.TryAdd("A");
+        coordinator.TryAdd("B");
+        Assert.Equal(2, coordinator.Drain().Count);
+        // Maintenance after the native candidates have already been drained.
+        coordinator.TryAdd("A");
+        coordinator.TryAdd("B");
+        coordinator.Clear(); // CommandEnded finally.
+        coordinator.TryAdd("A"); // Late notification before the next command.
+        coordinator.Clear(); // CommandWillStart, before the new snapshot.
+        coordinator.TryAdd("C");
+        Assert.Equal(new[] { "C" }, coordinator.Drain());
+        Assert.Empty(coordinator.Drain());
+    }
+
+    [Fact]
     public void TryAdd_DeduplicatesCandidates()
     {
         var coordinator = new LiveGeometryRefreshCoordinator<int>();

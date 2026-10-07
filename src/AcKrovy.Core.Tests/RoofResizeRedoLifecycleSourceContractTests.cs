@@ -28,9 +28,12 @@ public sealed class RoofResizeRedoLifecycleSourceContractTests
     [Fact]
     public void Resize_IsASingleWriteTransaction()
     {
-        var apply = Member(Resize, "private static bool ApplyResizes", "private static ResizeApplyResult TryApplyResize");
+        var apply = Member(Resize, "private static ResizeBatchResult ApplyResizes", "private static void FinalizeSupportedResizeHardFailure");
         Assert.Equal(1, Count(apply, "StartTransaction"));
         Assert.Equal(1, Count(apply, "transaction.Commit()"));
+        var finalize = Member(Resize, "private static void FinalizeSupportedResizeHardFailure", "private static ResizeApplyResult TryApplyResize");
+        Assert.Contains("TryRestoreSupportedResizeFailureAggregate(", finalize);
+        Assert.Contains("ROOF_RESIZE_FAILURE_RECOVERY", finalize);
     }
 
     [Fact]

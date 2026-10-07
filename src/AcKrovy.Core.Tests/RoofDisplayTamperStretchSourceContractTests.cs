@@ -32,7 +32,7 @@ public sealed class RoofDisplayTamperStretchSourceContractTests
         var inspect = Segment(
             ResizeService,
             "private static InspectionPlan Inspect(",
-            "private static bool ApplyResizes");
+            "private static ResizeBatchResult ApplyResizes");
         Assert.Contains("RoofDisplayStore.Read(entity).Exists", inspect);
         Assert.Contains("RoofOwnerSelectionResolver.Resolve(", inspect);
         Assert.Contains("displayTamperCandidates.Add(resolution.OwnerId)", inspect);
@@ -127,7 +127,7 @@ public sealed class RoofDisplayTamperStretchSourceContractTests
         var inspect = Segment(
             ResizeService,
             "private static InspectionPlan Inspect(",
-            "private static bool ApplyResizes");
+            "private static ResizeBatchResult ApplyResizes");
         Assert.Contains(
             "if (resizeOwners.Contains(ownerId) ||",
             inspect);

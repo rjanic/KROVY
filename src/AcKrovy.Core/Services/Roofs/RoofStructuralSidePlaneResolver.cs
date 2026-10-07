@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using AcKrovy.Core.Models.Roofs;
 
 namespace AcKrovy.Core.Services.Roofs;
@@ -6,6 +9,18 @@ namespace AcKrovy.Core.Services.Roofs;
 public static class RoofStructuralSidePlaneResolver
 {
     private const double Tolerance = RoofFaceRafterLayoutService.CoordinateToleranceMm;
+
+    /// <summary>
+    /// Shared Hip/Valley apex: ordinary endpoint equals the common topology node of
+    /// multiple same-role edges. There is no unique structural side plane.
+    /// </summary>
+    public const string SharedNodeNoSideCutReason = "StructuralSharedNodeNoSideCut";
+
+    private enum ContactKind
+    {
+        Interior = 0,
+        Endpoint = 1,
+    }
 
     public static bool TryResolve(
         RoofTopology topology,
@@ -27,29 +42,71 @@ public static class RoofStructuralSidePlaneResolver
 
         var kind = role == RoofRafterBoundaryRole.Hip
             ? RoofTopologyEdgeKind.Hip : RoofTopologyEdgeKind.Valley;
-        var candidates = sources.Where(source =>
-            source.Role == role &&
-            source.TopologyEdgeIndex >= 0 &&
-            source.TopologyEdgeIndex < topology.Edges.Count &&
-            topology.Edges[source.TopologyEdgeIndex].Kind == kind &&
-            topology.Edges[source.TopologyEdgeIndex].FaceIndices.Contains(sourceFaceIndex) &&
-            OnEdge(topology.Segment(topology.Edges[source.TopologyEdgeIndex]),
-                canonicalEndpoint)).ToArray();
-        if (candidates.Length != 1)
+        var contacts = new List<(RoofStructuralRafterTrimSource Source, ContactKind Kind, int? NodeIndex)>();
+        foreach (var source in sources)
         {
-            failureReason = candidates.Length == 0
-                ? "StructuralTargetNotFound" : "StructuralTargetAmbiguous";
+            if (source.Role != role ||
+                source.TopologyEdgeIndex < 0 ||
+                source.TopologyEdgeIndex >= topology.Edges.Count)
+            {
+                continue;
+            }
+
+            var edge = topology.Edges[source.TopologyEdgeIndex];
+            if (edge.Kind != kind ||
+                !edge.FaceIndices.Contains(sourceFaceIndex))
+            {
+                continue;
+            }
+
+            var topologicalAxis = topology.Segment(edge);
+            if (!TryClassifyContact(topologicalAxis, edge, canonicalEndpoint,
+                    out var contactKind, out var nodeIndex))
+            {
+                continue;
+            }
+
+            contacts.Add((source, contactKind, nodeIndex));
+        }
+
+        if (contacts.Count == 0)
+        {
+            failureReason = "StructuralTargetNotFound";
             return false;
         }
 
-        var target = candidates[0];
-        var topologicalAxis = topology.Segment(topology.Edges[target.TopologyEdgeIndex]);
-        if (!SamePlanAxis(topologicalAxis, target.Axis))
+        var interiors = contacts.Where(item => item.Kind == ContactKind.Interior).ToArray();
+        if (interiors.Length == 1)
         {
-            failureReason = "StructuralAxisMismatch";
+            return ResolveSingleTarget(
+                topology, interiors[0].Source, ordinaryInteriorPoint, out cut, out failureReason);
+        }
+
+        if (interiors.Length > 1)
+        {
+            failureReason = "StructuralTargetAmbiguous";
             return false;
         }
-        return TryCreatePlane(target, ordinaryInteriorPoint, out cut, out failureReason);
+
+        // No interior contacts — endpoint-only selection.
+        var endpoints = contacts.Where(item => item.Kind == ContactKind.Endpoint).ToArray();
+        if (endpoints.Length == 1)
+        {
+            return ResolveSingleTarget(
+                topology, endpoints[0].Source, ordinaryInteriorPoint, out cut, out failureReason);
+        }
+
+        if (endpoints.Length > 1 &&
+            AllShareSameTopologyNode(endpoints))
+        {
+            // Shared apex/junction: leave StructuralCut unset; not ambiguous corruption.
+            cut = null;
+            failureReason = SharedNodeNoSideCutReason;
+            return true;
+        }
+
+        failureReason = "StructuralTargetAmbiguous";
+        return false;
     }
 
     public static bool TryCreatePlane(
@@ -105,8 +162,32 @@ public static class RoofStructuralSidePlaneResolver
         return true;
     }
 
-    private static bool OnEdge(RoofSegment3D edge, RoofPoint2D point)
+    private static bool ResolveSingleTarget(
+        RoofTopology topology,
+        RoofStructuralRafterTrimSource target,
+        RoofPoint2D ordinaryInteriorPoint,
+        out RoofStructuralRafterSideCut? cut,
+        out string failureReason)
     {
+        cut = null;
+        var topologicalAxis = topology.Segment(topology.Edges[target.TopologyEdgeIndex]);
+        if (!SamePlanAxis(topologicalAxis, target.Axis))
+        {
+            failureReason = "StructuralAxisMismatch";
+            return false;
+        }
+        return TryCreatePlane(target, ordinaryInteriorPoint, out cut, out failureReason);
+    }
+
+    private static bool TryClassifyContact(
+        RoofSegment3D edge,
+        RoofTopologyEdge topologyEdge,
+        RoofPoint2D point,
+        out ContactKind kind,
+        out int? nodeIndex)
+    {
+        kind = ContactKind.Endpoint;
+        nodeIndex = null;
         var dx = edge.End.X - edge.Start.X;
         var dy = edge.End.Y - edge.Start.Y;
         var squared = dx * dx + dy * dy;
@@ -114,12 +195,50 @@ public static class RoofStructuralSidePlaneResolver
         {
             return false;
         }
+
         var fraction = ((point.X - edge.Start.X) * dx +
             (point.Y - edge.Start.Y) * dy) / squared;
         var missX = point.X - (edge.Start.X + fraction * dx);
         var missY = point.Y - (edge.Start.Y + fraction * dy);
-        return fraction >= -Tolerance && fraction <= 1d + Tolerance &&
-            Math.Sqrt(missX * missX + missY * missY) <= Tolerance;
+        if (fraction < -Tolerance || fraction > 1d + Tolerance ||
+            Math.Sqrt(missX * missX + missY * missY) > Tolerance)
+        {
+            return false;
+        }
+
+        // Relative interior has priority over endpoint-only shared-node contacts.
+        if (fraction > Tolerance && fraction < 1d - Tolerance)
+        {
+            kind = ContactKind.Interior;
+            nodeIndex = null;
+            return true;
+        }
+
+        kind = ContactKind.Endpoint;
+        if (fraction <= Tolerance)
+            nodeIndex = topologyEdge.StartNodeIndex;
+        else
+            nodeIndex = topologyEdge.EndNodeIndex;
+        return true;
+    }
+
+    private static bool AllShareSameTopologyNode(
+        IReadOnlyList<(RoofStructuralRafterTrimSource Source, ContactKind Kind, int? NodeIndex)> endpoints)
+    {
+        if (endpoints.Count < 2)
+            return false;
+        int? shared = null;
+        foreach (var item in endpoints)
+        {
+            if (item.NodeIndex is not { } node)
+                return false;
+            if (shared is null)
+                shared = node;
+            else if (shared.Value != node)
+                return false;
+        }
+
+        return shared is not null;
     }
 
     private static bool SamePlanAxis(RoofSegment3D a, RoofSegment3D b) =>

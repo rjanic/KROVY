@@ -20,7 +20,7 @@ public sealed class RoofAttachedManualPhysicalLifecycleTests
         var legacy = Child(f, Axis(f), RoofAttachedManualOrigin.Copy) with { SchemaVersion = schema, SemanticIdentity = null };
         Assert.True(RoofAttachedManualTimberDataCodec.TryDecode(RoofAttachedManualTimberDataCodec.Encode(legacy), out var read));
         var migrated = RoofAttachedManualIdentityRules.Upgrade(read!);
-        Assert.Equal(4, migrated.SchemaVersion);
+        Assert.Equal(5, migrated.SchemaVersion);
         Assert.Equal(RoofAttachedManualIdentityRules.Resolve(legacy), migrated.SemanticIdentity);
         Assert.Equal(migrated, RoundTrip(migrated));
         Assert.Equal(RoofAttachedManualIdentityRules.PhysicalKey(migrated),

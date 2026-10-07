@@ -106,6 +106,7 @@ public sealed class SettingsVisualStateViewModel : INotifyPropertyChanged
             SettingsWindowTabKind.Manufacturing => "SettingsWindow_Manufacturing_Tab",
             SettingsWindowTabKind.Annotation => "SettingsWindow_Annotation_Tab",
             SettingsWindowTabKind.Language => "SettingsWindow_Language_Tab",
+            SettingsWindowTabKind.Warnings => "SettingsWindow_Warnings_Tab",
             _ => "SettingsWindow_Layers_Tab",
         };
 

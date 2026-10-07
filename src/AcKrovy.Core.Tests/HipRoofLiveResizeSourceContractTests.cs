@@ -125,7 +125,7 @@ public sealed class HipRoofLiveResizeSourceContractTests
         var apply = Member(Resize, "private static ResizeApplyResult TryApplyResize", "private static IReadOnlyCollection<ObjectId> TryAcceptRigidGroupTransforms");
         Assert.Contains("generatedMemberCount > 0", apply);
         Assert.Contains("rafterOutcome != RoofGeneratedRafterSetService.ReplacementOutcome.Replaced", apply);
-        Assert.Contains("return ResizeApplyResult.HardFailure", apply);
+        Assert.Contains("HardFailureAt(document, ownerId, \"generated-plan-rebuild\"", apply);
     }
 
     [Fact]
@@ -150,7 +150,11 @@ public sealed class HipRoofLiveResizeSourceContractTests
         Assert.Contains("owner.NumberOfVertices == vertices.Count", Recovery);
         Assert.Contains("for (var i = 0; i < vertices.Count; i++)", Recovery);
         Assert.Contains("RoofDisplayService.Rebuild(", Recovery);
-        Assert.DoesNotContain("RoofDefinitionStore.Write(", Recovery);
+        var unsupportedOwner = RoofUxSourceContractText.Member(
+            Recovery,
+            "public static RoofUnsupportedStretchRecoveryOutcome TryRecoverOwner(",
+            "public static bool TryRestoreSupportedResizeFailureAggregate(");
+        Assert.DoesNotContain("RoofDefinitionStore.Write(", unsupportedOwner);
     }
 
     [Fact]

@@ -349,7 +349,7 @@ public sealed class RoofAutomaticStructuralHipValleyAnnotationTests
         Assert.Equal(7, TimberElementDataSchema.CurrentVersion);
         Assert.Equal(1, RoofStructuralGeneratedDataSchema.CurrentVersion);
         Assert.Equal(1, RoofBoundaryIdentitySchema.CurrentVersion);
-        Assert.Equal(5, RoofDefinitionDataSchema.CurrentVersion);
+        Assert.Equal(6, RoofDefinitionDataSchema.CurrentVersion);
         var props = File.ReadAllText(Path.Combine(RepositoryRoot(), "Directory.Build.props"));
         Assert.Contains("<AcKrovyVersion>0.23.0</AcKrovyVersion>", props);
     }

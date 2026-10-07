@@ -669,7 +669,7 @@ public sealed class MonopitchRafterStage2D4AClipboardTests
         Assert.Contains("cloneLine.StartPoint", AttachedCopy);
         Assert.Contains("cloneLine.EndPoint", AttachedCopy);
         Assert.Contains("RoofAttachedManualOrigin.Copy", AttachedCopy);
-        Assert.Contains("SelectNearestMirrorAnchor", AttachedCopy);
+        Assert.Contains("SelectRetainedAnchor", AttachedCopy);
         Assert.Contains("RoofAttachedManualTimberStore.TryClear", GeneratedCopy);
         Assert.Contains("RoofAttachedManualLifecycleService.CreateAnchoredData", GeneratedCopy);
         Assert.Contains("sourceLine.StartPoint", GeneratedCopy);
@@ -727,9 +727,9 @@ public sealed class MonopitchRafterStage2D4AClipboardTests
         Assert.DoesNotContain("WBLOCK", newPolicy + Snapshot, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("INSERT", newPolicy + Snapshot, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("EXPLODE", newPolicy + Snapshot, StringComparison.OrdinalIgnoreCase);
-        Assert.Equal(5, RoofDefinitionDataSchema.CurrentVersion);
+        Assert.Equal(6, RoofDefinitionDataSchema.CurrentVersion);
         Assert.Equal(1, RoofDisplayDataSchema.CurrentVersion);
-        Assert.Equal(4, RoofAttachedManualTimberDataSchema.CurrentVersion);
+        Assert.Equal(5, RoofAttachedManualTimberDataSchema.CurrentVersion);
         Assert.Equal(3, (int)RoofKind.Monopitch);
     }
 

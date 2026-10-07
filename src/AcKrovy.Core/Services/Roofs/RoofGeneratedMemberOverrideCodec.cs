@@ -70,7 +70,7 @@ public static class RoofGeneratedMemberOverrideCodec
         var elementId = string.IsNullOrWhiteSpace(item.ReservedElementId)
             ? EmptyElementIdToken
             : item.ReservedElementId;
-        return string.Join(
+        var payload = string.Join(
             FieldSeparator.ToString(),
             item.Key.MemberKind.ToString(),
             item.Key.RoofFace.ToString(),
@@ -82,13 +82,16 @@ public static class RoofGeneratedMemberOverrideCodec
             item.StartOffsetMm.ToString("R", CultureInfo.InvariantCulture),
             item.EndOffsetMm.ToString("R", CultureInfo.InvariantCulture),
             elementId);
+        return item.PhysicalReferenceSegment is not { } reference ? payload : payload + FieldSeparator +
+            string.Join(FieldSeparator.ToString(), new[] { reference.U0Mm, reference.V0Mm, reference.W0Mm,
+                reference.U1Mm, reference.V1Mm, reference.W1Mm }.Select(value => value.ToString("R", CultureInfo.InvariantCulture)));
     }
 
     private static bool TryDecodeOne(string token, out RoofGeneratedMemberOverride? item)
     {
         item = null;
         var fields = token.Split(FieldSeparator);
-        if (fields.Length != 10)
+        if (fields.Length is not (10 or 16))
         {
             return false;
         }
@@ -116,6 +119,18 @@ public static class RoofGeneratedMemberOverrideCodec
         var reserved = string.Equals(fields[9], EmptyElementIdToken, StringComparison.Ordinal)
             ? null
             : fields[9];
+        RoofAttachedManualRelativeSegment? reference = null;
+        if (fields.Length == 16)
+        {
+            var values = new double[6];
+            for (var index = 0; index < values.Length; index++)
+                if (!TryParseFinite(fields[10 + index], out values[index])) return false;
+            if (Math.Abs(values[2]) > RoofGeneratedMemberOverrideMath.LengthToleranceMm ||
+                Math.Abs(values[5]) > RoofGeneratedMemberOverrideMath.LengthToleranceMm ||
+                Math.Sqrt(Math.Pow(values[3] - values[0], 2) + Math.Pow(values[4] - values[1], 2)) <=
+                    RoofGeneratedMemberOverrideMath.LengthToleranceMm) return false;
+            reference = new(values[0], values[1], values[2], values[3], values[4], values[5]);
+        }
         item = RoofGeneratedMemberOverrideMath.Normalize(
             new RoofGeneratedMemberOverride(
                 new RoofGeneratedMemberKey(kind, face, station),
@@ -125,7 +140,7 @@ public static class RoofGeneratedMemberOverrideCodec
                 rotation,
                 start,
                 end,
-                reserved));
+                reserved) { PhysicalReferenceSegment = reference });
         if (item is null && fields[3] == "1")
         {
             item = RoofGeneratedMemberOverride.Suppress(

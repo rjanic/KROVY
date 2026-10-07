@@ -123,7 +123,7 @@ public sealed class RoofUnlockIndicatorSourceContractTests
     [Fact]
     public void SchemaAndPackageRemainUnchangedForIcon()
     {
-        Assert.Equal(5, RoofDefinitionDataSchema.CurrentVersion);
+        Assert.Equal(6, RoofDefinitionDataSchema.CurrentVersion);
         Assert.Equal(RoofEditState.Locked, default(RoofEditState));
         Assert.DoesNotContain("SchemaVersion", Store);
     }

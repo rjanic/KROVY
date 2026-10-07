@@ -185,6 +185,8 @@ internal static class RoofRafterCommandWorkflow
         var replay = RoofGeneratedMemberReplayPlanner.Create(solved.Layout, 0d,
             RoofGeneratedMemberOverrideRules.SourceWorkingPlaneNormal,
             RoofDefinitionStore.Read(owner).Data?.Overrides);
+        replay = RoofAcceptedOrdinaryOverrideReplayRules.Apply(
+            replay, RoofDefinitionStore.Read(owner).Data?.EditState ?? RoofEditState.Locked);
         if (!replay.IsValid) return null;
         var structuralEdges = resolution.Edges.Where(edge =>
             edge.IsAutomaticStructuralTimberEligible).ToArray();

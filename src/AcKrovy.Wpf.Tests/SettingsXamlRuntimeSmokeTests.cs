@@ -438,6 +438,15 @@ public sealed class SettingsXamlRuntimeSmokeTests
                 var languageCards = window.LanguageOptions.ToArray();
                 row.LayerName = "PENDING_LAYER";
                 row.LinetypeScaleText = "0.75";
+                var appliesBeforeWarnings = applyCallCount;
+                window.Visual.SelectedSection = SettingsWindowTabKind.Warnings;
+                window.UpdateLayout();
+                Assert.Equal(Visibility.Visible, window.WarningsSection.Visibility);
+                Assert.Equal(window.ConfirmAutomaticMemberDetach, window.ConfirmAutomaticDetachCheckBox.IsChecked);
+                Assert.Equal(window.WarnDerived3DEdit, window.WarnDerived3DEditCheckBox.IsChecked);
+                Assert.NotNull(window.ConfirmAutomaticDetachCheckBox.Style);
+                Assert.NotNull(window.WarnDerived3DEditCheckBox.Style);
+                Assert.Equal(appliesBeforeWarnings, applyCallCount);
                 window.Visual.SelectedSection = SettingsWindowTabKind.Language;
                 foreach (var languageCode in new[] { "sk", "cs", "en", "de", "pl", "fr" })
                 {

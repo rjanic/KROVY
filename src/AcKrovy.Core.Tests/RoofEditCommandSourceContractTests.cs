@@ -82,7 +82,7 @@ public sealed class RoofEditCommandSourceContractTests
             dialogPath,
             "case GableRoofGeometryDialogAction.Preview:",
             "case GableRoofGeometryDialogAction.Apply:");
-        Assert.Contains("ShowPreview(document, previewGeometry, sourceElevation)", preview);
+        Assert.Contains("ShowPreview(document, previewGeometry, sourceElevation, ownerId, restoredGeometry)", preview);
         Assert.DoesNotContain("RoofDefinitionStore.Write", preview);
         Assert.DoesNotContain("RoofDisplayService.Rebuild", preview);
         Assert.DoesNotContain("TryReplaceForSupportedResize", preview);

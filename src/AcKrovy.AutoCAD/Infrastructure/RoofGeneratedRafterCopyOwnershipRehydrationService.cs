@@ -1741,6 +1741,9 @@ internal static class RoofGeneratedRafterCopyOwnershipRehydrationService
                 cloneLine.StartPoint,
                 cloneLine.EndPoint,
                 RoofAttachedManualOrigin.Copy);
+            RoofAttachedManualRelativeGeometryRules.TryCapture(ToRoof(sourceLine.StartPoint), ToRoof(sourceLine.EndPoint),
+                ToRoof(sourceLine.StartPoint), ToRoof(sourceLine.EndPoint), out var physicalReference);
+            attachedData = attachedData with { PhysicalReferenceSegment = physicalReference };
         }
         else
         {
@@ -1768,6 +1771,9 @@ internal static class RoofGeneratedRafterCopyOwnershipRehydrationService
                     cloneLine.StartPoint,
                     cloneLine.EndPoint,
                     RoofAttachedManualOrigin.Copy);
+                RoofAttachedManualRelativeGeometryRules.TryCapture(fallbackAnchor.Start, fallbackAnchor.End,
+                    fallbackAnchor.Start, fallbackAnchor.End, out var physicalReference);
+                attachedData = attachedData with { PhysicalReferenceSegment = physicalReference };
             }
             else
             {
@@ -1980,7 +1986,7 @@ internal static class RoofGeneratedRafterCopyOwnershipRehydrationService
                 ToRoof(line.EndPoint)));
         }
 
-        anchor = RoofAttachedManualReanchorRules.SelectNearestAnchor(
+        anchor = RoofAttachedManualReanchorRules.SelectRetainedAnchor(
             candidateKey,
             candidates,
             ToRoof(cloneLine.StartPoint),

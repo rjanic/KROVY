@@ -110,6 +110,7 @@ public static class LiveGeometryCommandRules
         IsSameDwgCopyOwnershipCommand(globalCommandName) ||
         IsClipboardPasteCommand(globalCommandName) ||
         RoofGeneratedMemberEditCommandRules.IsMirrorCommand(globalCommandName) ||
+        RoofGeneratedMemberEditCommandRules.IsJoinCommand(globalCommandName) ||
         RoofGeneratedMemberEditCommandRules.IsGeneratedTimberEditCommand(globalCommandName);
 
     public static bool IsCopySourcePreservingCommand(string? globalCommandName)

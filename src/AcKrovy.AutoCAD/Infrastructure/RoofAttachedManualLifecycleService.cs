@@ -410,16 +410,71 @@ internal static class RoofAttachedManualLifecycleService
                 continue;
             }
 
-            var data = CreateAnchoredData(
-                ownerReference,
-                stored.Data.ChildIdentity,
-                resolvedKey,
-                anchorStart,
-                anchorEnd,
-                childLine.StartPoint,
-                childLine.EndPoint,
-                stored.Data.Origin,
-                RoofAttachedManualIdentityRules.Resolve(stored.Data));
+            RoofAttachedManualTimberData data;
+            if (RoofGeneratedMemberEditCommandRules.IsGripStretchCommand(globalCommandName) &&
+                stored.Data.Origin == RoofAttachedManualOrigin.Copy &&
+                anchorKey.MemberKind == RoofGeneratedTimberKind.Rafter)
+            {
+                if (!RoofUnsupportedStretchRecoverySnapshotService.TryGetByHandle(ownerReference, out var gripSnapshot) ||
+                    gripSnapshot.Assembly.TimberLines.FirstOrDefault(item => string.Equals(
+                        item.EntityHandle, childLine.Handle.ToString(), StringComparison.OrdinalIgnoreCase)) is not { } before)
+                    throw new InvalidOperationException("AttachedManual endpoint GRIP snapshot is unavailable.");
+                var baseline = new RoofGeneratedMemberGeometry(before.Start, before.End);
+                var native = new RoofGeneratedMemberGeometry(ToRoof(childLine.StartPoint), ToRoof(childLine.EndPoint));
+                if (RoofAttachedManualGripRules.TryAccept(stored.Data, ToRoof(anchorStart), ToRoof(anchorEnd),
+                        baseline, native, out var grip) && grip is not null)
+                {
+                    childLine.UpgradeOpen();
+                    childLine.StartPoint = ToAcad(grip.Geometry.Start);
+                    childLine.EndPoint = ToAcad(grip.Geometry.End);
+                    data = grip.Metadata;
+#if DEBUG
+                    RoofGeneratedMemberManualEditDiag.WriteOrdinaryGripFreeform(
+                        document.Editor, ownerReference, RoofAttachedManualIdentityRules.Resolve(data),
+                        grip.Grip, "ok", kind: "AttachedManual");
+#endif
+                }
+                else if (RoofGeneratedMemberOverrideMath.TryClassifyPureTranslation(
+                             baseline, native, RoofGeneratedMemberOverrideRules.SourceWorkingPlaneNormal,
+                             out _, out var translated, out _))
+                {
+                    // Preserve the existing midpoint-grip placement semantics.
+                    childLine.UpgradeOpen();
+                    childLine.StartPoint = ToAcad(translated.Start);
+                    childLine.EndPoint = ToAcad(translated.End);
+                    data = CreateAnchoredData(ownerReference, stored.Data.ChildIdentity, anchorKey,
+                        anchorStart, anchorEnd, childLine.StartPoint, childLine.EndPoint,
+                        stored.Data.Origin, RoofAttachedManualIdentityRules.Resolve(stored.Data)) with
+                    { PhysicalReferenceSegment = stored.Data.PhysicalReferenceSegment };
+                }
+                else
+                {
+#if DEBUG
+                    RoofGeneratedMemberManualEditDiag.WriteOrdinaryGripFreeform(
+                        document.Editor, ownerReference, RoofAttachedManualIdentityRules.Resolve(stored.Data),
+                        new(baseline, native, baseline, "None", default, default, 0,
+                            Math.Min(baseline.LengthMm, RoofRafterLengthRules.DefaultMinimumAutomaticLengthMm), false),
+                        "fail", kind: "AttachedManual");
+#endif
+                    throw new InvalidOperationException("AttachedManual GRIP is not a valid endpoint edit or translation.");
+                }
+            }
+            else
+            {
+                data = CreateAnchoredData(
+                    ownerReference,
+                    stored.Data.ChildIdentity,
+                    resolvedKey,
+                    anchorStart,
+                    anchorEnd,
+                    childLine.StartPoint,
+                    childLine.EndPoint,
+                    stored.Data.Origin,
+                    RoofAttachedManualIdentityRules.Resolve(stored.Data));
+            }
+            if (reanchor && stored.Data.Origin == RoofAttachedManualOrigin.Copy)
+                data = data with { PhysicalReferenceSegment =
+                    stored.Data.PhysicalReferenceSegment ?? stored.Data.RelativeSegment };
             childLine.UpgradeOpen();
             RoofAttachedManualTimberStore.Write(childLine, transaction, data);
 #if DEBUG
@@ -475,7 +530,7 @@ internal static class RoofAttachedManualLifecycleService
                 ToRoof(line.EndPoint)));
         }
 
-        selected = RoofAttachedManualReanchorRules.SelectNearestAnchor(
+        selected = RoofAttachedManualReanchorRules.SelectRetainedAnchor(
             currentAnchorKey,
             candidates,
             ToRoof(childLine.StartPoint),

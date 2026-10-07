@@ -32,6 +32,9 @@ namespace AcKrovy.AutoCAD.Commands;
 public sealed class AcKrovyCommands
 {
 #if DEBUG
+    [CommandMethod("AK_ROOF_3D_FRAME_AUDIT", CommandFlags.Modal)]
+    public void Roof3DFrameAudit() => RoofFinalSolidFrameAudit.Run(ActiveDocument());
+
     [CommandMethod("AK_ROOF_3D_AUDIT", CommandFlags.Modal)]
     public void RoofPhysical3DAudit() => RoofPhysical3DHostDiagnostics.Audit(ActiveDocument());
 
@@ -593,6 +596,13 @@ public sealed class AcKrovyCommands
     [CommandMethod(AcKrovyCommandNames.TieBeam, CommandFlags.Modal | CommandFlags.UsePickSet)]
     public void AssignTieBeam() => AssignWithPresetType(TimberElementType.TieBeam);
 
+#if DEBUG
+    /// <summary>AK_KROKEV_ELEVATION — Výškové osadenie: standalone elevation seating editor (Debug/Test only).</summary>
+    [CommandMethod("AK_KROKEV_ELEVATION", CommandFlags.Modal | CommandFlags.UsePickSet)]
+    public void OrdinaryRafterElevation() =>
+        RoofOrdinaryElevationCommandWorkflow.Run(ActiveDocument());
+#endif
+
     [CommandMethod(AcKrovyCommandNames.Custom, CommandFlags.Modal | CommandFlags.UsePickSet)]
     public void AssignCustom()
     {
@@ -713,13 +723,51 @@ public sealed class AcKrovyCommands
         }
 
         var defaultProfile = TimberElementDefaultProfileStore.Load();
+
+        StructuralMemberElevationState? elevationState = null;
+        double? planLengthMm = null;
+        string? elevationStateSource = null;
+        if (ids.Count == 1)
+        {
+            using var tx = document.Database.TransactionManager.StartTransaction();
+            if (tx.GetObject(ids[0], OpenMode.ForRead) is Line line &&
+                (RoofGeneratedTimberStore.Read(line).Data is { MemberKind: RoofGeneratedTimberKind.Rafter } ||
+                 RoofIndependentOrdinaryTimberStore.Read(line) is { EntityRole: RoofIndependentOrdinaryEntityRole.PlanLine }))
+            {
+                var dx = line.EndPoint.X - line.StartPoint.X;
+                var dy = line.EndPoint.Y - line.StartPoint.Y;
+                planLengthMm = Math.Sqrt(dx * dx + dy * dy);
+                if (planLengthMm >= 1.0)
+                {
+                    if (RoofOrdinaryElevationLifecycleService.TryReadCurrentState(
+                            line, tx, out var state, out var source) && state is not null)
+                    {
+                        elevationState = state;
+                        elevationStateSource = source;
+                    }
+                    else
+                    {
+                        // Do NOT invent synthetic 0/0/0. Leave section unavailable.
+                        elevationState = null;
+                        elevationStateSource = source;
+                        editor.WriteMessage(
+                            "\n" + UiStrings.GetString("RoofOrdinaryElevation_Failed", uiCulture) +
+                            $" (resolve:{source})");
+                    }
+                }
+            }
+            tx.Commit();
+        }
+
         var dialog = new ElementEditWindow(
             selectedData[0],
             isNewAssignment: false,
             defaultProfile,
             cuttingAllowanceIsMixed: HasMixedCuttingAllowance(selectedData),
             slopeDirectionIsMixed: HasMixedSlopeDirection(selectedData),
-            validationData: selectedData);
+            validationData: selectedData,
+            elevationState: elevationState,
+            planLengthMm: planLengthMm);
         dialog.CustomDefinitionNameChanged += name =>
         {
             if (selectedData.Count == 1)
@@ -740,15 +788,63 @@ public sealed class AcKrovyCommands
             : UiStrings.Format(
                 UiStrings.GetString("Command_Edit_TitleMultipleFormat", uiCulture),
                 selectedData.Count);
-        if (AcApp.ShowModalWindow(dialog) != true || dialog.Patch is null)
+        if (AcApp.ShowModalWindow(dialog) != true)
         {
             return;
         }
 
-        if (!TimberElementEditRules.HasRequestedChange(dialog.Patch) &&
-            !dialog.UseDefaultCuttingAllowanceByType &&
-            dialog.RenamedCustomDefinition is null)
+        // Apply elevation change if requested (Ordinary single selection only).
+        // Lifecycle must succeed before any "upravené" accounting — failed Apply is atomic abort.
+        var elevationLifecycleSucceeded = false;
+        if (elevationState is not null && dialog.RequestedElevationState is { } requested)
         {
+            var geometryChanged = dialog.ElevationGeometryChanged;
+            if (geometryChanged || dialog.ElevationDisplayReferenceChanged)
+            {
+                using var docLock = document.LockDocument();
+                using var applyTx = document.Database.TransactionManager.StartTransaction();
+                var lineForApply = (Line)applyTx.GetObject(ids[0], OpenMode.ForRead);
+                var prefs = SettingsUiPreferencesStore.Load();
+                var result = RoofOrdinaryElevationLifecycleService.TryApply(
+                    document, lineForApply, requested, elevationState, geometryChanged, prefs);
+
+                switch (result)
+                {
+                    case RoofOrdinaryElevationLifecycleService.ApplyResult.DisplayOnlyApplied:
+                    case RoofOrdinaryElevationLifecycleService.ApplyResult.AutoDetachedAndApplied:
+                    case RoofOrdinaryElevationLifecycleService.ApplyResult.IndependentApplied:
+                        applyTx.Commit();
+                        elevationLifecycleSucceeded = true;
+                        break;
+                    default:
+                        // Elevation apply failed or cancelled — do not mutate timber / count as modified.
+                        applyTx.Abort();
+                        if (result == RoofOrdinaryElevationLifecycleService.ApplyResult.UserCancelledDetach)
+                            return;
+                        editor.WriteMessage(
+                            "\n" + UiStrings.GetString("RoofOrdinaryElevation_Failed", uiCulture) +
+                            $" ({result})");
+                        return;
+                }
+            }
+        }
+
+        if (dialog.Patch is null ||
+            (!TimberElementEditRules.HasRequestedChange(dialog.Patch) &&
+             !dialog.UseDefaultCuttingAllowanceByType &&
+             dialog.RenamedCustomDefinition is null))
+        {
+            if (elevationLifecycleSucceeded)
+            {
+                // Elevation-only Apply is a successful member edit — count as upravené 1.
+                editor.WriteMessage(UiStrings.GetString("RoofOrdinaryElevation_Applied", uiCulture));
+                editor.WriteMessage(UiStrings.Format(
+                    UiStrings.GetString("Command_Edit_ResultFormat", uiCulture),
+                    1,
+                    selection.RejectedImpliedItems));
+                return;
+            }
+
             editor.WriteMessage(UiStrings.GetString(
                 "Command_Edit_NoChanges",
                 uiCulture));
@@ -872,6 +968,12 @@ public sealed class AcKrovyCommands
                     ex.Message));
             }
         }
+
+        // Elevation-only success must still count as modified when the timber patch
+        // loop produced no metadata writes (e.g. slope already synced / no patch fields).
+        if (elevationLifecycleSucceeded && changed == 0)
+            changed = 1;
+
         editor.WriteMessage(UiStrings.Format(
             UiStrings.GetString("Command_Edit_ResultFormat", uiCulture),
             changed,

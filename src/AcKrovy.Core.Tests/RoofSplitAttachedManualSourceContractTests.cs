@@ -38,7 +38,7 @@ public sealed class RoofSplitAttachedManualSourceContractTests
     public void AttachedManualRegApp_UnchangedForSplit()
     {
         Assert.Contains("DECORAIR_ACADKROVY_ROOF_ATTACHED_MANUAL", AttachedStore);
-        Assert.Contains("CurrentVersion = 4", File.ReadAllText(Path.Combine(
+        Assert.Contains("CurrentVersion = 5", File.ReadAllText(Path.Combine(
             RepositoryRoot(),
             "src",
             "AcKrovy.Core",

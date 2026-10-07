@@ -81,4 +81,155 @@ public sealed class RoofStructuralSidePlaneResolverTests
         Assert.Null(cut);
         Assert.Equal(expectedReason, reason);
     }
+
+    [Fact]
+    public void A_InteriorContact_ResolvesUniqueStructuralCut()
+    {
+        var (topology, sources, faceIndex) = ResolveTrapezoidHipFixture();
+        // Face0 jack: endpoint lies in relative interior of one Hip.
+        var jack = FindInteriorHipJack(topology, faceIndex: 0);
+        Assert.True(RoofStructuralSidePlaneResolver.TryResolve(
+            topology, jack.SourceFaceIndex, RoofRafterBoundaryRole.Hip,
+            jack.Endpoint, jack.Interior, sources, out var cut, out var reason), reason);
+        Assert.NotNull(cut);
+        Assert.Equal(string.Empty, reason);
+    }
+
+    [Fact]
+    public void B_SingleEndpointContact_PreservesExistingBehavior()
+    {
+        var (topology, sources, _) = ResolveTrapezoidHipFixture();
+        var jack = FindInteriorHipJack(topology, faceIndex: 0);
+        var single = sources.Where(source =>
+        {
+            var edge = topology.Edges[source.TopologyEdgeIndex];
+            return edge.FaceIndices.Contains(jack.SourceFaceIndex) &&
+                   PointOnClosedSegment(topology.Segment(edge), jack.Endpoint);
+        }).Take(1).ToArray();
+        Assert.Single(single);
+        Assert.True(RoofStructuralSidePlaneResolver.TryResolve(
+            topology, jack.SourceFaceIndex, RoofRafterBoundaryRole.Hip,
+            jack.Endpoint, jack.Interior, single, out var cut, out var reason), reason);
+        Assert.NotNull(cut);
+        Assert.Equal(single[0].TopologyEdgeIndex, cut!.TopologyEdgeIndex);
+    }
+
+    [Fact]
+    public void C_SharedNodeTwoHipEndpoints_LeavesStructuralCutUnset()
+    {
+        var (topology, sources, _) = ResolveTrapezoidHipFixture();
+        var apex = FindSharedNodeApex(topology);
+        Assert.True(RoofStructuralSidePlaneResolver.TryResolve(
+            topology, apex.SourceFaceIndex, RoofRafterBoundaryRole.Hip,
+            apex.Endpoint, apex.Interior, sources, out var cut, out var reason), reason);
+        Assert.Null(cut);
+        Assert.Equal(RoofStructuralSidePlaneResolver.SharedNodeNoSideCutReason, reason);
+    }
+
+    [Fact]
+    public void F_TrueAmbiguousNonSharedNode_FailsClosed()
+    {
+        // Duplicate interior contacts on the same Hip edge (not a shared-node apex).
+        var (topology, sources, _) = ResolveTrapezoidHipFixture();
+        var jack = FindInteriorHipJack(topology, faceIndex: 0);
+        var hip = sources.First(source =>
+            PointOnClosedSegment(topology.Segment(topology.Edges[source.TopologyEdgeIndex]), jack.Endpoint) &&
+            IsRelativeInterior(topology.Segment(topology.Edges[source.TopologyEdgeIndex]), jack.Endpoint));
+        var duplicated = new[] { hip, hip };
+        Assert.False(RoofStructuralSidePlaneResolver.TryResolve(
+            topology, jack.SourceFaceIndex, RoofRafterBoundaryRole.Hip,
+            jack.Endpoint, jack.Interior, duplicated, out var cut, out var reason));
+        Assert.Null(cut);
+        Assert.Equal("StructuralTargetAmbiguous", reason);
+    }
+
+    [Fact]
+    public void G_InteriorCandidateWinsOverEndpointCandidate()
+    {
+        var (topology, sources, _) = ResolveTrapezoidHipFixture();
+        var jack = FindInteriorHipJack(topology, faceIndex: 0);
+        Assert.True(RoofStructuralSidePlaneResolver.TryResolve(
+            topology, jack.SourceFaceIndex, RoofRafterBoundaryRole.Hip,
+            jack.Endpoint, jack.Interior, sources, out var cut, out var reason), reason);
+        Assert.NotNull(cut);
+        Assert.NotEqual(RoofStructuralSidePlaneResolver.SharedNodeNoSideCutReason, reason);
+    }
+
+    private static (RoofTopology Topology, RoofStructuralRafterTrimSource[] Sources, int FaceIndex)
+        ResolveTrapezoidHipFixture()
+    {
+        var footprint = RoofFootprintValidator.Validate(new RoofFootprintInput(
+            [
+                new RoofPoint2D(0, 0), new RoofPoint2D(10000, 0),
+                new RoofPoint2D(9500, 6000), new RoofPoint2D(1200, 6000),
+            ], true));
+        var solved = RoofGeometrySolver.Solve(new RoofDefinition(
+            footprint.Footprint!, new RoofParameters(35d), RoofKind.Hip));
+        var geometry = Assert.IsType<HipRoofGeometry>(solved.Geometry);
+        var sources = geometry.Topology.Edges
+            .Select((edge, index) => (edge, index))
+            .Where(item => item.edge.Kind == RoofTopologyEdgeKind.Hip)
+            .Select(item => new RoofStructuralRafterTrimSource(
+                item.index, RoofRafterBoundaryRole.Hip,
+                geometry.Topology.Segment(item.edge), 100d))
+            .ToArray();
+        return (geometry.Topology, sources, 1);
+    }
+
+    private static (int SourceFaceIndex, RoofPoint2D Endpoint, RoofPoint2D Interior)
+        FindSharedNodeApex(RoofTopology topology)
+    {
+        var layout = RoofFaceRafterLayoutService.Create(topology, 500d).Layout!;
+        var apex = layout.Segments.First(segment =>
+            segment.EndBoundaryRole == RoofRafterBoundaryRole.Hip &&
+            CountHipHits(topology, segment.SourceFaceIndex, segment.PlanEnd) >= 2);
+        return (apex.SourceFaceIndex, apex.PlanEnd, apex.PlanStart);
+    }
+
+    private static (int SourceFaceIndex, RoofPoint2D Endpoint, RoofPoint2D Interior)
+        FindInteriorHipJack(RoofTopology topology, int faceIndex)
+    {
+        var layout = RoofFaceRafterLayoutService.Create(topology, 500d).Layout!;
+        var jack = layout.Segments.First(segment =>
+            segment.SourceFaceIndex == faceIndex &&
+            segment.EndBoundaryRole == RoofRafterBoundaryRole.Hip &&
+            CountHipHits(topology, segment.SourceFaceIndex, segment.PlanEnd) == 1 &&
+            topology.Edges
+                .Where(edge => edge.Kind == RoofTopologyEdgeKind.Hip &&
+                               edge.FaceIndices.Contains(segment.SourceFaceIndex))
+                .Select(edge => topology.Segment(edge))
+                .Any(axis => IsRelativeInterior(axis, segment.PlanEnd)));
+        return (jack.SourceFaceIndex, jack.PlanEnd, jack.PlanStart);
+    }
+
+    private static int CountHipHits(
+        RoofTopology topology, int sourceFaceIndex, RoofPoint2D endpoint) =>
+        topology.Edges.Count(edge =>
+            edge.Kind == RoofTopologyEdgeKind.Hip &&
+            edge.FaceIndices.Contains(sourceFaceIndex) &&
+            PointOnClosedSegment(topology.Segment(edge), endpoint));
+
+    private static bool PointOnClosedSegment(RoofSegment3D edge, RoofPoint2D point)
+    {
+        var dx = edge.End.X - edge.Start.X;
+        var dy = edge.End.Y - edge.Start.Y;
+        var squared = dx * dx + dy * dy;
+        if (squared <= 0) return false;
+        var fraction = ((point.X - edge.Start.X) * dx + (point.Y - edge.Start.Y) * dy) / squared;
+        var missX = point.X - (edge.Start.X + fraction * dx);
+        var missY = point.Y - (edge.Start.Y + fraction * dy);
+        return fraction >= -1e-6 && fraction <= 1d + 1e-6 &&
+               Math.Sqrt(missX * missX + missY * missY) <= 1e-6;
+    }
+
+    private static bool IsRelativeInterior(RoofSegment3D edge, RoofPoint2D point)
+    {
+        var dx = edge.End.X - edge.Start.X;
+        var dy = edge.End.Y - edge.Start.Y;
+        var squared = dx * dx + dy * dy;
+        if (squared <= 0) return false;
+        var fraction = ((point.X - edge.Start.X) * dx + (point.Y - edge.Start.Y) * dy) / squared;
+        return PointOnClosedSegment(edge, point) &&
+               fraction > 1e-6 && fraction < 1d - 1e-6;
+    }
 }

@@ -166,6 +166,29 @@ public static class RoofStructuralAttachedManualDataRules
             reflected);
     }
 
+    /// <summary>Accepted Manual COPY: translate the current stored frame, never the Generated provenance fold.</summary>
+    public static RoofStructuralAttachedManualDataValidationResult CreateCopiedClone(
+        RoofStructuralAttachedManualData source,
+        RoofSegment3D sourcePlan,
+        RoofSegment3D copiedPlan)
+    {
+        if (source.Placement is not { } frame)
+            return Invalid(RoofStructuralAttachedManualDataError.IncompletePayload);
+        if (new[] { sourcePlan.Start, sourcePlan.End, copiedPlan.Start, copiedPlan.End }
+                .Any(point => !IsFinite(point.X) || !IsFinite(point.Y) || !IsFinite(point.Z)) ||
+            !RoofStructuralManualPlacementRules.TryMatchRigidPlanCopy(sourcePlan, copiedPlan, out var dx, out var dy))
+            return Invalid(RoofStructuralAttachedManualDataError.MalformedValueType);
+        return Create(
+            source.RoofOwnerReference,
+            RoofStructuralAttachedManualIdentityRules.Create(),
+            source.SourceLogicalKey,
+            RoofStructuralAttachedManualCreationKind.Copy,
+            source.WidthMm,
+            source.HeightMode,
+            source.ExplicitHeightMm,
+            RoofStructuralManualPlacementRules.Translate(frame, dx, dy, 0));
+    }
+
     public static bool IsManualPhysicalKey(string? structuralId) =>
         structuralId is not null &&
         structuralId.StartsWith("ManualStructural:", StringComparison.Ordinal);

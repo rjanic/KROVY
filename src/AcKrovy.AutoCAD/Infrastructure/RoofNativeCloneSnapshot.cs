@@ -27,6 +27,8 @@ internal sealed class RoofNativeCloneSnapshot
     public void ConsumeMemberClones(IEnumerable<ObjectId> ids) => _consumedMemberClones.UnionWith(ids);
     public IReadOnlyDictionary<ObjectId, Member> Members => _members;
     public IReadOnlyCollection<ObjectId> PreExistingPhysical => _physical;
+    public IReadOnlyList<IReadOnlyDictionary<ObjectId, ObjectId>> GetMappings() => _mappings;
+    public IReadOnlyCollection<ObjectId> PreExistingIds => _preExisting;
 
     public IReadOnlyDictionary<ObjectId, ObjectId> GetMemberSourcesByClone() => _mappings
         .SelectMany(map => map).Where(pair => _members.ContainsKey(pair.Key))
@@ -111,7 +113,7 @@ internal sealed class RoofNativeCloneSnapshot
 
     public void Observe(IdMapping mapping)
     {
-        if (_owners.Count == 0) return;
+        if (_preExisting.Count == 0) return;
         var batch = new Dictionary<ObjectId, ObjectId>();
         foreach (IdPair pair in mapping)
             if (pair.IsCloned && !pair.Key.IsNull && !pair.Value.IsNull)

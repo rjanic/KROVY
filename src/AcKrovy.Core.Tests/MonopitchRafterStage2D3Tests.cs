@@ -217,9 +217,9 @@ public sealed class MonopitchRafterStage2D3Tests
     [Fact]
     public void VersionSchemaAndUnsupportedScaleRemainFrozen()
     {
-        Assert.Equal(5, RoofDefinitionDataSchema.CurrentVersion);
+        Assert.Equal(6, RoofDefinitionDataSchema.CurrentVersion);
         Assert.Equal(1, RoofDisplayDataSchema.CurrentVersion);
-        Assert.Equal(4, RoofAttachedManualTimberDataSchema.CurrentVersion);
+        Assert.Equal(5, RoofAttachedManualTimberDataSchema.CurrentVersion);
         Assert.Equal(3, (int)RoofKind.Monopitch);
         Assert.False(RoofGeneratedMemberEditCommandRules
             .IsSupportedUnlockedGeneratedTimberCommand("SCALE", RoofKind.Monopitch));

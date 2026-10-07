@@ -30,10 +30,9 @@ public sealed class RoofCopyReplayMetadataSourceContractTests
     [Fact]
     public void CopyRehydration_Fallback_ReusesProvenReanchorRule()
     {
-        // The fallback resolves a compatible live Generated anchor via the existing
-        // SelectNearestAnchor rule (no new anchor engine).
-        Assert.Contains("SelectNearestAnchor", Rehydration);
-        Assert.Contains("RoofAttachedManualReanchorRules.SelectNearestAnchor", Rehydration);
+        // An unresolved association may resolve only the exact source key.
+        Assert.Contains("RoofAttachedManualReanchorRules.SelectRetainedAnchor", Rehydration);
+        Assert.DoesNotContain("RoofAttachedManualReanchorRules.SelectNearestAnchor", Rehydration);
     }
 
     [Fact]

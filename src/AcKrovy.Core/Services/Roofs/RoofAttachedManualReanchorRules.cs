@@ -9,13 +9,27 @@ public sealed record RoofReanchorCandidate(
     RoofPoint3D End);
 
 /// <summary>
-/// Selects the Generated station a moved COPY-origin AttachedManual child now
-/// logically belongs to. The child may sit between two stations; the chosen anchor
-/// is only the reference frame — the child's exact WCS geometry is preserved via a
-/// RelativeSegment recomputed against that anchor (never snapped onto it).
+/// COPY/MOVE retain the exact source frame. Legacy nearest and MIRROR selection
+/// remain separate policies; preserving Plan endpoints alone does not prove that
+/// a change of anchor preserves the physical body's elevation/section frame.
 /// </summary>
 public static class RoofAttachedManualReanchorRules
 {
+    /// <summary>COPY/MOVE retain semantic provenance even when another frame is
+    /// closer. Missing/degenerate provenance is not permission to change the body's
+    /// physical frame; callers must use their existing recovery/detach policy.</summary>
+    public static RoofReanchorCandidate? SelectRetainedAnchor(
+        RoofGeneratedMemberKey sourceKey,
+        IReadOnlyList<RoofReanchorCandidate> candidates,
+        RoofPoint3D childStart,
+        RoofPoint3D childEnd) => candidates.FirstOrDefault(candidate =>
+            candidate.Key == sourceKey &&
+            RoofAttachedManualRelativeGeometryRules.TryCapture(candidate.Start, candidate.End,
+                childStart, childEnd, out var relative) &&
+            new[] { relative.U0Mm, relative.V0Mm, relative.W0Mm,
+                relative.U1Mm, relative.V1Mm, relative.W1Mm }.All(value =>
+                    !double.IsNaN(value) && !double.IsInfinity(value)));
+
     public static RoofReanchorCandidate? SelectNearestAnchor(
         RoofGeneratedMemberKey currentAnchorKey,
         IReadOnlyList<RoofReanchorCandidate> candidates,

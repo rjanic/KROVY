@@ -268,6 +268,7 @@ public static class RoofDefinitionPersistence
             RoofDefinitionDataSchema.TopologyVersion or
             RoofDefinitionDataSchema.HybridLifecycleVersion or
             RoofDefinitionDataSchema.DualSlopeVersion or
+            RoofDefinitionDataSchema.EaveHeightVersion or
             RoofDefinitionDataSchema.CurrentVersion =>
                 ClassifyV2(source, footprint, data),
             _ => new RoofSourceChangeClassification(

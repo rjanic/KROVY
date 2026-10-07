@@ -1,4 +1,5 @@
 using System.Reflection;
+using AcKrovy.AutoCAD.Diagnostics;
 using AcKrovy.AutoCAD.Settings;
 using AcKrovy.AutoCAD.UI;
 using AcKrovy.Core.Models.Roofs;
@@ -26,21 +27,41 @@ internal static class RoofLiveResizeService
     /// reinterpreted as independent display-only tamper for these owners.
     /// Cleared on the next CommandWillStart / cancel / fail boundary.
     /// </summary>
-    private static readonly HashSet<ObjectId> SourceHandledOwnersThisCommand = new();
+    // Compatibility alias for the existing source-precedence checks. The actual
+    // terminal lifecycle state is shared with every downstream recovery service.
+    private static HashSet<ObjectId> SourceHandledOwnersThisCommand =>
+        RoofCommandLifecycleTerminalState.Owners;
 
     private static readonly HashSet<ObjectId> SourceSupportedResizeOwnersThisCommand = new();
 
+#if DEBUG
+    /// <summary>
+    /// Test/HOST seam: when set, the next SupportedResize structural-physical stage
+    /// fails once with this result token (e.g. structural-physical-OrdinaryCutNotOnStructuralSide).
+    /// </summary>
+    internal static string? InjectStructuralPhysicalFailureOnce;
+#endif
+
+    private static string? _lastHardFailureDetail;
+
     public static void BeginStretchCommandScope()
     {
-        SourceHandledOwnersThisCommand.Clear();
+        RoofCommandLifecycleTerminalState.BeginCommand();
         SourceSupportedResizeOwnersThisCommand.Clear();
     }
 
     public static void EndStretchCommandScope()
     {
-        SourceHandledOwnersThisCommand.Clear();
+        RoofCommandLifecycleTerminalState.EndCommand();
         SourceSupportedResizeOwnersThisCommand.Clear();
     }
+
+    /// <summary>True when the current stretch command still tracks a SupportedResize owner.</summary>
+    internal static bool HasPendingSupportedResizeOwners =>
+        SourceSupportedResizeOwnersThisCommand.Count > 0;
+
+    internal static int PendingSupportedResizeOwnerCount =>
+        SourceSupportedResizeOwnersThisCommand.Count;
 
     public static bool ShouldSuppressIncidentalChildManualStretch(
         ObjectId ownerId,
@@ -90,6 +111,10 @@ internal static class RoofLiveResizeService
             return Array.Empty<ObjectId>();
         }
 
+#if DEBUG
+        if (LiveGeometryCommandRules.IsGripStretchCommand(globalCommandName))
+            TraceGripSources(document, modifiedIds);
+#endif
         if (modifiedIds.Count == 0 &&
             erasedSourceHandles.Count == 0 &&
             !RoofGeneratedMemberEditCommandRules.IsEraseCommand(globalCommandName))
@@ -100,6 +125,13 @@ internal static class RoofLiveResizeService
         try
         {
             var plan = Inspect(document.Database, modifiedIds, erasedSourceHandles, globalCommandName);
+#if DEBUG
+            if (LiveGeometryCommandRules.IsGripStretchCommand(globalCommandName))
+                AcKrovyDiagnostics.Info("ROOF_GRIP_COMPLETION",
+                    $"phase=inspection modified={modifiedIds.Count} related={plan.RelatedIds.Count}" +
+                    $" resizeOwners={string.Join(",", plan.ResizeOwnerIds.Select(id => id.Handle.ToString()))}" +
+                    $" unsupportedOwners={string.Join(",", plan.UnsupportedOwnerIds.Select(id => id.Handle.ToString()))}");
+#endif
             if (plan.RelatedIds.Count == 0)
             {
                 return Array.Empty<ObjectId>();
@@ -123,12 +155,19 @@ internal static class RoofLiveResizeService
                     SourceHandledOwnersThisCommand.Add(ownerId);
                 }
 
-                var suspendedPhysical3D = ApplyResizes(
+                var resizeBatch = ApplyResizes(
                     document,
                     plan.ResizeOwnerIds,
                     globalCommandName);
+                if (resizeBatch == ResizeBatchResult.HardFailure)
+                {
+                    // Aggregate + runtime already finalized. Do not continue with
+                    // display/member mutation against a rolled-back owner set.
+                    return plan.RelatedIds;
+                }
+
                 // CommandEnded only — never during grip-drag event spam.
-                if (suspendedPhysical3D)
+                if (resizeBatch == ResizeBatchResult.AppliedSuspendedPhysical3D)
                 {
                     TransientNotificationService.Show(
                         "Command_Roof_Physical3DSuspendedNotificationTitle",
@@ -232,7 +271,8 @@ internal static class RoofLiveResizeService
             // locked non-ERASE tamper recovery, runs only after exact H9 recovery.
             var acceptedOrdinaryStretchOwnerIds = new HashSet<ObjectId>();
             if (plan.GeneratedMemberTamperOwnerIds.Count > 0 &&
-                RoofGeneratedMemberEditCommandRules.IsAssemblySnapshotCommand(globalCommandName))
+                RoofGeneratedMemberEditCommandRules.IsAssemblySnapshotCommand(globalCommandName) &&
+                !LiveGeometryCommandRules.IsSameDwgCopyOwnershipCommand(globalCommandName))
             {
                 foreach (var ownerId in plan.GeneratedMemberTamperOwnerIds)
                 {
@@ -338,6 +378,95 @@ internal static class RoofLiveResizeService
             }
         }
     }
+
+#if DEBUG
+    // Read-only command-completion evidence. This does not queue an owner or restore,
+    // resize, debounce, persist, or introduce another transaction owner for grip edits.
+    private static void TraceGripSources(Document document, IReadOnlyList<ObjectId> modifiedIds)
+    {
+        try
+        {
+            using var transaction = document.Database.TransactionManager.StartTransaction();
+            foreach (var ownerId in RoofUnsupportedStretchRecoverySnapshotService.GetOwnerIds())
+            {
+                if (!AutoCadObjectIdAccess.TryGetObject<Polyline>(transaction, ownerId, OpenMode.ForRead,
+                        out var owner, document.Database) || owner is null ||
+                    !RoofUnsupportedStretchRecoverySnapshotService.TryGet(ownerId, out var snapshot)) continue;
+                AcKrovyDiagnostics.Info("ROOF_GRIP_COMPLETION",
+                    $"phase=before-inspection owner={owner.Handle} queued={modifiedIds.Contains(ownerId)}" +
+                    $" modified={modifiedIds.Count} sourceChanged={HasSourceGeometryChanged(owner, modifiedIds, "GRIP_STRETCH")}" +
+                    $" state={RoofDefinitionStore.Read(owner).Data?.EditState}" +
+                    $" snapshot={System.Text.Json.JsonSerializer.Serialize(snapshot.Data)}" +
+                    $" current={System.Text.Json.JsonSerializer.Serialize(RoofPolylineExtractor.Extract(owner))}");
+            }
+        }
+        catch (System.Exception ex)
+        {
+            AcKrovyDiagnostics.Info("ROOF_GRIP_COMPLETION", $"phase=trace-failed error={ex.GetType().Name}");
+        }
+    }
+
+    private static void TraceStructuralCutFailureDiagnostics(
+        Document document,
+        Transaction transaction,
+        Polyline owner,
+        HipRoofGeometry hip,
+        string structuralResult)
+    {
+        if (structuralResult.IndexOf("OrdinaryCutNotOnStructuralSide", StringComparison.OrdinalIgnoreCase) < 0 &&
+            structuralResult.IndexOf("OrdinaryStructuralCut", StringComparison.OrdinalIgnoreCase) < 0)
+            return;
+        try
+        {
+            if (!RoofOrdinaryRafterSolidMaterializationService.TryBuildExistingModelInTransaction(
+                    document.Database, transaction, owner, hip, out var ordinary,
+                    structuralReconcilePending: true) ||
+                ordinary is null)
+            {
+                AcKrovyDiagnostics.Info(
+                    "ROOF_STRUCT_CUT_CLASSIFY",
+                    $"owner={owner.Handle} result={structuralResult} ordinaryModel=unavailable");
+                return;
+            }
+
+            var definition = RoofDefinitionStore.Read(owner).Data;
+            foreach (var edge in hip.Topology.Edges.Select((item, index) => (item, index))
+                         .Where(pair => pair.item.Kind is RoofTopologyEdgeKind.Hip or RoofTopologyEdgeKind.Valley))
+            {
+                var axis = hip.Topology.Segment(edge.item);
+                var expectedRole = edge.item.Kind == RoofTopologyEdgeKind.Hip
+                    ? RoofRafterBoundaryRole.Hip : RoofRafterBoundaryRole.Valley;
+                var width = RoofPhysicalElevationStore.Read(owner).Data?.StructuralWidthMm ?? 0d;
+                foreach (var member in ordinary.Members)
+                {
+                    if (member.StructuralCut?.TopologyEdgeIndex != edge.index)
+                        continue;
+                    var kind = RoofStructuralOrdinaryContactRules.Classify(
+                        member, axis, edge.index, expectedRole, width, out var detail);
+                    var overrideText = definition?.Overrides?
+                        .FirstOrDefault(item => item.Key == member.MemberKey) is { } ov
+                        ? $"along={ov.AlongMm}:lateral={ov.LateralMm}:start={ov.StartOffsetMm}:end={ov.EndOffsetMm}"
+                        : "none";
+                    AcKrovyDiagnostics.Info(
+                        "ROOF_STRUCT_CUT_CLASSIFY",
+                        $"owner={owner.Handle} ordinary={member.PhysicalIdentity} " +
+                        $"structuralEdge={edge.index}:{expectedRole} classification={kind} " +
+                        $"override={overrideText} detail={detail} " +
+                        $"plan=({member.PlanAxis.Start.X},{member.PlanAxis.Start.Y})->({member.PlanAxis.End.X},{member.PlanAxis.End.Y})");
+                    document.Editor.WriteMessage(
+                        $"\nROOF_STRUCT_CUT_CLASSIFY ordinary={member.PhysicalIdentity} " +
+                        $"edge={edge.index} class={kind} detail={detail}\n");
+                }
+            }
+        }
+        catch (System.Exception ex)
+        {
+            AcKrovyDiagnostics.Info(
+                "ROOF_STRUCT_CUT_CLASSIFY",
+                $"owner={owner.Handle} result={structuralResult} error={ex.GetType().Name}");
+        }
+    }
+#endif
 
     private static InspectionPlan Inspect(
         Database database,
@@ -803,6 +932,7 @@ internal static class RoofLiveResizeService
         _ = transaction;
         foreach (var timber in entry.Assembly.TimberLines)
         {
+            if (entry.IsOrdinaryClaimed(timber.EntityHandle)) continue;
             try
             {
                 if (!long.TryParse(
@@ -834,6 +964,7 @@ internal static class RoofLiveResizeService
     {
         foreach (var annotation in entry.Assembly.Annotations)
         {
+            if (entry.IsOrdinaryClaimed(annotation.EntityHandle)) continue;
             try
             {
                 if (!long.TryParse(
@@ -1532,11 +1663,13 @@ internal static class RoofLiveResizeService
         return true;
     }
 
-    private static bool ApplyResizes(
+    private static ResizeBatchResult ApplyResizes(
         Document document,
         IReadOnlyCollection<ObjectId> ownerIds,
         string? globalCommandName)
     {
+        var hardFailed = false;
+        var failureMessageKey = "Command_RoofRafters_GenerationFailed";
         using (document.LockDocument())
         using (var transaction = document.Database.TransactionManager.StartTransaction())
         {
@@ -1554,7 +1687,7 @@ internal static class RoofLiveResizeService
                         transaction,
                         ownerId,
                         globalCommandName,
-                        out var failureMessageKey,
+                        out failureMessageKey,
                         out var physical3DSuspended);
                     if (result == ResizeApplyResult.HardFailure)
                     {
@@ -1563,12 +1696,8 @@ internal static class RoofLiveResizeService
                             $"\n[AK_ROOF_PHYS3D] resize HardFailure key={failureMessageKey} " +
                             $"cmd={globalCommandName}\n");
 #endif
-                        document.Editor.WriteMessage(
-                            UiStrings.GetString(
-                                string.IsNullOrWhiteSpace(failureMessageKey)
-                                    ? "Command_RoofRafters_GenerationFailed"
-                                    : failureMessageKey));
-                        return false;
+                        hardFailed = true;
+                        break;
                     }
 
                     if (result == ResizeApplyResult.Applied)
@@ -1578,7 +1707,7 @@ internal static class RoofLiveResizeService
                     }
                 }
 
-                if (wrote)
+                if (!hardFailed && wrote)
                 {
                     transaction.Commit();
 #if DEBUG
@@ -1586,15 +1715,169 @@ internal static class RoofLiveResizeService
 #endif
                 }
             }
-            catch (System.Exception)
+            catch (System.Exception ex)
             {
-                document.Editor.WriteMessage(
-                    UiStrings.GetString("Command_RoofRafters_GenerationFailed"));
-                return false;
+                hardFailed = true;
+                failureMessageKey = "Command_RoofRafters_GenerationFailed";
+                _lastHardFailureDetail =
+                    $"owner=- stage=apply-resizes-exception member=- result={ex.GetType().Name} " +
+                    $"exception={ex.Message} transactionState=aborting";
+#if DEBUG
+                AcKrovyDiagnostics.Info("ROOF_RESIZE_HARDFAILURE_DETAIL", _lastHardFailureDetail);
+                document.Editor.WriteMessage($"\nROOF_RESIZE_HARDFAILURE_DETAIL {_lastHardFailureDetail}\n");
+#endif
             }
+            // Dispose without Commit aborts plugin rebuild writes. Native GRIP source
+            // vertices are outside this transaction and require explicit restore below.
 
-            return suspendedPhysical3D;
+            if (!hardFailed)
+            {
+                return suspendedPhysical3D
+                    ? ResizeBatchResult.AppliedSuspendedPhysical3D
+                    : wrote ? ResizeBatchResult.Applied : ResizeBatchResult.NoOp;
+            }
         }
+
+        FinalizeSupportedResizeHardFailure(document, ownerIds, globalCommandName);
+        document.Editor.WriteMessage(
+            UiStrings.GetString(
+                string.IsNullOrWhiteSpace(failureMessageKey)
+                    ? "Command_RoofRafters_GenerationFailed"
+                    : failureMessageKey));
+        return ResizeBatchResult.HardFailure;
+    }
+
+    /// <summary>
+    /// After SupportedResize HardFailure: restore the pre-command aggregate for every
+    /// attempted resize owner and reset stretch runtime state so the next automatic
+    /// edit works without reload.
+    /// </summary>
+    private static void FinalizeSupportedResizeHardFailure(
+        Document document,
+        IReadOnlyCollection<ObjectId> ownerIds,
+        string? globalCommandName)
+    {
+        var dbRollback = false;
+        var groupCanonical = false;
+        var sourceGeometryRestored = false;
+        var roofDefinitionRestored = false;
+        var physicalInventoryRestored = false;
+        var annotationsRestored = false;
+        try
+        {
+            using (document.LockDocument())
+            using (var transaction = document.Database.TransactionManager.StartTransaction())
+            {
+                dbRollback = true;
+                foreach (var ownerId in ownerIds)
+                {
+                    if (!RoofUnsupportedStretchRecoveryService.TryRestoreSupportedResizeFailureAggregate(
+                            document,
+                            transaction,
+                            ownerId,
+                            out var report) ||
+                        !report.IsCompleteSuccess)
+                    {
+                        dbRollback = false;
+                        groupCanonical = report.GroupCanonical;
+                        sourceGeometryRestored = report.SourceGeometryRestored;
+                        roofDefinitionRestored = report.RoofDefinitionRestored;
+                        physicalInventoryRestored = report.PhysicalInventoryRestored;
+                        annotationsRestored = report.AnnotationsRestored;
+#if DEBUG
+                        document.Editor.WriteMessage(
+                            $"\n[AK_ROOF_PHYS3D] resize failure restore incomplete owner={ownerId.Handle} " +
+                            $"cmd={globalCommandName} source={report.SourceGeometryRestored} " +
+                            $"definition={report.RoofDefinitionRestored} physical={report.PhysicalInventoryRestored} " +
+                            $"annotations={report.AnnotationsRestored} groupCanonical={report.GroupCanonical} " +
+                            $"edge12={report.RigidFootprintEdge12Mm?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "-"} " +
+                            $"snapshotEdge12={report.SnapshotRigidFootprintEdge12Mm?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "-"}\n");
+#endif
+                        continue;
+                    }
+
+                    groupCanonical = report.GroupCanonical;
+                    sourceGeometryRestored = report.SourceGeometryRestored;
+                    roofDefinitionRestored = report.RoofDefinitionRestored;
+                    physicalInventoryRestored = report.PhysicalInventoryRestored;
+                    annotationsRestored = report.AnnotationsRestored;
+                }
+
+                if (dbRollback)
+                    transaction.Commit();
+            }
+        }
+        catch (System.Exception)
+        {
+            dbRollback = false;
+        }
+
+        // Explicit runtime reset — never rely only on CommandEnded finally.
+        SourceHandledOwnersThisCommand.Clear();
+        SourceSupportedResizeOwnersThisCommand.Clear();
+        var runtimeReset =
+            SourceHandledOwnersThisCommand.Count == 0 &&
+            SourceSupportedResizeOwnersThisCommand.Count == 0;
+        var pendingResize = HasPendingSupportedResizeOwners;
+        var nextCommandReady = runtimeReset && !pendingResize && dbRollback &&
+                               groupCanonical && sourceGeometryRestored &&
+                               roofDefinitionRestored && physicalInventoryRestored &&
+                               annotationsRestored;
+        var recoveryOk = RoofSupportedResizeFailureRecoveryRules.IsRecoveryVerdictOk(
+            dbRollback,
+            runtimeReset,
+            pendingResize,
+            suppressionDepth: 0,
+            hasActiveOwner: false,
+            groupCanonical,
+            sourceGeometryRestored,
+            roofDefinitionRestored,
+            physicalInventoryRestored,
+            annotationsRestored,
+            nextCommandReady);
+#if DEBUG
+        var owners = string.Join(",", ownerIds.Select(id => id.Handle.ToString()));
+        AcKrovyDiagnostics.Info(
+            "ROOF_RESIZE_FAILURE_RECOVERY",
+            $"owner={owners} command={globalCommandName ?? "-"} dbRollback={dbRollback} " +
+            $"runtimeReset={runtimeReset} pendingResize={pendingResize} suppressionDepth=0 " +
+            $"activeOwner=- groupCanonical={groupCanonical} " +
+            $"sourceGeometryRestored={sourceGeometryRestored} " +
+            $"roofDefinitionRestored={roofDefinitionRestored} " +
+            $"physicalInventoryRestored={physicalInventoryRestored} " +
+            $"annotationsRestored={annotationsRestored} " +
+            $"nextCommandReady={nextCommandReady} " +
+            $"result={(recoveryOk ? "ok" : "fail")}");
+        document.Editor.WriteMessage(
+            $"\nROOF_RESIZE_FAILURE_RECOVERY owner={owners} command={globalCommandName ?? "-"} " +
+            $"dbRollback={dbRollback} runtimeReset={runtimeReset} pendingResize={pendingResize} " +
+            $"suppressionDepth=0 activeOwner=- groupCanonical={groupCanonical} " +
+            $"sourceGeometryRestored={sourceGeometryRestored} " +
+            $"roofDefinitionRestored={roofDefinitionRestored} " +
+            $"physicalInventoryRestored={physicalInventoryRestored} " +
+            $"annotationsRestored={annotationsRestored} " +
+            $"nextCommandReady={nextCommandReady} result={(recoveryOk ? "ok" : "fail")}\n");
+#endif
+    }
+
+    private static ResizeApplyResult HardFailureAt(
+        Document document,
+        ObjectId ownerId,
+        string stage,
+        string result,
+        string? member = null,
+        string? exception = null,
+        string? substage = null)
+    {
+        _lastHardFailureDetail =
+            $"owner={ownerId.Handle} stage={stage} substage={substage ?? "-"} " +
+            $"member={member ?? "-"} result={result} " +
+            $"exception={exception ?? "-"} transactionState=open";
+#if DEBUG
+        AcKrovyDiagnostics.Info("ROOF_RESIZE_HARDFAILURE_DETAIL", _lastHardFailureDetail);
+        document.Editor.WriteMessage($"\nROOF_RESIZE_HARDFAILURE_DETAIL {_lastHardFailureDetail}\n");
+#endif
+        return ResizeApplyResult.HardFailure;
     }
 
     private static ResizeApplyResult TryApplyResize(
@@ -1634,6 +1917,7 @@ internal static class RoofLiveResizeService
     {
         failureMessageKey = "Command_RoofRafters_GenerationFailed";
         physical3DSuspendedDueToIneligibility = false;
+        _lastHardFailureDetail = null;
         var database = document.Database;
         if (!AutoCadObjectIdAccess.TryGetObject<Polyline>(
                 transaction,
@@ -1706,7 +1990,8 @@ internal static class RoofLiveResizeService
                 failureMessageKey = string.IsNullOrWhiteSpace(purlinPreflight.LocalizationKey)
                     ? RoofAutomaticPurlinLiveRegenerationService.LocalizationKeyLayoutIncompatible
                     : purlinPreflight.LocalizationKey;
-                return ResizeApplyResult.HardFailure;
+                return HardFailureAt(document, ownerId, "purlin-preflight",
+                    purlinPreflight.LocalizationKey ?? "layout-incompatible");
             }
         }
 
@@ -1722,6 +2007,7 @@ internal static class RoofLiveResizeService
                     validation.Footprint,
                     classification.Geometry),
                 storedDefinition);
+        updated = RoofOrdinaryRebuildRules.Prepare(updated);
         RoofDefinitionStore.Write(owner, transaction, updated);
         var sourceElevation = RoofPolylineExtractor.GetSourceElevation(owner);
         var elevationState = classification.Geometry is HipRoofGeometry resizedHipForElev &&
@@ -1745,7 +2031,7 @@ internal static class RoofLiveResizeService
                 signature,
                 syncAssemblyGroup: false))
         {
-            return ResizeApplyResult.HardFailure;
+            return HardFailureAt(document, ownerId, "display-rebuild", "display-rebuild-failed");
         }
 
         if (classification.Geometry is HipRoofGeometry resizedHip &&
@@ -1766,7 +2052,8 @@ internal static class RoofLiveResizeService
                 elevation);
             if (!physical.IsSuccess)
             {
-                return ResizeApplyResult.HardFailure;
+                return HardFailureAt(document, ownerId, "ordinary-surface-physical3d",
+                    physical.FailureKey ?? "physical-reconcile-failed");
             }
 
             physical3DSuspendedDueToIneligibility = physical.SuspendedDueToIneligibility;
@@ -1791,7 +2078,15 @@ internal static class RoofLiveResizeService
             syncAssemblyGroup: false);
         if (rafterOutcome == RoofGeneratedRafterSetService.ReplacementOutcome.Failed)
         {
-            return ResizeApplyResult.HardFailure;
+            var detail = RoofGeneratedRafterSetService.LastFailureDetail;
+            return HardFailureAt(
+                document,
+                ownerId,
+                "generated-plan-rebuild",
+                detail?.Result ?? rafterOutcome.ToString(),
+                member: detail?.Member,
+                exception: detail?.ToHardFailureExceptionToken(),
+                substage: detail?.Substage);
         }
 
         // Hip ordinary rafters must rematerialize with the rebuilt display. Returning
@@ -1800,7 +2095,8 @@ internal static class RoofLiveResizeService
             generatedMemberCount > 0 &&
             rafterOutcome != RoofGeneratedRafterSetService.ReplacementOutcome.Replaced)
         {
-            return ResizeApplyResult.HardFailure;
+            return HardFailureAt(document, ownerId, "generated-plan-rebuild",
+                "hip-skipped-replace-with-existing-timber:" + rafterOutcome);
         }
 
         _ = RoofSourceResizeChildPolicyService.Apply(
@@ -1815,7 +2111,8 @@ internal static class RoofLiveResizeService
 
         if (!RoofOrdinaryRafterSolidMaterializationService.TryReconcileAttachedAfterReplay(
                 database, transaction, owner, classification.Geometry))
-            return ResizeApplyResult.HardFailure;
+            return HardFailureAt(document, ownerId, "ordinary-physical3d",
+                "attached-after-replay-failed");
 
         if (rafterOutcome == RoofGeneratedRafterSetService.ReplacementOutcome.SkippedAmbiguousRecipe)
         {
@@ -1851,14 +2148,20 @@ internal static class RoofLiveResizeService
                         owner.ObjectId);
                     if (boundaryRehome.Identity is null)
                     {
-#if DEBUG
-                        document.Editor.WriteMessage(
-                            $"\n[AK_ROOF_PHYS3D] resize boundary-identity failure owner={ownerReference} result={boundaryRehome.Error} cmd={globalCommandName}\n");
-#endif
-                        return ResizeApplyResult.HardFailure;
+                        return HardFailureAt(document, ownerId, "boundary-identity",
+                            "boundary-identity-" + boundaryRehome.Error);
                     }
                 }
 
+#if DEBUG
+                if (!string.IsNullOrWhiteSpace(InjectStructuralPhysicalFailureOnce))
+                {
+                    var injected = InjectStructuralPhysicalFailureOnce;
+                    InjectStructuralPhysicalFailureOnce = null;
+                    return HardFailureAt(document, ownerId, "structural-physical",
+                        injected + ":injected");
+                }
+#endif
                 var structural =
                     RoofAutomaticStructuralRafterMaterializationService.MaterializeInTransaction(
                         document,
@@ -1873,10 +2176,15 @@ internal static class RoofLiveResizeService
                 if (!structural.IsSuccess)
                 {
 #if DEBUG
-                    document.Editor.WriteMessage(
-                        $"\n[AK_ROOF_PHYS3D] resize structural failure owner={ownerReference} result={structural.Result} cmd={globalCommandName}\n");
+                    TraceStructuralCutFailureDiagnostics(
+                        document,
+                        transaction,
+                        owner,
+                        hipGeometryForStructural,
+                        structural.Result);
 #endif
-                    return ResizeApplyResult.HardFailure;
+                    return HardFailureAt(document, ownerId, "structural-physical",
+                        structural.Result ?? "structural-materialize-failed");
                 }
             }
         }
@@ -1895,7 +2203,8 @@ internal static class RoofLiveResizeService
         {
             failureMessageKey =
                 RoofAutomaticPurlinLiveRegenerationService.LocalizationKeyLayoutIncompatible;
-            return ResizeApplyResult.HardFailure;
+            return HardFailureAt(document, ownerId, "purlins",
+                purlinLive.FailureReason ?? "purlin-live-failed");
         }
 
         if (!RoofAssemblyGroupSyncService.TrySyncForOwner(
@@ -1903,7 +2212,7 @@ internal static class RoofLiveResizeService
                 transaction,
                 owner.ObjectId))
         {
-            return ResizeApplyResult.HardFailure;
+            return HardFailureAt(document, ownerId, "group", "group-sync-failed");
         }
 
         RoofUnlockIndicatorService.Sync(database, transaction, owner);
@@ -2463,6 +2772,15 @@ internal static class RoofLiveResizeService
                timberData == entry.TimberData;
     }
 
+    private static bool IsIndependentOrdinaryPhysical(Database database, ObjectId id)
+    {
+        using var transaction = database.TransactionManager.StartTransaction();
+        return AutoCadObjectIdAccess.TryGetObject<Solid3d>(transaction, id,
+                   OpenMode.ForRead, out var solid, database) && solid is not null &&
+               RoofIndependentOrdinaryTimberStore.Read(solid)?.EntityRole ==
+                   RoofIndependentOrdinaryEntityRole.PhysicalSolid;
+    }
+
     private static void ApplyDerivedPhysicalStretchTampers(
         Document document,
         IReadOnlyDictionary<ObjectId, HashSet<ObjectId>> modifiedByOwner,
@@ -2472,7 +2790,8 @@ internal static class RoofLiveResizeService
         var failed = false;
         foreach (var pair in modifiedByOwner)
         {
-            var remaining = pair.Value.Where(id => !id.IsNull && !id.IsErased).ToArray();
+            var remaining = pair.Value.Where(id => !id.IsNull && !id.IsErased)
+                .Where(id => !IsIndependentOrdinaryPhysical(document.Database, id)).ToArray();
             if (remaining.Length == 0) continue; // Already reconciled with accepted Plan2D.
             attempted = true;
             try
@@ -2521,37 +2840,105 @@ internal static class RoofLiveResizeService
         Database database, Transaction transaction, ObjectId ownerId)
     {
         var keys = new HashSet<(RoofPhysical3DGeneratedRole Role, string Id)>();
+        var physicalCount = 0;
         foreach (var id in RoofPhysical3DGeneratedStore.FindByOwner(
                      database, transaction, ownerId.Handle.ToString()))
         {
+            physicalCount++;
             if (!AutoCadObjectIdAccess.TryGetObject<Entity>(transaction, id,
                     OpenMode.ForRead, out var entity, database) || entity is null ||
-                RoofPhysical3DGeneratedStore.Read(entity).Data is not { } data ||
-                !keys.Add((data.Role, data.StructuralId))) return false;
+                RoofPhysical3DGeneratedStore.Read(entity).Data is not { } data)
+                return RollbackVerifyFailure(ownerId, "Physical3D identity", "valid metadata", id.Handle.ToString());
+            if (!keys.Add((data.Role, data.StructuralId)))
+                return RollbackVerifyFailure(ownerId, "Physical3D identity uniqueness", "unique role/key", $"{data.Role}:{data.StructuralId}");
             if (!(data.Role switch
                 {
                     RoofPhysical3DGeneratedRole.Face => entity is Face,
                     RoofPhysical3DGeneratedRole.OrdinaryRafterSolid or
                         RoofPhysical3DGeneratedRole.StructuralRafterSolid => entity is Solid3d,
                     _ => entity is Line,
-                })) return false;
+                }))
+                return RollbackVerifyFailure(ownerId, "Physical3D entity type", data.Role.ToString(), entity.GetType().Name);
         }
         if (!AutoCadObjectIdAccess.TryGetObject<Polyline>(transaction, ownerId, OpenMode.ForRead,
-                out var owner, database) || owner is null) return false;
+                out var owner, database) || owner is null)
+            return RollbackVerifyFailure(ownerId, "Plan2D owner", "Polyline", "missing");
         if (RoofPhysicalElevationStore.Read(owner).Data is { Physical3DEnabled: true } &&
             ClassifyOwner(database, transaction, owner).Geometry is HipRoofGeometry hip)
         {
             if (!RoofOrdinaryRafterSolidMaterializationService.TryBuildExistingModelInTransaction(
-                    database, transaction, owner, hip, out var model) || model is null ||
-                !RoofOrdinaryPhysicalReconciliationRules.IsCanonical(
+                    database, transaction, owner, hip, out var model) || model is null)
+                return RollbackVerifyFailure(ownerId, "Physical3D geometry/placement", "existing model", "model-build-failed");
+            var canonicalOrdinary = RoofOrdinaryPhysicalReconciliationRules.IsCanonical(
                     model.Members.Select(member => member.PhysicalIdentity).ToArray(),
                     keys.Where(key => key.Role == RoofPhysical3DGeneratedRole.OrdinaryRafterSolid)
-                        .Select(key => key.Id).ToArray())) return false;
+                        .Select(key => key.Id).ToArray());
+            if (!canonicalOrdinary)
+                return RollbackVerifyFailure(ownerId, "generated Ordinary inventory", "snapshot-canonical", $"modelMembers={model.Members.Count};physical={physicalCount}");
         }
-        return RoofDisplayGroupService.TryOpenCanonicalGroup(database, transaction,
-                   ownerId, OpenMode.ForRead, out var group) && group is not null &&
-               TryCollectExpectedRoofGroupMembers(database, transaction, ownerId, out var expected) &&
-               RoofAssemblyGroupMembershipRules.IsCanonicalMembership(group.GetAllEntityIds(), expected);
+        if (!RoofDisplayGroupService.TryOpenCanonicalGroup(database, transaction,
+                ownerId, OpenMode.ForRead, out var group) || group is null)
+            return RollbackVerifyFailure(ownerId, "GROUP count", "canonical group", "missing");
+        if (!TryCollectExpectedRoofGroupMembers(database, transaction, ownerId, out var expected))
+            return RollbackVerifyFailure(ownerId, "snapshot owner inventory", "collectable", "failed");
+        var groupIds = group.GetAllEntityIds();
+        if (groupIds.Count() != expected.Count)
+            return RollbackVerifyFailure(ownerId, "GROUP count", expected.Count.ToString(), groupIds.Count().ToString());
+        if (!RoofAssemblyGroupMembershipRules.IsCanonicalMembership(groupIds, expected))
+            return RollbackVerifyFailure(ownerId, "GROUP exact membership", "canonical", "mismatch");
+        RollbackVerifySuccess(ownerId, "GROUP exact membership", expected.Count.ToString(), groupIds.Count().ToString());
+        return true;
+    }
+
+    /// <summary>
+    /// Snapshot-cancel verification deliberately excludes the automatic model
+    /// builder. A prior accepted detach can legitimately reduce roof-owned
+    /// Ordinary inventory, so the current canonical GROUP is the authority here.
+    /// </summary>
+    internal static bool TryVerifyCanonicalGroupState(
+        Database database, Transaction transaction, ObjectId ownerId)
+    {
+        if (!RoofDisplayGroupService.TryOpenCanonicalGroup(
+                database, transaction, ownerId, OpenMode.ForRead, out var group) || group is null)
+            return RollbackVerifyFailure(ownerId, "GROUP count", "canonical group", "missing");
+        if (!TryCollectExpectedRoofGroupMembers(database, transaction, ownerId, out var expected))
+            return RollbackVerifyFailure(ownerId, "snapshot owner inventory", "collectable", "failed");
+        var actual = group.GetAllEntityIds();
+        if (actual.Count() != expected.Count)
+            return RollbackVerifyFailure(ownerId, "GROUP count", expected.Count.ToString(), actual.Count().ToString());
+        if (!RoofAssemblyGroupMembershipRules.IsCanonicalMembership(actual, expected))
+            return RollbackVerifyFailure(ownerId, "GROUP exact membership", "canonical", "mismatch");
+        RollbackVerifySuccess(ownerId, "GROUP exact membership", expected.Count.ToString(), actual.Count().ToString());
+        return true;
+    }
+
+    private static bool RollbackVerifyFailure(
+        ObjectId ownerId, string check, string expected, string actual)
+    {
+#if DEBUG
+        try
+        {
+            AcApp.DocumentManager.MdiActiveDocument?.Editor.WriteMessage(
+                $"\nROOF_ORDINARY_ROLLBACK_VERIFY owner={ownerId.Handle} member=- " +
+                $"check={check} expected={expected} actual={actual} result=false");
+        }
+        catch { }
+#endif
+        return false;
+    }
+
+    private static void RollbackVerifySuccess(
+        ObjectId ownerId, string check, string expected, string actual)
+    {
+#if DEBUG
+        try
+        {
+            AcApp.DocumentManager.MdiActiveDocument?.Editor.WriteMessage(
+                $"\nROOF_ORDINARY_ROLLBACK_VERIFY owner={ownerId.Handle} member=- " +
+                $"check={check} expected={expected} actual={actual} result=true");
+        }
+        catch { }
+#endif
     }
 
     private static void ApplyDerivedPhysicalMoveTampers(
@@ -2566,7 +2953,23 @@ internal static class RoofLiveResizeService
         {
             foreach (var pair in movedByOwner)
             {
-                var liveMovedIds = pair.Value.Where(id => !id.IsNull && !id.IsErased).ToArray();
+                if (RoofCommandLifecycleTerminalState.IsHandled(pair.Key))
+                {
+#if DEBUG
+                    document.Editor.WriteMessage(
+                        $"\nROOF_ORDINARY_RECOVERY_SKIP owner={pair.Key.Handle} " +
+                        "reason=already-terminally-handled skip=derived-solid-recovery");
+#endif
+                    continue;
+                }
+                // An explicit source-edit decision (including CANCEL/NO) owns
+                // the complete lifecycle for this owner.  Never let the later
+                // derived-solid pass reopen a second recovery transaction.
+                if (SourceHandledOwnersThisCommand.Contains(pair.Key))
+                    continue;
+
+                var liveMovedIds = pair.Value.Where(id => !id.IsNull && !id.IsErased)
+                    .Where(id => !IsIndependentOrdinaryPhysical(document.Database, id)).ToArray();
                 if (liveMovedIds.Length == 0)
                     continue; // An accepted 2D edit may already have rebuilt these keys.
                 attempted = true;
@@ -3226,6 +3629,14 @@ internal static class RoofLiveResizeService
         Skipped = 0,
         Applied = 1,
         HardFailure = 2,
+    }
+
+    private enum ResizeBatchResult
+    {
+        NoOp = 0,
+        Applied = 1,
+        AppliedSuspendedPhysical3D = 2,
+        HardFailure = 3,
     }
 
     private enum UnsupportedRecoveryBatchResult

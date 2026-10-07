@@ -257,6 +257,28 @@ public static class RoofUnsupportedStretchRecoveryRules
     public static bool IsAcceptableRestoredClassification(RoofSourceChangeKind kind) =>
         kind == RoofSourceChangeKind.RigidEquivalent;
 
+    /// <summary>
+    /// Drawing-wide series ElementId (NK4/NK5) is not stable member identity. After an
+    /// aborted resize transaction renumbers XData, the pre-command snapshot may disagree
+    /// with live XData on the same handle. That mismatch must not block aggregate restore
+    /// when handle + line role still prove the same pre-command timber.
+    /// </summary>
+    public static bool IsRecoverableGeneratedElementIdSeriesMismatch(
+        string snapshotHandle,
+        string liveHandle,
+        string? snapshotElementId,
+        string? liveElementId,
+        bool isLineEntity,
+        bool hasTimberMetadata) =>
+        isLineEntity &&
+        hasTimberMetadata &&
+        !string.IsNullOrWhiteSpace(snapshotHandle) &&
+        !string.IsNullOrWhiteSpace(liveHandle) &&
+        string.Equals(snapshotHandle, liveHandle, StringComparison.OrdinalIgnoreCase) &&
+        !string.IsNullOrWhiteSpace(snapshotElementId) &&
+        !string.IsNullOrWhiteSpace(liveElementId) &&
+        !string.Equals(snapshotElementId, liveElementId, StringComparison.Ordinal);
+
     public static bool AllOwnersRecoverable(
         string? globalCommandName,
         IReadOnlyList<(string OwnerHandle, RoofSourceChangeKind Kind)> unsupportedOwners,

@@ -24,17 +24,24 @@ internal static class TimberElementItemIdentityService
         Transaction transaction,
         AutoCadTimberElementMetadataStore metadataStore,
         IReadOnlyCollection<ObjectId> targetIds,
-        double roundingStepMm = TimberCuttingLengthCalculator.DefaultRoundingStepMm)
+        double roundingStepMm = TimberCuttingLengthCalculator.DefaultRoundingStepMm,
+        IReadOnlyDictionary<ObjectId, TimberElementSignature>? previousSignatures = null)
     {
 #if DEBUG
         RoofGeneratedPostAtomicWriteDiag.ResetBatch();
 #endif
         var targetSet = targetIds.Distinct().ToHashSet();
         var entries = ReadCurrentMeasurements(database, transaction, metadataStore, roundingStepMm);
-        var assignments = TimberElementItemNumbering.AssignElementIds(entries.Select(entry =>
+        var candidates = entries.Select(entry =>
             new TimberElementItemNumberingCandidate(
                 entry.Measurement,
-                IsChanged: targetSet.Contains(entry.Id))));
+                IsChanged: targetSet.Contains(entry.Id) &&
+                    (previousSignatures is null ||
+                     !previousSignatures.TryGetValue(entry.Id, out var previousSignature) ||
+                     previousSignature != TimberElementSignature.FromMeasurement(entry.Measurement)))).ToList();
+        var assignments = previousSignatures is null
+            ? TimberElementItemNumbering.AssignElementIds(candidates)
+            : TimberElementItemNumbering.AssignElementIdsAfterGeometryEdit(candidates);
         var result = new Dictionary<ObjectId, TimberElementData>();
         var previousElementIdById = new Dictionary<ObjectId, string>();
         var writtenIds = new List<ObjectId>();
@@ -79,6 +86,23 @@ internal static class TimberElementItemIdentityService
 #endif
             metadataStore.Write(writableEntity, updatedData);
             writtenIds.Add(entry.Id);
+        }
+
+        if (previousSignatures is not null)
+        {
+            var signaturesByDesignation = new Dictionary<string, TimberElementSignature>(StringComparer.OrdinalIgnoreCase);
+            foreach (var entry in entries)
+            {
+                if (!AutoCadObjectIdAccess.TryGetObject<Entity>(transaction, entry.Id, OpenMode.ForRead,
+                        out var entity, database) || entity is null ||
+                    !metadataStore.TryRead(entity, out var persisted) || persisted is null ||
+                    persisted.ElementId != result[entry.Id].ElementId)
+                    throw new InvalidOperationException("Accepted geometry designation write was incomplete.");
+                var signature = TimberElementSignature.FromMeasurement(entry.Measurement);
+                if (signaturesByDesignation.TryGetValue(persisted.ElementId, out var existing) && existing != signature)
+                    throw new InvalidOperationException("Designation represents different manufacturing signatures.");
+                signaturesByDesignation[persisted.ElementId] = signature;
+            }
         }
 
         return new TimberElementItemSyncResult(

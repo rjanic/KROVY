@@ -15,6 +15,10 @@ public sealed record RoofGeneratedMemberOverride(
     double EndOffsetMm,
     string? ReservedElementId = null)
 {
+    /// <summary>Freeform grip shape in canonical U/V/W, rebuilt on the current
+    /// roof plane. A later pure MOVE carries this reference without re-lifting.</summary>
+    public RoofAttachedManualRelativeSegment? PhysicalReferenceSegment { get; init; }
+
     public static RoofGeneratedMemberOverride Suppress(
         RoofGeneratedMemberKey key,
         string? reservedElementId = null) =>

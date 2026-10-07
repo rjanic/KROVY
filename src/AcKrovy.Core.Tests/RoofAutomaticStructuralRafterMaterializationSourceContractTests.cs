@@ -163,7 +163,7 @@ public sealed class RoofAutomaticStructuralRafterMaterializationSourceContractTe
             apply);
         Assert.Contains("existingStructuralCount > 0", apply);
         Assert.Contains("if (!structural.IsSuccess)", apply);
-        Assert.Contains("ResizeApplyResult.HardFailure", apply);
+        Assert.Contains("HardFailureAt(document, ownerId, \"structural-physical\"", apply);
         Assert.DoesNotContain("RoofAutomaticPurlinMaterializationService", apply);
         Assert.True(
             resize.IndexOf(

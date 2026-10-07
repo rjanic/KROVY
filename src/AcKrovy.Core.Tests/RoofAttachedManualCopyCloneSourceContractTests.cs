@@ -33,9 +33,10 @@ public sealed class RoofAttachedManualCopyCloneSourceContractTests
     }
 
     [Fact]
-    public void Clone_UsesFaceAwareNearestAnchor_AndCapturesFromCloneWcs()
+    public void Clone_RetainsSourceAnchor_AndCapturesFromCloneWcs()
     {
-        Assert.Contains("SelectNearestMirrorAnchor", Service);
+        Assert.Contains("SelectRetainedAnchor", Service);
+        Assert.DoesNotContain("SelectNearestMirrorAnchor", Service);
         Assert.Contains("RoofAttachedManualLifecycleService.CreateAnchoredData", Service);
         Assert.Contains("cloneLine.StartPoint", Service);
         Assert.Contains("cloneLine.EndPoint", Service);

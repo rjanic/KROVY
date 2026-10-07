@@ -103,6 +103,7 @@ public sealed class SettingsFashionLookTests
                 SettingsWindowTabKind.Manufacturing,
                 SettingsWindowTabKind.Annotation,
                 SettingsWindowTabKind.Language,
+                SettingsWindowTabKind.Warnings,
             ],
             SettingsFashionLookRules.NavigationSections);
     }
@@ -660,7 +661,7 @@ public sealed class SettingsFashionLookTests
         Assert.Contains("section == SettingsWindowTabKind.Layers", code);
         Assert.Contains("section == SettingsWindowTabKind.Manufacturing", code);
         Assert.Contains("section == SettingsWindowTabKind.Annotation", code);
-        Assert.Contains("section == SettingsWindowTabKind.Language", code);
+        Assert.Contains("section is SettingsWindowTabKind.Language or SettingsWindowTabKind.Warnings", code);
         Assert.Contains("window.Activate()", owner);
     }
 
@@ -774,6 +775,7 @@ public sealed class SettingsFashionLookTests
             SettingsWindowTabKind.Manufacturing => "SettingsWindow_Manufacturing_Tab",
             SettingsWindowTabKind.Annotation => "SettingsWindow_Annotation_Tab",
             SettingsWindowTabKind.Language => "SettingsWindow_Language_Tab",
+            SettingsWindowTabKind.Warnings => "SettingsWindow_Warnings_Tab",
             _ => "SettingsWindow_Layers_Tab",
         };
 

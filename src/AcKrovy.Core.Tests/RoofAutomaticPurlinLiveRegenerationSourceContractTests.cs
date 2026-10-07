@@ -200,7 +200,7 @@ public sealed class RoofAutomaticPurlinLiveRegenerationSourceContractTests
         Assert.Contains("if (!purlinLive.IsSuccess)", EditWorkflow);
         Assert.Contains("return null;", Segment(EditWorkflow, "if (!purlinLive.IsSuccess)", "RoofUnlockIndicatorService"));
         Assert.Contains(
-            "return ResizeApplyResult.HardFailure;",
+            "HardFailureAt(document, ownerId, \"purlins\"",
             Segment(LiveResize, "if (!purlinLive.IsSuccess)", "RoofUnlockIndicatorService"));
         Assert.Contains("if (!purlinPreflight.IsSuccess)", EditWorkflow);
         Assert.Contains("if (!purlinPreflight.IsSuccess)", LiveResize);

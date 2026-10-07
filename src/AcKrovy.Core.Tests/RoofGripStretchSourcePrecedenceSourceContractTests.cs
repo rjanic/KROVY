@@ -50,7 +50,7 @@ public sealed class RoofGripStretchSourcePrecedenceSourceContractTests
         var inspect = Member(
             ResizeService,
             "private static InspectionPlan Inspect(",
-            "private static bool ApplyResizes");
+            "private static ResizeBatchResult ApplyResizes");
         Assert.Contains("SourceHandledOwnersThisCommand.Contains(ownerId)", inspect);
         Assert.Contains("resizeOwners.Contains(ownerId)", inspect);
         Assert.Contains("unsupportedOwners.Contains(ownerId)", inspect);

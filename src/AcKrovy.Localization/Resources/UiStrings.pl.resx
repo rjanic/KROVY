@@ -1205,4 +1205,49 @@ Zapisany układ płatwi nie jest zgodny z nową geometrią dachu.
 Dostosuj płatwie lub wybierz odpowiednią geometrię.</value></data>
   <data name="Command_RoofSelectSource_Prompt" xml:space="preserve"><value>
 Wybierz obrys lub część dachu, aby zaznaczyć obrys źródłowy: </value></data>
+  <data name="RoofOrdinaryPhysical3DWarningTitle" xml:space="preserve"><value>Edycja elementu 3D</value></data>
+  <data name="RoofOrdinaryPhysical3DWarningOk" xml:space="preserve"><value>OK</value></data>
+  <data name="RoofOrdinaryDetachTitle" xml:space="preserve"><value>Odłącz element od dachu</value></data>
+  <data name="RoofOrdinaryDetachBody" xml:space="preserve"><value>Ta zmiana odłączy element od automatycznego dachu.
+Nie będzie już automatycznie aktualizowany przy kolejnych zmianach dachu.
+Kontynuować?</value></data>
+  <data name="RoofOrdinaryDetachYes" xml:space="preserve"><value>Tak</value></data>
+  <data name="RoofOrdinaryDetachNo" xml:space="preserve"><value>Nie</value></data>
+  <data name="SettingsWindow_Warnings_Tab" xml:space="preserve"><value>Ostrzeżenia i potwierdzenia</value></data>
+  <data name="SettingsWindow_ConfirmAutomaticDetach" xml:space="preserve"><value>Potwierdzaj odłączanie automatycznych elementów</value></data>
+  <data name="SettingsWindow_WarnDerived3DEdit" xml:space="preserve"><value>Ostrzegaj przy próbie edycji pochodnego elementu 3D</value></data>
+  <data name="SettingsWindow_RestoreWarnings" xml:space="preserve"><value>Przywróć wszystkie ostrzeżenia</value></data>
+  <data name="SettingsWindow_DetachWarningExplanation" xml:space="preserve"><value>Po wyłączeniu potwierdzenia edytowany element automatyczny zostanie odłączony od dachu bez kolejnego pytania.</value></data>
+  <data name="Warning_DoNotShowAgain" xml:space="preserve"><value>Nie pokazuj ponownie tego ostrzeżenia</value></data>
+  <data name="Warning_Derived3DEditCancelled" xml:space="preserve"><value>Element 3D jest pochodną 2D. Edycja 3D została anulowana.</value></data>
+  <data name="Warning_PreferenceSaveFailed" xml:space="preserve"><value>Nie udało się zapisać ustawień ostrzeżeń.</value></data>
+  <data name="Message_OrdinaryJoinRejected" xml:space="preserve"><value>JOIN krokwi obsługuje tylko zgodne elementy na jednej osi. Oryginalne elementy zostały przywrócone.</value></data>
+  <!-- Elevation seating (Výškové osadenie) — v1 -->
+  <data name="RoofOrdinaryElevation_Title" xml:space="preserve"><value>Osadzanie wysokościowe krokwi</value></data>
+  <data name="RoofOrdinaryElevation_Section" xml:space="preserve"><value>Osadzanie wysokościowe</value></data>
+  <data name="RoofOrdinaryElevation_Reference" xml:space="preserve"><value>Odniesienie</value></data>
+  <data name="RoofOrdinaryElevation_SH_Tooltip" xml:space="preserve"><value>SH – wysokość dolnej krawędzi</value></data>
+  <data name="RoofOrdinaryElevation_OS_Tooltip" xml:space="preserve"><value>OS – wysokość osi</value></data>
+  <data name="RoofOrdinaryElevation_VH_Tooltip" xml:space="preserve"><value>VH – wysokość górnej krawędzi</value></data>
+  <data name="RoofOrdinaryElevation_Values" xml:space="preserve"><value>Wartości</value></data>
+  <data name="RoofOrdinaryElevation_ValuesHint" xml:space="preserve"><value>Edytuj tylko pola wybranego trybu Oblicz z. Szare pola są wyliczane.</value></data>
+  <data name="RoofOrdinaryElevation_LowerZ" xml:space="preserve"><value>Z dolnego punktu</value></data>
+  <data name="RoofOrdinaryElevation_UpperZ" xml:space="preserve"><value>Z górnego punktu</value></data>
+  <data name="RoofOrdinaryElevation_Slope" xml:space="preserve"><value>Powiązane nachylenie</value></data>
+  <data name="RoofOrdinaryElevation_SlopeLinkedTooltip" xml:space="preserve"><value>Odbicie nachylenia elementu powyżej (Nachylenie [°]). To nie jest druga niezależna wartość.</value></data>
+  <data name="RoofOrdinaryElevation_CalcMode" xml:space="preserve"><value>Oblicz z</value></data>
+  <data name="RoofOrdinaryElevation_Mode_LowerUpper" xml:space="preserve"><value>Z dół + Z góra</value></data>
+  <data name="RoofOrdinaryElevation_Mode_LowerSlope" xml:space="preserve"><value>Z dół + Nachylenie</value></data>
+  <data name="RoofOrdinaryElevation_Mode_UpperSlope" xml:space="preserve"><value>Z góra + Nachylenie</value></data>
+  <data name="RoofOrdinaryElevation_Apply" xml:space="preserve"><value>Zastosuj</value></data>
+  <data name="RoofOrdinaryElevation_Cancel" xml:space="preserve"><value>Anuluj</value></data>
+  <data name="RoofOrdinaryElevation_SelectPrompt" xml:space="preserve"><value>&#xa;Wybierz krokiew do osadzania wysokościowego: </value></data>
+  <data name="RoofOrdinaryElevation_SelectReject" xml:space="preserve"><value>&#xa;Wybierz linię krokwi.</value></data>
+  <data name="RoofOrdinaryElevation_NotALine" xml:space="preserve"><value>&#xa;Osadzanie: wybrany obiekt nie jest linią.</value></data>
+  <data name="RoofOrdinaryElevation_NotOrdinary" xml:space="preserve"><value>&#xa;Osadzanie: wybrany element nie jest zwykłą krokwią.</value></data>
+  <data name="RoofOrdinaryElevation_Degenerate" xml:space="preserve"><value>&#xa;Osadzanie: krokiew jest zbyt krótka.</value></data>
+  <data name="RoofOrdinaryElevation_NoMetadata" xml:space="preserve"><value>&#xa;Osadzanie: metadane niedostępne.</value></data>
+  <data name="RoofOrdinaryElevation_NoChange" xml:space="preserve"><value>&#xa;Osadzanie: brak zmian.</value></data>
+  <data name="RoofOrdinaryElevation_Applied" xml:space="preserve"><value>&#xa;Osadzanie wysokościowe zastosowane.</value></data>
+  <data name="RoofOrdinaryElevation_Failed" xml:space="preserve"><value>&#xa;Osadzanie: błąd podczas stosowania</value></data>
 </root>

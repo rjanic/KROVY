@@ -142,6 +142,32 @@ internal static class RoofGeneratedTimberStore
         }
     }
 
+    public static bool TryResolveId(
+        Database database,
+        string handleText,
+        out ObjectId id)
+    {
+        id = ObjectId.Null;
+        if (!long.TryParse(
+                handleText,
+                NumberStyles.AllowHexSpecifier,
+                CultureInfo.InvariantCulture,
+                out var handleValue) || handleValue <= 0)
+        {
+            return false;
+        }
+
+        try
+        {
+            id = database.GetObjectId(false, new Handle(handleValue), 0);
+            return !id.IsNull;
+        }
+        catch (Autodesk.AutoCAD.Runtime.Exception)
+        {
+            return false;
+        }
+    }
+
     public static void Write(
         Entity entity,
         Transaction transaction,

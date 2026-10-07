@@ -188,25 +188,19 @@ public sealed class RoofAutomaticRafterPhysicalBuilderTests
         Assert.True(RoofFaceRafterMaterializationAdapter.TryCreateMaterializationLayout(
             geometry, layout, 80d, out var generated));
         var sources = StructuralSources(geometry.Topology, 100d);
-        Assert.False(RoofAutomaticRafterPhysicalBuilder.TryBuild(
+        // Shared-node apex stations leave StructuralCut unset; full build must succeed.
+        Assert.True(RoofAutomaticRafterPhysicalBuilder.TryBuild(
             "TRAP", geometry.Topology, layout, generated, 3000d, 80d, 125d,
             new RoofAutomaticRafterPhysicalSettings(), null, sources,
-            out var unresolved, out var fullReason));
-        Assert.Null(unresolved);
-        Assert.Contains("StructuralTargetAmbiguous", fullReason);
+            out var fullModel, out var fullReason), fullReason);
+        Assert.NotNull(fullModel);
+        Assert.Contains(fullModel!.Members, member =>
+            (member.StartBoundaryRole == RoofRafterBoundaryRole.Hip ||
+             member.EndBoundaryRole == RoofRafterBoundaryRole.Hip) &&
+            member.StructuralCut is null);
         var non45 = new List<RoofAutomaticRafterPhysicalMember>();
-        foreach (var rafter in generated.Rafters)
+        foreach (var member in fullModel.Members)
         {
-            var filtered = generated with { Rafters = [rafter] };
-            if (!RoofAutomaticRafterPhysicalBuilder.TryBuild(
-                    "TRAP", geometry.Topology, layout, filtered, 3000d, 80d, 125d,
-                    new RoofAutomaticRafterPhysicalSettings(), null, sources,
-                    out var model, out var reason))
-            {
-                Assert.Contains("StructuralTargetAmbiguous", reason);
-                continue;
-            }
-            var member = Assert.Single(model!.Members);
             if (member.StructuralCut is not { } cut)
                 continue;
             var axis = sources.Single(item =>
@@ -227,6 +221,74 @@ public sealed class RoofAutomaticRafterPhysicalBuilderTests
             Assert.All(cut.CutFaceVertices, point => Assert.Equal(0d,
                 Dot(Direction(cut.PlanePoint, point), cut.PlaneNormal), 5));
         });
+    }
+
+    [Fact]
+    public void RectangularHip_SharedNodeApexStations_BuildWithoutStructuralCut()
+    {
+        var footprint = RoofFootprintValidator.Validate(new RoofFootprintInput(
+            [
+                new RoofPoint2D(0, 0), new RoofPoint2D(12000, 0),
+                new RoofPoint2D(12000, 8000), new RoofPoint2D(0, 8000),
+            ], true));
+        Assert.True(footprint.IsValid);
+        var solved = RoofGeometrySolver.Solve(new RoofDefinition(
+            footprint.Footprint!, new RoofParameters(35d), RoofKind.Hip));
+        Assert.True(solved.IsValid);
+        var geometry = (HipRoofGeometry)solved.Geometry!;
+        var layoutResult = RoofFaceRafterLayoutService.Create(geometry.Topology, 600d);
+        Assert.True(layoutResult.IsValid);
+        var layout = layoutResult.Layout!;
+        Assert.True(RoofFaceRafterMaterializationAdapter.TryCreateMaterializationLayout(
+            geometry, layout, 80d, out var generated));
+        var sources = StructuralSources(geometry.Topology, 100d);
+        Assert.True(RoofAutomaticRafterPhysicalBuilder.TryBuild(
+            "RECT", geometry.Topology, layout, generated, 3000d, 80d, 125d,
+            new RoofAutomaticRafterPhysicalSettings(), null, sources,
+            out var model, out var reason), reason);
+        Assert.DoesNotContain("StructuralTargetAmbiguous", reason);
+        var apex = model!.Members.Where(member =>
+            (member.StartBoundaryRole == RoofRafterBoundaryRole.Hip ||
+             member.EndBoundaryRole == RoofRafterBoundaryRole.Hip) &&
+            member.StructuralCut is null).ToArray();
+        Assert.True(apex.Length >= 2);
+        foreach (var member in model.Members.Where(item => item.StructuralCut is not null))
+        {
+            var cut = member.StructuralCut!;
+            Assert.Equal(1, sources.Count(source =>
+                source.TopologyEdgeIndex == cut.TopologyEdgeIndex));
+            var axis = sources.Single(source =>
+                source.TopologyEdgeIndex == cut.TopologyEdgeIndex).Axis;
+            Assert.Equal(50d,
+                Dot(Direction(axis.Start, cut.PlanePoint), cut.PlaneNormal), 6);
+        }
+    }
+
+    [Fact]
+    public void RoofResizeLayout_SharedNodeApex_DoesNotAbortPhysicalReconcile()
+    {
+        // Stretch-equivalent trapezoid: generated-plan-rebuild ordinary Physical3D must succeed.
+        var footprint = RoofFootprintValidator.Validate(new RoofFootprintInput(
+            [
+                new RoofPoint2D(0, 0), new RoofPoint2D(7138.038790322185, 0),
+                new RoofPoint2D(7138.038790322185, 6000), new RoofPoint2D(0, 6000),
+            ], true));
+        Assert.True(footprint.IsValid);
+        var solved = RoofGeometrySolver.Solve(new RoofDefinition(
+            footprint.Footprint!, new RoofParameters(30d), RoofKind.Hip));
+        Assert.True(solved.IsValid);
+        var geometry = (HipRoofGeometry)solved.Geometry!;
+        var layoutResult = RoofFaceRafterLayoutService.Create(geometry.Topology, 600d);
+        Assert.True(layoutResult.IsValid);
+        Assert.True(RoofFaceRafterMaterializationAdapter.TryCreateMaterializationLayout(
+            geometry, layoutResult.Layout!, 80d, out var generated));
+        Assert.True(RoofAutomaticRafterPhysicalBuilder.TryBuild(
+            "2912", geometry.Topology, layoutResult.Layout!, generated, 0d, 80d, 125d,
+            new RoofAutomaticRafterPhysicalSettings(), null,
+            StructuralSources(geometry.Topology, 120d),
+            out var model, out var reason), reason);
+        Assert.Equal(generated.Rafters.Count, model!.Members.Count);
+        Assert.DoesNotContain("StructuralTargetAmbiguous", reason);
     }
 
     [Theory]

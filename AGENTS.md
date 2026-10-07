@@ -20,11 +20,21 @@ Treat that contract as normative. Accepted user-approved physical definitions, v
 
 Keep `AcKrovy.Core`, `AcKrovy.Cad.Abstractions`, `AcKrovy.Localization`, and `AcKrovy.Infrastructure` free of Autodesk, BricsCAD, ZWCAD, ODA, and Teigha dependencies.
 
+## KROVY UI dialog style rule
+
+All KROVY user-visible windows and dialogs must reuse the approved wood-style
+WPF resources used by the existing Automatic Purlin / Wall Plate windows.
+Default Windows or `MessageBox` styling is not allowed for new KROVY-owned
+dialogs unless explicitly approved. Before adding a dialog style, inspect and
+reuse the existing shared KROVY wood resources.
+
 Close AutoCAD before running any build that may load AutoCAD assemblies. Do not build against an active AutoCAD process.
 
 Commit and push only after all required verification succeeds. Never create a release tag without an explicit user request.
 
 Before prompts that ask Codex to perform substantial work, give the user an explicit model recommendation.
+
+For every new task or prompt in this project, recommend the least expensive available model that can reliably handle it, then stop and wait for the user's confirmation before starting the work. If AutoCAD must be closed for the task and is running, close it. When the user may have unsaved work in AutoCAD, allow 15 seconds for the user to respond before closing it.
 
 
 ## CAD host compatibility contract (normative)

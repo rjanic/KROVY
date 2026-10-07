@@ -107,8 +107,8 @@ public sealed class MonopitchRafterStage2D1SourceContractTests
     {
         var applyResizes = Segment(
             Resize,
-            "private static bool ApplyResizes(",
-            "private static ResizeApplyResult TryApplyResize(");
+            "private static ResizeBatchResult ApplyResizes(",
+            "private static void FinalizeSupportedResizeHardFailure(");
         var commandEnded = Segment(
             Live,
             "private void CommandEnded(",
@@ -117,6 +117,7 @@ public sealed class MonopitchRafterStage2D1SourceContractTests
         Assert.Equal(1, Count(applyResizes, "StartTransaction()"));
         Assert.Equal(1, Count(applyResizes, "transaction.Commit()"));
         Assert.Contains("ResizeApplyResult.HardFailure", applyResizes);
+        Assert.Contains("FinalizeSupportedResizeHardFailure(", applyResizes);
         var editApply = Segment(
             Edit,
             "private static RoofGeneratedRafterSetService.ReplacementOutcome? TryApply(",
@@ -140,9 +141,9 @@ public sealed class MonopitchRafterStage2D1SourceContractTests
     [Fact]
     public void VersionAndSchemaContractsRemainUnchanged()
     {
-        Assert.Equal(5, RoofDefinitionDataSchema.CurrentVersion);
+        Assert.Equal(6, RoofDefinitionDataSchema.CurrentVersion);
         Assert.Equal(1, RoofDisplayDataSchema.CurrentVersion);
-        Assert.Equal(4, RoofAttachedManualTimberDataSchema.CurrentVersion);
+        Assert.Equal(5, RoofAttachedManualTimberDataSchema.CurrentVersion);
         Assert.Equal(3, (int)RoofKind.Monopitch);
         Assert.Contains("<AcKrovyVersion>0.23.0</AcKrovyVersion>", Read("Directory.Build.props"));
     }

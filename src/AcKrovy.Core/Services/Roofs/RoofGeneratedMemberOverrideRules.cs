@@ -153,7 +153,8 @@ public static class RoofGeneratedMemberOverrideRules
             return WithEditState(geometryData, RoofEditState.Locked, null);
         }
 
-        return WithEditState(geometryData, previous.EditState, previous.Overrides);
+        return WithEditState(geometryData, previous.EditState, previous.Overrides) with
+        { OrdinaryRafterRecipe = previous.OrdinaryRafterRecipe };
     }
 
     public static IReadOnlyList<RoofGeneratedMemberOverride> NormalizeOverrides(

@@ -1205,4 +1205,49 @@ The saved purlin layout is not compatible with the new roof geometry.
 Adjust the purlins or choose a suitable geometry.</value></data>
   <data name="Command_RoofSelectSource_Prompt" xml:space="preserve"><value>
 Select an outline or roof part to select the source footprint: </value></data>
+  <data name="RoofOrdinaryPhysical3DWarningTitle" xml:space="preserve"><value>3D element edit</value></data>
+  <data name="RoofOrdinaryPhysical3DWarningOk" xml:space="preserve"><value>OK</value></data>
+  <data name="RoofOrdinaryDetachTitle" xml:space="preserve"><value>Detach element from roof</value></data>
+  <data name="RoofOrdinaryDetachBody" xml:space="preserve"><value>This edit detaches the element from the automatic roof.
+It will no longer update automatically with later roof edits.
+Continue?</value></data>
+  <data name="RoofOrdinaryDetachYes" xml:space="preserve"><value>Yes</value></data>
+  <data name="RoofOrdinaryDetachNo" xml:space="preserve"><value>No</value></data>
+  <data name="SettingsWindow_Warnings_Tab" xml:space="preserve"><value>Warnings and confirmations</value></data>
+  <data name="SettingsWindow_ConfirmAutomaticDetach" xml:space="preserve"><value>Confirm detaching automatic members</value></data>
+  <data name="SettingsWindow_WarnDerived3DEdit" xml:space="preserve"><value>Warn when editing a derived 3D member</value></data>
+  <data name="SettingsWindow_RestoreWarnings" xml:space="preserve"><value>Restore all warnings</value></data>
+  <data name="SettingsWindow_DetachWarningExplanation" xml:space="preserve"><value>With confirmation disabled, the edited automatic member detaches from the roof without another question.</value></data>
+  <data name="Warning_DoNotShowAgain" xml:space="preserve"><value>Do not show this warning again</value></data>
+  <data name="Warning_Derived3DEditCancelled" xml:space="preserve"><value>The 3D member is derived from 2D. The 3D edit was cancelled.</value></data>
+  <data name="Warning_PreferenceSaveFailed" xml:space="preserve"><value>Warning preferences could not be saved.</value></data>
+  <data name="Message_OrdinaryJoinRejected" xml:space="preserve"><value>Rafter JOIN supports compatible members on one axis only. The original members were restored.</value></data>
+  <!-- Elevation seating (Výškové osadenie) — v1 -->
+  <data name="RoofOrdinaryElevation_Title" xml:space="preserve"><value>Rafter elevation seating</value></data>
+  <data name="RoofOrdinaryElevation_Section" xml:space="preserve"><value>Elevation seating</value></data>
+  <data name="RoofOrdinaryElevation_Reference" xml:space="preserve"><value>Reference</value></data>
+  <data name="RoofOrdinaryElevation_SH_Tooltip" xml:space="preserve"><value>SH – elevation of the lower face</value></data>
+  <data name="RoofOrdinaryElevation_OS_Tooltip" xml:space="preserve"><value>OS – elevation of the neutral axis</value></data>
+  <data name="RoofOrdinaryElevation_VH_Tooltip" xml:space="preserve"><value>VH – elevation of the upper face</value></data>
+  <data name="RoofOrdinaryElevation_Values" xml:space="preserve"><value>Values</value></data>
+  <data name="RoofOrdinaryElevation_ValuesHint" xml:space="preserve"><value>Edit only the fields required by the selected Calculate-from mode. Grey fields are derived.</value></data>
+  <data name="RoofOrdinaryElevation_LowerZ" xml:space="preserve"><value>Z lower point</value></data>
+  <data name="RoofOrdinaryElevation_UpperZ" xml:space="preserve"><value>Z upper point</value></data>
+  <data name="RoofOrdinaryElevation_Slope" xml:space="preserve"><value>Linked slope</value></data>
+  <data name="RoofOrdinaryElevation_SlopeLinkedTooltip" xml:space="preserve"><value>Mirror of the element slope above (Slope [°]). Not a second independent value.</value></data>
+  <data name="RoofOrdinaryElevation_CalcMode" xml:space="preserve"><value>Calculate from</value></data>
+  <data name="RoofOrdinaryElevation_Mode_LowerUpper" xml:space="preserve"><value>Z lower + Z upper</value></data>
+  <data name="RoofOrdinaryElevation_Mode_LowerSlope" xml:space="preserve"><value>Z lower + Slope</value></data>
+  <data name="RoofOrdinaryElevation_Mode_UpperSlope" xml:space="preserve"><value>Z upper + Slope</value></data>
+  <data name="RoofOrdinaryElevation_Apply" xml:space="preserve"><value>Apply</value></data>
+  <data name="RoofOrdinaryElevation_Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="RoofOrdinaryElevation_SelectPrompt" xml:space="preserve"><value>&#xa;Select rafter for elevation seating: </value></data>
+  <data name="RoofOrdinaryElevation_SelectReject" xml:space="preserve"><value>&#xa;Select a rafter line.</value></data>
+  <data name="RoofOrdinaryElevation_NotALine" xml:space="preserve"><value>&#xa;Elevation seating: selected object is not a line.</value></data>
+  <data name="RoofOrdinaryElevation_NotOrdinary" xml:space="preserve"><value>&#xa;Elevation seating: selected member is not an Ordinary rafter.</value></data>
+  <data name="RoofOrdinaryElevation_Degenerate" xml:space="preserve"><value>&#xa;Elevation seating: rafter is too short (degenerate).</value></data>
+  <data name="RoofOrdinaryElevation_NoMetadata" xml:space="preserve"><value>&#xa;Elevation seating: rafter metadata unavailable.</value></data>
+  <data name="RoofOrdinaryElevation_NoChange" xml:space="preserve"><value>&#xa;Elevation seating: no change.</value></data>
+  <data name="RoofOrdinaryElevation_Applied" xml:space="preserve"><value>&#xa;Elevation seating applied.</value></data>
+  <data name="RoofOrdinaryElevation_Failed" xml:space="preserve"><value>&#xa;Elevation seating: error applying change</value></data>
 </root>

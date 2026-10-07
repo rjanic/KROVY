@@ -7,6 +7,41 @@ namespace AcKrovy.Wpf.Tests;
 
 public sealed class RoofRafterTransientPreviewTests
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void EditPreviewMapsCompleteApplyPlan_IncludingAnErasedStation(bool monopitch)
+    {
+        IRoofGeometry geometry = monopitch ? MonopitchGeometry(10000, 6000, 30, 30) : GableGeometry(false);
+        var layout = Layout(geometry, 900, 80);
+        var original = RoofOrdinaryRebuildRules.CreateReplayPlan(layout, null);
+        var erased = original.Items[original.Items.Count / 2];
+        var live = original.Items.ToDictionary(item => item.Rafter.LogicalKey, item => item.Geometry!.Value);
+        Assert.True(live.Remove(erased.Rafter.LogicalKey));
+
+        var preview = RoofOrdinaryRebuildRules.CreateReplayPlan(layout, null);
+        var mapped = RoofTransientPreviewSession.MapGeneratedRafterSegments(preview);
+        var applied = RoofOrdinaryRebuildRules.CreateReplayPlan(layout, null);
+        Assert.Equal(original.MaterializedCount, mapped.Count);
+        Assert.False(live.ContainsKey(erased.Rafter.LogicalKey));
+        Assert.Contains(mapped, segment => segment.Start.X == erased.Geometry!.Value.Start.X &&
+            segment.Start.Y == erased.Geometry.Value.Start.Y && segment.End.X == erased.Geometry.Value.End.X &&
+            segment.End.Y == erased.Geometry.Value.End.Y);
+        for (var index = 0; index < mapped.Count; index++)
+        {
+            var axis = applied.Items[index].Geometry!.Value;
+            Assert.Equal(axis.Start.X, mapped[index].Start.X);
+            Assert.Equal(axis.Start.Y, mapped[index].Start.Y);
+            Assert.Equal(axis.Start.Z, mapped[index].Start.Z);
+            Assert.Equal(axis.End.X, mapped[index].End.X);
+            Assert.Equal(axis.End.Y, mapped[index].End.Y);
+            Assert.Equal(axis.End.Z, mapped[index].End.Z);
+            Assert.Equal(0d, mapped[index].Start.Z);
+            Assert.Equal(0d, mapped[index].End.Z);
+            Assert.Equal((int)applied.Items[index].Rafter.Face, mapped[index].FaceIndex);
+        }
+    }
+
     [Fact]
     public void HipTopologyAdapterMapsNeutralFaceSegmentsWithoutRecomputingGeometry()
     {
